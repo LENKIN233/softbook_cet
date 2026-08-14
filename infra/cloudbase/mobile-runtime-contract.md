@@ -357,6 +357,16 @@ development-only and is never used by the remote mobile profile.
 Use `node infra/cloudbase/import-card-source.mjs --file <json> --track <track>`
 for controlled development imports; dry-run is the default, and `--apply`
 upserts only after the same validator accepts the payload.
+For pre-publication listening-card validation with complete audio descriptors,
+use `scripts/build_card_make_runtime_payload.mjs` with
+`--payload-mode audio-bundle-candidate`, an exact `--scope-card-ids` list, and
+the matching passing card-workspace `--audio-technical-audit`. This mode copies
+the bound MP3 bytes into a local candidate bundle and validates the card source
+with safe relative `asset_path` entries, hashes, durations, sizes, and optional
+back-side transcripts. It does not create environment-specific
+`storage_file_id` values and therefore is not accepted by the development
+importer's `--apply` path. It also does not create content approval, perceptual
+audio QC, a release bundle, deployment evidence, or launch approval.
 Use `node infra/cloudbase/audit-card-sources.mjs` for read-only validation of
 the deployed CET4/CET6 documents after imports or deploys, including active
 `spec/box-catalog.json` prefix and path alignment.
