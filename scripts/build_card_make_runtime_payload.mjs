@@ -25,7 +25,11 @@ const DEFAULT_CARD_MAKE_ROOT = resolve(ROOT, '../card make');
 const DEFAULT_SOURCE_ID = 'card-make-candidate-handoff';
 const DEFAULT_SOURCE_LABEL = 'Card make candidate handoff';
 const TRACKS = ['cet4', 'cet6'];
-const PAYLOAD_MODES = ['development', 'controlled-pilot-candidate'];
+const PAYLOAD_MODES = [
+  'development',
+  'audio-bundle-candidate',
+  'controlled-pilot-candidate',
+];
 const CONTROLLED_PILOT_LIBRARY_COUNTS = new Map([
   ['听力', 24],
   ['仔细阅读', 24],
@@ -48,10 +52,11 @@ Options:
                           Derive the exact controlled-pilot order from a card-make
                           sample confirmation plus its expansion reviews.
   --output-dir <dir>      Directory for generated per-track JSON payloads. Required.
-  --payload-mode <mode>   development (default) or controlled-pilot-candidate.
+  --payload-mode <mode>   development (default), audio-bundle-candidate, or
+                          controlled-pilot-candidate.
   --audio-technical-audit <file>
-                          Required in controlled-pilot-candidate mode; binds and
-                          copies technically verified audio without claiming QC.
+                          Required in both audio candidate modes; binds and copies
+                          technically verified audio without claiming perceptual QC.
   --source-id <id>        Payload source id. Defaults to ${DEFAULT_SOURCE_ID}.
   --source-label <label>  Payload source label. Defaults to ${DEFAULT_SOURCE_LABEL}.`);
 }
@@ -142,6 +147,24 @@ function parseArgs(argv) {
   ) {
     throw new Error(
       'controlled-pilot-candidate mode requires --scope-confirmation and --audio-technical-audit.',
+    );
+  }
+
+  if (
+    options.payloadMode === 'audio-bundle-candidate' &&
+    (!options.audioTechnicalAudit || options.scopeCardIds.length === 0)
+  ) {
+    throw new Error(
+      'audio-bundle-candidate mode requires --scope-card-ids and --audio-technical-audit.',
+    );
+  }
+
+  if (
+    options.payloadMode === 'audio-bundle-candidate' &&
+    options.confirmationPath
+  ) {
+    throw new Error(
+      'audio-bundle-candidate mode does not accept --scope-confirmation.',
     );
   }
 
@@ -576,24 +599,53 @@ function buildRuntimeCardWithoutAudio(record) {
 }
 
 function loadAudioContext(options) {
-  if (options.payloadMode !== 'controlled-pilot-candidate') return null;
+  if (options.payloadMode === 'development') return null;
 
   const audit = readJson(options.audioTechnicalAudit);
+  const requiredTechnicalPasses = [
+    'unique_asset_path_per_card',
+    'file_hash_and_size',
+    'decoder_probe',
+    'declared_duration_binding',
+    'transcript_presence_and_hash',
+  ];
   if (
     audit?.schema_version !== 'audio-technical-audit.v1' ||
-    audit?.track !== 'cet4' ||
+    !TRACKS.includes(audit?.track) ||
     audit?.ok !== true ||
     audit?.summary?.errors !== 0 ||
-    !Array.isArray(audit?.assets)
+    !Array.isArray(audit?.assets) ||
+    audit.assets.length === 0 ||
+    audit?.summary?.referenced_audio_cards !== audit.assets.length ||
+    audit?.summary?.unique_audio_paths !== audit.assets.length ||
+    audit?.summary?.technically_verified_assets !== audit.assets.length ||
+    requiredTechnicalPasses.some(
+      field => audit?.verification?.[field] !== 'passed',
+    ) ||
+    audit?.verification?.speech_to_transcript_match !==
+      'not_verified_requires_listening_or_independent_ASR_review' ||
+    audit?.verification?.clipping_noise_pronunciation_rhythm_stress_pauses !==
+      'not_verified_requires_perceptual_QC' ||
+    audit?.verification?.formal_audio_qc_records_created !== 0
   ) {
     throw new Error('Audio technical audit is invalid or not fully passing.');
   }
 
+  const auditByCardId = new Map();
+  for (const asset of audit.assets) {
+    const cardId = String(asset?.card_id || '');
+    if (!/^\d{6}$/.test(cardId) || auditByCardId.has(cardId)) {
+      throw new Error('Audio technical audit contains an invalid or duplicate card id.');
+    }
+    auditByCardId.set(cardId, asset);
+  }
+
   return {
     assets: [],
-    auditByCardId: new Map(audit.assets.map(asset => [String(asset.card_id), asset])),
+    auditByCardId,
     cardMakeRoot: options.cardMakeRoot,
     outputDir: options.outputDir,
+    track: audit.track,
   };
 }
 
@@ -601,8 +653,11 @@ function buildRuntimeAudio(record, context) {
   const sourceAudio = record.card.audio;
   const audit = context.auditByCardId.get(String(record.card.card_id));
   const sourcePath = firstText(sourceAudio.path, sourceAudio.url);
+  const ref = knowledgeRef(record.card);
+  const track = requireTrack(record.card.track || ref.track, record.card.card_id);
 
   if (
+    track !== context.track ||
     !audit ||
     audit.asset_path !== sourcePath ||
     audit.declared_duration_ms !== sourceAudio.duration_ms ||
@@ -615,7 +670,10 @@ function buildRuntimeAudio(record, context) {
     throw new Error(`Audio evidence for card ${record.card.card_id} is incomplete or mismatched.`);
   }
 
-  if (!/^ai_tts\/[a-z0-9/_-]+\.mp3$/.test(sourcePath)) {
+  if (
+    !/^ai_tts\/[a-z0-9/_-]+\.mp3$/.test(sourcePath) ||
+    !sourcePath.startsWith(`ai_tts/${track}/`)
+  ) {
     throw new Error(`Audio path for card ${record.card.card_id} is invalid.`);
   }
 
@@ -631,8 +689,8 @@ function buildRuntimeAudio(record, context) {
     throw new Error(`Audio hash for card ${record.card.card_id} changed after technical audit.`);
   }
 
-  const assetId = `cet4-${record.card.card_id}-audio`;
-  const assetPath = `audio/cet4/${record.card.card_id.slice(0, 4)}/${record.card.card_id}.mp3`;
+  const assetId = `${track}-${record.card.card_id}-audio`;
+  const assetPath = `audio/${track}/${record.card.card_id.slice(0, 4)}/${record.card.card_id}.mp3`;
   const absoluteOutputPath = resolve(context.outputDir, assetPath);
   mkdirSync(dirname(absoluteOutputPath), {recursive: true});
   copyFileSync(absoluteSourcePath, absoluteOutputPath);
@@ -816,6 +874,32 @@ function validateControlledPilotCandidateSummary(runtimeCards, audioContext, man
   }
 }
 
+function validateAudioBundleCandidateSummary(runtimeCards, audioContext) {
+  const audioCards = runtimeCards.filter(card => card.audio);
+
+  if (
+    runtimeCards.length === 0 ||
+    audioCards.length !== runtimeCards.length ||
+    audioContext?.assets?.length !== runtimeCards.length
+  ) {
+    throw new Error(
+      'Audio-bundle candidate must bind one technically audited asset per scoped card.',
+    );
+  }
+
+  if (runtimeCards.some(card => card.space_metadata.library !== '听力')) {
+    throw new Error(
+      'Audio-bundle candidate accepts listening-library cards only.',
+    );
+  }
+
+  if (runtimeCards.some(card => card.track !== audioContext?.track)) {
+    throw new Error(
+      'Audio-bundle candidate cards must match the technical-audit track.',
+    );
+  }
+}
+
 function countValues(values, selector) {
   const counts = new Map();
   for (const value of values) {
@@ -853,7 +937,7 @@ function writePayloads(options, runtimeCards, audioContext) {
       );
     }
     const validated = validateCardSourceCatalogMapping(
-      options.payloadMode === 'controlled-pilot-candidate'
+      options.payloadMode !== 'development'
         ? validateCardSourceForReleaseBundle(payload, track)
         : validateCardSourceForImport(payload, track),
     );
@@ -885,6 +969,9 @@ function main() {
     const scopedCards = loadScopedCards(options);
     const audioContext = loadAudioContext(options);
     const runtimeCards = scopedCards.map(record => buildRuntimeCard(record, audioContext));
+    if (options.payloadMode === 'audio-bundle-candidate') {
+      validateAudioBundleCandidateSummary(runtimeCards, audioContext);
+    }
     if (options.payloadMode === 'controlled-pilot-candidate') {
       validateControlledPilotCandidateSummary(
         runtimeCards,
@@ -926,9 +1013,13 @@ if (resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
 }
 
 export {
+  buildRuntimeAudio,
   buildSwipeStates,
   deriveConfirmedPilotScope,
+  loadAudioContext,
   parseArgs,
   roundRobin,
+  validateAudioBundleCandidateSummary,
   validateControlledPilotCandidateSummary,
+  writePayloads,
 };
