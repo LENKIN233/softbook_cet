@@ -4,7 +4,7 @@
 
 - Date: 2026-08-14
 - Branch: `cross/listening-candidate-mobile-acceptance`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/505
 - Summary: Added a fail-closed, opt-in product acceptance command that takes one external unpublished audio-bundle candidate through the real mobile card parser, card/asset binding, every card's owned completion semantics, representative Learning UI completion, analysis detail, audio-control rendering, and runtime metadata-leak checks without claiming signed-manifest, perceptual-QC, receiver, device, deployment, or launch evidence.
 
 ## Referenced specs
