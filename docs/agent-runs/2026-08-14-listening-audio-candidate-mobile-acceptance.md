@@ -67,7 +67,7 @@
 - `npm test -- --runInBand --no-watchman` in `apps/mobile` -> 46 suites / 512 tests passed; expected negative-path console warnings only.
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> 272/272 passed.
 - `python3 scripts/validate_harness.py --mode local` -> passed all 15 local semantic sections with the expected partial-completeness marker.
-- `python3 scripts/validate_harness.py` -> local sections passed, but the aggregate command failed only because the current `gh` session could not read repository settings, `main` protection, or the `formal-product-owner-approval` environment; those remote controls remain required PR checks and are not claimed as passed locally.
+- `python3 scripts/validate_harness.py` -> passed, including remote repository settings, `main` protection, and the `formal-product-owner-approval` environment after the command was rerun with permitted network access. The first sandboxed attempt could not connect to the configured local proxy and was not counted as a pass.
 - `git diff --check` -> passed.
 
 ## Validation results
