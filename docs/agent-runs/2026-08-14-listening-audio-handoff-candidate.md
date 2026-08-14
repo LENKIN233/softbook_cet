@@ -4,7 +4,7 @@
 
 - Date: 2026-08-14
 - Branch: `cross/listening-card-audio-handoff`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/504
 - Summary: Extended the external `card make` runtime bridge with a scoped audio-bundle candidate mode, then validated each of the five exact CET4 listening candidate heads as a 12-card/12-audio product payload without publishing, deploying, or claiming perceptual audio quality.
 
 ## Referenced specs
