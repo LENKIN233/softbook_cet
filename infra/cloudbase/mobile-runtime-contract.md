@@ -367,6 +367,29 @@ back-side transcripts. It does not create environment-specific
 `storage_file_id` values and therefore is not accepted by the development
 importer's `--apply` path. It also does not create content approval, perceptual
 audio QC, a release bundle, deployment evidence, or launch approval.
+
+An external `audio-bundle-candidate` payload can be checked against the real
+mobile parser, interaction evaluator, Learning render branches, analysis
+detail, audio-control surface, catalog mapping, and exact card-to-asset binding
+with:
+
+```bash
+node scripts/run_audio_bundle_candidate_mobile_acceptance.mjs \
+  --candidate-payload <audio-bundle-candidate.json> \
+  --checked-at <canonical UTC ISO-8601 timestamp>
+```
+
+The runner accepts only an unpublished (`release=null`) external payload made
+entirely of audio-bound listening cards with one release-bundle asset per card.
+It uses a mode-`0600` temporary fixture, reconstructs a synthetic local
+manifest solely to exercise the existing audio-control UI, verifies that no
+runtime identifiers leak into rendered output, deletes the fixture, and
+requires the tracked worktree to remain unchanged. Its safe report always
+records `signed_manifest_verified=false`, `human_audio_qc_verified=false`,
+`persistent_receiver_verified=false`, `real_device_verified=false`, and
+`gate_eligible=false`; it is therefore pre-publication product acceptance, not
+formal content approval, signed-manifest evidence, deployment, or launch proof.
+
 Use `node infra/cloudbase/audit-card-sources.mjs` for read-only validation of
 the deployed CET4/CET6 documents after imports or deploys, including active
 `spec/box-catalog.json` prefix and path alignment.
