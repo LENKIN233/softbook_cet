@@ -4,7 +4,7 @@
 
 - Date: 2026-08-14
 - Branch: `cross/listening-formal-v2-candidate-revalidation`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/506
 - Summary: Rebuilt the five-box, 60-card CET4 listening candidate from the latest individually reviewed `formal-v2` card heads, overlaid the 15 replacement TTS drafts only in a detached temporary snapshot, regenerated a strict unpublished audio-bundle candidate, and reran the merged mobile Learning acceptance path. This record preserves candidate-only evidence and does not claim formal content approval, human audio QC, private delivery, deployment, real-device playback, or launch readiness.
 
 ## Referenced specs
