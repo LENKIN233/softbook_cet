@@ -16,6 +16,7 @@
     "pretest": "npm run metadata-leak-scan && npm run test:brace-expansion-compat",
     "start": "react-native start",
     "test": "jest",
+    "test:audio-bundle-candidate-acceptance": "jest --config jest.audio-bundle-candidate-acceptance.config.js --runInBand --no-watchman",
     "test:controlled-pilot-acceptance": "jest --config jest.controlled-pilot-acceptance.config.js --runInBand --no-watchman",
     "test:brace-expansion-compat": "node ../../scripts/verify_minimatch_brace_expansion.mjs && node scripts/verify-modern-minimatch.mjs",
     "typecheck": "tsc --noEmit"
