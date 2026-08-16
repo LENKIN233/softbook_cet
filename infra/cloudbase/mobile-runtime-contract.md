@@ -766,6 +766,12 @@ mock server:
 node infra/cloudbase/mock-softbook-api.mjs
 ```
 
+The local mock may serve validated full-corpus payloads by setting
+`SOFTBOOK_CET_CARD_SOURCE_CET4_FILE` and/or
+`SOFTBOOK_CET_CARD_SOURCE_CET6_FILE` before startup. Injected files pass through
+the same import validator as the built-in mock source; this is local runtime
+evidence only and does not write CloudBase or establish launch readiness.
+
 In another shell:
 
 ```bash

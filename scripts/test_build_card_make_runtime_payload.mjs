@@ -12,6 +12,9 @@ import {
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {
+  buildCanonicalSpaceMetadata,
+  buildCorrectOption,
+  buildOptions,
   buildRuntimeAudio,
   buildSwipeStates,
   deriveConfirmedPilotScope,
@@ -123,6 +126,83 @@ function testBooleanSwipeIdentifiers() {
       {id: 'false', label: 'False', description: 'False'},
       {id: 'true', label: 'True', description: 'True'},
     ],
+  );
+}
+
+function testLegacyFormOptions() {
+  assert.deepEqual(
+    buildOptions({
+      card_id: '060003',
+      options: null,
+      form_options: [
+        {form: 'organizes', is_correct: false},
+        {form: 'organized', is_correct: false},
+        {form: 'has organized', is_correct: true},
+        {form: 'had organized', is_correct: false},
+      ],
+    }),
+    [
+      {id: 'A', label: 'A', text: 'organizes'},
+      {id: 'B', label: 'B', text: 'organized'},
+      {id: 'C', label: 'C', text: 'has organized'},
+      {id: 'D', label: 'D', text: 'had organized'},
+    ],
+  );
+  assert.deepEqual(
+    buildOptions({
+      card_id: '163003',
+      options: null,
+      form_options: [
+        {form_no: 1, text: 'be validated', is_correct: true},
+        {form_no: 2, text: 'validated', is_correct: false},
+        {form_no: 3, text: 'being validate', is_correct: false},
+        {form_no: 4, text: 'have validated', is_correct: false},
+      ],
+    }),
+    [
+      {id: 'A', label: 'A', text: 'be validated'},
+      {id: 'B', label: 'B', text: 'validated'},
+      {id: 'C', label: 'C', text: 'being validate'},
+      {id: 'D', label: 'D', text: 'have validated'},
+    ],
+  );
+}
+
+function testTextBasedCorrectOption() {
+  const card = {
+    card_id: '121102',
+    options: [
+      {label: 'A', text: '形容词（如 appealing）', is_correct: true},
+      {label: 'B', text: '副词（如 apparently）', is_correct: false},
+      {label: 'C', text: '名词（如 appeal）', is_correct: false},
+      {label: 'D', text: '动词原形（如 appeal）', is_correct: false},
+    ],
+    answer_key: {correct_option: '形容词（如 appealing）'},
+  };
+  const options = buildOptions(card);
+  assert.equal(buildCorrectOption(card, options), 'A');
+  assert.throws(
+    () => buildCorrectOption(
+      {...card, answer_key: {correct_option: 'B'}},
+      options,
+    ),
+    /conflicts with is_correct/,
+  );
+}
+
+function testCanonicalCatalogMetadata() {
+  assert.deepEqual(
+    buildCanonicalSpaceMetadata({card_id: '004007'}, 'cet4', '0040'),
+    {
+      box_ref: '0040',
+      library: '听力',
+      group: '推理判断',
+      box: '说话意图',
+    },
+  );
+  assert.throws(
+    () => buildCanonicalSpaceMetadata({card_id: '999999'}, 'cet4', '9999'),
+    /uses unmapped knowledge_ref/,
   );
 }
 
@@ -308,6 +388,9 @@ function testAudioBundleCandidate() {
 
 assert.deepEqual(roundRobin([['a', 'b'], ['c']]), ['a', 'c', 'b']);
 testBooleanSwipeIdentifiers();
+testLegacyFormOptions();
+testTextBasedCorrectOption();
+testCanonicalCatalogMetadata();
 testAudioBundleCandidate();
 testConfirmedPilotOrder();
 console.log('build_card_make_runtime_payload tests passed');

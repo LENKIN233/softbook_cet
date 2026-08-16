@@ -3,6 +3,7 @@
 import http from 'node:http';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
+import {readFileSync} from 'node:fs';
 
 const require = createRequire(import.meta.url);
 const {
@@ -525,18 +526,25 @@ function getMockCardSource(track) {
   const cardSources = learningEventsStore.snapshot().cardSources;
 
   if (!cardSources.has(track)) {
+    const injectedFile = process.env[
+      track === 'cet4'
+        ? 'SOFTBOOK_CET_CARD_SOURCE_CET4_FILE'
+        : 'SOFTBOOK_CET_CARD_SOURCE_CET6_FILE'
+    ];
     cardSources.set(
       track,
       validateCardSourceForImport(
-        {
-          card_records: createCardRecords(track),
-          release: null,
-          source: {
-            id: `mock-${track}-source`,
-            label: `Mock ${track.toUpperCase()} Source`,
-          },
-          track,
-        },
+        injectedFile
+          ? JSON.parse(readFileSync(injectedFile, 'utf8'))
+          : {
+              card_records: createCardRecords(track),
+              release: null,
+              source: {
+                id: `mock-${track}-source`,
+                label: `Mock ${track.toUpperCase()} Source`,
+              },
+              track,
+            },
         track,
       ),
     );
