@@ -85,6 +85,7 @@ branch: cross/all-cards-usable-v1
 - 两条轨道均覆盖 `flip`、`multiple_choice`、`lock`、`elimination`、`swipe`，各完成 5 个代表性 UI 流程，并精确验证所选代表卡中的 2 个音频控件。
 - CET6 `1620` 的 8 条新音频已消除 235–245 WPM 的两个语速离群点和约 5 dB 的盒内音量跳变；修正后为 157–202 估算 WPM、平均电平 -21.8 至 -21.1 dB、峰值 -8.5 至 -7.3 dB，完整 CET6 技术音频审计保持 328/328、0 错误。
 - 同一组 8 条音频的声明时长已放在 `afinfo` 与 `ffprobe` 结果中点；两种探测器分别执行完整 328 条审计均为 0 时长绑定错误，避免 macOS 通过而 Linux 超出 50 ms 合同阈值。
+- 使用 `mlx-community/whisper-small.en-mlx` 对 629 条候选音频执行了独立 speech-to-bound-transcript 一致性扫描：CET4 301/301、CET6 328/328 均完成。按标准化 word error rate 大于 20% 的保守阈值初筛出 19 条，逐条复核均为数字文字/阿拉伯数字表示差异，或连读、弱读、音标讲解卡中的刻意发音记法差异；未发现整句错绑、错读为另一张卡或语义内容缺失。该扫描仅是机器辅助一致性排查，不创建或替代人工听感 QC。
 
 ## 验证
 
@@ -94,6 +95,7 @@ branch: cross/all-cards-usable-v1
 - `npm run typecheck`（`apps/mobile`）：passed。
 - `node scripts/run_full_track_candidate_mobile_acceptance.mjs ...cet4...`：1,180/301 passed。
 - `node scripts/run_full_track_candidate_mobile_acceptance.mjs ...cet6...`：在 PR #185 归一化后的真实候选上重新验证，1,234/328 passed，`all_cards_parseable=true`、`all_audio_cards_bound=true`、`all_cards_learning_completable=true`。
+- 独立 ASR 一致性扫描：CET4 301/301、CET6 328/328 完成；19 条高 WER 初筛项逐条复核后为 0 条语义错绑或内容缺失，formal audio QC 仍为 false。
 - `./scripts/run_local_gates --profile dev --base origin/main ...`：23/24 passed，1 项 `dev_node_version_drift` 为已登记开发环境例外（期望 Node 22.13.0，当前 Node 24.15.0），0 failed。
 
 ## Agent review
