@@ -60,6 +60,9 @@ branch: cross/all-cards-usable-v1
   - audio manifest、QC index、卡片、盒和音频计数全部按轨道 fail closed。
 - `infra/cloudbase/manage-beta-entitlement.mjs`
   - beta entitlement 明确拒绝 production profile。
+- `infra/cloudbase/cloudbase-receiver-adapter.mjs`
+  - 正式回滚按保留版本自身 `track` 验证，不再把 CET6 保留版本错误按 CET4 解析；
+  - 增加 CET6 首次激活、后继激活、保留与回滚的接收方回归覆盖。
 - `scripts/run_full_track_candidate_mobile_acceptance.mjs` 与共享移动验收
   - 对完整轨道逐卡验证远端解析和可完成性；
   - 对五类交互分别执行代表性 UI 完成；
@@ -85,6 +88,7 @@ branch: cross/all-cards-usable-v1
 
 - `node scripts/test_build_card_make_runtime_payload.mjs`：passed。
 - `node --test infra/cloudbase/functions/softbook-api/test/release-delivery-v1.test.js infra/cloudbase/functions/softbook-api/test/manage-beta-entitlement.test.js infra/cloudbase/functions/softbook-api/test/audio-bundle-candidate-mobile-acceptance-runner.test.js`：19/19 passed。
+- `node --test infra/cloudbase/functions/softbook-api/test/cloudbase-receiver-adapter.test.js`：包含 CET6 retained-release 回滚 passed。
 - `npm run typecheck`（`apps/mobile`）：passed。
 - `node scripts/run_full_track_candidate_mobile_acceptance.mjs ...cet4...`：1,180/301 passed。
 - `node scripts/run_full_track_candidate_mobile_acceptance.mjs ...cet6...`：1,234/328 passed。
@@ -92,7 +96,7 @@ branch: cross/all-cards-usable-v1
 
 ## Agent review
 
-Passed for track policy, exact count enforcement, profile/track binding, audio manifest/QC index binding, 50 ms technical-audit duration contract alignment, complete-card mobile parsing, five-interaction completion, representative UI rendering, audio-control binding, and visible runtime metadata leak guard.
+Passed for track policy, exact count enforcement, profile/track binding, audio manifest/QC index binding, CET6 retained-release rollback, 50 ms technical-audit duration contract alignment, complete-card mobile parsing, five-interaction completion, representative UI rendering, audio-control binding, and visible runtime metadata leak guard.
 
 No formal approval or launch claim is made. The implementation deliberately preserves the remaining external evidence requirements.
 

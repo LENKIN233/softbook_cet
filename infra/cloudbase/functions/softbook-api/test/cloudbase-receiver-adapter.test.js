@@ -219,6 +219,44 @@ test('rollback activates only a verified version and does not delete learning da
   );
 });
 
+test('CET6 rollback derives the retained track instead of assuming CET4', async () => {
+  const runner = createDatabaseRunner();
+  const adapter = adapterModule.createCloudBaseReceiverAdapter({
+    profile: profileFixture('production'),
+    runner,
+  });
+  const retained = createRuntimeCardSource(
+    'cet6-production-retained',
+    null,
+    'cet6',
+  );
+  const retainedBundle = bundleFixture(retained, null);
+  await adapter.stageContent({bundle: retainedBundle, cardSource: retained});
+  await adapter.verifyStaged({bundle: retainedBundle, cardSource: retained});
+  await adapter.activateRelease({bundle: retainedBundle, cardSource: retained});
+
+  const current = createRuntimeCardSource(
+    'cet6-production-current',
+    'cet6-production-retained',
+    'cet6',
+  );
+  const currentBundle = bundleFixture(current, 'cet6-production-retained');
+  await adapter.stageContent({bundle: currentBundle, cardSource: current});
+  await adapter.verifyStaged({bundle: currentBundle, cardSource: current});
+  await adapter.activateRelease({bundle: currentBundle, cardSource: current});
+
+  const result = await deliveryModule.rollbackToRetainedRelease(
+    'cet6-production-retained',
+    adapter,
+  );
+
+  assert.equal(result.deleted_learning_data, false);
+  assert.equal(
+    runner.current('cet6').release.release_id,
+    'cet6-production-retained',
+  );
+});
+
 test('rollback rejects a verified release that was never retained', async () => {
   const runner = createDatabaseRunner();
   const adapter = adapterModule.createCloudBaseReceiverAdapter({
@@ -241,15 +279,15 @@ test('rollback rejects a verified release that was never retained', async () => 
   assert.equal(runner.current(), undefined);
 });
 
-function createRuntimeCardSource(releaseId, parentReleaseId) {
+function createRuntimeCardSource(releaseId, parentReleaseId, track = 'cet4') {
   const catalog = catalogModule.loadBoxCatalog();
   const [knowledgeRef, metadata] = [
-    ...catalogModule.catalogEntriesByRef(catalog, 'cet4').entries(),
+    ...catalogModule.catalogEntriesByRef(catalog, track).entries(),
   ][0];
   const payload = {
     assets: [
       {
-        asset_id: `cet4.${knowledgeRef}00.prompt`,
+        asset_id: `${track}.${knowledgeRef}00.prompt`,
         duration_ms: 1000,
         media_type: 'audio/mpeg',
         sha256: `sha256:${'e'.repeat(64)}`,
@@ -261,7 +299,7 @@ function createRuntimeCardSource(releaseId, parentReleaseId) {
       {
         card_id: `${knowledgeRef}00`,
         knowledge_ref: knowledgeRef,
-        track: 'cet4',
+        track,
         interaction_id: 'flip',
         front: {
           eyebrow: 'Test task',
@@ -272,7 +310,7 @@ function createRuntimeCardSource(releaseId, parentReleaseId) {
         back_text: 'Contract answer',
         auto_scoring: false,
         audio: {
-          asset_id: `cet4.${knowledgeRef}00.prompt`,
+          asset_id: `${track}.${knowledgeRef}00.prompt`,
           duration_ms: 1000,
           sha256: `sha256:${'e'.repeat(64)}`,
           transcript: 'Contract transcript',
@@ -292,23 +330,23 @@ function createRuntimeCardSource(releaseId, parentReleaseId) {
     ],
     release: null,
     source: {id: 'receiver-contract', label: 'Receiver contract'},
-    track: 'cet4',
+    track,
   };
-  const draft = require('../index').validateCardSourceForImport(payload, 'cet4');
+  const draft = require('../index').validateCardSourceForImport(payload, track);
   return require('../index').validateCardSourceForImport(
     {
       ...draft,
       release: {
         schema_version: 'content-release.v1',
         release_id: releaseId,
-        track: 'cet4',
+        track,
         content_version: draft.content_version,
         minimum_client_version: '1.0.0',
         parent_release_id: parentReleaseId,
         published_at: '2026-07-29T07:00:00.000Z',
       },
     },
-    'cet4',
+    track,
   );
 }
 
@@ -367,15 +405,16 @@ function pilotBundleFixture(cardSource) {
   };
 }
 
-function profileFixture() {
+function profileFixture(runtimeMode = 'closed_beta') {
+  const production = runtimeMode === 'production';
   return {
     schema_version: 'delivery-profile.v1',
-    profile_id: 'receiver-closed-beta',
+    profile_id: production ? 'receiver-production' : 'receiver-closed-beta',
     environment_id: 'receiver-prod-123',
     region: 'ap-shanghai',
     api_base_url: 'https://receiver.example/softbook-api',
-    runtime_mode: 'closed_beta',
-    enabled_tracks: ['cet4'],
+    runtime_mode: runtimeMode,
+    enabled_tracks: production ? ['cet4', 'cet6'] : ['cet4'],
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
     signing_key_id: 'receiver-signing-key-1',
   };
@@ -408,15 +447,16 @@ function createDatabaseRunner() {
 
   return {
     calls,
-    current: () => collections.get('softbook_card_sources').get('cet4'),
+    current: (track = 'cet4') =>
+      collections.get('softbook_card_sources').get(track),
     findVersion(releaseId) {
       return [...collections.get('softbook_card_source_versions').values()].find(
         document => document.release?.release_id === releaseId,
       );
     },
     seedCurrent(cardSource) {
-      collections.get('softbook_card_sources').set('cet4', {
-        _id: 'cet4',
+      collections.get('softbook_card_sources').set(cardSource.track, {
+        _id: cardSource.track,
         ...cardSource,
       });
     },

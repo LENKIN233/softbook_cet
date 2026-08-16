@@ -294,7 +294,7 @@ export function createCloudBaseReceiverAdapter({
         return null;
       }
 
-      const normalized = normalizeStoredCardSource(document, 'cet4');
+      const normalized = normalizeStoredCardSource(document, document.track);
       assertReleaseIdentity(normalized, releaseId, normalized.content_version);
       return {
         card_source: normalized,
