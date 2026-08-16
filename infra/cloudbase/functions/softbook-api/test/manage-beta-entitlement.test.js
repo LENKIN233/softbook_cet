@@ -101,7 +101,23 @@ test('apply refuses topic branches even when receiver preflight passes', async (
   assert.equal(runner.updateCount(), 0);
 });
 
-function createFixture() {
+test('beta entitlement commands reject a formal production profile', async () => {
+  const fixture = createFixture('production');
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+  ]);
+
+  await assert.rejects(
+    () =>
+      cli.executeBetaEntitlementCommand(options, dependencies(createRunner())),
+    /require a closed_beta delivery profile/,
+  );
+});
+
+function createFixture(runtimeMode = 'closed_beta') {
   const directory = mkdtempSync(join(tmpdir(), 'beta-entitlement-test-'));
   temporaryDirectories.push(directory);
   const profilePath = join(directory, 'delivery-profile.json');
@@ -110,12 +126,19 @@ function createFixture() {
     profilePath,
     JSON.stringify({
       schema_version: 'delivery-profile.v1',
-      profile_id: 'receiver-closed-beta',
-      environment_id: 'receiver-cet4-beta',
+      profile_id:
+        runtimeMode === 'production'
+          ? 'receiver-formal-product'
+          : 'receiver-closed-beta',
+      environment_id:
+        runtimeMode === 'production'
+          ? 'receiver-formal-product'
+          : 'receiver-cet4-beta',
       region: 'ap-shanghai',
       api_base_url: 'https://receiver.example/softbook-api',
-      runtime_mode: 'closed_beta',
-      enabled_tracks: ['cet4'],
+      runtime_mode: runtimeMode,
+      enabled_tracks:
+        runtimeMode === 'production' ? ['cet4', 'cet6'] : ['cet4'],
       minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
       signing_key_id: 'receiver-signing-key-v1',
     }),
@@ -164,7 +187,9 @@ function createRunner() {
             envId: 'receiver-cet4-beta',
             region: 'ap-shanghai',
             status: 'NORMAL',
-            resources: {databases: [{InstanceId: 'tnt-receiver123', Status: 'RUNNING'}]},
+            resources: {
+              databases: [{InstanceId: 'tnt-receiver123', Status: 'RUNNING'}],
+            },
           },
         });
       }
@@ -172,7 +197,9 @@ function createRunner() {
         return JSON.stringify({
           data: {
             Pager: {Total: deploymentSafety.REQUIRED_COLLECTIONS.length},
-            Tables: deploymentSafety.REQUIRED_COLLECTIONS.map(TableName => ({TableName})),
+            Tables: deploymentSafety.REQUIRED_COLLECTIONS.map(TableName => ({
+              TableName,
+            })),
           },
         });
       }
@@ -181,14 +208,20 @@ function createRunner() {
         const results = commands.map(wrapper => {
           const command = JSON.parse(wrapper.Command);
           if (wrapper.CommandType === 'QUERY') {
-            const document = collections.get(wrapper.TableName)?.get(command.filter._id);
-            return document ? [{_id: command.filter._id, ...structuredClone(document)}] : [];
+            const document = collections
+              .get(wrapper.TableName)
+              ?.get(command.filter._id);
+            return document
+              ? [{_id: command.filter._id, ...structuredClone(document)}]
+              : [];
           }
           if (wrapper.CommandType === 'UPDATE') {
             updates += 1;
             const update = command.updates[0];
             const id = update.q._id;
-            collections.get(wrapper.TableName).set(id, structuredClone(update.u.$set));
+            collections
+              .get(wrapper.TableName)
+              .set(id, structuredClone(update.u.$set));
             return [{ok: 1, n: 1}];
           }
           throw new Error(`unexpected database command ${wrapper.CommandType}`);

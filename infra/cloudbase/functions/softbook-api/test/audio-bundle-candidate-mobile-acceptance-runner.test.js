@@ -45,7 +45,10 @@ test('audio-bundle acceptance runner derives and reconstructs a safe report', ()
     normalized.interaction_card_counts,
     report.interaction_card_counts,
   );
-  assert.notEqual(normalized.representative_card_ids, report.representative_card_ids);
+  assert.notEqual(
+    normalized.representative_card_ids,
+    report.representative_card_ids,
+  );
 });
 
 test('audio-bundle acceptance runner rejects drifted or expanded reports', () => {
@@ -82,6 +85,47 @@ test('audio-bundle acceptance runner rejects drifted or expanded reports', () =>
   }
 });
 
+test('full-track acceptance runner derives and validates a safe report', () => {
+  const expected = {
+    checkedAt: CHECKED_AT,
+    candidatePayloadSha256: PAYLOAD_SHA,
+    contentVersion: CONTENT_VERSION,
+    track: 'cet6',
+    cardCount: 1234,
+    audioAssetCount: 328,
+    interactionCardCounts: {
+      flip: 400,
+      multiple_choice: 500,
+      lock: 200,
+      elimination: 80,
+      swipe: 54,
+    },
+    representativeCardIds: ['100001', '100002', '100003', '100004', '100005'],
+    representativeAudioCount: 2,
+  };
+  const report = fullTrackSafeReport();
+  assert.deepEqual(
+    runner.normalizeSafeFullTrackMobileReport(
+      structuredClone(report),
+      expected,
+    ),
+    report,
+  );
+
+  for (const invalid of [
+    {...structuredClone(report), audio_card_count: 327},
+    {...structuredClone(report), non_audio_card_count: 905},
+    {...structuredClone(report), all_audio_cards_bound: false},
+    {...structuredClone(report), representative_audio_controls_verified: 1},
+    {...structuredClone(report), human_audio_qc_verified: true},
+  ]) {
+    assert.throws(
+      () => runner.normalizeSafeFullTrackMobileReport(invalid, expected),
+      runner.AudioBundleCandidateMobileAcceptanceError,
+    );
+  }
+});
+
 function safeReport() {
   return {
     schema_version: 'audio-bundle-candidate-mobile-learning-smoke.v1',
@@ -97,6 +141,40 @@ function safeReport() {
     all_cards_learning_completable: true,
     representative_card_ids: ['001202', '001201'],
     representative_ui_completions_verified: 2,
+    representative_audio_controls_verified: 2,
+    simulated_manifest_binding_verified: true,
+    visible_runtime_metadata_leak_guard_verified: true,
+    signed_manifest_verified: false,
+    human_audio_qc_verified: false,
+    persistent_receiver_verified: false,
+    real_device_verified: false,
+    gate_eligible: false,
+  };
+}
+
+function fullTrackSafeReport() {
+  return {
+    schema_version: 'full-track-candidate-mobile-learning-smoke.v1',
+    checked_at: CHECKED_AT,
+    candidate_payload_sha256: PAYLOAD_SHA,
+    content_version: CONTENT_VERSION,
+    track: 'cet6',
+    card_count: 1234,
+    audio_card_count: 328,
+    audio_asset_count: 328,
+    non_audio_card_count: 906,
+    interaction_card_counts: {
+      flip: 400,
+      multiple_choice: 500,
+      lock: 200,
+      elimination: 80,
+      swipe: 54,
+    },
+    all_cards_parseable: true,
+    all_audio_cards_bound: true,
+    all_cards_learning_completable: true,
+    representative_card_ids: ['100001', '100002', '100003', '100004', '100005'],
+    representative_ui_completions_verified: 5,
     representative_audio_controls_verified: 2,
     simulated_manifest_binding_verified: true,
     visible_runtime_metadata_leak_guard_verified: true,

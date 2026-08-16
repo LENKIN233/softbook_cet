@@ -331,14 +331,18 @@ The audit command reads `softbook_card_sources` with `QUERY`, reuses the same
 runtime validator, and checks `spec/box-catalog.json` prefix/path alignment, so
 it is safe to run after manual imports or deploys.
 
-## Closed-beta release bundle
+## Formal track release bundles
 
 Receiver delivery uses the fail-closed contracts in
 `release-bundle-v1-runtime-contract.md` and the implementation in
 `release-delivery-v1.mjs`. A `delivery-profile.v1` must name a receiver-owned
 environment and cannot contain secrets. A `release-bundle.v1` must bind the
-complete 1,180-card CET4 payload, final whole-track approval, audit hash, 301
-audio assets, and 301 QC entries before publisher orchestration can start.
+complete track payload, final whole-track approval, audit hash, and exact audio
+QC coverage before publisher orchestration can start. CET4 remains exactly
+1,180 cards / 108 boxes / 301 audio entries. The formal product adds CET6 as a
+separate exact 1,234-card / 110-box / 328-audio bundle. A `closed_beta` profile
+enables only CET4; a `production` profile enables CET4 and CET6 in canonical
+order, while each bundle and active pointer remains track-scoped.
 
 The personal development environment is explicitly rejected by the delivery
 profile validator. The repository-local receiver adapter uploads and

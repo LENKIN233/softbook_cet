@@ -368,6 +368,26 @@ back-side transcripts. It does not create environment-specific
 importer's `--apply` path. It also does not create content approval, perceptual
 audio QC, a release bundle, deployment evidence, or launch approval.
 
+For a complete pre-publication track handoff, use
+`--payload-mode full-track-candidate` with the exact complete track card-ID list
+and that track's passing technical-audio audit. The builder fails closed unless
+the result is exactly CET4 1,180 cards / 108 boxes / 301 audio assets or CET6
+1,234 cards / 110 boxes / 328 audio assets, covers all five core interactions,
+and consumes every audited asset exactly once. This candidate mode proves that
+the complete content can enter the runtime schema; it deliberately does not
+replace per-track `full_track_final` approval or formal perceptual audio QC.
+Run the complete mobile parser, evaluator, representative UI, manifest-binding,
+audio-control, and visible-metadata checks with:
+
+```bash
+node scripts/run_full_track_candidate_mobile_acceptance.mjs \
+  --candidate-payload <full-track-candidate.json> \
+  --checked-at <canonical UTC ISO-8601 timestamp>
+```
+
+Its report remains `gate_eligible=false` and explicitly records that signed
+manifest, human audio QC, persistent receiver, and real-device proof are absent.
+
 An external `audio-bundle-candidate` payload can be checked against the real
 mobile parser, interaction evaluator, Learning render branches, analysis
 detail, audio-control surface, catalog mapping, and exact card-to-asset binding

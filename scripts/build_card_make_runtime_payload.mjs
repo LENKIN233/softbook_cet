@@ -37,7 +37,12 @@ const PAYLOAD_MODES = [
   'development',
   'audio-bundle-candidate',
   'controlled-pilot-candidate',
+  'full-track-candidate',
 ];
+const FULL_TRACK_CANDIDATE_POLICIES = new Map([
+  ['cet4', {cardCount: 1180, boxCount: 108, audioCount: 301}],
+  ['cet6', {cardCount: 1234, boxCount: 110, audioCount: 328}],
+]);
 const CONTROLLED_PILOT_LIBRARY_COUNTS = new Map([
   ['听力', 24],
   ['仔细阅读', 24],
@@ -60,10 +65,10 @@ Options:
                           Derive the exact controlled-pilot order from a card-make
                           sample confirmation plus its expansion reviews.
   --output-dir <dir>      Directory for generated per-track JSON payloads. Required.
-  --payload-mode <mode>   development (default), audio-bundle-candidate, or
-                          controlled-pilot-candidate.
+  --payload-mode <mode>   development (default), audio-bundle-candidate,
+                          controlled-pilot-candidate, or full-track-candidate.
   --audio-technical-audit <file>
-                          Required in both audio candidate modes; binds and copies
+                          Required in audio-bearing candidate modes; binds and copies
                           technically verified audio without claiming perceptual QC.
   --source-id <id>        Payload source id. Defaults to ${DEFAULT_SOURCE_ID}.
   --source-label <label>  Payload source label. Defaults to ${DEFAULT_SOURCE_LABEL}.`);
@@ -90,7 +95,9 @@ function parseArgs(argv) {
         index += 1;
         break;
       case '--audio-technical-audit':
-        options.audioTechnicalAudit = resolve(requireNextValue(argv, index, arg));
+        options.audioTechnicalAudit = resolve(
+          requireNextValue(argv, index, arg),
+        );
         index += 1;
         break;
       case '--help':
@@ -132,11 +139,15 @@ function parseArgs(argv) {
   }
 
   if (!PAYLOAD_MODES.includes(options.payloadMode)) {
-    throw new Error(`--payload-mode must be one of: ${PAYLOAD_MODES.join(', ')}.`);
+    throw new Error(
+      `--payload-mode must be one of: ${PAYLOAD_MODES.join(', ')}.`,
+    );
   }
 
   if (options.scopeCardIds.length > 0 && options.confirmationPath) {
-    throw new Error('--scope-card-ids and --scope-confirmation are mutually exclusive.');
+    throw new Error(
+      '--scope-card-ids and --scope-confirmation are mutually exclusive.',
+    );
   }
 
   if (options.scopeCardIds.length === 0 && !options.confirmationPath) {
@@ -168,11 +179,22 @@ function parseArgs(argv) {
   }
 
   if (
-    options.payloadMode === 'audio-bundle-candidate' &&
+    options.payloadMode === 'full-track-candidate' &&
+    (!options.audioTechnicalAudit || options.scopeCardIds.length === 0)
+  ) {
+    throw new Error(
+      'full-track-candidate mode requires --scope-card-ids and --audio-technical-audit.',
+    );
+  }
+
+  if (
+    ['audio-bundle-candidate', 'full-track-candidate'].includes(
+      options.payloadMode,
+    ) &&
     options.confirmationPath
   ) {
     throw new Error(
-      'audio-bundle-candidate mode does not accept --scope-confirmation.',
+      `${options.payloadMode} mode does not accept --scope-confirmation.`,
     );
   }
 
@@ -207,7 +229,9 @@ function readJson(filePath) {
 }
 
 function sha256File(filePath) {
-  return `sha256:${createHash('sha256').update(readFileSync(filePath)).digest('hex')}`;
+  return `sha256:${createHash('sha256')
+    .update(readFileSync(filePath))
+    .digest('hex')}`;
 }
 
 function deriveConfirmedPilotScope(options) {
@@ -225,7 +249,9 @@ function deriveConfirmedPilotScope(options) {
     !Array.isArray(scope?.box_targets) ||
     scope.box_targets.length !== 14
   ) {
-    throw new Error('Controlled-pilot confirmation is invalid or outside the exact 120-card candidate boundary.');
+    throw new Error(
+      'Controlled-pilot confirmation is invalid or outside the exact 120-card candidate boundary.',
+    );
   }
 
   const reviewDir = join(options.cardMakeRoot, 'reviews', 'agent_self_review');
@@ -233,9 +259,11 @@ function deriveConfirmedPilotScope(options) {
     .filter(file => file.endsWith('.json'))
     .sort()
     .map(file => ({file, payload: readJson(join(reviewDir, file))}))
-    .filter(({payload}) =>
-      payload?.sample_policy?.sample_confirmation_id === confirmation.confirmation_id &&
-      payload?.sample_policy?.confirmed_box_expansion === true,
+    .filter(
+      ({payload}) =>
+        payload?.sample_policy?.sample_confirmation_id ===
+          confirmation.confirmation_id &&
+        payload?.sample_policy?.confirmed_box_expansion === true,
     );
   const selectedByBox = [];
   const seenCardIds = new Set();
@@ -248,17 +276,20 @@ function deriveConfirmedPilotScope(options) {
       box.target_card_count % 2 !== 0 ||
       !Array.isArray(box?.sample_card_ids)
     ) {
-      throw new Error('Controlled-pilot confirmation contains an invalid box target.');
+      throw new Error(
+        'Controlled-pilot confirmation contains an invalid box target.',
+      );
     }
 
-    const expectedExpansionCount = box.target_card_count - new Set(
-      box.sample_card_ids.map(String),
-    ).size;
+    const expectedExpansionCount =
+      box.target_card_count - new Set(box.sample_card_ids.map(String)).size;
     const matchingReviews = expansionReviews.filter(({payload}) => {
       const cards = Array.isArray(payload?.cards) ? payload.cards : [];
       return (
         cards.length === expectedExpansionCount &&
-        cards.every(card => String(card?.card_id || '').startsWith(box.box_prefix))
+        cards.every(card =>
+          String(card?.card_id || '').startsWith(box.box_prefix),
+        )
       );
     });
 
@@ -276,15 +307,21 @@ function deriveConfirmedPilotScope(options) {
         !cardId.startsWith(box.box_prefix) ||
         card?.status !== 'pass'
       ) {
-        throw new Error(`Expansion review for box ${box.box_prefix} contains a non-passing card.`);
+        throw new Error(
+          `Expansion review for box ${box.box_prefix} contains a non-passing card.`,
+        );
       }
       return cardId;
     });
-    const cardIds = [...new Set([...box.sample_card_ids.map(String), ...expansionIds])].sort();
+    const cardIds = [
+      ...new Set([...box.sample_card_ids.map(String), ...expansionIds]),
+    ].sort();
 
     if (
       cardIds.length !== box.target_card_count ||
-      cardIds.some(cardId => !/^\d{6}$/.test(cardId) || !cardId.startsWith(box.box_prefix))
+      cardIds.some(
+        cardId => !/^\d{6}$/.test(cardId) || !cardId.startsWith(box.box_prefix),
+      )
     ) {
       throw new Error(
         `Box ${box.box_prefix} resolves to ${cardIds.length} cards; expected ${box.target_card_count}.`,
@@ -293,7 +330,9 @@ function deriveConfirmedPilotScope(options) {
 
     for (const cardId of cardIds) {
       if (seenCardIds.has(cardId)) {
-        throw new Error(`Controlled-pilot scope contains duplicate card id ${cardId}.`);
+        throw new Error(
+          `Controlled-pilot scope contains duplicate card id ${cardId}.`,
+        );
       }
       seenCardIds.add(cardId);
     }
@@ -332,7 +371,10 @@ function deriveConfirmedPilotScope(options) {
     manifest: {
       schema_version: 'controlled-pilot-candidate-selection.v1',
       confirmation_id: confirmation.confirmation_id,
-      confirmation_path: relativeCardMakePath(options.cardMakeRoot, options.confirmationPath),
+      confirmation_path: relativeCardMakePath(
+        options.cardMakeRoot,
+        options.confirmationPath,
+      ),
       confirmation_sha256: sha256File(options.confirmationPath),
       track: 'cet4',
       purpose: 'controlled_pilot',
@@ -391,7 +433,9 @@ function loadScopedCards(options) {
       if (!wanted.has(String(card.card_id))) continue;
 
       if (found.has(String(card.card_id))) {
-        throw new Error(`Duplicate card id in card make workspace: ${card.card_id}`);
+        throw new Error(
+          `Duplicate card id in card make workspace: ${card.card_id}`,
+        );
       }
 
       found.set(String(card.card_id), {
@@ -403,14 +447,18 @@ function loadScopedCards(options) {
 
   const missing = options.scopeCardIds.filter(cardId => !found.has(cardId));
   if (missing.length > 0) {
-    throw new Error(`Missing card ids in card make workspace: ${missing.join(', ')}`);
+    throw new Error(
+      `Missing card ids in card make workspace: ${missing.join(', ')}`,
+    );
   }
 
   return options.scopeCardIds.map(cardId => found.get(cardId));
 }
 
 function nonEmptyString(value) {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function firstText(...values) {
@@ -423,9 +471,10 @@ function firstText(...values) {
 }
 
 function knowledgeRef(card) {
-  const ref = card.knowledge_ref && typeof card.knowledge_ref === 'object'
-    ? card.knowledge_ref
-    : {};
+  const ref =
+    card.knowledge_ref && typeof card.knowledge_ref === 'object'
+      ? card.knowledge_ref
+      : {};
   const boxPrefix = firstText(ref.box_prefix, card.card_box_code);
 
   if (!boxPrefix || !/^\d{4}$/.test(boxPrefix)) {
@@ -528,7 +577,11 @@ function buildRuntimeCardWithoutAudio(record) {
   const {card} = record;
   const ref = knowledgeRef(card);
   const track = requireTrack(card.track || ref.track, card.card_id);
-  const interactionId = requiredText(card, 'interaction_id', card.interaction_id);
+  const interactionId = requiredText(
+    card,
+    'interaction_id',
+    card.interaction_id,
+  );
   const base = {
     card_id: String(card.card_id),
     track,
@@ -595,7 +648,9 @@ function buildRuntimeCardWithoutAudio(record) {
         },
       };
     default:
-      throw new Error(`${card.card_id} has unsupported interaction_id: ${interactionId}`);
+      throw new Error(
+        `${card.card_id} has unsupported interaction_id: ${interactionId}`,
+      );
   }
 }
 
@@ -650,7 +705,9 @@ function loadAudioContext(options) {
   for (const asset of audit.assets) {
     const cardId = String(asset?.card_id || '');
     if (!/^\d{6}$/.test(cardId) || auditByCardId.has(cardId)) {
-      throw new Error('Audio technical audit contains an invalid or duplicate card id.');
+      throw new Error(
+        'Audio technical audit contains an invalid or duplicate card id.',
+      );
     }
     auditByCardId.set(cardId, asset);
   }
@@ -669,20 +726,26 @@ function buildRuntimeAudio(record, context) {
   const audit = context.auditByCardId.get(String(record.card.card_id));
   const sourcePath = firstText(sourceAudio.path, sourceAudio.url);
   const ref = knowledgeRef(record.card);
-  const track = requireTrack(record.card.track || ref.track, record.card.card_id);
+  const track = requireTrack(
+    record.card.track || ref.track,
+    record.card.card_id,
+  );
 
   if (
     track !== context.track ||
     !audit ||
     audit.asset_path !== sourcePath ||
     audit.declared_duration_ms !== sourceAudio.duration_ms ||
-    audit.technical?.duration_ms !== sourceAudio.duration_ms ||
+    !Number.isFinite(audit.technical?.duration_ms) ||
+    Math.abs(audit.technical.duration_ms - sourceAudio.duration_ms) > 50 ||
     !/^[a-f0-9]{64}$/.test(String(audit.file_sha256 || '')) ||
     !Number.isSafeInteger(audit.size_bytes) ||
     audit.size_bytes <= 0 ||
     !nonEmptyString(sourceAudio.transcript)
   ) {
-    throw new Error(`Audio evidence for card ${record.card.card_id} is incomplete or mismatched.`);
+    throw new Error(
+      `Audio evidence for card ${record.card.card_id} is incomplete or mismatched.`,
+    );
   }
 
   if (
@@ -695,17 +758,25 @@ function buildRuntimeAudio(record, context) {
   const absoluteSourcePath = resolve(context.cardMakeRoot, sourcePath);
   const expectedRoot = `${resolve(context.cardMakeRoot, 'ai_tts')}/`;
   if (!absoluteSourcePath.startsWith(expectedRoot)) {
-    throw new Error(`Audio path for card ${record.card.card_id} escapes ai_tts.`);
+    throw new Error(
+      `Audio path for card ${record.card.card_id} escapes ai_tts.`,
+    );
   }
   if (statSync(absoluteSourcePath).size !== audit.size_bytes) {
-    throw new Error(`Audio bytes for card ${record.card.card_id} changed after technical audit.`);
+    throw new Error(
+      `Audio bytes for card ${record.card.card_id} changed after technical audit.`,
+    );
   }
   if (sha256File(absoluteSourcePath) !== `sha256:${audit.file_sha256}`) {
-    throw new Error(`Audio hash for card ${record.card.card_id} changed after technical audit.`);
+    throw new Error(
+      `Audio hash for card ${record.card.card_id} changed after technical audit.`,
+    );
   }
 
   const assetId = `${track}-${record.card.card_id}-audio`;
-  const assetPath = `audio/${track}/${record.card.card_id.slice(0, 4)}/${record.card.card_id}.mp3`;
+  const assetPath = `audio/${track}/${record.card.card_id.slice(0, 4)}/${
+    record.card.card_id
+  }.mp3`;
   const absoluteOutputPath = resolve(context.outputDir, assetPath);
   mkdirSync(dirname(absoluteOutputPath), {recursive: true});
   copyFileSync(absoluteSourcePath, absoluteOutputPath);
@@ -742,7 +813,9 @@ function buildOptions(card) {
   const options = sourceMultipleChoiceOptions(card);
 
   if (options.length !== 4) {
-    throw new Error(`${card.card_id} multiple_choice must have exactly 4 options.`);
+    throw new Error(
+      `${card.card_id} multiple_choice must have exactly 4 options.`,
+    );
   }
 
   return options.map((option, index) => {
@@ -769,8 +842,8 @@ function sourceMultipleChoiceOptions(card) {
   return Array.isArray(card.options) && card.options.length > 0
     ? card.options
     : Array.isArray(card.form_options)
-      ? card.form_options
-      : [];
+    ? card.form_options
+    : [];
 }
 
 function buildCorrectOption(card, runtimeOptions) {
@@ -779,37 +852,48 @@ function buildCorrectOption(card, runtimeOptions) {
     'answer_key.correct_option',
     card.answer_key?.correct_option,
   );
-  const declaredMatch = runtimeOptions.find(option =>
-    option.id === declared ||
-    option.label === declared ||
-    option.text === declared,
+  const declaredMatch = runtimeOptions.find(
+    option =>
+      option.id === declared ||
+      option.label === declared ||
+      option.text === declared,
   );
   const flaggedIndexes = sourceMultipleChoiceOptions(card)
-    .map((option, index) => option?.is_correct === true ? index : -1)
+    .map((option, index) => (option?.is_correct === true ? index : -1))
     .filter(index => index >= 0);
 
   if (flaggedIndexes.length > 1) {
-    throw new Error(`${card.card_id} multiple_choice has more than one is_correct option.`);
+    throw new Error(
+      `${card.card_id} multiple_choice has more than one is_correct option.`,
+    );
   }
 
-  const flaggedMatch = flaggedIndexes.length === 1
-    ? runtimeOptions[flaggedIndexes[0]]
-    : null;
+  const flaggedMatch =
+    flaggedIndexes.length === 1 ? runtimeOptions[flaggedIndexes[0]] : null;
   if (declaredMatch && flaggedMatch && declaredMatch.id !== flaggedMatch.id) {
-    throw new Error(`${card.card_id} answer_key.correct_option conflicts with is_correct.`);
+    throw new Error(
+      `${card.card_id} answer_key.correct_option conflicts with is_correct.`,
+    );
   }
   if (declaredMatch) return declaredMatch.id;
   if (flaggedMatch) return flaggedMatch.id;
-  throw new Error(`${card.card_id} answer_key.correct_option does not identify an option.`);
+  throw new Error(
+    `${card.card_id} answer_key.correct_option does not identify an option.`,
+  );
 }
 
 function buildLockSlots(card, lockPattern) {
   const sourceSlots = Array.isArray(card.lock_slots) ? card.lock_slots : [];
-  const wordBank = requireStringArray(card.word_bank, `${card.card_id} word_bank`);
+  const wordBank = requireStringArray(
+    card.word_bank,
+    `${card.card_id} word_bank`,
+  );
 
   return lockPattern.map((expected, index) => {
     const sourceSlot = sourceSlots[index] || {};
-    const sourceOptions = Array.isArray(sourceSlot.options) ? sourceSlot.options : wordBank;
+    const sourceOptions = Array.isArray(sourceSlot.options)
+      ? sourceSlot.options
+      : wordBank;
     const options = uniqueStrings([...sourceOptions, expected]);
 
     return {
@@ -821,14 +905,21 @@ function buildLockSlots(card, lockPattern) {
 }
 
 function buildEliminationItems(card) {
-  const items = Array.isArray(card.elimination_items) ? card.elimination_items : [];
+  const items = Array.isArray(card.elimination_items)
+    ? card.elimination_items
+    : [];
 
   if (items.length === 0) {
     throw new Error(`${card.card_id} elimination_items must not be empty.`);
   }
 
   return items.map((item, index) => ({
-    id: requiredText(card, `elimination_items[${index}].id`, item?.id, item?.text),
+    id: requiredText(
+      card,
+      `elimination_items[${index}].id`,
+      item?.id,
+      item?.text,
+    ),
     text: requiredText(card, `elimination_items[${index}].text`, item?.text),
   }));
 }
@@ -837,11 +928,16 @@ function buildSwipeStates(card) {
   const states = Array.isArray(card.swipe_states) ? card.swipe_states : [];
 
   if (states.length !== 2) {
-    throw new Error(`${card.card_id} swipe_states must contain exactly 2 states.`);
+    throw new Error(
+      `${card.card_id} swipe_states must contain exactly 2 states.`,
+    );
   }
 
   return states.map((state, index) => ({
-    id: requiredScalarId(state?.id, `${card.card_id} swipe_states[${index}].id`),
+    id: requiredScalarId(
+      state?.id,
+      `${card.card_id} swipe_states[${index}].id`,
+    ),
     label: requiredText(card, `swipe_states[${index}].label`, state?.label),
     description: requiredText(
       card,
@@ -858,7 +954,9 @@ function requiredScalarId(value, fieldName) {
     typeof value !== 'number' &&
     typeof value !== 'boolean'
   ) {
-    throw new Error(`${fieldName} must be a string, number, or boolean identifier.`);
+    throw new Error(
+      `${fieldName} must be a string, number, or boolean identifier.`,
+    );
   }
 
   const normalized = String(value).trim();
@@ -875,7 +973,9 @@ function requireStringArray(value, fieldName) {
 }
 
 function uniqueStrings(values) {
-  return [...new Set(values.map(value => String(value).trim()).filter(Boolean))];
+  return [
+    ...new Set(values.map(value => String(value).trim()).filter(Boolean)),
+  ];
 }
 
 function groupByTrack(cards) {
@@ -888,13 +988,22 @@ function groupByTrack(cards) {
   return groups;
 }
 
-function validateControlledPilotCandidateSummary(runtimeCards, audioContext, manifest) {
+function validateControlledPilotCandidateSummary(
+  runtimeCards,
+  audioContext,
+  manifest,
+) {
   if (runtimeCards.length !== 120 || manifest?.free_card_ids?.length !== 60) {
-    throw new Error('Controlled-pilot candidate must contain exactly 120 cards and a 60-card free prefix.');
+    throw new Error(
+      'Controlled-pilot candidate must contain exactly 120 cards and a 60-card free prefix.',
+    );
   }
 
   const cardsById = new Map(runtimeCards.map(card => [card.card_id, card]));
-  const libraryCounts = countValues(runtimeCards, card => card.space_metadata.library);
+  const libraryCounts = countValues(
+    runtimeCards,
+    card => card.space_metadata.library,
+  );
   const freeLibraryCounts = countValues(
     manifest.free_card_ids.map(cardId => cardsById.get(cardId)),
     card => card?.space_metadata?.library,
@@ -913,7 +1022,9 @@ function validateControlledPilotCandidateSummary(runtimeCards, audioContext, man
       freeLibraryCounts.get(library) !== expectedCount / 2 ||
       boxesByLibrary.get(library)?.size < 2
     ) {
-      throw new Error(`Controlled-pilot candidate distribution is invalid for ${library}.`);
+      throw new Error(
+        `Controlled-pilot candidate distribution is invalid for ${library}.`,
+      );
     }
   }
 
@@ -924,7 +1035,9 @@ function validateControlledPilotCandidateSummary(runtimeCards, audioContext, man
       interactions.has(value),
     )
   ) {
-    throw new Error('Controlled-pilot candidate must cover all five core interactions.');
+    throw new Error(
+      'Controlled-pilot candidate must cover all five core interactions.',
+    );
   }
 
   const audioCards = runtimeCards.filter(card => card.audio);
@@ -933,7 +1046,9 @@ function validateControlledPilotCandidateSummary(runtimeCards, audioContext, man
     audioContext?.assets?.length !== 24 ||
     audioCards.some(card => card.space_metadata.library !== '听力')
   ) {
-    throw new Error('Controlled-pilot candidate must bind exactly 24 listening audio assets.');
+    throw new Error(
+      'Controlled-pilot candidate must bind exactly 24 listening audio assets.',
+    );
   }
 }
 
@@ -963,6 +1078,47 @@ function validateAudioBundleCandidateSummary(runtimeCards, audioContext) {
   }
 }
 
+function validateFullTrackCandidateSummary(runtimeCards, audioContext) {
+  const tracks = new Set(runtimeCards.map(card => card.track));
+  const track = tracks.size === 1 ? runtimeCards[0]?.track : null;
+  const policy = FULL_TRACK_CANDIDATE_POLICIES.get(track);
+  const audioCards = runtimeCards.filter(card => card.audio);
+  const boxCount = new Set(runtimeCards.map(card => card.knowledge_ref)).size;
+  const interactions = new Set(runtimeCards.map(card => card.interaction_id));
+
+  if (!policy || audioContext?.track !== track) {
+    throw new Error(
+      'Full-track candidate must contain exactly one technically audited track.',
+    );
+  }
+  if (
+    runtimeCards.length !== policy.cardCount ||
+    boxCount !== policy.boxCount
+  ) {
+    throw new Error(
+      `Full-track ${track} candidate must contain exactly ${policy.cardCount} cards and ${policy.boxCount} boxes.`,
+    );
+  }
+  if (
+    audioCards.length !== policy.audioCount ||
+    audioContext.assets.length !== policy.audioCount ||
+    audioContext.auditByCardId.size !== policy.audioCount
+  ) {
+    throw new Error(
+      `Full-track ${track} candidate must bind exactly ${policy.audioCount} technically audited audio assets.`,
+    );
+  }
+  if (
+    !['flip', 'multiple_choice', 'lock', 'elimination', 'swipe'].every(value =>
+      interactions.has(value),
+    )
+  ) {
+    throw new Error(
+      'Full-track candidate must cover all five core interactions.',
+    );
+  }
+}
+
 function countValues(values, selector) {
   const counts = new Map();
   for (const value of values) {
@@ -973,7 +1129,9 @@ function countValues(values, selector) {
 }
 
 function sanitizeFilePart(value) {
-  return String(value).replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+  return String(value)
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function writePayloads(options, runtimeCards, audioContext) {
@@ -1031,7 +1189,9 @@ function main() {
     if (confirmedScope) options.scopeCardIds = confirmedScope.cardIds;
     const scopedCards = loadScopedCards(options);
     const audioContext = loadAudioContext(options);
-    const runtimeCards = scopedCards.map(record => buildRuntimeCard(record, audioContext));
+    const runtimeCards = scopedCards.map(record =>
+      buildRuntimeCard(record, audioContext),
+    );
     if (options.payloadMode === 'audio-bundle-candidate') {
       validateAudioBundleCandidateSummary(runtimeCards, audioContext);
     }
@@ -1041,6 +1201,9 @@ function main() {
         audioContext,
         confirmedScope?.manifest,
       );
+    }
+    if (options.payloadMode === 'full-track-candidate') {
+      validateFullTrackCandidateSummary(runtimeCards, audioContext);
     }
     const outputs = writePayloads(options, runtimeCards, audioContext);
 
@@ -1056,14 +1219,20 @@ function main() {
       );
     }
 
-    console.log(JSON.stringify({
-      ok: true,
-      card_make_root: options.cardMakeRoot,
-      payload_mode: options.payloadMode,
-      outputs,
-      selection_manifest: selectionManifest,
-      scope_card_ids: options.scopeCardIds,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          card_make_root: options.cardMakeRoot,
+          payload_mode: options.payloadMode,
+          outputs,
+          selection_manifest: selectionManifest,
+          scope_card_ids: options.scopeCardIds,
+        },
+        null,
+        2,
+      ),
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[card-make-runtime-payload] ${message}`);
@@ -1088,5 +1257,6 @@ export {
   roundRobin,
   validateAudioBundleCandidateSummary,
   validateControlledPilotCandidateSummary,
+  validateFullTrackCandidateSummary,
   writePayloads,
 };

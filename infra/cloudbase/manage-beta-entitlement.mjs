@@ -12,9 +12,19 @@ import {
   verifyAppliedBetaEntitlement,
 } from './beta-entitlement-v1.mjs';
 import {createCloudBaseCommandRunner} from './cloudbase-receiver-adapter.mjs';
-import {REQUIRED_DEPLOYMENT_NODE_VERSION, parseTcbJson, redactText} from './deployment-safety.mjs';
-import {inspectReceiver, receiverDeliveryInternals} from './deliver-release.mjs';
-import {ReleaseDeliveryError, validateDeliveryProfile} from './release-delivery-v1.mjs';
+import {
+  REQUIRED_DEPLOYMENT_NODE_VERSION,
+  parseTcbJson,
+  redactText,
+} from './deployment-safety.mjs';
+import {
+  inspectReceiver,
+  receiverDeliveryInternals,
+} from './deliver-release.mjs';
+import {
+  ReleaseDeliveryError,
+  validateDeliveryProfile,
+} from './release-delivery-v1.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
@@ -51,29 +61,44 @@ export function parseBetaEntitlementArguments(argv) {
         throw new BetaEntitlementError(`unknown argument: ${argument}`);
     }
   }
-  if (!options.profilePath) throw new BetaEntitlementError('--profile is required.');
-  if (!options.commandPath) throw new BetaEntitlementError('--command is required.');
+  if (!options.profilePath)
+    throw new BetaEntitlementError('--profile is required.');
+  if (!options.commandPath)
+    throw new BetaEntitlementError('--command is required.');
   if (!['json', 'text'].includes(options.format)) {
     throw new BetaEntitlementError('--format must be text or json.');
   }
   return options;
 }
 
-export async function executeBetaEntitlementCommand(options, dependencies = {}) {
+export async function executeBetaEntitlementCommand(
+  options,
+  dependencies = {},
+) {
   const profile = validateDeliveryProfile(readJson(options.profilePath));
+  if (profile.runtime_mode !== 'closed_beta') {
+    throw new BetaEntitlementError(
+      'beta entitlement commands require a closed_beta delivery profile.',
+    );
+  }
   const command = validateBetaEntitlementCommand(readJson(options.commandPath));
-  const runner = dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
+  const runner =
+    dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
   const repository = dependencies.repository ?? readRepositoryState();
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
   const preflight = await inspectReceiver({profile, runner});
-  const writeSafety = receiverDeliveryInternals.inspectWriteSafety({nodeVersion, repository});
+  const writeSafety = receiverDeliveryInternals.inspectWriteSafety({
+    nodeVersion,
+    repository,
+  });
   const base = {
     schema_version: 'beta-entitlement-report.v1',
     applied: options.apply,
     environment_id: profile.environment_id,
     preflight: {
       errors: preflight.errors,
-      required_collections_present: preflight.catalog.required_collections_present,
+      required_collections_present:
+        preflight.catalog.required_collections_present,
     },
     write_safety: writeSafety,
   };
@@ -150,7 +175,9 @@ async function readDocument({collection, command, label, profile, runner}) {
   const payload = parseTcbJson(output);
   const results = payload?.data?.results?.[0];
   if (!Array.isArray(results) || results.length > 1) {
-    throw new BetaEntitlementError(`${label} query returned an invalid result.`);
+    throw new BetaEntitlementError(
+      `${label} query returned an invalid result.`,
+    );
   }
   return results[0] ?? null;
 }
@@ -169,15 +196,25 @@ async function writeBetaEntitlement({current, plan, profile, runner}) {
       profile.environment_id,
       '--command',
       JSON.stringify([
-        updateCommand(BETA_ENTITLEMENT_COLLECTION, filter, plan.document, current === null),
+        updateCommand(
+          BETA_ENTITLEMENT_COLLECTION,
+          filter,
+          plan.document,
+          current === null,
+        ),
       ]),
       '--json',
     ],
     {label: 'write beta entitlement membership'},
   );
   const payload = parseTcbJson(output);
-  if (!Array.isArray(payload?.data?.results) || payload.data.results.length !== 1) {
-    throw new BetaEntitlementError('membership update returned an invalid result.');
+  if (
+    !Array.isArray(payload?.data?.results) ||
+    payload.data.results.length !== 1
+  ) {
+    throw new BetaEntitlementError(
+      'membership update returned an invalid result.',
+    );
   }
 }
 
@@ -214,14 +251,19 @@ function readRepositoryState() {
 }
 
 function git(args) {
-  return execFileSync('git', args, {cwd: REPOSITORY_ROOT, encoding: 'utf8'}).trim();
+  return execFileSync('git', args, {
+    cwd: REPOSITORY_ROOT,
+    encoding: 'utf8',
+  }).trim();
 }
 
 function readJson(path) {
   try {
     return JSON.parse(readFileSync(resolve(path), 'utf8'));
   } catch (error) {
-    throw new BetaEntitlementError(`unable to read JSON input: ${error.message}`);
+    throw new BetaEntitlementError(
+      `unable to read JSON input: ${error.message}`,
+    );
   }
 }
 
@@ -255,15 +297,18 @@ async function main() {
     } else {
       const plan = report.result ?? report.plan;
       console.log(
-        `[beta-entitlement] ${report.status}; action=${plan?.action ?? 'none'}; account=${
-          plan?.account_fingerprint ?? 'none'
-        }; writes=${report.writes_performed}`,
+        `[beta-entitlement] ${report.status}; action=${
+          plan?.action ?? 'none'
+        }; account=${plan?.account_fingerprint ?? 'none'}; writes=${
+          report.writes_performed
+        }`,
       );
     }
     if (report.status === 'blocked') process.exitCode = 1;
   } catch (error) {
     const message =
-      error instanceof BetaEntitlementError || error instanceof ReleaseDeliveryError
+      error instanceof BetaEntitlementError ||
+      error instanceof ReleaseDeliveryError
         ? error.message
         : 'unexpected beta entitlement failure';
     console.error(`[beta-entitlement] ${redactText(message)}`);
@@ -272,7 +317,8 @@ async function main() {
 }
 
 const isDirectExecution =
-  process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isDirectExecution) main();
 
 export const betaEntitlementCliInternals = {
