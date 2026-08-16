@@ -4,7 +4,7 @@
 
 - Date: 2026-08-16
 - Branch: `cross/complete-card-runtime-handoff-v1`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/507
 - Summary: Closed the remaining runtime-shape gaps in the complete CET4/CET6 candidate corpus, extended the product handoff bridge to normalize supported legacy option fields and canonical box metadata, generated 2,414 runtime cards, passed both import dry-runs, and exercised both full tracks through the local Softbook API smoke flow.
 
 ## Referenced specs
