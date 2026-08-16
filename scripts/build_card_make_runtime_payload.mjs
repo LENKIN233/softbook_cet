@@ -12,7 +12,11 @@ import {createHash} from 'node:crypto';
 import {dirname, isAbsolute, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
-import {validateCardSourceCatalogMapping} from '../infra/cloudbase/card-source-catalog.mjs';
+import {
+  catalogEntriesByRef,
+  loadBoxCatalog,
+  validateCardSourceCatalogMapping,
+} from '../infra/cloudbase/card-source-catalog.mjs';
 
 const require = createRequire(import.meta.url);
 const {
@@ -25,6 +29,10 @@ const DEFAULT_CARD_MAKE_ROOT = resolve(ROOT, '../card make');
 const DEFAULT_SOURCE_ID = 'card-make-candidate-handoff';
 const DEFAULT_SOURCE_LABEL = 'Card make candidate handoff';
 const TRACKS = ['cet4', 'cet6'];
+const BOX_CATALOG = loadBoxCatalog();
+const CATALOG_ENTRIES_BY_TRACK = new Map(
+  TRACKS.map(track => [track, catalogEntriesByRef(BOX_CATALOG, track)]),
+);
 const PAYLOAD_MODES = [
   'development',
   'audio-bundle-candidate',
@@ -528,12 +536,7 @@ function buildRuntimeCardWithoutAudio(record) {
     interaction_id: interactionId,
     front: buildFront(card, ref),
     analysis: buildAnalysis(card, ref),
-    space_metadata: {
-      box_ref: ref.box_ref,
-      library: requiredText(card, 'space_metadata.library', ref.library),
-      group: requiredText(card, 'space_metadata.group', ref.group),
-      box: requiredText(card, 'space_metadata.box', ref.box),
-    },
+    space_metadata: buildCanonicalSpaceMetadata(card, track, ref.box_ref),
   };
 
   switch (interactionId) {
@@ -542,19 +545,17 @@ function buildRuntimeCardWithoutAudio(record) {
         ...base,
         back_text: requiredText(card, 'back_text', card.back_content?.text),
       };
-    case 'multiple_choice':
+    case 'multiple_choice': {
+      const options = buildOptions(card);
       return {
         ...base,
-        options: buildOptions(card),
+        options,
         auto_scoring: true,
         answer_key: {
-          correct_option: requiredText(
-            card,
-            'answer_key.correct_option',
-            card.answer_key?.correct_option,
-          ),
+          correct_option: buildCorrectOption(card, options),
         },
       };
+    }
     case 'lock': {
       const lockPattern = requireStringArray(
         card.answer_key?.lock_pattern,
@@ -596,6 +597,20 @@ function buildRuntimeCardWithoutAudio(record) {
     default:
       throw new Error(`${card.card_id} has unsupported interaction_id: ${interactionId}`);
   }
+}
+
+function buildCanonicalSpaceMetadata(card, track, boxRef) {
+  const entry = CATALOG_ENTRIES_BY_TRACK.get(track)?.get(boxRef);
+  if (!entry) {
+    throw new Error(`${card.card_id} uses unmapped knowledge_ref ${boxRef}.`);
+  }
+
+  return {
+    box_ref: boxRef,
+    library: entry.library,
+    group: entry.group,
+    box: entry.box,
+  };
 }
 
 function loadAudioContext(options) {
@@ -724,20 +739,68 @@ function requireTrack(value, cardId) {
 }
 
 function buildOptions(card) {
-  const options = Array.isArray(card.options) ? card.options : [];
+  const options = sourceMultipleChoiceOptions(card);
 
   if (options.length !== 4) {
     throw new Error(`${card.card_id} multiple_choice must have exactly 4 options.`);
   }
 
   return options.map((option, index) => {
-    const key = firstText(option?.key, option?.id, String.fromCharCode(65 + index));
+    const key = firstText(
+      option?.key,
+      option?.id,
+      option?.label,
+      String.fromCharCode(65 + index),
+    );
     return {
       id: key,
       label: key,
-      text: requiredText(card, `options[${index}].text`, option?.text),
+      text: requiredText(
+        card,
+        `options[${index}].text`,
+        option?.text,
+        option?.form,
+      ),
     };
   });
+}
+
+function sourceMultipleChoiceOptions(card) {
+  return Array.isArray(card.options) && card.options.length > 0
+    ? card.options
+    : Array.isArray(card.form_options)
+      ? card.form_options
+      : [];
+}
+
+function buildCorrectOption(card, runtimeOptions) {
+  const declared = requiredText(
+    card,
+    'answer_key.correct_option',
+    card.answer_key?.correct_option,
+  );
+  const declaredMatch = runtimeOptions.find(option =>
+    option.id === declared ||
+    option.label === declared ||
+    option.text === declared,
+  );
+  const flaggedIndexes = sourceMultipleChoiceOptions(card)
+    .map((option, index) => option?.is_correct === true ? index : -1)
+    .filter(index => index >= 0);
+
+  if (flaggedIndexes.length > 1) {
+    throw new Error(`${card.card_id} multiple_choice has more than one is_correct option.`);
+  }
+
+  const flaggedMatch = flaggedIndexes.length === 1
+    ? runtimeOptions[flaggedIndexes[0]]
+    : null;
+  if (declaredMatch && flaggedMatch && declaredMatch.id !== flaggedMatch.id) {
+    throw new Error(`${card.card_id} answer_key.correct_option conflicts with is_correct.`);
+  }
+  if (declaredMatch) return declaredMatch.id;
+  if (flaggedMatch) return flaggedMatch.id;
+  throw new Error(`${card.card_id} answer_key.correct_option does not identify an option.`);
 }
 
 function buildLockSlots(card, lockPattern) {
@@ -1013,7 +1076,11 @@ if (resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
 }
 
 export {
+  buildCanonicalSpaceMetadata,
+  buildCorrectOption,
+  buildOptions,
   buildRuntimeAudio,
+  buildRuntimeCardWithoutAudio,
   buildSwipeStates,
   deriveConfirmedPilotScope,
   loadAudioContext,

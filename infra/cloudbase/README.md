@@ -685,6 +685,12 @@ Local mock flow:
 node infra/cloudbase/mock-softbook-api.mjs
 ```
 
+To smoke an imported full-corpus payload instead of the built-in fixture, set
+`SOFTBOOK_CET_CARD_SOURCE_CET4_FILE` and/or
+`SOFTBOOK_CET_CARD_SOURCE_CET6_FILE` to validated card-source JSON files before
+starting the mock. The mock revalidates each supplied payload and fails closed
+before serving it.
+
 In another shell:
 
 ```bash
