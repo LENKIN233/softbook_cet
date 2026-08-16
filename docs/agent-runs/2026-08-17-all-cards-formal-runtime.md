@@ -74,16 +74,17 @@ branch: cross/all-cards-usable-v1
 内容源：
 
 - CET4：`card make` draft PR #182 加 `050101` 音频恢复 PR #186。
-- CET6：`card make` draft PR #184 加 `162001`–`162008` 音频补齐与一致性修正 PR #185（head `e3b2f15723d210725ba7cd082130ce7632ba30a2`）。
+- CET6：`card make` draft PR #184 加 `162001`–`162008` 音频补齐、一致性与双探测器时长修正 PR #185（head `f1a693bf07d9270bd4ae7a9b712a6560d2201e50`）。
 
 结果：
 
 - CET4：1,180 张、108 盒、301 条音频，content version `sha256:11ec57318728e0a812918dbe2cc353b20c7a53348f93ec9659813cf2e0f9bc68`。
-- CET6：1,234 张、110 盒、328 条音频，content version `sha256:3760dfe7abe224403d97f76f65664034a69b93f6c74e26c1d05d5811a95886ca`。
+- CET6：1,234 张、110 盒、328 条音频，content version `sha256:f1378490ae34afa70b3de4b5bbde28fcadd1bc2d8651267f2718cff42a8b6cc1`。
 - 合计：2,414 张、218 盒、629 条音频。
 - 两条轨道均为 `all_cards_parseable=true`、`all_audio_cards_bound=true`、`all_cards_learning_completable=true`。
 - 两条轨道均覆盖 `flip`、`multiple_choice`、`lock`、`elimination`、`swipe`，各完成 5 个代表性 UI 流程，并精确验证所选代表卡中的 2 个音频控件。
 - CET6 `1620` 的 8 条新音频已消除 235–245 WPM 的两个语速离群点和约 5 dB 的盒内音量跳变；修正后为 157–202 估算 WPM、平均电平 -21.8 至 -21.1 dB、峰值 -8.5 至 -7.3 dB，完整 CET6 技术音频审计保持 328/328、0 错误。
+- 同一组 8 条音频的声明时长已放在 `afinfo` 与 `ffprobe` 结果中点；两种探测器分别执行完整 328 条审计均为 0 时长绑定错误，避免 macOS 通过而 Linux 超出 50 ms 合同阈值。
 
 ## 验证
 
