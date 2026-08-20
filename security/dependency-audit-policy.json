@@ -5,22 +5,7 @@
     {
       "id": "mobile",
       "path": "apps/mobile",
-      "allowed_advisories": [
-        {
-          "id": "GHSA-5p2g-fcmc-qvqq",
-          "package": "image-size",
-          "severity": "high",
-          "expires_on": "2026-08-17",
-          "reason": "image-size is present only in the bounded Node/Metro development and bundle-build toolchain and is not shipped in the installed iOS or Android runtime; no learner or network bytes feed this parser. Current build inputs are source-reviewed repository files or lock-and-integrity-bound dependency assets, so this exception limits but does not claim elimination of build-time denial-of-service risk. GitHub lists no patched image-size release as of 2026-08-10. Revoke this exception if external or user-provided asset input enters the build path, and remove it immediately when an upstream patched release is available."
-        },
-        {
-          "id": "GHSA-w3rx-r6r6-pgpr",
-          "package": "image-size",
-          "severity": "high",
-          "expires_on": "2026-08-17",
-          "reason": "image-size is present only in the bounded Node/Metro development and bundle-build toolchain and is not shipped in the installed iOS or Android runtime; no learner or network bytes feed this parser. Current build inputs are source-reviewed repository files or lock-and-integrity-bound dependency assets, so this exception limits but does not claim elimination of build-time denial-of-service risk. GitHub lists no patched image-size release as of 2026-08-10. Revoke this exception if external or user-provided asset input enters the build path, and remove it immediately when an upstream patched release is available."
-        }
-      ]
+      "allowed_advisories": []
     },
     {
       "id": "web",
