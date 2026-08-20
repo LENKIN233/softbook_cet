@@ -73,7 +73,7 @@ branch: cross/all-cards-usable-v1
 
 内容源：
 
-- CET4：`card make` draft PR #182（head `791fa6561fe9aa6055d26732a3284505fff5ec3c`）加 `050101` 音频恢复 PR #186（head `12654d04804e7e0a92a5a39af4e09dedd0e20b88`）。两条分支已于 2026-08-20 重放到包含粗粒度音频信号诊断的最新 `card-make/main`，运行时 payload 内容版本保持不变。
+- CET4：`card make` PR #188 与 301st-audio follow-up PR #189 已依次合并到 `card-make/main` commit `8a4fed1d0b5c9561d497287b61451b704f62ff00`。该主线同时包含完整 1,180 卡内容基线与 `050101` 音频恢复，并保留粗粒度音频信号诊断；运行时 payload 内容版本保持不变。
 - CET6：`card make` draft PR #184 加 `162001`–`162008` 音频补齐、一致性与双探测器时长修正 PR #185（head `f1a693bf07d9270bd4ae7a9b712a6560d2201e50`）。
 
 结果：
@@ -86,7 +86,7 @@ branch: cross/all-cards-usable-v1
 - CET6 `1620` 的 8 条新音频已消除 235–245 WPM 的两个语速离群点和约 5 dB 的盒内音量跳变；修正后为 157–202 估算 WPM、平均电平 -21.8 至 -21.1 dB、峰值 -8.5 至 -7.3 dB，完整 CET6 技术音频审计保持 328/328、0 错误。
 - 同一组 8 条音频的声明时长已放在 `afinfo` 与 `ffprobe` 结果中点；两种探测器分别执行完整 328 条审计均为 0 时长绑定错误，避免 macOS 通过而 Linux 超出 50 ms 合同阈值。
 - 使用 `mlx-community/whisper-small.en-mlx` 对 629 条候选音频执行了独立 speech-to-bound-transcript 一致性扫描：CET4 301/301、CET6 328/328 均完成。按标准化 word error rate 大于 20% 的保守阈值初筛出 19 条，逐条复核均为数字文字/阿拉伯数字表示差异，或连读、弱读、音标讲解卡中的刻意发音记法差异；未发现整句错绑、错读为另一张卡或语义内容缺失。该扫描仅是机器辅助一致性排查，不创建或替代人工听感 QC。
-- 2026-08-20 使用上述当前 CET4 heads 和新增粗粒度音频信号规则重新生成相同 source identity：content version 仍为 `sha256:11ec57318728e0a812918dbe2cc353b20c7a53348f93ec9659813cf2e0f9bc68`，candidate payload SHA-256 为 `sha256:742b84c2dab1f4ce05b4982b19cf20ea4b1314e88123ef40e2e20b8f7278d936`；1,180/301 移动验收再次通过，且 `signed_manifest_verified=false`、`human_audio_qc_verified=false`、`persistent_receiver_verified=false`、`real_device_verified=false`、`gate_eligible=false`。
+- 2026-08-20 使用上述已合并的 `card-make/main@8a4fed1` 和新增粗粒度音频信号规则重新生成相同 source identity：content version 仍为 `sha256:11ec57318728e0a812918dbe2cc353b20c7a53348f93ec9659813cf2e0f9bc68`，candidate payload SHA-256 为 `sha256:742b84c2dab1f4ce05b4982b19cf20ea4b1314e88123ef40e2e20b8f7278d936`；1,180/301 移动验收再次通过，且 `signed_manifest_verified=false`、`human_audio_qc_verified=false`、`persistent_receiver_verified=false`、`real_device_verified=false`、`gate_eligible=false`。
 
 ## 验证
 
@@ -95,7 +95,7 @@ branch: cross/all-cards-usable-v1
 - `node --test infra/cloudbase/functions/softbook-api/test/cloudbase-receiver-adapter.test.js`：包含 CET6 retained-release 回滚 passed。
 - `npm run typecheck`（`apps/mobile`）：passed。
 - `node scripts/run_full_track_candidate_mobile_acceptance.mjs ...cet4...`：1,180/301 passed。
-- 2026-08-20 current-head CET4 revalidation：`card-make` PR #182/#186 重放后 301/301 音频通过路径、哈希、大小、解码、时长、transcript presence、语速、平均电平、峰值和轨道相对电平检查；随后以原 source identity 重建并运行完整移动验收，1,180/301 passed，content version 与 2026-08-17 记录精确相同。
+- 2026-08-20 merged-main CET4 revalidation：`card-make/main@8a4fed1` 的 301/301 音频通过路径、哈希、大小、解码、时长、transcript presence、语速、平均电平、峰值和轨道相对电平检查；随后以原 source identity 重建并运行完整移动验收，1,180/301 passed，content version 与 2026-08-17 记录精确相同。
 - `node scripts/run_full_track_candidate_mobile_acceptance.mjs ...cet6...`：在 PR #185 归一化后的真实候选上重新验证，1,234/328 passed，`all_cards_parseable=true`、`all_audio_cards_bound=true`、`all_cards_learning_completable=true`。
 - 独立 ASR 一致性扫描：CET4 301/301、CET6 328/328 完成；19 条高 WER 初筛项逐条复核后为 0 条语义错绑或内容缺失，formal audio QC 仍为 false。
 - `./scripts/run_local_gates --profile dev --base origin/main ...`：23/24 passed，1 项 `dev_node_version_drift` 为已登记开发环境例外（期望 Node 22.13.0，当前 Node 24.15.0），0 failed。
