@@ -4,6 +4,7 @@
 
 - Date: 2026-08-20
 - Branch: `fix/mobile-image-size-expiry-20260820`
+- PR: https://github.com/LENKIN233/softbook_cet/pull/509
 - Summary: Remove the two expired `image-size` dependency exceptions by pinning the React Native compatible Metro family to `0.84.5`, whose package graph no longer contains `image-size`, while preserving React Native `0.85.2` and the existing mobile product/runtime behavior.
 
 ## Referenced specs
