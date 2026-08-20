@@ -22,6 +22,7 @@ import {
   parseArgs,
   roundRobin,
   validateAudioBundleCandidateSummary,
+  validateFullTrackCandidateSummary,
   writePayloads,
 } from './build_card_make_runtime_payload.mjs';
 
@@ -43,8 +44,9 @@ const BOXES = [
 ];
 
 function cardIds(prefix, count) {
-  return Array.from({length: count}, (_, index) =>
-    `${prefix}${String(index + 1).padStart(2, '0')}`,
+  return Array.from(
+    {length: count},
+    (_, index) => `${prefix}${String(index + 1).padStart(2, '0')}`,
   );
 }
 
@@ -87,10 +89,12 @@ function testConfirmedPilotOrder() {
           sample_confirmation_id: confirmationId,
           confirmed_box_expansion: true,
         },
-        cards: cardIds(boxPrefix, target).slice(3).map(cardId => ({
-          card_id: cardId,
-          status: 'pass',
-        })),
+        cards: cardIds(boxPrefix, target)
+          .slice(3)
+          .map(cardId => ({
+            card_id: cardId,
+            status: 'pass',
+          })),
       });
     }
 
@@ -101,7 +105,10 @@ function testConfirmedPilotOrder() {
     assert.equal(result.cardIds.length, 120);
     assert.equal(result.manifest.free_card_ids.length, 60);
     assert.equal(result.manifest.continuation_card_ids.length, 60);
-    assert.equal(new Set(result.manifest.free_card_ids.map(id => id[1])).size, 7);
+    assert.equal(
+      new Set(result.manifest.free_card_ids.map(id => id[1])).size,
+      7,
+    );
     assert.deepEqual(
       result.cardIds.slice(0, BOXES.length),
       BOXES.map(([prefix]) => `${prefix}01`),
@@ -182,10 +189,8 @@ function testTextBasedCorrectOption() {
   const options = buildOptions(card);
   assert.equal(buildCorrectOption(card, options), 'A');
   assert.throws(
-    () => buildCorrectOption(
-      {...card, answer_key: {correct_option: 'B'}},
-      options,
-    ),
+    () =>
+      buildCorrectOption({...card, answer_key: {correct_option: 'B'}}, options),
     /conflicts with is_correct/,
   );
 }
@@ -217,7 +222,9 @@ function testAudioBundleCandidate() {
     const auditPath = join(root, 'audio-technical-audit.json');
     const bytes = Buffer.from('fixture-mp3-bytes');
     const digest = createHash('sha256').update(bytes).digest('hex');
-    mkdirSync(join(cardMakeRoot, 'ai_tts', 'cet4', '0012'), {recursive: true});
+    mkdirSync(join(cardMakeRoot, 'ai_tts', 'cet4', '0012'), {
+      recursive: true,
+    });
     writeFileSync(absoluteAssetPath, bytes);
     writeJson(auditPath, {
       schema_version: 'audio-technical-audit.v1',
@@ -248,7 +255,7 @@ function testAudioBundleCandidate() {
           declared_duration_ms: 2100,
           file_sha256: digest,
           size_bytes: bytes.length,
-          technical: {duration_ms: 2100},
+          technical: {duration_ms: 2101},
         },
       ],
     });
@@ -298,6 +305,27 @@ function testAudioBundleCandidate() {
       audioContext,
     );
     audioContext.assets.push(audio.asset);
+    audioContext.auditByCardId.get('001201').technical.duration_ms = 2151;
+    assert.throws(
+      () =>
+        buildRuntimeAudio(
+          {
+            card: {
+              card_id: '001201',
+              track: 'cet4',
+              knowledge_ref: {track: 'cet4', box_prefix: '0012'},
+              audio: {
+                path: assetPath,
+                duration_ms: 2100,
+                transcript: 'A listening fixture.',
+              },
+            },
+          },
+          audioContext,
+        ),
+      /incomplete or mismatched/,
+    );
+    audioContext.auditByCardId.get('001201').technical.duration_ms = 2101;
 
     const runtimeCard = {
       card_id: '001201',
@@ -343,7 +371,15 @@ function testAudioBundleCandidate() {
     assert.throws(
       () =>
         validateAudioBundleCandidateSummary(
-          [{...runtimeCard, space_metadata: {...runtimeCard.space_metadata, library: '语法'}}],
+          [
+            {
+              ...runtimeCard,
+              space_metadata: {
+                ...runtimeCard.space_metadata,
+                library: '语法',
+              },
+            },
+          ],
           audioContext,
         ),
       /accepts listening-library cards only/,
@@ -386,11 +422,77 @@ function testAudioBundleCandidate() {
   }
 }
 
+function testFullTrackCandidateSummary() {
+  const interactions = [
+    'flip',
+    'multiple_choice',
+    'lock',
+    'elimination',
+    'swipe',
+  ];
+  const policies = [
+    ['cet4', 1180, 108, 301],
+    ['cet6', 1234, 110, 328],
+  ];
+
+  for (const [track, cardCount, boxCount, audioCount] of policies) {
+    const cards = Array.from({length: cardCount}, (_, index) => ({
+      card_id: `${track === 'cet4' ? '0' : '1'}${String(index).padStart(
+        5,
+        '0',
+      )}`,
+      track,
+      knowledge_ref: String(index % boxCount).padStart(4, '0'),
+      interaction_id: interactions[index % interactions.length],
+      ...(index < audioCount
+        ? {audio: {asset_id: `${track}-${index}-audio`}}
+        : {}),
+    }));
+    const audioContext = {
+      assets: Array.from({length: audioCount}, (_, index) => ({
+        asset_id: `${track}-${index}-audio`,
+      })),
+      auditByCardId: new Map(
+        cards.slice(0, audioCount).map(card => [card.card_id, {}]),
+      ),
+      track,
+    };
+
+    validateFullTrackCandidateSummary(cards, audioContext);
+    assert.throws(
+      () => validateFullTrackCandidateSummary(cards.slice(1), audioContext),
+      /must contain exactly/,
+    );
+    assert.throws(
+      () =>
+        validateFullTrackCandidateSummary(cards, {
+          ...audioContext,
+          assets: audioContext.assets.slice(1),
+        }),
+      /technically audited audio assets/,
+    );
+  }
+
+  assert.throws(
+    () =>
+      parseArgs([
+        '--payload-mode',
+        'full-track-candidate',
+        '--scope-card-ids',
+        '000001',
+        '--output-dir',
+        '/tmp/full-track-candidate-fixture',
+      ]),
+    /requires --scope-card-ids and --audio-technical-audit/,
+  );
+}
+
 assert.deepEqual(roundRobin([['a', 'b'], ['c']]), ['a', 'c', 'b']);
 testBooleanSwipeIdentifiers();
 testLegacyFormOptions();
 testTextBasedCorrectOption();
 testCanonicalCatalogMetadata();
 testAudioBundleCandidate();
+testFullTrackCandidateSummary();
 testConfirmedPilotOrder();
 console.log('build_card_make_runtime_payload tests passed');

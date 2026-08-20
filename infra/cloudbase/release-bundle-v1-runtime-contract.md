@@ -14,8 +14,9 @@ Referenced active specs:
 
 `product_truth`:
 
-- The closed beta release contains CET4 only and requires one final whole-track
-  user approval.
+- The initial closed beta release contains CET4 only. The formal product scope
+  contains CET4 and CET6 as separate track-bound releases, and each track
+  requires its own final whole-track user approval.
 - Audio remains a card resource and cannot enter a release without complete QC.
 - Delivery does not include development users, learning records, credentials,
   signing private keys, or fixed SMS codes.
@@ -44,25 +45,30 @@ source still has the bundle content version.
 ## `delivery-profile.v1`
 
 The profile contains `profile_id`, receiver `environment_id`, `region`, HTTPS
-`api_base_url`, `runtime_mode=closed_beta`, `enabled_tracks=[cet4]`, minimum iOS
-and Android client versions, and a public `signing_key_id`. Secret-shaped fields
-are rejected. The personal development environment is rejected as a delivery
-target. `region` accepts the real CloudBase environment form such as
-`ap-shanghai` and an optional numeric zone suffix.
+`api_base_url`, `runtime_mode`, `enabled_tracks`, minimum iOS and Android client
+versions, and a public `signing_key_id`. `closed_beta` remains exactly
+`enabled_tracks=[cet4]`; the formal `production` profile is exactly
+`enabled_tracks=[cet4,cet6]`. Partial, duplicate, or reordered production track
+sets fail closed. Secret-shaped fields are rejected. The personal development
+environment is rejected as a delivery target. `region` accepts the real
+CloudBase environment form such as `ap-shanghai` and an optional numeric zone
+suffix.
 
 ## `release-bundle.v1`
 
-The bundle requires:
+The bundle is track-scoped and requires:
 
-- exactly 1,180 CET4 cards and a deterministic content version;
+- exactly 1,180 cards / 108 boxes / 301 audio assets for CET4, or exactly
+  1,234 cards / 110 boxes / 328 audio assets for CET6, plus a deterministic
+  content version;
 - a card-workspace corpus fingerprint carried by the exported content payload
   and matched exactly by the bundle and final approval;
 - a `full_track_final` approval whose exact card/box scope and corpus
   fingerprint match the payload;
 - a hash-bound audit with zero unresolved blockers, zero unexplained risks, and
   100% quality metadata coverage;
-- exactly 301 audio assets whose paths, sizes, durations, hashes, and QC records
-  match the content payload;
+- the exact track audio count whose paths, sizes, durations, hashes, and QC
+  records match the content payload;
 - every QC record to state formal readiness and pass all required text,
   pronunciation, rhythm, noise, no-autoplay, subtitle, and provenance checks;
 - explicit minimum iOS/Android versions, parent release, and release time.
@@ -93,7 +99,8 @@ The concrete receiver adapter stores immutable staged versions in
 `softbook_card_source_versions`. It re-downloads every uploaded private audio
 object and verifies byte length and SHA-256 before staging, binds the staged
 document to the approval, audit, audio-manifest, and audio-QC hashes, and marks
-that stage verified before changing `softbook_card_sources.cet4`. Retention
+that stage verified before changing the matching
+`softbook_card_sources.<track>` pointer. Retention
 metadata is written before the current-source pointer, so activation remains
 the final write.
 

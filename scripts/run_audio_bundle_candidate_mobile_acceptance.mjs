@@ -19,9 +19,9 @@ import {fileURLToPath} from 'node:url';
 import {validateCardSourceCatalogMapping} from '../infra/cloudbase/card-source-catalog.mjs';
 
 const require = createRequire(import.meta.url);
-const {validateCardSourceForReleaseBundle} = require(
-  '../infra/cloudbase/functions/softbook-api',
-);
+const {
+  validateCardSourceForReleaseBundle,
+} = require('../infra/cloudbase/functions/softbook-api');
 
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = realpathSync(resolve(SCRIPT_DIRECTORY, '..'));
@@ -41,6 +41,10 @@ const CANDIDATE_KEYS = Object.freeze([
   'source',
   'track',
 ]);
+const FULL_TRACK_POLICIES = Object.freeze({
+  cet4: Object.freeze({cardCount: 1180, boxCount: 108, audioCount: 301}),
+  cet6: Object.freeze({cardCount: 1234, boxCount: 110, audioCount: 328}),
+});
 const SAFE_REPORT_KEYS = Object.freeze([
   'all_cards_audio_bound',
   'all_cards_learning_completable',
@@ -53,6 +57,31 @@ const SAFE_REPORT_KEYS = Object.freeze([
   'gate_eligible',
   'human_audio_qc_verified',
   'interaction_card_counts',
+  'persistent_receiver_verified',
+  'real_device_verified',
+  'representative_audio_controls_verified',
+  'representative_card_ids',
+  'representative_ui_completions_verified',
+  'schema_version',
+  'signed_manifest_verified',
+  'simulated_manifest_binding_verified',
+  'track',
+  'visible_runtime_metadata_leak_guard_verified',
+]);
+const FULL_TRACK_SAFE_REPORT_KEYS = Object.freeze([
+  'all_audio_cards_bound',
+  'all_cards_learning_completable',
+  'all_cards_parseable',
+  'audio_asset_count',
+  'audio_card_count',
+  'candidate_payload_sha256',
+  'card_count',
+  'checked_at',
+  'content_version',
+  'gate_eligible',
+  'human_audio_qc_verified',
+  'interaction_card_counts',
+  'non_audio_card_count',
   'persistent_receiver_verified',
   'real_device_verified',
   'representative_audio_controls_verified',
@@ -96,7 +125,9 @@ export function normalizeAudioBundleCandidate(value) {
       card => card.space_metadata?.library !== '听力' || !card.audio,
     )
   ) {
-    fail('Audio bundle candidate must contain only audio-bound listening cards.');
+    fail(
+      'Audio bundle candidate must contain only audio-bound listening cards.',
+    );
   }
   if (normalized.assets.length !== normalized.card_records.length) {
     fail('Audio bundle candidate must bind exactly one asset per card.');
@@ -105,18 +136,71 @@ export function normalizeAudioBundleCandidate(value) {
   return normalized;
 }
 
-export function summarizeCandidate(candidate, candidatePayloadSha256, checkedAt) {
+export function normalizeFullTrackCandidate(value) {
+  if (!hasExactKeys(value, CANDIDATE_KEYS)) {
+    fail('Full-track candidate must have the exact candidate payload shape.');
+  }
+  const policy = FULL_TRACK_POLICIES[value.track];
+  if (!policy) fail('Full-track candidate track must be cet4 or cet6.');
+
+  let normalized;
+  try {
+    normalized = validateCardSourceCatalogMapping(
+      validateCardSourceForReleaseBundle(value, value.track),
+    );
+  } catch (error) {
+    fail(
+      `Full-track candidate failed release-bundle validation: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+
+  const audioCards = normalized.card_records.filter(card => card.audio);
+  const boxes = new Set(
+    normalized.card_records.map(card => card.knowledge_ref),
+  );
+  const interactions = new Set(
+    normalized.card_records.map(card => card.interaction_id),
+  );
+  const referencedAssets = new Set(audioCards.map(card => card.audio.asset_id));
+  if (
+    normalized.release !== null ||
+    normalized.card_records.length !== policy.cardCount ||
+    boxes.size !== policy.boxCount ||
+    audioCards.length !== policy.audioCount ||
+    normalized.assets.length !== policy.audioCount ||
+    referencedAssets.size !== policy.audioCount ||
+    normalized.assets.some(asset => !referencedAssets.has(asset.asset_id)) ||
+    !INTERACTION_ORDER.every(interaction => interactions.has(interaction))
+  ) {
+    fail(
+      'Full-track candidate does not match its exact cards, boxes, audio, and interaction policy.',
+    );
+  }
+  return normalized;
+}
+
+export function summarizeCandidate(
+  candidate,
+  candidatePayloadSha256,
+  checkedAt,
+) {
   const interactionCardCounts = {};
   for (const card of candidate.card_records) {
     interactionCardCounts[card.interaction_id] =
       (interactionCardCounts[card.interaction_id] ?? 0) + 1;
   }
-  const representativeCardIds = INTERACTION_ORDER.flatMap(interactionId => {
+  const representativeCards = INTERACTION_ORDER.flatMap(interactionId => {
     const card = candidate.card_records.find(
       candidateCard => candidateCard.interaction_id === interactionId,
     );
-    return card ? [card.card_id] : [];
+    return card ? [card] : [];
   });
+  const representativeCardIds = representativeCards.map(card => card.card_id);
+  const representativeAudioCount = representativeCards.filter(
+    card => card.audio !== undefined,
+  ).length;
 
   return {
     checkedAt,
@@ -127,6 +211,7 @@ export function summarizeCandidate(candidate, candidatePayloadSha256, checkedAt)
     audioAssetCount: candidate.assets.length,
     interactionCardCounts,
     representativeCardIds,
+    representativeAudioCount,
   };
 }
 
@@ -168,7 +253,9 @@ export function normalizeSafeMobileReport(report, expected) {
     report.real_device_verified === false &&
     report.gate_eligible === false;
   if (!valid) {
-    fail('Mobile audio-bundle acceptance safe report is incomplete or invalid.');
+    fail(
+      'Mobile audio-bundle acceptance safe report is incomplete or invalid.',
+    );
   }
 
   return {
@@ -200,7 +287,88 @@ export function normalizeSafeMobileReport(report, expected) {
   };
 }
 
+export function normalizeSafeFullTrackMobileReport(report, expected) {
+  const valid =
+    hasExactKeys(report, FULL_TRACK_SAFE_REPORT_KEYS) &&
+    report.schema_version === 'full-track-candidate-mobile-learning-smoke.v1' &&
+    report.checked_at === expected.checkedAt &&
+    report.candidate_payload_sha256 === expected.candidatePayloadSha256 &&
+    report.content_version === expected.contentVersion &&
+    report.track === expected.track &&
+    report.card_count === expected.cardCount &&
+    report.audio_card_count === expected.audioAssetCount &&
+    report.audio_asset_count === expected.audioAssetCount &&
+    report.non_audio_card_count ===
+      expected.cardCount - expected.audioAssetCount &&
+    hasExactKeys(
+      report.interaction_card_counts,
+      Object.keys(expected.interactionCardCounts),
+    ) &&
+    Object.entries(expected.interactionCardCounts).every(
+      ([interactionId, count]) =>
+        report.interaction_card_counts[interactionId] === count,
+    ) &&
+    hasExactOrderedValues(
+      report.representative_card_ids,
+      expected.representativeCardIds,
+    ) &&
+    report.all_cards_parseable === true &&
+    report.all_audio_cards_bound === true &&
+    report.all_cards_learning_completable === true &&
+    report.representative_ui_completions_verified ===
+      expected.representativeCardIds.length &&
+    report.representative_audio_controls_verified ===
+      expected.representativeAudioCount &&
+    report.simulated_manifest_binding_verified === true &&
+    report.visible_runtime_metadata_leak_guard_verified === true &&
+    report.signed_manifest_verified === false &&
+    report.human_audio_qc_verified === false &&
+    report.persistent_receiver_verified === false &&
+    report.real_device_verified === false &&
+    report.gate_eligible === false;
+  if (!valid)
+    fail('Mobile full-track acceptance safe report is incomplete or invalid.');
+
+  return {
+    schema_version: report.schema_version,
+    checked_at: report.checked_at,
+    candidate_payload_sha256: report.candidate_payload_sha256,
+    content_version: report.content_version,
+    track: report.track,
+    card_count: report.card_count,
+    audio_card_count: report.audio_card_count,
+    audio_asset_count: report.audio_asset_count,
+    non_audio_card_count: report.non_audio_card_count,
+    interaction_card_counts: {...expected.interactionCardCounts},
+    all_cards_parseable: report.all_cards_parseable,
+    all_audio_cards_bound: report.all_audio_cards_bound,
+    all_cards_learning_completable: report.all_cards_learning_completable,
+    representative_card_ids: [...expected.representativeCardIds],
+    representative_ui_completions_verified:
+      report.representative_ui_completions_verified,
+    representative_audio_controls_verified:
+      report.representative_audio_controls_verified,
+    simulated_manifest_binding_verified:
+      report.simulated_manifest_binding_verified,
+    visible_runtime_metadata_leak_guard_verified:
+      report.visible_runtime_metadata_leak_guard_verified,
+    signed_manifest_verified: report.signed_manifest_verified,
+    human_audio_qc_verified: report.human_audio_qc_verified,
+    persistent_receiver_verified: report.persistent_receiver_verified,
+    real_device_verified: report.real_device_verified,
+    gate_eligible: report.gate_eligible,
+  };
+}
+
 export function runAudioBundleCandidateMobileAcceptance(options) {
+  return runCandidateMobileAcceptance(options, false);
+}
+
+export function runFullTrackCandidateMobileAcceptance(options) {
+  return runCandidateMobileAcceptance(options, true);
+}
+
+function runCandidateMobileAcceptance(options, fullTrack) {
   const checkedAt = requireCanonicalTimestamp(
     options.checkedAt ?? new Date().toISOString(),
     'checkedAt',
@@ -217,9 +385,15 @@ export function runAudioBundleCandidateMobileAcceptance(options) {
   try {
     rawCandidate = JSON.parse(candidateBytes.toString('utf8'));
   } catch {
-    fail('Audio bundle candidate must be valid JSON.');
+    fail(
+      `${
+        fullTrack ? 'Full-track' : 'Audio bundle'
+      } candidate must be valid JSON.`,
+    );
   }
-  const candidate = normalizeAudioBundleCandidate(rawCandidate);
+  const candidate = fullTrack
+    ? normalizeFullTrackCandidate(rawCandidate)
+    : normalizeAudioBundleCandidate(rawCandidate);
   const expected = summarizeCandidate(
     candidate,
     candidatePayloadSha256,
@@ -227,7 +401,12 @@ export function runAudioBundleCandidateMobileAcceptance(options) {
   );
   const initialStatus = readWorktreeStatus();
   const temporaryRoot = mkdtempSync(
-    join(tmpdir(), 'softbook-audio-bundle-mobile-acceptance-'),
+    join(
+      tmpdir(),
+      fullTrack
+        ? 'softbook-full-track-mobile-acceptance-'
+        : 'softbook-audio-bundle-mobile-acceptance-',
+    ),
   );
   chmodSync(temporaryRoot, 0o700);
   const fixturePath = join(temporaryRoot, 'mobile-fixture.json');
@@ -237,8 +416,9 @@ export function runAudioBundleCandidateMobileAcceptance(options) {
     writeFileSync(
       fixturePath,
       `${JSON.stringify({
-        schema_version:
-          'audio-bundle-candidate-mobile-acceptance-fixture.v1',
+        schema_version: fullTrack
+          ? 'full-track-candidate-mobile-acceptance-fixture.v1'
+          : 'audio-bundle-candidate-mobile-acceptance-fixture.v1',
         checked_at: checkedAt,
         candidate_payload_sha256: candidatePayloadSha256,
         candidate,
@@ -270,23 +450,33 @@ export function runAudioBundleCandidateMobileAcceptance(options) {
     );
     if (jest.error || jest.status !== 0) {
       fail(
-        `Mobile audio-bundle acceptance Jest failed.${formatChildOutput(
+        `Mobile ${
+          fullTrack ? 'full-track' : 'audio-bundle'
+        } acceptance Jest failed.${formatChildOutput(
           jest.stdout,
           jest.stderr,
         )}`,
       );
     }
     if (!isRegularFile(reportPath)) {
-      fail('Mobile audio-bundle acceptance did not produce its safe report.');
+      fail(
+        `Mobile ${
+          fullTrack ? 'full-track' : 'audio-bundle'
+        } acceptance did not produce its safe report.`,
+      );
     }
-    return normalizeSafeMobileReport(
-      JSON.parse(readFileSync(reportPath, 'utf8')),
-      expected,
-    );
+    const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+    return fullTrack
+      ? normalizeSafeFullTrackMobileReport(report, expected)
+      : normalizeSafeMobileReport(report, expected);
   } finally {
     rmSync(temporaryRoot, {force: true, recursive: true});
     if (readWorktreeStatus() !== initialStatus) {
-      fail('Mobile audio-bundle acceptance changed the repository worktree.');
+      fail(
+        `Mobile ${
+          fullTrack ? 'full-track' : 'audio-bundle'
+        } acceptance changed the repository worktree.`,
+      );
     }
   }
 }

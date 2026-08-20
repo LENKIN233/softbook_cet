@@ -1,14 +1,14 @@
 /**
- * Opt-in mobile acceptance smoke for an external audio-bundle candidate. The
+ * Opt-in mobile acceptance smoke for an external audio or full-track candidate. The
  * runner supplies a short-lived fixture and deletes it after this process exits.
  */
 
-import {readFileSync, writeFileSync} from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
-import React, {useRef, useState} from 'react';
+import React, { useRef, useState } from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 
-import {assertContentManifestMatchesCards} from '../src/audio/contentManifestRepository';
+import { assertContentManifestMatchesCards } from '../src/audio/contentManifestRepository';
 import {
   LearningResultDetailSurface,
   LearningSurface,
@@ -20,7 +20,7 @@ import type {
   LearningCardState,
   LearningSession,
 } from '../src/learning/model';
-import {parseSoftbookRemoteLearningCardSourcePayload} from '../src/learning/remoteCardSource';
+import { parseSoftbookRemoteLearningCardSourcePayload } from '../src/learning/remoteCardSource';
 import {
   canSubmitLearningCard,
   createLearningCardState,
@@ -62,7 +62,9 @@ type CandidateAsset = {
 };
 
 type AcceptanceFixture = {
-  schema_version: 'audio-bundle-candidate-mobile-acceptance-fixture.v1';
+  schema_version:
+    | 'audio-bundle-candidate-mobile-acceptance-fixture.v1'
+    | 'full-track-candidate-mobile-acceptance-fixture.v1';
   checked_at: string;
   candidate_payload_sha256: string;
   candidate: {
@@ -70,26 +72,31 @@ type AcceptanceFixture = {
     card_records: unknown[];
     content_version: string;
     release: null;
-    source: {id: string; label: string};
+    source: { id: string; label: string };
     track: 'cet4' | 'cet6';
   };
 };
 
-test('candidate cards bind audio and complete through Mobile Learning', () => {
+test('candidate cards parse, bind declared audio, and complete through Mobile Learning', () => {
   const fixture = readFixture();
+  const fullTrack =
+    fixture.schema_version ===
+    'full-track-candidate-mobile-acceptance-fixture.v1';
   const parsed = parseSoftbookRemoteLearningCardSourcePayload(
-    {data: fixture.candidate},
+    { data: fixture.candidate },
     fixture.candidate.track,
   );
   const assetById = new Map(
     fixture.candidate.assets.map(asset => [asset.asset_id, asset]),
   );
   const interactionCardCounts: Record<string, number> = {};
+  const boundAssetIds = new Set<string>();
+  let audioCardCount = 0;
 
   if (
     parsed.cards.length === 0 ||
     parsed.contentVersion !== fixture.candidate.content_version ||
-    parsed.cards.length !== fixture.candidate.assets.length ||
+    (!fullTrack && parsed.cards.length !== fixture.candidate.assets.length) ||
     assetById.size !== fixture.candidate.assets.length
   ) {
     throw new Error('Audio-bundle candidate scope is invalid.');
@@ -98,13 +105,21 @@ test('candidate cards bind audio and complete through Mobile Learning', () => {
   for (const card of parsed.cards) {
     interactionCardCounts[card.interaction_id] =
       (interactionCardCounts[card.interaction_id] ?? 0) + 1;
-    const asset = card.audio ? assetById.get(card.audio.asset_id) : undefined;
-    if (
-      !asset ||
-      asset.duration_ms !== card.audio?.duration_ms ||
-      asset.sha256 !== card.audio?.sha256
-    ) {
-      throw new Error(`Audio binding for ${card.card_id} is invalid.`);
+    if (card.audio) {
+      const asset = assetById.get(card.audio.asset_id);
+      if (
+        !asset ||
+        asset.duration_ms !== card.audio.duration_ms ||
+        asset.sha256 !== card.audio.sha256
+      ) {
+        throw new Error(`Audio binding for ${card.card_id} is invalid.`);
+      }
+      boundAssetIds.add(asset.asset_id);
+      audioCardCount += 1;
+    } else if (!fullTrack) {
+      throw new Error(
+        `Audio-bundle card ${card.card_id} has no audio binding.`,
+      );
     }
     const state = createAcceptanceCompletionState(card);
     const result = evaluateLearningCard(card, state);
@@ -119,6 +134,14 @@ test('candidate cards bind audio and complete through Mobile Learning', () => {
     }
   }
 
+  if (
+    audioCardCount !== fixture.candidate.assets.length ||
+    boundAssetIds.size !== fixture.candidate.assets.length ||
+    fixture.candidate.assets.some(asset => !boundAssetIds.has(asset.asset_id))
+  ) {
+    throw new Error('Candidate audio asset coverage is incomplete.');
+  }
+
   const contentManifest = createSimulatedManifest(fixture, parsed.cards.length);
   assertContentManifestMatchesCards(contentManifest, parsed.cards);
   const representativeCards = INTERACTION_ORDER.flatMap(interactionId => {
@@ -128,6 +151,7 @@ test('candidate cards bind audio and complete through Mobile Learning', () => {
     return card ? [card] : [];
   });
 
+  let representativeAudioControlsVerified = 0;
   for (const card of representativeCards) {
     const session = createRepresentativeSession(
       fixture,
@@ -141,23 +165,26 @@ test('candidate cards bind audio and complete through Mobile Learning', () => {
         <CardAcceptanceHarness session={session} />,
       );
     });
-    const audioControl = tree!.root.findByProps({
-      testID: 'learning-audio-control',
-    });
-    if (
-      audioControl.props.accessibilityRole !== 'button' ||
-      audioControl.props.accessibilityLabel !== '播放听力'
-    ) {
-      throw new Error(`Audio control for ${card.card_id} is invalid.`);
+    if (card.audio) {
+      const audioControl = tree!.root.findByProps({
+        testID: 'learning-audio-control',
+      });
+      if (
+        audioControl.props.accessibilityRole !== 'button' ||
+        audioControl.props.accessibilityLabel !== '播放听力'
+      ) {
+        throw new Error(`Audio control for ${card.card_id} is invalid.`);
+      }
+      representativeAudioControlsVerified += 1;
     }
     completeInteraction(tree!, card);
-    tree!.root.findByProps({testID: 'learning-result-summary'});
+    tree!.root.findByProps({ testID: 'learning-result-summary' });
     ReactTestRenderer.act(() => {
       tree!.root
-        .findByProps({testID: 'learning-open-result-detail-button'})
+        .findByProps({ testID: 'learning-open-result-detail-button' })
         .props.onPress();
     });
-    tree!.root.findByProps({testID: 'learning-result-detail-screen'});
+    tree!.root.findByProps({ testID: 'learning-result-detail-screen' });
     const visibleOutput = JSON.stringify(tree!.toJSON());
     const visibleText = collectRenderedText(tree!.toJSON());
     for (const expectedAnalysis of [
@@ -174,8 +201,10 @@ test('candidate cards bind audio and complete through Mobile Learning', () => {
   }
 
   writeSafeReport({
+    audioCardCount,
     fixture,
     interactionCardCounts,
+    representativeAudioControlsVerified,
     representativeCards,
   });
 });
@@ -188,8 +217,10 @@ function readFixture(): AcceptanceFixture {
     readFileSync(fixturePath, 'utf8'),
   ) as AcceptanceFixture;
   if (
-    fixture.schema_version !==
-      'audio-bundle-candidate-mobile-acceptance-fixture.v1' ||
+    ![
+      'audio-bundle-candidate-mobile-acceptance-fixture.v1',
+      'full-track-candidate-mobile-acceptance-fixture.v1',
+    ].includes(fixture.schema_version) ||
     !/^sha256:[a-f0-9]{64}$/.test(fixture.candidate_payload_sha256) ||
     fixture.candidate.release !== null
   ) {
@@ -221,7 +252,7 @@ function createSimulatedManifest(
       content_version: fixture.candidate.content_version,
       minimum_client_version: '1.0.0',
       parent_release_id: null,
-      assets: fixture.candidate.assets.map(asset => ({...asset})),
+      assets: fixture.candidate.assets.map(asset => ({ ...asset })),
     },
     signature: {
       algorithm: 'ed25519',
@@ -256,7 +287,7 @@ function createRepresentativeSession(
   };
 }
 
-function CardAcceptanceHarness({session}: {session: LearningSession}) {
+function CardAcceptanceHarness({ session }: { session: LearningSession }) {
   const card = session.cards[0];
   const [cardState, setCardState] = useState(() =>
     createLearningCardState(card),
@@ -308,11 +339,11 @@ function CardAcceptanceHarness({session}: {session: LearningSession}) {
       currentIndex={0}
       currentResult={result}
       onAdvanceCard={() => undefined}
-      onFlip={() => updateState(current => ({...current, isFlipped: true}))}
+      onFlip={() => updateState(current => ({ ...current, isFlipped: true }))}
       onOpenResultDetail={() => setShowDetail(true)}
       onRestartDeck={() => undefined}
       onSelectOption={optionId =>
-        updateState(current => ({...current, selectedOptionId: optionId}))
+        updateState(current => ({ ...current, selectedOptionId: optionId }))
       }
       onSelectSwipeState={stateId => {
         const next = updateState(current => ({
@@ -331,7 +362,7 @@ function CardAcceptanceHarness({session}: {session: LearningSession}) {
       onSetLockSelection={(slotId, value) =>
         updateState(current => ({
           ...current,
-          lockSelections: {...current.lockSelections, [slotId]: value},
+          lockSelections: { ...current.lockSelections, [slotId]: value },
         }))
       }
       onSubmitCurrentCard={() => complete(cardStateRef.current)}
@@ -339,7 +370,9 @@ function CardAcceptanceHarness({session}: {session: LearningSession}) {
         updateState(current => ({
           ...current,
           eliminatedItemIds: current.eliminatedItemIds.includes(itemId)
-            ? current.eliminatedItemIds.filter(candidate => candidate !== itemId)
+            ? current.eliminatedItemIds.filter(
+                candidate => candidate !== itemId,
+              )
             : [...current.eliminatedItemIds, itemId],
         }))
       }
@@ -356,7 +389,7 @@ function CardAcceptanceHarness({session}: {session: LearningSession}) {
         }))
       }
       onTogglePeek={() =>
-        updateState(current => ({...current, isPeeked: !current.isPeeked}))
+        updateState(current => ({ ...current, isPeeked: !current.isPeeked }))
       }
       palette={palette}
       phase="learning"
@@ -404,7 +437,7 @@ function completeInteraction(
 
 function press(tree: ReactTestRenderer.ReactTestRenderer, testID: string) {
   ReactTestRenderer.act(() =>
-    tree.root.findByProps({testID}).props.onPress(),
+    tree.root.findByProps({ testID }).props.onPress(),
   );
 }
 
@@ -414,9 +447,9 @@ function createAcceptanceCompletionState(
   const state = createLearningCardState(card);
   switch (card.interaction_id) {
     case 'flip':
-      return {...state, flipConfidence: 'confident', isFlipped: true};
+      return { ...state, flipConfidence: 'confident', isFlipped: true };
     case 'multiple_choice':
-      return {...state, selectedOptionId: card.answer_key.correct_option};
+      return { ...state, selectedOptionId: card.answer_key.correct_option };
     case 'lock':
       return {
         ...state,
@@ -433,7 +466,7 @@ function createAcceptanceCompletionState(
         eliminatedItemIds: [...card.answer_key.correct_items],
       };
     case 'swipe':
-      return {...state, swipeSelection: card.answer_key.correct_state};
+      return { ...state, swipeSelection: card.answer_key.correct_state };
   }
 }
 
@@ -468,7 +501,7 @@ function collectRenderedText(value: unknown): string {
   if (Array.isArray(value)) return value.map(collectRenderedText).join('');
   if (value && typeof value === 'object' && 'children' in value) {
     return collectRenderedText(
-      (value as {children?: unknown}).children ?? [],
+      (value as { children?: unknown }).children ?? [],
     );
   }
   return '';
@@ -485,46 +518,55 @@ function requireEnvironmentPath(name: string) {
 }
 
 function writeSafeReport(input: {
+  audioCardCount: number;
   fixture: AcceptanceFixture;
   interactionCardCounts: Record<string, number>;
+  representativeAudioControlsVerified: number;
   representativeCards: LearningCard[];
 }) {
   const reportPath = requireEnvironmentPath(
     'SOFTBOOK_AUDIO_BUNDLE_ACCEPTANCE_REPORT',
   );
-  writeFileSync(
-    reportPath,
-    `${JSON.stringify(
-      {
+  const common = {
+    checked_at: input.fixture.checked_at,
+    candidate_payload_sha256: input.fixture.candidate_payload_sha256,
+    content_version: input.fixture.candidate.content_version,
+    track: input.fixture.candidate.track,
+    card_count: input.fixture.candidate.card_records.length,
+    audio_asset_count: input.fixture.candidate.assets.length,
+    interaction_card_counts: input.interactionCardCounts,
+    all_cards_parseable: true,
+    all_cards_learning_completable: true,
+    representative_card_ids: input.representativeCards.map(
+      card => card.card_id,
+    ),
+    representative_ui_completions_verified: input.representativeCards.length,
+    representative_audio_controls_verified:
+      input.representativeAudioControlsVerified,
+    simulated_manifest_binding_verified: true,
+    visible_runtime_metadata_leak_guard_verified: true,
+    signed_manifest_verified: false,
+    human_audio_qc_verified: false,
+    persistent_receiver_verified: false,
+    real_device_verified: false,
+    gate_eligible: false,
+  };
+  const fullTrack =
+    input.fixture.schema_version ===
+    'full-track-candidate-mobile-acceptance-fixture.v1';
+  const report = fullTrack
+    ? {
+        schema_version: 'full-track-candidate-mobile-learning-smoke.v1',
+        ...common,
+        audio_card_count: input.audioCardCount,
+        non_audio_card_count:
+          input.fixture.candidate.card_records.length - input.audioCardCount,
+        all_audio_cards_bound: true,
+      }
+    : {
         schema_version: 'audio-bundle-candidate-mobile-learning-smoke.v1',
-        checked_at: input.fixture.checked_at,
-        candidate_payload_sha256:
-          input.fixture.candidate_payload_sha256,
-        content_version: input.fixture.candidate.content_version,
-        track: input.fixture.candidate.track,
-        card_count: input.fixture.candidate.card_records.length,
-        audio_asset_count: input.fixture.candidate.assets.length,
-        interaction_card_counts: input.interactionCardCounts,
-        all_cards_parseable: true,
+        ...common,
         all_cards_audio_bound: true,
-        all_cards_learning_completable: true,
-        representative_card_ids: input.representativeCards.map(
-          card => card.card_id,
-        ),
-        representative_ui_completions_verified:
-          input.representativeCards.length,
-        representative_audio_controls_verified:
-          input.representativeCards.length,
-        simulated_manifest_binding_verified: true,
-        visible_runtime_metadata_leak_guard_verified: true,
-        signed_manifest_verified: false,
-        human_audio_qc_verified: false,
-        persistent_receiver_verified: false,
-        real_device_verified: false,
-        gate_eligible: false,
-      },
-      null,
-      2,
-    )}\n`,
-  );
+      };
+  writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 }

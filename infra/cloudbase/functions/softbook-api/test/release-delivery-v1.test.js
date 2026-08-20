@@ -40,6 +40,12 @@ test('delivery profile is receiver-owned and contains no secret material', () =>
   assert.equal(valid.runtime_mode, 'closed_beta');
   assert.deepEqual(valid.enabled_tracks, ['cet4']);
 
+  const production = delivery.validateDeliveryProfile(
+    profileFixture('production'),
+  );
+  assert.equal(production.runtime_mode, 'production');
+  assert.deepEqual(production.enabled_tracks, ['cet4', 'cet6']);
+
   assert.throws(
     () =>
       delivery.validateDeliveryProfile({
@@ -55,6 +61,25 @@ test('delivery profile is receiver-owned and contains no secret material', () =>
         api_key: 'must-not-be-here',
       }),
     /unsupported or missing fields/,
+  );
+});
+
+test('delivery profiles fail closed on partial or reordered production tracks', () => {
+  assert.throws(
+    () =>
+      delivery.validateDeliveryProfile({
+        ...profileFixture('production'),
+        enabled_tracks: ['cet6'],
+      }),
+    /enabled_tracks must be exactly/,
+  );
+  assert.throws(
+    () =>
+      delivery.validateDeliveryProfile({
+        ...profileFixture('production'),
+        enabled_tracks: ['cet6', 'cet4'],
+      }),
+    /enabled_tracks must be exactly/,
   );
 });
 
@@ -91,6 +116,33 @@ test('release bundle verifies all cards, boxes, approval, audio hashes, and QC',
   assert.equal(verified.audio_qc_index.assets.length, 301);
 });
 
+test('production release bundle verifies the complete CET6 track', () => {
+  const fixture = createValidBundleFixture('cet6');
+  const verified = delivery.verifyReleaseBundleDirectory({
+    bundlePath: fixture.bundlePath,
+    profilePath: fixture.profilePath,
+  });
+
+  assert.equal(verified.bundle.track, 'cet6');
+  assert.equal(verified.content.card_records.length, 1234);
+  assert.equal(verified.audio_manifest.assets.length, 328);
+  assert.equal(verified.audio_qc_index.assets.length, 328);
+});
+
+test('closed beta profile cannot publish a CET6 bundle', () => {
+  const fixture = createValidBundleFixture('cet6');
+  writeJson(fixture.directory, 'delivery-profile.json', profileFixture());
+
+  assert.throws(
+    () =>
+      delivery.verifyReleaseBundleDirectory({
+        bundlePath: fixture.bundlePath,
+        profilePath: fixture.profilePath,
+      }),
+    /not enabled by the delivery profile/,
+  );
+});
+
 test('read-only verifier CLI reports publisher readiness without writing CloudBase', () => {
   const fixture = createValidBundleFixture();
   const options = verifyCli.parseArguments([
@@ -111,7 +163,10 @@ test('read-only verifier CLI reports publisher readiness without writing CloudBa
 
 test('release bundle fails closed when one audio byte changes', () => {
   const fixture = createValidBundleFixture();
-  writeFileSync(join(fixture.directory, fixture.audioManifest.assets[0].asset_path), 'tampered');
+  writeFileSync(
+    join(fixture.directory, fixture.audioManifest.assets[0].asset_path),
+    'tampered',
+  );
 
   assert.throws(
     () =>
@@ -157,7 +212,10 @@ test('publisher activates only after every upload, stage, and verification succe
     },
     stageContent: async ({cardSource}) => {
       calls.push('stage');
-      assert.equal(cardSource.content_version, verified.bundle.content.content_version);
+      assert.equal(
+        cardSource.content_version,
+        verified.bundle.content.content_version,
+      );
     },
     verifyStaged: async () => calls.push('verify'),
     activateRelease: async () => calls.push('activate'),
@@ -195,14 +253,17 @@ test('publisher never activates after staged verification fails', async () => {
 
 test('rollback switches only to a verified retained release', async () => {
   const calls = [];
-  const result = await delivery.rollbackToRetainedRelease('cet4-beta-previous', {
-    verifyRetainedRelease: async releaseId => {
-      calls.push(`verify:${releaseId}`);
-      return {release_id: releaseId, verified: true};
+  const result = await delivery.rollbackToRetainedRelease(
+    'cet4-beta-previous',
+    {
+      verifyRetainedRelease: async releaseId => {
+        calls.push(`verify:${releaseId}`);
+        return {release_id: releaseId, verified: true};
+      },
+      activateRetainedRelease: async retained =>
+        calls.push(`activate:${retained.release_id}`),
     },
-    activateRetainedRelease: async retained =>
-      calls.push(`activate:${retained.release_id}`),
-  });
+  );
 
   assert.deepEqual(calls, [
     'verify:cet4-beta-previous',
@@ -211,23 +272,29 @@ test('rollback switches only to a verified retained release', async () => {
   assert.equal(result.deleted_learning_data, false);
 });
 
-function createValidBundleFixture() {
+function createValidBundleFixture(track = 'cet4') {
   const directory = mkdtempSync(join(tmpdir(), 'softbook-release-bundle-'));
   temporaryDirectories.push(directory);
   const catalog = catalogModule.loadBoxCatalog();
-  const entries = [...catalogModule.catalogEntriesByRef(catalog, 'cet4').entries()];
-  assert.equal(entries.length, 108);
+  const policy =
+    track === 'cet4'
+      ? {cardCount: 1180, boxCount: 108, audioCount: 301}
+      : {cardCount: 1234, boxCount: 110, audioCount: 328};
+  const entries = [
+    ...catalogModule.catalogEntriesByRef(catalog, track).entries(),
+  ];
+  assert.equal(entries.length, policy.boxCount);
   const cards = [];
   const assets = [];
 
-  for (let index = 0; index < 1180; index += 1) {
+  for (let index = 0; index < policy.cardCount; index += 1) {
     const [knowledgeRef, metadata] = entries[index % entries.length];
     const sequence = Math.floor(index / entries.length);
     const cardId = `${knowledgeRef}${String(sequence).padStart(2, '0')}`;
     const card = {
       card_id: cardId,
       knowledge_ref: knowledgeRef,
-      track: 'cet4',
+      track,
       interaction_id: 'flip',
       front: {
         eyebrow: 'Test task',
@@ -250,8 +317,8 @@ function createValidBundleFixture() {
       },
     };
 
-    if (index < 301) {
-      const assetId = `cet4.${cardId}.prompt`;
+    if (index < policy.audioCount) {
+      const assetId = `${track}.${cardId}.prompt`;
       const assetPath = `audio/${assetId}.mp3`;
       const bytes = Buffer.from(`contract-audio-${index}`);
       writeFixture(directory, assetPath, bytes);
@@ -276,20 +343,23 @@ function createValidBundleFixture() {
   }
 
   const rawContent = {
-    source: {id: 'cet4-closed-beta', label: 'CET4 closed beta'},
-    track: 'cet4',
+    source: {
+      id: `${track}-formal-track`,
+      label: `${track.toUpperCase()} formal track`,
+    },
+    track,
     assets,
     card_records: cards,
     release: null,
   };
   const content = require('../index').validateCardSourceForReleaseBundle(
     rawContent,
-    'cet4',
+    track,
   );
   const corpusDigest = createHash('sha256')
     .update(JSON.stringify(cards))
     .digest('hex');
-  const contentPath = writeJson(directory, 'content/cet4.json', {
+  const contentPath = writeJson(directory, `content/${track}.json`, {
     ...content,
     corpus_fingerprint: `sha256:${corpusDigest}`,
   });
@@ -299,15 +369,19 @@ function createValidBundleFixture() {
     corpus_fingerprint: {algorithm: 'sha256', digest: corpusDigest},
     result: 'pass',
   };
-  const auditPath = writeJson(directory, 'evidence/card-quality-audit.json', audit);
+  const auditPath = writeJson(
+    directory,
+    'evidence/card-quality-audit.json',
+    audit,
+  );
   const auditHash = hash(readFileSync(auditPath));
   const approval = {
-    approval_id: '20260729-cet4-full-track-final',
+    approval_id: `20260729-${track}-full-track-final`,
     approval_mode: 'full_track_final',
     approved_by_user: true,
     approved_at: '2026-07-29T12:00:00+08:00',
     scope: {
-      track: 'cet4',
+      track,
       box_prefixes: entries.map(([ref]) => ref),
       card_ids: cards.map(card => card.card_id),
     },
@@ -333,7 +407,11 @@ function createValidBundleFixture() {
     validation: {},
     approval_limits: [],
   };
-  const approvalPath = writeJson(directory, 'evidence/final-approval.json', approval);
+  const approvalPath = writeJson(
+    directory,
+    'evidence/final-approval.json',
+    approval,
+  );
   const approvalHash = hash(readFileSync(approvalPath));
   const qaChecks = Object.fromEntries(
     [
@@ -351,7 +429,7 @@ function createValidBundleFixture() {
   );
   const qcRecord = {
     qa_checks: qaChecks,
-    per_card_qc: cards.slice(0, 301).map(card => ({
+    per_card_qc: cards.slice(0, policy.audioCount).map(card => ({
       card_id: card.card_id,
       audio_matches_text: true,
       target_signal_audible: true,
@@ -359,11 +437,15 @@ function createValidBundleFixture() {
     })),
     verdict: {formal_audio_ready: true},
   };
-  const qcRecordPath = writeJson(directory, 'evidence/audio-qc-record.json', qcRecord);
+  const qcRecordPath = writeJson(
+    directory,
+    'evidence/audio-qc-record.json',
+    qcRecord,
+  );
   const qcRecordHash = hash(readFileSync(qcRecordPath));
   const audioManifest = {
     schema_version: 'release-audio-manifest.v1',
-    track: 'cet4',
+    track,
     assets: assets.map(asset => ({
       asset_id: asset.asset_id,
       asset_path: asset.asset_path,
@@ -380,7 +462,7 @@ function createValidBundleFixture() {
   const audioManifestHash = hash(readFileSync(audioManifestPath));
   const qcIndex = {
     schema_version: 'audio-qc-index.v1',
-    track: 'cet4',
+    track,
     corpus_fingerprint: `sha256:${corpusDigest}`,
     assets: assets.map((asset, index) => ({
       asset_id: asset.asset_id,
@@ -392,23 +474,31 @@ function createValidBundleFixture() {
       formal_audio_ready: true,
     })),
   };
-  const qcIndexPath = writeJson(directory, 'evidence/audio-qc-index.json', qcIndex);
+  const qcIndexPath = writeJson(
+    directory,
+    'evidence/audio-qc-index.json',
+    qcIndex,
+  );
   const qcIndexHash = hash(readFileSync(qcIndexPath));
-  const profilePath = writeJson(directory, 'delivery-profile.json', profileFixture());
+  const profilePath = writeJson(
+    directory,
+    'delivery-profile.json',
+    profileFixture(track === 'cet4' ? 'closed_beta' : 'production'),
+  );
   const bundle = {
     schema_version: 'release-bundle.v1',
-    bundle_id: 'cet4-beta-bundle-20260729',
-    release_id: 'cet4-beta-20260729',
-    track: 'cet4',
+    bundle_id: `${track}-formal-bundle-20260729`,
+    release_id: `${track}-formal-20260729`,
+    track,
     created_at: '2026-07-29T11:30:00+08:00',
     release_at: '2026-07-29T12:30:00+08:00',
     parent_release_id: null,
     content: {
-      payload_path: 'content/cet4.json',
+      payload_path: `content/${track}.json`,
       payload_sha256: contentHash,
       content_version: content.content_version,
       corpus_fingerprint: `sha256:${corpusDigest}`,
-      card_count: 1180,
+      card_count: policy.cardCount,
     },
     approval: {
       record_path: 'evidence/final-approval.json',
@@ -427,8 +517,8 @@ function createValidBundleFixture() {
       manifest_sha256: audioManifestHash,
       qc_index_path: 'evidence/audio-qc-index.json',
       qc_index_sha256: qcIndexHash,
-      asset_count: 301,
-      qc_passed_count: 301,
+      asset_count: policy.audioCount,
+      qc_passed_count: policy.audioCount,
     },
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
   };
@@ -442,15 +532,18 @@ function createValidBundleFixture() {
   };
 }
 
-function profileFixture() {
+function profileFixture(runtimeMode = 'closed_beta') {
+  const production = runtimeMode === 'production';
   return {
     schema_version: 'delivery-profile.v1',
-    profile_id: 'receiver-closed-beta',
-    environment_id: 'receiver-cet4-beta',
+    profile_id: production ? 'receiver-formal-product' : 'receiver-closed-beta',
+    environment_id: production
+      ? 'receiver-formal-product'
+      : 'receiver-cet4-beta',
     region: 'ap-shanghai',
     api_base_url: 'https://receiver.example.com/softbook-api',
-    runtime_mode: 'closed_beta',
-    enabled_tracks: ['cet4'],
+    runtime_mode: runtimeMode,
+    enabled_tracks: production ? ['cet4', 'cet6'] : ['cet4'],
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
     signing_key_id: 'receiver-signing-key-v1',
   };
