@@ -47,9 +47,12 @@ Current boundary:
   discriminated unions. The mobile runtime now accepts the separate formal or
   development shape and the literal `controlled_pilot` shape, including exact
   dual-platform semantic-version fields, canonical pilot expiry and
-  `gate_eligible=false`; mixed or unknown fields fail closed. The parser does
-  not yet obtain and compare the installed iOS or Android app version, so this
-  shape validation is not minimum-version enforcement.
+  `gate_eligible=false`; mixed or unknown fields fail closed. Remote Bootstrap
+  now applies an early fail-closed minimum-version gate against the actual
+  installed native iOS/Android identity before returning canonical state, and
+  the content-manifest repository independently applies the signed minimum
+  only after strict Ed25519 verification. This repository implementation is not
+  receiver deployment or real-device proof.
 
 ## Runtime Activation
 
@@ -69,6 +72,18 @@ Environment:
 
 If `SOFTBOOK_CET_REMOTE_BASE_URL` is present, auth is remote. By default all
 remote-capable features are also remote.
+
+Remote release-bound content uses synchronous
+`NativeModules.SoftbookAppInfo` constants `{platform, version}`. `platform`
+must be `android` or `ios` and must equal React Native `Platform.OS`; `version`
+and the applicable server minimum must be strict semantic versions with a
+required `x.y.z` core and only valid optional prerelease/build identifiers.
+Numeric prerelease identifiers compare numerically, alphanumeric identifiers
+compare lexically, a stable release sorts after its prerelease, and build
+metadata does not change precedence. The JS runtime does not trim, fill missing
+components, or coerce native `1.0` into `1.0.0`. Missing, malformed,
+mismatched, unsupported, or below-minimum native identity fails closed. Fully
+local runtime does not read this module.
 
 `spaceState` can be remote only when `accountBootstrap` is also remote. The
 action queue requires a validated canonical content version before replay and
@@ -207,9 +222,13 @@ The React Native Bootstrap repository parses this pilot variant locally and
 requires a canonical UTC `expires_at` later than the response's
 `generated_at`. It rejects missing platforms, unknown or mixed formal fields,
 invalid pilot/release identifiers, expired content, and gate drift. It retains
-the parsed minimum versions and release identity for later enforcement, but no
-runtime component currently compares an installed app version with those
-minimums.
+the parsed minimum versions and release identity, selects the actual platform's
+minimum, and requires the actual installed native version to meet it before the
+repository returns the snapshot. A formal release uses its single non-null
+`minimum_client_version` for either supported native platform. Development
+content skips this check only because its release fields contain no minimum.
+This ordering blocks App hydration, outbox replay, and product-state writes on
+an unsupported installed client.
 
 The additive top-level `component_revisions` object uses
 `bootstrap-component-revisions.v1`: base-plus-beta Membership;
@@ -456,10 +475,13 @@ temporary directory, passes only an ephemeral Ed25519 public key to mobile,
 verifies that the worktree is unchanged, and removes the fixture before
 returning a content-free count/ID report. It covers parser, repository,
 signature, owned scoring/self-assessment state and rendered Learning behavior
-only. It does
-not compare the installed app version, inject a receiver release key, approve
-or play audio bytes on a real device, use persistent receiver state, deploy, or
-produce gate-eligible evidence.
+only. Its retained capability flag
+`installed_client_minimum_version_enforced` deliberately remains `false`:
+the suite injects a deterministic identity to exercise repository wiring but
+does not execute an installed native release or prove the version gate on a
+real device. It also does not inject a
+receiver release key, approve or play audio bytes on a real device, use
+persistent receiver state, deploy, or produce gate-eligible evidence.
 
 Every card record must satisfy:
 
@@ -518,11 +540,16 @@ accepts only one of two exact signed `content-manifest.v1` variants:
 Both variants remain inside the Ed25519-signed `{access, manifest}` payload.
 The mobile parser rejects unknown or mixed fields and rejects any pilot download
 whose expiry is later than the signed release expiry. Backend URL issuance also
-caps each pilot download expiry at that same release expiry. Installed-client
-minimum-version comparison, receiver-owned key injection, persistent receiver
-execution, private-object device download and real-device playback remain
-pending; the pilot manifest and every repository pilot smoke result remain
-`gate_eligible=false` and cannot replace formal beta or launch evidence.
+caps each pilot download expiry at that same release expiry. Only after strict
+signature verification does the repository select the applicable formal or
+platform-specific pilot minimum and compare it with the actual native client
+identity. A missing/invalid identity, platform mismatch, unsupported platform,
+or lower semantic version fails closed before the verified manifest can be
+returned to Learning. Receiver-owned key injection, persistent receiver
+execution, private-object device download, real-device minimum-version proof,
+and real-device playback remain pending; the pilot manifest and every
+repository pilot smoke result remain `gate_eligible=false` and cannot replace
+formal beta or launch evidence.
 
 ### Membership Entitlement
 
@@ -832,6 +859,7 @@ Expected high-level output:
 ## Current Frontend Code Pointers
 
 - `apps/mobile/src/runtime/appRuntimeConfig.ts`
+- `apps/mobile/src/runtime/installedClientVersion.ts`
 - `apps/mobile/src/auth/authRepository.ts`
 - `apps/mobile/src/bootstrap/accountBootstrapRepository.ts`
 - `apps/mobile/src/bootstrap/accountBootstrapHydration.ts`

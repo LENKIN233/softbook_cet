@@ -25,6 +25,8 @@ export const REPORT_SCHEMA = 'android-signed-release.v1';
 const OPERATION_SCHEMA = 'android-signed-release-operation.v1';
 const SHA256_RE = /^[0-9a-f]{64}$/;
 const COMMIT_RE = /^[0-9a-f]{40}$/;
+const STRICT_THREE_PART_VERSION_RE =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const SIGNING_ENV_NAMES = Object.freeze([
   'SOFTBOOK_ANDROID_RELEASE_STORE_FILE',
   'SOFTBOOK_ANDROID_RELEASE_STORE_PASSWORD',
@@ -410,7 +412,7 @@ export function validateAndroidSignedReleaseReport(report) {
     errors.push('version_code is invalid');
   if (
     typeof report?.version_name !== 'string' ||
-    !/^\d+\.\d+(?:\.\d+)?$/.test(report.version_name)
+    !STRICT_THREE_PART_VERSION_RE.test(report.version_name)
   ) {
     errors.push('version_name is invalid');
   }
@@ -554,7 +556,7 @@ function readPrivateState(path, repositoryRoot) {
     errors.push('state version_code is invalid');
   if (
     typeof state?.version_name !== 'string' ||
-    !/^\d+\.\d+(?:\.\d+)?$/.test(state.version_name)
+    !STRICT_THREE_PART_VERSION_RE.test(state.version_name)
   )
     errors.push('state version_name is invalid');
   const expectedArtifactPath = resolve(
@@ -612,7 +614,7 @@ function readAndroidIdentity(gradlePath) {
     applicationId !== 'com.softbook.cet' ||
     !Number.isInteger(versionCode) ||
     versionCode <= 0 ||
-    !/^\d+\.\d+(?:\.\d+)?$/.test(String(versionName || ''))
+    !STRICT_THREE_PART_VERSION_RE.test(String(versionName || ''))
   ) {
     throw new Error('Android application identity is invalid.');
   }

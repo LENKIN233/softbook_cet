@@ -36,7 +36,8 @@ export const FORMAL_TRACK_POLICIES = Object.freeze({
 export const PERSONAL_DEVELOPMENT_ENVIRONMENT = 'test-d2gzcyxr9f7e80972';
 
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
-const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const SEMVER_PATTERN =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
 const RELEASE_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{2,127}$/;
 const SECRET_KEY_PATTERN =
   /(?:secret|private[_-]?key|password|credential|access[_-]?token|refresh[_-]?token|sms[_-]?code|api[_-]?key)/i;
@@ -911,20 +912,82 @@ function createContentRelease(bundle) {
 }
 
 function maxSemver(left, right) {
-  const numeric = value => value.split('-')[0].split('.').map(Number);
-  const leftParts = numeric(left);
-  const rightParts = numeric(right);
+  return compareSemanticVersions(left, right) >= 0 ? left : right;
+}
 
-  for (let index = 0; index < 3; index += 1) {
-    if (leftParts[index] !== rightParts[index]) {
-      return leftParts[index] > rightParts[index] ? left : right;
+export function compareSemanticVersions(left, right) {
+  const leftVersion = parseSemver(left);
+  const rightVersion = parseSemver(right);
+
+  for (const field of ['major', 'minor', 'patch']) {
+    const comparison = compareNumericIdentifier(
+      leftVersion[field],
+      rightVersion[field],
+    );
+    if (comparison !== 0) return comparison;
+  }
+
+  return comparePrerelease(
+    leftVersion.prerelease,
+    rightVersion.prerelease,
+  );
+}
+
+function parseSemver(value) {
+  const match = SEMVER_PATTERN.exec(value);
+  if (!match) {
+    throw new ReleaseDeliveryError('semantic version is invalid.');
+  }
+  const prerelease = match[4]?.split('.') ?? null;
+  if (
+    prerelease?.some(
+      identifier =>
+        /^\d+$/.test(identifier) &&
+        identifier.length > 1 &&
+        identifier.startsWith('0'),
+    )
+  ) {
+    throw new ReleaseDeliveryError('semantic version is invalid.');
+  }
+  return {
+    major: match[1],
+    minor: match[2],
+    patch: match[3],
+    prerelease,
+  };
+}
+
+function compareNumericIdentifier(left, right) {
+  if (left.length !== right.length) return left.length < right.length ? -1 : 1;
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
+function comparePrerelease(left, right) {
+  if (left === null || right === null) {
+    if (left === right) return 0;
+    return left === null ? 1 : -1;
+  }
+
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const leftIdentifier = left[index];
+    const rightIdentifier = right[index];
+    if (leftIdentifier === undefined || rightIdentifier === undefined) {
+      if (leftIdentifier === rightIdentifier) return 0;
+      return leftIdentifier === undefined ? -1 : 1;
     }
-  }
+    if (leftIdentifier === rightIdentifier) continue;
 
-  if (left.includes('-') !== right.includes('-')) {
-    return left.includes('-') ? right : left;
+    const leftNumeric = /^\d+$/.test(leftIdentifier);
+    const rightNumeric = /^\d+$/.test(rightIdentifier);
+    if (leftNumeric && rightNumeric) {
+      return compareNumericIdentifier(leftIdentifier, rightIdentifier);
+    }
+    if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
+    return leftIdentifier < rightIdentifier ? -1 : 1;
   }
-  return left.localeCompare(right) >= 0 ? left : right;
+  return 0;
 }
 
 function requirePublisherAdapter(adapter) {
@@ -943,7 +1006,7 @@ function requirePublisherAdapter(adapter) {
 function validateMinimumClientVersions(value, label) {
   const versions = requireRecord(value, label);
   assertExactKeys(versions, ['ios', 'android'], label);
-  return {
+  const normalized = {
     ios: requirePattern(versions.ios, SEMVER_PATTERN, `${label}.ios`),
     android: requirePattern(
       versions.android,
@@ -951,6 +1014,16 @@ function validateMinimumClientVersions(value, label) {
       `${label}.android`,
     ),
   };
+  for (const [platform, version] of Object.entries(normalized)) {
+    try {
+      parseSemver(version);
+    } catch {
+      throw new ReleaseDeliveryError(
+        `${label}.${platform} must be a strict semantic version.`,
+      );
+    }
+  }
+  return normalized;
 }
 
 function resolveBundlePath(bundleDirectory, candidate) {

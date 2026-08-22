@@ -83,7 +83,9 @@ function createSessionPayload(
 
 function createRemoteRepository(
   fetchImpl: jest.Mock,
-  contentManifestConfig: Parameters<typeof createLearningSessionRepository>[0]['contentManifestConfig'] = {
+  contentManifestConfig: Parameters<
+    typeof createLearningSessionRepository
+  >[0]['contentManifestConfig'] = {
     mode: 'disabled',
   },
 ) {
@@ -103,7 +105,17 @@ function createRemoteRepository(
 }
 
 test('local learning session repository loads a usable session', async () => {
+  const installedClientIdentityProvider = jest.fn(() => ({
+    platform: 'ios' as const,
+    version: '1.0.0',
+  }));
   const repository = createLearningSessionRepository({
+    contentManifestConfig: {
+      baseUrl: 'https://never-called.invalid',
+      installedClientIdentityProvider,
+      mode: 'remote',
+      verifySignature: () => true,
+    },
     mode: 'local',
   });
 
@@ -123,6 +135,7 @@ test('local learning session repository loads a usable session', async () => {
     'elimination',
     'swipe',
   ]);
+  expect(installedClientIdentityProvider).not.toHaveBeenCalled();
 });
 
 test('local learning session repository rejects empty sessions', async () => {
@@ -248,9 +261,14 @@ test('remote repository binds a verified manifest to the canonical card source a
         },
       }),
     });
+  const installedClientIdentityProvider = jest.fn(() => ({
+    platform: 'android' as const,
+    version: '1.0.0',
+  }));
   const repository = createRemoteRepository(fetchMock, {
     apiKey: 'runtime-key',
     baseUrl: 'https://example.com',
+    installedClientIdentityProvider,
     mode: 'remote',
     now: () => new Date('2026-07-24T08:00:00.000Z'),
     verifySignature: () => true,
@@ -260,10 +278,13 @@ test('remote repository binds a verified manifest to the canonical card source a
 
   expect(session.contentManifest?.manifest.release_id).toBe('cet4-release-1');
   expect(session.contentManifest?.downloads).toHaveLength(1);
+  expect(installedClientIdentityProvider).toHaveBeenCalledTimes(1);
   expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
     'https://example.com/v1/learning/card-source?track=cet4',
     'https://example.com/v2/learning/session?track=cet4',
-    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(CONTENT_VERSION)}`,
+    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(
+      CONTENT_VERSION,
+    )}`,
   ]);
 });
 
@@ -330,13 +351,19 @@ test('remote repository rejects content-manifest access that drifts from the can
     });
   const repository = createRemoteRepository(fetchMock, {
     baseUrl: 'https://example.com',
+    installedClientIdentityProvider: () => ({
+      platform: 'ios',
+      version: '1.0.0',
+    }),
     mode: 'remote',
     verifySignature: () => true,
   });
 
   await expect(
     repository.loadSession(authenticatedContext, 'cet4'),
-  ).rejects.toThrow('Content manifest access does not match the canonical learning session');
+  ).rejects.toThrow(
+    'Content manifest access does not match the canonical learning session',
+  );
 });
 
 test('remote selection null is valid and never falls back to local ordering', async () => {
@@ -548,6 +575,10 @@ test('remote repository surfaces manifest failure without bundled-card fallback'
     });
   const repository = createRemoteRepository(fetchMock, {
     baseUrl: 'https://example.com',
+    installedClientIdentityProvider: () => ({
+      platform: 'ios',
+      version: '1.0.0',
+    }),
     mode: 'remote',
     verifySignature: () => true,
   });

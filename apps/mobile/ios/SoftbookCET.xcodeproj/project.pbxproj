@@ -13,6 +13,7 @@
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		97E2703D04615A976E7478F6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		A41D10F13C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = A41D10F03C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m */; };
+		B7A0010236C44F12A7510B02 /* SoftbookAppInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = B7A0010136C44F12A7510B02 /* SoftbookAppInfo.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +27,7 @@
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = SoftbookCET/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = SoftbookCET/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		A41D10F03C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = SoftbookAudioPlayer.m; path = SoftbookCET/SoftbookAudioPlayer.m; sourceTree = "<group>"; };
+		B7A0010136C44F12A7510B02 /* SoftbookAppInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = SoftbookAppInfo.m; path = SoftbookCET/SoftbookAppInfo.m; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -46,6 +48,7 @@
 			children = (
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
+				B7A0010136C44F12A7510B02 /* SoftbookAppInfo.m */,
 				A41D10F03C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
@@ -250,6 +253,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				B7A0010236C44F12A7510B02 /* SoftbookAppInfo.m in Sources */,
 				A41D10F13C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -271,7 +275,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -300,7 +304,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

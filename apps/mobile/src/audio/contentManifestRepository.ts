@@ -3,6 +3,12 @@ import type {
   LearningCard,
   LearningTrack,
 } from '../learning/model';
+import {
+  assertInstalledClientVersionAtLeast,
+  isStrictSemanticVersion,
+  readInstalledClientIdentity,
+  type InstalledClientIdentityProvider,
+} from '../runtime/installedClientVersion';
 import { RemoteHttpError } from '../runtime/remoteHttpError';
 
 export type ContentManifestAsset = {
@@ -94,6 +100,7 @@ export async function loadRemoteContentManifest(options: {
   baseUrl: string;
   contentVersion: string;
   fetchImpl?: ContentManifestFetch;
+  installedClientIdentityProvider?: InstalledClientIdentityProvider;
   now?: () => Date;
   track: LearningTrack;
   verifySignature: ContentManifestSignatureVerifier;
@@ -148,6 +155,16 @@ export async function loadRemoteContentManifest(options: {
   if (!verified) {
     throw new Error('Content manifest signature verification failed.');
   }
+
+  const installedClientIdentity =
+    options.installedClientIdentityProvider?.() ??
+    readInstalledClientIdentity();
+  assertInstalledClientVersionAtLeast(
+    installedClientIdentity,
+    'release_class' in result.manifest
+      ? result.manifest.minimum_client_versions
+      : result.manifest.minimum_client_version,
+  );
 
   return result;
 }
@@ -340,13 +357,10 @@ function parseManifest(
       'Content manifest parent release must differ from release_id.',
     );
   }
-  const minimumClientVersion = requireString(
+  const minimumClientVersion = requireSemanticVersion(
     manifest.minimum_client_version,
     'Content manifest minimum_client_version',
   );
-  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(minimumClientVersion)) {
-    throw new Error('Content manifest minimum_client_version is invalid.');
-  }
 
   const rawAssets = expectArray(manifest.assets, 'Content manifest assets');
   const assets = rawAssets.map((asset, index) =>
@@ -634,7 +648,7 @@ function requireString(value: unknown, label: string): string {
 
 function requireSemanticVersion(value: unknown, label: string) {
   const version = requireExactString(value, label);
-  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+  if (!isStrictSemanticVersion(version)) {
     throw new Error(`${label} is invalid.`);
   }
   return version;

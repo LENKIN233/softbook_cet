@@ -33,6 +33,7 @@ test('resolves one authenticated remote bootstrap endpoint', () => {
         'x-api-key': 'runtime-key',
         'x-softbook-client': 'mobile',
       },
+      installedClientIdentityProvider: expect.any(Function),
     },
   });
 });

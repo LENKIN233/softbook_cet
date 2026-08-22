@@ -4,6 +4,7 @@ import {
   type ContentManifestSignatureVerifier,
   type VerifiedContentManifest,
 } from '../audio/contentManifestRepository';
+import type { InstalledClientIdentityProvider } from '../runtime/installedClientVersion';
 import { LearningSession, LearningTrack } from './model';
 import {
   FetchLike,
@@ -47,6 +48,7 @@ export type RemoteLearningContentManifestConfig =
       mode: 'remote';
       apiKey?: string;
       baseUrl: string;
+      installedClientIdentityProvider: InstalledClientIdentityProvider;
       now?: () => Date;
       verifySignature: ContentManifestSignatureVerifier;
     };
@@ -242,6 +244,8 @@ async function loadContentManifestForSession(options: {
     baseUrl: options.config.baseUrl,
     contentVersion: options.contentVersion,
     fetchImpl: options.fetchImpl,
+    installedClientIdentityProvider:
+      options.config.installedClientIdentityProvider,
     now: options.config.now,
     track: options.track,
     verifySignature: options.config.verifySignature,
