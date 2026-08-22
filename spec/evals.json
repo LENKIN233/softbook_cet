@@ -1072,6 +1072,8 @@
         "earliest_due_then_canonical_index_then_card_id",
         "sleeping_cards_are_excluded_without_deleting_history",
         "trial_starts_only_after_canonical_context_and_selection_persistence",
+        "selection_response_rechecks_exact_membership_checkpoint",
+        "trial_activation_transaction_reads_beta_and_pilot_entitlements",
         "transactional_membership_mutations_cannot_downgrade_premium",
         "trial_and_premium_full_access_free_ceil_half_canonical_prefix",
         "production_content_release_fails_closed",

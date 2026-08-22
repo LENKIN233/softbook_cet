@@ -1367,7 +1367,7 @@ def learning_scheduler_contract_findings(
         (
             "scheduler membership authority",
             ("server_scheduler_v1", "selection_contract", "membership_rule"),
-            "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, selection generation, and required cursor persistence succeed; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
+            "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, non-null selection generation, selection-ID generation, required cursor persistence, and an exact membership checkpoint recheck succeed; every resumed, fresh, empty, or round-completion response rechecks stage, acknowledged_at, and base, beta, and pilot component revisions after cursor acceptance; Trial activation conditionally matches the persisted selection and that same checkpoint inside one CloudBase transaction that reads base membership plus beta and controlled-pilot entitlement, so concurrent premium grant, revoke, or base mutation forces bounded rescheduling and cannot start or overwrite base Trial; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
         ),
         (
             "scheduler content authority",
@@ -1524,12 +1524,12 @@ def learning_scheduler_contract_findings(
         (
             "scheduler runtime membership",
             ("scheduler_runtime", "membership_authority"),
-            "first_session_starts_available_trial_trial_and_premium_full_free_canonical_prefix_ceil_half",
+            "every_cursor_accepted_session_response_rechecks_exact_stage_acknowledgement_and_base_beta_pilot_revision_checkpoint_before_first_non_null_selection_starts_available_trial_trial_and_premium_full_free_canonical_prefix_ceil_half",
         ),
         (
             "scheduler runtime membership mutation atomicity",
             ("scheduler_runtime", "membership_mutation_atomicity"),
-            "cloudbase_single_document_transactions_prevent_trial_or_recovery_from_downgrading_premium",
+            "learning_session_trial_activation_conditionally_matches_selection_and_membership_checkpoint_while_reading_base_beta_and_pilot_entitlements_in_one_cloudbase_transaction_so_concurrent_premium_authority_cannot_start_or_overwrite_base_trial",
         ),
         (
             "scheduler runtime content",
@@ -1624,6 +1624,8 @@ def learning_scheduler_contract_findings(
         "earliest_due_then_canonical_index_then_card_id",
         "sleeping_cards_are_excluded_without_deleting_history",
         "trial_starts_only_after_canonical_context_and_selection_persistence",
+        "selection_response_rechecks_exact_membership_checkpoint",
+        "trial_activation_transaction_reads_beta_and_pilot_entitlements",
         "transactional_membership_mutations_cannot_downgrade_premium",
         "trial_and_premium_full_access_free_ceil_half_canonical_prefix",
         "production_content_release_fails_closed",
@@ -1649,7 +1651,8 @@ def learning_scheduler_contract_findings(
         "`learning_server_sequence`, a two-part projection watermark",
         "Resume a persisted cursor only while its account, track, content version,",
         "Free schedules the stable release-scoped prefix of",
-        "Canonical context validation, selection ID generation, and required cursor",
+        "After cursor acceptance and before every session response, the scheduler",
+        "Trial activation conditionally matches both the persisted selection and",
         "dismissal cannot overwrite a premium purchase.",
         "one newly accepted event carrying that selection ID and matching card, phase,",
         "and its `next_due_at` receive the same transactional watermark",

@@ -220,13 +220,20 @@ function createFixture({formal = false} = {}) {
   const savedCursors = [];
   const continuationKey = input =>
     `${input.accountKey}:${input.track}:${input.completedCount}`;
+  const membershipProjection = {
+    acknowledged_at: NOW.toISOString(),
+    component_revision: {
+      base_membership_revision: 1,
+      beta_entitlement_revision: 0,
+      pilot_entitlement_revision: 0,
+    },
+    stage: 'trial',
+    trial_expires_at: '2026-08-17T06:00:00.000Z',
+    trial_remaining_seconds: 432000,
+    trial_started_at: '2026-08-12T06:00:00.000Z',
+  };
   const store = {
-    activateTrialForLearningSession: async () => ({
-      stage: 'trial',
-      trial_expires_at: '2026-08-17T06:00:00.000Z',
-      trial_remaining_seconds: 432000,
-      trial_started_at: '2026-08-12T06:00:00.000Z',
-    }),
+    activateTrialForLearningSession: async () => ({...membershipProjection}),
     confirmLearningSessionCursor: async input =>
       input.expectedRevision === sessionState.revision &&
       input.expectedLearningAcknowledgedAt ===
@@ -236,12 +243,7 @@ function createFixture({formal = false} = {}) {
     getCardSource: async () => cardSource,
     getLearningSessionCursor: async () => sessionState,
     getLearningState: async () => learningState,
-    getMembership: async () => ({
-      stage: 'trial',
-      trial_expires_at: '2026-08-17T06:00:00.000Z',
-      trial_remaining_seconds: 432000,
-      trial_started_at: '2026-08-12T06:00:00.000Z',
-    }),
+    getMembership: async () => ({...membershipProjection}),
     getPilotRoundContinuation: async input =>
       continuations.get(continuationKey(input)) ?? null,
     getSpaceState: async () => ({states_by_card_id: {}}),

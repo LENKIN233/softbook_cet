@@ -52,6 +52,17 @@ records do not change membership. Account/smoke lifecycle cleanup treats the
 beta-entitlement document as user data and removes it by exact manifest-owned
 phone ID.
 
+Learning-session Trial activation treats beta entitlement as transactionally
+relevant membership authority. After a selection cursor is accepted, the
+scheduler rechecks stage, acknowledgement, and the base/beta/pilot component
+revision checkpoint. The activation transaction then reads the selected cursor,
+base membership, and beta entitlement together (plus pilot entitlement only in
+controlled-pilot mode) and conditionally matches that checkpoint before any
+base Trial write. A grant or revoke racing selection therefore causes bounded
+rescheduling; an active beta grant remains premium and cannot consume or mutate
+the underlying Trial clock. Repository tests cover this ordering but are not a
+receiver grant or deployed concurrency proof.
+
 ## Operator safety
 
 `infra/cloudbase/manage-beta-entitlement.mjs` is read/write only against a

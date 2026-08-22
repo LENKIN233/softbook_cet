@@ -2715,6 +2715,92 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
   });
 });
 
+test('learning-session Trial activation rejects a beta grant that races the selected membership checkpoint', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db, runtimeMode: 'production'});
+  const phoneNumber = '13800138000';
+  const accountKey = 'account:beta-race';
+  const selectedAt = fixedNow.toISOString();
+  const initial = await store.getMembership(phoneNumber, selectedAt);
+  const selectionId = 'sel_beta_race_selection_0001';
+  const cursorSaved = await store.saveLearningSessionCursor({
+    accountKey,
+    cursor: {
+      card_id: '110101',
+      content_version: `sha256:${'a'.repeat(64)}`,
+      due_at: null,
+      phase: 'learning',
+      reason: 'catalog_new',
+      selected_at: selectedAt,
+      selection_id: selectionId,
+      source_id: 'receiver-cet4-source',
+      track: 'cet4',
+    },
+    expectedRevision: 0,
+    learningAcknowledgedAt: null,
+    learningServerSequence: 0,
+    track: 'cet4',
+    updatedAt: selectedAt,
+  });
+  assert.equal(cursorSaved, true);
+
+  const grantEvent = {
+    schema_version: 'beta-entitlement-audit.v1',
+    action: 'grant',
+    actor_id: 'receiver-operator',
+    command_sha256: `sha256:${'b'.repeat(64)}`,
+    event_id: 'beta-event-race-grant-0001',
+    grant_id: 'cet4-beta-race-grant-0001',
+    occurred_at: selectedAt,
+    previous_stage: 'trial_available',
+    reason: 'closed_beta_access',
+    resulting_stage: 'premium',
+  };
+  db.snapshot().get('softbook_beta_entitlements').set(phoneNumber, {
+    active_grant: {
+      schema_version: 'beta-entitlement.v1',
+      actor_id: grantEvent.actor_id,
+      command_sha256: grantEvent.command_sha256,
+      grant_event_id: grantEvent.event_id,
+      grant_id: grantEvent.grant_id,
+      granted_at: grantEvent.occurred_at,
+      reason: grantEvent.reason,
+    },
+    audit: [grantEvent],
+    phone_number: phoneNumber,
+    revision: 1,
+    updated_at: selectedAt,
+  });
+
+  const activated = await store.activateTrialForLearningSession({
+    accountKey,
+    acknowledgedAt: selectedAt,
+    expectedMembership: {
+      acknowledgedAt: initial.acknowledged_at,
+      baseMembershipRevision:
+        initial.component_revision.base_membership_revision,
+      betaEntitlementRevision:
+        initial.component_revision.beta_entitlement_revision,
+      pilotEntitlementRevision:
+        initial.component_revision.pilot_entitlement_revision,
+      stage: initial.stage,
+    },
+    phoneNumber,
+    selectionId,
+    track: 'cet4',
+  });
+  const canonical = await store.getMembership(phoneNumber, selectedAt);
+
+  assert.equal(activated, null);
+  assert.equal(canonical.stage, 'premium');
+  assert.equal(canonical.counted_entry_count, 0);
+  assert.equal(canonical.trial_started_at, null);
+  assert.equal(
+    db.snapshot().get('softbook_memberships')?.has(phoneNumber) ?? false,
+    false,
+  );
+});
+
 test('CloudBase membership fails closed on malformed active beta evidence', async () => {
   const db = createFakeCloudBaseDb();
   const store = createCloudBaseStore({db});
