@@ -4,7 +4,7 @@
 
 - Date: 2026-08-22
 - Branch: `fix/learning-session-trial-null-guard-v2`
-- PR: pending publication
+- PR: https://github.com/LENKIN233/softbook_cet/pull/511
 - Summary: Prevent a learning-session selection from returning stale Membership
   authority or starting base Trial when a beta/pilot entitlement or base
   membership mutation races cursor acceptance.
