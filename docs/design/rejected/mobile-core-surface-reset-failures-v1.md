@@ -1,5 +1,11 @@
 # Mobile Core Surface Reset Failure Sedimentation v1
 
+> This record originally covered losing candidates inside the v1 search. The
+> subsequently promoted v1 direction was itself rejected by the product owner on
+> 2026-08-08. See
+> `mobile-visual-directions-product-owner-veto-2026-08-08.md`; no v1 candidate is
+> accepted mobile authority.
+
 ## 当前任务引用的 spec
 
 - `spec/product-core.json`

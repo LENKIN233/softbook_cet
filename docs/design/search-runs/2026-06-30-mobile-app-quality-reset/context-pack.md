@@ -1,5 +1,9 @@
 # Mobile App Quality Reset Context Pack
 
+> **Lifecycle: `rejected_historical_search`.** The product-owner veto at
+> `docs/design/rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`
+> revokes this run's promotion. Retain this run only as failure evidence.
+
 ## 当前任务引用的 spec
 
 - `spec/requirement-memory.json`

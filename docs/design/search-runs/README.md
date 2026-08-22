@@ -108,6 +108,43 @@ Every search run must name the accepted baseline it is trying to beat. For Space
 
 Promotion is not justified unless the winning candidate beats the baseline on product-truth fit and at least one soft objective without regressing layout, accessibility, mapping, or implementation authority.
 
+## Explicitly Rejected Mobile Runs
+
+- `2026-06-30-mobile-app-quality-reset/`: its internal `msr-01` promotion was
+  revoked by the product owner on 2026-08-08. The whole run is historical
+  failure evidence, not a baseline to polish or consume.
+- `2026-08-07-mobile-editorial-reset/` on closed, unmerged PR `#481`: its orange
+  editorial recommendation never received product-owner acceptance and is also
+  vetoed.
+- `2026-08-08-mobile-visual-rebuild-v3/`: rejected historical search. The
+  product owner explicitly rejected the exact `mvr-15` learner result after its
+  repaired proof pair passed technical review. Its learner SHA `41a2143a…` and
+  reviewer SHA `13bc7dff…` are frozen rejection evidence; no ranking, green
+  validator, in-place mutation, merge, or implementation may revive them.
+
+The binding lifecycle record is
+`../rejected/mobile-visual-directions-product-owner-veto-2026-08-08.md`.
+
+## Current Mobile Search
+
+- `2026-08-08-mobile-visual-rebuild-v4/`: completed design-only no-promotion
+  record on draft PR `#483`. Its first shared-DOM revision was withdrawn. Eight physically
+  separate exact learner documents now close the earlier truthfulness and basic
+  browser-operability defects, but all remain blocked by shared P1 visual,
+  platform, motion, recovery-depth, Space, tablet, and formal-audio gaps. No
+  candidate advances, no design authority exists, and RN remains forbidden.
+  No v4 candidate or named combination supplies a new synthesis skeleton.
+  Only candidate-independent requirements—reachable phone action, legible
+  Space ownership, conditional tablet context, and readable four-choice/body
+  rhythm—may inform a newly derived architecture; product-owner selection of
+  any replacement remains unresolved.
+  Durable recurring failures and their reuse boundaries are sedimented in
+  `../rejected/mobile-visual-rebuild-v4-no-promotion-2026-08-08.md`.
+  The accessible visual commit/output audit is
+  `2026-08-08-mobile-visual-rebuild-v4/visual-history-audit.md`; the proposed
+  route for a new, non-authoritative synthesis is
+  `2026-08-08-mobile-visual-rebuild-v4/next-synthesis-plan.md`.
+
 ## Stop Conditions
 
 Stop a run when one of these is true:
