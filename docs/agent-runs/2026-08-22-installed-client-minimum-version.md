@@ -4,7 +4,7 @@
 
 - Date: 2026-08-22
 - Branch: `module/installed-client-min-version-v1`
-- PR: pending publication from this topic branch
+- PR: https://github.com/LENKIN233/softbook_cet/pull/510
 - Summary: Add fail-closed comparison of the actual installed native iOS or
   Android version against remote Bootstrap release metadata and the independently
   verified signed content manifest, without treating repository tests as
