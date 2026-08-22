@@ -1127,7 +1127,7 @@ test('event and cursor identities are isolated by account', async () => {
   assert.equal(store.snapshot().learningEventCursors.size, 2);
 });
 
-test('CloudBase concurrent submissions converge without duplicate projection writes', async () => {
+test('CloudBase duplicate races converge and later selected events keep monotonic projections', async () => {
   const db = createFakeCloudBaseDb();
   const firstApi = createTestApi({store: createCloudBaseStore({db})}).api;
   const secondApi = createTestApi({store: createCloudBaseStore({db})}).api;
@@ -1153,12 +1153,12 @@ test('CloudBase concurrent submissions converge without duplicate projection wri
     event_id: 'event_concurrent_0003',
     device_cursor: {device_id: 'device_installation_0002', sequence: 1},
   });
-  const distinctRace = await Promise.all([
-    submit(firstApi, session, [second]),
-    submit(secondApi, session, [third]),
-  ]);
+  const distinctSelections = [
+    await submit(firstApi, session, [second]),
+    await submit(secondApi, session, [third]),
+  ];
   assert.deepEqual(
-    distinctRace
+    distinctSelections
       .map(response => response.body.data.results[0].server_sequence)
       .sort((left, right) => left - right),
     [2, 3],

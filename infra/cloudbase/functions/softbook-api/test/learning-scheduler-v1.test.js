@@ -273,6 +273,42 @@ test('learning session is authenticated, strict, starts trial, and persists one 
   assert.equal(store.snapshot().learningSessions.size, 1);
 });
 
+test('membership revision drift after cursor persistence retries before session authority returns', async () => {
+  const store = createMemoryStore();
+  const saveCursor = store.saveLearningSessionCursor;
+  let driftInjected = false;
+  store.saveLearningSessionCursor = async input => {
+    const saved = await saveCursor(input);
+    if (saved && !driftInjected) {
+      driftInjected = true;
+      await store.purchase(PHONE, START_TIME.toISOString());
+    }
+    return saved;
+  };
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api, '127.0.0.28');
+  const source = await cardSource(api, session);
+
+  const response = await learningSession(api, session);
+  const membership = await store.getMembership(PHONE, START_TIME.toISOString());
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(response.body.data.membership_stage, 'premium');
+  assert.equal(
+    response.body.data.selection.card_id,
+    source.card_records[0].card_id,
+  );
+  assert.equal(response.body.data.selection.reason, 'persisted_cursor');
+  assert.equal(membership.stage, 'premium');
+  assert.equal(membership.counted_entry_count, 0);
+  assert.equal(membership.trial_started_at, null);
+  assert.deepEqual(membership.component_revision, {
+    base_membership_revision: 1,
+    beta_entitlement_revision: 0,
+    pilot_entitlement_revision: 0,
+  });
+});
+
 test('accepted events advance FSRS atomically, clear matching cursor, and due review outranks new cards', async () => {
   const store = createMemoryStore();
   const {api, clock} = createTestApi({store});

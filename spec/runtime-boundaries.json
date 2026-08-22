@@ -1,5 +1,5 @@
 {
-  "version": "vnext-25",
+  "version": "vnext-26",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -188,8 +188,8 @@
     "empty_selection_consistency": "selection_null_and_next_due_require_transactional_watermark_and_revision_confirmation",
     "selection_order": "eligible_persisted_cursor_then_earliest_due_review_then_canonical_catalog_new_card",
     "sleep_authority": "canonical_physical_space_excludes_sleeping_cards_without_deleting_scheduler_state",
-    "membership_authority": "first_session_starts_available_trial_trial_and_premium_full_free_canonical_prefix_ceil_half",
-    "membership_mutation_atomicity": "cloudbase_single_document_transactions_prevent_trial_or_recovery_from_downgrading_premium",
+    "membership_authority": "every_cursor_accepted_session_response_rechecks_exact_stage_acknowledgement_and_base_beta_pilot_revision_checkpoint_before_first_non_null_selection_starts_available_trial_trial_and_premium_full_free_canonical_prefix_ceil_half",
+    "membership_mutation_atomicity": "learning_session_trial_activation_conditionally_matches_selection_and_membership_checkpoint_while_reading_base_beta_and_pilot_entitlements_in_one_cloudbase_transaction_so_concurrent_premium_authority_cannot_start_or_overwrite_base_trial",
     "content_authority": "exact_normalized_content_version_and_source",
     "exact_same_card_cross_device_resume_required": false,
     "mobile_session_binding_status": "implemented_locally_not_deployed",

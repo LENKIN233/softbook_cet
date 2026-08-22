@@ -1,5 +1,5 @@
 {
-  "version": "vnext-15",
+  "version": "vnext-16",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, external account readiness evidence, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
@@ -507,7 +507,7 @@
       "new_card_rule": "when no review is due, select the first accessible non-sleeping unseen card in normalized ordered card_records",
       "future_rule": "when no due review or new card exists, return selection null plus the earliest future next_due_at when one exists only after transactionally confirming the matching learning-projection watermark and session revision",
       "sleep_rule": "canonical physical-space sleeping state removes a card from resume, due, new, and next-due selection without deleting its learning or FSRS state",
-      "membership_rule": "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, selection generation, and required cursor persistence succeed; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
+      "membership_rule": "the first authenticated learning-session entry starts an available trial exactly once only after canonical context validation, non-null selection generation, selection-ID generation, required cursor persistence, and an exact membership checkpoint recheck succeed; every resumed, fresh, empty, or round-completion response rechecks stage, acknowledged_at, and base, beta, and pilot component revisions after cursor acceptance; Trial activation conditionally matches the persisted selection and that same checkpoint inside one CloudBase transaction that reads base membership plus beta and controlled-pilot entitlement, so concurrent premium grant, revoke, or base mutation forces bounded rescheduling and cannot start or overwrite base Trial; trial and premium may schedule the full library, while free schedules a stable release-scoped prefix of ceil(card_count * 0.5) in canonical card-source order",
       "content_rule": "selection binds to the exact normalized content_version and source; production still requires a matching published content-release.v1 descriptor"
     },
     "mobile_binding_contract": {

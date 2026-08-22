@@ -1116,19 +1116,23 @@ function createMemoryStore() {
         );
       }
 
-      return {
-        acknowledged_at:
-          normalized.changed
+      return createCanonicalMembershipProjection({
+        base: {
+          entitlement: normalized.entitlement,
+          observedAt: normalized.observedAt,
+          revision: normalized.changed
+            ? nextBaseMembershipRevision(base.revision)
+            : base.revision,
+          updatedAt: normalized.changed
             ? normalized.observedAt
             : base.document?.updated_at ?? null,
-        component_revision: {
-          base_membership_revision:
-            normalized.changed ? nextBaseMembershipRevision(base.revision) : base.revision,
-          beta_entitlement_revision: 0,
-          pilot_entitlement_revision: 0,
         },
-        ...serializeMembershipAt(normalized.entitlement, normalized.observedAt),
-      };
+        betaEntitlement: null,
+        phoneNumber,
+        pilotEntitlement: null,
+        pilotExpiresAt: null,
+        pilotId: null,
+      });
     },
     startTrial: (phoneNumber, acknowledgedAt) => {
       const base = reconcileMemoryMembershipRevision(
@@ -1168,7 +1172,29 @@ function createMemoryStore() {
           input.phoneNumber,
         );
         const current = cloneMembership(base.entitlement);
-        if (current.stage === 'trial_available') {
+        const projection = createCanonicalMembershipProjection({
+          base: {
+            entitlement: current,
+            observedAt: input.acknowledgedAt,
+            revision: base.revision,
+            updatedAt: base.document?.updated_at ?? null,
+          },
+          betaEntitlement: null,
+          phoneNumber: input.phoneNumber,
+          pilotEntitlement: null,
+          pilotExpiresAt: null,
+          pilotId: null,
+        });
+        if (
+          !membershipProjectionMatchesExpected(
+            projection,
+            input.expectedMembership,
+          )
+        ) {
+          return null;
+        }
+        const trialStarted = current.stage === 'trial_available';
+        if (trialStarted) {
           startCanonicalTrial(current, input.acknowledgedAt);
           saveMemoryMembership(
             memberships,
@@ -1179,7 +1205,23 @@ function createMemoryStore() {
             base.revision,
           );
         }
-        return serializeMembershipAt(current, input.acknowledgedAt);
+        return createCanonicalMembershipProjection({
+          base: {
+            entitlement: current,
+            observedAt: input.acknowledgedAt,
+            revision: trialStarted
+              ? nextBaseMembershipRevision(base.revision)
+              : base.revision,
+            updatedAt: trialStarted
+              ? input.acknowledgedAt
+              : base.document?.updated_at ?? null,
+          },
+          betaEntitlement: null,
+          phoneNumber: input.phoneNumber,
+          pilotEntitlement: null,
+          pilotExpiresAt: null,
+          pilotId: null,
+        });
       }),
     purchase: (phoneNumber, acknowledgedAt) => {
       const base = reconcileMemoryMembershipRevision(
@@ -1938,37 +1980,14 @@ function createCloudBaseStore(options = {}) {
           : null,
       ]);
 
-      const betaMembership = applyBetaEntitlement(
-        base.entitlement,
+      return createCanonicalMembershipProjection({
+        base,
         betaEntitlement,
         phoneNumber,
-      );
-      const entitlement = applyPilotEntitlement(
-        betaMembership,
         pilotEntitlement,
-        phoneNumber,
+        pilotExpiresAt,
         pilotId,
-        pilotExpiresAt,
-        base.observedAt,
-      );
-      const pilotRevision = derivePilotEntitlementComponentRevision(
-        pilotEntitlement,
-        pilotExpiresAt,
-        base.observedAt,
-      );
-      return {
-        acknowledged_at: latestAcknowledgedAt(
-          base.updatedAt,
-          betaEntitlement?.updated_at,
-          pilotEntitlement?.updated_at,
-        ),
-        component_revision: {
-          base_membership_revision: base.revision,
-          beta_entitlement_revision: betaEntitlement?.revision ?? 0,
-          pilot_entitlement_revision: pilotRevision,
-        },
-        ...serializeMembershipAt(entitlement, base.observedAt),
-      };
+      });
     },
     startTrial: (phoneNumber, acknowledgedAt) =>
       db.runTransaction(async transaction => {
@@ -2013,6 +2032,24 @@ function createCloudBaseStore(options = {}) {
           input.track,
         );
         if (session.cursor?.selection_id !== input.selectionId) return null;
+        const transactionBetaEntitlements = transaction.collection(
+          CLOUDBASE_COLLECTIONS.betaEntitlements,
+        );
+        const transactionPilotEntitlements = transaction.collection(
+          CLOUDBASE_COLLECTIONS.pilotEntitlements,
+        );
+        const [betaEntitlement, pilotEntitlement] = await Promise.all([
+          getCloudBaseDocument(
+            transactionBetaEntitlements,
+            input.phoneNumber,
+          ),
+          runtimeMode === 'controlled_pilot'
+            ? getCloudBaseDocument(
+                transactionPilotEntitlements,
+                input.phoneNumber,
+              )
+            : null,
+        ]);
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
@@ -2025,7 +2062,28 @@ function createCloudBaseStore(options = {}) {
           input.phoneNumber,
         );
         const current = cloneMembership(base.entitlement);
-        if (current.stage === 'trial_available') {
+        const projection = createCanonicalMembershipProjection({
+          base: {
+            ...base,
+            observedAt: input.acknowledgedAt,
+            updatedAt: base.document?.updated_at ?? null,
+          },
+          betaEntitlement,
+          phoneNumber: input.phoneNumber,
+          pilotEntitlement,
+          pilotExpiresAt,
+          pilotId,
+        });
+        if (
+          !membershipProjectionMatchesExpected(
+            projection,
+            input.expectedMembership,
+          )
+        ) {
+          return null;
+        }
+        const trialStarted = current.stage === 'trial_available';
+        if (trialStarted) {
           startCanonicalTrial(current, input.acknowledgedAt);
           await saveCloudBaseMembership(
             transactionMemberships,
@@ -2036,7 +2094,24 @@ function createCloudBaseStore(options = {}) {
             base.revision,
           );
         }
-        return serializeMembershipAt(current, input.acknowledgedAt);
+        return createCanonicalMembershipProjection({
+          base: {
+            ...base,
+            entitlement: current,
+            observedAt: input.acknowledgedAt,
+            revision: trialStarted
+              ? nextBaseMembershipRevision(base.revision)
+              : base.revision,
+            updatedAt: trialStarted
+              ? input.acknowledgedAt
+              : base.document?.updated_at ?? null,
+          },
+          betaEntitlement,
+          phoneNumber: input.phoneNumber,
+          pilotEntitlement,
+          pilotExpiresAt,
+          pilotId,
+        });
       }),
     purchase: (phoneNumber, acknowledgedAt) =>
       db.runTransaction(async transaction => {
@@ -3399,6 +3474,61 @@ function requireNonNegativeSafeInteger(value, label) {
   }
 
   return value;
+}
+
+function createCanonicalMembershipProjection({
+  base,
+  betaEntitlement,
+  phoneNumber,
+  pilotEntitlement,
+  pilotExpiresAt,
+  pilotId,
+}) {
+  const betaMembership = applyBetaEntitlement(
+    base.entitlement,
+    betaEntitlement,
+    phoneNumber,
+  );
+  const entitlement = applyPilotEntitlement(
+    betaMembership,
+    pilotEntitlement,
+    phoneNumber,
+    pilotId,
+    pilotExpiresAt,
+    base.observedAt,
+  );
+  return {
+    acknowledged_at: latestAcknowledgedAt(
+      base.updatedAt,
+      betaEntitlement?.updated_at,
+      pilotEntitlement?.updated_at,
+    ),
+    component_revision: {
+      base_membership_revision: base.revision,
+      beta_entitlement_revision: betaEntitlement?.revision ?? 0,
+      pilot_entitlement_revision: derivePilotEntitlementComponentRevision(
+        pilotEntitlement,
+        pilotExpiresAt,
+        base.observedAt,
+      ),
+    },
+    ...serializeMembershipAt(entitlement, base.observedAt),
+  };
+}
+
+function membershipProjectionMatchesExpected(projection, expected) {
+  const revision = projection.component_revision;
+  return (
+    isObject(expected) &&
+    projection.acknowledged_at === expected.acknowledgedAt &&
+    projection.stage === expected.stage &&
+    revision.base_membership_revision ===
+      expected.baseMembershipRevision &&
+    revision.beta_entitlement_revision ===
+      expected.betaEntitlementRevision &&
+    revision.pilot_entitlement_revision ===
+      expected.pilotEntitlementRevision
+  );
 }
 
 function applyBetaEntitlement(membership, document, phoneNumber) {

@@ -150,10 +150,26 @@ schedule all cards. Free schedules the stable release-scoped prefix of
 half, never a tiny demo, and never the full library when the source has more
 than one card.
 
-Canonical context validation, selection ID generation, and required cursor
-persistence complete before trial activation. Invalid content, unavailable
-selection entropy, or a failed cursor write therefore cannot consume an
-available trial.
+Canonical context validation, non-null selection generation, selection ID
+generation, and required cursor persistence complete before trial activation.
+Invalid content, unavailable selection entropy, an empty selection, or a failed
+cursor write therefore cannot consume an available trial.
+
+After cursor acceptance and before every session response, the scheduler
+re-reads the exact membership checkpoint: stage, canonical `acknowledged_at`,
+base membership revision, beta-entitlement revision, and pilot-entitlement
+revision. Drift on a resumed, fresh, empty, or round-completion path abandons
+that composed result and retries the complete canonical read. A same-millisecond
+grant, revoke, purchase, expiry transition, or pilot mutation therefore cannot
+silently reuse stale access authority.
+
+Trial activation conditionally matches both the persisted selection and the
+same membership checkpoint inside one CloudBase transaction. That transaction
+reads the base membership, beta entitlement, and—only in controlled-pilot
+mode—pilot entitlement before it can write the base Trial clock. A concurrent
+premium overlay or base mutation returns no activation and forces bounded
+rescheduling; it never starts or overwrites base Trial under newer premium
+authority. Malformed entitlement evidence fails closed before a Trial write.
 
 Repository-local CloudBase trial, purchase, and recovery mutations use one
 membership-document transaction. A concurrent trial start or recovery

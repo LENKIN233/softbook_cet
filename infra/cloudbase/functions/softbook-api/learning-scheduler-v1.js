@@ -14,7 +14,7 @@ const SCHEDULER_POLICY_VERSION = 'softbook-fsrs.v1';
 const SCHEDULER_ALGORITHM = 'FSRS-6';
 const SCHEDULER_LIBRARY = 'ts-fsrs';
 const SCHEDULER_LIBRARY_VERSION = '5.4.1';
-const SESSION_SELECTION_ATTEMPTS = 3;
+const SESSION_SELECTION_ATTEMPTS = 5;
 const CHINA_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
 const TRACKS = ['cet4', 'cet6'];
 const MEMBERSHIP_STAGES = ['trial_available', 'trial', 'free', 'premium'];
@@ -160,6 +160,16 @@ async function readLearningSession(config, input) {
       if (!cursorStateAccepted) {
         continue;
       }
+      if (
+        !(await canonicalMembershipMatchesSelectionContext(
+          config,
+          context,
+          input.phoneNumber,
+          generatedAtIso,
+        ))
+      ) {
+        continue;
+      }
       return serializeLearningSession(
         context,
         null,
@@ -181,6 +191,16 @@ async function readLearningSession(config, input) {
           expectedRevision: context.sessionState.revision,
           track,
         }))
+      ) {
+        continue;
+      }
+      if (
+        !(await canonicalMembershipMatchesSelectionContext(
+          config,
+          context,
+          input.phoneNumber,
+          generatedAtIso,
+        ))
       ) {
         continue;
       }
@@ -226,6 +246,16 @@ async function readLearningSession(config, input) {
 
     if (cursorStateAccepted) {
       if (
+        !(await canonicalMembershipMatchesSelectionContext(
+          config,
+          context,
+          input.phoneNumber,
+          generatedAtIso,
+        ))
+      ) {
+        continue;
+      }
+      if (
         !(await activateAvailableTrial(
           config,
           context,
@@ -249,6 +279,35 @@ async function readLearningSession(config, input) {
     409,
     'learning_session_conflict',
     'Learning state changed while selecting the next card.',
+  );
+}
+
+async function canonicalMembershipMatchesSelectionContext(
+  config,
+  context,
+  phoneNumber,
+  observedAt,
+) {
+  let latestMembership;
+
+  try {
+    latestMembership = normalizeCanonicalMembershipProjection(
+      await config.store.getMembership(phoneNumber, observedAt),
+    );
+  } catch (error) {
+    if (Number.isInteger(error.statusCode)) {
+      throw error;
+    }
+    throw learningSchedulerError(
+      500,
+      'learning_scheduler_projection_invalid',
+      `Canonical membership is invalid: ${error.message}`,
+    );
+  }
+
+  return membershipCheckpointsEqual(
+    latestMembership.checkpoint,
+    context.membershipCheckpoint,
   );
 }
 
@@ -435,12 +494,14 @@ async function activateAvailableTrial(
   const activatedMembership = await config.store.activateTrialForLearningSession({
     accountKey: context.accountKey,
     acknowledgedAt,
+    expectedMembership: context.membershipCheckpoint,
     phoneNumber,
     selectionId: selection.cursor.selection_id,
     track: context.track,
   });
   if (activatedMembership === null) return false;
-  const activatedStage = requireMembershipStage(activatedMembership.stage);
+  const activated = normalizeCanonicalMembershipProjection(activatedMembership);
+  const activatedStage = activated.checkpoint.stage;
 
   if (activatedStage !== 'trial') {
     return false;
@@ -448,11 +509,13 @@ async function activateAvailableTrial(
 
   context.membershipStage = activatedStage;
   context.membership = normalizeSessionMembership(activatedMembership);
+  context.membershipCheckpoint = activated.checkpoint;
   return true;
 }
 
 function normalizeCanonicalSelectionContext(input) {
   try {
+    const membership = normalizeCanonicalMembershipProjection(input.membership);
     const sessionState = normalizeLearningSessionState(
       input.sessionStateValue,
       {
@@ -467,7 +530,8 @@ function normalizeCanonicalSelectionContext(input) {
       generatedAt: input.generatedAt,
       learningState: input.learningState,
       membership: input.membership,
-      membershipStage: requireMembershipStage(input.membership.stage),
+      membershipCheckpoint: membership.checkpoint,
+      membershipStage: membership.checkpoint.stage,
       sessionState,
       spaceState: input.spaceState,
       track: input.track,
@@ -542,6 +606,7 @@ function normalizeSelectionContext(input) {
     generatedAt: input.generatedAt,
     learning,
     membership: normalizeSessionMembership(input.membership),
+    membershipCheckpoint: input.membershipCheckpoint,
     membershipStage: input.membershipStage,
     pilotId:
       input.cardSource.release?.schema_version === 'pilot-content-release.v1'
@@ -556,6 +621,48 @@ function normalizeSelectionContext(input) {
     totalCardCount: cards.length,
     track: input.track,
   };
+}
+
+function normalizeCanonicalMembershipProjection(value) {
+  if (!isObject(value) || !isObject(value.component_revision)) {
+    throw new Error('membership projection must be an object.');
+  }
+  const componentRevision = value.component_revision;
+  const acknowledgedAt =
+    value.acknowledged_at === null
+      ? null
+      : requireIsoTimestamp(
+          value.acknowledged_at,
+          'membership.acknowledged_at',
+        );
+  return {
+    checkpoint: {
+      acknowledgedAt,
+      baseMembershipRevision: requireNonNegativeSafeInteger(
+        componentRevision.base_membership_revision,
+        'membership base revision',
+      ),
+      betaEntitlementRevision: requireNonNegativeSafeInteger(
+        componentRevision.beta_entitlement_revision,
+        'membership beta entitlement revision',
+      ),
+      pilotEntitlementRevision: requireNonNegativeSafeInteger(
+        componentRevision.pilot_entitlement_revision,
+        'membership pilot entitlement revision',
+      ),
+      stage: requireMembershipStage(value.stage),
+    },
+  };
+}
+
+function membershipCheckpointsEqual(left, right) {
+  return (
+    left.acknowledgedAt === right.acknowledgedAt &&
+    left.baseMembershipRevision === right.baseMembershipRevision &&
+    left.betaEntitlementRevision === right.betaEntitlementRevision &&
+    left.pilotEntitlementRevision === right.pilotEntitlementRevision &&
+    left.stage === right.stage
+  );
 }
 
 function normalizeLearningStateForScheduler(value, expectedTrack) {
