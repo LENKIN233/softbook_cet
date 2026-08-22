@@ -85,7 +85,15 @@ function createAudioCard() {
 }
 
 test('remote content manifest requires auth, exact scope, and signature verification', async () => {
-  const verifySignature = jest.fn().mockReturnValue(true);
+  const callOrder: string[] = [];
+  const verifySignature = jest.fn(() => {
+    callOrder.push('signature');
+    return true;
+  });
+  const installedClientIdentityProvider = jest.fn(() => {
+    callOrder.push('identity');
+    return { platform: 'ios' as const, version: '1.0.0' };
+  });
   const fetchImpl = jest.fn().mockResolvedValue({
     json: async () => createPayload(),
     ok: true,
@@ -97,6 +105,7 @@ test('remote content manifest requires auth, exact scope, and signature verifica
     baseUrl: 'https://api.softbook.example/',
     contentVersion: CONTENT_VERSION,
     fetchImpl,
+    installedClientIdentityProvider,
     now: () => NOW,
     track: 'cet4',
     verifySignature,
@@ -125,7 +134,12 @@ test('remote content manifest requires auth, exact scope, and signature verifica
     signature: 'd'.repeat(128),
   });
   expect(result.manifest.assets).toHaveLength(1);
+  expect(callOrder).toEqual(['signature', 'identity']);
 
+  const rejectedIdentityProvider = jest.fn(() => ({
+    platform: 'ios' as const,
+    version: '1.0.0',
+  }));
   await expect(
     loadRemoteContentManifest({
       authToken: '',
@@ -143,11 +157,74 @@ test('remote content manifest requires auth, exact scope, and signature verifica
       baseUrl: 'https://api.softbook.example',
       contentVersion: CONTENT_VERSION,
       fetchImpl,
+      installedClientIdentityProvider: rejectedIdentityProvider,
       now: () => NOW,
       track: 'cet4',
       verifySignature: () => false,
     }),
   ).rejects.toThrow('Content manifest signature verification failed');
+  expect(rejectedIdentityProvider).not.toHaveBeenCalled();
+});
+
+test('verified content manifest withholds content below the signed client minimum', async () => {
+  const payload = createPayload();
+  payload.data.manifest.minimum_client_version = '2.0.0';
+  const verifySignature = jest.fn(() => true);
+  const installedClientIdentityProvider = jest.fn(() => ({
+    platform: 'ios' as const,
+    version: '1.9.9',
+  }));
+
+  await expect(
+    loadRemoteContentManifest({
+      authToken: 'access-token',
+      baseUrl: 'https://api.softbook.example',
+      contentVersion: CONTENT_VERSION,
+      fetchImpl: jest.fn().mockResolvedValue({
+        json: async () => payload,
+        ok: true,
+        status: 200,
+      }),
+      installedClientIdentityProvider,
+      now: () => NOW,
+      track: 'cet4',
+      verifySignature,
+    }),
+  ).rejects.toThrow('below required minimum 2.0.0');
+  expect(verifySignature).toHaveBeenCalledTimes(1);
+  expect(installedClientIdentityProvider).toHaveBeenCalledTimes(1);
+});
+
+test('verified controlled-pilot manifest keeps gate false and selects the installed platform minimum', async () => {
+  const payload = createControlledPilotPayload();
+  payload.data.manifest.minimum_client_versions = {
+    android: '9.0.0',
+    ios: '1.0.0',
+  };
+
+  const result = await loadRemoteContentManifest({
+    authToken: 'access-token',
+    baseUrl: 'https://api.softbook.example',
+    contentVersion: CONTENT_VERSION,
+    fetchImpl: jest.fn().mockResolvedValue({
+      json: async () => payload,
+      ok: true,
+      status: 200,
+    }),
+    installedClientIdentityProvider: () => ({
+      platform: 'ios',
+      version: '1.0.0',
+    }),
+    now: () => NOW,
+    track: 'cet4',
+    verifySignature: () => true,
+  });
+
+  expect(result.manifest).toMatchObject({
+    gate_eligible: false,
+    minimum_client_versions: { android: '9.0.0', ios: '1.0.0' },
+    release_class: 'controlled_pilot',
+  });
 });
 
 test('content manifest parser fails closed on storage leakage, expiry, and asset drift', () => {
@@ -195,6 +272,16 @@ test('content manifest parser fails closed on storage leakage, expiry, and asset
       track: 'cet4',
     }),
   ).toThrow('download is not present in signed assets');
+
+  const nonStrictMinimum = createPayload();
+  nonStrictMinimum.data.manifest.minimum_client_version = '1.0.0-01';
+  expect(() =>
+    parseContentManifestPayload(nonStrictMinimum, {
+      contentVersion: CONTENT_VERSION,
+      now: NOW,
+      track: 'cet4',
+    }),
+  ).toThrow('minimum_client_version is invalid');
 });
 
 test('parses the exact controlled-pilot manifest without erasing its signed gate boundary', () => {

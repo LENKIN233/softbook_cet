@@ -191,6 +191,10 @@ test('five representative cards cross the real repository and signed pilot manif
     const repository = createLearningSessionRepository({
       contentManifestConfig: {
         baseUrl: 'https://acceptance.invalid',
+        installedClientIdentityProvider: () => ({
+          platform: 'ios',
+          version: '1.0.0',
+        }),
         mode: 'remote',
         now: () => new Date(fixture.checked_at),
         verifySignature: verifier,
@@ -260,7 +264,13 @@ test('real controlled-pilot Bootstrap crosses the mobile repository exact union'
       status: 200,
     }),
     mode: 'remote',
-    remoteConfig: { endpoint: 'https://acceptance.invalid/v2/bootstrap' },
+    remoteConfig: {
+      endpoint: 'https://acceptance.invalid/v2/bootstrap',
+      installedClientIdentityProvider: () => ({
+        platform: 'ios',
+        version: '1.0.0',
+      }),
+    },
   });
   const bootstrap = await repository.load(
     'cet4',

@@ -38,10 +38,12 @@ Referenced active specs:
   keyring consumer, pinned-key Ed25519 verifier, native content-addressed cache
   with completed-byte hashing, Learning controller, attached control, and
   iOS/Android native playback adapters are implemented locally but not deployed
-  or device smoked. Production key values and native release injection, actual
-  installed-client minimum-version comparison, persistent receiver execution,
-  real private-object download/playback proof, and cross-platform visual
-  evidence remain pending, so the audio launch gate stays pending.
+  or device smoked. The actual native iOS/Android client minimum gate is also
+  implemented locally and runs only after signed-manifest verification.
+  Production key values and native release injection, persistent receiver
+  execution, real-device minimum-version proof, private-object
+  download/playback proof, and cross-platform visual evidence remain pending,
+  so the audio launch gate stays pending.
 
 ## Card source
 
@@ -184,21 +186,34 @@ The client must:
    non-semantic minimum versions, non-canonical or expired pilot release time,
    duplicate IDs, expired URLs, and any difference between the authorized
    card-prefix asset IDs and download IDs;
-3. compare the installed platform client version with the applicable signed
-   minimum before exposing content;
-4. verify the Ed25519 signature using a pinned key ID and public key with
+3. verify the Ed25519 signature using a pinned key ID and public key with
    strict RFC 8032 semantics;
+4. compare the actual installed native platform client version with the
+   applicable now-verified signed minimum before exposing content;
 5. match every loaded card audio reference to its signed descriptor;
 6. download to an account-independent content-addressed cache;
 7. hash the completed bytes and delete any mismatch before playback;
 8. start playback only after an explicit user action.
 
-Exact variant parsing, expiry checks, steps 1, 2, 4 and 5, and the reusable
-strict verifier are implemented in the repository-local mobile runtime. The
-backend and mobile parser validate the controlled-pilot semantic-version shape,
-but step 3 is not implemented: no current installed iOS or Android app version
-is yet compared with the signed minimum. A valid minimum-version string
-therefore must not be reported as client-version enforcement.
+Exact variant parsing, expiry checks, steps 1 through 5, and the reusable strict
+verifier are implemented in the repository-local mobile runtime. Formal
+content applies its single signed `minimum_client_version` to either supported
+native platform; controlled-pilot content selects the signed entry for the
+actual platform. Installed identity comes from synchronous
+`NativeModules.SoftbookAppInfo` constants containing `platform` (`android` or
+`ios`) and `version`, and the native platform must match React Native
+`Platform.OS`. Missing, malformed, mismatched, unsupported, or below-minimum
+native identity fails closed.
+
+Both the installed version and applicable minimum use strict semantic versions
+with a required `x.y.z` core and only valid optional prerelease/build
+identifiers. Numeric prerelease identifiers compare numerically, alphanumeric
+identifiers compare lexically, a stable release sorts after its prerelease, and
+build metadata does not change precedence. The client does not trim, fill
+missing components, or normalize a native value such as `1.0` into `1.0.0`.
+Most importantly, the minimum is not trusted or compared until strict Ed25519
+verification succeeds; an invalid signature cannot use a forged low minimum to
+reach later manifest handling.
 
 When remote learning is enabled, the Learning repository loads the canonical
 card source and server selection first, then loads this manifest for that exact
@@ -230,4 +245,6 @@ automatic resume; one internal preparation retry and bounded offline/error copy
 prevent native details from reaching visible state. Cross-platform private-file
 device smoke, release-key injection, cache eviction policy, screenshots, and
 physical-device playback evidence remain follow-up work and cannot be inferred
-from local compilation or this contract being green.
+from local compilation or this contract being green. The repository-local
+minimum-version code likewise does not constitute receiver deployment or
+real-device proof.

@@ -1,25 +1,27 @@
-import {generateKeyPairSync, sign} from 'node:crypto';
+import { generateKeyPairSync, sign } from 'node:crypto';
 
-import {resolveContentManifestRuntimeConfig} from '../src/audio/contentManifestRuntimeConfig';
-import {stableJsonStringify} from '../src/audio/contentManifestRepository';
+import { resolveContentManifestRuntimeConfig } from '../src/audio/contentManifestRuntimeConfig';
+import { stableJsonStringify } from '../src/audio/contentManifestRepository';
 import {
   createSoftbookRemoteRuntimeConfig,
   readRemoteRuntimeProfileFromEnv,
 } from '../src/runtime/appRuntimeConfig';
 
 test('local runtime does not invent a content manifest keyring', () => {
-  expect(resolveContentManifestRuntimeConfig(undefined)).toEqual({mode: 'local'});
+  expect(resolveContentManifestRuntimeConfig(undefined)).toEqual({
+    mode: 'local',
+  });
 });
 
 test('remote runtime requires remote auth and a non-empty pinned keyring', () => {
   expect(() =>
     resolveContentManifestRuntimeConfig({
-      auth: {mode: 'local'},
+      auth: { mode: 'local' },
       contentManifest: {
         mode: 'remote',
         remote: {
           baseUrl: 'https://api.softbook.example',
-          publicKeys: {'content-key-1': 'a'.repeat(64)},
+          publicKeys: { 'content-key-1': 'a'.repeat(64) },
         },
       },
     }),
@@ -35,16 +37,16 @@ test('remote runtime requires remote auth and a non-empty pinned keyring', () =>
 });
 
 test('remote runtime builds a verifier from the release-owned public key map', async () => {
-  const {privateKey, publicKey} = generateKeyPairSync('ed25519');
+  const { privateKey, publicKey } = generateKeyPairSync('ed25519');
   const rawPublicKey = publicKey
-    .export({format: 'der', type: 'spki'})
+    .export({ format: 'der', type: 'spki' })
     .subarray(-32)
     .toString('hex');
   const runtime = resolveContentManifestRuntimeConfig(
     createSoftbookRemoteRuntimeConfig({
       apiKey: 'runtime-key',
       baseUrl: 'https://api.softbook.example/',
-      contentManifestPublicKeys: {'content-key-1': rawPublicKey},
+      contentManifestPublicKeys: { 'content-key-1': rawPublicKey },
     }),
   );
 
@@ -55,8 +57,9 @@ test('remote runtime builds a verifier from the release-owned public key map', a
   expect(runtime.remote).toMatchObject({
     apiKey: 'runtime-key',
     baseUrl: 'https://api.softbook.example',
+    installedClientIdentityProvider: expect.any(Function),
   });
-  const canonicalPayload = stableJsonStringify({release_id: 'release-1'});
+  const canonicalPayload = stableJsonStringify({ release_id: 'release-1' });
   const signature = sign(
     null,
     Buffer.from(canonicalPayload),

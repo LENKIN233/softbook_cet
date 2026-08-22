@@ -119,6 +119,57 @@ test('mutating signed release operations require clean main at origin/main', asy
   assert.equal(fs.existsSync(statePath), false);
 });
 
+test('Android release identity requires a three-part version name', async t => {
+  const fixture = createFixture(t);
+  const statePath = path.join(
+    fixture.root,
+    'docs/agent-runs/artifacts/android-signed-release-state.json',
+  );
+
+  const dryRun = await buildSignedAndroidRelease({
+    env: fixture.signingEnv,
+    repository: exactMainRepository(),
+    repositoryRoot: fixture.root,
+    statePath,
+  });
+  assert.equal(dryRun.version_name, '1.0.0');
+
+  fs.writeFileSync(
+    path.join(fixture.root, 'apps/mobile/android/app/build.gradle'),
+    'applicationId "com.softbook.cet"\nversionCode 1\nversionName "1.0"\n',
+  );
+  await assert.rejects(
+    buildSignedAndroidRelease({
+      env: fixture.signingEnv,
+      repository: exactMainRepository(),
+      repositoryRoot: fixture.root,
+      statePath,
+    }),
+    /Android application identity is invalid/,
+  );
+
+  fs.writeFileSync(
+    path.join(fixture.root, 'apps/mobile/android/app/build.gradle'),
+    'applicationId "com.softbook.cet"\nversionCode 1\nversionName "01.0.0"\n',
+  );
+  await assert.rejects(
+    buildSignedAndroidRelease({
+      env: fixture.signingEnv,
+      repository: exactMainRepository(),
+      repositoryRoot: fixture.root,
+      statePath,
+    }),
+    /Android application identity is invalid/,
+  );
+
+  const report = validReport();
+  report.version_name = '1.0';
+  assert.match(
+    validateAndroidSignedReleaseReport(report).join('\n'),
+    /version_name is invalid/,
+  );
+});
+
 test('apksigner evidence requires one certificate and v2 or newer', () => {
   const result = parseApkSignerOutput(validApkSignerOutput());
   assert.equal(result.certificate_sha256, CERTIFICATE_SHA);
@@ -463,7 +514,7 @@ function createFixture(t) {
   fs.mkdirSync(path.dirname(apksigner), { recursive: true });
   fs.writeFileSync(
     gradle,
-    'applicationId "com.softbook.cet"\nversionCode 1\nversionName "1.0"\n',
+    'applicationId "com.softbook.cet"\nversionCode 1\nversionName "1.0.0"\n',
   );
   fs.writeFileSync(gradlew, '#!/bin/sh\n');
   fs.writeFileSync(keystore, 'test-keystore', {mode: 0o600});
@@ -552,7 +603,7 @@ function validReport() {
     repository_commit: COMMIT,
     application_id: 'com.softbook.cet',
     version_code: 1,
-    version_name: '1.0',
+    version_name: '1.0.0',
     artifact: {
       filename: 'app-release.apk',
       sha256: APK_SHA,

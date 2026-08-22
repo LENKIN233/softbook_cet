@@ -1,9 +1,10 @@
 import {
+  AccountBootstrapIntegrityError,
   createAccountBootstrapRepository,
   createSoftbookRemoteAccountBootstrapConfig,
   parseAccountBootstrapPayload,
 } from '../src/bootstrap/accountBootstrapRepository';
-import {assertAccountBootstrapRevisionTransition} from '../src/bootstrap/accountBootstrapRevision';
+import { assertAccountBootstrapRevisionTransition } from '../src/bootstrap/accountBootstrapRevision';
 import { RemoteHttpError } from '../src/runtime/remoteHttpError';
 
 const DAY_KEY = '2026-07-20';
@@ -122,12 +123,24 @@ function createControlledPilotBootstrapPayload(): any {
     card_count: 120,
     expires_at: '2099-08-13T00:00:00.000Z',
     gate_eligible: false,
-    minimum_client_versions: {android: '1.0.0', ios: '1.0.0'},
+    minimum_client_versions: { android: '1.0.0', ios: '1.0.0' },
     pilot_id: 'cet4-controlled-pilot-2026',
     release_class: 'controlled_pilot',
     release_id: 'cet4-controlled-pilot-release',
     source: payload.data.content.source,
     version: CONTENT_VERSION,
+  };
+  return payload;
+}
+
+function createPublishedBootstrapPayload(minimumClientVersion = '1.0.0'): any {
+  const payload = createBootstrapPayload();
+  payload.data.content = {
+    ...payload.data.content,
+    minimum_client_version: minimumClientVersion,
+    parent_release_id: null,
+    published_at: '2026-07-20T09:00:00.000Z',
+    release_id: 'cet4-release-2026-07-20',
   };
   return payload;
 }
@@ -232,7 +245,7 @@ test('strictly parses controlled-pilot bootstrap content without treating it as 
     cardCount: 120,
     expiresAt: '2099-08-13T00:00:00.000Z',
     gateEligible: false,
-    minimumClientVersions: {android: '1.0.0', ios: '1.0.0'},
+    minimumClientVersions: { android: '1.0.0', ios: '1.0.0' },
     pilotId: 'cet4-controlled-pilot-2026',
     releaseClass: 'controlled_pilot',
     releaseId: 'cet4-controlled-pilot-release',
@@ -247,37 +260,114 @@ test('strictly parses controlled-pilot bootstrap content without treating it as 
 test.each([
   {
     label: 'gate drift',
-    mutate: (payload: ReturnType<typeof createControlledPilotBootstrapPayload>) => {
+    mutate: (
+      payload: ReturnType<typeof createControlledPilotBootstrapPayload>,
+    ) => {
       payload.data.content.gate_eligible = true;
     },
   },
   {
     label: 'minimum version map drift',
-    mutate: (payload: ReturnType<typeof createControlledPilotBootstrapPayload>) => {
+    mutate: (
+      payload: ReturnType<typeof createControlledPilotBootstrapPayload>,
+    ) => {
       payload.data.content.minimum_client_versions.web = '1.0.0';
     },
   },
   {
     label: 'formal field mixing',
-    mutate: (payload: ReturnType<typeof createControlledPilotBootstrapPayload>) => {
+    mutate: (
+      payload: ReturnType<typeof createControlledPilotBootstrapPayload>,
+    ) => {
       payload.data.content.parent_release_id = null;
     },
   },
-])('rejects controlled-pilot bootstrap $label', ({mutate}) => {
+])('rejects controlled-pilot bootstrap $label', ({ mutate }) => {
   const payload = createControlledPilotBootstrapPayload();
   mutate(payload);
-  expect(() => parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY)).toThrow();
+  expect(() =>
+    parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY),
+  ).toThrow();
 });
 
 test('keeps local bootstrap side-effect free', async () => {
   const fetchImpl = jest.fn();
+  const installedClientIdentityProvider = jest.fn(() => ({
+    platform: 'ios' as const,
+    version: '1.0.0',
+  }));
   const repository = createAccountBootstrapRepository({
     fetchImpl,
     mode: 'local',
+    remoteConfig: {
+      endpoint: 'https://never-called.invalid/v2/bootstrap',
+      installedClientIdentityProvider,
+    },
   });
 
   await expect(repository.load('cet6', DAY_KEY)).resolves.toBeNull();
   expect(fetchImpl).not.toHaveBeenCalled();
+  expect(installedClientIdentityProvider).not.toHaveBeenCalled();
+});
+
+test('published bootstrap withholds canonical authority below its minimum client version', async () => {
+  const installedClientIdentityProvider = jest.fn(() => ({
+    platform: 'android' as const,
+    version: '1.9.9',
+  }));
+  const repository = createAccountBootstrapRepository({
+    fetchImpl: jest.fn(async () => ({
+      json: async () => createPublishedBootstrapPayload('2.0.0'),
+      ok: true,
+      status: 200,
+    })),
+    mode: 'remote',
+    remoteConfig: {
+      endpoint: 'https://api.softbook.example/v2/bootstrap',
+      installedClientIdentityProvider,
+    },
+  });
+
+  await expect(repository.load('cet4', DAY_KEY)).rejects.toEqual(
+    expect.objectContaining<Partial<AccountBootstrapIntegrityError>>({
+      integrityCause: expect.objectContaining({
+        message:
+          'Installed android client version 1.9.9 is below required minimum 2.0.0.',
+      }),
+    }),
+  );
+  expect(installedClientIdentityProvider).toHaveBeenCalledTimes(1);
+});
+
+test('controlled-pilot bootstrap selects only the installed platform minimum and keeps gate false', async () => {
+  const payload = createControlledPilotBootstrapPayload();
+  payload.data.content.minimum_client_versions = {
+    android: '9.0.0',
+    ios: '1.0.0',
+  };
+  const repository = createAccountBootstrapRepository({
+    fetchImpl: jest.fn(async () => ({
+      json: async () => payload,
+      ok: true,
+      status: 200,
+    })),
+    mode: 'remote',
+    remoteConfig: {
+      endpoint: 'https://api.softbook.example/v2/bootstrap',
+      installedClientIdentityProvider: () => ({
+        platform: 'ios',
+        version: '1.0.0',
+      }),
+    },
+  });
+
+  await expect(repository.load('cet4', DAY_KEY)).resolves.toMatchObject({
+    content: {
+      gateEligible: false,
+      minimumClientVersions: { android: '9.0.0', ios: '1.0.0' },
+      releaseClass: 'controlled_pilot',
+    },
+  });
 });
 
 test('binds a force-fresh bootstrap to the caller cancellation signal', async () => {
@@ -289,7 +379,7 @@ test('binds a force-fresh bootstrap to the caller cancellation signal', async ()
   const repository = createAccountBootstrapRepository({
     fetchImpl,
     mode: 'remote',
-    remoteConfig: {endpoint: 'https://api.softbook.example/v2/bootstrap'},
+    remoteConfig: { endpoint: 'https://api.softbook.example/v2/bootstrap' },
   });
   const abortController = new AbortController();
 
@@ -347,13 +437,13 @@ test('accepts retained account projections larger than the current catalog', () 
   });
   payload.data.progress.sleeping_count = 1;
 
-  expect(
-    parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY),
-  ).toMatchObject({
-    content: {cardCount: 1},
-    learning: {cardStates: expect.arrayContaining([
-      expect.objectContaining({cardId: 'retained-card'}),
-    ])},
+  expect(parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY)).toMatchObject({
+    content: { cardCount: 1 },
+    learning: {
+      cardStates: expect.arrayContaining([
+        expect.objectContaining({ cardId: 'retained-card' }),
+      ]),
+    },
   });
 });
 
@@ -364,13 +454,11 @@ test('accepts retained learning source metadata after the active source changes'
     label: 'Current source B',
   };
 
-  expect(
-    parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY),
-  ).toMatchObject({
-    content: {source: {id: 'current-source-b'}},
+  expect(parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY)).toMatchObject({
+    content: { source: { id: 'current-source-b' } },
     learning: {
-      cursor: {sourceId: 'cloudbase-dev-card-source'},
-      source: {id: 'cloudbase-dev-card-source'},
+      cursor: { sourceId: 'cloudbase-dev-card-source' },
+      source: { id: 'cloudbase-dev-card-source' },
     },
   });
 });
@@ -670,8 +758,7 @@ test('rejects inconsistent Progress learning authority markers', () => {
   const v2WithoutSequence = createBootstrapPayload();
   v2WithoutSequence.data.learning.card_states[0].server_sequence = 0;
   v2WithoutSequence.data.component_revisions.learning.event_server_sequence = 0;
-  v2WithoutSequence.data.component_revisions.progress.learning_server_sequence =
-    0;
+  v2WithoutSequence.data.component_revisions.progress.learning_server_sequence = 0;
 
   expect(() =>
     parseAccountBootstrapPayload(v2WithoutSequence, 'cet4', DAY_KEY),
@@ -679,10 +766,8 @@ test('rejects inconsistent Progress learning authority markers', () => {
 
   const emptyWithPendingReview = createBootstrapPayload();
   emptyWithPendingReview.data.learning.card_states[0].server_sequence = 0;
-  emptyWithPendingReview.data.component_revisions.learning.event_server_sequence =
-    0;
-  emptyWithPendingReview.data.component_revisions.progress.learning_server_sequence =
-    0;
+  emptyWithPendingReview.data.component_revisions.learning.event_server_sequence = 0;
+  emptyWithPendingReview.data.component_revisions.progress.learning_server_sequence = 0;
   emptyWithPendingReview.data.progress.learning_authority = 'empty';
   emptyWithPendingReview.data.progress.pending_review_count = 1;
 
@@ -766,10 +851,8 @@ test.each([
   {
     label: 'membership',
     mutate(previousPayload: any, nextPayload: any) {
-      previousPayload.data.component_revisions.membership.base_membership_revision =
-        4;
-      nextPayload.data.component_revisions.membership.base_membership_revision =
-        3;
+      previousPayload.data.component_revisions.membership.base_membership_revision = 4;
+      nextPayload.data.component_revisions.membership.base_membership_revision = 3;
     },
     pattern: /membership revision baseMembershipRevision regressed/,
   },
@@ -791,10 +874,8 @@ test.each([
   {
     label: 'account-wide Progress',
     mutate(previousPayload: any, nextPayload: any) {
-      previousPayload.data.component_revisions.progress.learning_server_sequence =
-        9;
-      nextPayload.data.component_revisions.progress.learning_server_sequence =
-        8;
+      previousPayload.data.component_revisions.progress.learning_server_sequence = 9;
+      nextPayload.data.component_revisions.progress.learning_server_sequence = 8;
     },
     pattern: /progress revision learningServerSequence regressed/,
   },
@@ -807,25 +888,28 @@ test.each([
     },
     pattern: /revision (?:spaceRevision|stateRevision) regressed/,
   },
-])('rejects $label rollback across product-day rollover', ({mutate, pattern}) => {
-  const previousPayload = createBootstrapPayload();
-  const nextDayKey = '2026-07-21';
-  const nextPayload = moveBootstrapPayloadToDay(
-    createBootstrapPayload(),
-    nextDayKey,
-  );
-  mutate(previousPayload, nextPayload);
-  const previous = parseAccountBootstrapPayload(
-    previousPayload,
-    'cet4',
-    DAY_KEY,
-  );
-  const next = parseAccountBootstrapPayload(nextPayload, 'cet4', nextDayKey);
+])(
+  'rejects $label rollback across product-day rollover',
+  ({ mutate, pattern }) => {
+    const previousPayload = createBootstrapPayload();
+    const nextDayKey = '2026-07-21';
+    const nextPayload = moveBootstrapPayloadToDay(
+      createBootstrapPayload(),
+      nextDayKey,
+    );
+    mutate(previousPayload, nextPayload);
+    const previous = parseAccountBootstrapPayload(
+      previousPayload,
+      'cet4',
+      DAY_KEY,
+    );
+    const next = parseAccountBootstrapPayload(nextPayload, 'cet4', nextDayKey);
 
-  expect(() =>
-    assertAccountBootstrapRevisionTransition(previous, next),
-  ).toThrow(pattern);
-});
+    expect(() =>
+      assertAccountBootstrapRevisionTransition(previous, next),
+    ).toThrow(pattern);
+  },
+);
 
 test('reports remote status failures without parsing an error body', async () => {
   const repository = createAccountBootstrapRepository({

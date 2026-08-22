@@ -64,6 +64,62 @@ test('delivery profile is receiver-owned and contains no secret material', () =>
   );
 });
 
+test('delivery profile requires strict semantic client versions', () => {
+  const valid = delivery.validateDeliveryProfile({
+    ...profileFixture(),
+    minimum_client_versions: {
+      ios: '1.0.0-beta.2+receiver.7',
+      android: '1.0.0',
+    },
+  });
+  assert.equal(valid.minimum_client_versions.ios, '1.0.0-beta.2+receiver.7');
+
+  for (const version of [
+    '1.0',
+    '01.0.0',
+    '1.0.0-01',
+    '1.0.0-alpha..1',
+    '1.0.0+',
+  ]) {
+    assert.throws(
+      () =>
+        delivery.validateDeliveryProfile({
+          ...profileFixture(),
+          minimum_client_versions: {ios: version, android: '1.0.0'},
+        }),
+      /minimum_client_versions\.ios/,
+    );
+  }
+});
+
+test('delivery semantic-version precedence follows the official prerelease order', () => {
+  const ordered = [
+    '1.0.0-alpha',
+    '1.0.0-alpha.1',
+    '1.0.0-alpha.beta',
+    '1.0.0-beta',
+    '1.0.0-beta.2',
+    '1.0.0-beta.11',
+    '1.0.0-rc.1',
+    '1.0.0',
+  ];
+
+  ordered.slice(0, -1).forEach((version, index) => {
+    assert.equal(
+      delivery.compareSemanticVersions(version, ordered[index + 1]),
+      -1,
+    );
+    assert.equal(
+      delivery.compareSemanticVersions(ordered[index + 1], version),
+      1,
+    );
+  });
+  assert.equal(
+    delivery.compareSemanticVersions('1.0.0+build.1', '1.0.0+build.2'),
+    0,
+  );
+});
+
 test('delivery profiles fail closed on partial or reordered production tracks', () => {
   assert.throws(
     () =>
@@ -224,6 +280,37 @@ test('publisher activates only after every upload, stage, and verification succe
   assert.equal(result.uploaded_asset_count, 301);
   assert.deepEqual(calls.slice(-3), ['stage', 'verify', 'activate']);
   assert.equal(calls.indexOf('activate'), calls.length - 1);
+});
+
+test('publisher selects the higher platform minimum using semantic-version precedence', async () => {
+  const fixture = createValidBundleFixture();
+  const minimumClientVersions = {
+    ios: '1.0.0-beta.11',
+    android: '1.0.0-beta.2',
+  };
+  const profile = JSON.parse(readFileSync(fixture.profilePath, 'utf8'));
+  profile.minimum_client_versions = minimumClientVersions;
+  writeFileSync(fixture.profilePath, `${JSON.stringify(profile, null, 2)}\n`);
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  bundle.minimum_client_versions = minimumClientVersions;
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+
+  const verified = delivery.verifyReleaseBundleDirectory({
+    bundlePath: fixture.bundlePath,
+    profilePath: fixture.profilePath,
+  });
+  let stagedMinimum = null;
+  await delivery.publishVerifiedRelease(verified, {
+    uploadAsset: async ({asset}) =>
+      `cloud://receiver-bucket/${asset.asset_id}.mp3`,
+    stageContent: async ({cardSource}) => {
+      stagedMinimum = cardSource.release.minimum_client_version;
+    },
+    verifyStaged: async () => {},
+    activateRelease: async () => {},
+  });
+
+  assert.equal(stagedMinimum, '1.0.0-beta.11');
 });
 
 test('publisher never activates after staged verification fails', async () => {

@@ -26,7 +26,7 @@ Referenced active sources:
 - The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated `GET /v2/learning/card-source`, Bootstrap, Learning Events, Learning Session, content-manifest and Space paths apply that mode boundary. Bootstrap and content-manifest expose exact `controlled_pilot` variants rather than mixing formal release fields into pilot responses, and the mobile repositories parse those variants fail closed. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider. The controlled-pilot mobile runtime has no `/v1` dependency for loading card bodies.
-- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, audited pilot entitlement operations, strict dual-platform minimum-version shape validation, and exact pilot Bootstrap/content-manifest parsing are implemented in the repository but remain undeployed. The installed iOS or Android app version is not yet compared with the signed minimum. Receiver-owned profile/secrets and execution, complete identified-human audio QC, deletion-worker execution, persistent-environment proof, and real-device evidence remain separate and incomplete.
+- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, audited pilot entitlement operations, strict dual-platform minimum-version shape validation, exact pilot Bootstrap/content-manifest parsing, and actual native iOS/Android minimum-version enforcement are implemented in the repository but remain undeployed. Bootstrap gates the canonical snapshot early; the manifest gates independently only after Ed25519 verification. Receiver-owned profile/secrets and execution, complete identified-human audio QC, deletion-worker execution, persistent-environment proof, and real-device evidence remain separate and incomplete.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
@@ -165,10 +165,22 @@ expiry later than the response's `generated_at`, pilot and release identifiers,
 and literal false gate marker. It rejects unknown fields, missing platforms,
 formal-field mixing, expired pilot content, or any gate drift. Formal and
 development Bootstrap content retain their separate exact seven-field shape.
-Neither this parsing nor server-side semantic-version validation compares the
-installed app version against the applicable platform minimum; that enforcement
-remains required before receiver use and cannot be inferred from a valid wire
-shape.
+After parsing, the remote Bootstrap repository selects the actual native
+platform's minimum and fails closed before returning canonical state unless the
+actual installed version meets it. The signed content-manifest repository
+performs the same platform-specific check independently, but only after strict
+Ed25519 verification. Installed identity is supplied synchronously by
+`NativeModules.SoftbookAppInfo`, must match React Native `Platform.OS`, and
+must be a strict semantic version with a required `x.y.z` core and only valid
+optional prerelease/build identifiers; missing, malformed, mismatched,
+unsupported, or below-minimum identity fails closed. Numeric prerelease
+identifiers compare numerically, alphanumeric identifiers compare lexically, a
+stable release sorts after its prerelease, build metadata does not change
+precedence, and no value such as `1.0` is coerced to `1.0.0`.
+
+These gates are repository-local implementation only. They have not been
+deployed or proved on real iOS/Android devices in a receiver-owned environment,
+and they do not change any pilot artifact's literal `gate_eligible=false`.
 
 ### `pilot-entitlement-command.v1`
 
@@ -254,10 +266,14 @@ to verify the real signed manifest, parses the exact pilot Bootstrap variant,
 and completes representative `flip`, `multiple_choice`, `lock`, `elimination`
 and `swipe` cards through the rendered Learning surface. Its retained report
 contains only hashes, counts, fixed card IDs and explicit false capability
-flags. It remains an in-memory repository acceptance check, not identified-
-human audio QC, installed-client version enforcement, receiver key injection,
-persistent environment proof, real-device proof, deployment or launch
-evidence; `gate_eligible` is always false.
+flags. In particular,
+`installed_client_minimum_version_enforced` deliberately remains `false`:
+the runner injects a deterministic identity to exercise repository wiring but
+does not execute an installed native release or prove the gate on a real
+device. It remains neither
+identified-human audio QC nor receiver key injection, persistent environment
+proof, real-device proof, deployment, or launch evidence; `gate_eligible` is
+always false.
 
 `deliver-controlled-pilot.mjs` provides `preflight`, `provision`, `deploy`,
 `publish`, and `verify`. Every mutation is dry-run unless `--apply` is explicit;

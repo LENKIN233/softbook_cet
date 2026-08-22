@@ -2053,7 +2053,7 @@ function createAndroidSignedReleaseReport() {
     repository_commit: TEST_COMMIT_SHA,
     application_id: 'com.softbook.cet',
     version_code: 1,
-    version_name: '1.0',
+    version_name: '1.0.0',
     artifact: {
       filename: 'app-release.apk',
       sha256: '0123456789abcdef'.repeat(4),

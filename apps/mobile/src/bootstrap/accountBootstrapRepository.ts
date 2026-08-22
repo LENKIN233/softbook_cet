@@ -2,6 +2,12 @@ import type { LearningCardResult, LearningTrack } from '../learning/model';
 import type { MembershipState } from '../membership/localMembership';
 import { parseSoftbookRemoteMembershipPayload } from '../membership/membershipRepository';
 import { RemoteHttpError } from '../runtime/remoteHttpError';
+import {
+  assertInstalledClientVersionAtLeast,
+  isStrictSemanticVersion,
+  readInstalledClientIdentity,
+  type InstalledClientIdentityProvider,
+} from '../runtime/installedClientVersion';
 import type { SpaceStateSnapshot } from '../space/spaceStateRepository';
 import { parseRemoteSpaceStateProjection } from '../space/spaceStateRepository';
 import type { DailyProgressSnapshot } from '../sync/progressSyncRepository';
@@ -33,7 +39,7 @@ export type AccountBootstrapContent = AccountBootstrapContentBase &
         releaseClass: 'controlled_pilot';
         releaseId: string;
         pilotId: string;
-        minimumClientVersions: {android: string; ios: string};
+        minimumClientVersions: { android: string; ios: string };
         expiresAt: string;
         gateEligible: false;
       }
@@ -116,6 +122,7 @@ export type AccountBootstrapSnapshot = {
 export type AccountBootstrapRemoteConfig = {
   endpoint: string;
   headers?: Record<string, string>;
+  installedClientIdentityProvider?: InstalledClientIdentityProvider;
 };
 
 export type AccountBootstrapFetch = (
@@ -154,8 +161,6 @@ export type SoftbookRemoteAccountBootstrapRuntimeConfig = {
 };
 
 const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
-const SEMANTIC_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-
 export function createAccountBootstrapRepository(
   config: AccountBootstrapRepositoryConfig,
 ): AccountBootstrapRepository {
@@ -194,7 +199,17 @@ export function createAccountBootstrapRepository(
       }
 
       try {
-        return parseAccountBootstrapPayload(await response.json(), track, dayKey);
+        const snapshot = parseAccountBootstrapPayload(
+          await response.json(),
+          track,
+          dayKey,
+        );
+        assertAccountBootstrapClientVersion(
+          snapshot.content,
+          config.remoteConfig.installedClientIdentityProvider ??
+            readInstalledClientIdentity,
+        );
+        return snapshot;
       } catch (error) {
         throw new AccountBootstrapIntegrityError(error);
       }
@@ -217,6 +232,7 @@ export function createSoftbookRemoteAccountBootstrapConfig(
       'x-softbook-client': 'mobile',
       ...(config.apiKey ? { 'x-api-key': config.apiKey } : {}),
     },
+    installedClientIdentityProvider: readInstalledClientIdentity,
   };
 }
 
@@ -247,9 +263,7 @@ export function parseAccountBootstrapPayload(
   }
 
   const content = parseContent(data.content, new Date(generatedAt));
-  const componentRevisions = parseComponentRevisions(
-    data.component_revisions,
-  );
+  const componentRevisions = parseComponentRevisions(data.component_revisions);
   const learning = parseLearning(data.learning, expectedTrack);
   const membership = parseMembership(data.membership);
   const progress = parseProgress(data.progress, expectedDayKey);
@@ -270,8 +284,7 @@ export function parseAccountBootstrapPayload(
   if (
     new Set(positiveLearningSequences).size !==
       positiveLearningSequences.length ||
-    maximumLearningSequence !==
-      componentRevisions.learning.eventServerSequence
+    maximumLearningSequence !== componentRevisions.learning.eventServerSequence
   ) {
     throw new Error(
       'Bootstrap learning revision must match its unique server sequences.',
@@ -303,9 +316,7 @@ export function parseAccountBootstrapPayload(
     (progress.learningAuthority === 'empty' &&
       progress.snapshot.pendingReviewCount !== 0)
   ) {
-    throw new Error(
-      'Bootstrap Progress learning authority is inconsistent.',
-    );
+    throw new Error('Bootstrap Progress learning authority is inconsistent.');
   }
 
   if (
@@ -486,7 +497,10 @@ function parseComponentRevisions(
   };
 }
 
-function parseContent(value: unknown, observedAt: Date): AccountBootstrapContent {
+function parseContent(
+  value: unknown,
+  observedAt: Date,
+): AccountBootstrapContent {
   const content = requireObject(value, 'bootstrap content');
   const source = requireExactObject(
     content.source,
@@ -569,7 +583,7 @@ function parseContent(value: unknown, observedAt: Date): AccountBootstrapContent
 
   if (
     minimumClientVersion !== null &&
-    !SEMANTIC_VERSION_PATTERN.test(minimumClientVersion)
+    !isStrictSemanticVersion(minimumClientVersion)
   ) {
     throw new Error(
       'Bootstrap content.minimum_client_version must use semantic version form.',
@@ -610,7 +624,9 @@ function parseControlledPilotContent(
     throw new Error('Bootstrap controlled-pilot content fields are invalid.');
   }
   if (content.gate_eligible !== false) {
-    throw new Error('Bootstrap controlled-pilot content must stay gate ineligible.');
+    throw new Error(
+      'Bootstrap controlled-pilot content must stay gate ineligible.',
+    );
   }
   const minimumClientVersions = requireExactObject(
     content.minimum_client_versions,
@@ -633,7 +649,7 @@ function parseControlledPilotContent(
       'bootstrap controlled-pilot expires_at',
     ),
     gateEligible: false,
-    minimumClientVersions: {android, ios},
+    minimumClientVersions: { android, ios },
     pilotId: readIdentifier(
       content.pilot_id,
       'bootstrap controlled-pilot pilot_id',
@@ -964,13 +980,41 @@ function readIdentifier(value: unknown, label: string) {
 
 function readSemanticVersion(value: unknown, label: string) {
   const version = readString(value, label);
-  if (!SEMANTIC_VERSION_PATTERN.test(version)) {
+  if (!isStrictSemanticVersion(version)) {
     throw new Error(`${label} must use semantic version form.`);
   }
   return version;
 }
 
-function readFutureIsoTimestamp(value: unknown, observedAt: Date, label: string) {
+function assertAccountBootstrapClientVersion(
+  content: AccountBootstrapContent,
+  installedClientIdentityProvider: InstalledClientIdentityProvider,
+) {
+  if (content.releaseClass === 'development') {
+    return;
+  }
+
+  const identity = installedClientIdentityProvider();
+  if (content.releaseClass === 'controlled_pilot') {
+    assertInstalledClientVersionAtLeast(
+      identity,
+      content.minimumClientVersions,
+    );
+    return;
+  }
+  if (content.minimumClientVersion === null) {
+    throw new Error(
+      'Bootstrap production content requires a minimum client version.',
+    );
+  }
+  assertInstalledClientVersionAtLeast(identity, content.minimumClientVersion);
+}
+
+function readFutureIsoTimestamp(
+  value: unknown,
+  observedAt: Date,
+  label: string,
+) {
   const timestamp = readIsoTimestamp(value, label);
   const parsed = new Date(timestamp);
   if (

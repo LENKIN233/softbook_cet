@@ -3,16 +3,21 @@ import {
   readSoftbookAppRuntimeConfig,
   type SoftbookAppRuntimeConfig,
 } from '../learning/learningRuntimeConfig';
-import {createPinnedContentManifestSignatureVerifier} from './contentManifestSignature';
-import type {ContentManifestSignatureVerifier} from './contentManifestRepository';
+import {
+  readInstalledClientIdentity,
+  type InstalledClientIdentityProvider,
+} from '../runtime/installedClientVersion';
+import { createPinnedContentManifestSignatureVerifier } from './contentManifestSignature';
+import type { ContentManifestSignatureVerifier } from './contentManifestRepository';
 
 export type ResolvedContentManifestRuntimeConfig =
-  | {mode: 'local'}
+  | { mode: 'local' }
   | {
       mode: 'remote';
       remote: {
         apiKey?: string;
         baseUrl: string;
+        installedClientIdentityProvider: InstalledClientIdentityProvider;
         verifySignature: ContentManifestSignatureVerifier;
       };
     };
@@ -26,7 +31,7 @@ export function resolveContentManifestRuntimeConfig(
   const mode = contentManifest?.mode ?? 'local';
 
   if (mode === 'local') {
-    return {mode: 'local'};
+    return { mode: 'local' };
   }
 
   assertRemoteRuntimeUsesRemoteAuth(runtimeConfig, 'contentManifest');
@@ -41,8 +46,9 @@ export function resolveContentManifestRuntimeConfig(
   return {
     mode: 'remote',
     remote: {
-      ...(remote.apiKey ? {apiKey: remote.apiKey} : {}),
+      ...(remote.apiKey ? { apiKey: remote.apiKey } : {}),
       baseUrl: remote.baseUrl,
+      installedClientIdentityProvider: readInstalledClientIdentity,
       verifySignature: createPinnedContentManifestSignatureVerifier(
         remote.publicKeys,
       ),

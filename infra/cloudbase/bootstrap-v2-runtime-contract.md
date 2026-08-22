@@ -55,9 +55,11 @@ Referenced active specs:
   and production retain the original seven-field shape; `controlled_pilot`
   returns its separate exact nine-field shape with pilot/release identity,
   exact Android/iOS minimum versions, canonical expiry, and
-  `gate_eligible=false`. The repository-local mobile Bootstrap parser accepts
-  those variants fail closed, but it does not yet compare an installed app
-  version with the declared platform minimum.
+  `gate_eligible=false`. After parsing the complete response, the
+  repository-local remote Bootstrap repository resolves the actual installed
+  native platform and version and fails closed before returning the canonical
+  snapshot unless that version meets the applicable release minimum. This
+  precedes App hydration, mutation replay, or product-state writes.
 
 ## Request
 
@@ -197,6 +199,29 @@ forbidden. Unknown fields, a missing platform, invalid pilot/release identity,
 an expired release, gate drift, or formal/pilot field mixing fails closed in
 the repository-local mobile parser.
 
+For a formal release, the single non-null `minimum_client_version` applies to
+both supported native platforms. For a controlled pilot, mobile selects only
+the minimum for its actual platform from `minimum_client_versions`. Installed
+identity comes from synchronous `NativeModules.SoftbookAppInfo` constants
+containing `platform` (`android` or `ios`) and `version`; the native platform
+must also equal React Native `Platform.OS`. Both installed and minimum values
+must be strict semantic versions with a required `x.y.z` core and only valid
+optional prerelease/build identifiers. Numeric prerelease identifiers compare
+numerically, alphanumeric identifiers compare lexically, a stable release sorts
+after its prerelease, and build metadata does not change precedence. No
+trimming, missing-component fill, or coercion such as converting native `1.0`
+to `1.0.0` is allowed. Missing,
+malformed, mismatched, unsupported, or below-minimum native identity fails
+closed.
+
+The remote Bootstrap repository performs this check after exact payload
+parsing but before returning the snapshot to its caller. Development content
+skips the check only because its release metadata has no minimum version;
+fully local runtime does not read the native module. Passing Bootstrap is an
+early gate rather than permission to trust a later manifest: the signed
+content manifest independently enforces its own applicable minimum only after
+Ed25519 verification.
+
 Missing account-state documents for a valid account/day/track return explicit
 empty state. They do not cause the server to copy a device snapshot or silently
 use another day or track. `card_states` and `space.states` use deterministic
@@ -310,8 +335,11 @@ Cards remain on authenticated `/v2/learning/card-source`; the separately
 authenticated `GET /v2/content/manifest` returns the implemented
 Ed25519-signed exact formal or controlled-pilot manifest plus membership-scoped
 expiring private downloads. For pilot responses those download expiries cannot
-outlive the signed pilot release. Bootstrap parsing and semantic-version shape
-validation do not yet enforce the installed client version.
+outlive the signed pilot release. The repository-local mobile Bootstrap path
+now enforces the applicable minimum against the actual installed native
+platform/version before it returns canonical state. This is local
+implementation evidence only; receiver deployment and real-device proof remain
+pending.
 
 The current `import-card-source.mjs` is a development importer and rejects
 non-null release descriptors. On apply it validates and archives a replaced
@@ -328,9 +356,10 @@ This contract does not prove:
 - real SMS provider readiness;
 - production shipment of the repository-local mobile durable
   `learning-events.v2` replay and `/v2/learning/session` selection binding;
-- installed-client minimum-version enforcement, receiver-owned formal manifest
-  key injection, complete identified-human audio QC, private-object byte
-  delivery, or real-device playback;
+- receiver deployment or real-device proof of installed-client minimum-version
+  enforcement, receiver-owned formal manifest key injection, complete
+  identified-human audio QC, private-object byte delivery, or real-device
+  playback;
 - complete formal whole-track approved content or any conversion of the
   controlled-pilot payload, fixtures, dry-runs, or smoke reports into beta or
   launch evidence;
