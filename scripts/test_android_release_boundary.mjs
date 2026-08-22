@@ -48,7 +48,10 @@ test('Android Release CI uses JDK 17 and verifies an unsigned artifact', () => {
   const workflow = read('.github/workflows/pr-gates.yml');
   const job = workflow.slice(workflow.indexOf('  android-release:'), workflow.indexOf('\n  repo-health:'));
 
-  assert.match(job, /actions\/setup-java@v5/);
+  assert.match(
+    job,
+    /actions\/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5/,
+  );
   assert.match(job, /java-version: "17"/);
   assert.match(job, /npm run android:release:unsigned/);
   assert.match(job, /app-release-unsigned\.apk/);

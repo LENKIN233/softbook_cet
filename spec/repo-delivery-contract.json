@@ -1,5 +1,5 @@
 {
-  "version": "vnext-15",
+  "version": "vnext-16",
   "purpose": "Default repository delivery contract for code-changing tasks: topic branch, commit and pull request path, agent review and merge behavior, PR body requirements, and CI gates.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -152,13 +152,331 @@
       "workflow_path": ".github/workflows/formal-approval.yml",
       "scope_classifier_path": "scripts/classify_formal_approval_scope.mjs",
       "scope_classifier_test_path": "scripts/test_classify_formal_approval_scope.mjs",
-      "trusted_code_source": "pull_request_target_base_sha",
+      "scope_classifier_schema_version": "formal-approval-scope.v2",
+      "scope_classifier_outputs": [
+        "sensitive",
+        "decision_class",
+        "trusted_validation_required",
+        "classification_error"
+      ],
+      "decision_classes": [
+        "ordinary",
+        "generic_sensitive",
+        "governance_foundation",
+        "batch1_subject_change",
+        "legacy_receipt_migration_intent",
+        "cohort_designation_intent",
+        "manifest_freeze_intent",
+        "receipt_materialization",
+        "governance_maintenance",
+        "governance_revocation",
+        "governance_rebootstrap"
+      ],
+      "trusted_code_source": "verified_pull_request_base_sha",
+      "trusted_validation_policy": {
+        "classifier_and_validator_source": "verified_pull_request_base_sha",
+        "base_blob_integrity": "recompute_git_mode_and_raw_sha256",
+        "head_artifact_policy": "untrusted_data_only",
+        "head_code_execution": "forbidden",
+        "trusted_base_ancestry": "must_be_ancestor_of_approval_target_head",
+        "missing_or_unverifiable": "fail_closed"
+      },
       "required_status_check": "formal-approval",
       "environment": "formal-product-owner-approval",
       "required_reviewer": "github:LENKIN233",
       "administrators_can_bypass": false,
       "prevent_self_review": false,
       "sensitive_scope_policy": "fail_closed"
+    },
+    "mobile_ux_batch1_governance_bootstrap": {
+      "governance_contract_module": "scripts/lib/mobile_ux_batch1_governance_contract.mjs",
+      "governance_contract_test": "scripts/test_mobile_ux_batch1_governance_contract.mjs",
+      "governance_recovery_contract_module": "scripts/lib/mobile_ux_batch1_governance_recovery_contract.mjs",
+      "governance_recovery_contract_test": "scripts/test_mobile_ux_batch1_governance_recovery_contract.mjs",
+      "governance_recovery_decision_schema": "spec/mobile-ux-batch1-governance-recovery-decision.schema.json",
+      "github_event_reader_module": "scripts/lib/mobile_ux_batch1_github_event_reader.mjs",
+      "github_event_reader_test": "scripts/test_mobile_ux_batch1_github_event_reader.mjs",
+      "governance_validator": "scripts/validate_mobile_ux_batch1_governance.mjs",
+      "governance_validator_test": "scripts/test_validate_mobile_ux_batch1_governance.mjs",
+      "successor_contract_module": "scripts/lib/mobile_ux_batch1_successor_contract.mjs",
+      "successor_validator": "scripts/validate_mobile_ux_batch1_successor.mjs",
+      "successor_validator_test": "scripts/test_mobile_ux_batch1_successor_contract.mjs",
+      "trusted_code_closure": [
+        ".github/workflows/formal-approval.yml",
+        ".github/workflows/pr-gates.yml",
+        "scripts/classify_formal_approval_scope.mjs",
+        "scripts/lib/strict_json.mjs",
+        "scripts/lib/mobile_ux_batch1_github_event_reader.mjs",
+        "scripts/lib/mobile_ux_batch1_governance_contract.mjs",
+        "scripts/lib/mobile_ux_batch1_governance_recovery_contract.mjs",
+        "scripts/lib/mobile_ux_batch1_successor_contract.mjs",
+        "scripts/validate_mobile_ux_batch1_governance.mjs",
+        "scripts/validate_mobile_ux_batch1_successor.mjs",
+        "spec/mobile-ux-batch1-governance-recovery-decision.schema.json"
+      ],
+      "syntax_check_paths": [
+        "scripts/classify_formal_approval_scope.mjs",
+        "scripts/lib/mobile_ux_batch1_governance_contract.mjs",
+        "scripts/lib/mobile_ux_batch1_github_event_reader.mjs",
+        "scripts/lib/mobile_ux_batch1_governance_recovery_contract.mjs",
+        "scripts/lib/mobile_ux_batch1_successor_contract.mjs",
+        "scripts/validate_mobile_ux_batch1_governance.mjs",
+        "scripts/validate_mobile_ux_batch1_successor.mjs"
+      ],
+        "regression_commands": [
+        "node --test scripts/test_mobile_ux_batch1_governance_contract.mjs",
+        "node --test scripts/test_mobile_ux_batch1_github_event_reader.mjs",
+        "node --test scripts/test_mobile_ux_batch1_governance_recovery_contract.mjs",
+        "node --test scripts/test_validate_mobile_ux_batch1_governance.mjs",
+        "node --test scripts/test_mobile_ux_batch1_successor_contract.mjs"
+        ],
+        "workflow_execution_policy": "trusted_base_classifier_and_validator_only_head_artifacts_are_untrusted_data",
+        "trusted_code_policy": {
+          "trusted_code_closure_paths": [
+            ".github/workflows/formal-approval.yml",
+            ".github/workflows/pr-gates.yml",
+            "scripts/classify_formal_approval_scope.mjs",
+            "scripts/lib/strict_json.mjs",
+            "scripts/lib/mobile_ux_batch1_github_event_reader.mjs",
+            "scripts/lib/mobile_ux_batch1_governance_contract.mjs",
+            "scripts/lib/mobile_ux_batch1_governance_recovery_contract.mjs",
+            "scripts/lib/mobile_ux_batch1_successor_contract.mjs",
+            "scripts/validate_mobile_ux_batch1_governance.mjs",
+            "scripts/validate_mobile_ux_batch1_successor.mjs",
+            "spec/mobile-ux-batch1-governance-recovery-decision.schema.json"
+          ],
+          "pull_request_target_base_checkout_required": true,
+          "workflow_classifier_and_validator_must_be_loaded_from_verified_base_sha": true,
+          "workflow_classifier_and_validator_base_blob_modes_and_raw_sha256_must_be_recomputed": true,
+          "decision_head_artifacts_may_be_read_as_untrusted_data_only": true,
+          "decision_head_code_execution_forbidden": true,
+          "intent_or_receipt_supplied_trusted_base_forbidden": true,
+          "trusted_base_must_be_ancestor_of_approval_target_head": true,
+          "missing_or_unverifiable_trusted_base_blob_fails_closed": true,
+          "pull_request_target_action_uses_must_be_full_commit_pinned": true,
+          "pull_request_target_permissions_must_be_exact_read_only": true,
+          "pull_request_target_job_and_step_structure_must_match_trusted_contract": true,
+          "pull_request_target_workflow_raw_sha256": "13e67dede95f30de747155552e43b0ef758059bd375612d59eedbe24685d2de2",
+          "pull_request_target_workflow_all_values_and_nested_mappings_must_match_exact_closed_bytes": true,
+          "proposed_head_workflow_must_equal_trusted_base_mode_length_and_sha256": true,
+          "pull_request_gate_workflow_raw_sha256": "176669820888a9f4d109740a447175ab3ef99c1dc351642f3a665266867c81a0",
+          "pull_request_gate_workflow_all_values_and_nested_mappings_must_match_exact_closed_bytes": true,
+          "proposed_head_pull_request_gate_workflow_must_equal_trusted_base_mode_length_and_sha256": true,
+          "pull_request_gate_action_uses_must_be_full_commit_pinned": true,
+          "classification_and_validation_scope_source": "verified_base_to_exact_event_head_git_full_tree_diff",
+          "classification_and_validation_rename_copy_detection": "name_status_z_M_C_find_copies_harder_l0",
+          "live_pull_request_files_as_classification_or_scope_truth_forbidden": true,
+          "live_pull_request_file_status_or_previous_filename_semantics_forbidden": true,
+          "event_head_sha_must_equal_fetched_commit": true,
+          "live_pull_request_files_usage": "current_filename_set_completeness_cross_check_only_against_exact_git_records"
+        },
+        "stage_separation_merge_integrity_contract": {
+          "verified_squash_merge_commit_must_have_exactly_one_parent_equal_to_pull_request_base_sha": true
+        },
+        "protected_current_run_approval_contract": {
+          "current_run_approval_only_first_attempt_supported": true,
+          "current_run_approval_comment_contract": "approve <decision_class> PR #<number> head <40sha>",
+          "current_run_approval_comment_comparison": "exact_utf8_string_no_trim_case_fold_or_space_normalization",
+          "current_run_failure_reapproval_policy": "new_pull_request_event_run_and_new_environment_approval_required_rerun_cannot_reuse_attempt_1_approval"
+        },
+        "activation_current_run_revalidation_failure_policy": "missing_mixed_wrong_attempt_noncanonical_comment_or_unverifiable_fails_closed",
+        "activation_decision_class_contract": {
+          "artifact_required_decision_class": "schema_definition",
+          "workflow_required_decision_class": "governance_foundation"
+        },
+        "bootstrap_status": "trusted_validation_code_installed",
+      "bootstrap_authority": "none",
+      "foundation_activation_source": "spec/authority-map.json#domains/mobile_ux_batch1_governance",
+      "foundation_state_contract": {
+        "inactive_when": "exact_authority_owner_key_absent",
+        "active_when": "exact_authority_owner_and_all_activation_artifacts_validate",
+        "active_authority": "governance_foundation_only_zero_downstream_authority",
+        "activation_pull_request_exact_changed_paths": [
+          "AGENTS.md",
+          "docs/agent-runs/2026-08-10-mobile-ux-batch1-governance-foundation-v1.md",
+          "docs/design/decisions/mobile-ux-batch1-governance-foundation-v1.md",
+          "spec/agent-harness.json",
+          "spec/authority-map.json",
+          "spec/doc-manifest.json",
+          "spec/mobile-ux-batch1-governance.json",
+          "spec/mobile-ux-batch1-resolved-requirement.schema.json"
+        ],
+        "doc_manifest_transition": {
+          "base_version_requirement": "vnext-N_with_N_at_least_9",
+          "version_transition": "exact_base_vnext_N_to_head_vnext_N_plus_1",
+          "active_spec_to_add": "spec/mobile-ux-batch1-governance.json",
+          "insert_after": "spec/authority-map.json",
+          "all_other_fields_must_equal_bootstrap_base": true
+        },
+        "active_agent_entrypoint_and_harness_mirrors_required": true,
+        "active_agent_entrypoint_required_snippets": [
+          "- `spec/mobile-ux-batch1-governance.json`（仅在 Mobile UX Batch 1 治理、受保护决策、R0 / D1 / B2 / F3 或对应回执任务中读取；只拥有仓库治理机制，全部产品、视觉、实现、原生、发布与领导验收权限仍为 false）",
+          "- Mobile UX Batch 1 治理 / 受保护决策：`authority-map -> mobile-ux-batch1-governance -> agent-harness -> repo-delivery-contract -> harness-architecture -> evals`",
+          "- 不要把 Mobile UX Batch 1 governance foundation、R0 / D1 / B2 / F3 intent、receipt 或 successor validation 当作产品、视觉、实现、原生、发布或领导验收权限；严格以 `spec/mobile-ux-batch1-governance.json` 的 16 维 authority 与 distinct-PR stage separation 为准",
+          "- 不要从待审批 PR head 加载或执行 formal-approval classifier、governance validator、GitHub evidence reader 或 successor validator；head 只能作为不受信 Git 数据读取，校验代码必须来自精确 verified base SHA",
+          "- 不要在同一 PR 混合 governance foundation、Batch 1 subject、decision intent、approval receipt 或 execution manifest；没有专用授权 class 时 execution manifest 一律 fail closed"
+        ],
+        "proposal_artifacts_without_exact_authority_owner_grant_authority": false,
+        "repo_delivery_harness_architecture_and_evals_are_timeless": true,
+        "unknown_partial_or_extra_state_policy": "fail_closed"
+      },
+      "governance_recovery_contract": {
+        "schema_version": "mobile-ux-batch1-governance-recovery.v1",
+        "decision_schema_path": "spec/mobile-ux-batch1-governance-recovery-decision.schema.json",
+        "decision_schema_status": "trusted_kernel_data_contract_after_pr_a_merge",
+        "states": [
+          "inactive_initial",
+          "inactive_bootstrap_installed",
+          "active",
+          "revoked"
+        ],
+        "state_derivation_source": "verified_trusted_base_git_and_remote_materialization_lineage_only",
+        "caller_boolean_or_head_supplied_state_forbidden": true,
+        "bootstrap_materialization_required_pull_request_base_sha": "b423d8ffb9271f0618229605797e708919eebdea",
+        "bootstrap_remote_landing_base_must_equal_required_base_sha": true,
+        "bootstrap_required_base_must_be_direct_first_parent_of_materialization_merge": true,
+        "anchor_integrity_scope": "mobile_ux_batch1_owned_projection_only",
+        "anchor_document_version_transition": "each_base_vnext_N_to_head_vnext_N_plus_1_independently",
+        "cross_document_version_parity_or_fixed_activation_version_required": false,
+        "anchor_owned_projection": [
+          "authority_map_mobile_ux_batch1_governance_domain",
+          "agent_harness_mobile_ux_batch1_read_path",
+          "agent_harness_mobile_ux_batch1_governance_policy",
+          "agent_harness_mobile_ux_batch1_compaction_anchor_count",
+          "doc_manifest_mobile_ux_batch1_policy_count",
+          "agents_mobile_ux_batch1_governance_heading_count",
+          "agents_mobile_ux_batch1_activation_line_counts"
+        ],
+        "operations": {
+          "bootstrap_maintenance": "inactive_bootstrap_installed_to_inactive_bootstrap_installed",
+          "active_maintenance": "active_to_active",
+          "revoked_recovery": "revoked_to_revoked",
+          "revoke_active_governance": "active_to_revoked",
+          "rebootstrap_same_policy": "revoked_to_active"
+        },
+        "decision_classes": [
+          "governance_maintenance",
+          "governance_revocation",
+          "governance_rebootstrap"
+        ],
+        "dynamic_decision_path_contract": "docs/design/decisions/mobile-ux-batch1-governance-{maintenance|revocation|rebootstrap}-v1/pr-{pull_request}-{slug}.json",
+        "dynamic_run_record_path_contract": "docs/agent-runs/{date}-mobile-ux-batch1-governance-{maintenance|revocation|rebootstrap}-pr-{pull_request}-{slug}.md",
+        "decision_and_matching_run_record_must_be_new_tracked_regular_100644_nonempty_files": true,
+        "all_mobile_ux_batch1_run_records_are_permanently_sensitive_and_add_only": true,
+        "standalone_historical_decision_or_run_record_modify_delete_copy_or_rename_fails_closed": true,
+        "changed_artifacts_bind_every_changed_path_except_decision_itself": true,
+        "decision_artifact_binding_source": "current_run_exact_approved_head",
+        "maintenance_requires_at_least_one_explicitly_allowlisted_payload": true,
+        "maintenance_allowlist_payload_without_exact_recovery_pair_forbidden": true,
+        "maintenance_exact_allowlist_paths": [
+          "scripts/classify_formal_approval_scope.mjs",
+          "scripts/lib/strict_json.mjs",
+          "scripts/lib/mobile_ux_batch1_github_event_reader.mjs",
+          "scripts/lib/mobile_ux_batch1_governance_contract.mjs",
+          "scripts/lib/mobile_ux_batch1_governance_recovery_contract.mjs",
+          "scripts/lib/mobile_ux_batch1_successor_contract.mjs",
+          "scripts/validate_mobile_ux_batch1_governance.mjs",
+          "scripts/validate_mobile_ux_batch1_successor.mjs",
+          "scripts/test_classify_formal_approval_scope.mjs",
+          "scripts/test_mobile_ux_batch1_github_event_reader.mjs",
+          "scripts/test_mobile_ux_batch1_governance_contract.mjs",
+          "scripts/test_mobile_ux_batch1_governance_recovery_contract.mjs",
+          "scripts/test_mobile_ux_batch1_successor_contract.mjs",
+          "scripts/test_validate_mobile_ux_batch1_governance.mjs",
+          "scripts/harness_validator/sections/governance_contracts.py",
+          "scripts/harness_validator/sections/delivery_runtime.py",
+          "scripts/harness_validator/sections/harness_architecture.py",
+          "spec/mobile-ux-batch1-governance-recovery-decision.schema.json",
+          "spec/repo-delivery-contract.json",
+          "spec/harness-architecture.json",
+          "spec/evals.json"
+        ],
+        "maintenance_fixture_prefix": "scripts/fixtures/mobile-ux-batch1-foundation-activation-v1/",
+        "recovery_maintenance_may_not_change_mobile_ux_batch1_anchor_projection_policy_product_ui_subject_intent_receipt_or_execution_manifest": true,
+        "essential_recovery_kernel_paths": [
+          ".github/workflows/formal-approval.yml",
+          ".github/workflows/pr-gates.yml",
+          "scripts/classify_formal_approval_scope.mjs",
+          "scripts/lib/strict_json.mjs",
+          "scripts/lib/mobile_ux_batch1_github_event_reader.mjs",
+          "scripts/lib/mobile_ux_batch1_governance_contract.mjs",
+          "scripts/lib/mobile_ux_batch1_governance_recovery_contract.mjs",
+          "scripts/lib/mobile_ux_batch1_successor_contract.mjs",
+          "scripts/validate_mobile_ux_batch1_governance.mjs",
+          "scripts/validate_mobile_ux_batch1_successor.mjs",
+          "spec/mobile-ux-batch1-governance-recovery-decision.schema.json"
+        ],
+        "bootstrap_installed_proof_kernel_snapshots": {
+          "closure_artifacts_at_bootstrap_merge": "exact_essential_recovery_kernel_paths_tracked_regular_100644_nonempty",
+          "closure_artifacts_at_trusted_base": "exact_essential_recovery_kernel_paths_tracked_regular_100644_nonempty",
+          "byte_equality_between_snapshots_required": false,
+          "later_addition_after_bootstrap_merge_cannot_satisfy_bootstrap_installation": true
+        },
+        "essential_kernel_head_requirement": "tracked_regular_100644_non_symlink_nonempty",
+        "formal_approval_workflow_head_structure_must_match_trusted_contract": true,
+        "formal_approval_workflow_maintenance_in_v1_forbidden": true,
+        "pull_request_gate_workflow_maintenance_in_v1_forbidden": true,
+        "foundation_activation_and_every_recovery_lineage_event_require_unique_add_introduction": true,
+        "full_anchor_file_byte_freeze_after_revocation_forbidden": true,
+        "every_lineage_event_requires_unique_associated_merged_same_repository_main_pull_request": true,
+        "every_lineage_event_requires_approved_head_tree_equal_merge_tree_and_merge_reachable_from_trusted_base": true,
+        "every_lineage_decision_and_run_record_merge_bytes_must_equal_current_trusted_base_mode_length_and_sha256": true,
+        "lineage_enumeration_source": "complete_trusted_base_git_history_not_current_tree_only",
+        "historical_recovery_decision_or_run_record_delete_copy_or_rename_invalidates_state": true,
+        "transition_commits_after_terminal_event_must_be_recomputed_and_empty": true,
+        "foundation_lineage_event_must_replay_exact_eight_path_scope_three_immutable_hashes_dynamic_anchor_transition_and_stable_run_record": true,
+        "lineage_order": "foundation_then_zero_or_more_revocation_rebootstrap_pairs",
+        "terminal_lineage_event_must_match_derived_anchor_state": true,
+        "revoked_state_rejects_mobile_ux_batch1_successor_receipt_execution_and_authority_decision_use": true,
+        "revoked_state_allows_unrelated_generic_sensitive_protected_changes_when_owned_projection_remains_revoked": true,
+        "unrelated_anchor_file_fields_and_lines_may_evolve_via_generic_sensitive_protected_change_when_owned_projection_is_preserved": true,
+        "rebootstrap_policy_mode": "reuse_exact_verified_revoked_policy_only",
+        "versioned_replacement_policy_in_v1_forbidden": true,
+        "current_run_protected_owner_approval_revalidation_required": true,
+        "current_run_nonempty_scope_comment_required": true,
+        "all_sixteen_authority_dimensions_false": true,
+        "trusted_base_envelope_validation_proves": "identity_current_run_exact_scope_artifact_binding_kernel_survival_and_lineage_only",
+        "trusted_base_envelope_validation_does_not_prove": "head_code_semantics_safety_or_future_operability",
+        "independent_agent_review_exact_head_protected_owner_approval_and_protected_merge_required": true,
+        "candidate_code_becomes_future_trusted_base_only_after_protected_merge": true,
+        "external_audited_break_glass_when_kernel_cannot_execute": "required_and_not_implemented_by_repository_code"
+      },
+      "timeless_anchor_shape_contract": {
+        "global_version_requirements": {
+          "authority_map": "vnext-N_with_N_at_least_4",
+          "agent_harness": "vnext-N_with_N_at_least_23",
+          "doc_manifest": "vnext-N_with_N_at_least_9"
+        },
+        "global_versions_may_evolve_independently_for_unrelated_domains": true,
+        "global_versions_must_not_derive_batch1_state": true,
+        "bootstrap_or_revoked_inactive_shape": "exact_batch1_owned_anchors_absent",
+        "active_shape": "exact_batch1_owned_anchors_present",
+        "active_activation_record_variants": "fixed_foundation_or_canonical_dynamic_rebootstrap_decision_path",
+        "active_domain_and_agent_harness_activation_records_must_match": true,
+        "latest_verified_activation_record_requires_trusted_lineage": true,
+        "inactive_installed_vs_revoked_state_requires_trusted_lineage_proof": true,
+        "inactive_bootstrap_validation_uses_timeless_tracked_mirrors_without_loading_pr_b_canonical_artifacts": true,
+        "active_policy_equality_loaded_only_when_active_anchor_shape_and_tracked_policy_exist": true,
+        "non_batch1_fields_and_bytes_may_evolve": true,
+        "caller_boolean_may_select_authority_state": false,
+        "partial_mixed_or_misaligned_shape_policy": "fail_closed",
+        "formal_state_and_lineage_owner": "trusted_base_mobile_ux_batch1_governance_validator",
+        "recovery_transition_global_version_behavior": "each_anchor_document_bumps_once_from_its_own_base_without_cross_document_alignment",
+        "synthetic_transition_regressions": [
+          "explicit_base_to_head_active_to_revoked_bumps_each_anchor_document_version_once_and_removes_only_batch1_owned_anchors",
+          "explicit_base_to_head_revoked_to_active_bumps_each_anchor_document_version_once_and_restores_only_batch1_owned_anchors_with_canonical_dynamic_rebootstrap_record"
+        ],
+        "synthetic_transition_gate_effect": "none"
+      },
+      "B2_validation_nonclaim": {
+        "verification_scope": "descriptor_and_tracked_hash_binding_only",
+        "build_recipe_executed_by_validator": false,
+        "build_output_rebuilt_by_validator": false,
+        "build_reproducibility_proven": false,
+        "hermetic_replay_proven": false,
+        "gate_effect": "none",
+        "authority": "all_sixteen_dimensions_false"
+      }
     },
     "remote_repository_health": {
       "workflow_job": "repo-health",
@@ -195,6 +513,10 @@
       {
         "id": "validate_harness",
         "command": "python3 scripts/validate_harness.py --skip-remote-guard"
+      },
+      {
+        "id": "mobile_ux_batch1_governance_regressions",
+        "command": "node --check scripts/classify_formal_approval_scope.mjs && node --check scripts/lib/mobile_ux_batch1_governance_contract.mjs && node --check scripts/lib/mobile_ux_batch1_github_event_reader.mjs && node --check scripts/lib/mobile_ux_batch1_governance_recovery_contract.mjs && node --check scripts/lib/mobile_ux_batch1_successor_contract.mjs && node --check scripts/validate_mobile_ux_batch1_governance.mjs && node --check scripts/validate_mobile_ux_batch1_successor.mjs && node --test scripts/test_classify_formal_approval_scope.mjs scripts/test_mobile_ux_batch1_governance_contract.mjs scripts/test_mobile_ux_batch1_github_event_reader.mjs scripts/test_mobile_ux_batch1_governance_recovery_contract.mjs scripts/test_validate_mobile_ux_batch1_governance.mjs scripts/test_mobile_ux_batch1_successor_contract.mjs"
       },
       {
         "id": "learning_events_contract_regressions",
@@ -250,7 +572,7 @@
       },
       {
         "id": "formal_product_owner_approval",
-        "command": "trusted default-branch classifier -> protected GitHub Environment -> formal-approval status"
+        "command": "trusted base classifier v2 -> trusted base decision validator when required -> protected GitHub Environment -> formal-approval status"
       }
     ]
   }
