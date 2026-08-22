@@ -192,6 +192,11 @@
 
 - No screen, layout, interaction family, motion, navigation, copy, or visual
   token changes.
+- The repository design gate conservatively classifies the changed controlled-
+  pilot acceptance `.tsx` file as user-facing. The PR therefore cites the
+  existing Learning rhythm decision, mock, motion artifact, implementation
+  mapping, and completed checklist; the file change only injects a deterministic
+  test identity and does not alter production rendering.
 - Unsupported remote releases fail before canonical product state is returned;
   this task adds no new user-facing upgrade screen and makes no screenshot or
   device-rendering claim.
