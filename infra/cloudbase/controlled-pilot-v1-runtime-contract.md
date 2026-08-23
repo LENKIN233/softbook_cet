@@ -27,6 +27,13 @@ Referenced active sources:
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated `GET /v2/learning/card-source`, Bootstrap, Learning Events, Learning Session, content-manifest and Space paths apply that mode boundary. Bootstrap and content-manifest expose exact `controlled_pilot` variants rather than mixing formal release fields into pilot responses, and the mobile repositories parse those variants fail closed. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider. The controlled-pilot mobile runtime has no `/v1` dependency for loading card bodies.
 - A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, dry-run-first approved-artifact bundle assembler, and separately deployed leased account-deletion worker with one-minute timer are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, audited pilot entitlement operations, strict dual-platform minimum-version shape validation, exact pilot Bootstrap/content-manifest parsing, and actual native iOS/Android minimum-version enforcement are implemented in the repository but remain undeployed. Bootstrap gates the canonical snapshot early; the manifest gates independently only after Ed25519 verification. Receiver-owned profile/secrets and execution, complete identified-human audio QC, persistent deletion-worker execution/drill, persistent-environment proof, and real-device evidence remain separate and incomplete.
+- `controlled-pilot-receiver-delivery-report.v2` carries the same deterministic
+  commit/profile/environment/function-topology backend deployment identity as
+  formal delivery. The ID is injected into `softbook-api` and remotely reread
+  after deployment and during verification without exposing secret values.
+  Apply and verify also require an identified operator and emit canonical
+  execution timestamps. This improves receiver traceability but remains
+  `gate_eligible=false`.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 

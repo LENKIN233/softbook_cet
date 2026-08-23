@@ -9,15 +9,18 @@ import {
   createCloudBaseReceiverAdapter,
 } from './cloudbase-receiver-adapter.mjs';
 import {
+  buildBackendDeploymentId,
   buildReceiverRuntimeEnvironment,
   createProcessRunner,
   deployReceiverFunction,
   inspectReceiver,
+  inspectApiFunction,
   inspectReceiverSecrets,
   inspectWriteSafety,
   provisionCollections,
   readRepositoryState,
   readUserDataCounts,
+  requireDeliveryOperator,
   requireApplyReady,
   verifyApiRoute,
 } from './deliver-release.mjs';
@@ -50,6 +53,7 @@ export function parseControlledPilotArguments(argv) {
     bundlePath: null,
     command,
     format: 'text',
+    operator: null,
     profilePath: null,
   };
   for (let index = 0; index < rest.length; index += 1) {
@@ -60,6 +64,8 @@ export function parseControlledPilotArguments(argv) {
       options.bundlePath = requireValue(rest, ++index, argument);
     } else if (argument === '--format') {
       options.format = requireValue(rest, ++index, argument);
+    } else if (argument === '--operator') {
+      options.operator = requireValue(rest, ++index, argument);
     } else if (argument === '--profile') {
       options.profilePath = requireValue(rest, ++index, argument);
     } else if (argument === '--help' || argument === '-h') {
@@ -78,11 +84,34 @@ export function parseControlledPilotArguments(argv) {
   if (['preflight', 'verify'].includes(command) && options.apply) {
     fail(`${command} is read-only and rejects --apply.`);
   }
+  if ((options.apply || command === 'verify') && !options.operator) {
+    fail(`${command} requires --operator for an auditable report.`);
+  }
+  if (options.operator) requireDeliveryOperator(options.operator);
   return options;
 }
 
 export async function executeControlledPilotDelivery(options, dependencies = {}) {
   try {
+    const clock = dependencies.clock ?? (() => new Date());
+    const startedAt = readExecutionTimestamp(clock, 'controlled-pilot delivery start');
+    const operator =
+      options.apply || options.command === 'verify'
+        ? requireDeliveryOperator(options.operator)
+        : options.operator
+          ? requireDeliveryOperator(options.operator)
+          : null;
+    const completeReport = report => ({
+      ...report,
+      execution: {
+        completed_at: readExecutionTimestamp(
+          clock,
+          'controlled-pilot delivery completion',
+        ),
+        operator,
+        started_at: startedAt,
+      },
+    });
     const env = dependencies.env ?? process.env;
     const profile = validateControlledPilotProfile(readJson(options.profilePath));
     const runner =
@@ -90,13 +119,18 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
     const processRunner = dependencies.processRunner ?? createProcessRunner();
     const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
     const repository = dependencies.repository ?? readRepositoryState();
+    const backendDeploymentId = buildBackendDeploymentId({
+      profile,
+      repositoryCommit: repository.head,
+    });
     const preflight = await inspectReceiver({profile, runner});
     const secretInspection = inspectReceiverSecrets(profile, env);
     const writeSafety = inspectWriteSafety({nodeVersion, repository});
     const base = {
-      schema_version: 'controlled-pilot-receiver-delivery-report.v1',
+      schema_version: 'controlled-pilot-receiver-delivery-report.v2',
       operation: options.command,
       applied: options.apply,
+      backend_deployment_id: backendDeploymentId,
       gate_eligible: false,
       pilot_id: profile.pilot_id,
       profile: {
@@ -111,31 +145,36 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
     };
 
     if (options.command === 'preflight') {
-      return {
+      return completeReport({
         ...base,
         status:
           preflight.ok && secretInspection.ok && writeSafety.ok ? 'passed' : 'blocked',
         writes_performed: false,
-      };
+      });
     }
 
     if (options.command === 'provision') {
       if (!options.apply) {
-        return {
+        return completeReport({
           ...base,
           collection_plan: preflight.catalog.missing_required_collections,
           status: 'planned',
           writes_performed: false,
-        };
+        });
       }
       requireApplyReady({preflight, secretInspection, writeSafety});
       const provisioned = await provisionCollections({profile, runner, preflight});
-      return {...base, provisioned, status: 'passed', writes_performed: true};
+      return completeReport({
+        ...base,
+        provisioned,
+        status: 'passed',
+        writes_performed: true,
+      });
     }
 
     if (options.command === 'deploy') {
       if (!options.apply) {
-        return {
+        return completeReport({
           ...base,
           deployment_plan: {
             api_path: new URL(profile.api_base_url).pathname,
@@ -151,13 +190,14 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
           },
           status: 'planned',
           writes_performed: false,
-        };
+        });
       }
       requireApplyReady({preflight, secretInspection, writeSafety});
       if (!preflight.catalog.required_collections_present) {
         fail('deploy requires the complete collection catalog.');
       }
       const deployed = await deployReceiverFunction({
+        backendDeploymentId,
         description: 'Softbook CET receiver-owned controlled pilot runtime',
         env,
         processRunner,
@@ -165,7 +205,7 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
         runner,
         runtimeMode: 'controlled_pilot',
       });
-      return {...base, deployed, status: 'passed', writes_performed: true};
+      return completeReport({...base, deployed, status: 'passed', writes_performed: true});
     }
 
     const verified = verifyControlledPilotBundleDirectory({
@@ -176,19 +216,19 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
 
     if (options.command === 'publish') {
       if (!options.apply) {
-        return {
+        return completeReport({
           ...base,
           release: publicVerifiedPilot(verified),
           status: 'planned',
           writes_performed: false,
-        };
+        });
       }
       requireApplyReady({preflight, secretInspection, writeSafety});
       if (!preflight.catalog.required_collections_present) {
         fail('publish requires the complete collection catalog.');
       }
       const published = await publishVerifiedControlledPilot(verified, adapter);
-      return {...base, published, status: 'passed', writes_performed: true};
+      return completeReport({...base, published, status: 'passed', writes_performed: true});
     }
 
     const active = await adapter.verifyActiveRelease({
@@ -208,8 +248,13 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
       profile.api_base_url,
       dependencies.fetchImpl ?? globalThis.fetch,
     );
+    const backendDeployment = await inspectApiFunction({
+      envId: profile.environment_id,
+      expectedDeploymentId: backendDeploymentId,
+      runner,
+    });
     const dataCounts = await readUserDataCounts({profile, runner});
-    return {
+    return completeReport({
       ...base,
       active_release: {
         content_version: active.content_version,
@@ -217,14 +262,17 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
         release_id: active.release.release_id,
       },
       api_route: endpoint,
+      backend_deployment: backendDeployment.public,
       release: publicVerifiedPilot(verified),
       status:
-        preflight.catalog.required_collections_present && endpoint.ok
+        preflight.catalog.required_collections_present &&
+        backendDeployment.ok &&
+        endpoint.ok
           ? 'passed'
           : 'blocked',
       user_data_observation: dataCounts,
       writes_performed: false,
-    };
+    });
   } catch (error) {
     if (
       error instanceof ControlledPilotContractError ||
@@ -235,6 +283,13 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
     }
     fail(error instanceof Error ? error.message : 'unknown controlled-pilot failure');
   }
+}
+
+function readExecutionTimestamp(clock, label) {
+  const value = clock();
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) fail(`${label} clock is invalid.`);
+  return date.toISOString();
 }
 
 function publicVerifiedPilot(verified) {
@@ -271,10 +326,10 @@ function fail(message) {
 function printUsage() {
   console.log(`Usage:
   node infra/cloudbase/deliver-controlled-pilot.mjs preflight --profile <controlled-pilot-profile.json>
-  node infra/cloudbase/deliver-controlled-pilot.mjs provision --profile <profile> [--apply]
-  node infra/cloudbase/deliver-controlled-pilot.mjs deploy --profile <profile> [--apply]
-  node infra/cloudbase/deliver-controlled-pilot.mjs publish --profile <profile> --bundle <bundle> [--apply]
-  node infra/cloudbase/deliver-controlled-pilot.mjs verify --profile <profile> --bundle <bundle>
+  node infra/cloudbase/deliver-controlled-pilot.mjs provision --profile <profile> [--apply --operator <id>]
+  node infra/cloudbase/deliver-controlled-pilot.mjs deploy --profile <profile> [--apply --operator <id>]
+  node infra/cloudbase/deliver-controlled-pilot.mjs publish --profile <profile> --bundle <bundle> [--apply --operator <id>]
+  node infra/cloudbase/deliver-controlled-pilot.mjs verify --profile <profile> --bundle <bundle> --operator <id>
 
 All artifacts remain gate_eligible=false. Mutating commands are dry-run unless --apply is explicit. Apply requires clean exact main, Node ${REQUIRED_DEPLOYMENT_NODE_VERSION}, receiver secrets, and successful remote preflight.`);
 }

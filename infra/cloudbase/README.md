@@ -376,14 +376,26 @@ node infra/cloudbase/deliver-release.mjs publish \
   --bundle path/to/release-bundle.json
 node infra/cloudbase/deliver-release.mjs verify \
   --profile path/to/delivery-profile.json \
-  --bundle path/to/release-bundle.json
+  --bundle path/to/release-bundle.json \
+  --operator github:<receiver-operator>
 node infra/cloudbase/deliver-release.mjs rollback \
   --profile path/to/delivery-profile.json \
   --release cet4-beta-previous
 ```
 
-Add `--apply` only to `provision`, `deploy`, `publish`, or `rollback` after
-reviewing the plan. Apply requires Node 22.13.0 and clean exact `main`.
+Every command reports `receiver-delivery-report.v2`. Its
+`backend_deployment_id` deterministically binds the exact clean `main` commit,
+receiver profile/environment and fixed API/worker topology. Deploy injects this
+non-secret ID into `softbook-api`; deploy and verify both reread the remote
+function configuration and fail on ID, handler, runtime, timeout or fixed-code
+drift. Public reports expose variable names only, never values. Every report
+has canonical execution start/completion timestamps; apply and verify require
+`--operator github:<account>` (or `team:` / `external:`) for auditable raw
+execution identity.
+
+Add `--apply --operator github:<receiver-operator>` only to `provision`,
+`deploy`, `publish`, or `rollback` after reviewing the plan. Apply requires
+Node 22.13.0 and clean exact `main`.
 Receiver/CI secrets are never stored in `delivery-profile.v1`:
 
 ```text
@@ -413,11 +425,13 @@ node infra/cloudbase/deliver-controlled-pilot.mjs publish \
   --bundle path/to/controlled-pilot-bundle.json
 node infra/cloudbase/deliver-controlled-pilot.mjs verify \
   --profile path/to/controlled-pilot-profile.json \
-  --bundle path/to/controlled-pilot-bundle.json
+  --bundle path/to/controlled-pilot-bundle.json \
+  --operator github:<receiver-operator>
 ```
 
-Add `--apply` only to `provision`, `deploy`, or `publish`. Apply has the same
-Node 22.13.0, clean exact-`main`, independent receiver, collection, and secret
+Add `--apply --operator github:<receiver-operator>` only to `provision`,
+`deploy`, or `publish`. Apply has the same Node 22.13.0, clean exact-`main`,
+independent receiver, collection, and secret
 requirements as formal delivery, but injects
 `SOFTBOOK_RUNTIME_MODE=controlled_pilot`. All reports and releases remain
 `gate_eligible=false`. The command does not create content approval, audio QC,

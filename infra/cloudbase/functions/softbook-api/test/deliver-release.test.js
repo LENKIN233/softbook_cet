@@ -9,6 +9,7 @@ const {after, before, test} = require('node:test');
 let deliveryCli;
 let deploymentSafety;
 const temporaryDirectories = [];
+const TEST_COMMIT = 'a'.repeat(40);
 
 before(async () => {
   deliveryCli = await import(pathToFileURL(resolve(__dirname, '../../../deliver-release.mjs')));
@@ -51,9 +52,21 @@ test('unified delivery arguments keep every mutating command dry-run by default'
         'profile.json',
         '--bundle',
         'bundle.json',
+        '--operator',
+        'github:receiver-operator',
         '--apply',
       ]),
     /read-only/,
+  );
+  assert.throws(
+    () =>
+      deliveryCli.parseArguments([
+        'deploy',
+        '--profile',
+        'profile.json',
+        '--apply',
+      ]),
+    /requires --operator/,
   );
 });
 
@@ -61,13 +74,83 @@ test('receiver runtime contains production adapters and never includes a fixed c
   const profile = profileFixture();
   const env = receiverEnvironment();
   env.SOFTBOOK_SMS_DEV_CODE = '2468';
-  const runtime = deliveryCli.buildReceiverRuntimeEnvironment(profile, env);
+  const backendDeploymentId = deliveryCli.buildBackendDeploymentId({
+    profile,
+    repositoryCommit: TEST_COMMIT,
+  });
+  const runtime = deliveryCli.buildReceiverRuntimeEnvironment(profile, env, {
+    backendDeploymentId,
+  });
 
   assert.equal(runtime.SOFTBOOK_RUNTIME_MODE, 'production');
+  assert.equal(runtime.SOFTBOOK_BACKEND_DEPLOYMENT_ID, backendDeploymentId);
   assert.equal(runtime.SOFTBOOK_SMS_PROVIDER, 'webhook');
   assert.equal(runtime.SOFTBOOK_CONTENT_MANIFEST_KEY_ID, profile.signing_key_id);
   assert.equal(Object.hasOwn(runtime, 'SOFTBOOK_SMS_DEV_CODE'), false);
   assert.equal(Object.values(runtime).includes('2468'), false);
+});
+
+test('backend deployment identity is deterministic and receiver-profile scoped', () => {
+  const profile = profileFixture();
+  const first = deliveryCli.buildBackendDeploymentId({
+    profile,
+    repositoryCommit: TEST_COMMIT,
+  });
+  const repeated = deliveryCli.buildBackendDeploymentId({
+    profile,
+    repositoryCommit: TEST_COMMIT,
+  });
+  const otherCommit = deliveryCli.buildBackendDeploymentId({
+    profile,
+    repositoryCommit: 'c'.repeat(40),
+  });
+  const otherEnvironment = deliveryCli.buildBackendDeploymentId({
+    profile: {...profile, environment_id: 'receiver-cet4-beta-other'},
+    repositoryCommit: TEST_COMMIT,
+  });
+
+  assert.equal(first, repeated);
+  assert.match(first, /^backend-deployment:sha256:[0-9a-f]{64}$/);
+  assert.notEqual(first, otherCommit);
+  assert.notEqual(first, otherEnvironment);
+});
+
+test('receiver API inspection binds exact deployment ID without exposing secret values', async () => {
+  const expectedDeploymentId = deliveryCli.buildBackendDeploymentId({
+    profile: profileFixture(),
+    repositoryCommit: TEST_COMMIT,
+  });
+  const inspect = deploymentId =>
+    deliveryCli.inspectApiFunction({
+      envId: 'receiver-cet4-beta',
+      expectedDeploymentId,
+      runner: {
+        run: async () =>
+          JSON.stringify({
+            data: {
+              FunctionName: 'softbook-api',
+              Handler: 'index.main',
+              Runtime: 'Nodejs20.19',
+              Timeout: 10,
+              Environment: {
+                Variables: [
+                  {Key: 'SOFTBOOK_BACKEND_DEPLOYMENT_ID', Value: deploymentId},
+                  {Key: 'SOFTBOOK_AUTH_TOKEN_SECRET', Value: 'do-not-expose-this-secret'},
+                ],
+              },
+            },
+          }),
+      },
+    });
+
+  const exact = await inspect(expectedDeploymentId);
+  assert.equal(exact.ok, true);
+  assert.equal(exact.public.backend_deployment_id, expectedDeploymentId);
+  assert.equal(JSON.stringify(exact.public).includes('do-not-expose-this-secret'), false);
+
+  const drifted = await inspect(`backend-deployment:sha256:${'d'.repeat(64)}`);
+  assert.equal(drifted.ok, false);
+  assert.match(drifted.errors.join(';'), /backend deployment ID mismatch/);
 });
 
 test('secret inspection exposes names and validation only, never values', () => {
@@ -104,7 +187,13 @@ test('receiver runtime can select Tencent Cloud SMS without carrying webhook cre
     SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS: 'code,expiry_minutes',
   });
 
-  const runtime = deliveryCli.buildReceiverRuntimeEnvironment(profileFixture(), env);
+  const profile = profileFixture();
+  const runtime = deliveryCli.buildReceiverRuntimeEnvironment(profile, env, {
+    backendDeploymentId: deliveryCli.buildBackendDeploymentId({
+      profile,
+      repositoryCommit: TEST_COMMIT,
+    }),
+  });
 
   assert.equal(runtime.SOFTBOOK_SMS_PROVIDER, 'tencentcloud');
   assert.equal(runtime.SOFTBOOK_SMS_TENCENT_REGION, 'ap-guangzhou');
@@ -143,6 +232,11 @@ test('receiver preflight reads the exact environment and reports missing collect
   );
 
   assert.equal(report.status, 'passed');
+  assert.equal(report.schema_version, 'receiver-delivery-report.v2');
+  assert.match(report.backend_deployment_id, /^backend-deployment:sha256:[0-9a-f]{64}$/);
+  assert.match(report.execution.started_at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.match(report.execution.completed_at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(report.execution.operator, null);
   assert.equal(report.preflight.environment.env_id, 'receiver-cet4-beta');
   assert.equal(report.preflight.catalog.missing_required_collections.length, 2);
   assert.equal(
@@ -161,6 +255,7 @@ test('receiver provision apply creates only missing allowlisted collections and 
       bundlePath: null,
       command: 'provision',
       format: 'json',
+      operator: 'github:receiver-operator',
       profilePath: fixture.path,
       releaseId: null,
     },
@@ -168,6 +263,7 @@ test('receiver provision apply creates only missing allowlisted collections and 
   );
 
   assert.equal(report.status, 'passed');
+  assert.equal(report.execution.operator, 'github:receiver-operator');
   assert.deepEqual(report.provisioned.created, deploymentSafety.REQUIRED_COLLECTIONS.slice(-2));
   assert.equal(runner.calls.filter(call => call.includes('CreateTable')).length, 2);
 });
@@ -183,6 +279,7 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
       bundlePath: null,
       command: 'deploy',
       format: 'json',
+      operator: 'github:receiver-operator',
       profilePath: fixture.path,
       releaseId: null,
     },
@@ -199,6 +296,11 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
   );
 
   assert.equal(report.status, 'passed');
+  assert.equal(report.deployed.backend_deployment_id, report.backend_deployment_id);
+  assert.equal(
+    report.deployed.api_function.backend_deployment_id,
+    report.backend_deployment_id,
+  );
   assert.deepEqual(report.deployed.function_names, [
     'softbook-api',
     'softbook-account-deletion-worker',
@@ -314,6 +416,10 @@ test('receiver redeploy preserves an exact existing deletion timer without dupli
     existingWorkerTrigger: true,
   });
   const deployed = await deliveryCli.deployReceiverFunction({
+    backendDeploymentId: deliveryCli.buildBackendDeploymentId({
+      profile: profileFixture(),
+      repositoryCommit: TEST_COMMIT,
+    }),
     env: receiverEnvironment(),
     processRunner: {
       run: async () => '',
@@ -338,6 +444,7 @@ test('receiver write safety blocks topic branches even when remote preflight pas
           bundlePath: null,
           command: 'provision',
           format: 'json',
+          operator: 'github:receiver-operator',
           profilePath: fixture.path,
           releaseId: null,
         },
@@ -346,8 +453,8 @@ test('receiver write safety blocks topic branches even when remote preflight pas
           repository: {
             branch: 'infra/unsafe-topic',
             dirty: false,
-            head: 'abc',
-            originMain: 'abc',
+            head: TEST_COMMIT,
+            originMain: TEST_COMMIT,
           },
         },
       ),
@@ -362,8 +469,8 @@ function safeDependencies(runner) {
     repository: {
       branch: 'main',
       dirty: false,
-      head: 'abc',
-      originMain: 'abc',
+      head: TEST_COMMIT,
+      originMain: TEST_COMMIT,
     },
     runner,
   };
@@ -384,7 +491,11 @@ function createCloudRunner(
     },
     async run(args, options = {}) {
       calls.push(args);
-      if (args.includes('fn') && args.includes('detail')) {
+      if (
+        args.includes('fn') &&
+        args.includes('detail') &&
+        args.includes('softbook-account-deletion-worker')
+      ) {
         return JSON.stringify({
           data: {
             FunctionName: 'softbook-account-deletion-worker',
@@ -401,6 +512,24 @@ function createCloudRunner(
                   },
                 ]
               : [],
+          },
+        });
+      }
+      if (
+        args.includes('fn') &&
+        args.includes('detail') &&
+        args.includes('softbook-api')
+      ) {
+        const runtime = deployedConfig?.functions?.[0]?.envVariables ?? {};
+        return JSON.stringify({
+          data: {
+            FunctionName: 'softbook-api',
+            Handler: 'index.main',
+            Runtime: 'Nodejs20.19',
+            Timeout: 10,
+            Environment: {
+              Variables: Object.entries(runtime).map(([Key, Value]) => ({Key, Value})),
+            },
           },
         });
       }
