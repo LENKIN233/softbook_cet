@@ -11,12 +11,14 @@ import {
   LEARNING_RUNTIME_EVIDENCE_TYPES,
   RELEASE_OPERATIONAL_EVIDENCE_TYPES,
   CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
+  BETA_ENTITLEMENT_EVIDENCE_TYPES,
   validateGateEvidenceArtifact,
   validateGateEvidenceCoherence,
 } from './lib/launch_evidence_contract.mjs';
 import {
   loadLaunchEvidenceSemanticContext,
   loadCet4FormalContentEvidence,
+  loadBetaEntitlementDrillEvidence,
   loadProductionDeploymentEvidence,
   loadSmsProviderSmokeReport,
   verifyInnerRepositoryArtifact,
@@ -59,6 +61,7 @@ export const CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES = Object.freeze([
   ...LEARNING_RUNTIME_EVIDENCE_TYPES,
   ...RELEASE_OPERATIONAL_EVIDENCE_TYPES,
   ...CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
+  ...BETA_ENTITLEMENT_EVIDENCE_TYPES,
 ]);
 const SUPPORTED_EVIDENCE_SET = new Set(
   CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES,
@@ -420,6 +423,16 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
         })
       : {errors: [], evidence: null, ok: true};
     errors.push(...contentResult.errors);
+    const entitlementResult = BETA_ENTITLEMENT_EVIDENCE_TYPES.includes(
+      evidence.type,
+    )
+      ? loadBetaEntitlementDrillEvidence(artifact, {
+          label,
+          root,
+          trackedFiles,
+        })
+      : {errors: [], evidence: null, ok: true};
+    errors.push(...entitlementResult.errors);
     const result = validateGateEvidenceArtifact(artifact, {
       evidenceType: evidence.type,
       expectedPolicy,
@@ -429,6 +442,7 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
       outerEvidence: evidence,
       productionDeploymentEvidence: deploymentResult.evidence,
       cet4FormalContentEvidence: contentResult.evidence,
+      betaEntitlementDrillEvidence: entitlementResult.evidence,
       releaseOperationalPolicy: loadedContext.releaseOperationalPolicy,
       smsProviderSmokeReport: smsResult.report,
       targetRelease: 'cet4-closed-beta',
@@ -438,7 +452,8 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
       result.ok &&
       smsResult.ok &&
       deploymentResult.ok &&
-      contentResult.ok
+      contentResult.ok &&
+      entitlementResult.ok
     ) {
       const gateReports = parsedReports.get(gateId) ?? [];
       gateReports.push(artifact);

@@ -31,10 +31,11 @@ Referenced active specs:
 ## `beta-entitlement-command.v1`
 
 The strict operator input contains `event_id`, `action=grant|revoke`,
-`phone_number`, `grant_id`, `actor_id`, `reason`, and canonical UTC
-`occurred_at`. Unknown fields fail closed. The exact canonical command receives
-a SHA-256 binding; replaying the same event is idempotent, while reusing an
-event ID for different bytes is rejected.
+`phone_number`, `campaign_id`, `grant_id`, `actor_id`, `reason`, and canonical
+UTC `occurred_at`. Unknown fields fail closed. The campaign must equal the
+closed-beta release candidate campaign used by formal evidence. The exact
+canonical command receives a SHA-256 binding; replaying the same event is
+idempotent, while reusing an event ID for different bytes is rejected.
 
 Command files contain personal data. They are operational inputs, not release
 artifacts, and must not be committed, copied into `release-bundle.v1`, or
@@ -42,10 +43,11 @@ exported from the development environment.
 
 ## Audit and mutation rules
 
-Each stored audit event binds action, event ID, grant ID, actor, reason,
-timestamp, previous stage, resulting stage, and command hash. Grant requires no
-other active beta grant. Revoke requires the exact active grant ID. Revision and
-audit length advance together in the same beta-entitlement document update.
+Each stored audit event binds action, event ID, campaign ID, grant ID, actor,
+reason, timestamp, previous stage, resulting stage, and command hash. Grant
+requires no other active beta grant. Revoke requires the exact active campaign
+and grant ID. Revision and audit length advance together in the same
+beta-entitlement document update.
 
 The runtime fails closed on malformed active evidence. Inactive historical
 records do not change membership. Account/smoke lifecycle cleanup treats the
@@ -73,5 +75,21 @@ default.
 
 `--apply` additionally requires Node 22.13.0 and a clean `main` exactly equal to
 `origin/main`. After an update it re-reads and byte-compares the normalized
-stored record with the plan. Repository tests do not constitute a real receiver
-grant, remote device verification, or launch readiness.
+stored record with the plan. Its privacy-safe `beta-entitlement-report.v2`
+binds the repository commit, profile bytes, environment, campaign, command
+hash, identified operator, execution window, receiver preflight, write safety,
+unchanged base-membership digest and verified beta revision/audit/active state.
+It is `gate_eligible=false` on its own and never emits the phone number or
+command bytes. Repository tests do not
+constitute a real receiver grant, remote device verification, or launch
+readiness.
+
+The closed-beta evidence loader registers `beta-entitlement-drill` only over
+five distinct tracked strict-JSON roles: one exact delivery profile plus applied
+grant, idempotent grant replay, applied revoke and idempotent revoke replay
+reports. It rehashes every raw file and requires one commit/profile/environment,
+candidate campaign, account fingerprint, grant, identified operator and
+unchanged base-membership digest. Grant must move a non-premium base stage to
+premium; revoke must restore it; revision/audit state advances exactly once per
+mutation and remains byte-identical on both replays. A planned or isolated raw
+report cannot pass the drill.

@@ -47,6 +47,13 @@ const CET4_FORMAL_CONTENT_EVIDENCE_SET = new Set(
   CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
 );
 
+export const BETA_ENTITLEMENT_EVIDENCE_TYPES = Object.freeze([
+  'beta-entitlement-drill',
+]);
+const BETA_ENTITLEMENT_EVIDENCE_SET = new Set(
+  BETA_ENTITLEMENT_EVIDENCE_TYPES,
+);
+
 export const EXTERNAL_CAPABILITY_COMMON_CHECKS = Object.freeze([
   'provider-subject-bound',
   'owner-control-confirmed',
@@ -373,6 +380,13 @@ export const REQUIRED_EVIDENCE_CHECKS = Object.freeze({
     'private-assets-hash-bound',
     'source-integrity-complete',
   ],
+  'beta-entitlement-drill': [
+    'grant-applied-and-verified',
+    'grant-replay-idempotent',
+    'revoke-applied-and-verified',
+    'revoke-replay-idempotent',
+    'campaign-account-and-base-membership-bound',
+  ],
   'approved-card-coverage-report': [
     'all-2414-cards-covered',
     'whole-scope-approval-bound',
@@ -667,6 +681,7 @@ export function validateGateEvidenceArtifact(
     releaseOperationalPolicy = null,
     productionDeploymentEvidence = null,
     cet4FormalContentEvidence = null,
+    betaEntitlementDrillEvidence = null,
     smsProviderSmokeReport = null,
     targetRelease = '2027-Q2',
   } = {},
@@ -803,6 +818,17 @@ export function validateGateEvidenceArtifact(
       artifactRoles,
       cet4FormalContentEvidence,
       artifact,
+      executionTimes,
+      `${label} measurements`,
+      errors,
+    );
+  } else if (BETA_ENTITLEMENT_EVIDENCE_SET.has(evidenceType)) {
+    validateBetaEntitlementDrillMeasurements(
+      artifact.measurements,
+      artifactRoles,
+      betaEntitlementDrillEvidence,
+      artifact,
+      expectedSubject,
       executionTimes,
       `${label} measurements`,
       errors,
@@ -1549,6 +1575,521 @@ function assertSameStringSet(left, right, label, errors) {
   const b = [...right].map(String).sort();
   if (a.length !== b.length || new Set(a).size !== a.length || a.some((value, index) => value !== b[index])) {
     errors.push(`${label} sets do not match.`);
+  }
+}
+
+function validateBetaEntitlementDrillMeasurements(
+  value,
+  artifactRoles,
+  loaded,
+  artifact,
+  expectedSubject,
+  executionTimes,
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  const roleFields = [
+    'profile_role',
+    'grant_report_role',
+    'grant_replay_report_role',
+    'revoke_report_role',
+    'revoke_replay_report_role',
+  ];
+  assertExactKeys(
+    value,
+    [
+      ...roleFields,
+      'campaign_id',
+      'account_fingerprint',
+      'grant_id',
+      'assertions',
+    ],
+    label,
+    errors,
+  );
+  const roles = roleFields.map(field => value[field]);
+  for (const field of roleFields) {
+    requirePattern(value[field], ID_PATTERN, `${label}.${field}`, errors);
+    if (!artifactRoles.has(value[field])) {
+      errors.push(`${label}.${field} must reference a declared raw artifact role.`);
+    }
+  }
+  if (new Set(roles).size !== roles.length) {
+    errors.push(`${label} raw artifact roles must be distinct.`);
+  }
+  requirePattern(value.campaign_id, ID_PATTERN, `${label}.campaign_id`, errors);
+  requirePattern(
+    value.account_fingerprint,
+    /^sha256:[0-9a-f]{16}$/,
+    `${label}.account_fingerprint`,
+    errors,
+  );
+  requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
+  assertEqual(
+    value.campaign_id,
+    expectedSubject?.entitlement?.campaign_id,
+    `${label}.campaign_id candidate binding`,
+    errors,
+  );
+  validateTrueAssertions(
+    value.assertions,
+    [
+      'grant_applied_and_verified',
+      'grant_replay_idempotent',
+      'revoke_applied_and_verified',
+      'revoke_replay_idempotent',
+      'base_membership_unchanged',
+      'same_campaign_account_and_candidate',
+    ],
+    `${label}.assertions`,
+    errors,
+  );
+  if (!isRecord(loaded)) {
+    errors.push(`${label} roles must resolve to strict beta drill artifacts.`);
+    return;
+  }
+  const rawByRole = new Map(
+    (Array.isArray(artifact.raw_artifacts) ? artifact.raw_artifacts : []).map(
+      item => [item?.role, item],
+    ),
+  );
+  const profileRaw = rawByRole.get(value.profile_role);
+  validateBetaEntitlementDrillProfile(
+    loaded.profile,
+    artifact.subject,
+    `${label} profile`,
+    errors,
+  );
+  const phases = [
+    validateBetaEntitlementPhaseReport(
+      loaded.grantReport,
+      {
+        action: 'grant',
+        active: true,
+        artifact,
+        changed: true,
+        executionTimes,
+        idempotent: false,
+        profileRaw,
+        writesPerformed: true,
+      },
+      `${label} grant report`,
+      errors,
+    ),
+    validateBetaEntitlementPhaseReport(
+      loaded.grantReplayReport,
+      {
+        action: 'grant',
+        active: true,
+        artifact,
+        changed: false,
+        executionTimes,
+        idempotent: true,
+        profileRaw,
+        writesPerformed: false,
+      },
+      `${label} grant replay report`,
+      errors,
+    ),
+    validateBetaEntitlementPhaseReport(
+      loaded.revokeReport,
+      {
+        action: 'revoke',
+        active: false,
+        artifact,
+        changed: true,
+        executionTimes,
+        idempotent: false,
+        profileRaw,
+        writesPerformed: true,
+      },
+      `${label} revoke report`,
+      errors,
+    ),
+    validateBetaEntitlementPhaseReport(
+      loaded.revokeReplayReport,
+      {
+        action: 'revoke',
+        active: false,
+        artifact,
+        changed: false,
+        executionTimes,
+        idempotent: true,
+        profileRaw,
+        writesPerformed: false,
+      },
+      `${label} revoke replay report`,
+      errors,
+    ),
+  ];
+  validateBetaEntitlementPhaseRelationships(
+    phases,
+    value,
+    `${label} phase sequence`,
+    errors,
+  );
+}
+
+function validateBetaEntitlementDrillProfile(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertEqual(value.schema_version, 'delivery-profile.v1', `${label}.schema_version`, errors);
+  assertEqual(value.profile_id, subject?.environment?.profile_id, `${label}.profile_id`, errors);
+  assertEqual(value.environment_id, subject?.environment?.environment_id, `${label}.environment_id`, errors);
+  assertEqual(value.runtime_mode, 'closed_beta', `${label}.runtime_mode`, errors);
+  requireExactArray(value.enabled_tracks, ['cet4'], `${label}.enabled_tracks`, errors);
+}
+
+function validateBetaEntitlementPhaseReport(
+  report,
+  {
+    action,
+    active,
+    artifact,
+    changed,
+    executionTimes,
+    idempotent,
+    profileRaw,
+    writesPerformed,
+  },
+  label,
+  errors,
+) {
+  const phase = {
+    baseHash: null,
+    command: null,
+    completedAt: null,
+    result: null,
+    startedAt: null,
+    state: null,
+  };
+  if (!isRecord(report)) {
+    errors.push(`${label} must be an object.`);
+    return phase;
+  }
+  assertExactKeys(
+    report,
+    [
+      'schema_version',
+      'applied',
+      'gate_eligible',
+      'repository_commit',
+      'profile',
+      'command',
+      'preflight',
+      'write_safety',
+      'base_membership',
+      'beta_state',
+      'result',
+      'status',
+      'writes_performed',
+      'execution',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(report.schema_version, 'beta-entitlement-report.v2', `${label}.schema_version`, errors);
+  assertEqual(report.applied, true, `${label}.applied`, errors);
+  assertEqual(report.gate_eligible, false, `${label}.gate_eligible`, errors);
+  assertEqual(report.repository_commit, artifact.subject?.commit_sha, `${label}.repository_commit`, errors);
+  validateBetaEntitlementReportProfile(
+    report.profile,
+    artifact.subject,
+    profileRaw,
+    `${label}.profile`,
+    errors,
+  );
+  phase.command = validateBetaEntitlementReportCommand(
+    report.command,
+    action,
+    `${label}.command`,
+    errors,
+  );
+  validateBetaEntitlementPreflight(report.preflight, `${label}.preflight`, errors);
+  validateBetaEntitlementWriteSafety(
+    report.write_safety,
+    artifact.subject,
+    `${label}.write_safety`,
+    errors,
+  );
+  phase.baseHash = validateBetaEntitlementBaseMembership(
+    report.base_membership,
+    `${label}.base_membership`,
+    errors,
+  );
+  phase.state = validateBetaEntitlementState(
+    report.beta_state,
+    active,
+    `${label}.beta_state`,
+    errors,
+  );
+  phase.result = validateBetaEntitlementResult(
+    report.result,
+    phase.command,
+    {action, changed, idempotent},
+    `${label}.result`,
+    errors,
+  );
+  assertEqual(report.status, 'passed', `${label}.status`, errors);
+  assertEqual(report.writes_performed, writesPerformed, `${label}.writes_performed`, errors);
+  const times = validateRawExecution(
+    report.execution,
+    artifact.execution?.operator,
+    executionTimes,
+    `${label}.execution`,
+    errors,
+  );
+  phase.startedAt = times.startedAt;
+  phase.completedAt = times.completedAt;
+  return phase;
+}
+
+function validateBetaEntitlementReportProfile(value, subject, raw, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    ['environment_id', 'profile_id', 'profile_sha256', 'runtime_mode'],
+    label,
+    errors,
+  );
+  assertEqual(value.environment_id, subject?.environment?.environment_id, `${label}.environment_id`, errors);
+  assertEqual(value.profile_id, subject?.environment?.profile_id, `${label}.profile_id`, errors);
+  assertEqual(stripSha(value.profile_sha256), raw?.sha256, `${label}.profile_sha256`, errors);
+  assertEqual(value.runtime_mode, 'closed_beta', `${label}.runtime_mode`, errors);
+}
+
+function validateBetaEntitlementReportCommand(value, action, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return {};
+  }
+  assertExactKeys(
+    value,
+    [
+      'account_fingerprint',
+      'action',
+      'actor_id',
+      'campaign_id',
+      'command_sha256',
+      'event_id',
+      'grant_id',
+    ],
+    label,
+    errors,
+  );
+  requirePattern(value.account_fingerprint, /^sha256:[0-9a-f]{16}$/, `${label}.account_fingerprint`, errors);
+  assertEqual(value.action, action, `${label}.action`, errors);
+  requirePattern(value.actor_id, VERIFIER_PATTERN, `${label}.actor_id`, errors);
+  requirePattern(value.campaign_id, ID_PATTERN, `${label}.campaign_id`, errors);
+  requireSha256(stripSha(value.command_sha256), `${label}.command_sha256`, errors);
+  requirePattern(value.event_id, ID_PATTERN, `${label}.event_id`, errors);
+  requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
+  return value;
+}
+
+function validateBetaEntitlementPreflight(value, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(value, ['errors', 'required_collections_present'], label, errors);
+  requireExactArray(value.errors, [], `${label}.errors`, errors);
+  assertEqual(value.required_collections_present, true, `${label}.required_collections_present`, errors);
+}
+
+function validateBetaEntitlementWriteSafety(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    ['errors', 'ok', 'branch', 'dirty', 'head', 'originMain', 'node_version'],
+    label,
+    errors,
+  );
+  requireExactArray(value.errors, [], `${label}.errors`, errors);
+  assertEqual(value.ok, true, `${label}.ok`, errors);
+  assertEqual(value.branch, 'main', `${label}.branch`, errors);
+  assertEqual(value.dirty, false, `${label}.dirty`, errors);
+  assertEqual(value.head, subject?.commit_sha, `${label}.head`, errors);
+  assertEqual(value.originMain, subject?.commit_sha, `${label}.originMain`, errors);
+  assertEqual(value.node_version, '22.13.0', `${label}.node_version`, errors);
+}
+
+function validateBetaEntitlementBaseMembership(value, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return null;
+  }
+  assertExactKeys(value, ['after_sha256', 'before_sha256', 'unchanged'], label, errors);
+  requireSha256(stripSha(value.before_sha256), `${label}.before_sha256`, errors);
+  requireSha256(stripSha(value.after_sha256), `${label}.after_sha256`, errors);
+  assertEqual(value.after_sha256, value.before_sha256, `${label} digest parity`, errors);
+  assertEqual(value.unchanged, true, `${label}.unchanged`, errors);
+  return value.before_sha256;
+}
+
+function validateBetaEntitlementState(value, active, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return {};
+  }
+  assertExactKeys(
+    value,
+    [
+      'active',
+      'active_campaign_id',
+      'active_grant_id',
+      'audit_event_count',
+      'revision',
+      'state_sha256',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(value.active, active, `${label}.active`, errors);
+  if (!Number.isSafeInteger(value.revision) || value.revision <= 0) {
+    errors.push(`${label}.revision must be a positive integer.`);
+  }
+  assertEqual(value.audit_event_count, value.revision, `${label}.audit_event_count`, errors);
+  requireSha256(stripSha(value.state_sha256), `${label}.state_sha256`, errors);
+  if (active) {
+    requirePattern(value.active_campaign_id, ID_PATTERN, `${label}.active_campaign_id`, errors);
+    requirePattern(value.active_grant_id, ID_PATTERN, `${label}.active_grant_id`, errors);
+  } else {
+    assertEqual(value.active_campaign_id, null, `${label}.active_campaign_id`, errors);
+    assertEqual(value.active_grant_id, null, `${label}.active_grant_id`, errors);
+  }
+  return value;
+}
+
+function validateBetaEntitlementResult(
+  value,
+  command,
+  {action, changed, idempotent},
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return {};
+  }
+  assertExactKeys(
+    value,
+    [
+      'schema_version',
+      'action',
+      'account_fingerprint',
+      'actor_id',
+      'campaign_id',
+      'changed',
+      'event_id',
+      'grant_id',
+      'idempotent',
+      'previous_stage',
+      'resulting_stage',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(value.schema_version, 'beta-entitlement-plan.v1', `${label}.schema_version`, errors);
+  for (const field of [
+    'action',
+    'account_fingerprint',
+    'actor_id',
+    'campaign_id',
+    'event_id',
+    'grant_id',
+  ]) {
+    assertEqual(value[field], command?.[field], `${label}.${field}`, errors);
+  }
+  assertEqual(value.action, action, `${label}.action phase`, errors);
+  assertEqual(value.changed, changed, `${label}.changed`, errors);
+  assertEqual(value.idempotent, idempotent, `${label}.idempotent`, errors);
+  if (!['trial_available', 'trial', 'free', 'premium'].includes(value.previous_stage)) {
+    errors.push(`${label}.previous_stage is invalid.`);
+  }
+  if (!['trial_available', 'trial', 'free', 'premium'].includes(value.resulting_stage)) {
+    errors.push(`${label}.resulting_stage is invalid.`);
+  }
+  return value;
+}
+
+function validateBetaEntitlementPhaseRelationships(phases, measurements, label, errors) {
+  const [grant, grantReplay, revoke, revokeReplay] = phases;
+  const commands = phases.map(phase => phase.command ?? {});
+  for (const [field, expected] of [
+    ['campaign_id', measurements.campaign_id],
+    ['account_fingerprint', measurements.account_fingerprint],
+    ['grant_id', measurements.grant_id],
+  ]) {
+    for (const [index, command] of commands.entries()) {
+      assertEqual(command[field], expected, `${label}.phase_${index + 1}.${field}`, errors);
+    }
+  }
+  for (const field of ['actor_id', 'campaign_id', 'account_fingerprint', 'grant_id']) {
+    for (const command of commands.slice(1)) {
+      assertEqual(command[field], commands[0]?.[field], `${label}.${field} parity`, errors);
+    }
+  }
+  for (const field of ['event_id', 'command_sha256']) {
+    assertEqual(grantReplay.command?.[field], grant.command?.[field], `${label}.grant ${field} replay`, errors);
+    assertEqual(revokeReplay.command?.[field], revoke.command?.[field], `${label}.revoke ${field} replay`, errors);
+    if (grant.command?.[field] === revoke.command?.[field]) {
+      errors.push(`${label} grant and revoke ${field} must be distinct.`);
+    }
+  }
+  for (const phase of phases.slice(1)) {
+    assertEqual(phase.baseHash, phases[0].baseHash, `${label}.base membership campaign parity`, errors);
+  }
+  if (!['trial_available', 'trial', 'free'].includes(grant.result?.previous_stage)) {
+    errors.push(`${label} grant must begin from a non-premium base stage.`);
+  }
+  assertEqual(grant.result?.resulting_stage, 'premium', `${label}.grant resulting_stage`, errors);
+  assertEqual(grantReplay.result?.previous_stage, grant.result?.previous_stage, `${label}.grant replay previous_stage`, errors);
+  assertEqual(grantReplay.result?.resulting_stage, 'premium', `${label}.grant replay resulting_stage`, errors);
+  assertEqual(revoke.result?.previous_stage, 'premium', `${label}.revoke previous_stage`, errors);
+  assertEqual(revoke.result?.resulting_stage, grant.result?.previous_stage, `${label}.revoke base restoration`, errors);
+  assertEqual(revokeReplay.result?.previous_stage, 'premium', `${label}.revoke replay previous_stage`, errors);
+  assertEqual(revokeReplay.result?.resulting_stage, grant.result?.previous_stage, `${label}.revoke replay base restoration`, errors);
+  for (const field of [
+    'active',
+    'active_campaign_id',
+    'active_grant_id',
+    'audit_event_count',
+    'revision',
+    'state_sha256',
+  ]) {
+    assertEqual(grantReplay.state?.[field], grant.state?.[field], `${label}.grant state ${field}`, errors);
+    assertEqual(revokeReplay.state?.[field], revoke.state?.[field], `${label}.revoke state ${field}`, errors);
+  }
+  assertEqual(grant.state?.active_campaign_id, measurements.campaign_id, `${label}.active campaign`, errors);
+  assertEqual(grant.state?.active_grant_id, measurements.grant_id, `${label}.active grant`, errors);
+  assertEqual(revoke.state?.revision, (grant.state?.revision ?? 0) + 1, `${label}.revoke revision`, errors);
+  assertEqual(revoke.state?.audit_event_count, (grant.state?.audit_event_count ?? 0) + 1, `${label}.revoke audit count`, errors);
+  if (grant.state?.state_sha256 === revoke.state?.state_sha256) {
+    errors.push(`${label} grant and revoke state digests must differ.`);
+  }
+  for (let index = 1; index < phases.length; index += 1) {
+    const previous = phases[index - 1];
+    const current = phases[index];
+    if (
+      previous.completedAt &&
+      current.startedAt &&
+      current.startedAt < previous.completedAt
+    ) {
+      errors.push(`${label} phases must execute in grant/replay/revoke/replay order.`);
+    }
   }
 }
 

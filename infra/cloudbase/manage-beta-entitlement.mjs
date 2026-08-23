@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {
   BetaEntitlementError,
+  betaEntitlementInternals,
   planBetaEntitlementMutation,
   publicBetaEntitlementPlan,
   validateBetaEntitlementCommand,
@@ -25,11 +27,14 @@ import {
   ReleaseDeliveryError,
   validateDeliveryProfile,
 } from './release-delivery-v1.mjs';
+import {parseStrictJson} from '../../scripts/lib/strict_json.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const MEMBERSHIP_COLLECTION = 'softbook_memberships';
 const BETA_ENTITLEMENT_COLLECTION = 'softbook_beta_entitlements';
+const OPERATOR_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
+const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 
 export function parseBetaEntitlementArguments(argv) {
   if (argv.includes('--help') || argv.includes('-h')) return {help: true};
@@ -75,26 +80,59 @@ export async function executeBetaEntitlementCommand(
   options,
   dependencies = {},
 ) {
-  const profile = validateDeliveryProfile(readJson(options.profilePath));
+  const clock = dependencies.clock ?? (() => new Date());
+  const startedAt = readExecutionTimestamp(clock, 'beta entitlement start');
+  const profileBytes = readFileSync(resolve(options.profilePath));
+  const profile = validateDeliveryProfile(
+    parseJsonBytes(profileBytes, 'delivery profile'),
+  );
   if (profile.runtime_mode !== 'closed_beta') {
     throw new BetaEntitlementError(
       'beta entitlement commands require a closed_beta delivery profile.',
     );
   }
   const command = validateBetaEntitlementCommand(readJson(options.commandPath));
+  const completeReport = report => ({
+    ...report,
+    execution: {
+      completed_at: readExecutionTimestamp(clock, 'beta entitlement completion'),
+      operator: command.actor_id,
+      started_at: startedAt,
+    },
+  });
   const runner =
     dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
   const repository = dependencies.repository ?? readRepositoryState();
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
   const preflight = await inspectReceiver({profile, runner});
-  const writeSafety = receiverDeliveryInternals.inspectWriteSafety({
-    nodeVersion,
-    repository,
-  });
+  const writeSafety = {
+    ...receiverDeliveryInternals.inspectWriteSafety({
+      nodeVersion,
+      repository,
+    }),
+    node_version: nodeVersion,
+  };
   const base = {
-    schema_version: 'beta-entitlement-report.v1',
+    schema_version: 'beta-entitlement-report.v2',
     applied: options.apply,
-    environment_id: profile.environment_id,
+    gate_eligible: false,
+    repository_commit: repository.head,
+    profile: {
+      environment_id: profile.environment_id,
+      profile_id: profile.profile_id,
+      profile_sha256: sha256Bytes(profileBytes),
+      runtime_mode: profile.runtime_mode,
+    },
+    command: {
+      account_fingerprint:
+        betaEntitlementInternals.accountFingerprint(command.phone_number),
+      action: command.action,
+      actor_id: command.actor_id,
+      campaign_id: command.campaign_id,
+      command_sha256: betaEntitlementInternals.hashCanonical(command),
+      event_id: command.event_id,
+      grant_id: command.grant_id,
+    },
     preflight: {
       errors: preflight.errors,
       required_collections_present:
@@ -103,7 +141,7 @@ export async function executeBetaEntitlementCommand(
     write_safety: writeSafety,
   };
   if (!preflight.ok || !preflight.catalog.required_collections_present) {
-    return {...base, status: 'blocked', writes_performed: false};
+    return completeReport({...base, status: 'blocked', writes_performed: false});
   }
 
   const [current, membership] = await Promise.all([
@@ -128,17 +166,25 @@ export async function executeBetaEntitlementCommand(
     membership?.entitlement ?? membership,
   );
   const publicPlan = publicBetaEntitlementPlan(plan);
+  const baseBeforeHash = betaEntitlementInternals.hashCanonical(membership);
   if (!options.apply) {
-    return {
+    return completeReport({
       ...base,
+      base_membership: {
+        after_sha256: baseBeforeHash,
+        before_sha256: baseBeforeHash,
+        unchanged: true,
+      },
+      beta_state: publicBetaState(plan.document),
       plan: publicPlan,
       status: 'planned',
       writes_performed: false,
-    };
+    });
   }
   if (!writeSafety.ok) {
     throw new BetaEntitlementError(writeSafety.errors.join('; '));
   }
+  requireApplyIdentity({command, repository});
   if (plan.changed) {
     await writeBetaEntitlement({current, plan, profile, runner});
   }
@@ -150,12 +196,55 @@ export async function executeBetaEntitlementCommand(
     runner,
   });
   const verified = verifyAppliedBetaEntitlement(plan, stored);
-  return {
+  const membershipAfter = await readDocument({
+    collection: MEMBERSHIP_COLLECTION,
+    command,
+    label: 'verify base membership unchanged',
+    profile,
+    runner,
+  });
+  const baseAfterHash = betaEntitlementInternals.hashCanonical(membershipAfter);
+  if (baseAfterHash !== baseBeforeHash) {
+    throw new BetaEntitlementError(
+      'base membership changed during beta entitlement mutation.',
+    );
+  }
+  return completeReport({
     ...base,
+    base_membership: {
+      after_sha256: baseAfterHash,
+      before_sha256: baseBeforeHash,
+      unchanged: true,
+    },
+    beta_state: publicBetaState(plan.document),
     result: verified,
     status: 'passed',
     writes_performed: plan.changed,
+  });
+}
+
+function publicBetaState(document) {
+  return {
+    active: document.active_grant !== null,
+    active_campaign_id: document.active_grant?.campaign_id ?? null,
+    active_grant_id: document.active_grant?.grant_id ?? null,
+    audit_event_count: document.audit.length,
+    revision: document.revision,
+    state_sha256: betaEntitlementInternals.hashCanonical(document),
   };
+}
+
+function requireApplyIdentity({command, repository}) {
+  if (!OPERATOR_PATTERN.test(command.actor_id)) {
+    throw new BetaEntitlementError(
+      'apply requires an identified github, team, or external actor_id.',
+    );
+  }
+  if (!COMMIT_PATTERN.test(repository.head ?? '')) {
+    throw new BetaEntitlementError(
+      'apply requires a full lowercase repository commit SHA-1.',
+    );
+  }
 }
 
 async function readDocument({collection, command, label, profile, runner}) {
@@ -259,12 +348,29 @@ function git(args) {
 
 function readJson(path) {
   try {
-    return JSON.parse(readFileSync(resolve(path), 'utf8'));
+    return parseJsonBytes(readFileSync(resolve(path)), 'operator JSON input');
   } catch (error) {
     throw new BetaEntitlementError(
       `unable to read JSON input: ${error.message}`,
     );
   }
+}
+
+function parseJsonBytes(bytes, label) {
+  return parseStrictJson(bytes, label);
+}
+
+function sha256Bytes(bytes) {
+  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+}
+
+function readExecutionTimestamp(clock, label) {
+  const value = clock();
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    throw new BetaEntitlementError(`${label} clock is invalid.`);
+  }
+  return date.toISOString();
 }
 
 function requireValue(argv, index, argument) {

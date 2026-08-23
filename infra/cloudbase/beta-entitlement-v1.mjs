@@ -19,6 +19,7 @@ export function validateBetaEntitlementCommand(input) {
       'event_id',
       'action',
       'phone_number',
+      'campaign_id',
       'grant_id',
       'actor_id',
       'reason',
@@ -37,6 +38,9 @@ export function validateBetaEntitlementCommand(input) {
   }
   if (!/^1\d{10}$/.test(input.phone_number ?? '')) {
     throw new BetaEntitlementError('phone_number is invalid.');
+  }
+  if (!isIdentifier(input.campaign_id, 3, 96)) {
+    throw new BetaEntitlementError('campaign_id is invalid.');
   }
   if (!isIdentifier(input.grant_id, 12, 96)) {
     throw new BetaEntitlementError('grant_id is invalid.');
@@ -99,6 +103,7 @@ export function publicBetaEntitlementPlan(plan) {
     action: plan.command.action,
     account_fingerprint: accountFingerprint(plan.command.phone_number),
     actor_id: plan.command.actor_id,
+    campaign_id: plan.command.campaign_id,
     changed: plan.changed,
     event_id: plan.command.event_id,
     grant_id: plan.command.grant_id,
@@ -147,6 +152,7 @@ function planGrant(command, commandHash, current, baseEntitlement) {
     active_grant: {
       schema_version: BETA_ENTITLEMENT_STATE_SCHEMA,
       actor_id: command.actor_id,
+      campaign_id: command.campaign_id,
       command_sha256: commandHash,
       grant_event_id: command.event_id,
       grant_id: command.grant_id,
@@ -163,8 +169,14 @@ function planGrant(command, commandHash, current, baseEntitlement) {
 
 function planRevoke(command, commandHash, current, baseEntitlement) {
   const active = current.active_grant;
-  if (active === null || active.grant_id !== command.grant_id) {
-    throw new BetaEntitlementError('revoke requires the matching active beta grant.');
+  if (
+    active === null ||
+    active.campaign_id !== command.campaign_id ||
+    active.grant_id !== command.grant_id
+  ) {
+    throw new BetaEntitlementError(
+      'revoke requires the matching active beta campaign and grant.',
+    );
   }
   const event = createAuditEvent({
     command,
@@ -188,6 +200,7 @@ function createAuditEvent({command, commandHash, previousStage, resultingStage})
     schema_version: BETA_ENTITLEMENT_AUDIT_SCHEMA,
     action: command.action,
     actor_id: command.actor_id,
+    campaign_id: command.campaign_id,
     command_sha256: commandHash,
     event_id: command.event_id,
     grant_id: command.grant_id,
@@ -245,6 +258,7 @@ function normalizeBetaEntitlementDocument(input) {
   ) {
     throw new BetaEntitlementError('beta entitlement document is invalid.');
   }
+  let openCampaignId = null;
   let openGrantId = null;
   let previousTimestamp = null;
   for (const event of audit) {
@@ -253,10 +267,13 @@ function normalizeBetaEntitlementDocument(input) {
       (event.action === 'grant' &&
         (openGrantId !== null || event.resulting_stage !== 'premium')) ||
       (event.action === 'revoke' &&
-        (openGrantId !== event.grant_id || event.previous_stage !== 'premium'))
+        (openCampaignId !== event.campaign_id ||
+          openGrantId !== event.grant_id ||
+          event.previous_stage !== 'premium'))
     ) {
       throw new BetaEntitlementError('beta entitlement audit sequence is invalid.');
     }
+    openCampaignId = event.action === 'grant' ? event.campaign_id : null;
     openGrantId = event.action === 'grant' ? event.grant_id : null;
     previousTimestamp = event.occurred_at;
   }
@@ -267,6 +284,7 @@ function normalizeBetaEntitlementDocument(input) {
       (latest.action !== 'grant' ||
         openGrantId !== latest.grant_id ||
         active.actor_id !== latest.actor_id ||
+        active.campaign_id !== latest.campaign_id ||
         active.command_sha256 !== latest.command_sha256 ||
         active.grant_event_id !== latest.event_id ||
         active.grant_id !== latest.grant_id ||
@@ -332,6 +350,7 @@ function isStoredAuditEvent(value) {
     value.schema_version === BETA_ENTITLEMENT_AUDIT_SCHEMA &&
     ACTIONS.has(value.action) &&
     isIdentifier(value.actor_id, 3, 96) &&
+    isIdentifier(value.campaign_id, 3, 96) &&
     /^sha256:[a-f0-9]{64}$/.test(value.command_sha256 ?? '') &&
     isIdentifier(value.event_id, 12, 96) &&
     isIdentifier(value.grant_id, 12, 96) &&
@@ -347,6 +366,7 @@ function isActiveBetaEntitlement(value) {
     value &&
     value.schema_version === BETA_ENTITLEMENT_STATE_SCHEMA &&
     isIdentifier(value.actor_id, 3, 96) &&
+    isIdentifier(value.campaign_id, 3, 96) &&
     /^sha256:[a-f0-9]{64}$/.test(value.command_sha256 ?? '') &&
     isIdentifier(value.grant_event_id, 12, 96) &&
     isIdentifier(value.grant_id, 12, 96) &&

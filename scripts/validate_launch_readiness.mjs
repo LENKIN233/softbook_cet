@@ -1433,6 +1433,35 @@ export function loadCet4FormalContentEvidence(
   };
 }
 
+export function loadBetaEntitlementDrillEvidence(
+  artifact,
+  {label, root, trackedFiles},
+) {
+  const errors = [];
+  const roleFields = {
+    profile: artifact?.measurements?.profile_role,
+    grantReport: artifact?.measurements?.grant_report_role,
+    grantReplayReport: artifact?.measurements?.grant_replay_report_role,
+    revokeReport: artifact?.measurements?.revoke_report_role,
+    revokeReplayReport: artifact?.measurements?.revoke_replay_report_role,
+  };
+  const evidence = {};
+  for (const [field, role] of Object.entries(roleFields)) {
+    const loaded = loadStrictRawJsonRole(artifact, role, {
+      label: `${label} beta entitlement drill ${field}`,
+      root,
+      trackedFiles,
+    });
+    errors.push(...loaded.errors);
+    evidence[field] = loaded.value;
+  }
+  return {
+    errors,
+    evidence: errors.length === 0 ? evidence : null,
+    ok: errors.length === 0,
+  };
+}
+
 function loadStrictRawJsonRole(
   artifact,
   role,

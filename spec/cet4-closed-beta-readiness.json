@@ -129,7 +129,8 @@
       "cet4-approved-box-coverage-report",
       "cet4-approved-card-coverage-report",
       "cet4-audio-qc-coverage-report",
-      "cet4-content-pack-integrity-report"
+      "cet4-content-pack-integrity-report",
+      "beta-entitlement-drill"
     ],
     "statuses": [
       "not_ready",
