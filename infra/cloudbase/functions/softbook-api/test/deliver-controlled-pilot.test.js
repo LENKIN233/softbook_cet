@@ -56,6 +56,16 @@ test('controlled-pilot delivery arguments are dry-run by default and omit rollba
       ]),
     /unknown controlled-pilot delivery command/,
   );
+  assert.throws(
+    () =>
+      cli.parseControlledPilotArguments([
+        'deploy',
+        '--profile',
+        'profile.json',
+        '--apply',
+      ]),
+    /requires --operator/,
+  );
 });
 
 test('controlled-pilot preflight is read-only and always reports gate ineligibility', async () => {
@@ -75,6 +85,7 @@ test('controlled-pilot preflight is read-only and always reports gate ineligibil
   assert.equal(report.status, 'passed');
   assert.equal(report.schema_version, 'controlled-pilot-receiver-delivery-report.v2');
   assert.match(report.backend_deployment_id, /^backend-deployment:sha256:[0-9a-f]{64}$/);
+  assert.equal(report.execution.operator, null);
   assert.equal(report.gate_eligible, false);
   assert.equal(report.writes_performed, false);
   assert.equal(report.profile.runtime_mode, 'controlled_pilot');
@@ -93,6 +104,7 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
       bundlePath: null,
       command: 'deploy',
       format: 'json',
+      operator: 'github:receiver-operator',
       profilePath: fixture.path,
     },
     {
@@ -108,6 +120,7 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
   );
 
   assert.equal(report.status, 'passed');
+  assert.equal(report.execution.operator, 'github:receiver-operator');
   assert.equal(report.deployed.backend_deployment_id, report.backend_deployment_id);
   assert.equal(
     report.deployed.api_function.backend_deployment_id,
@@ -182,6 +195,7 @@ test('controlled-pilot apply remains exact-main only', async () => {
           bundlePath: null,
           command: 'provision',
           format: 'json',
+          operator: 'github:receiver-operator',
           profilePath: fixture.path,
         },
         {

@@ -40,6 +40,7 @@ const ACCOUNT_DELETION_TRIGGER_NAME = 'account-deletion-every-minute';
 const ACCOUNT_DELETION_TRIGGER_CRON = '0 */1 * * * * *';
 const FUNCTION_RUNTIME = 'Nodejs20.19';
 const BACKEND_DEPLOYMENT_ID_PREFIX = 'backend-deployment:sha256:';
+const DELIVERY_OPERATOR_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
 const COMMANDS = new Set(['preflight', 'provision', 'deploy', 'publish', 'verify', 'rollback']);
 const COMMON_SECRET_ENV_NAMES = Object.freeze([
   'SOFTBOOK_AUTH_INDEX_SECRET',
@@ -81,6 +82,7 @@ export function parseArguments(argv) {
     bundlePath: null,
     command,
     format: 'text',
+    operator: null,
     profilePath: null,
     releaseId: null,
   };
@@ -97,6 +99,10 @@ export function parseArguments(argv) {
         break;
       case '--format':
         options.format = requireValue(rest, index, argument);
+        index += 1;
+        break;
+      case '--operator':
+        options.operator = requireValue(rest, index, argument);
         index += 1;
         break;
       case '--profile':
@@ -130,10 +136,30 @@ export function parseArguments(argv) {
   if (['preflight', 'verify'].includes(command) && options.apply) {
     throw new ReleaseDeliveryError(`${command} is read-only and rejects --apply.`);
   }
+  if ((options.apply || command === 'verify') && !options.operator) {
+    throw new ReleaseDeliveryError(`${command} requires --operator for an auditable report.`);
+  }
+  if (options.operator) requireDeliveryOperator(options.operator);
   return options;
 }
 
 export async function executeDeliveryCommand(options, dependencies = {}) {
+  const clock = dependencies.clock ?? (() => new Date());
+  const startedAt = readExecutionTimestamp(clock, 'delivery start');
+  const operator =
+    options.apply || options.command === 'verify'
+      ? requireDeliveryOperator(options.operator)
+      : options.operator
+        ? requireDeliveryOperator(options.operator)
+        : null;
+  const completeReport = report => ({
+    ...report,
+    execution: {
+      completed_at: readExecutionTimestamp(clock, 'delivery completion'),
+      operator,
+      started_at: startedAt,
+    },
+  });
   const env = dependencies.env ?? process.env;
   const profile = validateDeliveryProfile(readJson(options.profilePath));
   const runner = dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
@@ -159,20 +185,20 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
   };
 
   if (options.command === 'preflight') {
-    return {
+    return completeReport({
       ...base,
       status: preflight.ok && secretInspection.ok && writeSafety.ok ? 'passed' : 'blocked',
-    };
+    });
   }
 
   if (options.command === 'provision') {
     if (!options.apply) {
-      return {
+      return completeReport({
         ...base,
         collection_plan: preflight.catalog.missing_required_collections,
         status: 'planned',
         writes_performed: false,
-      };
+      });
     }
     requireApplyReady({preflight, secretInspection, writeSafety});
     const provisioned = await provisionCollections({
@@ -180,12 +206,12 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
       runner,
       preflight,
     });
-    return {...base, provisioned, status: 'passed', writes_performed: true};
+    return completeReport({...base, provisioned, status: 'passed', writes_performed: true});
   }
 
   if (options.command === 'deploy') {
     if (!options.apply) {
-      return {
+      return completeReport({
         ...base,
         deployment_plan: {
           deletion_worker_trigger: ACCOUNT_DELETION_TRIGGER_NAME,
@@ -197,7 +223,7 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
         },
         status: 'planned',
         writes_performed: false,
-      };
+      });
     }
     requireApplyReady({preflight, secretInspection, writeSafety});
     if (!preflight.catalog.required_collections_present) {
@@ -210,7 +236,7 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
       profile,
       runner,
     });
-    return {...base, deployed, status: 'passed', writes_performed: true};
+    return completeReport({...base, deployed, status: 'passed', writes_performed: true});
   }
 
   const adapter = createCloudBaseReceiverAdapter({profile, runner});
@@ -221,19 +247,19 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
       profilePath: options.profilePath,
     });
     if (!options.apply) {
-      return {
+      return completeReport({
         ...base,
         release: publicVerifiedBundle(verified),
         status: 'planned',
         writes_performed: false,
-      };
+      });
     }
     requireApplyReady({preflight, secretInspection, writeSafety});
     if (!preflight.catalog.required_collections_present) {
       throw new ReleaseDeliveryError('publish requires the complete collection catalog.');
     }
     const published = await publishVerifiedRelease(verified, adapter);
-    return {...base, published, status: 'passed', writes_performed: true};
+    return completeReport({...base, published, status: 'passed', writes_performed: true});
   }
 
   if (options.command === 'verify') {
@@ -256,7 +282,7 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
       expectedDeploymentId: backendDeploymentId,
       runner,
     });
-    return {
+    return completeReport({
       ...base,
       active_release: {
         content_version: active.content_version,
@@ -274,20 +300,20 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
           : 'blocked',
       user_data_import_check: dataCounts,
       writes_performed: false,
-    };
+    });
   }
 
   if (!options.apply) {
-    return {
+    return completeReport({
       ...base,
       rollback_plan: {release_id: options.releaseId},
       status: 'planned',
       writes_performed: false,
-    };
+    });
   }
   requireApplyReady({preflight, secretInspection, writeSafety});
   const rollback = await rollbackToRetainedRelease(options.releaseId, adapter);
-  return {...base, rollback, status: 'passed', writes_performed: true};
+  return completeReport({...base, rollback, status: 'passed', writes_performed: true});
 }
 
 export async function inspectReceiver({profile, runner}) {
@@ -1022,6 +1048,24 @@ export function inspectWriteSafety({nodeVersion, repository}) {
   return {errors, ok: errors.length === 0, ...repository};
 }
 
+export function requireDeliveryOperator(value) {
+  if (!DELIVERY_OPERATOR_PATTERN.test(value ?? '')) {
+    throw new ReleaseDeliveryError(
+      'delivery operator must identify a github, team, or external operator.',
+    );
+  }
+  return value;
+}
+
+function readExecutionTimestamp(clock, label) {
+  const value = clock();
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    throw new ReleaseDeliveryError(`${label} clock is invalid.`);
+  }
+  return date.toISOString();
+}
+
 export function requireApplyReady({preflight, secretInspection, writeSafety}) {
   const errors = [...preflight.errors, ...secretInspection.errors, ...writeSafety.errors];
   if (errors.length > 0) throw new ReleaseDeliveryError(errors.join('; '));
@@ -1218,11 +1262,11 @@ function readJson(path) {
 function printUsage() {
   console.log(`Usage:
   node infra/cloudbase/deliver-release.mjs preflight --profile <delivery-profile.json>
-  node infra/cloudbase/deliver-release.mjs provision --profile <profile> [--apply]
-  node infra/cloudbase/deliver-release.mjs deploy --profile <profile> [--apply]
-  node infra/cloudbase/deliver-release.mjs publish --profile <profile> --bundle <bundle> [--apply]
-  node infra/cloudbase/deliver-release.mjs verify --profile <profile> --bundle <bundle>
-  node infra/cloudbase/deliver-release.mjs rollback --profile <profile> --release <release-id> [--apply]
+  node infra/cloudbase/deliver-release.mjs provision --profile <profile> [--apply --operator <id>]
+  node infra/cloudbase/deliver-release.mjs deploy --profile <profile> [--apply --operator <id>]
+  node infra/cloudbase/deliver-release.mjs publish --profile <profile> --bundle <bundle> [--apply --operator <id>]
+  node infra/cloudbase/deliver-release.mjs verify --profile <profile> --bundle <bundle> --operator <id>
+  node infra/cloudbase/deliver-release.mjs rollback --profile <profile> --release <release-id> [--apply --operator <id>]
 
 All mutating commands are dry-run unless --apply is explicit. Apply requires clean exact main, Node ${REQUIRED_DEPLOYMENT_NODE_VERSION}, receiver secrets, and successful remote preflight.`);
 }

@@ -46,6 +46,8 @@
   and the fixed `softbook-api` plus account-deletion-worker runtime topology.
 - Formal `receiver-delivery-report.v2` and controlled-pilot
   `controlled-pilot-receiver-delivery-report.v2` expose the expected identity.
+- Every v2 report records canonical start/completion timestamps; apply and
+  verify require an identified `github:`, `team:` or `external:` operator.
 - Deploy injects `SOFTBOOK_BACKEND_DEPLOYMENT_ID` into `softbook-api` only.
   The account-deletion worker remains free of every custom runtime variable.
 - After both functions deploy, the command rereads `softbook-api` from the
@@ -92,7 +94,7 @@
 - JSON parse, Node syntax and `git diff --check` -> passed.
 - `PATH=/Users/lenkin/.nvm/versions/node/v22.13.0/bin:$PATH
   ./scripts/run_local_gates --profile dev --base origin/main --output
-  exports/local-gates/receiver-deployment-identity-v2-dev-node22.json` ->
+  exports/local-gates/receiver-deployment-identity-v2-operator-final.json` ->
   24/24 passed with the exact required deployment Node version.
 - PR checks -> pending publication.
 
@@ -103,6 +105,8 @@
 - Runtime deployment contains the ID and still excludes
   `SOFTBOOK_SMS_DEV_CODE`.
 - Remote API inspection fails on a mismatched ID or function shape.
+- Apply and verify reports cannot be created without an identified operator;
+  all reports bind canonical execution start and completion timestamps.
 - Public inspection output includes secret variable names where operationally
   useful but never their values.
 - No CloudBase write, deployment, publication, launch-gate evidence or release

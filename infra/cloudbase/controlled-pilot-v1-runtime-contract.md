@@ -31,7 +31,9 @@ Referenced active sources:
   commit/profile/environment/function-topology backend deployment identity as
   formal delivery. The ID is injected into `softbook-api` and remotely reread
   after deployment and during verification without exposing secret values.
-  This improves receiver traceability but remains `gate_eligible=false`.
+  Apply and verify also require an identified operator and emit canonical
+  execution timestamps. This improves receiver traceability but remains
+  `gate_eligible=false`.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 

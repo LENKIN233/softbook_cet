@@ -102,6 +102,10 @@ non-secret ID into `softbook-api`; after deploy and again during formal verify,
 the command rereads the remote function configuration and requires the exact
 ID, handler, runtime and timeout while publishing only variable names, never
 secret values. A dry-run or local report cannot satisfy this remote reread.
+Each report also carries canonical start/completion timestamps. Every apply or
+verify invocation requires `--operator` with a `github:`, `team:` or
+`external:` identity so later formal evidence can bind the raw execution
+window and distinguish its independent verifier.
 
 The concrete receiver adapter stores immutable staged versions in
 `softbook_card_source_versions`. It re-downloads every uploaded private audio

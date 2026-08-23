@@ -52,9 +52,21 @@ test('unified delivery arguments keep every mutating command dry-run by default'
         'profile.json',
         '--bundle',
         'bundle.json',
+        '--operator',
+        'github:receiver-operator',
         '--apply',
       ]),
     /read-only/,
+  );
+  assert.throws(
+    () =>
+      deliveryCli.parseArguments([
+        'deploy',
+        '--profile',
+        'profile.json',
+        '--apply',
+      ]),
+    /requires --operator/,
   );
 });
 
@@ -222,6 +234,9 @@ test('receiver preflight reads the exact environment and reports missing collect
   assert.equal(report.status, 'passed');
   assert.equal(report.schema_version, 'receiver-delivery-report.v2');
   assert.match(report.backend_deployment_id, /^backend-deployment:sha256:[0-9a-f]{64}$/);
+  assert.match(report.execution.started_at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.match(report.execution.completed_at, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(report.execution.operator, null);
   assert.equal(report.preflight.environment.env_id, 'receiver-cet4-beta');
   assert.equal(report.preflight.catalog.missing_required_collections.length, 2);
   assert.equal(
@@ -240,6 +255,7 @@ test('receiver provision apply creates only missing allowlisted collections and 
       bundlePath: null,
       command: 'provision',
       format: 'json',
+      operator: 'github:receiver-operator',
       profilePath: fixture.path,
       releaseId: null,
     },
@@ -247,6 +263,7 @@ test('receiver provision apply creates only missing allowlisted collections and 
   );
 
   assert.equal(report.status, 'passed');
+  assert.equal(report.execution.operator, 'github:receiver-operator');
   assert.deepEqual(report.provisioned.created, deploymentSafety.REQUIRED_COLLECTIONS.slice(-2));
   assert.equal(runner.calls.filter(call => call.includes('CreateTable')).length, 2);
 });
@@ -262,6 +279,7 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
       bundlePath: null,
       command: 'deploy',
       format: 'json',
+      operator: 'github:receiver-operator',
       profilePath: fixture.path,
       releaseId: null,
     },
@@ -426,6 +444,7 @@ test('receiver write safety blocks topic branches even when remote preflight pas
           bundlePath: null,
           command: 'provision',
           format: 'json',
+          operator: 'github:receiver-operator',
           profilePath: fixture.path,
           releaseId: null,
         },
