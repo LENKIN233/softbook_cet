@@ -216,6 +216,15 @@
       "reconciliation_rule": "after remote acknowledgement refresh canonical bootstrap before treating space state and scheduler eligibility as reconciled",
       "terminal_reconciliation_rule": "after terminal rejection start a causally later bootstrap request before presenting reconciled space state; that read may correctly return the same state revision because a rejected command committed no canonical change"
     },
+    "receiver_drill": {
+      "runner": "infra/cloudbase/run-space-sync-drill.mjs",
+      "report_schema": "space-sync-drill-report.v1",
+      "execution_rule": "dry_run_by_default_apply_requires_Node_22_13_clean_exact_main_receiver_closed_beta_profile_identified_operator_and_two_distinct_same_account_sessions",
+      "sequence_rule": "client_A_favorite_apply_client_B_observe_exact_replay_duplicate_conflicting_replay_409_no_commit_client_B_sleep_apply_client_A_observe_independent_dimensions_then_restore_initial_state",
+      "revision_rule": "each_new_action_advances_canonical_space_revision_exactly_once_while_duplicate_and_conflict_do_not_advance",
+      "privacy_rule": "report_contains_no_token_phone_or_raw_card_id_and_is_gate_eligible_false_until_a_registered_formal_wrapper_revalidates_it",
+      "failure_cleanup_rule": "after_any_post_initial_failure_attempt_new_favorite_and_sleep_restore_actions_then_verify_the_initial_projection_without_claiming_success"
+    },
     "legacy_cutover": {
       "disabled_routes": [
         "GET /v1/space/state-sync",

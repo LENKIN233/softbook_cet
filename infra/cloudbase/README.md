@@ -553,6 +553,30 @@ revoke and idempotent revoke replay. The wrapper revalidates one candidate
 campaign/account/grant/operator/commit and one unchanged base-membership digest;
 it never ingests the phone-bearing command files.
 
+### Receiver Space sync drill
+
+Use `run-space-sync-drill.mjs` to plan, then exercise two distinct same-account
+sessions against the receiver closed-beta API:
+
+```bash
+node infra/cloudbase/run-space-sync-drill.mjs \
+  --profile path/to/delivery-profile.json
+
+SOFTBOOK_CET_SPACE_DRILL_TOKEN_A=... \
+SOFTBOOK_CET_SPACE_DRILL_TOKEN_B=... \
+node infra/cloudbase/run-space-sync-drill.mjs \
+  --profile path/to/delivery-profile.json \
+  --apply \
+  --operator team:receiver-operator
+```
+
+Apply proves cross-client favorite/sleep convergence, exact duplicate
+idempotency, conflicting replay no-commit behavior, independent dimensions and
+initial-state cleanup on one exact CET4 content version. The report hashes the
+card identity and never emits tokens or phone data. It remains
+`gate_eligible=false` until registered `space-sync-test` semantics revalidate a
+real receiver report.
+
 Controlled-pilot continued access uses a separate receiver-only overlay and
 never reuses the formal closed-beta grant. Create an untracked
 `pilot-entitlement-command.v1`, verify its phone-free dry-run plan, then apply

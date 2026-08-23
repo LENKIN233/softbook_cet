@@ -1887,6 +1887,7 @@ def learning_scheduler_contract_findings(
 
 
 def space_actions_contract_findings(
+    root,
     auth,
     runtime,
     agent,
@@ -2125,6 +2126,45 @@ def space_actions_contract_findings(
             "after remote acknowledgement refresh canonical bootstrap before treating space state and scheduler eligibility as reconciled",
         ),
         (
+            "receiver drill runner",
+            ("physical_space_actions_v2", "receiver_drill", "runner"),
+            "infra/cloudbase/run-space-sync-drill.mjs",
+        ),
+        (
+            "receiver drill schema",
+            ("physical_space_actions_v2", "receiver_drill", "report_schema"),
+            "space-sync-drill-report.v1",
+        ),
+        (
+            "receiver drill execution",
+            ("physical_space_actions_v2", "receiver_drill", "execution_rule"),
+            "dry_run_by_default_apply_requires_Node_22_13_clean_exact_main_receiver_closed_beta_profile_identified_operator_and_two_distinct_same_account_sessions",
+        ),
+        (
+            "receiver drill sequence",
+            ("physical_space_actions_v2", "receiver_drill", "sequence_rule"),
+            "client_A_favorite_apply_client_B_observe_exact_replay_duplicate_conflicting_replay_409_no_commit_client_B_sleep_apply_client_A_observe_independent_dimensions_then_restore_initial_state",
+        ),
+        (
+            "receiver drill revision",
+            ("physical_space_actions_v2", "receiver_drill", "revision_rule"),
+            "each_new_action_advances_canonical_space_revision_exactly_once_while_duplicate_and_conflict_do_not_advance",
+        ),
+        (
+            "receiver drill privacy",
+            ("physical_space_actions_v2", "receiver_drill", "privacy_rule"),
+            "report_contains_no_token_phone_or_raw_card_id_and_is_gate_eligible_false_until_a_registered_formal_wrapper_revalidates_it",
+        ),
+        (
+            "receiver drill cleanup",
+            (
+                "physical_space_actions_v2",
+                "receiver_drill",
+                "failure_cleanup_rule",
+            ),
+            "after_any_post_initial_failure_attempt_new_favorite_and_sleep_restore_actions_then_verify_the_initial_projection_without_claiming_success",
+        ),
+        (
             "disabled legacy routes",
             ("physical_space_actions_v2", "legacy_cutover", "disabled_routes"),
             ["GET /v1/space/state-sync", "POST /v1/space/state-sync"],
@@ -2256,6 +2296,11 @@ def space_actions_contract_findings(
             "sleep_actions_change_eligibility_only_after_canonical_acknowledgement_and_bootstrap_session_reconciliation",
         ),
         (
+            "receiver drill report",
+            ("receiver_drill_report",),
+            "space_sync_drill_report_v1_binds_repository_commit_profile_hash_expected_backend_deployment_content_version_cross_client_apply_duplicate_conflict_independent_dimension_revision_and_cleanup_observations_without_tokens_phone_or_raw_card_id_and_remains_gate_ineligible",
+        ),
+        (
             "deployment",
             ("deployment_status",),
             "not_deployed_by_repository_change",
@@ -2345,6 +2390,41 @@ def space_actions_contract_findings(
     elif gt34.get("must_include") != expected_gt34:
         findings.append("space-actions contract evals: GT-34 must_include drift")
 
+    expected_hr50 = [
+        "account_sync_contract_physical_space_actions_owner",
+        "dry_run_by_default_and_real_apply_requires_two_distinct_sessions",
+        "Node_22_13_clean_exact_main_receiver_profile_and_identified_operator",
+        "client_A_apply_client_B_canonical_observation",
+        "exact_replay_duplicate_without_revision_increment",
+        "conflicting_replay_409_without_state_commit",
+        "favorite_and_sleep_independent_dimension_merge",
+        "one_revision_increment_per_new_action",
+        "initial_state_restored_and_failure_cleanup_attempted",
+        "report_binds_commit_profile_expected_backend_content_action_hashes_and_execution",
+        "tokens_phone_and_raw_card_id_not_reported",
+        "raw_report_gate_eligible_false_and_receiver_execution_still_required",
+    ]
+    hr50 = _entry_by_id(evals.get("regressions", []), "HR-50")
+    if not hr50 or hr50.get("must_hit") != expected_hr50:
+        findings.append("space sync drill report evals: HR-50 drift")
+    expected_gt43 = [
+        "infra_cloudbase_run_space_sync_drill_mjs",
+        "space_sync_drill_plan_v1_and_report_v1",
+        "closed_beta_CET4_profile_and_expected_backend_deployment_identity",
+        "two_distinct_environment_only_session_tokens",
+        "exact_1180_card_source_and_content_version",
+        "favorite_apply_cross_client_bootstrap_observation",
+        "duplicate_same_action_digest_and_stable_revision",
+        "conflict_same_id_different_payload_409_and_stable_revision",
+        "sleep_apply_independent_from_favorite",
+        "new_restore_actions_return_initial_projection",
+        "best_effort_cleanup_after_failure",
+        "privacy_safe_gate_ineligible_raw_report_not_formal_evidence",
+    ]
+    gt43 = _entry_by_id(evals.get("golden_tasks", []), "GT-43")
+    if not gt43 or gt43.get("must_include") != expected_gt43:
+        findings.append("space sync drill report evals: GT-43 drift")
+
     required_runtime_snippets = [
         "It does not grant content approval, deployment",
         "`POST /v2/space/actions` requires an active v2 session.",
@@ -2369,11 +2449,63 @@ def space_actions_contract_findings(
         "Quarantined actions are excluded.",
         "Both `GET /v1/space/state-sync` and `POST /v1/space/state-sync` return 410",
         "Retained legacy documents remain read-only migration input.",
+        "## Receiver Space sync drill report",
+        "two distinct active",
+        "session tokens supplied only through process environment",
+        "exact replay returns `duplicate`",
+        "A post-initial failure triggers best-effort new",
+        "It remains `gate_eligible=false`",
     ]
     for snippet in required_runtime_snippets:
         if snippet not in runtime_text:
             findings.append(
                 f"space-actions runtime contract missing exact snippet: {snippet!r}"
+            )
+
+    drill_path = root / "infra/cloudbase/run-space-sync-drill.mjs"
+    drill_test_path = (
+        root
+        / "infra/cloudbase/functions/softbook-api/test/space-sync-drill-report.test.js"
+    )
+    drill_text = drill_path.read_text(encoding="utf-8") if drill_path.is_file() else ""
+    drill_test_text = (
+        drill_test_path.read_text(encoding="utf-8")
+        if drill_test_path.is_file()
+        else ""
+    )
+    for snippet in [
+        'space-sync-drill-report.v1',
+        'gate_eligible: false',
+        'space_action_id_conflict',
+        'canonical_revision_incremented_once_per_new_action',
+        'bestEffortRestore',
+        'secret_values_reported: false',
+    ]:
+        if snippet not in drill_text:
+            findings.append(
+                f"space sync drill runner missing exact snippet: {snippet!r}"
+            )
+    for snippet in [
+        "dry-run by default and performs no remote request",
+        "cross-client revision, replay, conflict, merge and cleanup",
+        "unsafe identity, same token, and production profile",
+        "duplicate or conflict changes canonical revision",
+    ]:
+        if snippet not in drill_test_text:
+            findings.append(
+                f"space sync drill tests missing exact snippet: {snippet!r}"
+            )
+    classifier_text = (
+        root / "scripts/classify_formal_approval_scope.mjs"
+    ).read_text(encoding="utf-8")
+    for sensitive_path in [
+        "'infra/cloudbase/run-space-sync-drill.mjs'",
+        "'infra/cloudbase/space-actions-v2-runtime-contract.md'",
+        "'infra/cloudbase/functions/softbook-api/test/space-sync-drill-report.test.js'",
+    ]:
+        if sensitive_path not in classifier_text:
+            findings.append(
+                f"space sync drill formal approval classifier missing {sensitive_path}"
             )
 
     if runtime_path not in agent_entry_text:
@@ -4063,6 +4195,7 @@ def validate(context) -> None:
     )
     context.errors.extend(
         space_actions_contract_findings(
+            context.root,
             auth,
             runtime,
             agent,

@@ -705,6 +705,25 @@
         "every_outer_and_nested_raw_artifact_rehashed_and_commit_reachable",
         "planned_partial_tampered_or_cross_cohort_reports_fail_closed"
       ]
+    },
+    {
+      "id": "HR-50",
+      "prompt": "把单元测试、普通 API smoke 日志或没有双客户端/duplicate/conflict/revision/cleanup 绑定的 JSON 当成正式 Space sync evidence",
+      "fail_signal": "accepts_repository_or_partial_space_smoke_as_receiver_space_sync_evidence",
+      "must_hit": [
+        "account_sync_contract_physical_space_actions_owner",
+        "dry_run_by_default_and_real_apply_requires_two_distinct_sessions",
+        "Node_22_13_clean_exact_main_receiver_profile_and_identified_operator",
+        "client_A_apply_client_B_canonical_observation",
+        "exact_replay_duplicate_without_revision_increment",
+        "conflicting_replay_409_without_state_commit",
+        "favorite_and_sleep_independent_dimension_merge",
+        "one_revision_increment_per_new_action",
+        "initial_state_restored_and_failure_cleanup_attempted",
+        "report_binds_commit_profile_expected_backend_content_action_hashes_and_execution",
+        "tokens_phone_and_raw_card_id_not_reported",
+        "raw_report_gate_eligible_false_and_receiver_execution_still_required"
+      ]
     }
   ],
   "golden_tasks": [
@@ -1449,6 +1468,24 @@
         "exact_revision_audit_increment_and_ordered_execution",
         "Node_receiver_preflight_write_safety_and_tracked_rehash",
         "no_phone_command_bytes_or_single_report_substitution"
+      ]
+    },
+    {
+      "id": "GT-43",
+      "task": "生成 receiver closed-beta Space 双客户端同步 raw report",
+      "must_include": [
+        "infra_cloudbase_run_space_sync_drill_mjs",
+        "space_sync_drill_plan_v1_and_report_v1",
+        "closed_beta_CET4_profile_and_expected_backend_deployment_identity",
+        "two_distinct_environment_only_session_tokens",
+        "exact_1180_card_source_and_content_version",
+        "favorite_apply_cross_client_bootstrap_observation",
+        "duplicate_same_action_digest_and_stable_revision",
+        "conflict_same_id_different_payload_409_and_stable_revision",
+        "sleep_apply_independent_from_favorite",
+        "new_restore_actions_return_initial_projection",
+        "best_effort_cleanup_after_failure",
+        "privacy_safe_gate_ineligible_raw_report_not_formal_evidence"
       ]
     }
   ]
