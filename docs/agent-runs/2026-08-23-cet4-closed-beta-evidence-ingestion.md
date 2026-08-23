@@ -4,7 +4,7 @@
 
 - Date: 2026-08-23
 - Branch: `infra/cet4-closed-beta-evidence-ingestion-v1`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/516
 - Summary: Add tracked repository evidence ingestion for the closed-beta
   evidence types whose type-specific semantics already exist, parameterize
   those semantics to the exact `cet4-closed-beta` target, and keep every
