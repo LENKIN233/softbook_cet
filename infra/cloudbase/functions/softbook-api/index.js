@@ -1,5 +1,10 @@
 const crypto = require('node:crypto');
 const {createAuthV2Service} = require('./auth-v2');
+const {
+  createAccountDeletionWorkerV1,
+  createCloudBaseAccountDeletionRepository,
+  createMemoryAccountDeletionRepository,
+} = require('./account-deletion-worker-v1');
 const {createRuntimeSmsProvider} = require('./sms-provider');
 const {
   isContentReleaseValidForRuntime,
@@ -136,6 +141,16 @@ async function main(event, context) {
     return handlePilotEntitlementOperatorInvoke(event);
   }
   return getDefaultApi().handleCloudBaseEvent(event, context);
+}
+
+async function accountDeletionWorkerMain(event = {}) {
+  const repository = createCloudBaseAccountDeletionRepository(
+    createCloudBaseDatabase(),
+    CLOUDBASE_COLLECTIONS,
+  );
+  return createAccountDeletionWorkerV1({repository}).run({
+    limit: event.limit ?? 10,
+  });
 }
 
 async function handlePilotEntitlementOperatorInvoke(event, options = {}) {
@@ -886,6 +901,7 @@ function createMemoryStore() {
   const authStateStore = createMemoryAuthStateStore();
   const cardSources = new Map();
   const cardSourceVersions = new Map();
+  const betaEntitlements = new Map();
   const memberships = new Map();
   const membershipRevisions = new Map();
   const dailyCheckIns = new Map();
@@ -895,6 +911,7 @@ function createMemoryStore() {
   const learningEventSequences = new Map();
   const learningMigrationRevisions = new Map();
   const pilotRoundContinuations = new Map();
+  const pilotEntitlements = new Map();
   const learningSessions = new Map();
   const learningStates = new Map();
   const spaceActionLineages = new Map();
@@ -919,9 +936,33 @@ function createMemoryStore() {
     },
     runTransaction: runLearningTransaction,
   });
+  const accountDeletionWorker = createAccountDeletionWorkerV1({
+    repository: createMemoryAccountDeletionRepository({
+      ...authStateStore.snapshotAuth(),
+      betaEntitlements,
+      dailyCheckIns,
+      dailyProgress,
+      learningEventCursors,
+      learningEvents,
+      learningEventSequences,
+      learningMigrationRevisions,
+      learningSessions,
+      learningStates,
+      memberships,
+      membershipRevisions,
+      pilotEntitlements,
+      pilotRoundContinuations,
+      spaceActionLineages,
+      spaceActions,
+      spaceStateRevisions,
+      spaceStates,
+    }),
+  });
 
   return {
     ...authStateStore,
+    runAccountDeletionWorkerForTest: options =>
+      accountDeletionWorker.run(options),
     getCardSource: (track, options = {}) => {
       if (!cardSources.has(track)) {
         if (options.allowDevelopmentDefault === false) {
@@ -1578,6 +1619,7 @@ function createMemoryStore() {
       }),
     snapshot: () => ({
       ...authStateStore.snapshotAuth(),
+      betaEntitlements,
       cardSourceVersions,
       cardSources,
       dailyCheckIns,
@@ -1587,6 +1629,7 @@ function createMemoryStore() {
       learningEventSequences,
       learningMigrationRevisions,
       pilotRoundContinuations,
+      pilotEntitlements,
       learningSessions,
       learningStates,
       memberships,
@@ -5321,6 +5364,7 @@ const CET6_CARD_RECORDS = [
 ];
 
 module.exports = {
+  accountDeletionWorkerMain,
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,

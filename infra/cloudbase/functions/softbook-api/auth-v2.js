@@ -271,9 +271,20 @@ async function requestAccountDeletion(config, request) {
   const requestedAt = config.now().toISOString();
   const deletionTask = await config.store.getOrCreateAccountDeletionTask({
     account_key: session.accountKey,
+    attempt_count: 0,
     deletion_id: `delete_${randomBase64Url(config.randomBytes, 18)}`,
+    last_attempt_at: null,
+    last_failure_code: null,
+    lease_expires_at: null,
+    lease_id: null,
     phone_number: session.phoneNumber,
+    phone_rate_key: `phone:${keyedHash(
+      config.indexSecret,
+      'rate-phone',
+      session.phoneNumber,
+    )}`,
     requested_at: requestedAt,
+    schema_version: 'account-deletion-task.v1',
     status: 'queued',
   });
 

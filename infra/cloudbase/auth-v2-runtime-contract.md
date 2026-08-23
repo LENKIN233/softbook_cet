@@ -27,9 +27,12 @@ Referenced active specs:
   authenticated `/v2/learning/card-source`, and session-owned `/v2/membership`
   reads/mutations. Retained `/v1` aliases are development-only; the full remote
   profile has no production `/v1` dependency.
-- An account deletion request creates a durable queued task. Actual user-data
-  erasure, retention policy enforcement, and deletion-provider orchestration
-  remain separate production work.
+- An account deletion request creates a durable exact task. The repository now
+  implements the leased, retryable worker and receiver two-function deployment
+  plan that erase current user-data collections and remove the login fence
+  last. Receiver execution/monitoring, provider cleanup, retention policy
+  enforcement, and a completed real-environment deletion drill remain separate
+  production work.
 
 ## Runtime policy
 
@@ -164,6 +167,36 @@ rotation, and single-session revocation run inside CloudBase transactions.
 Account-wide revocation enumerates the phone's sessions after the deletion task
 is durable.
 
+The independently deployed `softbook-account-deletion-worker` runs
+`index.accountDeletionWorkerMain` from the same tested artifact on the
+`account-deletion-every-minute` timer. Each `account-deletion-task.v1` stores
+the account key, phone, exact derived phone-rate key, retry fields and a random
+claim-bound five-minute lease. A stale worker cannot complete or requeue a task
+owned by another lease.
+
+Queued tasks and expired processing leases are queried independently, merged by
+`requested_at`, and then capped by the worker run limit. Older live processing
+leases therefore cannot occupy a pre-filter page and starve queued deletion
+requests.
+
+Receiver deployment rereads the worker function name, handler, runtime, timeout,
+empty custom environment-variable set, and exact timer configuration. The
+worker receives none of the HTTP API's auth, SMS, signing, or operator secrets.
+Deployment creates a missing timer, preserves an already exact timer without
+duplicate creation, and fails closed on handler, variable, or schedule drift
+before reporting success.
+
+The worker deletes current account-keyed Auth Session, check-in, Progress,
+Learning Event/cursor/sequence/migration/session/state, pilot-round continuation,
+and Space action/lineage/revision/state records; phone-filtered SMS challenges
+plus retained legacy daily-progress, learning-state and Space-state records;
+phone-keyed base membership, membership revision, beta entitlement and pilot
+entitlement; and only the phone rate-limit key. Shared IP rate limits and global
+content releases remain untouched. Every deletion is idempotently re-read or
+re-queried, the task is removed last, partial failure returns the same live
+lease to queued, and a completed task leaves no tombstone so a clean
+re-registration is allowed.
+
 Before production deployment, infrastructure work must add collection TTL
 policies for expired rate-limit and challenge records, least-privilege access,
 backup/restore coverage, and deletion-task worker monitoring.
@@ -222,9 +255,10 @@ Remaining blockers include:
   secret custody;
 - production Web origin allowlisting and gateway abuse-control review;
 - device-list and remote-device-revocation surfaces;
-- deletion worker, retention rules, provider cleanup, and completed deletion
-  drill, including an explicit post-deletion re-registration and tombstone
-  policy;
+- receiver deployment/monitoring of the deletion-worker timer, collection
+  retention rules, provider cleanup, and completed deletion drill; repository
+  tests already cover explicit post-deletion re-registration and the no-
+  tombstone task-removal policy;
 - mobile secure refresh-token storage, automatic refresh, logout cleanup, and
   `/v2` migration;
 - abuse, concurrency, penetration, backup, and production observability

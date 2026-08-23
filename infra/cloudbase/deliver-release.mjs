@@ -34,6 +34,9 @@ import {
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const FUNCTION_NAME = 'softbook-api';
+const ACCOUNT_DELETION_WORKER_NAME = 'softbook-account-deletion-worker';
+const ACCOUNT_DELETION_TRIGGER_NAME = 'account-deletion-every-minute';
+const ACCOUNT_DELETION_TRIGGER_CRON = '0 */1 * * * * *';
 const FUNCTION_RUNTIME = 'Nodejs20.19';
 const COMMANDS = new Set(['preflight', 'provision', 'deploy', 'publish', 'verify', 'rollback']);
 const COMMON_SECRET_ENV_NAMES = Object.freeze([
@@ -178,7 +181,9 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
       return {
         ...base,
         deployment_plan: {
+          deletion_worker_trigger: ACCOUNT_DELETION_TRIGGER_NAME,
           function_name: FUNCTION_NAME,
+          function_names: [FUNCTION_NAME, ACCOUNT_DELETION_WORKER_NAME],
           runtime: FUNCTION_RUNTIME,
           api_path: new URL(profile.api_base_url).pathname,
           fixed_sms_code_present: false,
@@ -428,24 +433,42 @@ export async function deployReceiverFunction({
       recursive: true,
     });
     const runtime = buildReceiverRuntimeEnvironment(profile, env, {runtimeMode});
+    const functions = [
+      {
+        description,
+        envVariables: runtime,
+        handler: 'index.main',
+        installDependency: false,
+        memorySize: 256,
+        name: FUNCTION_NAME,
+        runtime: FUNCTION_RUNTIME,
+        timeout: 10,
+      },
+      {
+        description: 'Softbook CET account deletion worker',
+        envVariables: {},
+        handler: 'index.accountDeletionWorkerMain',
+        installDependency: false,
+        memorySize: 256,
+        name: ACCOUNT_DELETION_WORKER_NAME,
+        runtime: FUNCTION_RUNTIME,
+        timeout: 60,
+        triggers: [
+          {
+            config: ACCOUNT_DELETION_TRIGGER_CRON,
+            name: ACCOUNT_DELETION_TRIGGER_NAME,
+            type: 'timer',
+          },
+        ],
+      },
+    ];
     writeFileSync(
       configPath,
       `${JSON.stringify(
         {
           $schema: 'https://static.cloudbase.net/cli/cloudbaserc.schema.json',
           envId: profile.environment_id,
-          functions: [
-            {
-              description,
-              envVariables: runtime,
-              handler: 'index.main',
-              installDependency: false,
-              memorySize: 256,
-              name: FUNCTION_NAME,
-              runtime: FUNCTION_RUNTIME,
-              timeout: 10,
-            },
-          ],
+          functions,
         },
         null,
         2,
@@ -475,14 +498,193 @@ export async function deployReceiverFunction({
         timeoutMs: 10 * 60_000,
       },
     );
+    await runner.run(
+      [
+        '-e',
+        profile.environment_id,
+        'fn',
+        'deploy',
+        ACCOUNT_DELETION_WORKER_NAME,
+        '--force',
+        '--dir',
+        artifactDirectory,
+        '--runtime',
+        FUNCTION_RUNTIME,
+        '--json',
+      ],
+      {
+        cwd: temporaryDirectory,
+        label: 'deploy account deletion worker',
+        timeoutMs: 10 * 60_000,
+      },
+    );
+    const deletionWorker = await ensureAccountDeletionWorker({
+      cwd: temporaryDirectory,
+      envId: profile.environment_id,
+      runner,
+    });
     return {
+      deletion_worker: deletionWorker,
+      deletion_worker_runtime_variable_names: [],
+      deletion_worker_trigger: ACCOUNT_DELETION_TRIGGER_NAME,
       fixed_sms_code_present: false,
       function_name: FUNCTION_NAME,
+      function_names: functions.map(item => item.name),
       runtime: FUNCTION_RUNTIME,
       runtime_variable_names: Object.keys(runtime).sort(),
     };
   } finally {
     rmSync(temporaryDirectory, {force: true, recursive: true});
+  }
+}
+
+async function ensureAccountDeletionWorker({cwd, envId, runner}) {
+  let inspection = await inspectAccountDeletionWorker({envId, runner});
+  if (inspection.trigger_status === 'missing') {
+    if (inspection.errors.length > 0) {
+      throw new ReleaseDeliveryError(
+        `account deletion worker verification failed before trigger creation: ${inspection.errors.join('; ')}`,
+      );
+    }
+    await runner.run(
+      [
+        '-e',
+        envId,
+        'fn',
+        'trigger',
+        'create',
+        ACCOUNT_DELETION_WORKER_NAME,
+        '--trigger-name',
+        ACCOUNT_DELETION_TRIGGER_NAME,
+        '--cron',
+        ACCOUNT_DELETION_TRIGGER_CRON,
+        '--json',
+      ],
+      {
+        cwd,
+        label: 'create account deletion timer trigger',
+        timeoutMs: 120_000,
+      },
+    );
+    inspection = await inspectAccountDeletionWorker({envId, runner});
+  }
+  if (!inspection.ok) {
+    throw new ReleaseDeliveryError(
+      `account deletion worker verification failed: ${inspection.errors.join('; ')}`,
+    );
+  }
+  return inspection.public;
+}
+
+export async function inspectAccountDeletionWorker({envId, runner}) {
+  const payload = parseTcbJson(
+    await runner.run(
+      [
+        '-e',
+        envId,
+        'fn',
+        'detail',
+        ACCOUNT_DELETION_WORKER_NAME,
+        '--json',
+      ],
+      {label: 'inspect account deletion worker'},
+    ),
+  );
+  const data = payload?.data ?? payload;
+  const errors = [];
+  if (data?.FunctionName !== ACCOUNT_DELETION_WORKER_NAME) {
+    errors.push('function name mismatch');
+  }
+  if (data?.Handler !== 'index.accountDeletionWorkerMain') {
+    errors.push('handler mismatch');
+  }
+  if (data?.Runtime !== FUNCTION_RUNTIME) {
+    errors.push('runtime mismatch');
+  }
+  if (Number(data?.Timeout) !== 60) {
+    errors.push('timeout mismatch');
+  }
+  const variables = data?.Environment?.Variables;
+  if (!Array.isArray(variables)) {
+    errors.push('environment variables are unavailable');
+  }
+  const variableNames = Array.isArray(variables)
+    ? variables
+        .map(variable => variable?.Key)
+        .filter(name => typeof name === 'string')
+        .sort()
+    : [];
+  if (variableNames.length > 0) {
+    errors.push('worker must not receive API runtime secrets or variables');
+  }
+  const triggers = Array.isArray(data?.Triggers) ? data.Triggers : [];
+  const normalizedTriggers = triggers.map(trigger => ({
+    config: normalizeAccountDeletionTriggerConfig(
+      trigger?.TriggerDesc ??
+      trigger?.TriggerConfig ??
+      trigger?.config ??
+      trigger?.cron ??
+      null,
+    ),
+    name:
+      trigger?.TriggerName ??
+      trigger?.triggerName ??
+      trigger?.name ??
+      null,
+    type: String(trigger?.Type ?? trigger?.type ?? '').toLowerCase(),
+  }));
+  const exactTrigger = normalizedTriggers.find(
+    trigger => trigger.name === ACCOUNT_DELETION_TRIGGER_NAME,
+  );
+  if (triggers.length === 0) {
+    return {
+      errors,
+      ok: false,
+      public: {
+        function_name: data?.FunctionName ?? null,
+        handler: data?.Handler ?? null,
+        runtime: data?.Runtime ?? null,
+        timeout: Number.isFinite(Number(data?.Timeout))
+          ? Number(data.Timeout)
+          : null,
+        trigger: null,
+        variable_names: variableNames,
+      },
+      trigger_status: 'missing',
+    };
+  }
+  if (
+    triggers.length !== 1 ||
+    !exactTrigger ||
+    !['timer', 'timetrigger'].includes(exactTrigger.type) ||
+    exactTrigger.config !== ACCOUNT_DELETION_TRIGGER_CRON
+  ) {
+    errors.push('timer trigger mismatch');
+  }
+  return {
+    errors,
+    ok: errors.length === 0,
+    public: {
+      function_name: data?.FunctionName ?? null,
+      handler: data?.Handler ?? null,
+      runtime: data?.Runtime ?? null,
+      timeout: Number.isFinite(Number(data?.Timeout))
+        ? Number(data.Timeout)
+        : null,
+      trigger: exactTrigger ?? null,
+      variable_names: variableNames,
+    },
+    trigger_status: exactTrigger ? 'present' : 'invalid',
+  };
+}
+
+function normalizeAccountDeletionTriggerConfig(value) {
+  if (typeof value !== 'string') return null;
+  try {
+    const parsed = JSON.parse(value);
+    return typeof parsed?.cron === 'string' ? parsed.cron : value;
+  } catch {
+    return value;
   }
 }
 

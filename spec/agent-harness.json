@@ -11,7 +11,8 @@
       "spec/authority-map.json",
       "spec/account-sync-contract.json",
       "spec/membership.json",
-      "spec/runtime-boundaries.json"
+      "spec/runtime-boundaries.json",
+      "infra/cloudbase/auth-v2-runtime-contract.md"
     ],
     "learning_events_runtime": [
       "spec/requirement-memory.json",

@@ -139,8 +139,13 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
           ...base,
           deployment_plan: {
             api_path: new URL(profile.api_base_url).pathname,
+            deletion_worker_trigger: 'account-deletion-every-minute',
             fixed_sms_code_present: false,
             function_name: 'softbook-api',
+            function_names: [
+              'softbook-api',
+              'softbook-account-deletion-worker',
+            ],
             runtime: 'Nodejs20.19',
             runtime_mode: 'controlled_pilot',
           },

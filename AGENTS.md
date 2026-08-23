@@ -24,6 +24,7 @@ status: active
 - `spec/product-core.json`
 - `spec/account-sync-contract.json`
 - `spec/platform-contract.json`
+- `infra/cloudbase/auth-v2-runtime-contract.md`（仅在认证、账号删除、session revocation 或 SMS runtime 任务中读取；账号删除 worker、receiver timer 与真实删除演练边界以此为准）
 - `spec/action-surface.json`
 - `spec/card-system.json`
 - `spec/interactions.json`
@@ -53,7 +54,7 @@ status: active
 - 原始需求校准：`requirement-memory`
 - 权威定位：`authority-map`
 - 产品/范围：`requirement-memory -> product-core`
-- 认证/同步/购买：`requirement-memory -> account-sync-contract -> membership -> runtime-boundaries`（实现 learning events 时追加 `infra/cloudbase/learning-events-v2-runtime-contract.md`；实现物理空间同步时追加 `infra/cloudbase/space-actions-v2-runtime-contract.md`）
+- 认证/同步/购买：`requirement-memory -> account-sync-contract -> membership -> runtime-boundaries`（实现账号删除或 auth/session runtime 时追加 `infra/cloudbase/auth-v2-runtime-contract.md`；实现 learning events 时追加 `infra/cloudbase/learning-events-v2-runtime-contract.md`；实现物理空间同步时追加 `infra/cloudbase/space-actions-v2-runtime-contract.md`）
 - 服务端学习调度：`requirement-memory -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> infra/cloudbase/learning-events-v2-runtime-contract.md -> infra/cloudbase/learning-session-v1-runtime-contract.md`
 - 物理空间 action 同步：`requirement-memory -> product-core -> account-sync-contract -> knowledge-map -> space-operations -> box-catalog -> runtime-boundaries -> infra/cloudbase/space-actions-v2-runtime-contract.md`
 - 多端/端形态：`requirement-memory -> product-core -> platform-contract -> runtime-boundaries`

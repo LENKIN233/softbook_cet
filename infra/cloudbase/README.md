@@ -121,6 +121,12 @@ while `/v2` owns authentication and the canonical bootstrap read:
   limits, 15-minute access tokens, rotating 30-day refresh tokens, session
   revocation, and queued account deletion. See
   `infra/cloudbase/auth-v2-runtime-contract.md`.
+- Receiver delivery deploys the separate non-HTTP
+  `softbook-account-deletion-worker` from the same tested artifact with a
+  one-minute timer and no API auth/SMS/signing custom variables. It uses claim-bound leases, erases every current account or
+  phone-owned runtime record plus retained phone-keyed migration state, preserves shared IP rate limits and global
+  content, and removes the login-blocking task last. This is repository-local
+  implementation, not a completed receiver deletion drill.
 - Bootstrap v2 reads server-side membership, progress, learning, physical
   space, and content-version state without accepting a phone number. See
   `infra/cloudbase/bootstrap-v2-runtime-contract.md`.
