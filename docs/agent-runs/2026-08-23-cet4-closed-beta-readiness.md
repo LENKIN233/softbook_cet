@@ -4,7 +4,7 @@
 
 - Date: 2026-08-23
 - Branch: `infra/cet4-closed-beta-readiness-v1`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/515
 - Summary: Establish a separate, fail-closed CET4-only formal closed-beta
   readiness owner, state record, candidate schema, exact gates and structural
   validator without lowering or replacing the existing CET4+CET6 public-launch
