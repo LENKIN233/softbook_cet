@@ -684,7 +684,7 @@ export function verifyRepositoryEvidenceFiles(
   return { errors, ok: errors.length === 0 };
 }
 
-function verifyInnerRepositoryArtifact(
+export function verifyInnerRepositoryArtifact(
   artifact,
   {label, root, trackedFiles},
   errors,
@@ -1327,7 +1327,7 @@ export function loadLaunchEvidenceSemanticContext({root = ROOT} = {}) {
   };
 }
 
-function loadSmsProviderSmokeReport(
+export function loadSmsProviderSmokeReport(
   artifact,
   {label, root, trackedFiles},
 ) {
@@ -1373,7 +1373,7 @@ function loadSmsProviderSmokeReport(
   return {errors, ok: errors.length === 0, report};
 }
 
-function loadProductionDeploymentEvidence(
+export function loadProductionDeploymentEvidence(
   artifact,
   {label, root, trackedFiles},
 ) {

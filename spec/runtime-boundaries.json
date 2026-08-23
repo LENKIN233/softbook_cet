@@ -322,8 +322,8 @@
     "acceptance_boundary": "real_iOS_and_Android_devices_plus_PC_Web_on_one_exact_candidate_cohort",
     "recovery_boundary": "non_regressing_release_operational_policy_with_verified_retained_parent_and_real_rollback",
     "launch_non_replacement": "closed_beta_ready_never_implies_docs_release_launch_readiness_v1_ready_and_does_not_lower_CET6_public_launch_payment_distribution_or_compliance_gates",
-    "formal_evidence_ingestion": "not_implemented_fail_closed",
-    "implementation_status": "exact_readiness_spec_state_baseline_structural_validator_negative_tests_and_launch_non_replacement_guard_implemented",
+    "formal_evidence_ingestion": "registered_types_implemented_unregistered_fail_closed",
+    "implementation_status": "exact_readiness_spec_state_candidate_structural_validator_tracked_repository_loader_registered_receiver_SMS_learning_and_recovery_semantics_negative_tests_and_launch_non_replacement_guard_implemented",
     "deployment_status": "not_deployed_by_repository_change",
     "readiness_status": "not_ready"
   },

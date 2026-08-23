@@ -4,7 +4,7 @@
   "status": "not_ready",
   "current_milestone": "repository_runtime_and_evidence_contracts",
   "quality_policy": "move_closed_beta_date_before_reducing_gate",
-  "formal_evidence_ingestion": "not_implemented_fail_closed",
+  "formal_evidence_ingestion": "registered_types_implemented_unregistered_fail_closed",
   "formal_approval": {
     "provider": "github_environment",
     "environment": "formal-product-owner-approval",

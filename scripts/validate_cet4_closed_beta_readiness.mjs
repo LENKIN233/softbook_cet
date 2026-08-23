@@ -1,10 +1,24 @@
 #!/usr/bin/env node
 
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {parseStrictJson} from './lib/strict_json.mjs';
+import {
+  LEARNING_RUNTIME_EVIDENCE_TYPES,
+  RELEASE_OPERATIONAL_EVIDENCE_TYPES,
+  validateGateEvidenceArtifact,
+  validateGateEvidenceCoherence,
+} from './lib/launch_evidence_contract.mjs';
+import {
+  loadLaunchEvidenceSemanticContext,
+  loadProductionDeploymentEvidence,
+  loadSmsProviderSmokeReport,
+  verifyInnerRepositoryArtifact,
+} from './validate_launch_readiness.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_CONTRACT = path.join(
@@ -35,6 +49,17 @@ const GATE_STATUS_VALUES = new Set([
   'passed',
 ]);
 const DEPENDENCY_STATUS_VALUES = new Set(['unverified', 'blocked', 'ready']);
+const MAX_REPOSITORY_EVIDENCE_BYTES = 1024 * 1024;
+
+export const CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES = Object.freeze([
+  'production-deployment',
+  'sms-provider-smoke',
+  ...LEARNING_RUNTIME_EVIDENCE_TYPES,
+  ...RELEASE_OPERATIONAL_EVIDENCE_TYPES,
+]);
+const SUPPORTED_EVIDENCE_SET = new Set(
+  CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES,
+);
 
 export const CET4_CLOSED_BETA_DEPENDENCY_IDS = Object.freeze([
   'tencent-cloud-receiver',
@@ -118,7 +143,11 @@ const FORMAL_APPROVAL_POLICY = Object.freeze({
 export function validateCet4ClosedBetaReadiness(
   contract,
   spec,
-  {launchContract = null, now = new Date()} = {},
+  {
+    launchContract = null,
+    now = new Date(),
+    repositoryEvidenceValidated = false,
+  } = {},
 ) {
   const errors = [];
   validateReadinessSpec(spec, errors);
@@ -159,7 +188,7 @@ export function validateCet4ClosedBetaReadiness(
   );
   assertEqual(
     contract.formal_evidence_ingestion,
-    'not_implemented_fail_closed',
+    'registered_types_implemented_unregistered_fail_closed',
     'formal_evidence_ingestion',
     errors,
   );
@@ -211,9 +240,9 @@ export function validateCet4ClosedBetaReadiness(
   if (evidenceCount > 0 && !candidate) {
     errors.push('formal gate evidence requires one exact release candidate first.');
   }
-  if (evidenceCount > 0) {
+  if (evidenceCount > 0 && repositoryEvidenceValidated !== true) {
     errors.push(
-      'formal evidence ingestion is not implemented for the CET4 closed-beta contract and fails closed.',
+      'formal gate evidence requires successful tracked repository semantic validation.',
     );
   }
   validateLaunchNonReplacement(
@@ -222,7 +251,7 @@ export function validateCet4ClosedBetaReadiness(
     errors,
   );
   const stateReady =
-    contract.formal_evidence_ingestion === 'implemented' &&
+    contract.formal_evidence_ingestion === 'all_required_types_implemented' &&
     candidate !== null &&
     dependencies.size === CET4_CLOSED_BETA_DEPENDENCY_IDS.length &&
     [...dependencies.values()].every(item => item.status === 'ready') &&
@@ -246,6 +275,282 @@ export function validateCet4ClosedBetaReadiness(
       total_dependencies: CET4_CLOSED_BETA_DEPENDENCY_IDS.length,
       total_gates: Object.keys(CET4_CLOSED_BETA_GATE_DEFINITIONS).length,
     },
+  };
+}
+
+export function verifyCet4ClosedBetaRepositoryEvidence(
+  contract,
+  {
+    now = new Date(),
+    root = ROOT,
+    semanticContext = null,
+    trackedFiles = null,
+    trustedCommits = null,
+  } = {},
+) {
+  const errors = [];
+  const evidenceRecords = Array.isArray(contract?.gates)
+    ? contract.gates.flatMap(gate =>
+        Array.isArray(gate?.evidence)
+          ? gate.evidence.map(evidence => ({evidence, gateId: gate.id}))
+          : [],
+      )
+    : [];
+  if (
+    isRecord(contract?.release_candidate) &&
+    (!(trustedCommits instanceof Set) ||
+      !trustedCommits.has(contract.release_candidate.commit_sha))
+  ) {
+    errors.push(
+      'closed-beta release candidate commit must be reachable from validated HEAD.',
+    );
+  }
+  if (evidenceRecords.length === 0) {
+    return {errors, ok: errors.length === 0, reports: new Map()};
+  }
+  if (!(trackedFiles instanceof Set) || !(trustedCommits instanceof Set)) {
+    return {
+      errors: [
+        'formal closed-beta evidence requires explicit tracked-file and reachable-commit sets.',
+      ],
+      ok: false,
+      reports: new Map(),
+    };
+  }
+  const loadedContext =
+    semanticContext ?? loadLaunchEvidenceSemanticContext({root});
+  errors.push(...(loadedContext?.errors ?? []));
+  const specPath = path.join(root, 'spec', 'cet4-closed-beta-readiness.json');
+  let readinessSpecSha256 = null;
+  try {
+    readinessSpecSha256 = createHash('sha256')
+      .update(fs.readFileSync(specPath))
+      .digest('hex');
+  } catch (error) {
+    errors.push(
+      `closed-beta readiness policy could not be hashed: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  const parsedReports = new Map();
+  const outerUris = new Set();
+  const outerHashes = new Set();
+  for (const {evidence, gateId} of evidenceRecords) {
+    const label = `closed-beta gate ${String(gateId)} evidence ${String(
+      evidence?.type,
+    )}`;
+    if (!isRecord(evidence)) continue;
+    if (outerUris.has(evidence.artifact_uri)) {
+      errors.push(`${label} reuses an outer artifact URI.`);
+    }
+    if (outerHashes.has(evidence.artifact_sha256)) {
+      errors.push(`${label} reuses an outer artifact SHA-256.`);
+    }
+    outerUris.add(evidence.artifact_uri);
+    outerHashes.add(evidence.artifact_sha256);
+    const loadedOuter = loadTrackedEvidenceArtifact(evidence, {
+      label,
+      root,
+      trackedFiles,
+    });
+    errors.push(...loadedOuter.errors);
+    if (!loadedOuter.artifact) continue;
+    const artifact = loadedOuter.artifact;
+    for (const [index, rawArtifact] of (
+      Array.isArray(artifact.raw_artifacts) ? artifact.raw_artifacts : []
+    ).entries()) {
+      if (!rawArtifact?.artifact_uri?.startsWith('repo://')) continue;
+      verifyInnerRepositoryArtifact(
+        rawArtifact,
+        {
+          label: `${label} raw_artifacts[${index}]`,
+          root,
+          trackedFiles,
+        },
+        errors,
+      );
+    }
+    if (!trustedCommits.has(artifact?.subject?.commit_sha)) {
+      errors.push(`${label} subject commit must be reachable from validated HEAD.`);
+    }
+    if (!SUPPORTED_EVIDENCE_SET.has(evidence.type)) {
+      errors.push(
+        `${label} has no registered CET4 closed-beta type-specific semantic contract.`,
+      );
+      continue;
+    }
+    const expectedPolicy = closedBetaEvidencePolicy(
+      evidence.type,
+      loadedContext,
+      readinessSpecSha256,
+    );
+    if (!expectedPolicy?.id || !expectedPolicy?.sha256) {
+      errors.push(`${label} has no trusted policy binding.`);
+      continue;
+    }
+    const smsResult =
+      evidence.type === 'sms-provider-smoke'
+        ? loadSmsProviderSmokeReport(artifact, {
+            label,
+            root,
+            trackedFiles,
+          })
+        : {errors: [], ok: true, report: null};
+    errors.push(...smsResult.errors);
+    const deploymentResult =
+      evidence.type === 'production-deployment'
+        ? loadProductionDeploymentEvidence(artifact, {
+            label,
+            root,
+            trackedFiles,
+          })
+        : {errors: [], evidence: null, ok: true};
+    errors.push(...deploymentResult.errors);
+    const result = validateGateEvidenceArtifact(artifact, {
+      evidenceType: evidence.type,
+      expectedPolicy,
+      expectedSubject: contract.release_candidate,
+      gateId,
+      now,
+      outerEvidence: evidence,
+      productionDeploymentEvidence: deploymentResult.evidence,
+      releaseOperationalPolicy: loadedContext.releaseOperationalPolicy,
+      smsProviderSmokeReport: smsResult.report,
+      targetRelease: 'cet4-closed-beta',
+    });
+    errors.push(...result.errors);
+    if (result.ok && smsResult.ok && deploymentResult.ok) {
+      const gateReports = parsedReports.get(gateId) ?? [];
+      gateReports.push(artifact);
+      parsedReports.set(gateId, gateReports);
+    }
+  }
+  for (const [gateId, reports] of parsedReports) {
+    if (reports.length <= 1) continue;
+    const coherence = validateGateEvidenceCoherence(reports, {
+      gateId,
+      requiredEvidenceTypes: reports.map(
+        report => report.subject?.evidence_type,
+      ),
+    });
+    errors.push(...coherence.errors);
+  }
+  return {errors, ok: errors.length === 0, reports: parsedReports};
+}
+
+function loadTrackedEvidenceArtifact(
+  evidence,
+  {label, root, trackedFiles},
+) {
+  const errors = [];
+  if (
+    typeof evidence.artifact_uri !== 'string' ||
+    !evidence.artifact_uri.startsWith('repo://')
+  ) {
+    return {artifact: null, errors: [`${label} must use repo://.`]};
+  }
+  const relativePath = evidence.artifact_uri.slice('repo://'.length);
+  if (
+    !relativePath.startsWith('docs/release/evidence/') ||
+    relativePath.includes('\\') ||
+    relativePath.split('/').includes('..') ||
+    !relativePath.endsWith('.json')
+  ) {
+    return {
+      artifact: null,
+      errors: [`${label} must use a safe docs/release/evidence JSON path.`],
+    };
+  }
+  if (!trackedFiles.has(relativePath)) {
+    return {artifact: null, errors: [`${label} must be tracked by Git.`]};
+  }
+  const resolvedRoot = path.resolve(root);
+  const resolvedPath = path.resolve(resolvedRoot, relativePath);
+  if (!resolvedPath.startsWith(`${resolvedRoot}${path.sep}`)) {
+    return {artifact: null, errors: [`${label} escapes the repository root.`]};
+  }
+  if (!fs.existsSync(resolvedPath)) {
+    return {artifact: null, errors: [`${label} file does not exist.`]};
+  }
+  const stats = fs.lstatSync(resolvedPath);
+  if (
+    !stats.isFile() ||
+    stats.size <= 0 ||
+    stats.size > MAX_REPOSITORY_EVIDENCE_BYTES
+  ) {
+    return {
+      artifact: null,
+      errors: [`${label} must be a regular file no larger than 1 MiB.`],
+    };
+  }
+  const bytes = fs.readFileSync(resolvedPath);
+  if (stats.size !== evidence.artifact_size_bytes) {
+    errors.push(`${label} byte size does not match.`);
+  }
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  if (sha256 !== evidence.artifact_sha256) {
+    errors.push(`${label} SHA-256 does not match.`);
+  }
+  try {
+    return {artifact: parseStrictJson(bytes, label), errors};
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+    return {artifact: null, errors};
+  }
+}
+
+function closedBetaEvidencePolicy(
+  evidenceType,
+  semanticContext,
+  readinessSpecSha256,
+) {
+  if (
+    ['cross-device-bootstrap-test', 'offline-replay-test', 'canonical-state-test'].includes(
+      evidenceType,
+    )
+  ) {
+    return semanticContext.expectedPolicies?.[
+      'canonical-bootstrap-and-idempotent-events'
+    ];
+  }
+  if (
+    ['fsrs-version-lock', 'scheduler-contract-test', 'clock-boundary-test'].includes(
+      evidenceType,
+    )
+  ) {
+    return semanticContext.expectedPolicies?.['server-scheduler'];
+  }
+  if (RELEASE_OPERATIONAL_EVIDENCE_TYPES.includes(evidenceType)) {
+    return {
+      id: semanticContext.releaseOperationalPolicy?.policy_id,
+      sha256: semanticContext.releasePolicySha256,
+    };
+  }
+  return {
+    id: 'cet4-closed-beta-readiness-v1',
+    sha256: readinessSpecSha256,
+  };
+}
+
+function repositoryProofSets(root) {
+  const run = args =>
+    execFileSync('git', args, {
+      cwd: root,
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  return {
+    trackedFiles: new Set(
+      run(['ls-files', '-z'])
+        .split('\0')
+        .filter(Boolean),
+    ),
+    trustedCommits: new Set(
+      run(['rev-list', 'HEAD'])
+        .split('\n')
+        .filter(Boolean),
+    ),
   };
 }
 
@@ -293,8 +598,14 @@ function validateReadinessSpec(spec, errors) {
   );
   assertEqual(
     spec.state_policy?.formal_evidence_ingestion,
-    'not_implemented_fail_closed',
+    'registered_types_implemented_unregistered_fail_closed',
     'spec formal_evidence_ingestion',
+    errors,
+  );
+  assertExactArray(
+    spec.state_policy?.registered_evidence_types,
+    CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES,
+    'spec registered_evidence_types',
     errors,
   );
   assertExactSet(
@@ -839,16 +1150,32 @@ function main() {
       printUsage();
       return;
     }
-    const result = validateCet4ClosedBetaReadiness(
-      readStrictJson(options.contractPath, 'CET4 closed-beta readiness contract'),
-      readStrictJson(options.specPath, 'CET4 closed-beta readiness spec'),
+    const contract = readStrictJson(
+      options.contractPath,
+      'CET4 closed-beta readiness contract',
+    );
+    const spec = readStrictJson(
+      options.specPath,
+      'CET4 closed-beta readiness spec',
+    );
+    const proofSets = repositoryProofSets(ROOT);
+    const repositoryResult = verifyCet4ClosedBetaRepositoryEvidence(
+      contract,
       {
-        launchContract: readStrictJson(
-          options.launchContractPath,
-          'public launch readiness contract',
-        ),
+        ...proofSets,
+        root: ROOT,
       },
     );
+    const result = validateCet4ClosedBetaReadiness(contract, spec, {
+      launchContract: readStrictJson(
+        options.launchContractPath,
+        'public launch readiness contract',
+      ),
+      repositoryEvidenceValidated: repositoryResult.ok,
+    });
+    result.errors.push(...repositoryResult.errors);
+    result.ok = result.errors.length === 0;
+    result.ready = result.ready && result.ok;
     if (options.format === 'json') console.log(JSON.stringify(result, null, 2));
     else {
       console.log(

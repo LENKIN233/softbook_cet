@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import test from 'node:test';
@@ -11,8 +12,11 @@ import {fileURLToPath} from 'node:url';
 import {
   CET4_CLOSED_BETA_DEPENDENCY_IDS,
   CET4_CLOSED_BETA_GATE_DEFINITIONS,
+  CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES,
   validateCet4ClosedBetaReadiness,
+  verifyCet4ClosedBetaRepositoryEvidence,
 } from './validate_cet4_closed_beta_readiness.mjs';
+import {loadLaunchEvidenceSemanticContext} from './validate_launch_readiness.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const NOW = new Date('2026-08-24T00:00:00.000Z');
@@ -85,7 +89,10 @@ test('candidate, pilot-like evidence strings, and passed labels cannot fake read
   const result = validateCet4ClosedBetaReadiness(changed, spec, {now: NOW});
   assert.equal(result.ok, false);
   assert.equal(result.ready, false);
-  assert.match(result.errors.join('\n'), /formal evidence ingestion is not implemented/);
+  assert.match(
+    result.errors.join('\n'),
+    /requires successful tracked repository semantic validation/,
+  );
   assert.match(result.errors.join('\n'), /status must be not_ready/);
 
   const nonObject = structuredClone(contract);
@@ -105,6 +112,12 @@ test('one exact candidate may be recorded before evidence without becoming ready
   assert.equal(result.ready, false);
   assert.equal(result.summary.candidate_recorded, true);
   assert.equal(result.summary.evidence_count, 0);
+  const unreachable = verifyCet4ClosedBetaRepositoryEvidence(changed, {
+    trackedFiles: new Set(),
+    trustedCommits: new Set(),
+  });
+  assert.equal(unreachable.ok, false);
+  assert.match(unreachable.errors.join('\n'), /candidate commit must be reachable/);
 });
 
 test('dependency and gate registries cannot be deleted or renamed', () => {
@@ -164,6 +177,131 @@ test('CLI validates the baseline but require-ready remains fail closed', () => {
   assert.equal(JSON.parse(requireReady.stdout).ready, false);
 });
 
+test('registered learning evidence validates from tracked raw bytes for the closed-beta target', t => {
+  const tempRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'softbook-cet4-beta-evidence-'),
+  );
+  t.after(() => fs.rmSync(tempRoot, {force: true, recursive: true}));
+  fs.mkdirSync(path.join(tempRoot, 'spec'), {recursive: true});
+  fs.copyFileSync(
+    path.join(ROOT, 'spec/cet4-closed-beta-readiness.json'),
+    path.join(tempRoot, 'spec/cet4-closed-beta-readiness.json'),
+  );
+  const semanticContext = loadLaunchEvidenceSemanticContext({root: ROOT});
+  assert.equal(semanticContext.ok, true, semanticContext.errors.join('\n'));
+  const candidate = validCandidate();
+  const evidenceType = 'fsrs-version-lock';
+  const rawRelativePath =
+    'docs/release/evidence/raw/cet4-beta-fsrs-lock.json';
+  const rawPayload = '{"lockfile":"verified"}\n';
+  writeFile(tempRoot, rawRelativePath, rawPayload);
+  const artifact = validFsrsEvidenceArtifact(
+    candidate,
+    semanticContext.expectedPolicies['server-scheduler'],
+    rawRelativePath,
+    rawPayload,
+  );
+  const artifactRelativePath =
+    'docs/release/evidence/cet4-beta-fsrs-version-lock.json';
+  const artifactPayload = `${JSON.stringify(artifact, null, 2)}\n`;
+  writeFile(tempRoot, artifactRelativePath, artifactPayload);
+  const changed = structuredClone(contract);
+  changed.release_candidate = candidate;
+  const gate = changed.gates.find(
+    item => item.id === 'canonical-learning-and-space',
+  );
+  gate.status = 'in_progress';
+  gate.blocked_by = [];
+  gate.evidence = [
+    {
+      type: evidenceType,
+      artifact_uri: `repo://${artifactRelativePath}`,
+      artifact_sha256: hash(artifactPayload),
+      artifact_size_bytes: Buffer.byteLength(artifactPayload),
+      verified_at: artifact.verification.verified_at,
+      verified_by: artifact.verification.verified_by,
+      subject_commit_sha: candidate.commit_sha,
+    },
+  ];
+  const trackedFiles = new Set([rawRelativePath, artifactRelativePath]);
+  const repositoryResult = verifyCet4ClosedBetaRepositoryEvidence(changed, {
+    now: NOW,
+    root: tempRoot,
+    semanticContext,
+    trackedFiles,
+    trustedCommits: new Set([candidate.commit_sha]),
+  });
+  assert.equal(repositoryResult.ok, true, repositoryResult.errors.join('\n'));
+  const structural = validateCet4ClosedBetaReadiness(changed, spec, {
+    launchContract,
+    now: NOW,
+    repositoryEvidenceValidated: repositoryResult.ok,
+  });
+  assert.equal(structural.ok, true, structural.errors.join('\n'));
+  assert.equal(structural.ready, false);
+  assert.ok(CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES.includes(evidenceType));
+
+  fs.appendFileSync(path.join(tempRoot, rawRelativePath), '{"tampered":true}\n');
+  const tampered = verifyCet4ClosedBetaRepositoryEvidence(changed, {
+    now: NOW,
+    root: tempRoot,
+    semanticContext,
+    trackedFiles,
+    trustedCommits: new Set([candidate.commit_sha]),
+  });
+  assert.equal(tampered.ok, false);
+  assert.match(tampered.errors.join('\n'), /(byte size|SHA-256) does not match/);
+});
+
+test('unregistered closed-beta evidence types remain semantically ineligible', t => {
+  const tempRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'softbook-cet4-beta-unregistered-'),
+  );
+  t.after(() => fs.rmSync(tempRoot, {force: true, recursive: true}));
+  fs.mkdirSync(path.join(tempRoot, 'spec'), {recursive: true});
+  fs.copyFileSync(
+    path.join(ROOT, 'spec/cet4-closed-beta-readiness.json'),
+    path.join(tempRoot, 'spec/cet4-closed-beta-readiness.json'),
+  );
+  const candidate = validCandidate();
+  const artifactRelativePath =
+    'docs/release/evidence/cet4-beta-space-sync.json';
+  const artifact = {
+    schema_version: 'launch-gate-evidence.v1',
+    subject: {commit_sha: candidate.commit_sha},
+    raw_artifacts: [],
+  };
+  const payload = `${JSON.stringify(artifact, null, 2)}\n`;
+  writeFile(tempRoot, artifactRelativePath, payload);
+  const changed = structuredClone(contract);
+  changed.release_candidate = candidate;
+  const gate = changed.gates.find(
+    item => item.id === 'canonical-learning-and-space',
+  );
+  gate.status = 'in_progress';
+  gate.blocked_by = [];
+  gate.evidence = [
+    {
+      type: 'space-sync-test',
+      artifact_uri: `repo://${artifactRelativePath}`,
+      artifact_sha256: hash(payload),
+      artifact_size_bytes: Buffer.byteLength(payload),
+      verified_at: '2026-08-23T13:00:00.000Z',
+      verified_by: 'external:closed-beta-auditor',
+      subject_commit_sha: candidate.commit_sha,
+    },
+  ];
+  const result = verifyCet4ClosedBetaRepositoryEvidence(changed, {
+    now: NOW,
+    root: tempRoot,
+    semanticContext: loadLaunchEvidenceSemanticContext({root: ROOT}),
+    trackedFiles: new Set([artifactRelativePath]),
+    trustedCommits: new Set([candidate.commit_sha]),
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /no registered CET4 closed-beta type-specific semantic contract/);
+});
+
 function validCandidate() {
   return {
     schema_version: 'cet4-closed-beta-release-candidate.v1',
@@ -216,6 +354,88 @@ function evidenceRecord(type, index) {
     verified_by: 'external:closed-beta-auditor',
     subject_commit_sha: hash('candidate-commit').slice(0, 40),
   };
+}
+
+function validFsrsEvidenceArtifact(
+  candidate,
+  expectedPolicy,
+  rawRelativePath,
+  rawPayload,
+) {
+  const rawRole = 'raw-fsrs-lock';
+  return {
+    schema_version: 'learning-runtime-evidence.v1',
+    campaign_id: 'cet4-beta-runtime-campaign-001',
+    execution_mode: 'receiver_deployed',
+    gate_eligible: true,
+    result: 'passed',
+    subject: {
+      repository: candidate.repository,
+      commit_sha: candidate.commit_sha,
+      target_release: candidate.target_release,
+      gate_id: 'canonical-learning-and-space',
+      evidence_type: 'fsrs-version-lock',
+      policy_id: expectedPolicy.id,
+      policy_sha256: expectedPolicy.sha256,
+      environment: candidate.environment,
+      release: candidate.release,
+      client_builds: candidate.client_builds,
+    },
+    execution: {
+      started_at: '2026-08-23T10:00:00.000Z',
+      completed_at: '2026-08-23T10:05:00.000Z',
+      operator: 'team:closed-beta-release',
+      tool: {
+        name: 'softbook-evidence-runner',
+        version: '1.0.0',
+        config_sha256: hash('fsrs-config'),
+      },
+    },
+    verification: {
+      verified_at: '2026-08-23T11:00:00.000Z',
+      verified_by: 'external:closed-beta-auditor',
+      independent: true,
+      attestation: {
+        provider: 'protected_environment',
+        id: 'cet4-beta-fsrs-attestation',
+        sha256: hash('fsrs-attestation'),
+      },
+    },
+    raw_artifacts: [
+      {
+        role: rawRole,
+        artifact_uri: `repo://${rawRelativePath}`,
+        sha256: hash(rawPayload),
+        size_bytes: Buffer.byteLength(rawPayload),
+      },
+    ],
+    checks: [
+      'exact-library-version',
+      'exact-policy-version',
+      'fuzz-disabled',
+      'lockfile-bound',
+    ].map(id => ({id, status: 'passed', artifact_roles: [rawRole]})),
+    measurements: {
+      algorithm_id: 'FSRS-6',
+      library: 'ts-fsrs',
+      library_version: '5.4.1',
+      policy_version: 'softbook-fsrs.v1',
+      fuzz_enabled: false,
+      lockfile_sha256: expectedPolicy.lockfile_sha256,
+      assertions: {
+        exact_runtime_library: true,
+        exact_policy: true,
+        fuzz_disabled: true,
+        lockfile_matches_deployment: true,
+      },
+    },
+  };
+}
+
+function writeFile(root, relativePath, payload) {
+  const target = path.join(root, relativePath);
+  fs.mkdirSync(path.dirname(target), {recursive: true});
+  fs.writeFileSync(target, payload);
 }
 
 function readJson(file) {

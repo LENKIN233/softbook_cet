@@ -343,9 +343,14 @@ CET4-only formal closed-beta readiness is owned by
 `spec/cet4-closed-beta-readiness.json` and recorded in
 `docs/release/cet4-closed-beta-readiness.v1.json`. Validate the tracked baseline
 with `node scripts/validate_cet4_closed_beta_readiness.mjs`; it is expected to
-remain `not_ready` until type-specific evidence ingestion, one exact retained-
-parent candidate, every dependency and every gate are complete. This state is
-separate from and cannot promote `docs/release/launch-readiness.v1.json`.
+remain `not_ready` until one exact retained-parent candidate, every dependency
+and every gate are complete. The repository loader already accepts tracked,
+rehashed and reachable-commit-bound receiver deployment, SMS, Learning/
+scheduler and release-recovery evidence under the exact
+`target_release=cet4-closed-beta` cohort. Space, CET4 content, entitlement,
+device/distribution and other unregistered semantics remain fail closed. This
+state is separate from and cannot promote
+`docs/release/launch-readiness.v1.json`.
 
 Receiver delivery uses the fail-closed contracts in
 `release-bundle-v1-runtime-contract.md` and the implementation in
