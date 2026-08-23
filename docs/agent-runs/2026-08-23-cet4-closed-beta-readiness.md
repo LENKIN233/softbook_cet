@@ -69,6 +69,9 @@
   is implemented and all dependencies/gates are complete.
 - CLI validation loads the public launch record and requires the closed-beta
   non-replacement status claim to match its tracked state.
+- Android CI installs the exact Gradle-pinned NDK before the release build and
+  retries a corrupt download up to three times while deleting only the fully
+  resolved partial directory for that exact NDK version.
 
 ## Workspace boundary and read scope
 
@@ -88,6 +91,9 @@
 - New validator and negative test suite.
 - Authority map, document manifest, runtime boundary and Agent read-path mirrors.
 - Formal-approval classifier and PR-gate workflow registration.
+- Android release-boundary test and workflow: pinned NDK install/retry before
+  the unsigned release build after the first PR run hit a corrupt runner
+  archive.
 - HR-45 / GT-38 regressions and product-contract harness mirror.
 - CloudBase README and release-bundle contract non-replacement guidance.
 - `docs/agent-runs/2026-08-23-cet4-closed-beta-readiness.md`: this record.
@@ -95,6 +101,8 @@
 ## Commands run
 
 - Focused closed-beta readiness and formal-classifier tests -> 18/18 passed.
+- Focused Android release-boundary tests -> 4/4 passed after the pinned NDK
+  retry addition.
 - Combined closed-beta, launch-evidence and formal-classifier tests -> 58/58
   passed.
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> 296/296 passed.
@@ -119,6 +127,9 @@
 - Personal/development environment, missing retained parent, wrong content count
   and placeholder audio-QC hash all fail candidate validation.
 - `--require-ready` exits nonzero against the honest tracked baseline.
+- The Android workflow no longer relies on Gradle's one-shot automatic NDK
+  download; exact version, three attempts, installed marker and bounded cleanup
+  are contract-tested.
 
 ## Binary evidence
 
@@ -151,6 +162,8 @@
   weakening the public-launch contract.
 - Receiver environment purchase/ownership, human content/audio review, signing
   credentials and real devices remain external inputs.
+- If all three official SDK-manager attempts fail, Android CI remains failed;
+  the retry does not turn an unavailable or corrupt NDK into a green artifact.
 
 ## Follow-up
 
