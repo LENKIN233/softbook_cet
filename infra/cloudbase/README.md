@@ -437,8 +437,11 @@ node scripts/build_formal_release_bundle.mjs \
   --release-at <ISO-8601>
 ```
 
-Add `--apply` only to retain the fully core-verified output. The builder does
-not create approval/QC, deploy, publish, or create readiness evidence.
+Add `--apply --operator github:<receiver-operator>` only from Node 22.13.0 on
+clean `main` exactly equal to `origin/main` to retain the fully core-verified
+output. Report v2 binds the exact commit, profile/bundle/evidence hashes and
+execution window without exposing the machine-local output path. The builder
+does not create approval/QC, deploy, publish, or create readiness evidence.
 
 Add `--apply --operator github:<receiver-operator>` only to `provision`,
 `deploy`, `publish`, or `rollback` after reviewing the plan. Apply requires

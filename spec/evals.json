@@ -645,6 +645,8 @@
         "temporary_assembly_and_core_verification_precede_output",
         "apply_refuses_existing_output_directory",
         "build_report_is_gate_ineligible_and_performs_no_CloudBase_write",
+        "apply_requires_Node_22_13_0_clean_exact_main_and_identified_operator",
+        "report_v2_binds_commit_profile_bundle_evidence_hashes_and_execution_window",
         "retained_parent_status_still_requires_receiver_verification"
       ]
     }
@@ -1335,6 +1337,7 @@
         "optional_distinct_parent_release_for_A_then_B",
         "verifyReleaseBundleDirectory_required_before_output",
         "no_overwrite_no_CloudBase_write_gate_eligible_false",
+        "formal_bundle_build_report_v2_commit_operator_execution_and_hash_binding",
         "does_not_generate_content_approval_QC_deployment_or_readiness_evidence"
       ]
     }

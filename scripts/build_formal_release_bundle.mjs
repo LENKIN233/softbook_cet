@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {
   copyFileSync,
@@ -12,7 +13,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import {tmpdir} from 'node:os';
-import {dirname, join, relative, resolve, sep} from 'node:path';
+import {basename, dirname, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {
@@ -24,6 +25,7 @@ import {
   normalizeEvidenceTimestamp,
 } from './build_controlled_pilot_bundle.mjs';
 import {parseStrictJson} from './lib/strict_json.mjs';
+import {REQUIRED_DEPLOYMENT_NODE_VERSION} from '../infra/cloudbase/deployment-safety.mjs';
 
 const CET4_CARD_COUNT = 1180;
 const CET4_BOX_COUNT = 108;
@@ -33,16 +35,29 @@ const APPROVAL_PATH = 'approval/cet4-full-track-final.json';
 const AUDIO_MANIFEST_PATH = 'audio/manifest.json';
 const AUDIO_QC_INDEX_PATH = 'audio/qc-index.json';
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const OPERATOR_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export class FormalReleaseBundleBuildError extends Error {}
 
 export function assembleFormalReleaseBundle(
   options,
-  {verify = verifyReleaseBundleDirectory} = {},
+  {
+    clock = () => new Date(),
+    nodeVersion = process.versions.node,
+    repository = readRepositoryState(),
+    verify = verifyReleaseBundleDirectory,
+  } = {},
 ) {
+  const startedAt = readTimestamp(clock, 'builder start');
   const normalized = normalizeOptions(options);
+  const writeSafety = inspectBuildSafety({nodeVersion, repository});
+  if (normalized.apply && !writeSafety.ok) {
+    fail(writeSafety.errors.join('; '));
+  }
+  const profileBytes = readFileSync(normalized.profilePath);
   const profile = validateDeliveryProfile(
-    readJson(normalized.profilePath, 'delivery profile'),
+    parseJsonBytes(profileBytes, 'delivery profile'),
   );
   const content = readJson(normalized.contentPayloadPath, 'CET4 content payload');
   const approval = readJson(normalized.approvalPath, 'full-track approval');
@@ -172,9 +187,14 @@ export function assembleFormalReleaseBundle(
       renameSync(staging, normalized.outputDirectory);
     }
     return {
-      schema_version: 'formal-release-bundle-build-report.v1',
+      schema_version: 'formal-release-bundle-build-report.v2',
       apply: normalized.apply,
-      bundle_directory: normalized.apply ? normalized.outputDirectory : null,
+      bundle_directory: normalized.apply
+        ? basename(normalized.outputDirectory)
+        : null,
+      repository_commit: repository.head,
+      profile_id: profile.profile_id,
+      profile_sha256: sha256Bytes(profileBytes),
       bundle_id: bundle.bundle_id,
       bundle_sha256: bundleHash,
       release_id: bundle.release_id,
@@ -186,7 +206,17 @@ export function assembleFormalReleaseBundle(
       audio_qc_entry_count: bindings.length,
       unique_qc_record_count: usedRecords.size,
       approval_id: approval.approval_id,
+      approval_sha256: approvalHash,
+      audit_sha256: auditHash,
+      audio_manifest_sha256: manifestHash,
+      audio_qc_index_sha256: qcIndexHash,
       verified: true,
+      execution: {
+        started_at: startedAt,
+        completed_at: readTimestamp(clock, 'builder completion'),
+        operator: normalized.operator,
+      },
+      write_safety: writeSafety,
       cloudbase_writes_performed: false,
       gate_eligible: false,
     };
@@ -297,6 +327,13 @@ function normalizeOptions(options) {
   if (parentReleaseId === releaseId) {
     fail('parentReleaseId must differ from releaseId.');
   }
+  const operator = options.operator ?? null;
+  if (options.apply === true && !OPERATOR_PATTERN.test(operator ?? '')) {
+    fail('apply requires an identified github, team, or external operator.');
+  }
+  if (operator !== null && !OPERATOR_PATTERN.test(operator)) {
+    fail('operator must identify a github, team, or external operator.');
+  }
   return {
     ...options,
     profilePath: resolve(options.profilePath),
@@ -310,6 +347,7 @@ function normalizeOptions(options) {
     bundleId: requireIdentifier(options.bundleId, 'bundleId'),
     releaseId,
     parentReleaseId,
+    operator,
     createdAt: normalizeEvidenceTimestamp(options.createdAt, 'createdAt'),
     releaseAt: normalizeEvidenceTimestamp(options.releaseAt, 'releaseAt'),
     apply: options.apply === true,
@@ -329,6 +367,7 @@ export function parseFormalReleaseBundleArguments(argv) {
     ['--bundle-id', 'bundleId'],
     ['--release-id', 'releaseId'],
     ['--parent-release-id', 'parentReleaseId'],
+    ['--operator', 'operator'],
     ['--created-at', 'createdAt'],
     ['--release-at', 'releaseAt'],
   ]);
@@ -428,6 +467,57 @@ function sha256Bytes(value) {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
+function inspectBuildSafety({nodeVersion, repository}) {
+  const errors = [];
+  if (nodeVersion !== REQUIRED_DEPLOYMENT_NODE_VERSION) {
+    errors.push(
+      `Node must be ${REQUIRED_DEPLOYMENT_NODE_VERSION}; received ${nodeVersion}`,
+    );
+  }
+  if (repository?.branch !== 'main') errors.push('apply requires branch main');
+  if (repository?.dirty !== false) errors.push('apply requires a clean worktree');
+  if (repository?.head !== repository?.originMain) {
+    errors.push('apply requires HEAD exactly equal to origin/main');
+  }
+  return {
+    errors,
+    ok: errors.length === 0,
+    branch: repository?.branch ?? null,
+    dirty: repository?.dirty ?? null,
+    head: repository?.head ?? null,
+    origin_main: repository?.originMain ?? null,
+    node_version: nodeVersion,
+  };
+}
+
+function readRepositoryState() {
+  const git = args => {
+    try {
+      return execFileSync('git', args, {
+        cwd: ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch {
+      return null;
+    }
+  };
+  const status = git(['status', '--porcelain=v1', '--untracked-files=all']);
+  return {
+    branch: git(['branch', '--show-current']),
+    dirty: status === null ? null : status !== '',
+    head: git(['rev-parse', 'HEAD']),
+    originMain: git(['rev-parse', 'origin/main']),
+  };
+}
+
+function readTimestamp(clock, label) {
+  const value = clock();
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) fail(`${label} clock is invalid.`);
+  return date.toISOString();
+}
+
 function pathExists(file) {
   try {
     return statSync(file).isDirectory() || statSync(file).isFile();
@@ -442,7 +532,7 @@ function fail(message) {
 
 function printUsage() {
   console.log(`Usage:
-  node scripts/build_formal_release_bundle.mjs --profile <delivery-profile.json> --content-payload <cet4.json> --approval <full-track-final.json> --audit <quality-audit.json> --audio-qc-dir <dir> --output-dir <dir> --bundle-id <id> --release-id <id> [--parent-release-id <id>] --created-at <ISO> --release-at <ISO> [--asset-root <dir>] [--apply]
+  node scripts/build_formal_release_bundle.mjs --profile <delivery-profile.json> --content-payload <cet4.json> --approval <full-track-final.json> --audit <quality-audit.json> --audio-qc-dir <dir> --output-dir <dir> --bundle-id <id> --release-id <id> [--parent-release-id <id>] --created-at <ISO> --release-at <ISO> [--asset-root <dir>] [--apply --operator <id>]
 
 The builder is dry-run by default: it assembles and fully verifies a temporary formal bundle, then removes it. --apply keeps the verified output directory. It never creates approval, QC, deployment or launch evidence.`);
 }

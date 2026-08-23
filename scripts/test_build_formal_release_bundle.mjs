@@ -80,6 +80,7 @@ test('dry-run assembles exact 1180/108/301 scope, invokes core verifier, and ret
 
   assert.equal(verificationCalls, 1);
   assert.equal(report.apply, false);
+  assert.equal(report.schema_version, 'formal-release-bundle-build-report.v2');
   assert.equal(report.bundle_directory, null);
   assert.equal(report.card_count, 1180);
   assert.equal(report.box_count, 108);
@@ -90,22 +91,59 @@ test('dry-run assembles exact 1180/108/301 scope, invokes core verifier, and ret
   assert.equal(report.verified, true);
   assert.equal(report.cloudbase_writes_performed, false);
   assert.equal(report.gate_eligible, false);
+  assert.equal(report.execution.operator, null);
+  assert.match(report.repository_commit, /^[0-9a-f]{40}$/);
+  assert.match(report.profile_sha256, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(report.write_safety.ok, false);
   assert.equal(fs.existsSync(fixture.outputDirectory), false);
+});
+
+test('dry-run records a missing origin/main ref as unsafe without failing assembly', t => {
+  const fixture = createFixture();
+  t.after(() => fs.rmSync(fixture.root, {recursive: true, force: true}));
+  const report = assembleFormalReleaseBundle(fixture.options, {
+    ...safeBuildDependencies(),
+    repository: {
+      branch: '',
+      dirty: false,
+      head: 'a'.repeat(40),
+      originMain: null,
+    },
+    verify: ({bundlePath}) => {
+      verifyStagingBundle(bundlePath);
+      return {ok: true};
+    },
+  });
+  assert.equal(report.apply, false);
+  assert.equal(report.repository_commit, 'a'.repeat(40));
+  assert.equal(report.write_safety.ok, false);
+  assert.equal(report.write_safety.origin_main, null);
+  assert.deepEqual(report.write_safety.errors, [
+    'apply requires branch main',
+    'apply requires HEAD exactly equal to origin/main',
+  ]);
 });
 
 test('apply keeps only a fully verified output directory', t => {
   const fixture = createFixture();
   t.after(() => fs.rmSync(fixture.root, {recursive: true, force: true}));
   const report = assembleFormalReleaseBundle(
-    {...fixture.options, apply: true},
     {
+      ...fixture.options,
+      apply: true,
+      operator: 'github:receiver-operator',
+    },
+    {
+      ...safeBuildDependencies(),
       verify: ({bundlePath}) => {
         verifyStagingBundle(bundlePath);
         return {ok: true};
       },
     },
   );
-  assert.equal(report.bundle_directory, fixture.outputDirectory);
+  assert.equal(report.bundle_directory, 'cet4-bundle-b');
+  assert.equal(report.execution.operator, 'github:receiver-operator');
+  assert.equal(report.write_safety.ok, true);
   assert.equal(
     fs.existsSync(path.join(fixture.outputDirectory, 'release-bundle.json')),
     true,
@@ -113,6 +151,40 @@ test('apply keeps only a fully verified output directory', t => {
   assert.equal(
     fs.existsSync(path.join(fixture.outputDirectory, 'audio/a000.mp3')),
     true,
+  );
+});
+
+test('apply requires operator, exact Node, clean main, and origin parity', t => {
+  const fixture = createFixture();
+  t.after(() => fs.rmSync(fixture.root, {recursive: true, force: true}));
+  assert.throws(
+    () =>
+      assembleFormalReleaseBundle(
+        {...fixture.options, apply: true},
+        {...safeBuildDependencies(), verify: () => ({ok: true})},
+      ),
+    /apply requires an identified/,
+  );
+  assert.throws(
+    () =>
+      assembleFormalReleaseBundle(
+        {
+          ...fixture.options,
+          apply: true,
+          operator: 'github:receiver-operator',
+        },
+        {
+          ...safeBuildDependencies(),
+          repository: {
+            branch: 'infra/topic',
+            dirty: true,
+            head: 'a'.repeat(40),
+            originMain: 'b'.repeat(40),
+          },
+          verify: () => ({ok: true}),
+        },
+      ),
+    /branch main; apply requires a clean worktree; apply requires HEAD exactly equal/,
   );
 });
 
@@ -355,6 +427,23 @@ function verifyStagingBundle(bundlePath) {
   assert.equal(fs.existsSync(path.join(root, bundle.audio.qc_index_path)), true);
   const qcIndex = readJson(path.join(root, bundle.audio.qc_index_path));
   assert.equal(qcIndex.assets.length, 301);
+}
+
+function safeBuildDependencies() {
+  const timestamps = [
+    new Date('2026-08-23T10:00:00.000Z'),
+    new Date('2026-08-23T10:05:00.000Z'),
+  ];
+  return {
+    clock: () => timestamps.shift(),
+    nodeVersion: '22.13.0',
+    repository: {
+      branch: 'main',
+      dirty: false,
+      head: 'a'.repeat(40),
+      originMain: 'a'.repeat(40),
+    },
+  };
 }
 
 function readJson(file) {
