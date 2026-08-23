@@ -92,7 +92,7 @@
   passed.
 - `npm test` in `infra/cloudbase/functions/softbook-api` -> 296/296 passed.
 - `python3 scripts/test_learning_events_contract.py` -> 17/17 passed.
-- `python3 scripts/validate_harness.py --mode full` ->
+- `python3 scripts/validate_harness.py` ->
   `HARNESS VALIDATION OK` with remote guard included.
 - `PATH=/Users/lenkin/.nvm/versions/node/v22.13.0/bin:$PATH
   ./scripts/run_local_gates --profile dev --base origin/main --output

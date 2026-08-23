@@ -3655,7 +3655,7 @@ def cet4_closed_beta_readiness_findings(
     for snippet in [
         "node --test scripts/test_validate_cet4_closed_beta_readiness.mjs",
         "node scripts/validate_cet4_closed_beta_readiness.mjs",
-        "node --test ../../../scripts/test_build_formal_release_bundle.mjs",
+        "node --test ../../../../scripts/test_build_formal_release_bundle.mjs",
     ]:
         if snippet not in workflow_text:
             findings.append(

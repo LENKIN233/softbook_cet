@@ -215,7 +215,7 @@ jobs:
         run: npm test
 
       - name: Test formal release bundle builder
-        run: node --test ../../../scripts/test_build_formal_release_bundle.mjs
+        run: node --test ../../../../scripts/test_build_formal_release_bundle.mjs
 
   dependency-security:
     runs-on: ubuntu-latest
