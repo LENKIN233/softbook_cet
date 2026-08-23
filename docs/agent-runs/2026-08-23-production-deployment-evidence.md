@@ -4,7 +4,7 @@
 
 - Date: 2026-08-23
 - Branch: `infra/production-deployment-evidence-v1`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/514
 - Summary: Register fail-closed type-specific `production-deployment`
   launch-gate semantics over real receiver delivery report v2 deploy/verify
   output, the exact delivery profile and exact release bundle, while rejecting
