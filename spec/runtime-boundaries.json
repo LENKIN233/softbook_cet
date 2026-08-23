@@ -309,6 +309,24 @@
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },
+  "cet4_closed_beta_readiness": {
+    "classification": "product_truth_and_implementation_hypothesis",
+    "owner": "spec/cet4-closed-beta-readiness.json",
+    "state_record": "docs/release/cet4-closed-beta-readiness.v1.json",
+    "validator": "scripts/validate_cet4_closed_beta_readiness.mjs",
+    "scope": "CET4_only_exactly_1180_cards_108_boxes_301_audio_assets_ios_android_and_pc_web",
+    "candidate_schema": "cet4-closed-beta-release-candidate.v1",
+    "receiver_boundary": "independent_receiver_owned_CloudBase_environment_personal_development_environment_rejected",
+    "content_boundary": "exact_full_track_final_user_approval_and_301_identified_human_formal_audio_QC_records",
+    "runtime_boundary": "real_auth_bootstrap_learning_events_server_scheduler_space_sync_signed_private_audio_beta_entitlement_and_account_deletion",
+    "acceptance_boundary": "real_iOS_and_Android_devices_plus_PC_Web_on_one_exact_candidate_cohort",
+    "recovery_boundary": "non_regressing_release_operational_policy_with_verified_retained_parent_and_real_rollback",
+    "launch_non_replacement": "closed_beta_ready_never_implies_docs_release_launch_readiness_v1_ready_and_does_not_lower_CET6_public_launch_payment_distribution_or_compliance_gates",
+    "formal_evidence_ingestion": "not_implemented_fail_closed",
+    "implementation_status": "exact_readiness_spec_state_baseline_structural_validator_negative_tests_and_launch_non_replacement_guard_implemented",
+    "deployment_status": "not_deployed_by_repository_change",
+    "readiness_status": "not_ready"
+  },
   "controlled_pilot_runtime": {
     "classification": "implementation_hypothesis",
     "owner": "spec/runtime-boundaries.json#controlled_pilot_runtime",

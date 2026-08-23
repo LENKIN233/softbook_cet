@@ -2960,6 +2960,7 @@ def launch_evidence_contract_findings(
         "spec/account-sync-contract.json",
         "spec/membership.json",
         "spec/runtime-boundaries.json",
+        "spec/cet4-closed-beta-readiness.json",
         "spec/release-operational-policy.json",
         "infra/cloudbase/learning-events-v2-runtime-contract.md",
         "infra/cloudbase/learning-session-v1-runtime-contract.md",
@@ -3314,6 +3315,253 @@ def launch_evidence_contract_findings(
     return findings
 
 
+def cet4_closed_beta_readiness_findings(
+    root,
+    readiness_spec,
+    authority,
+    runtime,
+    agent,
+    evals,
+    agent_entry_text,
+):
+    findings = []
+    state_path = root / "docs/release/cet4-closed-beta-readiness.v1.json"
+    validator_path = root / "scripts/validate_cet4_closed_beta_readiness.mjs"
+    test_path = root / "scripts/test_validate_cet4_closed_beta_readiness.mjs"
+    try:
+        readiness_state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        findings.append(f"cet4-closed-beta readiness state unreadable: {error}")
+        readiness_state = {}
+    launch_path = root / "docs/release/launch-readiness.v1.json"
+    try:
+        launch_state = json.loads(launch_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        findings.append(f"cet4-closed-beta public launch state unreadable: {error}")
+        launch_state = {}
+
+    expected_truth = {
+        "target_release": "cet4-closed-beta",
+        "track": "cet4",
+        "card_count": 1180,
+        "box_count": 108,
+        "audio_asset_count": 301,
+        "release_targets": ["ios", "android", "pc_web"],
+        "membership_access": "receiver_operator_beta_entitlement_v1",
+        "content_approval": "one_exact_full_track_final_user_approval_bound_to_the_CET4_corpus",
+        "audio_approval": "one_formal_identified_human_QC_record_for_every_referenced_audio_asset",
+        "receiver_environment": "independent_receiver_owned_CloudBase_environment_not_the_personal_development_environment",
+    }
+    _expect_contract_path(
+        findings,
+        "cet4-closed-beta",
+        "product truth",
+        readiness_spec,
+        ("product_truth",),
+        expected_truth,
+    )
+    expected_owner = {
+        "owner": "spec/cet4-closed-beta-readiness.json",
+        "mirrors": [
+            "docs/release/cet4-closed-beta-readiness.v1.json",
+            "spec/runtime-boundaries.json",
+            "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+            "spec/agent-harness.json",
+            "spec/evals.json",
+            "scripts/validate_cet4_closed_beta_readiness.mjs",
+        ],
+        "notes": "Owns the CET4-only formal closed-beta candidate, exact 1180-card/108-box/301-audio scope, receiver/runtime/content/device/recovery gates and public-launch non-replacement boundary. Release SLO thresholds and evidence semantics remain owned by release-operational-policy.",
+    }
+    _expect_contract_path(
+        findings,
+        "cet4-closed-beta",
+        "authority owner",
+        authority,
+        ("domains", "cet4_closed_beta_readiness"),
+        expected_owner,
+    )
+    expected_runtime = {
+        "classification": "product_truth_and_implementation_hypothesis",
+        "owner": "spec/cet4-closed-beta-readiness.json",
+        "state_record": "docs/release/cet4-closed-beta-readiness.v1.json",
+        "validator": "scripts/validate_cet4_closed_beta_readiness.mjs",
+        "scope": "CET4_only_exactly_1180_cards_108_boxes_301_audio_assets_ios_android_and_pc_web",
+        "candidate_schema": "cet4-closed-beta-release-candidate.v1",
+        "receiver_boundary": "independent_receiver_owned_CloudBase_environment_personal_development_environment_rejected",
+        "content_boundary": "exact_full_track_final_user_approval_and_301_identified_human_formal_audio_QC_records",
+        "runtime_boundary": "real_auth_bootstrap_learning_events_server_scheduler_space_sync_signed_private_audio_beta_entitlement_and_account_deletion",
+        "acceptance_boundary": "real_iOS_and_Android_devices_plus_PC_Web_on_one_exact_candidate_cohort",
+        "recovery_boundary": "non_regressing_release_operational_policy_with_verified_retained_parent_and_real_rollback",
+        "launch_non_replacement": "closed_beta_ready_never_implies_docs_release_launch_readiness_v1_ready_and_does_not_lower_CET6_public_launch_payment_distribution_or_compliance_gates",
+        "formal_evidence_ingestion": "not_implemented_fail_closed",
+        "implementation_status": "exact_readiness_spec_state_baseline_structural_validator_negative_tests_and_launch_non_replacement_guard_implemented",
+        "deployment_status": "not_deployed_by_repository_change",
+        "readiness_status": "not_ready",
+    }
+    _expect_contract_path(
+        findings,
+        "cet4-closed-beta",
+        "runtime mirror",
+        runtime,
+        ("cet4_closed_beta_readiness",),
+        expected_runtime,
+    )
+    expected_scope = {
+        "track": "cet4",
+        "card_count": 1180,
+        "box_count": 108,
+        "audio_asset_count": 301,
+        "release_targets": ["ios", "android", "pc_web"],
+        "membership_access": "beta-entitlement.v1",
+    }
+    _expect_contract_path(
+        findings,
+        "cet4-closed-beta",
+        "tracked state scope",
+        readiness_state,
+        ("scope",),
+        expected_scope,
+    )
+    for keys, expected, label in [
+        (("schema_version",), "cet4-closed-beta-readiness.v1", "schema"),
+        (("target_release",), "cet4-closed-beta", "target"),
+        (("status",), "not_ready", "honest status"),
+        (
+            ("formal_evidence_ingestion",),
+            "not_implemented_fail_closed",
+            "evidence ingestion boundary",
+        ),
+        (
+            (
+                "launch_non_replacement",
+                "closed_beta_ready_does_not_imply_public_launch_ready",
+            ),
+            True,
+            "launch non-replacement",
+        ),
+    ]:
+        _expect_contract_path(
+            findings,
+            "cet4-closed-beta",
+            label,
+            readiness_state,
+            keys,
+            expected,
+        )
+    if readiness_state.get("launch_non_replacement", {}).get(
+        "launch_status_unchanged"
+    ) != launch_state.get("status"):
+        findings.append(
+            "cet4-closed-beta launch non-replacement status must match tracked public launch state"
+        )
+
+    read_path = agent.get("read_paths", {}).get(
+        "launch_evidence_or_release_readiness", []
+    )
+    if "spec/cet4-closed-beta-readiness.json" not in read_path:
+        findings.append(
+            "cet4-closed-beta Agent read path missing readiness owner"
+        )
+    for snippet in [
+        "spec/cet4-closed-beta-readiness.json",
+        "CET4 正式封闭内测 readiness",
+        "closed-beta readiness 的 `ready`",
+    ]:
+        if snippet not in agent_entry_text:
+            findings.append(
+                f"cet4-closed-beta Agent entry missing exact snippet: {snippet!r}"
+            )
+
+    validator_text = (
+        validator_path.read_text(encoding="utf-8")
+        if validator_path.is_file()
+        else ""
+    )
+    test_text = test_path.read_text(encoding="utf-8") if test_path.is_file() else ""
+    for snippet in [
+        "not_implemented_fail_closed",
+        "closed_beta_ready_does_not_imply_public_launch_ready",
+        "formal evidence ingestion is not implemented",
+        "cet4-closed-beta-release-candidate.v1",
+        "card_count, 1180",
+        "audio_asset_count, 301",
+    ]:
+        if snippet not in validator_text:
+            findings.append(
+                f"cet4-closed-beta validator missing exact snippet: {snippet!r}"
+            )
+    for snippet in [
+        "cannot fake readiness",
+        "cannot replace or mutate public launch readiness",
+        "require-ready remains fail closed",
+    ]:
+        if snippet not in test_text:
+            findings.append(
+                f"cet4-closed-beta tests missing exact snippet: {snippet!r}"
+            )
+
+    expected_hr45 = [
+        "cet4_closed_beta_readiness_has_a_separate_authority_owner",
+        "exact_CET4_1180_card_108_box_301_audio_scope",
+        "ios_android_and_pc_web_release_targets_are_retained",
+        "receiver_owned_environment_and_beta_entitlement_are_required",
+        "full_track_final_user_approval_and_301_identified_human_QC_are_required",
+        "real_auth_learning_scheduler_space_private_audio_and_account_deletion_are_required",
+        "real_device_and_private_distribution_evidence_are_required",
+        "non_regressing_release_recovery_policy_is_reused",
+        "one_exact_closed_beta_release_candidate_with_retained_parent_is_required",
+        "missing_type_specific_evidence_ingestion_fails_closed",
+        "pilot_dry_run_simulation_ASR_and_technical_audit_are_not_formal_evidence",
+        "closed_beta_ready_never_implies_public_launch_ready",
+    ]
+    hr45 = _entry_by_id(evals.get("regressions", []), "HR-45")
+    if not hr45 or hr45.get("must_hit") != expected_hr45:
+        findings.append("cet4-closed-beta evals: HR-45 drift")
+    expected_gt38 = [
+        "spec_cet4_closed_beta_readiness_owner",
+        "tracked_cet4_closed_beta_readiness_v1_state",
+        "cet4_closed_beta_release_candidate_v1",
+        "exact_1180_cards_108_boxes_301_audio_assets",
+        "ios_android_pc_web_targets",
+        "receiver_runtime_auth_account_deletion_learning_space_content_entitlement_device_and_recovery_gates",
+        "independent_receiver_environment_and_real_SMS",
+        "full_track_final_approval_and_identified_human_audio_QC",
+        "verified_retained_parent_release",
+        "formal_evidence_ingestion_not_implemented_fail_closed",
+        "candidate_pilot_dry_run_simulation_and_technical_audit_non_eligibility",
+        "public_launch_readiness_unchanged_not_ready",
+    ]
+    gt38 = _entry_by_id(evals.get("golden_tasks", []), "GT-38")
+    if not gt38 or gt38.get("must_include") != expected_gt38:
+        findings.append("cet4-closed-beta evals: GT-38 drift")
+
+    workflow_text = (root / ".github/workflows/pr-gates.yml").read_text(
+        encoding="utf-8"
+    )
+    for snippet in [
+        "node --test scripts/test_validate_cet4_closed_beta_readiness.mjs",
+        "node scripts/validate_cet4_closed_beta_readiness.mjs",
+    ]:
+        if snippet not in workflow_text:
+            findings.append(
+                f"cet4-closed-beta PR gates missing command: {snippet}"
+            )
+    classifier_text = (
+        root / "scripts/classify_formal_approval_scope.mjs"
+    ).read_text(encoding="utf-8")
+    for sensitive_path in [
+        "'scripts/validate_cet4_closed_beta_readiness.mjs'",
+        "'scripts/test_validate_cet4_closed_beta_readiness.mjs'",
+        "'spec/cet4-closed-beta-readiness.json'",
+    ]:
+        if sensitive_path not in classifier_text:
+            findings.append(
+                "cet4-closed-beta formal approval classifier missing "
+                f"{sensitive_path}"
+            )
+    return findings
+
+
 def validate(context) -> None:
     check_equal = context.check_equal
     req = context.load("requirement-memory.json")
@@ -3323,6 +3571,8 @@ def validate(context) -> None:
     membership = context.load("membership.json")
     interactions = context.load("interactions.json")
     runtime = context.load("runtime-boundaries.json")
+    closed_beta_readiness = context.load("cet4-closed-beta-readiness.json")
+    authority = context.load("authority-map.json")
     agent = context.load("agent-harness.json")
     evals = context.load("evals.json")
     release_policy = context.load("release-operational-policy.json")
@@ -3459,6 +3709,17 @@ def validate(context) -> None:
             evals,
             release_runtime_text,
             package_text,
+        )
+    )
+    context.errors.extend(
+        cet4_closed_beta_readiness_findings(
+            context.root,
+            closed_beta_readiness,
+            authority,
+            runtime,
+            agent,
+            evals,
+            agent_entry_text,
         )
     )
 

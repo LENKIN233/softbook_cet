@@ -48,6 +48,7 @@
       "spec/account-sync-contract.json",
       "spec/membership.json",
       "spec/runtime-boundaries.json",
+      "spec/cet4-closed-beta-readiness.json",
       "spec/release-operational-policy.json",
       "infra/cloudbase/learning-events-v2-runtime-contract.md",
       "infra/cloudbase/learning-session-v1-runtime-contract.md",

@@ -25,6 +25,7 @@ test('ordinary implementation changes do not require formal approval', () => {
 test('launch records, evidence, validators, and workflows require approval', () => {
   const changed = [
     'docs/release/launch-readiness.v1.json',
+    'docs/release/cet4-closed-beta-readiness.v1.json',
     'docs/agent-runs/evidence/run.json',
     'security/reports/penetration-test.json',
     'scripts/lib/launch_evidence_contract.mjs',
@@ -32,12 +33,15 @@ test('launch records, evidence, validators, and workflows require approval', () 
     'scripts/validate_dependency_security.mjs',
     'scripts/test_validate_dependency_security.mjs',
     'scripts/validate_launch_readiness.mjs',
+    'scripts/validate_cet4_closed_beta_readiness.mjs',
+    'scripts/test_validate_cet4_closed_beta_readiness.mjs',
     'scripts/report_repo_health.mjs',
     'scripts/harness_validator/sections/product_contract_mirrors.py',
     'scripts/harness_validator/sections/truth_mirrors.py',
     'scripts/harness_validator/sections/governance_contracts.py',
     'security/dependency-audit-policy.json',
     'spec/account-sync-contract.json',
+    'spec/cet4-closed-beta-readiness.json',
     'spec/authority-map.json',
     'spec/doc-manifest.json',
     'spec/release-operational-policy.json',

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-4",
+  "version": "vnext-5",
   "purpose": "Single-source ownership map for active harness facts. If the same concept appears in multiple files, the owner here wins and non-owner copies must stay consistent.",
   "domains": {
     "user_origin_memory": {
@@ -71,6 +71,18 @@
         "scripts/lib/launch_evidence_contract.mjs"
       ],
       "notes": "Owns the minimum release SLO, RPO, RTO, evidence binding, external provider/control-plane capability checks, gate non-replacement, and simulation non-eligibility policy. Runtime contracts describe execution boundaries; launch evidence validators enforce the policy without promoting repository simulations or capability metadata to formal runtime gates."
+    },
+    "cet4_closed_beta_readiness": {
+      "owner": "spec/cet4-closed-beta-readiness.json",
+      "mirrors": [
+        "docs/release/cet4-closed-beta-readiness.v1.json",
+        "spec/runtime-boundaries.json",
+        "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+        "spec/agent-harness.json",
+        "spec/evals.json",
+        "scripts/validate_cet4_closed_beta_readiness.mjs"
+      ],
+      "notes": "Owns the CET4-only formal closed-beta candidate, exact 1180-card/108-box/301-audio scope, receiver/runtime/content/device/recovery gates and public-launch non-replacement boundary. Release SLO thresholds and evidence semantics remain owned by release-operational-policy."
     },
     "repo_delivery_and_pull_request_contract": {
       "owner": "spec/repo-delivery-contract.json",
