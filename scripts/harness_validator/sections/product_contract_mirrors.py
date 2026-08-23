@@ -250,6 +250,7 @@ def validate(context) -> None:
         "HR-50",
         "HR-51",
         "HR-52",
+        "HR-53",
     ):
         if not find_by_id(evals["regressions"], regression_id):
             errors.append(f"missing representative machine-acceptance eval: {regression_id}")
@@ -262,6 +263,7 @@ def validate(context) -> None:
         "GT-40",
         "GT-43",
         "GT-44",
+        "GT-45",
     ):
         if not find_by_id(evals["golden_tasks"], task_id):
             errors.append(f"missing representative delivery eval: {task_id}")
@@ -334,6 +336,31 @@ def validate(context) -> None:
         if token not in formal_space_boundary:
             errors.append(f"formal space boundary missing: {token}")
 
+    session_drill = account["authentication"].get(
+        "receiver_session_revocation_drill", {}
+    )
+    check_equal(
+        "session revocation drill runner",
+        "infra/cloudbase/run-session-revocation-drill.mjs",
+        session_drill.get("runner"),
+    )
+    session_runtime = runtime.get("session_revocation_drill_runtime", {})
+    session_runtime_text = " ".join(str(item) for item in session_runtime.values())
+    for token in (
+        "session-revocation-drill-report.v1",
+        "fresh_same_phone_distinct_session",
+        "A_refresh_rotation",
+        "single_session_revocation",
+        "B_refresh_rotation",
+        "rotated_access_survival",
+        "logout_idempotency",
+        "operator_cannot_embed_phone_or_credential",
+        "without_phone_or_token_values",
+        "gate_eligible_false",
+    ):
+        if token not in session_runtime_text:
+            errors.append(f"session revocation drill boundary missing: {token}")
+
     launch_validator = (root / "scripts/validate_launch_readiness.mjs").read_text(
         encoding="utf-8"
     )
@@ -352,6 +379,8 @@ def validate(context) -> None:
         "scripts/test_beta_entitlement_drill_evidence.mjs",
         "infra/cloudbase/run-space-sync-drill.mjs",
         "scripts/test_space_sync_evidence.mjs",
+        "infra/cloudbase/run-session-revocation-drill.mjs",
+        "infra/cloudbase/functions/softbook-api/test/session-revocation-drill-report.test.js",
     ):
         if not (root / artifact).is_file():
             errors.append(f"missing closed-beta machine artifact: {artifact}")

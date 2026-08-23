@@ -1,5 +1,5 @@
 {
-  "version": "vnext-30",
+  "version": "vnext-31",
   "regressions": [
     {
       "id": "HR-01",
@@ -763,6 +763,26 @@
         "sleep_and_restore_actions_each_increment_once",
         "favorite_sleep_toggled_independently_and_initial_state_restored",
         "production_deployment_gate_remains_independently_required"
+      ]
+    },
+    {
+      "id": "HR-53",
+      "prompt": "把单元测试、dry-run、一个 session 的 logout 或包含自填 status 的 JSON 当成 receiver session-revocation evidence",
+      "fail_signal": "accepts_partial_or_mock_session_revocation_as_receiver_evidence",
+      "must_hit": [
+        "account_sync_contract_authentication_owner",
+        "dry_run_performs_no_remote_request",
+        "apply_requires_Node_22_13_clean_exact_main_receiver_profile_and_operator",
+        "two_fresh_same_phone_distinct_session_access_refresh_pairs",
+        "access_and_refresh_session_claims_match_then_access_is_server_confirmed",
+        "client_A_refresh_rotates_both_credentials",
+        "old_A_refresh_replay_returns_refresh_token_reused_and_revokes_only_A",
+        "rotated_A_refresh_and_access_return_revoked_auth_session",
+        "client_B_refresh_rotates_before_logout_and_rotated_access_remains_active",
+        "client_B_logout_replay_is_idempotent_204",
+        "rotated_client_B_access_and_refresh_fail_after_logout",
+        "operator_cannot_embed_phone_or_credential_material",
+        "phone_and_token_values_absent_raw_report_gate_eligible_false"
       ]
     }
   ],
@@ -1545,6 +1565,24 @@
         "tracked_size_SHA256_root_containment_and_raw_tamper_failure",
         "overall_readiness_still_requires_production_deployment",
         "no_dry_run_mock_or_expected_backend_substitution"
+      ]
+    },
+    {
+      "id": "GT-45",
+      "task": "生成 receiver closed-beta session revocation raw report",
+      "must_include": [
+        "infra_cloudbase_run_session_revocation_drill_mjs",
+        "session_revocation_drill_plan_v1_and_report_v1",
+        "closed_beta_profile_expected_backend_and_write_safety",
+        "environment_only_same_phone_distinct_A_B_session_credentials",
+        "server_confirmed_initial_A_B_bootstrap_scope",
+        "A_refresh_rotation_preserves_session_and_changes_bytes",
+        "old_A_refresh_replay_revokes_A",
+        "rotated_A_refresh_and_access_rejected",
+        "B_bootstrap_survives_A_revocation",
+        "B_logout_and_exact_replay_both_204",
+        "B_access_and_refresh_rejected_after_logout",
+        "hashed_session_IDs_no_phone_or_token_gate_ineligible_raw_report"
       ]
     }
   ]
