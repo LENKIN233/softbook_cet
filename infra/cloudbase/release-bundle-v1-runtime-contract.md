@@ -26,6 +26,11 @@ Referenced active specs:
   108-box and 301-audio scope. Its future `ready` state never changes or lowers
   `docs/release/launch-readiness.v1.json`, CET6, public distribution, payment or
   compliance gates.
+- The closed-beta repository loader reuses only registered type-specific
+  receiver-deployment, SMS, Learning/scheduler and release-recovery semantics
+  with `target_release=cet4-closed-beta`, the exact closed-beta candidate
+  cohort, tracked/rehashed raw artifacts and reachable commits. Every
+  unregistered closed-beta evidence type remains ineligible.
 
 `implementation_hypothesis`:
 

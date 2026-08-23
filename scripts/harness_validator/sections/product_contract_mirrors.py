@@ -3393,8 +3393,8 @@ def cet4_closed_beta_readiness_findings(
         "acceptance_boundary": "real_iOS_and_Android_devices_plus_PC_Web_on_one_exact_candidate_cohort",
         "recovery_boundary": "non_regressing_release_operational_policy_with_verified_retained_parent_and_real_rollback",
         "launch_non_replacement": "closed_beta_ready_never_implies_docs_release_launch_readiness_v1_ready_and_does_not_lower_CET6_public_launch_payment_distribution_or_compliance_gates",
-        "formal_evidence_ingestion": "not_implemented_fail_closed",
-        "implementation_status": "exact_readiness_spec_state_baseline_structural_validator_negative_tests_and_launch_non_replacement_guard_implemented",
+        "formal_evidence_ingestion": "registered_types_implemented_unregistered_fail_closed",
+        "implementation_status": "exact_readiness_spec_state_candidate_structural_validator_tracked_repository_loader_registered_receiver_SMS_learning_and_recovery_semantics_negative_tests_and_launch_non_replacement_guard_implemented",
         "deployment_status": "not_deployed_by_repository_change",
         "readiness_status": "not_ready",
     }
@@ -3405,6 +3405,29 @@ def cet4_closed_beta_readiness_findings(
         runtime,
         ("cet4_closed_beta_readiness",),
         expected_runtime,
+    )
+    expected_registered_evidence = [
+        "production-deployment",
+        "sms-provider-smoke",
+        "cross-device-bootstrap-test",
+        "offline-replay-test",
+        "canonical-state-test",
+        "fsrs-version-lock",
+        "scheduler-contract-test",
+        "clock-boundary-test",
+        "load-test-report",
+        "availability-observation",
+        "backup-restore-drill",
+        "penetration-test-report",
+        "rollback-drill",
+    ]
+    _expect_contract_path(
+        findings,
+        "cet4-closed-beta",
+        "registered evidence types",
+        readiness_spec,
+        ("state_policy", "registered_evidence_types"),
+        expected_registered_evidence,
     )
     expected_scope = {
         "track": "cet4",
@@ -3428,7 +3451,7 @@ def cet4_closed_beta_readiness_findings(
         (("status",), "not_ready", "honest status"),
         (
             ("formal_evidence_ingestion",),
-            "not_implemented_fail_closed",
+            "registered_types_implemented_unregistered_fail_closed",
             "evidence ingestion boundary",
         ),
         (
@@ -3479,10 +3502,11 @@ def cet4_closed_beta_readiness_findings(
     )
     test_text = test_path.read_text(encoding="utf-8") if test_path.is_file() else ""
     for snippet in [
-        "not_implemented_fail_closed",
+        "registered_types_implemented_unregistered_fail_closed",
         "closed_beta_ready_does_not_imply_public_launch_ready",
-        "formal evidence ingestion is not implemented",
+        "requires successful tracked repository semantic validation",
         "cet4-closed-beta-release-candidate.v1",
+        "CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES",
         "card_count, 1180",
         "audio_asset_count, 301",
     ]:
@@ -3510,7 +3534,8 @@ def cet4_closed_beta_readiness_findings(
         "real_device_and_private_distribution_evidence_are_required",
         "non_regressing_release_recovery_policy_is_reused",
         "one_exact_closed_beta_release_candidate_with_retained_parent_is_required",
-        "missing_type_specific_evidence_ingestion_fails_closed",
+        "registered_receiver_SMS_learning_and_recovery_semantics_are_reused_for_closed_beta_target",
+        "unregistered_space_content_entitlement_device_and_security_semantics_fail_closed",
         "pilot_dry_run_simulation_ASR_and_technical_audit_are_not_formal_evidence",
         "closed_beta_ready_never_implies_public_launch_ready",
     ]
@@ -3527,7 +3552,9 @@ def cet4_closed_beta_readiness_findings(
         "independent_receiver_environment_and_real_SMS",
         "full_track_final_approval_and_identified_human_audio_QC",
         "verified_retained_parent_release",
-        "formal_evidence_ingestion_not_implemented_fail_closed",
+        "formal_evidence_ingestion_registered_types_implemented_unregistered_fail_closed",
+        "tracked_outer_and_nested_raw_artifacts_are_rehashed_and_commit_reachable",
+        "registered_evidence_matches_exact_closed_beta_candidate_cohort",
         "candidate_pilot_dry_run_simulation_and_technical_audit_non_eligibility",
         "public_launch_readiness_unchanged_not_ready",
     ]

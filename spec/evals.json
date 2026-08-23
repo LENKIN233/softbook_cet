@@ -623,7 +623,8 @@
         "real_device_and_private_distribution_evidence_are_required",
         "non_regressing_release_recovery_policy_is_reused",
         "one_exact_closed_beta_release_candidate_with_retained_parent_is_required",
-        "missing_type_specific_evidence_ingestion_fails_closed",
+        "registered_receiver_SMS_learning_and_recovery_semantics_are_reused_for_closed_beta_target",
+        "unregistered_space_content_entitlement_device_and_security_semantics_fail_closed",
         "pilot_dry_run_simulation_ASR_and_technical_audit_are_not_formal_evidence",
         "closed_beta_ready_never_implies_public_launch_ready"
       ]
@@ -1293,7 +1294,9 @@
         "independent_receiver_environment_and_real_SMS",
         "full_track_final_approval_and_identified_human_audio_QC",
         "verified_retained_parent_release",
-        "formal_evidence_ingestion_not_implemented_fail_closed",
+        "formal_evidence_ingestion_registered_types_implemented_unregistered_fail_closed",
+        "tracked_outer_and_nested_raw_artifacts_are_rehashed_and_commit_reachable",
+        "registered_evidence_matches_exact_closed_beta_candidate_cohort",
         "candidate_pilot_dry_run_simulation_and_technical_audit_non_eligibility",
         "public_launch_readiness_unchanged_not_ready"
       ]

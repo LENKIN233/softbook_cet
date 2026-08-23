@@ -636,6 +636,7 @@ export function validateGateEvidenceArtifact(
     releaseOperationalPolicy = null,
     productionDeploymentEvidence = null,
     smsProviderSmokeReport = null,
+    targetRelease = '2027-Q2',
   } = {},
 ) {
   const errors = [];
@@ -686,6 +687,7 @@ export function validateGateEvidenceArtifact(
       expectedSubject,
       gateId,
       outerEvidence,
+      targetRelease,
     },
     `${label} subject`,
     errors,
@@ -2450,6 +2452,7 @@ function validateSubject(
     expectedSubject,
     gateId,
     outerEvidence,
+    targetRelease,
   },
   label,
   errors,
@@ -2490,7 +2493,12 @@ function validateSubject(
       errors,
     );
   }
-  assertEqual(subject.target_release, '2027-Q2', `${label}.target_release`, errors);
+  assertEqual(
+    subject.target_release,
+    targetRelease,
+    `${label}.target_release`,
+    errors,
+  );
   assertEqual(subject.gate_id, gateId, `${label}.gate_id`, errors);
   assertEqual(
     subject.evidence_type,

@@ -111,7 +111,22 @@
     ]
   },
   "state_policy": {
-    "formal_evidence_ingestion": "not_implemented_fail_closed",
+    "formal_evidence_ingestion": "registered_types_implemented_unregistered_fail_closed",
+    "registered_evidence_types": [
+      "production-deployment",
+      "sms-provider-smoke",
+      "cross-device-bootstrap-test",
+      "offline-replay-test",
+      "canonical-state-test",
+      "fsrs-version-lock",
+      "scheduler-contract-test",
+      "clock-boundary-test",
+      "load-test-report",
+      "availability-observation",
+      "backup-restore-drill",
+      "penetration-test-report",
+      "rollback-drill"
+    ],
     "statuses": [
       "not_ready",
       "ready"
