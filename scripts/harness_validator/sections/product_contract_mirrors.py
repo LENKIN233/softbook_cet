@@ -2852,6 +2852,11 @@ def launch_evidence_contract_findings(
             "type_specific_launch_gate_semantics_require_tracked_strict_receiver_deploy_and_verify_reports_profile_bundle_exact_backend_identity_clean_main_complete_receiver_preflight_healthy_API_zero_imported_user_data_and_verified_retained_parent_pilot_dry_run_and_simulation_reports_rejected",
         ),
         (
+            "release formal bundle builder",
+            ("release_delivery_runtime", "formal_bundle_builder_status"),
+            "dry_run_first_exact_CET4_payload_full_track_final_hash_bound_audit_301_human_QC_private_audio_profile_and_optional_retained_parent_assembler_implemented_and_core_verifier_required_before_output",
+        ),
+        (
             "release repository simulation status",
             (
                 "release_delivery_runtime",
@@ -3323,6 +3328,7 @@ def cet4_closed_beta_readiness_findings(
     agent,
     evals,
     agent_entry_text,
+    release_runtime_text,
 ):
     findings = []
     state_path = root / "docs/release/cet4-closed-beta-readiness.v1.json"
@@ -3562,12 +3568,94 @@ def cet4_closed_beta_readiness_findings(
     if not gt38 or gt38.get("must_include") != expected_gt38:
         findings.append("cet4-closed-beta evals: GT-38 drift")
 
+    expected_hr46 = [
+        "formal_builder_consumes_exact_1180_card_108_box_301_audio_payload",
+        "closed_beta_CET4_only_profile_required",
+        "full_track_final_user_approval_exact_card_box_and_corpus_binding",
+        "approval_hash_binds_exact_quality_audit_bytes",
+        "zero_hard_content_and_review_blockers_required",
+        "one_formal_identified_human_QC_index_entry_per_audio_asset",
+        "private_audio_bytes_are_copied_and_rehashed_by_core_verifier",
+        "pilot_candidate_dry_run_ASR_and_technical_audit_do_not_create_approval_or_QC",
+        "temporary_assembly_and_core_verification_precede_output",
+        "apply_refuses_existing_output_directory",
+        "build_report_is_gate_ineligible_and_performs_no_CloudBase_write",
+        "retained_parent_status_still_requires_receiver_verification",
+    ]
+    hr46 = _entry_by_id(evals.get("regressions", []), "HR-46")
+    if not hr46 or hr46.get("must_hit") != expected_hr46:
+        findings.append("formal release bundle builder evals: HR-46 drift")
+    expected_gt39 = [
+        "scripts_build_formal_release_bundle_mjs",
+        "dry_run_by_default_apply_only_retains_verified_output",
+        "exact_1180_cards_108_boxes_301_audio_assets",
+        "full_track_final_approval_and_hash_bound_quality_audit",
+        "identified_human_formal_audio_QC_for_every_asset",
+        "closed_beta_CET4_delivery_profile",
+        "audio_manifest_and_QC_index_generation",
+        "private_audio_and_QC_record_copy_with_root_containment",
+        "optional_distinct_parent_release_for_A_then_B",
+        "verifyReleaseBundleDirectory_required_before_output",
+        "no_overwrite_no_CloudBase_write_gate_eligible_false",
+        "does_not_generate_content_approval_QC_deployment_or_readiness_evidence",
+    ]
+    gt39 = _entry_by_id(evals.get("golden_tasks", []), "GT-39")
+    if not gt39 or gt39.get("must_include") != expected_gt39:
+        findings.append("formal release bundle builder evals: GT-39 drift")
+
+    formal_builder_path = root / "scripts/build_formal_release_bundle.mjs"
+    formal_builder_test_path = root / "scripts/test_build_formal_release_bundle.mjs"
+    formal_builder_text = (
+        formal_builder_path.read_text(encoding="utf-8")
+        if formal_builder_path.is_file()
+        else ""
+    )
+    formal_builder_test_text = (
+        formal_builder_test_path.read_text(encoding="utf-8")
+        if formal_builder_test_path.is_file()
+        else ""
+    )
+    for snippet in [
+        "formal-release-bundle-build-report.v1",
+        "Content payload must be exact formal CET4 1180/301 scope",
+        "Full-track approval is not bound to the exact CET4 content payload",
+        "Formal audio QC must cover exactly",
+        "verifyReleaseBundleDirectory",
+        "cloudbase_writes_performed: false",
+        "gate_eligible: false",
+    ]:
+        if snippet not in formal_builder_text:
+            findings.append(
+                f"formal release bundle builder missing exact snippet: {snippet!r}"
+            )
+    for snippet in [
+        "dry-run assembles exact 1180/108/301 scope",
+        "apply keeps only a fully verified output directory",
+        "default core verifier accepts the fully assembled formal fixture",
+        "missing user approval, audit drift, missing human QC",
+    ]:
+        if snippet not in formal_builder_test_text:
+            findings.append(
+                f"formal release bundle builder tests missing exact snippet: {snippet!r}"
+            )
+    for snippet in [
+        "scripts/build_formal_release_bundle.mjs",
+        "dry-run by default",
+        "It never produces or",
+        "approves content or QC.",
+    ]:
+        if snippet not in release_runtime_text:
+            findings.append(
+                f"formal release runtime contract missing builder boundary: {snippet!r}"
+            )
+
     workflow_text = (root / ".github/workflows/pr-gates.yml").read_text(
         encoding="utf-8"
     )
     for snippet in [
         "node --test scripts/test_validate_cet4_closed_beta_readiness.mjs",
         "node scripts/validate_cet4_closed_beta_readiness.mjs",
+        "node --test ../../../scripts/test_build_formal_release_bundle.mjs",
     ]:
         if snippet not in workflow_text:
             findings.append(
@@ -3579,6 +3667,8 @@ def cet4_closed_beta_readiness_findings(
     for sensitive_path in [
         "'scripts/validate_cet4_closed_beta_readiness.mjs'",
         "'scripts/test_validate_cet4_closed_beta_readiness.mjs'",
+        "'scripts/build_formal_release_bundle.mjs'",
+        "'scripts/test_build_formal_release_bundle.mjs'",
         "'spec/cet4-closed-beta-readiness.json'",
     ]:
         if sensitive_path not in classifier_text:
@@ -3747,6 +3837,7 @@ def validate(context) -> None:
             agent,
             evals,
             agent_entry_text,
+            release_runtime_text,
         )
     )
 

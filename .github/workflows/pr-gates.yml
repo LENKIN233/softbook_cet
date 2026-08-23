@@ -214,6 +214,9 @@ jobs:
       - name: Run backend contract tests
         run: npm test
 
+      - name: Test formal release bundle builder
+        run: node --test ../../../scripts/test_build_formal_release_bundle.mjs
+
   dependency-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10
