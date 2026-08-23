@@ -162,3 +162,14 @@ raw report alone are not `space-sync-test` evidence, receiver deployment proof
 or launch readiness. A later formal wrapper must pair it with exact production
 deployment evidence rather than treating the locally derived expected identity
 as remote inspection.
+
+The closed-beta loader registers `space-sync-test` only over two distinct
+tracked strict-JSON roles: the exact receiver delivery profile and one applied
+`space-sync-drill-report.v1`. The semantic wrapper rehashes both files and
+rebinds report commit/profile/environment, expected backend deployment ID and
+content version to the exact closed-beta candidate. It recomputes the revision
+sequence, same-account distinct-client observations, duplicate/conflict
+no-commit behavior, independent favorite/sleep toggles, action-hash uniqueness
+and final cleanup. Overall readiness still independently requires the formal
+`production-deployment` gate; Space evidence cannot turn an expected backend ID
+into remote deployment proof.

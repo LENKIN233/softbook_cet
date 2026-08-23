@@ -39,6 +39,7 @@ test('launch records, evidence, validators, and workflows require approval', () 
     'scripts/test_build_formal_release_bundle.mjs',
     'scripts/test_cet4_formal_content_evidence.mjs',
     'scripts/test_beta_entitlement_drill_evidence.mjs',
+    'scripts/test_space_sync_evidence.mjs',
     'infra/cloudbase/beta-entitlement-v1.mjs',
     'infra/cloudbase/manage-beta-entitlement.mjs',
     'infra/cloudbase/beta-entitlement-v1-runtime-contract.md',

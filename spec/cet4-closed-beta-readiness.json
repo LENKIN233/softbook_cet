@@ -130,7 +130,8 @@
       "cet4-approved-card-coverage-report",
       "cet4-audio-qc-coverage-report",
       "cet4-content-pack-integrity-report",
-      "beta-entitlement-drill"
+      "beta-entitlement-drill",
+      "space-sync-test"
     ],
     "statuses": [
       "not_ready",
