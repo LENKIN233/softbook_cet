@@ -1401,6 +1401,38 @@ export function loadProductionDeploymentEvidence(
   };
 }
 
+export function loadCet4FormalContentEvidence(
+  artifact,
+  {label, root, trackedFiles},
+) {
+  const errors = [];
+  const roleFields = {
+    buildReport: artifact?.measurements?.build_report_role,
+    profile: artifact?.measurements?.profile_role,
+    bundle: artifact?.measurements?.bundle_role,
+    content: artifact?.measurements?.content_role,
+    approval: artifact?.measurements?.approval_role,
+    audit: artifact?.measurements?.audit_role,
+    audioManifest: artifact?.measurements?.audio_manifest_role,
+    audioQcIndex: artifact?.measurements?.audio_qc_index_role,
+  };
+  const evidence = {};
+  for (const [field, role] of Object.entries(roleFields)) {
+    const loaded = loadStrictRawJsonRole(artifact, role, {
+      label: `${label} CET4 formal content ${field}`,
+      root,
+      trackedFiles,
+    });
+    errors.push(...loaded.errors);
+    evidence[field] = loaded.value;
+  }
+  return {
+    errors,
+    evidence: errors.length === 0 ? evidence : null,
+    ok: errors.length === 0,
+  };
+}
+
 function loadStrictRawJsonRole(
   artifact,
   role,

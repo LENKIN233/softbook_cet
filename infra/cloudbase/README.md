@@ -443,6 +443,13 @@ output. Report v2 binds the exact commit, profile/bundle/evidence hashes and
 execution window without exposing the machine-local output path. The builder
 does not create approval/QC, deploy, publish, or create readiness evidence.
 
+An applied build report v2 becomes usable only inside one of the four
+type-specific CET4 content evidence wrappers together with tracked profile,
+bundle, content, approval, audit, audio manifest and QC index bytes. The
+closed-beta loader rehashes and cross-binds exact 1,180/108/301 scope; the raw
+report alone remains gate-ineligible and cannot manufacture human approval or
+QC.
+
 Add `--apply --operator github:<receiver-operator>` only to `provision`,
 `deploy`, `publish`, or `rollback` after reviewing the plan. Apply requires
 Node 22.13.0 and clean exact `main`.
