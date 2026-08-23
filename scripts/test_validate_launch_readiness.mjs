@@ -19,6 +19,7 @@ import {
   verifyRepositoryEvidenceFiles,
 } from './validate_launch_readiness.mjs';
 import {
+  EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS,
   REQUIRED_EVIDENCE_CHECKS,
   validateGateEvidenceArtifact,
   validateGateEvidenceCoherence,
@@ -31,6 +32,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const NOW = new Date('2026-07-14T00:00:00.000Z');
 const TEST_COMMIT_SHA = hash('repository-commit').slice(0, 40);
 const TRUSTED_COMMITS = new Set([TEST_COMMIT_SHA]);
+const MACHINE_ACCEPTANCE_VERIFIER = 'service:softbook-machine-harness';
+const MACHINE_EXECUTION_PRINCIPAL = 'service:softbook-release-executor';
+const MACHINE_VERIFICATION_PRINCIPAL = 'model:softbook-release-verifier';
+const MACHINE_EXECUTION_RUN_ID = 'release-execution-run-001';
+const MACHINE_VERIFICATION_RUN_ID = 'release-verification-run-002';
+const SMS_RECEIVER_KEY_ID = 'receiver-ed25519-key-v1';
+const SMS_RECEIVER_KEY_FINGERPRINT =
+  '3456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef012';
 const launchContract = readJson(
   path.join(ROOT, 'docs', 'release', 'launch-readiness.v1.json'),
 );
@@ -65,6 +74,9 @@ test('release operational policy is valid and cannot be weakened in place', () =
   policy.external_capability.required_checks[
     'apple-developer'
   ]['app-store-connect'] = ['team-access-confirmed'];
+  policy.external_capability.unregistered_type_specific_semantics_fail_closed =
+    false;
+  policy.external_capability.registered_type_specific_semantics = {};
 
   const result = validateReleaseOperationalPolicy(policy);
 
@@ -86,6 +98,14 @@ test('release operational policy is valid and cannot be weakened in place', () =
   assert.match(
     result.errors.join('\n'),
     /external_capability.*app-store-connect must contain exactly/,
+  );
+  assert.match(
+    result.errors.join('\n'),
+    /unregistered_type_specific_semantics_fail_closed must be true/,
+  );
+  assert.match(
+    result.errors.join('\n'),
+    /registered_type_specific_semantics keys must contain exactly/,
   );
 });
 
@@ -109,23 +129,23 @@ test('strict JSON rejects duplicate keys, BOM, and trailing content without prot
   assert.throws(() => parseStrictJson('{} false', 'evidence'), /trailing content/);
 });
 
-test('formal approval policy cannot be replaced by pull request metadata', () => {
+test('machine acceptance policy requires isolated model-harness runs without a human click', () => {
   const invalid = structuredClone(launchContract);
-  invalid.formal_approval.provider = 'self_declared_record';
-  invalid.formal_approval.environment = 'unprotected';
-  invalid.formal_approval.required_reviewer = 'github:pull-request-author';
-  invalid.formal_approval.administrators_can_bypass = true;
+  invalid.machine_acceptance.provider = 'github_environment';
+  invalid.machine_acceptance.policy = 'pull-request-body';
+  invalid.machine_acceptance.required_independent_runs = 1;
+  invalid.machine_acceptance.human_review_required = true;
 
   const result = validateLaunchReadiness(invalid, { now: NOW });
 
   assert.equal(result.ok, false);
-  assert.match(result.errors.join('\n'), /formal_approval.provider/);
-  assert.match(result.errors.join('\n'), /formal_approval.environment/);
-  assert.match(result.errors.join('\n'), /formal_approval.required_reviewer/);
-  assert.match(result.errors.join('\n'), /formal_approval.administrators_can_bypass/);
+  assert.match(result.errors.join('\n'), /machine_acceptance.provider/);
+  assert.match(result.errors.join('\n'), /machine_acceptance.policy/);
+  assert.match(result.errors.join('\n'), /machine_acceptance.required_independent_runs/);
+  assert.match(result.errors.join('\n'), /machine_acceptance.human_review_required/);
 });
 
-test('all fixed product scope, gates, accounts, and capabilities can be structurally ready', () => {
+test('unregistered external capabilities keep an otherwise complete candidate fail closed', () => {
   const { accounts, launch } = createReadyContracts();
 
   const launchResult = validateLaunchReadiness(launch, { now: NOW });
@@ -135,8 +155,12 @@ test('all fixed product scope, gates, accounts, and capabilities can be structur
 
   assert.equal(launchResult.ok, true, launchResult.errors.join('\n'));
   assert.equal(launchResult.ready, true);
-  assert.equal(accountResult.ok, true, accountResult.errors.join('\n'));
-  assert.equal(accountResult.ready, true);
+  assert.equal(accountResult.ok, false);
+  assert.equal(accountResult.ready, false);
+  assert.match(
+    accountResult.errors.join('\n'),
+    /apple-developer\/app-store-connect has no registered type-specific evidence semantics/,
+  );
   const repositoryResult = verifyRepositoryEvidenceFiles(launch, accounts);
   assert.equal(repositoryResult.ok, false);
   assert.match(
@@ -333,16 +357,13 @@ test('evidence rejects stale verification and mutable pull request pages', () =>
 test('repository evidence is re-hashed and fails after artifact mutation', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-'));
   t.after(() => fs.rmSync(root, { force: true, recursive: true }));
-  const fixture = writeExternalCapabilityFixture(root, {
-    accountId: 'apple-developer',
-    capabilityId: 'app-store-connect',
-    sequence: 900,
-  });
+  const fixture = writeRegisteredReleaseSigningFixture(root, {sequence: 900});
 
   const accounts = structuredClone(accountsContract);
-  accounts.accounts[0].capabilities[0].evidence = [
-    fixture.evidence,
-  ];
+  accounts.accounts
+    .find(account => account.id === 'android-distribution')
+    .capabilities.find(capability => capability.id === 'release-signing')
+    .evidence = [fixture.evidence];
   const first = verifyRepositoryEvidenceFiles(launchContract, accounts, {
     root,
     semanticContext,
@@ -419,16 +440,13 @@ test('repository evidence cannot escape through a symbolic link', t => {
 test('repository evidence must be tracked by Git', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-'));
   t.after(() => fs.rmSync(root, { force: true, recursive: true }));
-  const fixture = writeExternalCapabilityFixture(root, {
-    accountId: 'apple-developer',
-    capabilityId: 'app-store-connect',
-    sequence: 902,
-  });
+  const fixture = writeRegisteredReleaseSigningFixture(root, {sequence: 902});
 
   const accounts = structuredClone(accountsContract);
-  accounts.accounts[0].capabilities[0].evidence = [
-    fixture.evidence,
-  ];
+  accounts.accounts
+    .find(account => account.id === 'android-distribution')
+    .capabilities.find(capability => capability.id === 'release-signing')
+    .evidence = [fixture.evidence];
 
   const untracked = verifyRepositoryEvidenceFiles(launchContract, accounts, {
     root,
@@ -480,9 +498,55 @@ test('arbitrary JSON cannot satisfy external capability evidence semantics', t =
   assert.match(result.errors.join('\n'), /checks must be an array/);
 });
 
-test('all external capabilities bind exact identity, policy, checks, and non-gate scope', () => {
+test('a complete generic report with self-filled passed checks cannot ready an unregistered capability', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-'));
+  t.after(() => fs.rmSync(root, {force: true, recursive: true}));
+  const fixture = writeExternalCapabilityFixture(root, {
+    accountId: 'apple-developer',
+    capabilityId: 'app-store-connect',
+    sequence: 949,
+  });
+  const accounts = structuredClone(accountsContract);
+  const capability = accounts.accounts[0].capabilities[0];
+  capability.status = 'ready';
+  capability.evidence = [fixture.evidence];
+
+  const structural = validateExternalAccountReadiness(
+    accounts,
+    launchContract,
+    {now: NOW},
+  );
+  const repository = verifyRepositoryEvidenceFiles(
+    launchContract,
+    accounts,
+    {
+      root,
+      semanticContext,
+      trackedFiles: fixture.trackedFiles,
+      trustedCommits: TRUSTED_COMMITS,
+      now: NOW,
+    },
+  );
+
+  assert.equal(structural.ok, false);
+  assert.equal(repository.ok, false);
+  assert.match(
+    `${structural.errors.join('\n')}\n${repository.errors.join('\n')}`,
+    /no registered type-specific evidence semantics/,
+  );
+});
+
+test('policy covers every capability but registers only implemented type-specific semantics', () => {
   const policy = externalCapabilityExpectedPolicy();
   let sequence = 950;
+  assert.deepEqual(
+    Object.keys(EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS),
+    ['android-distribution/release-signing'],
+  );
+  assert.deepEqual(
+    policy.registered_type_specific_semantics,
+    EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS,
+  );
   assert.deepEqual(
     Object.keys(policy.required_checks).sort(),
     Object.keys(EXTERNAL_ACCOUNT_DEFINITIONS).sort(),
@@ -509,22 +573,32 @@ test('all external capabilities bind exact identity, policy, checks, and non-gat
         expectedPolicy: policy,
         now: NOW,
         outerEvidence,
-        targetRelease: '2027-Q2',
+        targetRelease: '2026-09',
       });
+      const registered = Object.hasOwn(
+        EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS,
+        `${accountId}/${capabilityId}`,
+      );
       assert.equal(
         result.ok,
-        true,
+        registered,
         `${accountId}/${capabilityId}: ${result.errors.join('\n')}`,
       );
+      if (!registered) {
+        assert.match(
+          result.errors.join('\n'),
+          /no registered type-specific evidence semantics/,
+        );
+      }
     }
   }
 
   const outerEvidence = createEvidence('capability-verification', sequence++);
   const wrongCapability = createExternalCapabilityArtifact(
-    'apple-developer',
-    'app-store-connect',
+    'android-distribution',
+    'release-signing',
   );
-  wrongCapability.subject.capability_id = 'storekit-subscriptions';
+  wrongCapability.subject.capability_id = 'huawei';
   wrongCapability.subject.commit_sha = hash('wrong-commit').slice(0, 40);
   wrongCapability.subject.policy.sha256 = hash('wrong-policy');
   wrongCapability.gate_eligible = true;
@@ -534,12 +608,12 @@ test('all external capabilities bind exact identity, policy, checks, and non-gat
   wrongCapability.checks.pop();
   wrongCapability.checks[0].artifact_roles = ['unknown-role'];
   const invalid = validateExternalCapabilityEvidenceArtifact(wrongCapability, {
-    accountId: 'apple-developer',
-    capabilityId: 'app-store-connect',
+    accountId: 'android-distribution',
+    capabilityId: 'release-signing',
     expectedPolicy: policy,
     now: NOW,
     outerEvidence,
-    targetRelease: '2027-Q2',
+    targetRelease: '2026-09',
   });
   assert.equal(invalid.ok, false);
   const message = invalid.errors.join('\n');
@@ -554,20 +628,19 @@ test('all external capabilities bind exact identity, policy, checks, and non-gat
   assert.match(message, /unknown raw artifact role/);
 });
 
-test('external capability subject commit must be reachable', t => {
+test('registered external capability subject commit must be reachable', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-'));
   t.after(() => fs.rmSync(root, {force: true, recursive: true}));
-  const fixture = writeExternalCapabilityFixture(root, {
-    accountId: 'apple-developer',
-    capabilityId: 'app-store-connect',
-    sequence: 951,
-  });
+  const fixture = writeRegisteredReleaseSigningFixture(root, {sequence: 951});
   const unreachableCommit = hash('unreachable-external-commit').slice(0, 40);
   fixture.artifact.subject.commit_sha = unreachableCommit;
   fixture.evidence.subject_commit_sha = unreachableCommit;
   rewriteExternalCapabilityReport(fixture);
   const accounts = structuredClone(accountsContract);
-  accounts.accounts[0].capabilities[0].evidence = [fixture.evidence];
+  accounts.accounts
+    .find(account => account.id === 'android-distribution')
+    .capabilities.find(capability => capability.id === 'release-signing')
+    .evidence = [fixture.evidence];
 
   const result = verifyRepositoryEvidenceFiles(launchContract, accounts, {
     root,
@@ -939,13 +1012,14 @@ test('learning evidence recomputes membership and clock boundary relationships',
   assert.match(clockResult.errors.join('\n'), /beyond the future-skew boundary/);
 });
 
-test('formal evidence rejects self-described independence and unsupported generic semantics', () => {
+test('formal evidence rejects reused machine principals or run ids and unsupported generic semantics', () => {
   const learningGate = 'canonical-bootstrap-and-idempotent-events';
   const learning = createValidGateArtifact(
     learningGate,
     'canonical-state-test',
   );
   learning.execution.operator = learning.verification.verified_by;
+  learning.execution.run_id = learning.verification.run_id;
   const genericGate = 'production-environments';
   const generic = createValidGateArtifact(
     genericGate,
@@ -971,6 +1045,7 @@ test('formal evidence rejects self-described independence and unsupported generi
 
   assert.equal(learningResult.ok, false);
   assert.match(learningResult.errors.join('\n'), /must differ from the execution operator/);
+  assert.match(learningResult.errors.join('\n'), /must differ from the execution run_id/);
   assert.equal(genericResult.ok, false);
   assert.match(genericResult.errors.join('\n'), /no type-specific semantic contract/);
 });
@@ -1263,7 +1338,7 @@ test('release campaign reports must share commit, profile, environment, bundle, 
   assert.match(result.errors.join('\n'), /share backend_deployment_id/);
 });
 
-test('SMS provider smoke evidence must satisfy its strict human-confirmation schema', t => {
+test('SMS provider smoke stays ineligible until receiver key registry semantics exist', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-sms-'));
   t.after(() => fs.rmSync(root, { force: true, recursive: true }));
   const rawRelativePath =
@@ -1312,7 +1387,70 @@ test('SMS provider smoke evidence must satisfy its strict human-confirmation sch
     releaseOperationalPolicy: semanticContext.releaseOperationalPolicy,
     smsProviderSmokeReport: report,
   });
-  assert.equal(completeArtifact.ok, true, completeArtifact.errors.join('\n'));
+  assert.equal(completeArtifact.ok, false);
+  assert.match(
+    completeArtifact.errors.join('\n'),
+    /trusted receiver key registry and deployed IAM attestation are not implemented/,
+  );
+  for (const [mutate, expected] of [
+    [
+      candidate => {
+        candidate.receiver_evidence.signature_verified = false;
+      },
+      /signature_verified must be true/,
+    ],
+    [
+      candidate => {
+        candidate.receiver_evidence.artifact_removed = false;
+      },
+      /artifact_removed must be true/,
+    ],
+    [
+      candidate => {
+        candidate.receiver_evidence.artifact_sha256 = 'forged';
+      },
+      /artifact_sha256 is invalid/,
+    ],
+    [
+      candidate => {
+        candidate.receiver_evidence.key_fingerprint = 'wrong-key';
+      },
+      /key_fingerprint is invalid/,
+    ],
+    [
+      candidate => {
+        candidate.receiver_evidence.key_id = 'receiver-ed25519-key-v2';
+      },
+      /receiver key ID binding does not match/,
+    ],
+    [
+      candidate => {
+        candidate.receiver_evidence.key_fingerprint = hash('other-receiver-key');
+      },
+      /receiver key fingerprint binding does not match/,
+    ],
+    [
+      candidate => {
+        candidate.receiver_evidence.received_at =
+          '2026-07-13T22:57:00.000Z';
+      },
+      /received_at is outside the confirmation window/,
+    ],
+  ]) {
+    const tamperedReport = structuredClone(report);
+    mutate(tamperedReport);
+    const rejected = validateGateEvidenceArtifact(artifact, {
+      evidenceType,
+      expectedPolicy: semanticContext.expectedPolicies[gateId],
+      gateId,
+      now: NOW,
+      outerEvidence: outerEvidenceForArtifact(evidenceType),
+      releaseOperationalPolicy: semanticContext.releaseOperationalPolicy,
+      smsProviderSmokeReport: tamperedReport,
+    });
+    assert.equal(rejected.ok, false);
+    assert.match(rejected.errors.join('\n'), expected);
+  }
   const misplacedArtifact = structuredClone(artifact);
   misplacedArtifact.raw_artifacts[0].artifact_uri =
     'repo://docs/release/evidence/sms-provider-smoke.json';
@@ -1362,7 +1500,11 @@ test('SMS provider smoke evidence must satisfy its strict human-confirmation sch
     trustedCommits: TRUSTED_COMMITS,
     now: NOW,
   });
-  assert.equal(valid.ok, true, valid.errors.join('\n'));
+  assert.equal(valid.ok, false);
+  assert.match(
+    valid.errors.join('\n'),
+    /trusted receiver key registry and deployed IAM attestation are not implemented/,
+  );
 
   const directLaunch = structuredClone(launch);
   const directGate = directLaunch.gates.find(candidate => candidate.id === gateId);
@@ -1386,8 +1528,8 @@ test('SMS provider smoke evidence must satisfy its strict human-confirmation sch
     /schema_version|report_role must resolve to exactly one raw artifact/,
   );
 
-  report.confirmation_method = 'automated_api_response';
-  report.verifier.id = 'github:different-reviewer';
+  report.confirmation_method = 'manual_entered_code';
+  report.verifier.id = 'service:different-receiver-verifier';
   rawPayload = writeRawReport();
   artifact.raw_artifacts[0].sha256 = hash(rawPayload);
   artifact.raw_artifacts[0].size_bytes = Buffer.byteLength(rawPayload);
@@ -1403,10 +1545,11 @@ test('SMS provider smoke evidence must satisfy its strict human-confirmation sch
   });
   assert.equal(invalid.ok, false);
   assert.match(invalid.errors.join('\n'), /confirmation_method is invalid/);
-  assert.match(invalid.errors.join('\n'), /human verifier binding does not match/);
+  assert.match(invalid.errors.join('\n'), /automated receiver verifier binding does not match/);
 
-  report.confirmation_method = 'human_received_code_match';
+  report.confirmation_method = 'automated_receiver_code_match';
   report.verifier.id = artifact.verification.verified_by;
+  report.verifier.run_id = artifact.verification.run_id;
   report.target_id = 'receiver-prod-other';
   rawPayload = writeRawReport();
   artifact.raw_artifacts[0].sha256 = hash(rawPayload);
@@ -1435,48 +1578,8 @@ test('SMS provider smoke evidence must satisfy its strict human-confirmation sch
 test('Android release-signing evidence requires the dedicated signed APK report', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-readiness-'));
   t.after(() => fs.rmSync(root, {force: true, recursive: true}));
-  const fixture = writeExternalCapabilityFixture(root, {
-    accountId: 'android-distribution',
-    capabilityId: 'release-signing',
-    sequence: 903,
-  });
-  const reportRelativePath =
-    'docs/release/evidence/raw/android-signed-release.json';
-  const reportPath = path.join(root, reportRelativePath);
-  const report = createAndroidSignedReleaseReport();
-  const signedReleaseRole = 'android-signed-release-report';
-  const writeSignedReleaseReport = () => {
-    const payload = `${JSON.stringify(report, null, 2)}\n`;
-    fs.mkdirSync(path.dirname(reportPath), {recursive: true});
-    fs.writeFileSync(reportPath, payload);
-    const descriptor = fixture.artifact.raw_artifacts.find(
-      candidate => candidate.role === signedReleaseRole,
-    );
-    descriptor.sha256 = hash(payload);
-    descriptor.size_bytes = Buffer.byteLength(payload);
-    rewriteExternalCapabilityReport(fixture);
-    return payload;
-  };
-  fixture.artifact.observation.observed_at = report.archived_verified_at;
-  fixture.artifact.observation.provider_subject_sha256 = hash(
-    `android-release-target:${report.target_id}`,
-  );
-  fixture.artifact.raw_artifacts.push({
-    role: signedReleaseRole,
-    artifact_uri: `repo://${reportRelativePath}`,
-    sha256: '0'.repeat(64),
-    size_bytes: 1,
-  });
-  for (const checkId of [
-    'current-state-observed',
-    'certificate-fingerprint-recorded',
-  ]) {
-    fixture.artifact.checks.find(check => check.id === checkId).artifact_roles = [
-      signedReleaseRole,
-    ];
-  }
-  writeSignedReleaseReport();
-  fixture.trackedFiles.add(reportRelativePath);
+  const fixture = writeRegisteredReleaseSigningFixture(root, {sequence: 903});
+  const {report, writeSignedReleaseReport} = fixture;
   const accounts = structuredClone(accountsContract);
   const capability = accounts.accounts
     .find(account => account.id === 'android-distribution')
@@ -1492,7 +1595,7 @@ test('Android release-signing evidence requires the dedicated signed APK report'
   });
   assert.equal(valid.ok, true, valid.errors.join('\n'));
 
-  report.verified_by = 'external:release-auditor';
+  report.verified_by = 'service:different-release-verifier';
   writeSignedReleaseReport();
   const invalid = verifyRepositoryEvidenceFiles(launchContract, accounts, {
     root,
@@ -1544,16 +1647,16 @@ test('launch and external account statuses must agree', () => {
   );
 });
 
-test('external account and formal content approval evidence requires product owner verification', () => {
+test('external account and production content evidence requires machine acceptance authority verification', () => {
   const { accounts, launch } = createReadyContracts();
   accounts.accounts[0].capabilities[0].evidence[0].verified_by =
-    'team:release-engineering';
+    'service:untrusted-release-observer';
   const contentGate = launch.gates.find(
     gate => gate.id === 'approved-production-content',
   );
   contentGate.evidence.find(
     evidence => evidence.type === 'approved-card-coverage-report',
-  ).verified_by = 'team:content-qa';
+  ).verified_by = 'model:untrusted-content-review';
 
   const accountResult = validateExternalAccountReadiness(accounts, launch, {
     now: NOW,
@@ -1563,12 +1666,12 @@ test('external account and formal content approval evidence requires product own
   assert.equal(accountResult.ok, false);
   assert.match(
     accountResult.errors.join('\n'),
-    /must be verified by tracked product_owner/,
+    /tracked machine acceptance authority/,
   );
   assert.equal(launchResult.ok, false);
   assert.match(
     launchResult.errors.join('\n'),
-    /approved-card-coverage-report must be verified by github:LENKIN233/,
+    /approved-card-coverage-report must be verified by service:softbook-machine-harness/,
   );
 });
 
@@ -1606,7 +1709,8 @@ function outerEvidenceForArtifact(evidenceType) {
     type: evidenceType,
     subject_commit_sha: TEST_COMMIT_SHA,
     verified_at: '2026-07-13T23:00:00.000Z',
-    verified_by: 'external:release-auditor',
+    verified_by: MACHINE_VERIFICATION_PRINCIPAL,
+    verification_run_id: MACHINE_VERIFICATION_RUN_ID,
   };
 }
 
@@ -1648,7 +1752,7 @@ function createValidGateArtifact(gateId, evidenceType) {
     subject: {
       repository: 'LENKIN233/softbook_cet',
       commit_sha: TEST_COMMIT_SHA,
-      target_release: '2027-Q2',
+      target_release: '2026-09',
       gate_id: gateId,
       evidence_type: evidenceType,
       policy_id: expectedPolicy.id,
@@ -1676,7 +1780,8 @@ function createValidGateArtifact(gateId, evidenceType) {
     execution: {
       started_at: '2026-07-12T00:00:00.000Z',
       completed_at: '2026-07-13T22:00:00.000Z',
-      operator: 'team:release-engineering',
+      operator: MACHINE_EXECUTION_PRINCIPAL,
+      run_id: MACHINE_EXECUTION_RUN_ID,
       tool: {
         name: 'softbook-evidence-runner',
         version: '1.0.0',
@@ -1685,10 +1790,11 @@ function createValidGateArtifact(gateId, evidenceType) {
     },
     verification: {
       verified_at: '2026-07-13T23:00:00.000Z',
-      verified_by: 'external:release-auditor',
+      verified_by: MACHINE_VERIFICATION_PRINCIPAL,
+      run_id: MACHINE_VERIFICATION_RUN_ID,
       independent: true,
       attestation: {
-        provider: 'protected_environment',
+        provider: 'model_run',
         id: `attestation-${evidenceType}`,
         sha256: hash(`attestation-${evidenceType}`),
       },
@@ -1799,7 +1905,11 @@ function createMeasurements(evidenceType, expectedPolicy) {
     },
   };
   if (evidenceType === 'sms-provider-smoke') {
-    return {report_role: 'raw-sms-provider-smoke'};
+    return {
+      report_role: 'raw-sms-provider-smoke',
+      receiver_key_id: SMS_RECEIVER_KEY_ID,
+      receiver_key_fingerprint: SMS_RECEIVER_KEY_FINGERPRINT,
+    };
   }
   if (evidenceType === 'production-deployment') {
     return {
@@ -1977,8 +2087,8 @@ function createMeasurements(evidenceType, expectedPolicy) {
     });
     return {
       scope: [...policy.penetration_test.required_scope],
-      methodology: 'OWASP ASVS, MASVS, API Security Top 10, and manual verification',
-      tester: 'external:security-lab',
+      methodology: 'OWASP ASVS, MASVS, API Security Top 10, and model-guided verification',
+      tester: 'service:security-scanner',
       findings: {
         critical: emptySeverity(),
         high: emptySeverity(),
@@ -2312,7 +2422,7 @@ function createExternalCapabilityArtifact(accountId, capabilityId) {
     subject: {
       repository: 'LENKIN233/softbook_cet',
       commit_sha: TEST_COMMIT_SHA,
-      target_release: '2027-Q2',
+      target_release: '2026-09',
       account_id: accountId,
       capability_id: capabilityId,
       policy: {
@@ -2337,7 +2447,8 @@ function createExternalCapabilityArtifact(accountId, capabilityId) {
     },
     verification: {
       verified_at: '2026-07-13T23:00:00.000Z',
-      verified_by: 'github:LENKIN233',
+      verified_by: MACHINE_ACCEPTANCE_VERIFIER,
+      run_id: MACHINE_VERIFICATION_RUN_ID,
     },
     checks: requiredChecks.map(id => ({
       id,
@@ -2388,6 +2499,56 @@ function writeExternalCapabilityFixture(
   return fixture;
 }
 
+function writeRegisteredReleaseSigningFixture(root, {sequence}) {
+  const fixture = writeExternalCapabilityFixture(root, {
+    accountId: 'android-distribution',
+    capabilityId: 'release-signing',
+    sequence,
+  });
+  const reportRelativePath =
+    `docs/release/evidence/raw/android-signed-release-${sequence}.json`;
+  const reportPath = path.join(root, reportRelativePath);
+  const report = createAndroidSignedReleaseReport();
+  const signedReleaseRole = 'android-signed-release-report';
+  const writeSignedReleaseReport = () => {
+    const payload = `${JSON.stringify(report, null, 2)}\n`;
+    fs.mkdirSync(path.dirname(reportPath), {recursive: true});
+    fs.writeFileSync(reportPath, payload);
+    const descriptor = fixture.artifact.raw_artifacts.find(
+      candidate => candidate.role === signedReleaseRole,
+    );
+    descriptor.sha256 = hash(payload);
+    descriptor.size_bytes = Buffer.byteLength(payload);
+    rewriteExternalCapabilityReport(fixture);
+    return payload;
+  };
+  fixture.artifact.observation.observed_at = report.archived_verified_at;
+  fixture.artifact.observation.provider_subject_sha256 = hash(
+    `android-release-target:${report.target_id}`,
+  );
+  fixture.artifact.raw_artifacts.push({
+    role: signedReleaseRole,
+    artifact_uri: `repo://${reportRelativePath}`,
+    sha256: '0'.repeat(64),
+    size_bytes: 1,
+  });
+  for (const checkId of [
+    'current-state-observed',
+    'certificate-fingerprint-recorded',
+  ]) {
+    fixture.artifact.checks.find(check => check.id === checkId).artifact_roles = [
+      signedReleaseRole,
+    ];
+  }
+  writeSignedReleaseReport();
+  fixture.trackedFiles.add(reportRelativePath);
+  fixture.report = report;
+  fixture.signedReportPath = reportPath;
+  fixture.signedReportRelativePath = reportRelativePath;
+  fixture.writeSignedReleaseReport = writeSignedReleaseReport;
+  return fixture;
+}
+
 function rewriteExternalCapabilityReport(fixture) {
   fixture.reportPayload = `${JSON.stringify(fixture.artifact, null, 2)}\n`;
   fs.mkdirSync(path.dirname(fixture.reportPath), {recursive: true});
@@ -2415,7 +2576,7 @@ function createReleaseCandidate() {
     schema_version: 'launch-release-candidate.v1',
     repository: 'LENKIN233/softbook_cet',
     commit_sha: TEST_COMMIT_SHA,
-    target_release: '2027-Q2',
+    target_release: '2026-09',
     environment: {
       profile_id: 'receiver-profile-001',
       profile_sha256: hash('receiver-profile'),
@@ -2436,7 +2597,8 @@ function createReleaseCandidate() {
       pc_web: 'pc-web-build-100',
     },
     recorded_at: '2026-07-13T23:00:00.000Z',
-    recorded_by: 'github:LENKIN233',
+    recorded_by: MACHINE_ACCEPTANCE_VERIFIER,
+    recorded_run_id: MACHINE_VERIFICATION_RUN_ID,
   };
 }
 
@@ -2453,13 +2615,14 @@ function createEvidence(type, sequence, { artifactUri, payload } = {}) {
     artifact_size_bytes: sizeBytes,
     subject_commit_sha: TEST_COMMIT_SHA,
     verified_at: '2026-07-13T23:00:00.000Z',
-    verified_by: 'github:LENKIN233',
+    verified_by: MACHINE_ACCEPTANCE_VERIFIER,
+    verification_run_id: MACHINE_VERIFICATION_RUN_ID,
   };
 }
 
 function smsProviderSmokeReport() {
   return {
-    schema_version: 'sms-provider-smoke.v1',
+    schema_version: 'sms-provider-smoke.v2',
     run_id: 'sms-smoke-123e4567-e89b-12d3-a456-426614174000',
     status: 'passed',
     target_id: 'receiver-prod-001',
@@ -2478,8 +2641,21 @@ function smsProviderSmokeReport() {
     sent_at: '2026-07-13T22:58:00.000Z',
     confirmed_at: '2026-07-13T23:00:00.000Z',
     expires_at: '2026-07-13T23:03:00.000Z',
-    confirmation_method: 'human_received_code_match',
-    verifier: { kind: 'human', id: 'external:release-auditor' },
+    confirmation_method: 'automated_receiver_code_match',
+    receiver_evidence: {
+      artifact_sha256:
+        '23456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01',
+      key_fingerprint: SMS_RECEIVER_KEY_FINGERPRINT,
+      key_id: SMS_RECEIVER_KEY_ID,
+      received_at: '2026-07-13T22:59:00.000Z',
+      signature_verified: true,
+      artifact_removed: true,
+    },
+    verifier: {
+      kind: 'machine',
+      id: MACHINE_VERIFICATION_PRINCIPAL,
+      run_id: MACHINE_VERIFICATION_RUN_ID,
+    },
     private_state_removed: true,
     generated_at: '2026-07-13T23:00:00.000Z',
   };
@@ -2516,7 +2692,8 @@ function createAndroidSignedReleaseReport() {
     },
     built_at: '2026-07-13T22:00:00.000Z',
     archived_verified_at: '2026-07-13T23:00:00.000Z',
-    verified_by: 'github:LENKIN233',
+    verified_by: MACHINE_ACCEPTANCE_VERIFIER,
+    verification_run_id: MACHINE_VERIFICATION_RUN_ID,
     private_state_removed: true,
     generated_at: '2026-07-13T23:00:00.000Z',
   };

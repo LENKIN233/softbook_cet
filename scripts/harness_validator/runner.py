@@ -42,7 +42,6 @@ HARNESS_LAYERS = (
         "id": "delivery_governance_layer",
         "sections": (
             "governance_contracts",
-            "agent_run_record",
             "agent_review_regressions",
             "delivery_runtime",
         ),

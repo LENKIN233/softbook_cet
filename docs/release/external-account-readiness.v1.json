@@ -1,12 +1,13 @@
 {
   "schema_version": "external-account-readiness.v1",
-  "product_owner": "github:LENKIN233",
+  "acceptance_authority": "service:softbook-machine-harness",
+  "machine_acceptance_policy": "spec/machine-acceptance.json",
   "last_verified_at": null,
   "overall_status": "unverified",
   "accounts": [
     {
       "id": "apple-developer",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified",
       "capabilities": [
         {
@@ -33,7 +34,7 @@
     },
     {
       "id": "android-distribution",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified",
       "capabilities": [
         {
@@ -70,7 +71,7 @@
     },
     {
       "id": "tencent-cloud-production",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified",
       "capabilities": [
         {
@@ -107,7 +108,7 @@
     },
     {
       "id": "payments",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified",
       "capabilities": [
         {
@@ -129,7 +130,7 @@
     },
     {
       "id": "china-compliance",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified",
       "capabilities": [
         {

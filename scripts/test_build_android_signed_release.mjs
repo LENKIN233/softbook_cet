@@ -23,6 +23,10 @@ const APK_CONTENT = Buffer.from('receiver-signed-softbook-apk');
 const APK_SHA = createHash('sha256').update(APK_CONTENT).digest('hex');
 const ARCHIVE_URL =
   'https://github.com/LENKIN233/softbook_cet/releases/download/android-beta-1/app-release.apk';
+const MACHINE_VERIFIER_ENV = Object.freeze({
+  SOFTBOOK_ANDROID_RELEASE_VERIFIER: 'service:softbook-release-verifier',
+  SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID: 'android-release-verify-001',
+});
 
 test('signing environment is all-or-nothing and never returns secrets', t => {
   const fixture = createFixture(t);
@@ -245,7 +249,7 @@ test('signed build and GitHub Release finalization create verifiable public evid
     apply: true,
     archiveUrl: ARCHIVE_URL,
     clock: () => new Date('2026-07-30T02:00:00.000Z'),
-    env: { SOFTBOOK_ANDROID_RELEASE_VERIFIER: 'github:LENKIN233' },
+    env: MACHINE_VERIFIER_ENV,
     fetchImpl: githubReleaseFetch(),
     reportPath,
     repository,
@@ -296,7 +300,7 @@ test('tampered private state cannot redirect finalization to another file', asyn
   await assert.rejects(
     finalizeSignedAndroidRelease({
       archiveUrl: ARCHIVE_URL,
-      env: { SOFTBOOK_ANDROID_RELEASE_VERIFIER: 'github:LENKIN233' },
+      env: MACHINE_VERIFIER_ENV,
       fetchImpl: githubReleaseFetch(),
       reportPath,
       repository,
@@ -335,7 +339,7 @@ test('private state and public reports reject duplicate JSON keys', async t => {
   await assert.rejects(
     finalizeSignedAndroidRelease({
       archiveUrl: ARCHIVE_URL,
-      env: {SOFTBOOK_ANDROID_RELEASE_VERIFIER: 'github:LENKIN233'},
+      env: MACHINE_VERIFIER_ENV,
       fetchImpl: githubReleaseFetch(),
       reportPath,
       repository,
@@ -400,7 +404,7 @@ test('state and report paths reject symbolic-link traversal', async t => {
   assert.deepEqual(fs.readdirSync(outside), []);
 });
 
-test('finalization rejects non-human, changed, digest-less, and mismatched evidence', async t => {
+test('finalization requires machine principal and run evidence and rejects changed, digest-less, and mismatched evidence', async t => {
   const fixture = createFixture(t);
   const repository = exactMainRepository();
   const statePath = path.join(
@@ -422,7 +426,7 @@ test('finalization rejects non-human, changed, digest-less, and mismatched evide
   const finalize = overrides =>
     finalizeSignedAndroidRelease({
       archiveUrl: ARCHIVE_URL,
-      env: { SOFTBOOK_ANDROID_RELEASE_VERIFIER: 'github:LENKIN233' },
+      env: MACHINE_VERIFIER_ENV,
       fetchImpl: githubReleaseFetch(),
       reportPath,
       repository,
@@ -433,9 +437,12 @@ test('finalization rejects non-human, changed, digest-less, and mismatched evide
 
   await assert.rejects(
     finalize({
-      env: { SOFTBOOK_ANDROID_RELEASE_VERIFIER: 'team:release-bot' },
+      env: {
+        SOFTBOOK_ANDROID_RELEASE_VERIFIER: 'github:human-reviewer',
+        SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID: 'android-release-verify-001',
+      },
     }),
-    /identify a human/,
+    /machine principal/,
   );
   await assert.rejects(
     finalize({ fetchImpl: githubReleaseFetch({ includeDigest: false }) }),
@@ -624,7 +631,8 @@ function validReport() {
     },
     built_at: '2026-07-30T01:00:00.000Z',
     archived_verified_at: '2026-07-30T02:00:00.000Z',
-    verified_by: 'github:LENKIN233',
+    verified_by: 'service:softbook-release-verifier',
+    verification_run_id: 'android-release-verify-001',
     private_state_removed: true,
     generated_at: '2026-07-30T02:00:00.000Z',
   };

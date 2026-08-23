@@ -82,7 +82,7 @@
      `apps/mobile/__tests__/spaceMetadataDisplay.test.ts` 覆盖。
 
 9. [ ] 运行时监测（可选）
-   - 针对预发布构建增加可视化快照抽检（或人工质检列表）：
+   - 针对预发布构建增加可重复的可视化快照评估：
      - 首次加载 Learning/Space 的 top 30 文案
      - 任意新增卡片详情、空态、状态栏文案中出现 raw 位置信息报警。
 

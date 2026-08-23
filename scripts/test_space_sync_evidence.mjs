@@ -96,6 +96,7 @@ test('tracked Space sync evidence validates end to end and raw tamper fails', t 
       artifact_size_bytes: Buffer.byteLength(artifactPayload),
       verified_at: fixture.artifact.verification.verified_at,
       verified_by: fixture.artifact.verification.verified_by,
+      verification_run_id: fixture.artifact.verification.run_id,
       subject_commit_sha: fixture.candidate.commit_sha,
     },
   ];
@@ -205,7 +206,8 @@ function createFixture() {
     execution: {
       started_at: '2026-08-23T09:00:00.000Z',
       completed_at: '2026-08-23T09:20:00.000Z',
-      operator: 'team:space-auditor',
+      operator: 'service:space-auditor',
+      run_id: 'space-sync-execution-run-001',
       tool: {
         name: 'softbook-evidence-runner',
         version: '1.0.0',
@@ -214,10 +216,11 @@ function createFixture() {
     },
     verification: {
       verified_at: '2026-08-23T10:00:00.000Z',
-      verified_by: 'external:space-auditor',
+      verified_by: 'model:space-auditor',
+      run_id: 'space-sync-verification-run-002',
       independent: true,
       attestation: {
-        provider: 'protected_environment',
+        provider: 'model_run',
         id: 'space-sync-attestation',
         sha256: hash('space-sync-attestation'),
       },
@@ -337,7 +340,7 @@ function createSpaceReport({
     execution: {
       started_at: '2026-08-23T09:01:00.000Z',
       completed_at: '2026-08-23T09:19:00.000Z',
-      operator: 'team:space-auditor',
+      operator: 'service:space-auditor',
     },
   };
 }
@@ -355,7 +358,7 @@ function createCandidate({
     commit_sha: commit,
     target_release: 'cet4-closed-beta',
     recorded_at: '2026-08-23T08:00:00.000Z',
-    recorded_by: 'github:LENKIN233',
+    recorded_by: 'service:softbook-machine-harness',
     environment: {
       profile_id: profile.profile_id,
       profile_sha256: profileHash,
@@ -375,7 +378,7 @@ function createCandidate({
       card_count: 1180,
       box_count: 108,
       audio_asset_count: 301,
-      full_track_approval_sha256: hash('approval'),
+      full_track_authorization_sha256: hash('authorization'),
       audio_qc_index_sha256: hash('audio-qc'),
     },
     client_builds: {
@@ -405,6 +408,7 @@ function validateFixture(fixture) {
       subject_commit_sha: fixture.candidate.commit_sha,
       verified_at: fixture.artifact.verification.verified_at,
       verified_by: fixture.artifact.verification.verified_by,
+      verification_run_id: fixture.artifact.verification.run_id,
     },
     spaceSyncEvidence: fixture.loaded,
     targetRelease: 'cet4-closed-beta',

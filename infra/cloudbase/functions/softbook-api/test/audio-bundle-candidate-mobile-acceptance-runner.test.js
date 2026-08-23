@@ -76,7 +76,19 @@ test('audio-bundle acceptance runner rejects drifted or expanded reports', () =>
       representative_card_ids: [...report.representative_card_ids].reverse(),
     },
     {...structuredClone(report), signed_manifest_verified: true},
-    {...structuredClone(report), human_audio_qc_verified: true},
+    {...structuredClone(report), model_audio_qc_verified: true},
+    replaceField(
+      report,
+      'model_audio_qc_verified',
+      'human_audio_qc_verified',
+      false,
+    ),
+    replaceField(
+      report,
+      'automated_real_device_evidence_verified',
+      'real_device_verified',
+      false,
+    ),
   ]) {
     assert.throws(
       () => runner.normalizeSafeMobileReport(invalid, expected),
@@ -117,7 +129,19 @@ test('full-track acceptance runner derives and validates a safe report', () => {
     {...structuredClone(report), non_audio_card_count: 905},
     {...structuredClone(report), all_audio_cards_bound: false},
     {...structuredClone(report), representative_audio_controls_verified: 1},
-    {...structuredClone(report), human_audio_qc_verified: true},
+    {...structuredClone(report), model_audio_qc_verified: true},
+    replaceField(
+      report,
+      'model_audio_qc_verified',
+      'human_audio_qc_verified',
+      false,
+    ),
+    replaceField(
+      report,
+      'automated_real_device_evidence_verified',
+      'real_device_verified',
+      false,
+    ),
   ]) {
     assert.throws(
       () => runner.normalizeSafeFullTrackMobileReport(invalid, expected),
@@ -145,9 +169,9 @@ function safeReport() {
     simulated_manifest_binding_verified: true,
     visible_runtime_metadata_leak_guard_verified: true,
     signed_manifest_verified: false,
-    human_audio_qc_verified: false,
+    model_audio_qc_verified: false,
     persistent_receiver_verified: false,
-    real_device_verified: false,
+    automated_real_device_evidence_verified: false,
     gate_eligible: false,
   };
 }
@@ -179,9 +203,16 @@ function fullTrackSafeReport() {
     simulated_manifest_binding_verified: true,
     visible_runtime_metadata_leak_guard_verified: true,
     signed_manifest_verified: false,
-    human_audio_qc_verified: false,
+    model_audio_qc_verified: false,
     persistent_receiver_verified: false,
-    real_device_verified: false,
+    automated_real_device_evidence_verified: false,
     gate_eligible: false,
   };
+}
+
+function replaceField(value, currentKey, legacyKey, replacement) {
+  const copy = structuredClone(value);
+  delete copy[currentKey];
+  copy[legacyKey] = replacement;
+  return copy;
 }

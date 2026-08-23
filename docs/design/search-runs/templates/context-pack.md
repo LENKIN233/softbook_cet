@@ -36,4 +36,4 @@ List tempting but wrong directions that should be hard-filtered or recorded as r
 
 ## Candidate Budget
 
-State population size, generation limit, top-k, and human checkpoint rules.
+State population size, generation limit, top-k, and model acceptance checkpoint rules.

@@ -53,7 +53,7 @@ test('applied drill proves cross-client revision, replay, conflict, merge and cl
     'card-0000',
     '--apply',
     '--operator',
-    'team:space-auditor',
+    'service:space-auditor',
   ]);
   const report = await drill.executeSpaceSyncDrill(options, {
     ...dependencies(),
@@ -84,7 +84,7 @@ test('applied drill proves cross-client revision, replay, conflict, merge and cl
   assert.equal(report.assertions.favorite_and_sleep_merged_independently, true);
   assert.equal(report.clients.distinct_sessions, true);
   assert.equal(report.clients.secret_values_reported, false);
-  assert.equal(report.execution.operator, 'team:space-auditor');
+  assert.equal(report.execution.operator, 'service:space-auditor');
   const serialized = JSON.stringify(report);
   assert.equal(
     serialized.includes(tokens().SOFTBOOK_CET_SPACE_DRILL_TOKEN_A),
@@ -105,7 +105,7 @@ test('apply rejects unsafe identity, same token, and production profile', async 
     fixture.profilePath,
     '--apply',
     '--operator',
-    'team:space-auditor',
+    'service:space-auditor',
   ];
   await assert.rejects(
     () =>
@@ -156,7 +156,7 @@ test('drill fails closed when duplicate or conflict changes canonical revision',
     fixture.profilePath,
     '--apply',
     '--operator',
-    'team:space-auditor',
+    'service:space-auditor',
   ]);
   await assert.rejects(
     () =>

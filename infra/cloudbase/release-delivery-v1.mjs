@@ -2,6 +2,10 @@ import {createHash} from 'node:crypto';
 import {readFileSync, statSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {dirname, isAbsolute, relative, resolve, sep} from 'node:path';
+import {
+  buildModelAcceptanceInputSha256,
+  requireIndependentModelAcceptances,
+} from '../../scripts/lib/model_acceptance_contract.mjs';
 import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
 
 const require = createRequire(import.meta.url);
@@ -15,6 +19,8 @@ export const RELEASE_BUNDLE_SCHEMA = 'release-bundle.v1';
 export const RELEASE_AUDIO_MANIFEST_SCHEMA = 'release-audio-manifest.v1';
 export const AUDIO_QC_INDEX_SCHEMA = 'audio-qc-index.v1';
 export const CONTENT_RELEASE_SCHEMA = 'content-release.v1';
+export const MODEL_CONTENT_AUTHORIZATION_SCHEMA = 'model-owned-content-authorization.v2';
+export const MODEL_AUDIO_QC_SCHEMA = 'model-owned-audio-qc.v2';
 export const CET4_BETA_CARD_COUNT = 1180;
 export const CET4_BETA_BOX_COUNT = 108;
 export const CET4_BETA_AUDIO_COUNT = 301;
@@ -303,13 +309,23 @@ export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
     'approval record',
   );
   const approval = readJson(approvalPath, 'approval record');
-  verifyApprovalRecord(approval, bundle, content);
+  const modelReviewPath = resolveBundlePath(
+    bundleDirectory,
+    bundle.approval.model_review_path,
+  );
+  assertFileHash(
+    modelReviewPath,
+    bundle.approval.model_review_sha256,
+    'model review record',
+  );
+  const modelReview = readJson(modelReviewPath, 'model review record');
 
   const auditPath = resolveBundlePath(
     bundleDirectory,
     bundle.audit.report_path,
   );
   assertFileHash(auditPath, bundle.audit.report_sha256, 'quality audit report');
+  verifyApprovalRecord(approval, modelReview, bundle, content);
   verifyAuditBinding(approval, bundle);
 
   const audioManifestPath = resolveBundlePath(
@@ -490,7 +506,13 @@ function validateApprovalEvidence(value) {
   const approval = requireRecord(value, 'approval evidence');
   assertExactKeys(
     approval,
-    ['record_path', 'record_sha256', 'approval_id'],
+    [
+      'record_path',
+      'record_sha256',
+      'approval_id',
+      'model_review_path',
+      'model_review_sha256',
+    ],
     'approval evidence',
   );
   return {
@@ -507,6 +529,15 @@ function validateApprovalEvidence(value) {
       approval.approval_id,
       RELEASE_ID_PATTERN,
       'approval.approval_id',
+    ),
+    model_review_path: requireRelativePath(
+      approval.model_review_path,
+      'approval.model_review_path',
+      '.json',
+    ),
+    model_review_sha256: requireSha256(
+      approval.model_review_sha256,
+      'approval.model_review_sha256',
     ),
   };
 }
@@ -724,30 +755,64 @@ function validateAudioQcIndex(value, expectedTrack) {
   };
 }
 
-function verifyApprovalRecord(approval, bundle, content) {
-  requireExact(
-    approval.approval_id,
-    bundle.approval.approval_id,
-    'approval ID',
+function verifyApprovalRecord(approval, modelReview, bundle, content) {
+  assertExactKeys(
+    approval,
+    [
+      'schema_version',
+      'authorization_id',
+      'authorization_mode',
+      'content_version',
+      'authorized_at',
+      'model_acceptances',
+      'scope',
+      'summary',
+      'representative_cards',
+      'card_quality_audit',
+      'validation',
+      'authorization_limits',
+    ],
+    'model content authorization',
   );
-  requireExact(approval.approval_mode, 'full_track_final', 'approval mode');
-  requireExact(approval.approved_by_user, true, 'approved_by_user');
-  requireIsoTimestamp(approval.approved_at, 'approval approved_at');
-  requireExact(approval.scope?.track, bundle.track, 'approval track');
+  requireExact(
+    approval.schema_version,
+    MODEL_CONTENT_AUTHORIZATION_SCHEMA,
+    'authorization schema',
+  );
+  requireExact(
+    approval.authorization_id,
+    bundle.approval.approval_id,
+    'authorization ID',
+  );
+  requireExact(approval.authorization_mode, 'full_track', 'authorization mode');
+  requireExact(
+    approval.content_version,
+    bundle.content.content_version,
+    'authorization content version',
+  );
+  requireIsoTimestamp(approval.authorized_at, 'authorization authorized_at');
+  requireString(approval.summary, 'authorization summary');
+  assertExactKeys(
+    approval.scope,
+    ['track', 'purpose', 'box_prefixes', 'card_ids'],
+    'authorization scope',
+  );
+  requireExact(approval.scope?.track, bundle.track, 'authorization track');
+  requireExact(approval.scope?.purpose, 'formal_content', 'authorization purpose');
   const approvedCardIds = requireStringArray(
     approval.scope?.card_ids,
-    'approval card_ids',
+    'authorization card_ids',
   );
   const contentCardIds = content.card_records.map(card => card.card_id);
-  assertSameSet(approvedCardIds, contentCardIds, 'approval card scope');
+  assertSameSet(approvedCardIds, contentCardIds, 'authorization card scope');
   const approvedBoxes = requireStringArray(
     approval.scope?.box_prefixes,
-    'approval box_prefixes',
+    'authorization box_prefixes',
   );
   const contentBoxes = [
     ...new Set(content.card_records.map(card => card.knowledge_ref)),
   ];
-  assertSameSet(approvedBoxes, contentBoxes, 'approval box scope');
+  assertSameSet(approvedBoxes, contentBoxes, 'authorization box scope');
   requireExact(
     approval.card_quality_audit?.corpus_fingerprint,
     bundle.content.corpus_fingerprint.slice('sha256:'.length),
@@ -776,6 +841,82 @@ function verifyApprovalRecord(approval, bundle, content) {
     0,
     'approval hard blocker count',
   );
+  requireExact(
+    approval.validation?.model_review_sha256,
+    bundle.approval.model_review_sha256,
+    'authorization linked model review hash',
+  );
+  requireExact(
+    modelReview.schema_version,
+    'model-owned-full-track-review.v2',
+    'model review schema',
+  );
+  requireExact(modelReview.scope?.track, bundle.track, 'model review track');
+  assertSameSet(
+    requireStringArray(modelReview.scope?.card_ids, 'model review card_ids'),
+    contentCardIds,
+    'model review card scope',
+  );
+  assertSameSet(
+    requireStringArray(modelReview.scope?.box_prefixes, 'model review box_prefixes'),
+    contentBoxes,
+    'model review box scope',
+  );
+  requireExact(
+    modelReview.quality_audit?.report_sha256,
+    bundle.audit.report_sha256,
+    'model review audit hash',
+  );
+  requireExact(
+    normalizeSha256(modelReview.quality_audit?.corpus_fingerprint),
+    bundle.content.corpus_fingerprint,
+    'model review corpus fingerprint',
+  );
+  requireExact(
+    modelReview.quality_audit?.scope_has_no_hard_blockers,
+    true,
+    'model review hard-blocker result',
+  );
+  requireExact(
+    modelReview.batch_review?.status,
+    'ready_for_model_authorization',
+    'model review authorization status',
+  );
+  const expectedReviewInput = buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_review',
+    scope: modelReview.scope,
+    corpusFingerprint: bundle.content.corpus_fingerprint,
+    auditSha256: bundle.audit.report_sha256,
+  });
+  requireIndependentModelAcceptances(modelReview.model_acceptances, {
+    expectedInputSha256: expectedReviewInput,
+    label: 'formal full-track model review',
+    requiredCapabilities: [
+      'card_semantic_review',
+      'source_provenance_review',
+    ],
+  });
+  const expectedInput = buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_content_authorization',
+    scope: approval.scope,
+    corpusFingerprint: bundle.content.corpus_fingerprint,
+    auditSha256: bundle.audit.report_sha256,
+    linkedReviewIdentity: {
+      path: requireString(
+        approval.validation?.model_review,
+        'authorization linked model review path',
+      ),
+      sha256: bundle.approval.model_review_sha256,
+    },
+    additionalBindings: {
+      content_version: bundle.content.content_version,
+    },
+  });
+  requireIndependentModelAcceptances(approval.model_acceptances, {
+    expectedInputSha256: expectedInput,
+    label: 'formal content authorization',
+    requiredCapabilities: ['content_authorization'],
+  });
 }
 
 function verifyAuditBinding(approval, bundle) {
@@ -840,6 +981,144 @@ function verifyAudioManifest(manifest, content, bundle, bundleDirectory) {
   }
 }
 
+function modelAudioQcInput(record) {
+  const transcriptByCard = indexUniqueAudioRecords(
+    record.text_gate?.transcripts,
+    'model audio QC transcripts',
+  );
+  const perCardById = indexUniqueAudioRecords(
+    record.per_card_qc,
+    'model audio QC per_card_qc',
+  );
+  const generatedById = indexUniqueAudioRecords(
+    record.generated_assets,
+    'model audio QC generated_assets',
+  );
+  const scopeCardIds = requireStringArray(
+    record.scope?.card_ids,
+    'model audio QC scope.card_ids',
+  );
+  for (const values of [
+    [...transcriptByCard.keys()],
+    [...perCardById.keys()],
+    [...generatedById.keys()],
+  ]) {
+    assertSameSet(values, scopeCardIds, 'model audio QC exact card scope');
+  }
+  const identities = requireArray(
+    record.generated_assets,
+    'model audio QC generated_assets',
+  ).map((asset, index) => {
+    const cardId = requireString(asset?.card_id, `model audio asset ${index} card_id`);
+    const transcript = transcriptByCard.get(cardId);
+    if (!transcript) {
+      throw new ReleaseDeliveryError(`model audio asset ${cardId} has no bound transcript.`);
+    }
+    const transcriptSha256 = createHash('sha256')
+      .update(String(transcript.transcript || ''), 'utf8')
+      .digest('hex');
+    requireExact(
+      asset.transcript_sha256,
+      transcriptSha256,
+      `${cardId} transcript hash`,
+    );
+    if (!/^[a-f0-9]{64}$/.test(String(asset.file_sha256 || ''))) {
+      throw new ReleaseDeliveryError(`${cardId} model audio file hash is invalid.`);
+    }
+    const result = perCardById.get(cardId);
+    return {
+      card_id: cardId,
+      path: requireRelativePath(asset.path, `${cardId} model audio path`, '.mp3'),
+      file_sha256: asset.file_sha256,
+      transcript_sha256: transcriptSha256,
+      per_card_qc: canonicalPerCardAudioQc(result, cardId),
+    };
+  });
+  identities.sort((left, right) =>
+    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
+  return `sha256:${createHash('sha256').update(JSON.stringify(identities)).digest('hex')}`;
+}
+
+function canonicalPerCardAudioQc(value, cardId) {
+  const result = requireRecord(value, `${cardId} per-card audio QC`);
+  return {
+    complete_asset_consumed: result.complete_asset_consumed,
+    matches_text: result.matches_text,
+    target_signal: result.target_signal,
+    pronunciation: result.pronunciation,
+    speed: result.speed,
+    rhythm: result.rhythm,
+    stress_pauses: result.stress_pauses,
+    no_noise: result.no_noise,
+  };
+}
+
+function indexUniqueAudioRecords(value, label) {
+  const records = requireArray(value, label);
+  const result = new Map();
+  for (const [index, record] of records.entries()) {
+    const cardId = requireString(record?.card_id, `${label}[${index}].card_id`);
+    if (result.has(cardId)) {
+      throw new ReleaseDeliveryError(`${label} contains duplicate card ${cardId}.`);
+    }
+    result.set(cardId, record);
+  }
+  return result;
+}
+
+function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
+  requireExact(record.schema_version, MODEL_AUDIO_QC_SCHEMA, 'model audio QC schema');
+  const expectedInput = modelAudioQcInput(record);
+  requireIndependentModelAcceptances(record.model_acceptances, {
+    expectedInputSha256: expectedInput,
+    label: `audio QC ${indexedAsset.asset_id}`,
+    requiredCapabilities: ['audio_perceptual_review'],
+  });
+  if (!record.model_acceptances.some(
+    acceptance => acceptance.actor?.agent === indexedAsset.reviewed_by,
+  )) {
+    throw new ReleaseDeliveryError(
+      `${indexedAsset.asset_id} reviewed_by is not a model acceptance principal.`,
+    );
+  }
+  const generatedByCard = new Map(
+    requireArray(record.generated_assets, `${indexedAsset.asset_id} generated_assets`)
+      .map(asset => [String(asset?.card_id || ''), asset]),
+  );
+  const perCard = new Map(
+    requireArray(record.per_card_qc, `${indexedAsset.asset_id} per_card_qc`)
+      .map(item => [String(item?.card_id || ''), item]),
+  );
+  for (const cardId of indexedAsset.card_ids) {
+    const generated = generatedByCard.get(cardId);
+    const result = perCard.get(cardId);
+    if (!generated || !result) {
+      throw new ReleaseDeliveryError(`${indexedAsset.asset_id} lacks model evidence for ${cardId}.`);
+    }
+    const manifestAsset = manifestByPath.get(generated.path);
+    if (!manifestAsset) {
+      throw new ReleaseDeliveryError(`${cardId} model audio asset is absent from the manifest.`);
+    }
+    requireExact(
+      generated.file_sha256,
+      manifestAsset.sha256.slice('sha256:'.length),
+      `${cardId} model audio byte hash`,
+    );
+    for (const check of [
+      'complete_asset_consumed',
+      'matches_text',
+      'target_signal',
+      'pronunciation',
+      'speed',
+      'rhythm',
+      'stress_pauses',
+      'no_noise',
+    ]) {
+      requireExact(result[check], true, `${cardId} ${check}`);
+    }
+  }
+}
+
 function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
   assertEqual(
     index.corpus_fingerprint,
@@ -866,6 +1145,9 @@ function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
     manifest.assets.map(asset => asset.asset_id),
     'audio QC asset coverage',
   );
+  const manifestByPath = new Map(
+    manifest.assets.map(asset => [asset.asset_path, asset]),
+  );
 
   for (const asset of index.assets) {
     const recordPath = resolveBundlePath(bundleDirectory, asset.record_path);
@@ -875,6 +1157,7 @@ function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
       `audio QC record ${asset.asset_id}`,
     );
     const record = readJson(recordPath, `audio QC record ${asset.asset_id}`);
+    verifyModelAudioQcRecord(record, asset, manifestByPath);
     requireExact(
       record.verdict?.formal_audio_ready,
       true,
@@ -1133,6 +1416,12 @@ function requireCloudBaseFileId(value, label) {
 
 function requireSha256(value, label) {
   return requirePattern(value, SHA256_PATTERN, label);
+}
+
+function normalizeSha256(value) {
+  return typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)
+    ? `sha256:${value}`
+    : value;
 }
 
 function requireIsoTimestamp(value, label) {

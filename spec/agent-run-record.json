@@ -1,15 +1,17 @@
 {
-  "version": "vnext-1",
+  "version": "vnext-2",
   "layer": "repo_governance_truth",
-  "purpose": "Define how significant agent-authored repository work is recorded as durable, reviewable project context instead of being recoverable only from chat history.",
-  "authority_note": "This file owns the agent run record schema, storage location, and PR reference policy. It does not own product truth, design authority, workspace classification, or validator layer ownership.",
+  "purpose": "Describe the frozen historical agent-run archive. New pull requests use concise PR summaries, model review, required checks, and domain-specific release evidence instead of adding tracked run records.",
+  "authority_note": "This file owns the frozen archive schema and the no-new-record policy. It does not own product truth, current PR review, release evidence, design authority, workspace classification, or validator layer ownership.",
   "product_truth": {
-    "none": "Agent run records are delivery governance truth. They preserve how product truth and implementation hypotheses were used, but they do not create product truth."
+    "none": "Historical agent run records preserve old delivery context but do not create product truth or current acceptance authority."
   },
   "storage": {
+    "lifecycle": "frozen_historical_archive",
+    "new_records_required": false,
     "directory": "docs/agent-runs/",
     "filename_pattern": "YYYY-MM-DD-<short-slug>.md",
-    "template": "docs/agent-runs/TEMPLATE.md",
+    "template": null,
     "index": "docs/agent-runs/README.md",
     "binary_evidence_policy": {
       "schema_version": "agent-run-evidence.v1",
@@ -57,18 +59,13 @@
     "follow_up"
   ],
   "pr_policy": {
-    "required_body_section": "Agent run record",
-    "required_body_field": "Run record",
+    "required": false,
+    "replacement": "pull_request_summary_plus_exact_diff_model_review_plus_required_checks",
+    "required_body_section": null,
+    "required_body_field": null,
     "required_path_prefix": "docs/agent-runs/",
-    "applies_to": [
-      "repository_governance_change",
-      "harness_or_ci_change",
-      "user_facing_ui_change",
-      "runtime_or_backend_change",
-      "card_content_handoff_change",
-      "multi_file_refactor"
-    ],
-    "local_only_exception": "Local-only work may omit a committed run record only when the user explicitly requests no PR and the final answer records the same fields."
+    "applies_to": [],
+    "external_operation_evidence": "Real deployments, provider observations, device runs, rollback drills, and other external facts use their registered domain evidence schemas rather than an agent-run narrative."
   },
   "privacy_and_leakage_policy": {
     "must_not_include": [
@@ -88,7 +85,8 @@
     ]
   },
   "harness_expectations": {
-    "validate_agent_review_requires_pr_reference": true,
+    "historical_markdown_diff_guard": "node scripts/guard_agent_run_archive.mjs --base <base_sha> --head <head_sha>",
+    "validate_agent_review_requires_pr_reference": false,
     "validate_harness_checks_template_and_contract": true,
     "run_record_must_not_replace_tests_or_review": true,
     "run_record_must_separate_product_truth_and_implementation_hypothesis": true,
@@ -98,7 +96,7 @@
     {
       "id": "ARR-AP-01",
       "name": "leave_agent_work_only_in_chat_history",
-      "correction": "write_a_committed_run_record_for_significant_PR_bound_work"
+      "correction": "record_the_outcome_specs_validation_and_model_review_in_the_pull_request_and_use_domain_evidence_for_external_facts"
     },
     {
       "id": "ARR-AP-02",

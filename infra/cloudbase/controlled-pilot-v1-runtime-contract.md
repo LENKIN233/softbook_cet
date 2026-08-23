@@ -17,16 +17,16 @@ Referenced active sources:
 `product_truth`:
 
 - The controlled pilot is a pre-beta CET4 learning proof for 30–50 invited iOS and Android users.
-- It contains exactly 120 approved cards, starts a complete five-day experience only from the first valid Learning Session, and measures five-card rounds and five-day retention.
-- It is not the formal closed beta. Formal CET4 closed beta continues to require 1,180 cards, 301 audio references, complete QC and one whole-track final approval.
+- It contains exactly 120 model-authorized cards, starts a complete five-day experience only from the first valid Learning Session, and measures five-card rounds and five-day retention.
+- It is not the formal closed beta. Formal CET4 closed beta continues to require 1,180 cards, 301 audio references, complete QC and one whole-track model-owned authorization.
 - Pilot payment is unavailable. Continued access may be overlaid only by an audited receiver-operator pilot entitlement.
 
 `implementation_hypothesis`:
 
-- The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
+- The repository implements fail-closed profile, bundle, model authorization, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated `GET /v2/learning/card-source`, Bootstrap, Learning Events, Learning Session, content-manifest and Space paths apply that mode boundary. Bootstrap and content-manifest expose exact `controlled_pilot` variants rather than mixing formal release fields into pilot responses, and the mobile repositories parse those variants fail closed. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider. The controlled-pilot mobile runtime has no `/v1` dependency for loading card bodies.
-- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, dry-run-first approved-artifact bundle assembler, and separately deployed leased account-deletion worker with one-minute timer are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, audited pilot entitlement operations, strict dual-platform minimum-version shape validation, exact pilot Bootstrap/content-manifest parsing, and actual native iOS/Android minimum-version enforcement are implemented in the repository but remain undeployed. Bootstrap gates the canonical snapshot early; the manifest gates independently only after Ed25519 verification. Receiver-owned profile/secrets and execution, complete identified-human audio QC, persistent deletion-worker execution/drill, persistent-environment proof, and real-device evidence remain separate and incomplete.
+- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, dry-run-first authorized-artifact bundle assembler, and separately deployed leased account-deletion worker with one-minute timer are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, audited pilot entitlement operations, strict dual-platform minimum-version shape validation, exact pilot Bootstrap/content-manifest parsing, and actual native iOS/Android minimum-version enforcement are implemented in the repository but remain undeployed. Bootstrap gates the canonical snapshot early; the manifest gates independently only after Ed25519 verification. Receiver-owned profile/secrets and execution, complete model-owned audio QC, persistent deletion-worker execution/drill, persistent-environment proof, and automated real-device evidence remain separate and incomplete.
 - `controlled-pilot-receiver-delivery-report.v2` carries the same deterministic
   commit/profile/environment/function-topology backend deployment identity as
   formal delivery. The ID is injected into `softbook-api` and remotely reread
@@ -103,7 +103,7 @@ path, and is always `gate_eligible=false`.
 
 ### `controlled-pilot-bundle.v1`
 
-The bundle binds one exact controlled-pilot profile, exactly 120 approved CET4
+The bundle binds one exact controlled-pilot profile, exactly 120 model-authorized CET4
 cards and a stable 60-card free prefix. Full content distribution is fixed at
 listening 24, careful reading 24, cloze 16, writing 16, translation 16,
 vocabulary 12 and grammar 12. All 120 cards must map to active boxes, duplicate
@@ -111,10 +111,28 @@ card IDs and unmapped cards are zero, every library covers at least two boxes,
 and all five owned core interactions appear with counts that sum to 120. The
 first 60 cards must contain every library. Repository development cards,
 candidate workspace rows and dry-run projections do not count toward this
-approved total. Every referenced audio asset has one matching QC record; at
+authorized total. Every referenced audio asset has one matching QC record; at
 least the 24 listening cards require audio.
 
-Approval scope is `controlled_pilot_120`. The bundle binds the exact `card-make-quality-audit-v1` scoped-card report by path and SHA-256, binds its corpus digest and 120-card scope digest in canonical ascending card-ID order, and requires publication to rederive that the audit scope is exactly the content payload without changing the payload's product scheduling order. Audit has zero unresolved blockers, zero content risks, zero review gaps, zero unexplained risks and complete metadata coverage. The only allowed explained source risk is exactly 120 `synthetic_source` findings with the immutable disclosure `synthetic_training_content_not_true_exam`; pilot surfaces and research claims must describe these as CET4 preparation simulations and must never represent them as true-exam excerpts. A missing disclosure, unknown rule, count or scope drift, `unverified_source`, or any non-source finding fails closed. Content, approval, detailed audit, audio manifest and audio QC remain path/hash bound. Publication implementation must upload and re-read audio, stage content, revalidate it and activate last.
+Authorization scope is `controlled_pilot_120`. The bundle binds a complete
+`controlled-pilot-review.v2` by path and SHA-256 plus a
+`controlled-pilot-authorization.v2` containing two distinct accepted model
+runs. Their canonical input binds the exact review, runtime payload, scoped
+audit, corpus fingerprint, pilot ID, content version, 14 boxes and 120 card IDs.
+The bundle also binds the exact `card-make-quality-audit-v1` scoped-card report
+by path and SHA-256, its corpus digest and 120-card scope digest in canonical
+ascending card-ID order, and requires publication to rederive that the audit
+scope is exactly the content payload without changing the payload's product
+scheduling order. Audit has zero unresolved blockers, zero content risks, zero
+review gaps, zero unexplained risks and complete metadata coverage. The only
+allowed explained source risk is exactly 120 `synthetic_source` findings with
+the immutable disclosure `synthetic_training_content_not_true_exam`; pilot
+surfaces and research claims must describe these as CET4 preparation
+simulations and must never represent them as true-exam excerpts. A missing
+disclosure, unknown rule, count or scope drift, `unverified_source`, or any
+non-source finding fails closed. Content, review, authorization, detailed
+audit, audio manifest and audio QC remain path/hash bound. Publication must
+upload and re-read audio, stage content, revalidate it and activate last.
 
 ### `pilot-content-release.v1`
 
@@ -247,28 +265,28 @@ refuses to replace a different active release in pilot mode.
 
 `scripts/build_controlled_pilot_bundle.mjs` consumes only explicit artifacts
 from the external card workspace: the hash-bound candidate runtime payload,
-user-approved pilot review, exact approval record, scoped audit, audio bytes,
-and complete formal audio-QC records. It derives the corpus fingerprint and
+current model-owned pilot review, two-run authorization record, scoped audit,
+audio bytes, and complete model-owned audio-QC records. It derives the corpus fingerprint and
 all release evidence summaries, copies immutable bytes into a temporary bundle,
 and invokes the production publisher verifier before returning. The command is
 dry-run by default and retains the verified directory only with `--apply`; an
-absent, duplicate, non-human, failed, or hash-mismatched QC record fails closed.
-It creates neither candidate content nor content/audio approval.
+absent, duplicate, unidentified, failed, or hash-mismatched QC record fails closed.
+It creates neither candidate content nor content/audio authorization.
 
 `infra/cloudbase/smoke-controlled-pilot-candidate-runtime.mjs` is the
-pre-deployment consumer-side integration check for an exact approved candidate.
-It hash-binds the candidate payload, review, approval and scoped audit; hydrates
+pre-deployment consumer-side integration check for an exact authorized candidate.
+It hash-binds the candidate payload, review, model authorization and scoped audit; hydrates
 environment-only private object IDs in memory; and exercises authenticated
 `/v2/learning/card-source`, session-owned membership read and Learning
 Session-owned trial start, five selection-bound Learning Events, the server-owned round boundary
 and continuation, Bootstrap, and the signed 24-asset content manifest. It never
 substitutes for complete identified
-human audio QC, persistent receiver execution, private-object byte delivery or
+model-harness audio QC, persistent receiver execution, private-object byte delivery or
 real-device proof, and its output is always `gate_eligible=false`.
 
 `scripts/run_controlled_pilot_mobile_acceptance.mjs` composes that backend
-smoke with the opt-in React Native acceptance suite. It requires the exact
-approved candidate/review/approval/audit outside the product repository,
+smoke with the React Native acceptance suite. It requires the exact
+authorized candidate/review/authorization/audit outside the product repository,
 captures the backend's real card-source, first Learning Session, signed pilot
 manifest and post-round Bootstrap responses only in a private temporary file,
 and deletes that file after mobile validation. The mobile suite parses all 120
@@ -282,9 +300,8 @@ flags. In particular,
 `installed_client_minimum_version_enforced` deliberately remains `false`:
 the runner injects a deterministic identity to exercise repository wiring but
 does not execute an installed native release or prove the gate on a real
-device. It remains neither
-identified-human audio QC nor receiver key injection, persistent environment
-proof, real-device proof, deployment, or launch evidence; `gate_eligible` is
+device. It remains neither model-owned audio QC nor receiver key injection,
+persistent environment proof, automated real-device proof, deployment, or launch evidence; `gate_eligible` is
 always false.
 
 `deliver-controlled-pilot.mjs` provides `preflight`, `provision`, `deploy`,
@@ -299,7 +316,7 @@ rollback; a failed or expired pilot must remain fail closed rather than silently
 activate arbitrary retained content.
 
 Actual receiver execution, SMS delivery, authenticated route probes, trigger
-logs, deletion drills and real-device playback remain external work. Repository
+logs, deletion drills and automated real-device playback remain external work. Repository
 fixtures, dry-runs and in-memory adapters are never deployment evidence.
 
 ### `pilot-outcome-report.v1`
@@ -309,6 +326,6 @@ The report contains only aggregate integer counts for a 30–50 account cohort o
 ## Release non-replacement
 
 - Pilot profiles and bundles cannot be passed to `release-bundle.v1` verification or publication.
-- Pilot content, approval, device checks and outcome reports cannot update `docs/release/launch-readiness.v1.json` or replace formal beta evidence.
+- Pilot content, authorization, device checks and outcome reports cannot update `docs/release/launch-readiness.v1.json` or replace formal beta evidence.
 - Failure never falls back to repository development cards, unsigned manifests, public asset URLs, personal environments or arbitrary JSON.
-- A successful pilot authorizes planning the remaining CET4 corpus; it does not approve the 120 cards as a whole-track release without the later final 1,180-card approval.
+- A successful pilot authorizes planning the remaining CET4 corpus; it does not authorize the 120 cards as a whole-track release without the later final 1,180-card model-owned authorization.

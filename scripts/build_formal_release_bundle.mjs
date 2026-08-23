@@ -24,6 +24,10 @@ import {
   collectAudioQcBindings,
   normalizeEvidenceTimestamp,
 } from './build_controlled_pilot_bundle.mjs';
+import {
+  buildModelAcceptanceInputSha256,
+  requireIndependentModelAcceptances,
+} from './lib/model_acceptance_contract.mjs';
 import {parseStrictJson} from './lib/strict_json.mjs';
 import {REQUIRED_DEPLOYMENT_NODE_VERSION} from '../infra/cloudbase/deployment-safety.mjs';
 
@@ -31,11 +35,12 @@ const CET4_CARD_COUNT = 1180;
 const CET4_BOX_COUNT = 108;
 const CET4_AUDIO_COUNT = 301;
 const CONTENT_PATH = 'content/cet4.json';
-const APPROVAL_PATH = 'approval/cet4-full-track-final.json';
+const AUTHORIZATION_PATH = 'approval/cet4-full-track-authorization.json';
+const MODEL_REVIEW_PATH = 'approval/cet4-full-track-model-review.json';
 const AUDIO_MANIFEST_PATH = 'audio/manifest.json';
 const AUDIO_QC_INDEX_PATH = 'audio/qc-index.json';
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
-const OPERATOR_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
+const OPERATOR_PATTERN = /^(model|agent|service|oidc):[A-Za-z0-9_.-]+$/;
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export class FormalReleaseBundleBuildError extends Error {}
@@ -59,11 +64,41 @@ export function assembleFormalReleaseBundle(
   const profile = validateDeliveryProfile(
     parseJsonBytes(profileBytes, 'delivery profile'),
   );
-  const content = readJson(normalized.contentPayloadPath, 'CET4 content payload');
-  const approval = readJson(normalized.approvalPath, 'full-track approval');
+  const rawContent = readJson(
+    normalized.contentPayloadPath,
+    'CET4 content payload',
+  );
+  const authorization = readJson(
+    normalized.authorizationPath,
+    'full-track model authorization',
+  );
+  const modelReviewBytes = readFileSync(normalized.modelReviewPath);
+  const modelReview = parseJsonBytes(modelReviewBytes, 'full-track model review');
   const auditBytes = readFileSync(normalized.auditPath);
   const audit = parseJsonBytes(auditBytes, 'quality audit');
-  validateInputs({approval, audit, auditBytes, content, profile});
+  const auditCorpusFingerprint = `sha256:${audit.corpus_fingerprint?.digest ?? ''}`;
+  if (!SHA256_PATTERN.test(auditCorpusFingerprint)) {
+    fail('Quality audit must contain a valid corpus fingerprint.');
+  }
+  if (
+    rawContent.corpus_fingerprint !== undefined &&
+    rawContent.corpus_fingerprint !== auditCorpusFingerprint
+  ) {
+    fail('Content payload corpus fingerprint does not match the quality audit.');
+  }
+  const content = {
+    ...rawContent,
+    corpus_fingerprint: auditCorpusFingerprint,
+  };
+  validateInputs({
+    authorization,
+    audit,
+    auditBytes,
+    content,
+    modelReview,
+    modelReviewBytes,
+    profile,
+  });
   const cards = content.card_records;
   const assets = content.assets;
   const {bindings, usedRecords} = collectAudioQcBindings({
@@ -79,17 +114,18 @@ export function assembleFormalReleaseBundle(
   const stagingParent = normalized.apply ? normalized.outputParent : tmpdir();
   const staging = mkdtempSync(join(stagingParent, '.formal-release-bundle-'));
   try {
-    const contentHash = copyBoundJson(
-      normalized.contentPayloadPath,
-      join(staging, CONTENT_PATH),
+    const contentHash = writeJson(join(staging, CONTENT_PATH), content);
+    const authorizationHash = copyBoundJson(
+      normalized.authorizationPath,
+      join(staging, AUTHORIZATION_PATH),
     );
-    const approvalHash = copyBoundJson(
-      normalized.approvalPath,
-      join(staging, APPROVAL_PATH),
+    const modelReviewHash = copyBoundJson(
+      normalized.modelReviewPath,
+      join(staging, MODEL_REVIEW_PATH),
     );
     const auditPath = requireSafeRelativeJsonPath(
-      approval.card_quality_audit.report,
-      'approval audit report path',
+      authorization.card_quality_audit.report,
+      'authorization audit report path',
     );
     const auditHash = copyBoundJson(
       normalized.auditPath,
@@ -133,7 +169,7 @@ export function assembleFormalReleaseBundle(
       corpus_fingerprint: content.corpus_fingerprint,
       assets: bindings,
     });
-    const bySeverity = approval.card_quality_audit.scope_summary.by_severity;
+    const bySeverity = authorization.card_quality_audit.scope_summary.by_severity;
     const bundle = {
       schema_version: 'release-bundle.v1',
       bundle_id: normalized.bundleId,
@@ -150,9 +186,11 @@ export function assembleFormalReleaseBundle(
         card_count: cards.length,
       },
       approval: {
-        record_path: APPROVAL_PATH,
-        record_sha256: approvalHash,
-        approval_id: approval.approval_id,
+        record_path: AUTHORIZATION_PATH,
+        record_sha256: authorizationHash,
+        approval_id: authorization.authorization_id,
+        model_review_path: MODEL_REVIEW_PATH,
+        model_review_sha256: modelReviewHash,
       },
       audit: {
         report_path: auditPath,
@@ -205,8 +243,9 @@ export function assembleFormalReleaseBundle(
       audio_asset_count: assets.length,
       audio_qc_entry_count: bindings.length,
       unique_qc_record_count: usedRecords.size,
-      approval_id: approval.approval_id,
-      approval_sha256: approvalHash,
+      authorization_id: authorization.authorization_id,
+      authorization_sha256: authorizationHash,
+      model_review_sha256: modelReviewHash,
       audit_sha256: auditHash,
       audio_manifest_sha256: manifestHash,
       audio_qc_index_sha256: qcIndexHash,
@@ -225,7 +264,15 @@ export function assembleFormalReleaseBundle(
   }
 }
 
-function validateInputs({approval, audit, auditBytes, content, profile}) {
+function validateInputs({
+  authorization,
+  audit,
+  auditBytes,
+  content,
+  modelReview,
+  modelReviewBytes,
+  profile,
+}) {
   if (
     profile.schema_version !== 'delivery-profile.v1' ||
     profile.runtime_mode !== 'closed_beta' ||
@@ -268,18 +315,20 @@ function validateInputs({approval, audit, auditBytes, content, profile}) {
     fail('Content audio asset identity is invalid.');
   }
   if (
-    approval.approval_mode !== 'full_track_final' ||
-    approval.approved_by_user !== true ||
-    approval.scope?.track !== 'cet4' ||
-    !sameSet(approval.scope?.card_ids, cardIds) ||
-    !sameSet(approval.scope?.box_prefixes, boxIds) ||
-    approval.card_quality_audit?.corpus_fingerprint !==
+    authorization.schema_version !== 'model-owned-content-authorization.v2' ||
+    authorization.authorization_mode !== 'full_track' ||
+    authorization.content_version !== content.content_version ||
+    authorization.scope?.track !== 'cet4' ||
+    authorization.scope?.purpose !== 'formal_content' ||
+    !sameSet(authorization.scope?.card_ids, cardIds) ||
+    !sameSet(authorization.scope?.box_prefixes, boxIds) ||
+    authorization.card_quality_audit?.corpus_fingerprint !==
       content.corpus_fingerprint.slice('sha256:'.length) ||
-    approval.card_quality_audit?.scope_has_no_hard_blockers !== true
+    authorization.card_quality_audit?.scope_has_no_hard_blockers !== true
   ) {
-    fail('Full-track approval is not bound to the exact CET4 content payload.');
+    fail('Full-track model authorization is not bound to the exact CET4 content payload.');
   }
-  const summary = approval.card_quality_audit?.scope_summary;
+  const summary = authorization.card_quality_audit?.scope_summary;
   if (
     summary?.card_count !== CET4_CARD_COUNT ||
     !sameSet(summary?.card_ids, cardIds) ||
@@ -287,11 +336,12 @@ function validateInputs({approval, audit, auditBytes, content, profile}) {
     summary?.by_severity?.content_risk !== 0 ||
     summary?.by_severity?.review_gap !== 0
   ) {
-    fail('Full-track approval audit summary is not publisher-ready.');
+    fail('Full-track model authorization audit summary is not publisher-ready.');
   }
   const auditHash = sha256Bytes(auditBytes);
+  const modelReviewHash = sha256Bytes(modelReviewBytes);
   if (
-    approval.card_quality_audit?.report_sha256 !== auditHash ||
+    authorization.card_quality_audit?.report_sha256 !== auditHash ||
     audit.corpus_fingerprint?.digest !==
       content.corpus_fingerprint.slice('sha256:'.length) ||
     audit.scope_summary?.card_count !== CET4_CARD_COUNT ||
@@ -304,14 +354,74 @@ function validateInputs({approval, audit, auditBytes, content, profile}) {
   ) {
     fail('Quality audit bytes and complete zero-blocker scope are not bound.');
   }
-  normalizeEvidenceTimestamp(approval.approved_at, 'approval approved_at');
+  if (
+    modelReview.schema_version !== 'model-owned-full-track-review.v2' ||
+    modelReview.scope?.track !== 'cet4' ||
+    !sameSet(modelReview.scope?.card_ids, cardIds) ||
+    !sameSet(modelReview.scope?.box_prefixes, boxIds) ||
+    modelReview.quality_audit?.report_sha256 !== auditHash ||
+    normalizeSha256(modelReview.quality_audit?.corpus_fingerprint) !==
+      content.corpus_fingerprint ||
+    modelReview.quality_audit?.scope_has_no_hard_blockers !== true ||
+    modelReview.batch_review?.status !== 'ready_for_model_authorization' ||
+    authorization.validation?.model_review_sha256 !== modelReviewHash ||
+    typeof authorization.validation?.model_review !== 'string' ||
+    !authorization.validation.model_review.trim()
+  ) {
+    fail('Full-track model review is not bound to authorization and audit bytes.');
+  }
+  const linkedReviewPath = requireSafeRelativeJsonPath(
+    authorization.validation.model_review,
+    'authorization linked model review path',
+  );
+  const expectedReviewInput = buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_review',
+    scope: modelReview.scope,
+    corpusFingerprint: content.corpus_fingerprint,
+    auditSha256: auditHash,
+  });
+  const expectedAuthorizationInput = buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_content_authorization',
+    scope: authorization.scope,
+    corpusFingerprint: content.corpus_fingerprint,
+    auditSha256: auditHash,
+    linkedReviewIdentity: {
+      path: linkedReviewPath,
+      sha256: modelReviewHash,
+    },
+    additionalBindings: {
+      content_version: content.content_version,
+    },
+  });
+  try {
+    requireIndependentModelAcceptances(modelReview.model_acceptances, {
+      expectedInputSha256: expectedReviewInput,
+      label: 'full-track model review',
+      requiredCapabilities: [
+        'card_semantic_review',
+        'source_provenance_review',
+      ],
+    });
+    requireIndependentModelAcceptances(authorization.model_acceptances, {
+      expectedInputSha256: expectedAuthorizationInput,
+      label: 'full-track model authorization',
+      requiredCapabilities: ['content_authorization'],
+    });
+  } catch (error) {
+    fail(error.message);
+  }
+  normalizeEvidenceTimestamp(
+    authorization.authorized_at,
+    'authorization authorized_at',
+  );
 }
 
 function normalizeOptions(options) {
   for (const key of [
     'profilePath',
     'contentPayloadPath',
-    'approvalPath',
+    'authorizationPath',
+    'modelReviewPath',
     'auditPath',
     'audioQcDirectory',
     'outputDirectory',
@@ -329,16 +439,17 @@ function normalizeOptions(options) {
   }
   const operator = options.operator ?? null;
   if (options.apply === true && !OPERATOR_PATTERN.test(operator ?? '')) {
-    fail('apply requires an identified github, team, or external operator.');
+    fail('apply requires an identified model, agent, service, or OIDC operator.');
   }
   if (operator !== null && !OPERATOR_PATTERN.test(operator)) {
-    fail('operator must identify a github, team, or external operator.');
+    fail('operator must identify a model, agent, service, or OIDC operator.');
   }
   return {
     ...options,
     profilePath: resolve(options.profilePath),
     contentPayloadPath: resolve(options.contentPayloadPath),
-    approvalPath: resolve(options.approvalPath),
+    authorizationPath: resolve(options.authorizationPath),
+    modelReviewPath: resolve(options.modelReviewPath),
     auditPath: resolve(options.auditPath),
     audioQcDirectory: resolve(options.audioQcDirectory),
     assetRoot: resolve(options.assetRoot ?? dirname(options.contentPayloadPath)),
@@ -359,7 +470,8 @@ export function parseFormalReleaseBundleArguments(argv) {
   const names = new Map([
     ['--profile', 'profilePath'],
     ['--content-payload', 'contentPayloadPath'],
-    ['--approval', 'approvalPath'],
+    ['--authorization', 'authorizationPath'],
+    ['--model-review', 'modelReviewPath'],
     ['--audit', 'auditPath'],
     ['--audio-qc-dir', 'audioQcDirectory'],
     ['--asset-root', 'assetRoot'],
@@ -530,11 +642,17 @@ function fail(message) {
   throw new FormalReleaseBundleBuildError(message);
 }
 
+function normalizeSha256(value) {
+  return typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)
+    ? `sha256:${value}`
+    : value;
+}
+
 function printUsage() {
   console.log(`Usage:
-  node scripts/build_formal_release_bundle.mjs --profile <delivery-profile.json> --content-payload <cet4.json> --approval <full-track-final.json> --audit <quality-audit.json> --audio-qc-dir <dir> --output-dir <dir> --bundle-id <id> --release-id <id> [--parent-release-id <id>] --created-at <ISO> --release-at <ISO> [--asset-root <dir>] [--apply --operator <id>]
+  node scripts/build_formal_release_bundle.mjs --profile <delivery-profile.json> --content-payload <cet4.json> --authorization <full-track-authorization.json> --model-review <full-track-model-review.json> --audit <quality-audit.json> --audio-qc-dir <dir> --output-dir <dir> --bundle-id <id> --release-id <id> [--parent-release-id <id>] --created-at <ISO> --release-at <ISO> [--asset-root <dir>] [--apply --operator <id>]
 
-The builder is dry-run by default: it assembles and fully verifies a temporary formal bundle, then removes it. --apply keeps the verified output directory. It never creates approval, QC, deployment or launch evidence.`);
+The builder is dry-run by default: it assembles and fully verifies a temporary formal bundle, then removes it. --apply keeps the verified output directory. It never creates authorization, QC, deployment or launch evidence.`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
   "source_anchors": {
     "authentication": {
@@ -225,6 +225,17 @@
     "human_readable_docs_not_required_as_active_surface": true,
     "progressive_disclosure_is_required": true,
     "low_coupling_is_required": true
+  },
+  "launch_and_agent_authority": {
+    "target_release": "2026-09",
+    "launch_priority": "launch_as_soon_as_machine_evidence_supports_recoverable_operation",
+    "internal_decision_authority": "model_harness",
+    "human_review_required": false,
+    "user_review_or_confirmation_is_a_gate": false,
+    "standing_product_authorization": true,
+    "quality_strategy": "model_first_with_small_measured_deterministic_evals_and_progressive_release",
+    "post_launch_issue_discovery_is_acceptable": true,
+    "external_fact_boundary": "The harness performs authorized product operations and verifies actual provider, account, credential, legal, deployment, and device state; it never invents missing external facts or converts them into subjective user-review requests."
   },
   "open_questions": {}
 }

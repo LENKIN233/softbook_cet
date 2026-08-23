@@ -53,7 +53,7 @@ test('unified delivery arguments keep every mutating command dry-run by default'
         '--bundle',
         'bundle.json',
         '--operator',
-        'github:receiver-operator',
+        'service:receiver-release-operator',
         '--apply',
       ]),
     /read-only/,
@@ -300,7 +300,7 @@ test('receiver provision apply creates only missing allowlisted collections and 
       bundlePath: null,
       command: 'provision',
       format: 'json',
-      operator: 'github:receiver-operator',
+      operator: 'service:receiver-release-operator',
       profilePath: fixture.path,
       releaseId: null,
     },
@@ -308,7 +308,7 @@ test('receiver provision apply creates only missing allowlisted collections and 
   );
 
   assert.equal(report.status, 'passed');
-  assert.equal(report.execution.operator, 'github:receiver-operator');
+  assert.equal(report.execution.operator, 'service:receiver-release-operator');
   assert.deepEqual(report.provisioned.created, deploymentSafety.REQUIRED_COLLECTIONS.slice(-2));
   assert.equal(runner.calls.filter(call => call.includes('CreateTable')).length, 2);
 });
@@ -324,7 +324,7 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
       bundlePath: null,
       command: 'deploy',
       format: 'json',
-      operator: 'github:receiver-operator',
+      operator: 'service:receiver-release-operator',
       profilePath: fixture.path,
       releaseId: null,
     },
@@ -490,7 +490,7 @@ test('receiver write safety blocks topic branches even when remote preflight pas
           bundlePath: null,
           command: 'provision',
           format: 'json',
-          operator: 'github:receiver-operator',
+          operator: 'service:receiver-release-operator',
           profilePath: fixture.path,
           releaseId: null,
         },

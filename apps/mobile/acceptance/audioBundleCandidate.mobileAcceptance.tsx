@@ -546,9 +546,9 @@ function writeSafeReport(input: {
     simulated_manifest_binding_verified: true,
     visible_runtime_metadata_leak_guard_verified: true,
     signed_manifest_verified: false,
-    human_audio_qc_verified: false,
+    model_audio_qc_verified: false,
     persistent_receiver_verified: false,
-    real_device_verified: false,
+    automated_real_device_evidence_verified: false,
     gate_eligible: false,
   };
   const fullTrack =

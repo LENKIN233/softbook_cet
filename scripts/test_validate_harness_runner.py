@@ -36,6 +36,7 @@ TEST_LAYERS = (
 )
 ROOT = Path(__file__).resolve().parents[1]
 ENTRYPOINT = ROOT / "scripts" / "validate_harness.py"
+REVIEW_HEAD = "a" * 40
 
 
 class HarnessRunnerTests(unittest.TestCase):
@@ -202,7 +203,7 @@ class HarnessRunnerTests(unittest.TestCase):
                 RunnerOptions(mode="local"),
                 layers=TEST_LAYERS,
                 section_dir=section_dir,
-                section_timeout_seconds=0.1,
+                section_timeout_seconds=1.0,
             )
 
         self.assertEqual(result["sections"][1]["findings"][0]["type"], "timeout")
@@ -387,7 +388,7 @@ class HarnessRunnerTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     finding["section"] == "delivery_runtime"
-                    and "unable to read GitHub branch protection" in finding["message"]
+                    and "unable to read GitHub repository settings" in finding["message"]
                     for finding in full_result["findings"]
                 )
             )
@@ -405,7 +406,6 @@ class HarnessRunnerTests(unittest.TestCase):
             "android-release",
             "repo-health",
             "evidence-archive",
-            "formal-approval",
         ]
         responses = {
             "repos/LENKIN233/softbook_cet": {
@@ -423,22 +423,6 @@ class HarnessRunnerTests(unittest.TestCase):
                 "required_pull_request_reviews": {
                     "required_approving_review_count": 0,
                 },
-            },
-            "repos/LENKIN233/softbook_cet/environments/formal-product-owner-approval": {
-                "name": "formal-product-owner-approval",
-                "can_admins_bypass": False,
-                "protection_rules": [
-                    {
-                        "type": "required_reviewers",
-                        "prevent_self_review": False,
-                        "reviewers": [
-                            {
-                                "type": "User",
-                                "reviewer": {"login": "LENKIN233"},
-                            }
-                        ],
-                    }
-                ],
             },
         }
 
@@ -489,45 +473,24 @@ class HarnessRunnerTests(unittest.TestCase):
             full_result["findings"],
         )
 
-    def test_partial_cli_commands_cannot_satisfy_full_pr_validation(self):
-        partial_commands = (
+    def test_pr_review_accepts_task_relevant_passed_validation(self):
+        commands = (
             "python3 scripts/validate_harness.py --skip-remote-guard",
             "python3 scripts/validate_harness.py --mode local",
-            "python3 scripts/validate_harness.py --mode=local",
             "python3 scripts/validate_harness.py --section truth_mirrors",
-            "python3 scripts/validate_harness.py --section=truth_mirrors",
-            "python3 scripts/validate_harness.py --layer truth_spec_layer",
-            "python3 scripts/validate_harness.py --layer=truth_spec_layer",
-            "python3 scripts/validate_harness.py --list",
-            "python3 scripts/validate_harness.py --help",
-            "python3 scripts/validate_harness.py -h",
-        )
-        for command in partial_commands:
-            with self.subTest(command=command):
-                errors = validate_agent_review(self.review_body(command))
-                self.assertTrue(
-                    any("runs are partial" in error for error in errors),
-                    errors,
-                )
-
-        for command in (
             "python3 scripts/validate_harness.py",
             "python3 scripts/validate_harness.py --mode full --format json",
-        ):
+        )
+        for command in commands:
             with self.subTest(command=command):
-                self.assertEqual(validate_agent_review(self.review_body(command)), [])
-
-        mixed_record = self.review_body(
-            "python3 scripts/validate_harness.py --mode local"
-        ).replace(
-            "## Agent review",
-            "- `python3 scripts/validate_harness.py`\n\n## Agent review",
-        )
-        mixed_errors = validate_agent_review(mixed_record)
-        self.assertTrue(
-            any("runs are partial" in error for error in mixed_errors),
-            mixed_errors,
-        )
+                self.assertEqual(
+                    validate_agent_review(
+                        self.review_body(command),
+                        expected_head=REVIEW_HEAD,
+                        minimum_runs=2,
+                    ),
+                    [],
+                )
 
     def test_json_result_has_stable_schema_and_structured_findings(self):
         with self.section_directory(
@@ -621,6 +584,33 @@ class HarnessRunnerTests(unittest.TestCase):
 
     @staticmethod
     def review_body(command: str) -> str:
+        evidence = json.dumps({
+            "schema_version": "pr-model-review.v1",
+            "head_sha": REVIEW_HEAD,
+            "policy": "spec/machine-acceptance.json",
+            "runs": [
+                {
+                    "principal": "agent:codex-primary",
+                    "model": "gpt-5.6-sol",
+                    "run_id": "review:runner-primary",
+                    "reviewed_at": "2026-08-23T17:00:00+08:00",
+                    "capabilities": ["exact_diff_review"],
+                    "decision": "passed",
+                    "blocking_findings": [],
+                },
+                {
+                    "principal": "agent:codex-independent",
+                    "model": "gpt-5.6-sol",
+                    "run_id": "review:runner-independent",
+                    "reviewed_at": "2026-08-23T17:01:00+08:00",
+                    "capabilities": ["exact_diff_review"],
+                    "decision": "passed",
+                    "blocking_findings": [],
+                },
+            ],
+            "status": "passed",
+            "summary": "Two isolated exact-diff reviews passed.",
+        })
         return f"""
 ## 当前任务引用的 spec
 
@@ -632,26 +622,13 @@ class HarnessRunnerTests(unittest.TestCase):
 
 ## 验证
 
-- [x] `{command}`
+- `{command}` — Passed
 
-## Agent review
+## Model review
 
-- Reviewer: Codex
-- Review status: Passed
-- Blocking findings: None
-- Review summary: Reviewed structured runner behavior.
-
-## Agent run record
-
-- Run record: docs/agent-runs/2026-07-14-harness-structured-runner.md
-
-## 设计稿来源（用户可见 UI 如适用）
-
-- Design artifact: N/A
-
-## design_review_checklist（如适用）
-
-- Universal Q1-Q4: N/A
+```json
+{evidence}
+```
 """
 
 

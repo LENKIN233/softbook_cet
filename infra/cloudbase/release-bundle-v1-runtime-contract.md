@@ -17,7 +17,8 @@ Referenced active specs:
 
 - The initial closed beta release contains CET4 only. The formal product scope
   contains CET4 and CET6 as separate track-bound releases, and each track
-  requires its own final whole-track user approval.
+  requires its own final whole-track model-harness acceptance bound to
+  `spec/machine-acceptance.json`.
 - Audio remains a card resource and cannot enter a release without complete QC.
 - Delivery does not include development users, learning records, credentials,
   signing private keys, or fixed SMS codes.
@@ -27,16 +28,19 @@ Referenced active specs:
   `docs/release/launch-readiness.v1.json`, CET6, public distribution, payment or
   compliance gates.
 - The closed-beta repository loader reuses only registered type-specific
-  receiver-deployment, SMS, Learning/scheduler and release-recovery semantics
+  receiver-deployment, Learning/scheduler and release-recovery semantics
   with `target_release=cet4-closed-beta`, the exact closed-beta candidate
   cohort, tracked/rehashed raw artifacts and reachable commits. Every
-  unregistered closed-beta evidence type remains ineligible.
+  unregistered closed-beta evidence type remains ineligible. SMS raw evidence
+  is structurally validated but remains unregistered until a pre-existing
+  receiver key registry and deployed IAM attestation are implemented.
 
 `implementation_hypothesis`:
 
 - `delivery-profile.v1` describes a receiver-owned CloudBase target with only
   non-sensitive configuration.
-- `release-bundle.v1` binds the exact card payload, whole-track approval, quality
+- `release-bundle.v1` binds the exact card payload, whole-track model
+  authorization, linked model review, quality
   audit, audio asset manifest, audio QC index, and iOS/Android compatibility.
 - The repository-local validator, receiver CloudBase adapter, dry-run-first
   unified delivery command, and publisher orchestration are implemented. A
@@ -73,28 +77,43 @@ The bundle is track-scoped and requires:
   1,234 cards / 110 boxes / 328 audio assets for CET6, plus a deterministic
   content version;
 - a card-workspace corpus fingerprint carried by the exported content payload
-  and matched exactly by the bundle and final approval;
-- a `full_track_final` approval whose exact card/box scope and corpus
-  fingerprint match the payload;
+  and matched exactly by the bundle and final model authorization;
+- a `model-owned-content-authorization.v2` full-track record with two distinct
+  accepted runs whose exact input binds card/box scope, corpus fingerprint,
+  audit, linked model review, and the recomputed canonical runtime
+  `content_version`;
 - a hash-bound audit with zero unresolved blockers, zero unexplained risks, and
   100% quality metadata coverage;
 - the exact track audio count whose paths, sizes, durations, hashes, and QC
   records match the content payload;
-- every QC record to state formal readiness and pass all required text,
-  pronunciation, rhythm, noise, no-autoplay, subtitle, and provenance checks;
+- every `model-owned-audio-qc.v2` record to bind actual bytes and transcript,
+  contain two distinct audio-capable model runs, prove complete per-card asset
+  consumption, and pass all required text, pronunciation, rhythm, noise,
+  no-autoplay, subtitle, and provenance checks;
 - explicit minimum iOS/Android versions, parent release, and release time.
 
 Every referenced file must remain inside the bundle directory and match its
-declared SHA-256. Missing evidence fails closed.
+declared SHA-256. The bundle approval envelope carries both the authorization
+record path/hash and the linked full-track model-review path/hash; the receiver
+recomputes both review and authorization canonical inputs. Missing evidence
+fails closed.
+
+`model-acceptance.v2` records bind inputs and decisions but are not standalone
+cryptographic proof that a model execution or media consumption occurred.
+Repository authority additionally depends on the trusted Codex Action PR gate.
+Formal audio launch evidence remains ineligible until a signed trusted
+media-run receipt type is registered; current model-owned QC structures alone
+cannot satisfy launch or closed-beta readiness.
 
 ## Formal bundle builder
 
 `scripts/build_formal_release_bundle.mjs` is the only repository assembler for
 a formal CET4 bundle. It consumes an already exported exact 1,180-card / 108-box
-/ 301-audio payload, one `full_track_final` user approval, the exact audit bytes
-named and hashed by that approval, complete identified-human formal audio QC,
-private audio bytes and a `closed_beta` receiver profile. It never produces or
-approves content or QC.
+/ 301-audio payload, one `model-owned-content-authorization.v2` with two
+independent exact-input runs, its linked `model-owned-full-track-review.v2`,
+the exact audit bytes named and hashed by both records, complete
+`model-owned-audio-qc.v2`, private audio bytes and a `closed_beta` receiver
+profile. It never produces or authorizes content or QC.
 
 The command is dry-run by default. It assembles in a temporary directory,
 copies every hash-bound artifact, builds one audio manifest and one QC index
@@ -107,26 +126,23 @@ retained-parent B assembly without claiming that the parent is remotely
 retained; receiver verify remains the authority for that fact.
 
 Retained `--apply` output additionally requires Node 22.13.0, clean local
-`main` exactly equal to `origin/main`, and an identified `github:`, `team:` or
-`external:` operator. `formal-release-bundle-build-report.v2` binds that exact
-repository commit, profile ID/hash, bundle/content/release/parent, approval and
-audit hashes, audio manifest/QC-index hashes, canonical execution window and
+`main` exactly equal to `origin/main`, and an identified `model:`, `agent:`,
+`service:` or `oidc:` machine principal. `formal-release-bundle-build-report.v2`
+binds that exact repository commit, profile ID/hash,
+bundle/content/release/parent, authorization, linked model-review and audit
+hashes, audio manifest/QC-index hashes, canonical execution window and
 write-safety observation. It exposes only the output directory basename, never
 the machine-local path. Dry-run may execute on a topic branch for preparation,
 but its failed write-safety observation and null operator cannot be promoted as
 an applied formal raw report.
 
-The closed-beta evidence loader registers four CET4 content types: exact box
-coverage, exact card coverage, formal audio-QC coverage and content-pack
-integrity. Each semantic report resolves eight distinct tracked strict-JSON
-roles: applied build report v2, profile, bundle, content, full-track approval,
-quality audit, audio manifest and audio-QC index. The validator rehashes every
-file, binds the exact candidate cohort, recomputes 1,180-card/108-box/301-audio
-membership, checks full-track approval/card/box/corpus/audit relationships,
-requires zero hard/content/review blockers and no missing cards, and matches all
-301 formally ready QC entries to manifest assets and audio-bearing cards. The
-builder/report never substitutes for the human evidence carried by those raw
-artifacts.
+The four required CET4 content/media evidence types remain deliberately
+unregistered. They cannot pass closed-beta readiness until a signed trusted
+media-run receipt contract binds the exact candidate, authorization, linked
+review, audit, 1,180-card/108-box/301-audio membership, consumed media bytes,
+transcripts and complete per-asset results. The builder report and structural
+`model-acceptance.v2` records remain useful inputs but cannot manufacture a
+real model execution, playback, device or provider fact.
 
 ## Publish and rollback ordering
 
@@ -156,8 +172,8 @@ ID, handler, runtime, timeout, signing key ID, runtime/store modes and SMS
 provider while publishing only non-secret values plus variable names, never
 secret values. A dry-run or local report cannot satisfy this remote reread.
 Each report also carries canonical start/completion timestamps. Every apply or
-verify invocation requires `--operator` with a `github:`, `team:` or
-`external:` identity so later formal evidence can bind the raw execution
+verify invocation requires `--operator` with a `model:`, `agent:`, `service:`
+or `oidc:` machine principal so later formal evidence can bind the raw execution
 window and distinguish its independent verifier.
 
 `production-deployment` now has registered `launch-gate-evidence.v1`
@@ -179,7 +195,7 @@ checks remain ineligible.
 The concrete receiver adapter stores immutable staged versions in
 `softbook_card_source_versions`. It re-downloads every uploaded private audio
 object and verifies byte length and SHA-256 before staging, binds the staged
-document to the approval, audit, audio-manifest, and audio-QC hashes, and marks
+document to the authorization, audit, audio-manifest, and audio-QC hashes, and marks
 that stage verified before changing the matching
 `softbook_card_sources.<track>` pointer. Retention
 metadata is written before the current-source pointer, so activation remains
@@ -220,8 +236,13 @@ smoke is still a separate acceptance gate.
 Provider smoke does not use the CloudBase database. The two-phase
 `smoke-sms-provider.mjs` command sends only with explicit apply on clean exact
 `main`, keeps phone/code state private and ignored, and publishes a
-`sms-provider-smoke.v1` raw report only after a non-agent human submits the
-received code through stdin. Formal launch evidence wraps that raw report in a
+`sms-provider-smoke.v2` raw report only after an independent receiver adapter
+creates an Ed25519-signed private artifact that binds the received code, run,
+target, source, timestamp, receipt and configured key ID. The verifier never
+receives the adapter private key; prepare pins the adapter, key ID, and public
+key fingerprint before sending, and confirmation rejects later substitution
+before deleting the receiver artifact on consumption.
+Formal launch evidence wraps that raw report in a
 typed `launch-gate-evidence.v1` record so the candidate, environment, execution,
 independent verification, tracked hash, and semantic report bindings all fail
 closed together; repository-local tests alone never create that evidence.
@@ -245,7 +266,7 @@ deployment, and iOS, Android, and PC Web builds. The validator recomputes pass
 from raw counts and measurements against the policy; it requires the outer and
 inner subject commit to match and that commit to be reachable from the
 validated repository HEAD. Every report must match the single
-product-owner-recorded `launch-release-candidate.v1` cohort, and nested
+machine-harness-recorded `launch-release-candidate.v1` cohort, and nested
 repository raw artifacts are rechecked for tracked regular-file identity,
 size, and SHA-256. Formal reports may reference only `repo://` raw artifacts;
 large or restricted remote evidence must first be represented by an
@@ -257,10 +278,10 @@ source dataset to be nonempty before exact restored count/hash comparison, and
 RPO is recomputed from the snapshot and recovery reference. Rollback uses
 distinct A/B releases with explicit verified/retained state plus a nonempty
 learning-data count and hash. It does not trust a self-declared result. The
-five reports must also carry hashed raw artifacts and an independent verifier
-different from the execution operator. The protected product-owner
-environment remains the merge authority; report identity strings are
-metadata, not authentication by themselves.
+five reports must also carry hashed raw artifacts and an independent machine
+verifier whose principal and run ID differ from the execution principal and run.
+Machine acceptance is the internal authority; report identity strings remain
+metadata unless bound to their attestation.
 
 External account readiness uses `external-capability-evidence.v1`. Each report
 binds the exact reachable repository commit, target release, policy hash,
@@ -268,8 +289,17 @@ account, capability, provider observation, required control-plane checks, and
 tracked repository raw artifacts whose size and SHA-256 are rechecked. It is
 always `gate_eligible=false`: external capability evidence cannot replace
 runtime, payment, distribution, compliance, or security launch gates. Portal
-records and identity fields remain metadata; the protected product-owner
-Environment authenticates approval for the exact pull request head.
+records and identity fields remain metadata; provider and registry state still
+fails closed when it cannot be observed.
+
+The required-check catalog is not an evidence-semantics registry. At present,
+only `android-distribution/release-signing` is registered: it must include one
+`android-signed-release.v1` raw report and pass its APK-signature, authenticated
+archive-digest, receiver-target, commit, verifier, run, and observation-time
+bindings. Every other account/capability pair remains capability-ineligible,
+even if a generic report contains valid hashes and self-declared `passed`
+checks. Registering another pair requires a type-specific validator and a
+negative bypass eval in the same change; absent either, readiness fails closed.
 
 Other launch-gate evidence remains fail-closed when no type-specific
 measurement contract is registered. A generic scope and summary cannot make a

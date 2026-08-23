@@ -15,7 +15,7 @@ import { validateDeliveryProfile } from './release-delivery-v1.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
-const OPERATOR_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
+const OPERATOR_PATTERN = /^(model|agent|service|oidc):[A-Za-z0-9_.-]+$/;
 const SHA1_PATTERN = /^[0-9a-f]{40}$/;
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const TOKEN_A_NAME = 'SOFTBOOK_CET_SPACE_DRILL_TOKEN_A';
@@ -49,7 +49,7 @@ export function parseSpaceSyncDrillArguments(argv) {
   }
   if (options.operator && !OPERATOR_PATTERN.test(options.operator)) {
     throw new SpaceSyncDrillError(
-      'operator must identify a github, team, or external operator.'
+      'operator must identify a model, agent, service, or OIDC operator.'
     );
   }
   return options;

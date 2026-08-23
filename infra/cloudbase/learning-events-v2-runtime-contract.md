@@ -582,7 +582,7 @@ record's type, verification time, verifier, and subject commit must match the
 report. That commit must be reachable from the repository HEAD being
 validated. The execution operator and independent verifier must be different
 identities, and measured events must fall inside the recorded execution
-window. Every report must also match the one product-owner-recorded
+window. Every report must also match the one machine-authority-recorded
 `launch-release-candidate.v1` cohort in launch readiness. Repository raw
 artifacts named by a report are independently checked as tracked regular files
 with exact byte size and SHA-256. Reports use strict JSON with no BOM,
@@ -611,4 +611,4 @@ The repository-local backend, scheduler, and mobile binding do not prove:
   readiness;
 - that a repository-local smoke or simulated evidence report is formal launch
   evidence;
-- that a green check is formal content or product-owner approval.
+- that a green check alone is formal content authorization.

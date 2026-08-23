@@ -1,7 +1,7 @@
 # Release readiness records
 
 This directory records operational launch state. It does not replace product
-truth in `spec/`, test results, formal content approval, or external account
+truth in `spec/`, test results, machine content authorization, or external account
 verification.
 
 The tracked contracts start fail-closed:
@@ -10,18 +10,13 @@ The tracked contracts start fail-closed:
 - `external-account-readiness.v1.json` records external account capabilities.
 - `scripts/validate_launch_readiness.mjs` derives readiness from those records.
 
-Changes to launch contracts, evidence, readiness validators, or the formal
-approval workflow are classified by trusted default-branch code in
-`.github/workflows/formal-approval.yml`. Those changes require the protected
-`formal-product-owner-approval` GitHub Environment before the `formal-approval`
-check can pass. That environment requires `github:LENKIN233` and disables
-administrator bypass. A `verified_by` value inside the pull request is metadata
-only; it is not the authenticated product-owner approval. Branch protection
-requires the final `formal-approval` status, while the full Harness and weekly
-repository-health run independently verify the Environment configuration.
-Those remote checks also require `main` as the default branch, enabled
-auto-merge, automatic deletion of merged topic branches, and squash-only merge
-methods. A mismatch fails closed instead of relying on an administrator merge.
+`spec/machine-acceptance.json` gives the model-and-harness system standing
+authority over internal launch decisions. No human, user, product-owner click,
+or protected-reviewer Environment is required. High-risk release acceptance
+uses two isolated machine runs over the same immutable input; execution and
+verification carry distinct machine principals and `run_id` values. Trusted
+default-branch code, exact-head binding, task-relevant checks, branch protection,
+and automatic merge remain enforced.
 The weekly and manually dispatched remote health run uses the repository secret
 `REPO_HEALTH_TOKEN`, scoped only to this repository with `Administration: read`
 and `Actions: read`; the built-in Actions token cannot read branch protection.
@@ -40,14 +35,19 @@ artifacts. Large or restricted remote evidence must be represented by an
 `evidence-archive` gate has independently verified.
 
 The `sms-provider-smoke` type has a dedicated semantic contract. A real
-two-phase send produces a PII-free `sms-provider-smoke.v1` raw report below
+two-phase send plus independently signed receiver evidence produces a PII-free
+`sms-provider-smoke.v2` raw report below
 `docs/release/evidence/raw/`; a formal `launch-gate-evidence.v1` wrapper must
 bind that report to the exact launch candidate, receiver environment, campaign,
-execution window, human verifier, independent attestation, byte size, and
-SHA-256. The raw report alone cannot satisfy the gate.
+execution window, receiver adapter and public-key fingerprint, independent
+machine verifier/run, attestation, byte size, and SHA-256. The raw report alone
+cannot satisfy the gate. The wrapper also remains ineligible until a
+pre-existing receiver key registry and deployed IAM attestation are registered;
+the current repository intentionally fails closed on that missing trust root.
 
-External account capabilities and the approved box/card coverage reports must be
-verified by the tracked product owner, `github:LENKIN233`. Evidence from Apple,
+External account capabilities and the accepted box/card coverage reports must be
+verified by the tracked machine authority, `service:softbook-machine-harness`.
+Evidence from Apple,
 Tencent Cloud, payment portals, filing systems, or security vendors must first
 be archived as a redacted repository artifact; never commit secrets or private
 account data. Large or restricted remote assets must use an
@@ -63,10 +63,11 @@ referenced redacted raw artifact are tracked and re-hashed. The report fixes
 `capability_eligible=true` and `gate_eligible=false`: it proves a reviewed
 provider, registry, or public-endpoint capability record, and cannot replace
 runtime, payment, distribution, compliance, or security launch gates. Report
-identity fields and portal bytes are metadata; only the protected
-`formal-product-owner-approval` Environment authenticates product-owner
-approval for the exact pull request head.
+identity fields and portal bytes are metadata. Provider control-plane, official
+registry, and public-endpoint state remain objective external facts and fail
+closed when absent even when machine acceptance is valid.
 
-Green CI does not create evidence, approve content, verify an external account,
-or make the product launch-ready. If schedule and a gate conflict, move the
-release date; do not delete the gate or reduce its required evidence.
+Green CI does not create external evidence, verify an external account, or make
+the product launch-ready. Internal subjective acceptance is automated; objective
+integrity, security, recoverability, deployment, and external-provider gates are
+not removed to satisfy the schedule.

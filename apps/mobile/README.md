@@ -118,16 +118,18 @@ npm run android:release:signed -- build \
 `app-release.apk` 上传到 GitHub Release；资产必须提供 GitHub API 认证的 SHA-256
 digest 和字节数，且两者与本地验证结果完全一致。
 
-归档完成后由真人发布负责人生成公开证据，再做一次远端复验：
+归档完成后由独立机器验收 run 生成公开证据，再做一次远端复验：
 
 ```bash
-SOFTBOOK_ANDROID_RELEASE_VERIFIER=github:<human-account> \
+SOFTBOOK_ANDROID_RELEASE_VERIFIER=service:<machine-principal> \
+SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID=<machine-run-id> \
 npm run android:release:signed -- finalize \
   --state ../../docs/agent-runs/artifacts/android-signed-release-state.json \
   --report ../../docs/release/evidence/android-signed-release.json \
   --archive-url https://github.com/<owner>/<repo>/releases/download/<tag>/app-release.apk
 
-SOFTBOOK_ANDROID_RELEASE_VERIFIER=github:<human-account> \
+SOFTBOOK_ANDROID_RELEASE_VERIFIER=service:<machine-principal> \
+SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID=<machine-run-id> \
 npm run android:release:signed -- finalize \
   --state ../../docs/agent-runs/artifacts/android-signed-release-state.json \
   --report ../../docs/release/evidence/android-signed-release.json \
@@ -151,8 +153,9 @@ SOFTBOOK_CET_MAESTRO_CODE=<lifecycle-managed-code> \
 npm run e2e:android:maestro
 ```
 
-该 flow 文件存在不等于真机通过；真实 Android 设备的登录、五类交互、音频、同步、
-重启恢复、空间和统计仍需单独验收记录。
+该 flow 文件存在不等于真机通过；只有 model+harness 物理设备执行器实际完成登录、
+五类交互、音频、同步、重启恢复、空间和统计，并绑定不可变输入与运行身份后，才能记录
+`automated_real_device_evidence_verified=true`。当前没有这份外部设备事实，保持失败关闭。
 
 ## runtime config
 

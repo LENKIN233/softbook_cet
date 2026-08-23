@@ -237,9 +237,13 @@ error envelope.
 
 `infra/cloudbase/smoke-sms-provider.mjs` implements a database-free two-phase
 provider acceptance path. Apply mode is restricted to clean exact `main`, keeps
-the phone and generated code in a mode-0600 ignored file, and requires a human
-to submit the received code through stdin. A match deletes private state before
-publishing a strict PII-free `sms-provider-smoke.v1` raw report below
+the phone and generated code in a mode-0600 ignored file, and requires an
+independent receiver adapter to write a mode-0600 `sms-receiver-evidence.v1`
+artifact signed with its Ed25519 private key. Confirmation receives only the
+configured public key, revalidates the exact run, target, source, receipt,
+timestamp, key ID, signature and code against the adapter/key/fingerprint
+pinned before the send, then deletes both private artifacts before
+publishing a strict PII-free `sms-provider-smoke.v2` raw report below
 `docs/release/evidence/raw/`. That report is not gate-eligible by itself; formal
 launch evidence must wrap it in the typed `launch-gate-evidence.v1` contract.
 Repository tests and the launch validator cover this workflow, but neither raw

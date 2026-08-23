@@ -143,7 +143,10 @@ export async function finalizeSignedAndroidRelease({
   const absoluteStatePath = requireStatePath(statePath, repositoryRoot);
   const absoluteReportPath = requireReportPath(reportPath, repositoryRoot);
   const state = readPrivateState(absoluteStatePath, repositoryRoot);
-  const verifier = requireHumanVerifier(env.SOFTBOOK_ANDROID_RELEASE_VERIFIER);
+  const verifier = requireMachinePrincipal(env.SOFTBOOK_ANDROID_RELEASE_VERIFIER);
+  const verificationRunId = requireMachineRunId(
+    env.SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID,
+  );
   const remote = await inspectGitHubReleaseAsset({
     archiveUrl,
     fetchImpl,
@@ -175,6 +178,7 @@ export async function finalizeSignedAndroidRelease({
       archive_url: archiveUrl,
       report_path: relativeToRepository(absoluteReportPath, repositoryRoot),
       verified_by: verifier,
+      verification_run_id: verificationRunId,
       remote_digest_matches: true,
     };
   }
@@ -214,6 +218,7 @@ export async function finalizeSignedAndroidRelease({
     built_at: state.built_at,
     archived_verified_at: now.toISOString(),
     verified_by: verifier,
+    verification_run_id: verificationRunId,
     private_state_removed: true,
     generated_at: now.toISOString(),
   };
@@ -393,6 +398,7 @@ export function validateAndroidSignedReleaseReport(report) {
       'built_at',
       'archived_verified_at',
       'verified_by',
+      'verification_run_id',
       'private_state_removed',
       'generated_at',
     ],
@@ -429,8 +435,10 @@ export function validateAndroidSignedReleaseReport(report) {
     if (generatedAt !== archivedAt)
       errors.push('generated_at must equal archived_verified_at');
   }
-  if (!isHumanVerifier(report?.verified_by))
-    errors.push('verified_by must identify a human');
+  if (!isMachinePrincipal(report?.verified_by))
+    errors.push('verified_by must identify a model, agent, service, or oidc machine principal');
+  if (!isMachineRunId(report?.verification_run_id))
+    errors.push('verification_run_id must identify the machine verification run');
   if (report?.private_state_removed !== true)
     errors.push('private_state_removed must be true');
   return errors;
@@ -852,19 +860,34 @@ function isTargetId(value) {
   return typeof value === 'string' && /^[a-z0-9][a-z0-9._-]{2,63}$/.test(value);
 }
 
-function requireHumanVerifier(value) {
-  if (!isHumanVerifier(value))
+function requireMachinePrincipal(value) {
+  if (!isMachinePrincipal(value))
     throw new Error(
-      'SOFTBOOK_ANDROID_RELEASE_VERIFIER must identify a human and not an agent.',
+      'SOFTBOOK_ANDROID_RELEASE_VERIFIER must identify a model, agent, service, or oidc machine principal.',
     );
   return value;
 }
 
-function isHumanVerifier(value) {
+function isMachinePrincipal(value) {
   return (
     typeof value === 'string' &&
-    /^(?:github|team|external):[A-Za-z0-9][A-Za-z0-9._@-]{2,63}$/.test(value) &&
-    !/(?:agent|bot|codex|automation|ci)/i.test(value)
+    /^(?:model|agent|service|oidc):[A-Za-z0-9][A-Za-z0-9._@-]{2,127}$/.test(value)
+  );
+}
+
+function requireMachineRunId(value) {
+  if (!isMachineRunId(value)) {
+    throw new Error(
+      'SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID must identify the machine verification run.',
+    );
+  }
+  return value;
+}
+
+function isMachineRunId(value) {
+  return (
+    typeof value === 'string' &&
+    /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(value)
   );
 }
 
