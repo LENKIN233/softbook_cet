@@ -4,7 +4,7 @@
 
 - Date: 2026-08-23
 - Branch: `infra/receiver-deployment-identity-v2`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/513
 - Summary: Bind formal and controlled-pilot receiver deployments to one
   deterministic backend deployment identity derived from the exact repository
   commit, complete receiver profile and fixed API/worker topology, inject that
