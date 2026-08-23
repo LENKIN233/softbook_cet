@@ -589,6 +589,35 @@ cleanup. Closed-beta readiness separately requires `production-deployment`;
 this wrapper cannot substitute its locally expected backend identity for remote
 deployment inspection.
 
+### Receiver session revocation drill
+
+Use `run-session-revocation-drill.mjs` with two fresh same-account but distinct
+test sessions. Dry-run performs no remote request. Apply intentionally revokes
+both supplied sessions:
+
+```bash
+node infra/cloudbase/run-session-revocation-drill.mjs \
+  --profile path/to/delivery-profile.json
+
+SOFTBOOK_CET_SESSION_DRILL_ACCESS_A=... \
+SOFTBOOK_CET_SESSION_DRILL_REFRESH_A=... \
+SOFTBOOK_CET_SESSION_DRILL_ACCESS_B=... \
+SOFTBOOK_CET_SESSION_DRILL_REFRESH_B=... \
+node infra/cloudbase/run-session-revocation-drill.mjs \
+  --profile path/to/delivery-profile.json \
+  --apply \
+  --operator service:receiver-operator
+```
+
+The sequence proves client A refresh rotation and old-token replay revocation
+scoped to A, then requires client B refresh rotation plus rotated-access
+Bootstrap before using that rotated pair for idempotent logout and post-logout
+rejection. Phone and token values never enter the report. The raw report
+remains `gate_eligible=false` until registered formal
+`session-revocation-test` semantics revalidate it.
+Apply also rejects an operator identity containing the decoded phone or
+credential-shaped material before the first remote request.
+
 Controlled-pilot continued access uses a separate receiver-only overlay and
 never reuses the formal closed-beta grant. Create an untracked
 `pilot-entitlement-command.v1`, verify its phone-free dry-run plan, then apply
