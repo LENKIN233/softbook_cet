@@ -106,6 +106,16 @@ CloudBase write. An optional distinct parent release supports initial A and
 retained-parent B assembly without claiming that the parent is remotely
 retained; receiver verify remains the authority for that fact.
 
+Retained `--apply` output additionally requires Node 22.13.0, clean local
+`main` exactly equal to `origin/main`, and an identified `github:`, `team:` or
+`external:` operator. `formal-release-bundle-build-report.v2` binds that exact
+repository commit, profile ID/hash, bundle/content/release/parent, approval and
+audit hashes, audio manifest/QC-index hashes, canonical execution window and
+write-safety observation. It exposes only the output directory basename, never
+the machine-local path. Dry-run may execute on a topic branch for preparation,
+but its failed write-safety observation and null operator cannot be promoted as
+an applied formal raw report.
+
 ## Publish and rollback ordering
 
 Publishing performs only this order:

@@ -2857,6 +2857,11 @@ def launch_evidence_contract_findings(
             "dry_run_first_exact_CET4_payload_full_track_final_hash_bound_audit_301_human_QC_private_audio_profile_and_optional_retained_parent_assembler_implemented_and_core_verifier_required_before_output",
         ),
         (
+            "release formal bundle report boundary",
+            ("release_delivery_runtime", "formal_bundle_build_report_boundary"),
+            "formal_release_bundle_build_report_v2_apply_requires_Node_22_13_0_clean_main_exact_origin_operator_and_binds_repository_commit_profile_bundle_approval_audit_audio_manifest_QC_index_hashes_execution_window_no_CloudBase_writes_and_gate_eligible_false",
+        ),
+        (
             "release repository simulation status",
             (
                 "release_delivery_runtime",
@@ -3580,6 +3585,8 @@ def cet4_closed_beta_readiness_findings(
         "temporary_assembly_and_core_verification_precede_output",
         "apply_refuses_existing_output_directory",
         "build_report_is_gate_ineligible_and_performs_no_CloudBase_write",
+        "apply_requires_Node_22_13_0_clean_exact_main_and_identified_operator",
+        "report_v2_binds_commit_profile_bundle_evidence_hashes_and_execution_window",
         "retained_parent_status_still_requires_receiver_verification",
     ]
     hr46 = _entry_by_id(evals.get("regressions", []), "HR-46")
@@ -3597,6 +3604,7 @@ def cet4_closed_beta_readiness_findings(
         "optional_distinct_parent_release_for_A_then_B",
         "verifyReleaseBundleDirectory_required_before_output",
         "no_overwrite_no_CloudBase_write_gate_eligible_false",
+        "formal_bundle_build_report_v2_commit_operator_execution_and_hash_binding",
         "does_not_generate_content_approval_QC_deployment_or_readiness_evidence",
     ]
     gt39 = _entry_by_id(evals.get("golden_tasks", []), "GT-39")
@@ -3616,7 +3624,7 @@ def cet4_closed_beta_readiness_findings(
         else ""
     )
     for snippet in [
-        "formal-release-bundle-build-report.v1",
+        "formal-release-bundle-build-report.v2",
         "Content payload must be exact formal CET4 1180/301 scope",
         "Full-track approval is not bound to the exact CET4 content payload",
         "Formal audio QC must cover exactly",
@@ -3631,6 +3639,7 @@ def cet4_closed_beta_readiness_findings(
     for snippet in [
         "dry-run assembles exact 1180/108/301 scope",
         "apply keeps only a fully verified output directory",
+        "apply requires operator, exact Node, clean main, and origin parity",
         "default core verifier accepts the fully assembled formal fixture",
         "missing user approval, audit drift, missing human QC",
     ]:
