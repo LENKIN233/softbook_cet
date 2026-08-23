@@ -61,9 +61,8 @@ Builds mobile runtime card-source payloads from the external card make workspace
 Options:
   --card-make-root <dir>  External workspace root. Defaults to ../card make.
   --scope-card-ids <ids>  Comma-separated card IDs to include.
-  --scope-confirmation <file>
-                          Derive the exact controlled-pilot order from a card-make
-                          sample confirmation plus its expansion reviews.
+  --pilot-review <file>   Derive the exact controlled-pilot order from a current
+                          model-owned controlled-pilot-review.v2 record.
   --output-dir <dir>      Directory for generated per-track JSON payloads. Required.
   --payload-mode <mode>   development (default), audio-bundle-candidate,
                           controlled-pilot-candidate, or full-track-candidate.
@@ -78,7 +77,7 @@ function parseArgs(argv) {
   const options = {
     cardMakeRoot: DEFAULT_CARD_MAKE_ROOT,
     audioTechnicalAudit: null,
-    confirmationPath: null,
+    pilotReviewPath: null,
     outputDir: null,
     payloadMode: 'development',
     scopeCardIds: [],
@@ -113,8 +112,8 @@ function parseArgs(argv) {
         options.payloadMode = requireNextValue(argv, index, arg);
         index += 1;
         break;
-      case '--scope-confirmation':
-        options.confirmationPath = requireNextValue(argv, index, arg);
+      case '--pilot-review':
+        options.pilotReviewPath = requireNextValue(argv, index, arg);
         index += 1;
         break;
       case '--scope-card-ids':
@@ -144,28 +143,28 @@ function parseArgs(argv) {
     );
   }
 
-  if (options.scopeCardIds.length > 0 && options.confirmationPath) {
+  if (options.scopeCardIds.length > 0 && options.pilotReviewPath) {
     throw new Error(
-      '--scope-card-ids and --scope-confirmation are mutually exclusive.',
+      '--scope-card-ids and --pilot-review are mutually exclusive.',
     );
   }
 
-  if (options.scopeCardIds.length === 0 && !options.confirmationPath) {
-    throw new Error('--scope-card-ids or --scope-confirmation is required.');
+  if (options.scopeCardIds.length === 0 && !options.pilotReviewPath) {
+    throw new Error('--scope-card-ids or --pilot-review is required.');
   }
 
-  if (options.confirmationPath) {
-    options.confirmationPath = isAbsolute(options.confirmationPath)
-      ? options.confirmationPath
-      : resolve(options.cardMakeRoot, options.confirmationPath);
+  if (options.pilotReviewPath) {
+    options.pilotReviewPath = isAbsolute(options.pilotReviewPath)
+      ? options.pilotReviewPath
+      : resolve(options.cardMakeRoot, options.pilotReviewPath);
   }
 
   if (
     options.payloadMode === 'controlled-pilot-candidate' &&
-    (!options.confirmationPath || !options.audioTechnicalAudit)
+    (!options.pilotReviewPath || !options.audioTechnicalAudit)
   ) {
     throw new Error(
-      'controlled-pilot-candidate mode requires --scope-confirmation and --audio-technical-audit.',
+      'controlled-pilot-candidate mode requires --pilot-review and --audio-technical-audit.',
     );
   }
 
@@ -191,10 +190,10 @@ function parseArgs(argv) {
     ['audio-bundle-candidate', 'full-track-candidate'].includes(
       options.payloadMode,
     ) &&
-    options.confirmationPath
+    options.pilotReviewPath
   ) {
     throw new Error(
-      `${options.payloadMode} mode does not accept --scope-confirmation.`,
+      `${options.payloadMode} mode does not accept --pilot-review.`,
     );
   }
 
@@ -234,100 +233,51 @@ function sha256File(filePath) {
     .digest('hex')}`;
 }
 
-function deriveConfirmedPilotScope(options) {
-  const confirmation = readJson(options.confirmationPath);
-  const scope = confirmation?.scope;
-
+function deriveModelOwnedPilotScope(options) {
+  const review = readJson(options.pilotReviewPath);
+  const scope = review?.scope;
+  const boxes = review?.coverage?.boxes;
   if (
-    confirmation?.schema_version !== 'sample-confirmation.v1' ||
-    confirmation?.confirmed_by_user !== true ||
-    confirmation?.gate_eligible !== false ||
-    confirmation?.authorizes?.confirmed_box_expansion !== true ||
+    review?.schema_version !== 'controlled-pilot-review.v2' ||
+    review?.status !== 'ready_for_model_authorization' ||
     scope?.track !== 'cet4' ||
     scope?.purpose !== 'controlled_pilot' ||
-    scope?.target_card_count !== 120 ||
-    !Array.isArray(scope?.box_targets) ||
-    scope.box_targets.length !== 14
+    scope?.card_count !== 120 ||
+    !Array.isArray(scope?.card_ids) ||
+    scope.card_ids.length !== 120 ||
+    new Set(scope.card_ids).size !== 120 ||
+    !Array.isArray(scope?.box_prefixes) ||
+    scope.box_prefixes.length !== 14 ||
+    new Set(scope.box_prefixes).size !== 14 ||
+    !Array.isArray(review.source_records?.model_reviews) ||
+    review.source_records.model_reviews.length === 0 ||
+    review.coverage?.reviewed_cards !== 120 ||
+    !Array.isArray(boxes) ||
+    boxes.length !== 14
   ) {
     throw new Error(
-      'Controlled-pilot confirmation is invalid or outside the exact 120-card candidate boundary.',
+      'Controlled-pilot model review is invalid or outside the exact 120-card candidate boundary.',
     );
   }
-
-  const reviewDir = join(options.cardMakeRoot, 'reviews', 'agent_self_review');
-  const expansionReviews = readdirSync(reviewDir)
-    .filter(file => file.endsWith('.json'))
-    .sort()
-    .map(file => ({file, payload: readJson(join(reviewDir, file))}))
-    .filter(
-      ({payload}) =>
-        payload?.sample_policy?.sample_confirmation_id ===
-          confirmation.confirmation_id &&
-        payload?.sample_policy?.confirmed_box_expansion === true,
-    );
   const selectedByBox = [];
   const seenCardIds = new Set();
-
-  for (const box of scope.box_targets) {
+  for (const box of boxes) {
+    const cardIds = Array.isArray(box?.card_ids)
+      ? [...box.card_ids].map(String).sort()
+      : [];
     if (
       !/^\d{4}$/.test(box?.box_prefix) ||
-      !Number.isSafeInteger(box?.target_card_count) ||
-      box.target_card_count <= 0 ||
-      box.target_card_count % 2 !== 0 ||
-      !Array.isArray(box?.sample_card_ids)
+      box?.status !== 'passed' ||
+      cardIds.length === 0 ||
+      cardIds.length % 2 !== 0 ||
+      new Set(cardIds).size !== cardIds.length ||
+      cardIds.some(cardId =>
+        !/^\d{6}$/.test(cardId) || !cardId.startsWith(box.box_prefix))
     ) {
       throw new Error(
-        'Controlled-pilot confirmation contains an invalid box target.',
+        'Controlled-pilot model review contains an invalid box scope.',
       );
     }
-
-    const expectedExpansionCount =
-      box.target_card_count - new Set(box.sample_card_ids.map(String)).size;
-    const matchingReviews = expansionReviews.filter(({payload}) => {
-      const cards = Array.isArray(payload?.cards) ? payload.cards : [];
-      return (
-        cards.length === expectedExpansionCount &&
-        cards.every(card =>
-          String(card?.card_id || '').startsWith(box.box_prefix),
-        )
-      );
-    });
-
-    if (matchingReviews.length !== 1) {
-      throw new Error(
-        `Expected exactly one expansion review for box ${box.box_prefix}, got ${matchingReviews.length}.`,
-      );
-    }
-
-    const expansionCards = matchingReviews[0].payload.cards;
-    const expansionIds = expansionCards.map(card => {
-      const cardId = String(card?.card_id || '');
-      if (
-        !/^\d{6}$/.test(cardId) ||
-        !cardId.startsWith(box.box_prefix) ||
-        card?.status !== 'pass'
-      ) {
-        throw new Error(
-          `Expansion review for box ${box.box_prefix} contains a non-passing card.`,
-        );
-      }
-      return cardId;
-    });
-    const cardIds = [
-      ...new Set([...box.sample_card_ids.map(String), ...expansionIds]),
-    ].sort();
-
-    if (
-      cardIds.length !== box.target_card_count ||
-      cardIds.some(
-        cardId => !/^\d{6}$/.test(cardId) || !cardId.startsWith(box.box_prefix),
-      )
-    ) {
-      throw new Error(
-        `Box ${box.box_prefix} resolves to ${cardIds.length} cards; expected ${box.target_card_count}.`,
-      );
-    }
-
     for (const cardId of cardIds) {
       if (seenCardIds.has(cardId)) {
         throw new Error(
@@ -343,8 +293,7 @@ function deriveConfirmedPilotScope(options) {
       card_ids: cardIds,
       free_card_ids: cardIds.slice(0, midpoint),
       continuation_card_ids: cardIds.slice(midpoint),
-      expansion_review: `reviews/agent_self_review/${matchingReviews[0].file}`,
-      target_card_count: box.target_card_count,
+      target_card_count: cardIds.length,
     });
   }
 
@@ -357,6 +306,8 @@ function deriveConfirmedPilotScope(options) {
 
   if (
     cardIds.length !== 120 ||
+    !sameSet(cardIds, scope.card_ids) ||
+    !sameSet(selectedByBox.map(box => box.box_prefix), scope.box_prefixes) ||
     freeCardIds.length !== 60 ||
     continuationCardIds.length !== 60 ||
     freeLibraries.size !== 7
@@ -369,16 +320,16 @@ function deriveConfirmedPilotScope(options) {
   return {
     cardIds,
     manifest: {
-      schema_version: 'controlled-pilot-candidate-selection.v1',
-      confirmation_id: confirmation.confirmation_id,
-      confirmation_path: relativeCardMakePath(
+      schema_version: 'controlled-pilot-candidate-selection.v2',
+      review_id: review.review_id,
+      review_path: relativeCardMakePath(
         options.cardMakeRoot,
-        options.confirmationPath,
+        options.pilotReviewPath,
       ),
-      confirmation_sha256: sha256File(options.confirmationPath),
+      review_sha256: sha256File(options.pilotReviewPath),
       track: 'cet4',
       purpose: 'controlled_pilot',
-      status: 'candidate_not_formally_approved',
+      status: 'model_reviewed_candidate_pending_authorization',
       card_count: 120,
       free_card_count: 60,
       free_card_ids: freeCardIds,
@@ -400,6 +351,15 @@ function roundRobin(groups) {
   }
 
   return values;
+}
+
+function sameSet(left, right) {
+  return Array.isArray(left) &&
+    Array.isArray(right) &&
+    left.length === right.length &&
+    new Set(left).size === left.length &&
+    new Set(right).size === right.length &&
+    left.every(value => right.includes(value));
 }
 
 function relativeCardMakePath(cardMakeRoot, filePath) {
@@ -1183,8 +1143,8 @@ function writePayloads(options, runtimeCards, audioContext) {
 function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
-    const confirmedScope = options.confirmationPath
-      ? deriveConfirmedPilotScope(options)
+    const confirmedScope = options.pilotReviewPath
+      ? deriveModelOwnedPilotScope(options)
       : null;
     if (confirmedScope) options.scopeCardIds = confirmedScope.cardIds;
     const scopedCards = loadScopedCards(options);
@@ -1251,7 +1211,7 @@ export {
   buildRuntimeAudio,
   buildRuntimeCardWithoutAudio,
   buildSwipeStates,
-  deriveConfirmedPilotScope,
+  deriveModelOwnedPilotScope,
   loadAudioContext,
   parseArgs,
   roundRobin,

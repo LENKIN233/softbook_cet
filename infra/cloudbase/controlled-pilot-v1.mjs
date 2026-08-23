@@ -441,7 +441,15 @@ function validatePilotApproval(value) {
   const approval = requireRecord(value, 'approval');
   assertExactKeys(
     approval,
-    ['record_path', 'record_sha256', 'scope', 'status', 'approved_at'],
+    [
+      'record_path',
+      'record_sha256',
+      'review_path',
+      'review_sha256',
+      'scope',
+      'status',
+      'approved_at',
+    ],
     'approval',
   );
   requireExact(approval.scope, 'controlled_pilot_120', 'approval.scope');
@@ -452,6 +460,15 @@ function validatePilotApproval(value) {
       approval.record_sha256,
       SHA256_PATTERN,
       'approval.record_sha256',
+    ),
+    review_path: requireSafeRelativePath(
+      approval.review_path,
+      'approval.review_path',
+    ),
+    review_sha256: requirePattern(
+      approval.review_sha256,
+      SHA256_PATTERN,
+      'approval.review_sha256',
     ),
     scope: 'controlled_pilot_120',
     status: 'approved',

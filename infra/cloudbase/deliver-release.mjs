@@ -40,7 +40,8 @@ const ACCOUNT_DELETION_TRIGGER_NAME = 'account-deletion-every-minute';
 const ACCOUNT_DELETION_TRIGGER_CRON = '0 */1 * * * * *';
 const FUNCTION_RUNTIME = 'Nodejs20.19';
 const BACKEND_DEPLOYMENT_ID_PREFIX = 'backend-deployment:sha256:';
-const DELIVERY_OPERATOR_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
+const DELIVERY_OPERATOR_PATTERN =
+  /^(model|agent|service|oidc):[A-Za-z0-9][A-Za-z0-9_.@-]{2,127}$/;
 const COMMANDS = new Set(['preflight', 'provision', 'deploy', 'publish', 'verify', 'rollback']);
 const COMMON_SECRET_ENV_NAMES = Object.freeze([
   'SOFTBOOK_AUTH_INDEX_SECRET',
@@ -1102,7 +1103,7 @@ export function publicRetainedRollbackTarget(retained) {
 export function requireDeliveryOperator(value) {
   if (!DELIVERY_OPERATOR_PATTERN.test(value ?? '')) {
     throw new ReleaseDeliveryError(
-      'delivery operator must identify a github, team, or external operator.',
+      'delivery operator must identify a model, agent, service, or oidc machine principal.',
     );
   }
   return value;

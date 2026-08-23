@@ -17,7 +17,7 @@ test.before(async () => {
   );
 });
 
-test("product acceptance runner accepts and reconstructs exact safe reports", () => {
+test("model acceptance runner accepts and reconstructs exact safe reports", () => {
   const backend = backendReport();
   const mobile = mobileReport();
   const normalizedBackend = runner.normalizeSafeBackendReport(
@@ -47,7 +47,7 @@ test("product acceptance runner accepts and reconstructs exact safe reports", ()
   );
 });
 
-test("product acceptance runner rejects unknown or drifted report data", () => {
+test("model acceptance runner rejects unknown or drifted report data", () => {
   const backend = backendReport();
   const mobile = mobileReport();
   for (const invalidReport of [
@@ -57,6 +57,18 @@ test("product acceptance runner rejects unknown or drifted report data", () => {
       ...clone(backend),
       completed_card_ids: [...backend.completed_card_ids].reverse(),
     },
+    replaceField(
+      backend,
+      "model_audio_qc_verified",
+      "human_audio_qc_verified",
+      false
+    ),
+    replaceField(
+      backend,
+      "automated_real_device_evidence_verified",
+      "real_device_verified",
+      false
+    ),
   ]) {
     assert.throws(
       () => runner.normalizeSafeBackendReport(invalidReport, CHECKED_AT),
@@ -81,6 +93,18 @@ test("product acceptance runner rejects unknown or drifted report data", () => {
       representative_card_ids: [...mobile.representative_card_ids].reverse(),
     },
     { ...clone(mobile), flip_card_count: 21 },
+    replaceField(
+      mobile,
+      "model_audio_qc_verified",
+      "human_audio_qc_verified",
+      false
+    ),
+    replaceField(
+      mobile,
+      "automated_real_device_evidence_verified",
+      "real_device_verified",
+      false
+    ),
   ]) {
     assert.throws(
       () => runner.normalizeSafeMobileReport(invalidReport, CHECKED_AT),
@@ -93,6 +117,13 @@ function clone(value) {
   return structuredClone(value);
 }
 
+function replaceField(value, currentKey, legacyKey, replacement) {
+  const copy = clone(value);
+  delete copy[currentKey];
+  copy[legacyKey] = replacement;
+  return copy;
+}
+
 function backendReport() {
   return {
     schema_version: "controlled-pilot-candidate-runtime-smoke.v1",
@@ -101,7 +132,7 @@ function backendReport() {
       "sha256:dd2d397532556563a205351f04f98184afc09a4cd6a2580966556052ffc24f36",
     candidate_payload_sha256:
       "sha256:5f75b4ddd2e3462854d9c5dbdf9543178993356d150e23910966375fbb9feea3",
-    approval_status: "approved",
+    authorization_status: "authorized",
     audit_status: "passed_with_disclosed_synthetic_source_risk",
     card_count: 120,
     audio_asset_count: 24,
@@ -112,9 +143,9 @@ function backendReport() {
     resumed_card_id: "022001",
     content_manifest_signature_verified: true,
     membership_v2_verified: true,
-    human_audio_qc_verified: false,
+    model_audio_qc_verified: false,
     persistent_receiver_verified: false,
-    real_device_verified: false,
+    automated_real_device_evidence_verified: false,
     gate_eligible: false,
   };
 }
@@ -149,9 +180,9 @@ function mobileReport() {
     ephemeral_manifest_signature_verified_by_mobile: true,
     pilot_bootstrap_content_exact_shape_verified: true,
     visible_runtime_metadata_leak_guard_verified: true,
-    human_audio_qc_verified: false,
+    model_audio_qc_verified: false,
     persistent_receiver_verified: false,
-    real_device_verified: false,
+    automated_real_device_evidence_verified: false,
     installed_client_minimum_version_enforced: false,
     release_public_key_injection_verified: false,
     gate_eligible: false,

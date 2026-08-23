@@ -51,6 +51,7 @@ USER_FACING_PREFIXES = (
 NON_USER_FACING_TEST_PATH_MARKERS = (
     "/__mocks__/",
     "/__tests__/",
+    "/acceptance/",
     "/e2e/",
 )
 NON_USER_FACING_TEST_SUFFIXES = (

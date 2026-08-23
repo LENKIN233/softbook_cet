@@ -6,7 +6,7 @@ import json
 import unittest
 from pathlib import Path
 
-from harness_validator.sections.product_contract_mirrors import (
+from harness_validator.contracts.learning_contracts import (
     learning_scheduler_contract_findings,
 )
 

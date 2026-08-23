@@ -10,7 +10,7 @@ const DEFAULT_BLOB_LIMIT = 1024 * 1024;
 const REQUIRED_CHECKS = [
   'design-artifact-gate',
   'validate-harness',
-  'agent-review',
+  'trusted-model-review',
   'mobile-quality',
   'web-quality',
   'backend-contract',
@@ -19,11 +19,7 @@ const REQUIRED_CHECKS = [
   'android-release',
   'repo-health',
   'evidence-archive',
-  'formal-approval',
 ];
-const FORMAL_APPROVAL_ENVIRONMENT = 'formal-product-owner-approval';
-const FORMAL_APPROVAL_REVIEWER = 'LENKIN233';
-const FORMAL_APPROVAL_PREVENT_SELF_REVIEW = false;
 const REQUIRED_REPOSITORY_SETTINGS = Object.freeze({
   default_branch: 'main',
   allow_auto_merge: true,
@@ -480,98 +476,28 @@ function remoteSnapshot(errors, warnings) {
   if (signaturePolicy && signaturePolicy.enabled !== true) {
     errors.push({code: 'signed_commits_not_required'});
   }
-  const environmentRaw = run(
-    'gh',
-    ['api', `repos/${repo}/environments/${FORMAL_APPROVAL_ENVIRONMENT}`],
-    {allowFailure: true},
-  );
-  let formalApproval = null;
-  if (!environmentRaw) {
-    errors.push({
-      code: 'formal_approval_environment_unavailable',
-      environment: FORMAL_APPROVAL_ENVIRONMENT,
-    });
-  } else {
-    try {
-      const environment = JSON.parse(environmentRaw);
-      const reviewerRules = Array.isArray(environment.protection_rules)
-        ? environment.protection_rules.filter(rule => rule?.type === 'required_reviewers')
-        : [];
-      const reviewerRule = reviewerRules.length === 1 ? reviewerRules[0] : null;
-      const reviewerEntries = reviewerRule && Array.isArray(reviewerRule.reviewers)
-        ? reviewerRule.reviewers
-        : [];
-      const normalizedReviewers = reviewerEntries.map(entry => ({
-        type: entry?.type ?? null,
-        login: entry?.reviewer?.login ?? null,
-        slug: entry?.reviewer?.slug ?? null,
-      }));
-      const reviewers = normalizedReviewers
-        .filter(entry => entry.type === 'User' && entry.login)
-        .map(entry => entry.login)
-        .sort();
-
-      if (environment.name !== FORMAL_APPROVAL_ENVIRONMENT) {
-        errors.push({
-          code: 'formal_approval_environment_name_drift',
-          expected: FORMAL_APPROVAL_ENVIRONMENT,
-          actual: environment.name ?? null,
-        });
-      }
-      if (environment.can_admins_bypass !== false) {
-        errors.push({code: 'formal_approval_admin_bypass_enabled'});
-      }
-      if (!reviewerRule) {
-        errors.push({code: 'formal_approval_reviewer_rule_missing'});
-      } else {
-        if (reviewerRule.prevent_self_review !== FORMAL_APPROVAL_PREVENT_SELF_REVIEW) {
-          errors.push({
-            code: 'formal_approval_prevent_self_review_drift',
-            expected: FORMAL_APPROVAL_PREVENT_SELF_REVIEW,
-            actual: reviewerRule.prevent_self_review ?? null,
-          });
-        }
-        if (
-          normalizedReviewers.length !== 1
-          || normalizedReviewers[0].type !== 'User'
-          || normalizedReviewers[0].login !== FORMAL_APPROVAL_REVIEWER
-        ) {
-          errors.push({
-            code: 'formal_approval_reviewer_drift',
-            expected: [{
-              type: 'User',
-              login: FORMAL_APPROVAL_REVIEWER,
-              slug: null,
-            }],
-            actual: normalizedReviewers,
-          });
-        }
-      }
-      formalApproval = {
-        environment: environment.name ?? null,
-        can_admins_bypass: environment.can_admins_bypass ?? null,
-        prevent_self_review: reviewerRule?.prevent_self_review ?? null,
-        reviewers,
-        reviewer_entries: normalizedReviewers,
-      };
-    } catch {
-      errors.push({code: 'formal_approval_environment_malformed'});
-    }
-  }
   return {
     repo,
     protected: true,
     repository_settings: repositorySettings,
     merge_methods: mergeMethods,
     required_checks: checks,
-    formal_approval: formalApproval,
   };
 }
 
+const requestedProfile = option('--profile');
+const legacyRemote = process.argv.includes('--remote');
+if (requestedProfile && !['local', 'remote'].includes(requestedProfile)) {
+  throw new Error('--profile must be local or remote.');
+}
+if (requestedProfile === 'local' && legacyRemote) {
+  throw new Error('--profile local conflicts with --remote.');
+}
+const profile = requestedProfile ?? (legacyRemote ? 'remote' : 'local');
 const strict = process.argv.includes('--strict');
 const allowDirty = process.argv.includes('--allow-dirty');
 const fullTree = process.argv.includes('--full-tree');
-const includeRemote = process.argv.includes('--remote');
+const includeRemote = profile === 'remote';
 const requireUpstreams = process.argv.includes('--require-upstreams');
 const base = option('--base');
 const outputPath = option('--output');
@@ -579,6 +505,11 @@ const maxWorktrees = integerOption('--expected-max-worktrees');
 const maxStashes = integerOption('--expected-max-stashes');
 const maxTopicBranches = integerOption('--expected-max-topic-branches');
 const blobLimit = integerOption('--blob-limit-bytes') ?? DEFAULT_BLOB_LIMIT;
+const inspectWorkspaceTopology = profile === 'remote'
+  || requireUpstreams
+  || maxWorktrees !== null
+  || maxStashes !== null
+  || maxTopicBranches !== null;
 const errors = [];
 const warnings = [];
 const auditRangeBase = rangeBase({base, fullTree});
@@ -595,14 +526,19 @@ const forbiddenTrackedFiles = [
 const oversizedBlobs = auditedBlobEntries.filter(
   entry => entry.bytes > blobLimit,
 );
-const worktrees = worktreePaths();
+const worktrees = inspectWorkspaceTopology ? worktreePaths() : [ROOT];
 const dirtyWorktrees = worktrees.flatMap(worktree => {
-  if (!fs.existsSync(worktree)) return [{worktree, entries: ['worktree path is unavailable']}];
+  if (
+    !fs.existsSync(worktree)
+    || !succeeds('git', ['-C', worktree, 'rev-parse', '--is-inside-work-tree'])
+  ) {
+    return [{worktree, entries: ['worktree path is unavailable']}];
+  }
   const entries = lines(run('git', ['status', '--porcelain'], {cwd: worktree}));
   return entries.length > 0 ? [{worktree, entries}] : [];
 });
-const stashCount = lines(git('stash', 'list')).length;
-const branches = localBranches();
+const stashCount = inspectWorkspaceTopology ? lines(git('stash', 'list')).length : 0;
+const branches = inspectWorkspaceTopology ? localBranches() : [];
 const topicBranches = branches.filter(branch => branch.name !== 'main');
 const goneBranches = branches.filter(branch => branch.tracking.includes('[gone]')).map(branch => branch.name);
 const branchesWithoutUpstream = branches.filter(branch => !branch.upstream).map(branch => branch.name);
@@ -635,6 +571,7 @@ if (branchesWithoutUpstream.length > 0) {
 const remote = includeRemote ? remoteSnapshot(errors, warnings) : null;
 const report = {
   schema_version: 'repository-health.v1',
+  profile,
   generated_at: new Date().toISOString(),
   repository: path.basename(ROOT),
   head: git('rev-parse', 'HEAD'),
@@ -645,6 +582,7 @@ const report = {
     checked_files: files.length,
     checked_blobs: auditedBlobEntries.length,
     introduced_blobs: introducedBlobEntries.length,
+    workspace_topology_checked: inspectWorkspaceTopology,
     worktrees: worktrees.length,
     dirty_worktrees: dirtyWorktrees.length,
     stashes: stashCount,

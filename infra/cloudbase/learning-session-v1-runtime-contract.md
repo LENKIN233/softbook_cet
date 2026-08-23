@@ -302,7 +302,7 @@ sleeping and membership exclusion, selection-bound completion, duplicate
 non-advance, and server-acceptance clock boundaries. The outer subject commit
 must match the report and be reachable from the validated HEAD; the operator
 and independent verifier must differ; measured clock events must fit the
-execution window. All reports match one product-owner-recorded
+execution window. All reports match one machine-authority-recorded
 `launch-release-candidate.v1` cohort, and any repository raw artifact is
 tracked and rehashed independently. A `result=passed` field alone has no
 authority.

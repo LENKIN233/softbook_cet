@@ -43,7 +43,7 @@ const EXPECTED_BACKEND_COMPLETED_CARD_IDS = Object.freeze([
 ]);
 const EXPECTED_BACKEND_REVIEW_CARD_IDS = Object.freeze(["001001", "012101"]);
 const SAFE_BACKEND_REPORT_KEYS = Object.freeze([
-  "approval_status",
+  "authorization_status",
   "audit_status",
   "audio_asset_count",
   "candidate_payload_sha256",
@@ -53,10 +53,10 @@ const SAFE_BACKEND_REPORT_KEYS = Object.freeze([
   "content_manifest_signature_verified",
   "content_version",
   "gate_eligible",
-  "human_audio_qc_verified",
+  "model_audio_qc_verified",
   "membership_v2_verified",
   "persistent_receiver_verified",
-  "real_device_verified",
+  "automated_real_device_evidence_verified",
   "resumed_card_id",
   "review_card_ids",
   "round_completion_verified",
@@ -76,13 +76,13 @@ const SAFE_MOBILE_REPORT_KEYS = Object.freeze([
   "flip_card_count",
   "flip_cards_self_assessment_completable",
   "gate_eligible",
-  "human_audio_qc_verified",
+  "model_audio_qc_verified",
   "installed_client_minimum_version_enforced",
   "interaction_card_counts",
   "persistent_receiver_verified",
   "pilot_bootstrap_content_exact_shape_verified",
   "pilot_manifest_exact_shape_verified",
-  "real_device_verified",
+  "automated_real_device_evidence_verified",
   "release_public_key_injection_verified",
   "representative_audio_controls_verified",
   "representative_card_ids",
@@ -184,9 +184,9 @@ export async function runControlledPilotMobileAcceptance(options) {
       backend_runtime: safeBackendReport,
       mobile_acceptance: mobileReport,
       installed_client_minimum_version_enforced: false,
-      human_audio_qc_verified: false,
+      model_audio_qc_verified: false,
       persistent_receiver_verified: false,
-      real_device_verified: false,
+      automated_real_device_evidence_verified: false,
       release_public_key_injection_verified: false,
       gate_eligible: false,
     };
@@ -208,7 +208,7 @@ export function normalizeSafeBackendReport(report, checkedAt) {
     report.checked_at === checkedAt &&
     report.candidate_payload_sha256 === EXPECTED_PAYLOAD_SHA256 &&
     report.content_version === EXPECTED_CONTENT_VERSION &&
-    report.approval_status === "approved" &&
+    report.authorization_status === "authorized" &&
     report.audit_status === "passed_with_disclosed_synthetic_source_risk" &&
     report.card_count === 120 &&
     report.audio_asset_count === 24 &&
@@ -225,9 +225,9 @@ export function normalizeSafeBackendReport(report, checkedAt) {
     report.resumed_card_id === "022001" &&
     report.content_manifest_signature_verified === true &&
     report.membership_v2_verified === true &&
-    report.human_audio_qc_verified === false &&
+    report.model_audio_qc_verified === false &&
     report.persistent_receiver_verified === false &&
-    report.real_device_verified === false &&
+    report.automated_real_device_evidence_verified === false &&
     report.gate_eligible === false;
   if (!valid) fail("Backend smoke safe report is incomplete or invalid.");
 
@@ -236,7 +236,7 @@ export function normalizeSafeBackendReport(report, checkedAt) {
     checked_at: report.checked_at,
     content_version: report.content_version,
     candidate_payload_sha256: report.candidate_payload_sha256,
-    approval_status: report.approval_status,
+    authorization_status: report.authorization_status,
     audit_status: report.audit_status,
     card_count: report.card_count,
     audio_asset_count: report.audio_asset_count,
@@ -248,9 +248,10 @@ export function normalizeSafeBackendReport(report, checkedAt) {
     content_manifest_signature_verified:
       report.content_manifest_signature_verified,
     membership_v2_verified: report.membership_v2_verified,
-    human_audio_qc_verified: report.human_audio_qc_verified,
+    model_audio_qc_verified: report.model_audio_qc_verified,
     persistent_receiver_verified: report.persistent_receiver_verified,
-    real_device_verified: report.real_device_verified,
+    automated_real_device_evidence_verified:
+      report.automated_real_device_evidence_verified,
     gate_eligible: report.gate_eligible,
   };
 }
@@ -290,9 +291,9 @@ export function normalizeSafeMobileReport(report, checkedAt) {
     report.ephemeral_manifest_signature_verified_by_mobile === true &&
     report.pilot_bootstrap_content_exact_shape_verified === true &&
     report.visible_runtime_metadata_leak_guard_verified === true &&
-    report.human_audio_qc_verified === false &&
+    report.model_audio_qc_verified === false &&
     report.persistent_receiver_verified === false &&
-    report.real_device_verified === false &&
+    report.automated_real_device_evidence_verified === false &&
     report.installed_client_minimum_version_enforced === false &&
     report.release_public_key_injection_verified === false &&
     report.gate_eligible === false;
@@ -328,9 +329,10 @@ export function normalizeSafeMobileReport(report, checkedAt) {
       report.pilot_bootstrap_content_exact_shape_verified,
     visible_runtime_metadata_leak_guard_verified:
       report.visible_runtime_metadata_leak_guard_verified,
-    human_audio_qc_verified: report.human_audio_qc_verified,
+    model_audio_qc_verified: report.model_audio_qc_verified,
     persistent_receiver_verified: report.persistent_receiver_verified,
-    real_device_verified: report.real_device_verified,
+    automated_real_device_evidence_verified:
+      report.automated_real_device_evidence_verified,
     installed_client_minimum_version_enforced:
       report.installed_client_minimum_version_enforced,
     release_public_key_injection_verified:

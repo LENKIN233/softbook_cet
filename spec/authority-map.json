@@ -6,6 +6,17 @@
       "owner": "spec/requirement-memory.json",
       "notes": "raw user-provided intent snapshot"
     },
+    "machine_owned_product_acceptance": {
+      "owner": "spec/machine-acceptance.json",
+      "mirrors": [
+        "spec/requirement-memory.json",
+        "spec/repo-delivery-contract.json",
+        "spec/release-operational-policy.json",
+        "spec/runtime-boundaries.json",
+        "spec/agent-harness.json"
+      ],
+      "notes": "Owns standing model-and-harness product authority, the no-human-review rule, machine evidence identity, external fact boundaries, and the model-first harness simplification strategy. The sibling card make workspace mirrors this through its own authority map rather than becoming a default local spec dependency."
+    },
     "auth_trial_sync_purchase": {
       "owner": "spec/account-sync-contract.json",
       "mirrors": [
@@ -155,7 +166,7 @@
     },
     "agent_run_records": {
       "owner": "spec/agent-run-record.json",
-      "status": "active",
+      "status": "frozen_historical_archive",
       "mirrors": [
         "spec/agent-harness.json",
         "spec/repo-delivery-contract.json",
@@ -163,7 +174,7 @@
         "scripts/validate_agent_review.py",
         ".github/pull_request_template.md"
       ],
-      "conflict_policy": "spec/agent-run-record.json owns whether durable agent run records are required and how they are referenced from PRs."
+      "conflict_policy": "spec/agent-run-record.json owns the frozen archive and confirms that new PRs do not require tracked run records."
     }
   }
 }

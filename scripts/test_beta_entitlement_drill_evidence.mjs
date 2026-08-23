@@ -102,6 +102,7 @@ test('tracked beta entitlement drill validates end to end and raw tamper fails',
       artifact_size_bytes: Buffer.byteLength(artifactPayload),
       verified_at: fixture.artifact.verification.verified_at,
       verified_by: fixture.artifact.verification.verified_by,
+      verification_run_id: fixture.artifact.verification.run_id,
       subject_commit_sha: fixture.candidate.commit_sha,
     },
   ];
@@ -144,7 +145,7 @@ function createFixture() {
   const campaignId = 'cet4-beta-campaign-001';
   const accountFingerprint = `sha256:${hash('beta-account').slice(0, 16)}`;
   const grantId = 'cet4-beta-grant-0001';
-  const operator = 'team:receiver-beta-operator';
+  const operator = 'service:receiver-beta-operator';
   const profile = {
     schema_version: 'delivery-profile.v1',
     profile_id: 'receiver-cet4-beta',
@@ -277,6 +278,7 @@ function createFixture() {
       started_at: '2026-08-23T08:59:00.000Z',
       completed_at: '2026-08-23T09:08:00.000Z',
       operator,
+      run_id: 'beta-entitlement-execution-run-001',
       tool: {
         name: 'softbook-evidence-runner',
         version: '1.0.0',
@@ -285,10 +287,11 @@ function createFixture() {
     },
     verification: {
       verified_at: '2026-08-23T10:00:00.000Z',
-      verified_by: 'external:beta-entitlement-auditor',
+      verified_by: 'model:beta-entitlement-auditor',
+      run_id: 'beta-entitlement-verification-run-002',
       independent: true,
       attestation: {
-        provider: 'protected_environment',
+        provider: 'model_run',
         id: 'beta-entitlement-attestation',
         sha256: hash('beta-entitlement-attestation'),
       },
@@ -439,7 +442,7 @@ function createCandidate({commit, profile, profileHash, campaignId}) {
     commit_sha: commit,
     target_release: 'cet4-closed-beta',
     recorded_at: '2026-08-23T08:00:00.000Z',
-    recorded_by: 'github:LENKIN233',
+    recorded_by: 'service:softbook-machine-harness',
     environment: {
       profile_id: profile.profile_id,
       profile_sha256: profileHash,
@@ -459,7 +462,7 @@ function createCandidate({commit, profile, profileHash, campaignId}) {
       card_count: 1180,
       box_count: 108,
       audio_asset_count: 301,
-      full_track_approval_sha256: hash('approval'),
+      full_track_authorization_sha256: hash('authorization'),
       audio_qc_index_sha256: hash('audio-qc'),
     },
     client_builds: {
@@ -489,6 +492,7 @@ function validateFixture(fixture) {
       subject_commit_sha: fixture.candidate.commit_sha,
       verified_at: fixture.artifact.verification.verified_at,
       verified_by: fixture.artifact.verification.verified_by,
+      verification_run_id: fixture.artifact.verification.run_id,
     },
     betaEntitlementDrillEvidence: fixture.loaded,
     targetRelease: 'cet4-closed-beta',

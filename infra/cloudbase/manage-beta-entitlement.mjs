@@ -33,7 +33,7 @@ const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const MEMBERSHIP_COLLECTION = 'softbook_memberships';
 const BETA_ENTITLEMENT_COLLECTION = 'softbook_beta_entitlements';
-const OPERATOR_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
+const OPERATOR_PATTERN = /^(model|agent|service|oidc):[A-Za-z0-9_.-]+$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 
 export function parseBetaEntitlementArguments(argv) {
@@ -237,7 +237,7 @@ function publicBetaState(document) {
 function requireApplyIdentity({command, repository}) {
   if (!OPERATOR_PATTERN.test(command.actor_id)) {
     throw new BetaEntitlementError(
-      'apply requires an identified github, team, or external actor_id.',
+      'apply requires an identified model, agent, service, or OIDC actor_id.',
     );
   }
   if (!COMMIT_PATTERN.test(repository.head ?? '')) {

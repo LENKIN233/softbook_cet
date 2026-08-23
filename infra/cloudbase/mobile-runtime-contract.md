@@ -394,7 +394,8 @@ the result is exactly CET4 1,180 cards / 108 boxes / 301 audio assets or CET6
 1,234 cards / 110 boxes / 328 audio assets, covers all five core interactions,
 and consumes every audited asset exactly once. This candidate mode proves that
 the complete content can enter the runtime schema; it deliberately does not
-replace per-track `full_track_final` approval or formal perceptual audio QC.
+replace per-track model authorization or model-owned complete-asset perceptual
+audio QC.
 Run the complete mobile parser, evaluator, representative UI, manifest-binding,
 audio-control, and visible-metadata checks with:
 
@@ -405,7 +406,8 @@ node scripts/run_full_track_candidate_mobile_acceptance.mjs \
 ```
 
 Its report remains `gate_eligible=false` and explicitly records that signed
-manifest, human audio QC, persistent receiver, and real-device proof are absent.
+manifest, model-owned complete-asset audio QC, persistent receiver, and
+automated real-device proof are absent.
 
 An external `audio-bundle-candidate` payload can be checked against the real
 mobile parser, interaction evaluator, Learning render branches, analysis
@@ -424,10 +426,11 @@ It uses a mode-`0600` temporary fixture, reconstructs a synthetic local
 manifest solely to exercise the existing audio-control UI, verifies that no
 runtime identifiers leak into rendered output, deletes the fixture, and
 requires the tracked worktree to remain unchanged. Its safe report always
-records `signed_manifest_verified=false`, `human_audio_qc_verified=false`,
-`persistent_receiver_verified=false`, `real_device_verified=false`, and
+records `signed_manifest_verified=false`, `model_audio_qc_verified=false`,
+`persistent_receiver_verified=false`,
+`automated_real_device_evidence_verified=false`, and
 `gate_eligible=false`; it is therefore pre-publication product acceptance, not
-formal content approval, signed-manifest evidence, deployment, or launch proof.
+content authorization, signed-manifest evidence, deployment, or launch proof.
 
 Use `node infra/cloudbase/audit-card-sources.mjs` for read-only validation of
 the deployed CET4/CET6 documents after imports or deploys, including active
@@ -831,7 +834,7 @@ node infra/cloudbase/smoke-softbook-api.mjs
 ```
 
 Use `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` for write-enabled smoke runs so
-membership mutations do not change a shared manual-acceptance phone. Isolated
+membership mutations do not change a shared fixed acceptance-test phone. Isolated
 runs assert the expected membership stage sequence: `trial_available` before
 Learning Session, `trial` after its first eligible selection, and `premium`
 after purchase.

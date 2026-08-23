@@ -1,0 +1,90 @@
+{
+  "version": "machine-acceptance.v1",
+  "classification": "product_truth",
+  "purpose": "Give the model-and-harness system standing authority to make and execute product decisions without user or human review gates while preserving factual evidence, recoverability, and required external provider state.",
+  "target_release": "2026-09",
+  "authority": {
+    "mode": "model_harness",
+    "standing_authorization": true,
+    "human_review_required": false,
+    "user_review_required": false,
+    "product_owner_click_required": false,
+    "authorized_actions": [
+      "define_and_update_product_requirements",
+      "create_review_and_accept_design",
+      "create_review_accept_revise_and_remove_content",
+      "perform_model_audio_quality_review",
+      "commit_push_open_review_and_merge_pull_requests",
+      "configure_product_repository_governance",
+      "deploy_publish_verify_rollback_and_monitor_product_runtime",
+      "operate_existing_product_accounts_and_release_surfaces_when_credentials_and_provider_capabilities_are_available"
+    ],
+    "default_execution_rule": "For an in-scope product task, continue through implementation, validation, delivery, merge, deployment, and verification without requesting subjective approval.",
+    "blocked_rule": "Stop only for a missing external capability or credential, an unrecoverable or destructive action outside the requested scope, a failed required machine gate, or an objective conflict that the harness cannot resolve from product truth and evidence."
+  },
+  "acceptance": {
+    "authority": "model_harness",
+    "ordinary_change": "trusted OpenAI Codex Action exact-diff review over the immutable PR head plus task-relevant deterministic tests",
+    "high_risk_change": "two isolated trusted workflow review jobs over the same immutable diff plus task-relevant deterministic tests and rollback evidence",
+    "trusted_workflow_bootstrap": "A new pull_request_target reviewer cannot review its own installation PR. Merge that one bootstrap under the pre-existing protected checks plus two independent out-of-band exact-diff model runs, configure the external OpenAI API credential, prove both isolated jobs and the aggregate check on a follow-up PR, then cut branch protection to trusted-model-review.",
+    "independence_unit": "trusted_workflow_review_job_for_diff_review_and_run_id_for_domain_evidence",
+    "required_machine_evidence": [
+      "model_or_agent_identity",
+      "run_id",
+      "reviewed_at",
+      "immutable_input_identity",
+      "capabilities_used",
+      "decision",
+      "blocking_findings",
+      "trusted_workflow_job_identity"
+    ],
+    "accepted_decisions": [
+      "passed",
+      "revise",
+      "blocked"
+    ],
+    "domain_record_boundary": "model-acceptance.v2 proves exact JSON input binding and decision shape, not cryptographic model execution provenance. Such records gain repository authority only on a head that passes trusted-model-review. Media-consumption claims additionally require a registered trusted media-run receipt; no such receipt type is currently registered, so formal media evidence remains fail closed.",
+    "must_not": [
+      "claim_a_model_consumed_audio_images_device_state_or_external_control_plane_data_it_did_not_receive",
+      "invent_source_authenticity_credentials_provider_state_deployment_device_or_user_outcomes",
+      "turn_green_structure_checks_into_unrecorded_semantic_evidence",
+      "represent_agent_or_model_acceptance_as_human_or_user_approval",
+      "treat_author_editable_pr_body_run_ids_as_trusted_model_provenance"
+    ]
+  },
+  "external_fact_boundary": {
+    "subjective_internal_review_is_never_required": true,
+    "provider_legal_account_and_distribution_state_must_be_observed": true,
+    "harness_may_execute_authorized_external_product_actions": true,
+    "missing_external_state_is_reported_as_an_objective_blocker_not_a_request_for_product_judgment": true,
+    "third_party_identity_or_legal_requirements_are_external_facts_not_internal_approval_gates": true
+  },
+  "harness_strategy": {
+    "model_first": true,
+    "state_each_instruction_once": true,
+    "single_owner_per_policy": true,
+    "only_task_relevant_tools_and_context": true,
+    "new_static_guard_requires_a_reproduced_failure_and_regression_eval": true,
+    "remove_one_legacy_rule_group_at_a_time_and_rerun_representative_evals": true,
+    "prefer_outcome_invariants_over_historical_process_reenactment": true,
+    "ordinary_pull_requests_do_not_require_tracked_agent_run_records": true,
+    "release_evidence_records_external_facts_not_hidden_reasoning": true
+  },
+  "methodology_refresh": {
+    "last_checked_at": "2026-08-23",
+    "official_sources": [
+      "https://developers.openai.com/api/docs/guides/latest-model",
+      "https://developers.openai.com/blog/codex-as-a-platform",
+      "https://github.com/openai/codex-action",
+      "https://github.com/openai/codex-action/blob/main/docs/security.md",
+      "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions"
+    ],
+    "refresh_rule": "Before a major harness expansion or model migration, recheck current official model, tool, context, eval, and harness guidance; adopt changes only after representative repository evals."
+  },
+  "launch_strategy": {
+    "mode": "progressive_release_with_automated_observation_and_rollback",
+    "discover_non_blocking_product_defects_after_release": true,
+    "do_not_block_on_subjective_perfection": true,
+    "do_not_remove_objective_integrity_security_recoverability_or_external_provider_checks": true
+  }
+}

@@ -113,7 +113,7 @@ PLACEHOLDER_SNIPPETS = (
     "List weighted but non-authoritative objectives",
     "List accepted artifacts, mapping records, rendered proofs",
     "List tempting but wrong directions",
-    "State population size, generation limit, top-k, and human checkpoint rules.",
+    "State population size, generation limit, top-k, and model acceptance checkpoint rules.",
     "`surface-generation-short-name`",
     "Explain which product truths this candidate preserves and any risk it introduces.",
     "Name the first object the user should notice.",

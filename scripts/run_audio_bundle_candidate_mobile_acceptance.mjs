@@ -55,10 +55,10 @@ const SAFE_REPORT_KEYS = Object.freeze([
   'checked_at',
   'content_version',
   'gate_eligible',
-  'human_audio_qc_verified',
+  'model_audio_qc_verified',
   'interaction_card_counts',
   'persistent_receiver_verified',
-  'real_device_verified',
+  'automated_real_device_evidence_verified',
   'representative_audio_controls_verified',
   'representative_card_ids',
   'representative_ui_completions_verified',
@@ -79,11 +79,11 @@ const FULL_TRACK_SAFE_REPORT_KEYS = Object.freeze([
   'checked_at',
   'content_version',
   'gate_eligible',
-  'human_audio_qc_verified',
+  'model_audio_qc_verified',
   'interaction_card_counts',
   'non_audio_card_count',
   'persistent_receiver_verified',
-  'real_device_verified',
+  'automated_real_device_evidence_verified',
   'representative_audio_controls_verified',
   'representative_card_ids',
   'representative_ui_completions_verified',
@@ -248,9 +248,9 @@ export function normalizeSafeMobileReport(report, expected) {
     report.simulated_manifest_binding_verified === true &&
     report.visible_runtime_metadata_leak_guard_verified === true &&
     report.signed_manifest_verified === false &&
-    report.human_audio_qc_verified === false &&
+    report.model_audio_qc_verified === false &&
     report.persistent_receiver_verified === false &&
-    report.real_device_verified === false &&
+    report.automated_real_device_evidence_verified === false &&
     report.gate_eligible === false;
   if (!valid) {
     fail(
@@ -280,9 +280,10 @@ export function normalizeSafeMobileReport(report, expected) {
     visible_runtime_metadata_leak_guard_verified:
       report.visible_runtime_metadata_leak_guard_verified,
     signed_manifest_verified: report.signed_manifest_verified,
-    human_audio_qc_verified: report.human_audio_qc_verified,
+    model_audio_qc_verified: report.model_audio_qc_verified,
     persistent_receiver_verified: report.persistent_receiver_verified,
-    real_device_verified: report.real_device_verified,
+    automated_real_device_evidence_verified:
+      report.automated_real_device_evidence_verified,
     gate_eligible: report.gate_eligible,
   };
 }
@@ -322,9 +323,9 @@ export function normalizeSafeFullTrackMobileReport(report, expected) {
     report.simulated_manifest_binding_verified === true &&
     report.visible_runtime_metadata_leak_guard_verified === true &&
     report.signed_manifest_verified === false &&
-    report.human_audio_qc_verified === false &&
+    report.model_audio_qc_verified === false &&
     report.persistent_receiver_verified === false &&
-    report.real_device_verified === false &&
+    report.automated_real_device_evidence_verified === false &&
     report.gate_eligible === false;
   if (!valid)
     fail('Mobile full-track acceptance safe report is incomplete or invalid.');
@@ -353,9 +354,10 @@ export function normalizeSafeFullTrackMobileReport(report, expected) {
     visible_runtime_metadata_leak_guard_verified:
       report.visible_runtime_metadata_leak_guard_verified,
     signed_manifest_verified: report.signed_manifest_verified,
-    human_audio_qc_verified: report.human_audio_qc_verified,
+    model_audio_qc_verified: report.model_audio_qc_verified,
     persistent_receiver_verified: report.persistent_receiver_verified,
-    real_device_verified: report.real_device_verified,
+    automated_real_device_evidence_verified:
+      report.automated_real_device_evidence_verified,
     gate_eligible: report.gate_eligible,
   };
 }

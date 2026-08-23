@@ -17,7 +17,7 @@ import {
   buildOptions,
   buildRuntimeAudio,
   buildSwipeStates,
-  deriveConfirmedPilotScope,
+  deriveModelOwnedPilotScope,
   loadAudioContext,
   parseArgs,
   roundRobin,
@@ -54,53 +54,42 @@ function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function testConfirmedPilotOrder() {
+function testModelOwnedPilotOrder() {
   const root = mkdtempSync(join(tmpdir(), 'softbook-pilot-scope-'));
 
   try {
-    const reviewDir = join(root, 'reviews', 'agent_self_review');
-    const confirmationDir = join(root, 'reviews', 'sample_confirmations');
+    const reviewDir = join(root, 'reviews', 'controlled_pilot_reviews');
     mkdirSync(reviewDir, {recursive: true});
-    mkdirSync(confirmationDir, {recursive: true});
-    const confirmationPath = join(confirmationDir, 'pilot.json');
-    const confirmationId = 'confirmed-pilot-fixture';
-
-    writeJson(confirmationPath, {
-      schema_version: 'sample-confirmation.v1',
-      confirmation_id: confirmationId,
-      confirmed_by_user: true,
+    const pilotReviewPath = join(reviewDir, 'pilot.json');
+    const allCardIds = BOXES.flatMap(([boxPrefix, count]) =>
+      cardIds(boxPrefix, count));
+    writeJson(pilotReviewPath, {
+      schema_version: 'controlled-pilot-review.v2',
+      review_id: 'model-owned-pilot-fixture',
+      status: 'ready_for_model_authorization',
       scope: {
         track: 'cet4',
         purpose: 'controlled_pilot',
-        target_card_count: 120,
-        box_targets: BOXES.map(([boxPrefix, target]) => ({
+        card_count: 120,
+        box_prefixes: BOXES.map(([boxPrefix]) => boxPrefix),
+        card_ids: allCardIds,
+      },
+      source_records: {
+        model_reviews: ['reviews/agent_self_review/pilot.json'],
+      },
+      coverage: {
+        reviewed_cards: 120,
+        boxes: BOXES.map(([boxPrefix, target]) => ({
           box_prefix: boxPrefix,
-          target_card_count: target,
-          sample_card_ids: cardIds(boxPrefix, 3),
+          card_ids: cardIds(boxPrefix, target),
+          status: 'passed',
         })),
       },
-      authorizes: {confirmed_box_expansion: true},
-      gate_eligible: false,
     });
 
-    for (const [boxPrefix, target] of BOXES) {
-      writeJson(join(reviewDir, `${boxPrefix}-expansion.json`), {
-        sample_policy: {
-          sample_confirmation_id: confirmationId,
-          confirmed_box_expansion: true,
-        },
-        cards: cardIds(boxPrefix, target)
-          .slice(3)
-          .map(cardId => ({
-            card_id: cardId,
-            status: 'pass',
-          })),
-      });
-    }
-
-    const result = deriveConfirmedPilotScope({
+    const result = deriveModelOwnedPilotScope({
       cardMakeRoot: root,
-      confirmationPath,
+      pilotReviewPath,
     });
     assert.equal(result.cardIds.length, 120);
     assert.equal(result.manifest.free_card_ids.length, 60);
@@ -113,7 +102,10 @@ function testConfirmedPilotOrder() {
       result.cardIds.slice(0, BOXES.length),
       BOXES.map(([prefix]) => `${prefix}01`),
     );
-    assert.equal(result.manifest.status, 'candidate_not_formally_approved');
+    assert.equal(
+      result.manifest.status,
+      'model_reviewed_candidate_pending_authorization',
+    );
     assert.equal(result.manifest.gate_eligible, false);
   } finally {
     rmSync(root, {recursive: true, force: true});
@@ -494,5 +486,5 @@ testTextBasedCorrectOption();
 testCanonicalCatalogMetadata();
 testAudioBundleCandidate();
 testFullTrackCandidateSummary();
-testConfirmedPilotOrder();
+testModelOwnedPilotOrder();
 console.log('build_card_make_runtime_payload tests passed');

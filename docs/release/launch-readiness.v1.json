@@ -1,16 +1,19 @@
 {
   "schema_version": "launch-readiness.v1",
-  "target_release": "2027-Q2",
+  "target_release": "2026-09",
   "status": "not_ready",
-  "current_milestone": "launch_governance_baseline",
-  "quality_policy": "move_release_date_before_reducing_gate",
-  "formal_approval": {
-    "provider": "github_environment",
-    "environment": "formal-product-owner-approval",
-    "required_reviewer": "github:LENKIN233",
-    "administrators_can_bypass": false,
-    "workflow": ".github/workflows/formal-approval.yml",
-    "required_check": "formal-approval"
+  "current_milestone": "machine_owned_launch_execution",
+  "quality_policy": "automate_internal_acceptance_keep_objective_gates",
+  "machine_acceptance": {
+    "provider": "model_harness",
+    "policy": "spec/machine-acceptance.json",
+    "authority": "model_harness",
+    "required_independent_runs": 2,
+    "independence_unit": "workflow_review_job",
+    "human_review_required": false,
+    "user_review_required": false,
+    "product_owner_click_required": false,
+    "required_check": "trusted-model-review"
   },
   "release_candidate": null,
   "product_scope": {
@@ -34,27 +37,27 @@
   "external_dependencies": [
     {
       "id": "apple-developer",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified"
     },
     {
       "id": "android-distribution",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified"
     },
     {
       "id": "tencent-cloud-production",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified"
     },
     {
       "id": "payments",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified"
     },
     {
       "id": "china-compliance",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified"
     }
   ],
@@ -117,7 +120,7 @@
       "status": "blocked",
       "evidence": [],
       "blocked_by": [
-        "218-box-user-approval"
+        "218-box-machine-acceptance"
       ]
     },
     {

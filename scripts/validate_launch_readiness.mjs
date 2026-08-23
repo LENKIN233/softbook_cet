@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
+  EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS,
   validateGateEvidenceArtifact,
   validateGateEvidenceCoherence,
   validateReleaseOperationalPolicy,
@@ -38,7 +39,10 @@ const REPOSITORY_EVIDENCE_PREFIXES = [
   'docs/release/evidence/',
   'security/reports/',
 ];
-const PRODUCT_OWNER_VERIFIER = 'github:LENKIN233';
+const MACHINE_ACCEPTANCE_VERIFIER = 'service:softbook-machine-harness';
+const MACHINE_PRINCIPAL_PATTERN =
+  /^(model|agent|service|oidc):[A-Za-z0-9][A-Za-z0-9_.@-]{2,127}$/;
+const MACHINE_RUN_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
 const EVIDENCE_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
 const MAX_REPOSITORY_EVIDENCE_BYTES = 1024 * 1024;
 const MAX_REPOSITORY_RAW_EVIDENCE_BYTES = 16 * 1024 * 1024;
@@ -48,13 +52,16 @@ const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const FORBIDDEN_ENVIRONMENT_PATTERN =
   /(^|[-_.:])(local|mock|simulation|simulator|personal|development|dev)([-_.:]|$)/i;
-const FORMAL_APPROVAL_POLICY = Object.freeze({
-  provider: 'github_environment',
-  environment: 'formal-product-owner-approval',
-  required_reviewer: 'github:LENKIN233',
-  administrators_can_bypass: false,
-  workflow: '.github/workflows/formal-approval.yml',
-  required_check: 'formal-approval',
+const MACHINE_ACCEPTANCE_POLICY = Object.freeze({
+  provider: 'model_harness',
+  policy: 'spec/machine-acceptance.json',
+  authority: 'model_harness',
+  required_independent_runs: 2,
+  independence_unit: 'workflow_review_job',
+  human_review_required: false,
+  user_review_required: false,
+  product_owner_click_required: false,
+  required_check: 'trusted-model-review',
 });
 
 export const GATE_DEFINITIONS = Object.freeze({
@@ -190,7 +197,7 @@ const REQUIRED_SUBSCRIPTION_PRODUCTS = [
 ];
 const KNOWN_BLOCKERS = new Set([
   ...Object.keys(EXTERNAL_ACCOUNT_DEFINITIONS),
-  '218-box-user-approval',
+  '218-box-machine-acceptance',
 ]);
 
 export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
@@ -207,7 +214,7 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
       'status',
       'current_milestone',
       'quality_policy',
-      'formal_approval',
+      'machine_acceptance',
       'release_candidate',
       'product_scope',
       'external_dependencies',
@@ -222,10 +229,10 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
     'schema_version',
     errors,
   );
-  assertEqual(contract.target_release, '2027-Q2', 'target_release', errors);
+  assertEqual(contract.target_release, '2026-09', 'target_release', errors);
   assertEqual(
     contract.quality_policy,
-    'move_release_date_before_reducing_gate',
+    'automate_internal_acceptance_keep_objective_gates',
     'quality_policy',
     errors,
   );
@@ -236,7 +243,7 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
     errors.push('status must be not_ready or ready.');
   }
 
-  validateFormalApprovalPolicy(contract.formal_approval, errors);
+  validateMachineAcceptancePolicy(contract.machine_acceptance, errors);
   validateLaunchReleaseCandidate(contract.release_candidate, now, errors);
 
   validateProductScope(contract.product_scope, errors);
@@ -261,7 +268,7 @@ export function validateLaunchReadiness(contract, { now = new Date() } = {}) {
     );
     assertEqual(
       dependency.owner,
-      'product_owner',
+      'model_harness',
       `external dependency ${id} owner`,
       errors,
     );
@@ -337,7 +344,8 @@ export function validateExternalAccountReadiness(
     accountsContract,
     [
       'schema_version',
-      'product_owner',
+      'acceptance_authority',
+      'machine_acceptance_policy',
       'last_verified_at',
       'overall_status',
       'accounts',
@@ -352,9 +360,15 @@ export function validateExternalAccountReadiness(
     errors,
   );
   assertEqual(
-    accountsContract.product_owner,
-    PRODUCT_OWNER_VERIFIER,
-    'external account product_owner',
+    accountsContract.acceptance_authority,
+    MACHINE_ACCEPTANCE_VERIFIER,
+    'external account acceptance_authority',
+    errors,
+  );
+  assertEqual(
+    accountsContract.machine_acceptance_policy,
+    'spec/machine-acceptance.json',
+    'external account machine_acceptance_policy',
     errors,
   );
 
@@ -385,7 +399,7 @@ export function validateExternalAccountReadiness(
     validateExternalAccount(
       account,
       expectedCapabilities,
-      accountsContract.product_owner,
+      accountsContract.acceptance_authority,
       now,
       errors,
     );
@@ -811,6 +825,12 @@ function validateAndroidSignedReleaseBindings(
     errors.push(`${label} signed-release verifier does not match.`);
   }
   if (
+    report.verification_run_id !== artifact?.verification?.run_id ||
+    report.verification_run_id !== outerEvidence?.verification_run_id
+  ) {
+    errors.push(`${label} signed-release verification run does not match.`);
+  }
+  if (
     report.archived_verified_at !== artifact?.verification?.verified_at ||
     report.archived_verified_at !== outerEvidence?.verified_at
   ) {
@@ -857,6 +877,38 @@ export function validateExternalCapabilityEvidenceArtifact(
   const label = `external capability ${String(accountId)}/${String(
     capabilityId,
   )}`;
+  const registrationKey = externalCapabilityRegistrationKey(
+    accountId,
+    capabilityId,
+  );
+  const registeredSemantics =
+    EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS[registrationKey];
+  if (!registeredSemantics) {
+    errors.push(
+      `${label} has no registered type-specific evidence semantics; generic checks and self-attested passed results are capability-ineligible.`,
+    );
+  } else {
+    const policySemantics =
+      expectedPolicy?.registered_type_specific_semantics?.[registrationKey];
+    if (!isRecord(policySemantics)) {
+      errors.push(
+        `${label} registered type-specific evidence policy is unavailable.`,
+      );
+    } else {
+      for (const field of [
+        'report_schema',
+        'raw_artifact_role',
+        'validator_id',
+      ]) {
+        assertEqual(
+          policySemantics[field],
+          registeredSemantics[field],
+          `${label} registered semantics.${field}`,
+          errors,
+        );
+      }
+    }
+  }
   if (!isRecord(artifact)) {
     return {errors: [`${label} artifact must be a JSON object.`], ok: false};
   }
@@ -1067,7 +1119,7 @@ export function validateExternalCapabilityEvidenceArtifact(
   } else {
     assertAllowedKeys(
       verification,
-      ['verified_at', 'verified_by'],
+      ['verified_at', 'verified_by', 'run_id'],
       `${label} verification`,
       errors,
     );
@@ -1085,10 +1137,19 @@ export function validateExternalCapabilityEvidenceArtifact(
     );
     assertEqual(
       verification.verified_by,
-      expectedPolicy?.product_owner,
-      `${label} verification product_owner`,
+      expectedPolicy?.acceptance_authority,
+      `${label} verification acceptance_authority`,
       errors,
     );
+    assertEqual(
+      verification.run_id,
+      outerEvidence?.verification_run_id,
+      `${label} verification.run_id`,
+      errors,
+    );
+    if (!MACHINE_RUN_ID_PATTERN.test(verification.run_id ?? '')) {
+      errors.push(`${label} verification.run_id must identify the machine verification run.`);
+    }
   }
 
   const capabilityChecks =
@@ -1401,38 +1462,6 @@ export function loadProductionDeploymentEvidence(
   };
 }
 
-export function loadCet4FormalContentEvidence(
-  artifact,
-  {label, root, trackedFiles},
-) {
-  const errors = [];
-  const roleFields = {
-    buildReport: artifact?.measurements?.build_report_role,
-    profile: artifact?.measurements?.profile_role,
-    bundle: artifact?.measurements?.bundle_role,
-    content: artifact?.measurements?.content_role,
-    approval: artifact?.measurements?.approval_role,
-    audit: artifact?.measurements?.audit_role,
-    audioManifest: artifact?.measurements?.audio_manifest_role,
-    audioQcIndex: artifact?.measurements?.audio_qc_index_role,
-  };
-  const evidence = {};
-  for (const [field, role] of Object.entries(roleFields)) {
-    const loaded = loadStrictRawJsonRole(artifact, role, {
-      label: `${label} CET4 formal content ${field}`,
-      root,
-      trackedFiles,
-    });
-    errors.push(...loaded.errors);
-    evidence[field] = loaded.value;
-  }
-  return {
-    errors,
-    evidence: errors.length === 0 ? evidence : null,
-    ok: errors.length === 0,
-  };
-}
-
 export function loadBetaEntitlementDrillEvidence(
   artifact,
   {label, root, trackedFiles},
@@ -1597,26 +1626,29 @@ function validateProductScope(scope, errors) {
   );
 }
 
-function validateFormalApprovalPolicy(policy, errors) {
+function validateMachineAcceptancePolicy(policy, errors) {
   if (!isRecord(policy)) {
-    errors.push('formal_approval must be an object.');
+    errors.push('machine_acceptance must be an object.');
     return;
   }
   assertAllowedKeys(
     policy,
     [
       'provider',
-      'environment',
-      'required_reviewer',
-      'administrators_can_bypass',
-      'workflow',
+      'policy',
+      'authority',
+      'required_independent_runs',
+      'independence_unit',
+      'human_review_required',
+      'user_review_required',
+      'product_owner_click_required',
       'required_check',
     ],
-    'formal_approval',
+    'machine_acceptance',
     errors,
   );
-  for (const [field, expected] of Object.entries(FORMAL_APPROVAL_POLICY)) {
-    assertEqual(policy[field], expected, `formal_approval.${field}`, errors);
+  for (const [field, expected] of Object.entries(MACHINE_ACCEPTANCE_POLICY)) {
+    assertEqual(policy[field], expected, `machine_acceptance.${field}`, errors);
   }
 }
 
@@ -1641,6 +1673,7 @@ function validateLaunchReleaseCandidate(candidate, now, errors) {
       'client_builds',
       'recorded_at',
       'recorded_by',
+      'recorded_run_id',
     ],
     label,
     errors,
@@ -1665,7 +1698,7 @@ function validateLaunchReleaseCandidate(candidate, now, errors) {
   }
   assertEqual(
     candidate.target_release,
-    '2027-Q2',
+    '2026-09',
     `${label}.target_release`,
     errors,
   );
@@ -1797,12 +1830,10 @@ function validateLaunchReleaseCandidate(candidate, now, errors) {
     now,
     errors,
   );
-  assertEqual(
-    candidate.recorded_by,
-    PRODUCT_OWNER_VERIFIER,
-    `${label}.recorded_by`,
-    errors,
-  );
+  assertEqual(candidate.recorded_by, MACHINE_ACCEPTANCE_VERIFIER, `${label}.recorded_by`, errors);
+  if (!MACHINE_RUN_ID_PATTERN.test(candidate.recorded_run_id ?? '')) {
+    errors.push(`${label}.recorded_run_id must identify the machine acceptance run.`);
+  }
 }
 
 function validateSubjectId(value, label, errors) {
@@ -1861,9 +1892,9 @@ function validateGate(gate, definition, now, errors) {
         const approvalEvidence = gate.evidence.find(
           evidence => evidence?.type === type,
         );
-        if (approvalEvidence?.verified_by !== PRODUCT_OWNER_VERIFIER) {
+        if (approvalEvidence?.verified_by !== MACHINE_ACCEPTANCE_VERIFIER) {
           errors.push(
-            `${label} ${type} must be verified by ${PRODUCT_OWNER_VERIFIER}.`,
+            `${label} ${type} must be verified by ${MACHINE_ACCEPTANCE_VERIFIER}.`,
           );
         }
       }
@@ -1897,7 +1928,7 @@ function validateGate(gate, definition, now, errors) {
 function validateExternalAccount(
   account,
   expectedCapabilities,
-  productOwner,
+  acceptanceAuthority,
   now,
   errors,
 ) {
@@ -1908,7 +1939,7 @@ function validateExternalAccount(
     label,
     errors,
   );
-  assertEqual(account.owner, 'product_owner', `${label} owner`, errors);
+  assertEqual(account.owner, 'model_harness', `${label} owner`, errors);
   if (!ACCOUNT_STATUSES.has(account.status)) {
     errors.push(`${label} has an invalid status.`);
   }
@@ -1925,7 +1956,13 @@ function validateExternalAccount(
     errors,
   );
   for (const capability of capabilities.values()) {
-    validateCapability(capability, productOwner, now, errors);
+    validateCapability(
+      account.id,
+      capability,
+      acceptanceAuthority,
+      now,
+      errors,
+    );
   }
 
   const blocked = [...capabilities.values()].some(
@@ -1942,8 +1979,14 @@ function validateExternalAccount(
   }
 }
 
-function validateCapability(capability, productOwner, now, errors) {
-  const label = `capability ${capability.id}`;
+function validateCapability(
+  accountId,
+  capability,
+  acceptanceAuthority,
+  now,
+  errors,
+) {
+  const label = `capability ${accountId}/${capability.id}`;
   assertAllowedKeys(
     capability,
     ['id', 'status', 'evidence', 'blocked_by'],
@@ -1961,6 +2004,22 @@ function validateCapability(capability, productOwner, now, errors) {
     errors,
     {requireSubjectCommit: true},
   );
+  const registrationKey = externalCapabilityRegistrationKey(
+    accountId,
+    capability.id,
+  );
+  const registeredSemantics =
+    EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS[registrationKey];
+
+  if (
+    !registeredSemantics &&
+    (capability.status === 'ready' ||
+      evidenceTypes.has('capability-verification'))
+  ) {
+    errors.push(
+      `${label} has no registered type-specific evidence semantics and cannot be ready.`,
+    );
+  }
 
   if (
     capability.status === 'ready' &&
@@ -1974,8 +2033,8 @@ function validateCapability(capability, productOwner, now, errors) {
     const verification = capability.evidence.find(
       evidence => evidence?.type === 'capability-verification',
     );
-    if (verification?.verified_by !== productOwner) {
-      errors.push(`${label} must be verified by tracked product_owner.`);
+    if (verification?.verified_by !== acceptanceAuthority) {
+      errors.push(`${label} must be verified by the tracked machine acceptance authority.`);
     }
   }
   if (capability.status === 'blocked') {
@@ -2021,6 +2080,7 @@ function validateEvidenceList(
         'subject_commit_sha',
         'verified_at',
         'verified_by',
+        'verification_run_id',
       ],
       recordLabel,
       errors,
@@ -2083,11 +2143,14 @@ function validateEvidenceList(
     );
     if (
       typeof record.verified_by !== 'string' ||
-      !/^(github|team|external):[A-Za-z0-9_.-]+$/.test(record.verified_by)
+      !MACHINE_PRINCIPAL_PATTERN.test(record.verified_by)
     ) {
       errors.push(
-        `${recordLabel} verified_by must identify a github, team, or external verifier.`,
+        `${recordLabel} verified_by must identify a model, agent, service, or oidc machine principal.`,
       );
+    }
+    if (!MACHINE_RUN_ID_PATTERN.test(record.verification_run_id ?? '')) {
+      errors.push(`${recordLabel} verification_run_id must identify the machine verification run.`);
     }
   }
   return discoveredTypes;
@@ -2113,6 +2176,10 @@ function validateArtifactUri(value, label, errors) {
       `${label} artifact_uri is not an allowed repository evidence path.`,
     );
   }
+}
+
+function externalCapabilityRegistrationKey(accountId, capabilityId) {
+  return `${String(accountId)}/${String(capabilityId)}`;
 }
 
 function validateDistinctEvidenceArtifacts(records, errors) {

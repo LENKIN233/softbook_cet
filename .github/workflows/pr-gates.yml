@@ -20,17 +20,71 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  design-artifact-gate:
-    if: github.event_name == 'pull_request'
+  changes:
+    if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    outputs:
+      mobile: ${{ steps.scope.outputs.mobile }}
+      native: ${{ steps.scope.outputs.native }}
+      design: ${{ steps.scope.outputs.design }}
+      web: ${{ steps.scope.outputs.web }}
+      backend: ${{ steps.scope.outputs.backend }}
+      dependency: ${{ steps.scope.outputs.dependency }}
+      evidence: ${{ steps.scope.outputs.evidence }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
+      - name: Classify changed paths
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            node scripts/classify_pr_gate_scope.mjs \
+              --all \
+              --github-output "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git diff --name-only --no-renames --diff-filter=ACMRD \
+            "$BASE_SHA...$HEAD_SHA" \
+            > "$RUNNER_TEMP/pr-gate-changed-files.txt"
+          node scripts/classify_pr_gate_scope.mjs \
+            --files "$RUNNER_TEMP/pr-gate-changed-files.txt" \
+            --github-output "$GITHUB_OUTPUT"
+
+  design-artifact-gate:
+    needs: changes
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUN_GATE: ${{ needs.changes.outputs.design }}
+    steps:
+      - name: Require change classification
+        if: needs.changes.result != 'success'
+        run: |
+          echo "Change classification did not complete successfully."
+          exit 1
+
+      - name: Skip unaffected design diagnostics
+        if: needs.changes.result == 'success' && env.RUN_GATE != 'true'
+        run: echo "No user-facing or design paths changed; design diagnostics are not required."
+
+      - name: Checkout repository
+        if: env.RUN_GATE == 'true'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
       - name: Validate PR design gate
+        if: env.RUN_GATE == 'true'
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: python3 scripts/validate_pr_design_gate.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.sha }}"
@@ -66,6 +120,12 @@ jobs:
       - name: Test Android release boundary
         run: node --test scripts/test_android_release_boundary.mjs
 
+      - name: Test signed Android release evidence tooling
+        run: node --test scripts/test_build_android_signed_release.mjs
+
+      - name: Test model-owned acceptance contract
+        run: node --test scripts/test_model_acceptance_contract.mjs
+
       - name: Test CloudBase smoke record lifecycle
         run: node --test infra/cloudbase/test-smoke-record-lifecycle.mjs
 
@@ -84,11 +144,23 @@ jobs:
       - name: Test design metadata scanner isolation
         run: node --test scripts/test_check_design_metadata_leaks.mjs
 
-      - name: Test formal approval scope classifier
-        run: node --test scripts/test_classify_formal_approval_scope.mjs
+      - name: Test PR gate scope classifier
+        run: node scripts/test_classify_pr_gate_scope.mjs
 
       - name: Validate harness contract
-        run: python3 scripts/validate_harness.py --skip-remote-guard
+        run: |
+          python3 scripts/test_trusted_model_review.py
+          python3 scripts/validate_harness.py --skip-remote-guard
+
+      - name: Test frozen agent-run archive guard
+        run: node --test scripts/test_guard_agent_run_archive.mjs
+
+      - name: Protect frozen agent-run archive on pull requests
+        if: github.event_name == 'pull_request'
+        run: |
+          node scripts/guard_agent_run_archive.mjs \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}"
 
       - name: Validate launch readiness governance
         run: |
@@ -96,7 +168,6 @@ jobs:
           node scripts/validate_launch_readiness.mjs
           node --test scripts/test_validate_cet4_closed_beta_readiness.mjs
           node scripts/validate_cet4_closed_beta_readiness.mjs
-          node --test scripts/test_cet4_formal_content_evidence.mjs
           node --test scripts/test_beta_entitlement_drill_evidence.mjs
           node --test scripts/test_space_sync_evidence.mjs
 
@@ -116,19 +187,41 @@ jobs:
         run: gh api "repos/$GH_REPO/pulls/$PR_NUMBER" --jq .body > "$RUNNER_TEMP/pr-body.md"
 
       - name: Validate agent review record
-        run: python3 scripts/validate_agent_review.py --body-file "$RUNNER_TEMP/pr-body.md"
+        run: >-
+          python3 scripts/validate_agent_review.py
+          --body-file "$RUNNER_TEMP/pr-body.md"
+          --expected-head "${{ github.event.pull_request.head.sha }}"
+          --minimum-runs 2
 
   mobile-quality:
+    needs: changes
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      RUN_GATE: ${{ needs.changes.outputs.mobile }}
     defaults:
       run:
         working-directory: apps/mobile
     steps:
+      - name: Require change classification
+        if: needs.changes.result != 'success'
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Change classification did not complete successfully."
+          exit 1
+
+      - name: Skip unaffected mobile quality
+        if: needs.changes.result == 'success' && env.RUN_GATE != 'true'
+        working-directory: ${{ github.workspace }}
+        run: echo "No mobile paths changed; mobile quality is not required."
+
       - name: Checkout repository
+        if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Node.js
+        if: env.RUN_GATE == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22.13.0"
@@ -136,34 +229,58 @@ jobs:
           cache-dependency-path: apps/mobile/package-lock.json
 
       - name: Install dependencies
+        if: env.RUN_GATE == 'true'
         run: npm ci
 
       - name: Lint mobile app
+        if: env.RUN_GATE == 'true'
         run: npm run lint -- --quiet
 
       - name: Scan for metadata leak in visible mobile UI text
+        if: env.RUN_GATE == 'true'
         run: npm run metadata-leak-scan
 
       - name: Scan for metadata leak in design visual artifacts
+        if: env.RUN_GATE == 'true'
         run: npm run design-metadata-leak-scan
 
       - name: Type-check mobile app
+        if: env.RUN_GATE == 'true'
         run: npm run typecheck
 
       - name: Run mobile tests
+        if: env.RUN_GATE == 'true'
         run: npm test -- --runInBand --watchAll=false
 
   web-quality:
+    needs: changes
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      RUN_GATE: ${{ needs.changes.outputs.web }}
     defaults:
       run:
         working-directory: apps/web
     steps:
+      - name: Require change classification
+        if: needs.changes.result != 'success'
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Change classification did not complete successfully."
+          exit 1
+
+      - name: Skip unaffected Web quality
+        if: needs.changes.result == 'success' && env.RUN_GATE != 'true'
+        working-directory: ${{ github.workspace }}
+        run: echo "No Web or shared mobile-domain paths changed; Web quality is not required."
+
       - name: Checkout repository
+        if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Node.js
+        if: env.RUN_GATE == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22.13.0"
@@ -173,38 +290,63 @@ jobs:
             apps/mobile/package-lock.json
 
       - name: Install shared mobile-domain TypeScript context
+        if: env.RUN_GATE == 'true'
         working-directory: apps/mobile
         run: npm ci --ignore-scripts
 
       - name: Install Web dependencies
+        if: env.RUN_GATE == 'true'
         run: npm ci
 
       - name: Lint Web app
+        if: env.RUN_GATE == 'true'
         run: npm run lint
 
       - name: Type-check Web app
+        if: env.RUN_GATE == 'true'
         run: npm run typecheck
 
       - name: Run Web tests
+        if: env.RUN_GATE == 'true'
         run: npm test
 
       - name: Build production Web app
+        if: env.RUN_GATE == 'true'
         run: npm run build
 
       - name: Audit production dependencies
+        if: env.RUN_GATE == 'true'
         run: npm audit --omit=dev --audit-level=high
 
   backend-contract:
+    needs: changes
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      RUN_GATE: ${{ needs.changes.outputs.backend }}
     defaults:
       run:
         working-directory: infra/cloudbase/functions/softbook-api
     steps:
+      - name: Require change classification
+        if: needs.changes.result != 'success'
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Change classification did not complete successfully."
+          exit 1
+
+      - name: Skip unaffected backend contract tests
+        if: needs.changes.result == 'success' && env.RUN_GATE != 'true'
+        working-directory: ${{ github.workspace }}
+        run: echo "No backend paths changed; backend contract tests are not required."
+
       - name: Checkout repository
+        if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Node.js
+        if: env.RUN_GATE == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22.13.0"
@@ -212,22 +354,41 @@ jobs:
           cache-dependency-path: infra/cloudbase/functions/softbook-api/package-lock.json
 
       - name: Install backend dependencies
+        if: env.RUN_GATE == 'true'
         run: npm ci
 
       - name: Run backend contract tests
+        if: env.RUN_GATE == 'true'
         run: npm test
 
       - name: Test formal release bundle builder
+        if: env.RUN_GATE == 'true'
         run: node --test ../../../../scripts/test_build_formal_release_bundle.mjs
 
   dependency-security:
+    needs: changes
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      RUN_GATE: ${{ needs.changes.outputs.dependency }}
     steps:
+      - name: Require change classification
+        if: needs.changes.result != 'success'
+        run: |
+          echo "Change classification did not complete successfully."
+          exit 1
+
+      - name: Skip unaffected dependency security
+        if: needs.changes.result == 'success' && env.RUN_GATE != 'true'
+        run: echo "No dependency inputs changed; dependency security is not required."
+
       - name: Checkout repository
+        if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Node.js
+        if: env.RUN_GATE == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22.13.0"
@@ -238,37 +399,60 @@ jobs:
             infra/cloudbase/functions/softbook-api/package-lock.json
 
       - name: Install mobile dependency tree
+        if: env.RUN_GATE == 'true'
         working-directory: apps/mobile
         run: npm ci
 
       - name: Install Web dependency tree
+        if: env.RUN_GATE == 'true'
         working-directory: apps/web
         run: npm ci --ignore-scripts
 
       - name: Install backend dependency tree
+        if: env.RUN_GATE == 'true'
         working-directory: infra/cloudbase/functions/softbook-api
         run: npm ci --ignore-scripts
 
       - name: Test dependency policies
+        if: env.RUN_GATE == 'true'
         run: |
           node scripts/test_validate_dependency_security.mjs
           node scripts/test_normalize_react_native_podspecs.mjs
           npm --prefix apps/mobile run test:brace-expansion-compat
 
       - name: Validate dependency security
+        if: env.RUN_GATE == 'true'
         run: node scripts/validate_dependency_security.mjs
 
   ios-release:
-    runs-on: macos-latest
+    needs: changes
+    if: always()
+    runs-on: ${{ needs.changes.outputs.native == 'true' && 'macos-latest' || 'ubuntu-latest' }}
     timeout-minutes: 90
+    env:
+      RUN_GATE: ${{ needs.changes.outputs.native }}
     defaults:
       run:
         working-directory: apps/mobile
     steps:
+      - name: Require change classification
+        if: needs.changes.result != 'success'
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Change classification did not complete successfully."
+          exit 1
+
+      - name: Skip unaffected iOS Release build
+        if: needs.changes.result == 'success' && env.RUN_GATE != 'true'
+        working-directory: ${{ github.workspace }}
+        run: echo "No mobile build inputs changed; iOS Release is not required."
+
       - name: Checkout repository
+        if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Node.js
+        if: env.RUN_GATE == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22.13.0"
@@ -276,6 +460,7 @@ jobs:
           cache-dependency-path: apps/mobile/package-lock.json
 
       - name: Set up Ruby
+        if: env.RUN_GATE == 'true'
         uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: "3.3"
@@ -283,24 +468,30 @@ jobs:
           working-directory: apps/mobile
 
       - name: Install JavaScript dependencies
+        if: env.RUN_GATE == 'true'
         run: npm ci
 
       - name: Install Ruby dependencies
+        if: env.RUN_GATE == 'true'
         env:
           BUNDLE_JOBS: "4"
           BUNDLE_RETRY: "3"
         run: bundle install
 
       - name: Verify Ruby dependency lock
+        if: env.RUN_GATE == 'true'
         run: git diff --exit-code -- Gemfile.lock
 
       - name: Install native build tools
+        if: env.RUN_GATE == 'true'
         run: brew install cmake
 
       - name: Verify CocoaPods lock
+        if: env.RUN_GATE == 'true'
         run: bundle exec pod install --project-directory=ios --deployment
 
       - name: Build Release simulator app
+        if: env.RUN_GATE == 'true'
         run: >-
           xcodebuild
           -workspace ios/SoftbookCET.xcworkspace
@@ -314,6 +505,7 @@ jobs:
           build
 
       - name: Create unsigned Release archive
+        if: env.RUN_GATE == 'true'
         run: >-
           xcodebuild
           -workspace ios/SoftbookCET.xcworkspace
@@ -327,16 +519,34 @@ jobs:
           archive
 
   android-release:
+    needs: changes
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      RUN_GATE: ${{ needs.changes.outputs.native }}
     defaults:
       run:
         working-directory: apps/mobile
     steps:
+      - name: Require change classification
+        if: needs.changes.result != 'success'
+        working-directory: ${{ github.workspace }}
+        run: |
+          echo "Change classification did not complete successfully."
+          exit 1
+
+      - name: Skip unaffected Android Release build
+        if: needs.changes.result == 'success' && env.RUN_GATE != 'true'
+        working-directory: ${{ github.workspace }}
+        run: echo "No mobile build inputs changed; Android Release is not required."
+
       - name: Checkout repository
+        if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
 
       - name: Set up Node.js
+        if: env.RUN_GATE == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22.13.0"
@@ -344,12 +554,14 @@ jobs:
           cache-dependency-path: apps/mobile/package-lock.json
 
       - name: Set up JDK 17
+        if: env.RUN_GATE == 'true'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Install JavaScript dependencies
+        if: env.RUN_GATE == 'true'
         run: npm ci
 
       - name: Install pinned Android NDK
@@ -373,9 +585,11 @@ jobs:
           exit 1
 
       - name: Build unsigned Android Release APK
+        if: env.RUN_GATE == 'true'
         run: npm run android:release:unsigned
 
       - name: Verify unsigned Release artifact
+        if: env.RUN_GATE == 'true'
         run: test -f android/app/build/outputs/apk/release/app-release-unsigned.apk
 
   repo-health:
@@ -410,7 +624,11 @@ jobs:
             echo "::error title=Repository health credential missing::REPO_HEALTH_TOKEN must be a repository-scoped fine-grained token with Administration read and Actions read."
             exit 1
           fi
-          GH_TOKEN="$REPO_HEALTH_TOKEN" node scripts/report_repo_health.mjs --full-tree --remote --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
+          GH_TOKEN="$REPO_HEALTH_TOKEN" node scripts/report_repo_health.mjs --profile remote --full-tree --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
+
+      - name: Verify local Git LFS objects
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        run: git lfs fsck
 
       - name: Validate changed repository health
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
@@ -418,22 +636,39 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           if git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
-            node scripts/report_repo_health.mjs --base "$BASE_SHA" --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
+            node scripts/report_repo_health.mjs --profile local --base "$BASE_SHA" --strict --output "$RUNNER_TEMP/repository-health.json"
           else
-            node scripts/report_repo_health.mjs --strict --expected-max-worktrees 1 --expected-max-stashes 0 --expected-max-topic-branches 1 --require-upstreams --output "$RUNNER_TEMP/repository-health.json"
+            node scripts/report_repo_health.mjs --profile local --strict --output "$RUNNER_TEMP/repository-health.json"
           fi
 
   evidence-archive:
+    needs: changes
+    if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      RUN_GATE: ${{ needs.changes.outputs.evidence }}
     steps:
+      - name: Require change classification
+        if: needs.changes.result != 'success'
+        run: |
+          echo "Change classification did not complete successfully."
+          exit 1
+
+      - name: Skip unaffected evidence archive validation
+        if: needs.changes.result == 'success' && env.RUN_GATE != 'true'
+        run: echo "No agent-run evidence inputs changed; evidence archive validation is not required."
+
       - name: Checkout repository
+        if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
 
       - name: Test agent run evidence validator
+        if: env.RUN_GATE == 'true'
         run: node --test scripts/test_validate_agent_run_evidence.mjs
 
       - name: Validate agent run evidence manifests
+        if: env.RUN_GATE == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/validate_agent_run_evidence.mjs --verify-remote

@@ -15,8 +15,8 @@
       "pc_web"
     ],
     "membership_access": "receiver_operator_beta_entitlement_v1",
-    "content_approval": "one_exact_full_track_final_user_approval_bound_to_the_CET4_corpus",
-    "audio_approval": "one_formal_identified_human_QC_record_for_every_referenced_audio_asset",
+    "content_approval": "one_exact_model_owned_content_authorization_v2_with_two_independent_runs_bound_to_the_CET4_corpus_audit_and_model_review",
+    "audio_approval": "model_owned_audio_qc_v2_with_two_independent_audio_capable_runs_complete_asset_consumption_and_seven_bound_per_card_results_for_every_referenced_audio_asset",
     "receiver_environment": "independent_receiver_owned_CloudBase_environment_not_the_personal_development_environment"
   },
   "authority_boundary": {
@@ -32,8 +32,8 @@
     "operational_policy": "spec/release-operational-policy.json",
     "does_not_replace": [
       "docs/release/launch-readiness.v1.json",
-      "CET6_full_track_approval",
-      "public_store_or_regulatory_launch_approval",
+      "CET6_full_track_model_authorization",
+      "public_store_or_regulatory_launch_state",
       "payment_launch_gates"
     ],
     "candidate_pilot_dry_run_simulation_or_technical_audit_is_formal_evidence": false
@@ -53,16 +53,16 @@
       "entitlement"
     ],
     "cohort_binding": "every formal gate report matches the same commit, profile, environment, release, retained parent, bundle, content version, backend deployment and client builds",
-    "content_binding": "exactly CET4 1180 cards, 108 boxes and 301 audio assets with full-track approval and complete formal QC",
+    "content_binding": "exactly CET4 1180 cards, 108 boxes and 301 audio assets with two-run full-track model authorization and complete model-owned QC",
     "retained_parent_required": true,
-    "product_owner_record_required": true
+    "machine_acceptance_record_required": true
   },
   "external_dependencies": {
     "tencent-cloud-receiver": "independent_environment_IAM_database_function_storage_logging_and_backup_control",
     "sms-provider": "approved_sender_template_credentials_quota_and_real_delivery",
     "apple-private-distribution": "developer_team_signing_profile_private_beta_distribution_and_real_device_install",
     "android-private-distribution": "receiver_keystore_private_channel_and_real_device_install",
-    "human-content-review": "identified_human_CET_full_track_review_final_user_approval_and_301_asset_perceptual_QC"
+    "model-content-acceptance": "exact_input_model_owned_full_track_review_content_authorization_and_301_asset_perceptual_QC"
   },
   "gates": {
     "receiver-runtime": [
@@ -114,7 +114,6 @@
     "formal_evidence_ingestion": "registered_types_implemented_unregistered_fail_closed",
     "registered_evidence_types": [
       "production-deployment",
-      "sms-provider-smoke",
       "cross-device-bootstrap-test",
       "offline-replay-test",
       "canonical-state-test",
@@ -126,10 +125,6 @@
       "backup-restore-drill",
       "penetration-test-report",
       "rollback-drill",
-      "cet4-approved-box-coverage-report",
-      "cet4-approved-card-coverage-report",
-      "cet4-audio-qc-coverage-report",
-      "cet4-content-pack-integrity-report",
       "beta-entitlement-drill",
       "space-sync-test"
     ],
@@ -152,7 +147,7 @@
       "one_exact_release_candidate",
       "every_external_dependency_ready",
       "every_gate_passed_with_all_required_type_specific_evidence",
-      "protected_product_owner_approval_for_the_exact_candidate_and_evidence_commit"
+      "two_independent_machine_acceptance_runs_for_the_exact_candidate_and_evidence_commit"
     ],
     "missing_or_unregistered_type_specific_semantics": "fail_closed"
   }

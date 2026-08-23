@@ -76,7 +76,7 @@ test('apply writes and verifies one auditable grant while exact replay is idempo
   assert.equal(first.status, 'passed');
   assert.equal(first.writes_performed, true);
   assert.equal(first.repository_commit, 'a'.repeat(40));
-  assert.equal(first.execution.operator, 'team:receiver-operator');
+  assert.equal(first.execution.operator, 'service:receiver-operator');
   assert.equal(first.beta_state.revision, 1);
   assert.equal(first.beta_state.audit_event_count, 1);
   assert.equal(first.beta_state.active_campaign_id, 'cet4-beta-campaign-001');
@@ -133,7 +133,7 @@ test('apply requires a formal actor identity and full repository commit', async 
         unidentifiedOptions,
         dependencies(unidentifiedRunner),
       ),
-    /identified github, team, or external actor_id/,
+    /identified model, agent, service, or OIDC actor_id/,
   );
   assert.equal(unidentifiedRunner.updateCount(), 0);
 
@@ -196,7 +196,7 @@ test('beta entitlement commands reject a formal production profile', async () =>
 
 function createFixture(
   runtimeMode = 'closed_beta',
-  actorId = 'team:receiver-operator',
+  actorId = 'service:receiver-operator',
 ) {
   const directory = mkdtempSync(join(tmpdir(), 'beta-entitlement-test-'));
   temporaryDirectories.push(directory);

@@ -134,7 +134,7 @@ def validate(context) -> None:
     No generic dashboard or flat list.
 
     ## Candidate Budget
-    Eight candidates, one generation, human checkpoint.
+    Eight candidates, one generation, model acceptance checkpoint.
                 """,
             )
             write(run_dir / "candidate-index.md", "# Candidate Index\n\n" + "\n".join(f"- candidate-{index}" for index in range(1, 9)))

@@ -17,6 +17,10 @@ import {dirname, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {verifyControlledPilotBundleDirectory} from '../infra/cloudbase/controlled-pilot-publisher-v1.mjs';
+import {
+  buildModelAcceptanceInputSha256,
+  requireIndependentModelAcceptances,
+} from './lib/model_acceptance_contract.mjs';
 
 const LIBRARY_KEYS = new Map([
   ['听力', 'listening'],
@@ -60,7 +64,10 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
   const records = readQcRecords(qcDirectory);
   const bindings = [];
   const usedRecords = new Map();
+  const validatedRecords = new Set();
   const cardsByAsset = new Map();
+  const cardsById = new Map(cards.map(card => [card.card_id, card]));
+  const assetsById = new Map(assets.map(asset => [asset.asset_id, asset]));
   for (const card of cards) {
     if (!card.audio) continue;
     const list = cardsByAsset.get(card.audio.asset_id) ?? [];
@@ -78,11 +85,28 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
     );
     if (matches.length !== 1) {
       fail(
-        `Audio asset ${asset.asset_id} requires exactly one formal human QC record; found ${matches.length}.`,
+        `Audio asset ${asset.asset_id} requires exactly one formal model-harness QC record; found ${matches.length}.`,
       );
     }
     const match = matches[0];
-    validateQcRecord(match.record, cardIds, asset.asset_id);
+    if (!validatedRecords.has(match.path)) {
+      const scopeCardIds = requireUniqueStrings(
+        match.record.scope?.card_ids,
+        null,
+        `audio QC ${asset.asset_id} scope card IDs`,
+      );
+      const assetByCardId = new Map();
+      for (const scopeCardId of scopeCardIds) {
+        const card = cardsById.get(scopeCardId);
+        const scopeAsset = assetsById.get(card?.audio?.asset_id);
+        if (!card || !scopeAsset) {
+          fail(`Audio QC record ${match.path} names an unknown or non-audio card ${scopeCardId}.`);
+        }
+        assetByCardId.set(scopeCardId, scopeAsset);
+      }
+      validateQcRecord(match.record, scopeCardIds, assetByCardId, asset.asset_id);
+      validatedRecords.add(match.path);
+    }
     const hash = sha256Bytes(match.bytes);
     const recordPath = `audio/qc/${hash.slice('sha256:'.length)}.json`;
     usedRecords.set(recordPath, match);
@@ -91,9 +115,9 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
       card_ids: [...cardIds],
       record_path: recordPath,
       record_sha256: hash,
-      reviewed_by: match.record.legacy_adoption.reviewer,
+      reviewed_by: match.record.model_acceptances[0].actor.agent,
       reviewed_at: normalizeEvidenceTimestamp(
-        match.record.legacy_adoption.reviewed_at,
+        match.record.model_acceptances[0].evidence.reviewed_at,
         `audio QC ${asset.asset_id} reviewed_at`,
       ),
       formal_audio_ready: true,
@@ -108,24 +132,21 @@ export function assembleControlledPilotBundle(
 ) {
   const normalized = normalizeOptions(options);
   const profile = readJson(normalized.profilePath, 'controlled pilot profile');
-  const pilotReview = readJson(normalized.pilotReviewPath, 'controlled pilot review');
-  const approval = readJson(normalized.approvalPath, 'controlled pilot approval');
-  const audit = readJson(normalized.auditPath, 'controlled pilot audit');
+  const pilotReviewBytes = readFileSync(normalized.pilotReviewPath);
+  const pilotReview = JSON.parse(pilotReviewBytes.toString('utf8'));
+  const approvalBytes = readFileSync(normalized.approvalPath);
+  const approval = JSON.parse(approvalBytes.toString('utf8'));
+  const auditBytes = readFileSync(normalized.auditPath);
+  const audit = JSON.parse(auditBytes.toString('utf8'));
   const candidateBytes = readFileSync(normalized.candidatePayloadPath);
+  const candidateHash = sha256Bytes(candidateBytes);
+  const reviewHash = sha256Bytes(pilotReviewBytes);
+  const auditHash = sha256Bytes(auditBytes);
   const expectedCandidateHash = pilotReview.source_records?.runtime_payload_sha256;
-  if (sha256Bytes(candidateBytes) !== expectedCandidateHash) {
-    fail('Candidate payload SHA-256 does not match the approved controlled-pilot review.');
+  if (candidateHash !== expectedCandidateHash) {
+    fail('Candidate payload SHA-256 does not match the model-owned controlled-pilot review.');
   }
   const candidate = JSON.parse(candidateBytes.toString('utf8'));
-  if (
-    pilotReview.status !== 'user_approved' ||
-    pilotReview.approval?.approved_by_user !== true ||
-    pilotReview.content_version !== candidate.content_version ||
-    approval.content_version !== candidate.content_version ||
-    approval.pilot_id !== profile.pilot_id
-  ) {
-    fail('Candidate payload, user approval, pilot review, and receiver profile are not bound.');
-  }
   const corpusFingerprint = `sha256:${audit.corpus_fingerprint?.digest ?? ''}`;
   if (!/^sha256:[a-f0-9]{64}$/.test(corpusFingerprint)) {
     fail('Controlled-pilot audit does not contain a valid corpus fingerprint.');
@@ -133,6 +154,17 @@ export function assembleControlledPilotBundle(
   const content = {...candidate, corpus_fingerprint: corpusFingerprint};
   const cards = requireArray(content.card_records, 'candidate card_records');
   const assets = requireArray(content.assets, 'candidate assets');
+  validateModelOwnedPilotEvidence({
+    approval,
+    audit,
+    auditHash,
+    candidate,
+    candidateHash,
+    corpusFingerprint,
+    pilotReview,
+    profile,
+    reviewHash,
+  });
   const {bindings, usedRecords} = collectAudioQcBindings({
     assets,
     cards,
@@ -144,13 +176,21 @@ export function assembleControlledPilotBundle(
   const staging = mkdtempSync(join(stagingParent, '.controlled-pilot-bundle-'));
   try {
     const contentPath = 'content/cet4-controlled-pilot.json';
-    const approvalPath = 'approval/controlled-pilot-approval.json';
+    const approvalPath = 'approval/controlled-pilot-authorization.json';
+    const reviewPath = 'approval/controlled-pilot-review.json';
     const auditPath = 'audit/controlled-pilot-audit.json';
     const manifestPath = 'audio/manifest.json';
     const qcIndexPath = 'audio/qc-index.json';
     const contentHash = writeJson(join(staging, contentPath), content);
     const approvalHash = copyBoundJson(normalized.approvalPath, join(staging, approvalPath));
+    const copiedReviewHash = copyBoundJson(
+      normalized.pilotReviewPath,
+      join(staging, reviewPath),
+    );
     const auditHash = copyBoundJson(normalized.auditPath, join(staging, auditPath));
+    if (copiedReviewHash !== reviewHash) {
+      fail('Controlled-pilot review changed while the bundle was assembled.');
+    }
 
     const candidateRoot = dirname(normalized.candidatePayloadPath);
     for (const asset of assets) {
@@ -199,9 +239,14 @@ export function assembleControlledPilotBundle(
       approval: {
         record_path: approvalPath,
         record_sha256: approvalHash,
+        review_path: reviewPath,
+        review_sha256: copiedReviewHash,
         scope: 'controlled_pilot_120',
         status: 'approved',
-        approved_at: normalizeEvidenceTimestamp(approval.approved_at, 'approval approved_at'),
+        approved_at: normalizeEvidenceTimestamp(
+          approval.authorized_at,
+          'authorization authorized_at',
+        ),
       },
       audit: {
         report_path: auditPath,
@@ -294,25 +339,328 @@ function buildContentEvidence({content, contentHash, contentPath}) {
   };
 }
 
-function validateQcRecord(record, cardIds, assetId) {
-  if (record.verdict?.formal_audio_ready !== true) {
-    fail(`Audio QC record for ${assetId} is not formally ready.`);
+function validateModelOwnedPilotEvidence({
+  approval,
+  audit,
+  auditHash,
+  candidate,
+  candidateHash,
+  corpusFingerprint,
+  pilotReview,
+  profile,
+  reviewHash,
+}) {
+  assertExactObjectKeys(
+    pilotReview,
+    [
+      'schema_version',
+      'review_id',
+      'created_at',
+      'pilot_id',
+      'content_version',
+      'scope',
+      'source_records',
+      'coverage',
+      'quality',
+      'authorization',
+      'authorization_boundary',
+      'status',
+    ],
+    'controlled-pilot model review',
+  );
+  assertExactObjectKeys(
+    approval,
+    [
+      'schema_version',
+      'pilot_id',
+      'content_version',
+      'scope',
+      'status',
+      'authorized_at',
+      'model_acceptances',
+      'review',
+      'review_sha256',
+      'runtime_payload_sha256',
+      'scoped_audit_sha256',
+      'card_ids',
+    ],
+    'controlled-pilot model authorization',
+  );
+  assertExactObjectKeys(
+    pilotReview.scope,
+    ['track', 'purpose', 'card_count', 'box_prefixes', 'card_ids'],
+    'controlled-pilot review scope',
+  );
+  assertExactObjectKeys(
+    pilotReview.source_records,
+    [
+      'runtime_payload',
+      'runtime_payload_sha256',
+      'model_reviews',
+      'scoped_audit',
+      'scoped_audit_sha256',
+    ],
+    'controlled-pilot review source records',
+  );
+  assertExactObjectKeys(
+    pilotReview.coverage,
+    ['reviewed_cards', 'boxes'],
+    'controlled-pilot review coverage',
+  );
+  assertExactObjectKeys(
+    pilotReview.quality,
+    [
+      'corpus_fingerprint',
+      'hard_blockers',
+      'content_risks',
+      'review_gaps',
+      'source_risks',
+      'synthetic_source_cards',
+      'source_disclosure',
+    ],
+    'controlled-pilot review quality',
+  );
+  assertExactObjectKeys(
+    pilotReview.authorization,
+    ['model_acceptance', 'authorized_at', 'artifact_path'],
+    'controlled-pilot review authorization',
+  );
+  assertExactObjectKeys(
+    pilotReview.authorization_boundary,
+    [
+      'audio_qc_required_separately',
+      'pilot_publication_required_separately',
+      'external_facts_must_not_be_inferred',
+      'gate_eligible',
+    ],
+    'controlled-pilot review authorization boundary',
+  );
+  const candidateCardIds = requireUniqueStrings(
+    candidate.card_records?.map(card => card.card_id),
+    120,
+    'candidate card IDs',
+  );
+  const candidateBoxes = requireUniqueStrings(
+    [...new Set(candidate.card_records?.map(card => cardBoxPrefix(card)))],
+    14,
+    'candidate box prefixes',
+  );
+  const reviewCardIds = requireUniqueStrings(
+    pilotReview.scope?.card_ids,
+    120,
+    'controlled-pilot review card IDs',
+  );
+  const reviewBoxes = requireUniqueStrings(
+    pilotReview.scope?.box_prefixes,
+    14,
+    'controlled-pilot review box prefixes',
+  );
+  const modelReviews = requireUniqueStrings(
+    pilotReview.source_records?.model_reviews,
+    null,
+    'controlled-pilot model review records',
+  );
+  if (modelReviews.length === 0) {
+    fail('Controlled-pilot review must identify at least one current model review.');
   }
+  const coverageBoxes = requireArray(
+    pilotReview.coverage?.boxes,
+    'controlled-pilot review coverage boxes',
+  );
+  const coveredIds = [];
+  const coveredPrefixes = [];
+  for (const box of coverageBoxes) {
+    assertExactObjectKeys(
+      box,
+      ['box_prefix', 'card_ids', 'status'],
+      'controlled-pilot review coverage box',
+    );
+    if (box.status !== 'passed') {
+      fail(`Controlled-pilot box ${box.box_prefix} is not passed.`);
+    }
+    coveredPrefixes.push(box.box_prefix);
+    coveredIds.push(...requireUniqueStrings(
+      box.card_ids,
+      null,
+      `controlled-pilot box ${box.box_prefix} card IDs`,
+    ));
+  }
+  const quality = pilotReview.quality ?? {};
+  const authorization = pilotReview.authorization ?? {};
+  const boundary = pilotReview.authorization_boundary ?? {};
   if (
-    typeof record.legacy_adoption?.reviewer !== 'string' ||
-    record.legacy_adoption.reviewer.trim().length === 0 ||
-    /\b(?:agent|codex|bot|automation)\b/i.test(record.legacy_adoption.reviewer)
+    pilotReview.schema_version !== 'controlled-pilot-review.v2' ||
+    pilotReview.status !== 'ready_for_model_authorization' ||
+    pilotReview.pilot_id !== profile.pilot_id ||
+    pilotReview.content_version !== candidate.content_version ||
+    pilotReview.scope?.track !== 'cet4' ||
+    pilotReview.scope?.purpose !== 'controlled_pilot' ||
+    pilotReview.scope?.card_count !== 120 ||
+    pilotReview.source_records?.runtime_payload_sha256 !== candidateHash ||
+    pilotReview.source_records?.scoped_audit_sha256 !== auditHash ||
+    pilotReview.coverage?.reviewed_cards !== 120 ||
+    quality.corpus_fingerprint !== corpusFingerprint ||
+    quality.hard_blockers !== 0 ||
+    quality.content_risks !== 0 ||
+    quality.review_gaps !== 0 ||
+    quality.source_risks !== 120 ||
+    quality.synthetic_source_cards !== 120 ||
+    quality.source_disclosure !== 'synthetic_training_content_not_true_exam' ||
+    authorization.model_acceptance !== null ||
+    authorization.authorized_at !== null ||
+    authorization.artifact_path !== null ||
+    boundary.audio_qc_required_separately !== true ||
+    boundary.pilot_publication_required_separately !== true ||
+    boundary.external_facts_must_not_be_inferred !== true ||
+    boundary.gate_eligible !== false ||
+    approval.schema_version !== 'controlled-pilot-authorization.v2' ||
+    approval.pilot_id !== profile.pilot_id ||
+    approval.content_version !== candidate.content_version ||
+    approval.scope !== 'controlled_pilot_120' ||
+    approval.status !== 'authorized' ||
+    approval.review_sha256 !== reviewHash ||
+    approval.runtime_payload_sha256 !== candidateHash ||
+    approval.scoped_audit_sha256 !== auditHash ||
+    typeof approval.review !== 'string' ||
+    !isSafeRelativePath(approval.review)
   ) {
-    fail(`Audio QC record for ${assetId} requires an identified human reviewer.`);
+    fail('Candidate payload, model authorization, pilot review, audit, and receiver profile are not bound.');
+  }
+  normalizeEvidenceTimestamp(approval.authorized_at, 'authorization authorized_at');
+  for (const [left, right, label] of [
+    [candidateCardIds, reviewCardIds, 'candidate and review card scope'],
+    [candidateCardIds, approval.card_ids, 'candidate and authorization card scope'],
+    [candidateCardIds, audit.scope?.card_ids, 'candidate and audit card scope'],
+    [candidateCardIds, coveredIds, 'candidate and coverage card scope'],
+    [candidateBoxes, reviewBoxes, 'candidate and review box scope'],
+    [candidateBoxes, coveredPrefixes, 'candidate and coverage box scope'],
+  ]) {
+    if (!sameSet(left, right)) fail(`${label} does not match exactly.`);
+  }
+  const expectedInput = buildModelAcceptanceInputSha256({
+    decisionType: 'controlled_pilot_authorization',
+    scope: pilotReview.scope,
+    corpusFingerprint,
+    auditSha256: auditHash,
+    linkedReviewIdentity: {path: approval.review, sha256: reviewHash},
+    additionalBindings: {
+      pilot_id: approval.pilot_id,
+      content_version: approval.content_version,
+      runtime_payload_sha256: candidateHash,
+    },
+  });
+  try {
+    requireIndependentModelAcceptances(approval.model_acceptances, {
+      expectedInputSha256: expectedInput,
+      label: 'controlled-pilot authorization',
+      requiredCapabilities: ['content_authorization'],
+    });
+  } catch (error) {
+    fail(error.message);
+  }
+}
+
+function validateQcRecord(record, cardIds, assetByCardId, assetId) {
+  if (
+    record.schema_version !== 'model-owned-audio-qc.v2' ||
+    record.verdict?.formal_audio_ready !== true ||
+    record.verdict?.requires_regeneration !== false ||
+    record.approval_boundary?.current_model_owned_content_authorization_required !== true ||
+    record.approval_boundary?.external_facts_must_not_be_inferred !== true
+  ) {
+    fail(`Audio QC record for ${assetId} is not current model-owned evidence.`);
   }
   for (const check of REQUIRED_AUDIO_QC_CHECKS) {
     if (record.qa_checks?.[check] !== true) {
       fail(`Audio QC record for ${assetId} failed ${check}.`);
     }
   }
-  const perCard = new Set((record.per_card_qc ?? []).map(item => String(item?.card_id ?? '')));
-  if (cardIds.some(cardId => !perCard.has(cardId))) {
-    fail(`Audio QC record for ${assetId} does not cover all bound cards.`);
+  const scopeIds = requireUniqueStrings(
+    record.scope?.card_ids,
+    cardIds.length,
+    `audio QC ${assetId} scope card IDs`,
+  );
+  const transcripts = new Map(
+    requireArray(record.text_gate?.transcripts, `audio QC ${assetId} transcripts`)
+      .map(item => [String(item?.card_id ?? ''), item]),
+  );
+  const generated = new Map(
+    requireArray(record.generated_assets, `audio QC ${assetId} generated assets`)
+      .map(item => [String(item?.card_id ?? ''), item]),
+  );
+  const perCard = new Map(
+    requireArray(record.per_card_qc, `audio QC ${assetId} per-card records`)
+      .map(item => [String(item?.card_id ?? ''), item]),
+  );
+  if (
+    !sameSet(scopeIds, cardIds) ||
+    !sameSet([...transcripts.keys()], cardIds) ||
+    !sameSet([...generated.keys()], cardIds) ||
+    !sameSet([...perCard.keys()], cardIds)
+  ) {
+    fail(`Audio QC record for ${assetId} does not have exact card coverage.`);
+  }
+  const identities = [];
+  for (const cardId of cardIds) {
+    const asset = assetByCardId.get(cardId);
+    const transcript = transcripts.get(cardId);
+    const generatedAsset = generated.get(cardId);
+    const result = perCard.get(cardId);
+    const transcriptSha256 = createHash('sha256')
+      .update(String(transcript?.transcript ?? ''), 'utf8')
+      .digest('hex');
+    if (
+      !String(transcript?.transcript ?? '').trim() ||
+      generatedAsset?.transcript_sha256 !== transcriptSha256 ||
+      !asset ||
+      generatedAsset?.path !== asset.asset_path ||
+      generatedAsset?.file_sha256 !== asset.sha256.replace(/^sha256:/, '') ||
+      result?.asset_path !== asset.asset_path
+    ) {
+      fail(`Audio QC record for ${assetId} has unbound bytes or transcript for ${cardId}.`);
+    }
+    for (const check of [
+      'complete_asset_consumed',
+      'matches_text',
+      'target_signal',
+      'pronunciation',
+      'speed',
+      'rhythm',
+      'stress_pauses',
+      'no_noise',
+    ]) {
+      if (result?.[check] !== true) {
+        fail(`Audio QC record for ${assetId} failed per-card ${check} for ${cardId}.`);
+      }
+    }
+    identities.push({
+      card_id: cardId,
+      path: generatedAsset.path,
+      file_sha256: generatedAsset.file_sha256,
+      transcript_sha256: transcriptSha256,
+      per_card_qc: {
+        complete_asset_consumed: result.complete_asset_consumed,
+        matches_text: result.matches_text,
+        target_signal: result.target_signal,
+        pronunciation: result.pronunciation,
+        speed: result.speed,
+        rhythm: result.rhythm,
+        stress_pauses: result.stress_pauses,
+        no_noise: result.no_noise,
+      },
+    });
+  }
+  identities.sort((left, right) =>
+    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
+  const expectedInput = sha256Bytes(Buffer.from(JSON.stringify(identities)));
+  try {
+    requireIndependentModelAcceptances(record.model_acceptances, {
+      expectedInputSha256: expectedInput,
+      label: `audio QC ${assetId}`,
+      requiredCapabilities: ['audio_perceptual_review'],
+    });
+  } catch (error) {
+    fail(error.message);
   }
 }
 
@@ -320,6 +668,7 @@ function recordCoversAsset(record, cardId, asset) {
   const expectedHash = asset.sha256.replace(/^sha256:/, '');
   return (record.generated_assets ?? []).some(item =>
     String(item?.card_id ?? '') === cardId &&
+    item?.path === asset.asset_path &&
     item?.file_sha256 === expectedHash,
   );
 }
@@ -435,6 +784,57 @@ function requireIdentifier(value, label) {
 function requireArray(value, label) {
   if (!Array.isArray(value)) fail(`${label} must be an array.`);
   return value;
+}
+
+function requireUniqueStrings(value, expectedLength, label) {
+  const values = requireArray(value, label);
+  if (
+    (expectedLength !== null && values.length !== expectedLength) ||
+    values.some(item => typeof item !== 'string' || item.trim().length === 0) ||
+    new Set(values).size !== values.length
+  ) {
+    fail(`${label} must contain the exact unique non-empty strings.`);
+  }
+  return [...values];
+}
+
+function assertExactObjectKeys(value, expected, label) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    fail(`${label} must be an object.`);
+  }
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (
+    actual.length !== wanted.length ||
+    actual.some((key, index) => key !== wanted[index])
+  ) {
+    fail(`${label} keys are not exact.`);
+  }
+}
+
+function cardBoxPrefix(card) {
+  const value = card?.knowledge_ref?.box_prefix ?? card?.knowledge_ref ?? card?.card_box_code;
+  if (typeof value !== 'string' || !value.trim()) {
+    fail(`Card ${card?.card_id ?? '<unknown>'} has no box prefix.`);
+  }
+  return value;
+}
+
+function sameSet(left, right) {
+  return Array.isArray(left) &&
+    Array.isArray(right) &&
+    left.length === right.length &&
+    new Set(left).size === left.length &&
+    new Set(right).size === right.length &&
+    left.every(value => right.includes(value));
+}
+
+function isSafeRelativePath(value) {
+  return typeof value === 'string' &&
+    value.length > 0 &&
+    !value.startsWith('/') &&
+    !value.includes('\\') &&
+    !value.split('/').includes('..');
 }
 
 function copyBoundJson(source, target) {

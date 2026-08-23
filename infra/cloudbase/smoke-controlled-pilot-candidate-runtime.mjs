@@ -7,6 +7,10 @@ import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
+import {
+  buildModelAcceptanceInputSha256,
+  requireIndependentModelAcceptances,
+} from '../../scripts/lib/model_acceptance_contract.mjs';
 import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
 
 const require = createRequire(import.meta.url);
@@ -55,6 +59,7 @@ export async function smokeControlledPilotCandidateRuntime(options) {
     'controlled-pilot audit',
   );
   const candidateHash = sha256(candidateRecord.bytes);
+  const reviewHash = sha256(reviewRecord.bytes);
   const auditHash = sha256(auditRecord.bytes);
   assertEvidenceBindings({
     approval: approvalRecord.value,
@@ -63,6 +68,7 @@ export async function smokeControlledPilotCandidateRuntime(options) {
     candidate: candidateRecord.value,
     candidateHash,
     review: reviewRecord.value,
+    reviewHash,
   });
 
   const candidate = validateCardSourceCatalogMapping(
@@ -313,7 +319,7 @@ export async function smokeControlledPilotCandidateRuntime(options) {
     checked_at: checkedAt.toISOString(),
     content_version: candidate.content_version,
     candidate_payload_sha256: candidateHash,
-    approval_status: 'approved',
+    authorization_status: 'authorized',
     audit_status: 'passed_with_disclosed_synthetic_source_risk',
     card_count: runtimeSource.card_records.length,
     audio_asset_count: runtimeSource.assets.length,
@@ -324,32 +330,66 @@ export async function smokeControlledPilotCandidateRuntime(options) {
     resumed_card_id: resumed.selection.card_id,
     content_manifest_signature_verified: true,
     membership_v2_verified: true,
-    human_audio_qc_verified: false,
+    model_audio_qc_verified: false,
     persistent_receiver_verified: false,
-    real_device_verified: false,
+    automated_real_device_evidence_verified: false,
     gate_eligible: false,
   };
 }
 
-function assertEvidenceBindings({approval, audit, auditHash, candidate, candidateHash, review}) {
+function assertEvidenceBindings({
+  approval,
+  audit,
+  auditHash,
+  candidate,
+  candidateHash,
+  review,
+  reviewHash,
+}) {
   const candidateCardIds = candidate.card_records?.map(card => card.card_id);
+  const candidateBoxes = [
+    ...new Set(candidate.card_records?.map(card =>
+      String(card.knowledge_ref?.box_prefix ?? card.knowledge_ref ?? card.card_box_code))),
+  ];
+  const coveredCardIds = (review.coverage?.boxes ?? []).flatMap(box => box.card_ids ?? []);
+  const coveredBoxes = (review.coverage?.boxes ?? []).map(box => box.box_prefix);
   const hasUnexpectedAuditFinding = Object.entries(
     audit.scope_summary?.by_rule ?? {},
   ).some(([rule, count]) => rule !== 'synthetic_source' && count !== 0);
   if (
-    review.schema_version !== 'controlled-pilot-review.v1' ||
-    review.status !== 'user_approved' ||
+    review.schema_version !== 'controlled-pilot-review.v2' ||
+    review.status !== 'ready_for_model_authorization' ||
     review.pilot_id !== approval.pilot_id ||
     review.scope?.track !== TRACK ||
     review.scope?.purpose !== 'controlled_pilot' ||
     review.scope?.card_count !== EXPECTED_CARD_COUNT ||
-    review.approval?.approved_by_user !== true ||
     review.source_records?.runtime_payload_sha256 !== candidateHash ||
     review.source_records?.scoped_audit_sha256 !== auditHash ||
-    approval.schema_version !== 'controlled-pilot-approval.v1' ||
-    approval.status !== 'approved' ||
-    approval.approved_by_user !== true ||
+    !Array.isArray(review.source_records?.model_reviews) ||
+    review.source_records.model_reviews.length === 0 ||
+    review.coverage?.reviewed_cards !== EXPECTED_CARD_COUNT ||
+    review.coverage?.boxes?.length !== 14 ||
+    review.coverage.boxes.some(box => box?.status !== 'passed') ||
+    review.quality?.corpus_fingerprint !==
+      `sha256:${audit.corpus_fingerprint?.digest ?? ''}` ||
+    review.quality?.hard_blockers !== 0 ||
+    review.quality?.content_risks !== 0 ||
+    review.quality?.review_gaps !== 0 ||
+    review.quality?.source_risks !== EXPECTED_CARD_COUNT ||
+    review.quality?.synthetic_source_cards !== EXPECTED_CARD_COUNT ||
+    review.authorization?.model_acceptance !== null ||
+    review.authorization?.authorized_at !== null ||
+    review.authorization?.artifact_path !== null ||
+    review.authorization_boundary?.audio_qc_required_separately !== true ||
+    review.authorization_boundary?.pilot_publication_required_separately !== true ||
+    review.authorization_boundary?.external_facts_must_not_be_inferred !== true ||
+    review.authorization_boundary?.gate_eligible !== false ||
+    approval.schema_version !== 'controlled-pilot-authorization.v2' ||
+    approval.status !== 'authorized' ||
     approval.scope !== 'controlled_pilot_120' ||
+    approval.review_sha256 !== reviewHash ||
+    approval.runtime_payload_sha256 !== candidateHash ||
+    approval.scoped_audit_sha256 !== auditHash ||
     audit.audit_version !== 'card-make-quality-audit-v1' ||
     audit.report_type !== 'scoped_card_quality_audit' ||
     candidate.track !== TRACK ||
@@ -359,6 +399,9 @@ function assertEvidenceBindings({approval, audit, auditHash, candidate, candidat
     candidateCardIds.length !== EXPECTED_CARD_COUNT ||
     !sameStringSet(candidateCardIds, approval.card_ids) ||
     !sameStringSet(candidateCardIds, review.scope?.card_ids) ||
+    !sameStringSet(candidateCardIds, coveredCardIds) ||
+    !sameStringSet(candidateBoxes, review.scope?.box_prefixes) ||
+    !sameStringSet(candidateBoxes, coveredBoxes) ||
     !sameStringSet(candidateCardIds, audit.scope?.card_ids) ||
     audit.scope?.missing_card_ids?.length !== 0 ||
     audit.scope_summary?.card_count !== EXPECTED_CARD_COUNT ||
@@ -371,7 +414,28 @@ function assertEvidenceBindings({approval, audit, auditHash, candidate, candidat
     hasUnexpectedAuditFinding ||
     candidate.assets?.length !== EXPECTED_AUDIO_ASSET_COUNT
   ) {
-    fail('Candidate payload, approval, review, audit, or exact pilot scope is not bound.');
+    fail('Candidate payload, model authorization, review, audit, or exact pilot scope is not bound.');
+  }
+  const expectedInput = buildModelAcceptanceInputSha256({
+    decisionType: 'controlled_pilot_authorization',
+    scope: review.scope,
+    corpusFingerprint: review.quality.corpus_fingerprint,
+    auditSha256: auditHash,
+    linkedReviewIdentity: {path: approval.review, sha256: reviewHash},
+    additionalBindings: {
+      pilot_id: approval.pilot_id,
+      content_version: approval.content_version,
+      runtime_payload_sha256: candidateHash,
+    },
+  });
+  try {
+    requireIndependentModelAcceptances(approval.model_acceptances, {
+      expectedInputSha256: expectedInput,
+      label: 'controlled-pilot candidate authorization',
+      requiredCapabilities: ['content_authorization'],
+    });
+  } catch (error) {
+    fail(error.message);
   }
 }
 

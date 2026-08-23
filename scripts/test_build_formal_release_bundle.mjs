@@ -18,6 +18,7 @@ import {
   assembleFormalReleaseBundle,
   parseFormalReleaseBundleArguments,
 } from './build_formal_release_bundle.mjs';
+import {buildModelAcceptanceInputSha256} from './lib/model_acceptance_contract.mjs';
 
 const REQUIRED_QC_CHECKS = [
   'audio_matches_text',
@@ -42,8 +43,10 @@ test('formal bundle builder is dry-run by default and parses a retained parent',
     'profile.json',
     '--content-payload',
     'content.json',
-    '--approval',
-    'approval.json',
+    '--authorization',
+    'authorization.json',
+    '--model-review',
+    'model-review.json',
     '--audit',
     'audit.json',
     '--audio-qc-dir',
@@ -94,6 +97,11 @@ test('dry-run assembles exact 1180/108/301 scope, invokes core verifier, and ret
   assert.equal(report.execution.operator, null);
   assert.match(report.repository_commit, /^[0-9a-f]{40}$/);
   assert.match(report.profile_sha256, /^sha256:[0-9a-f]{64}$/);
+  assert.match(report.authorization_sha256, /^sha256:[0-9a-f]{64}$/);
+  assert.match(report.model_review_sha256, /^sha256:[0-9a-f]{64}$/);
+  assert.match(report.audit_sha256, /^sha256:[0-9a-f]{64}$/);
+  assert.match(report.audio_manifest_sha256, /^sha256:[0-9a-f]{64}$/);
+  assert.match(report.audio_qc_index_sha256, /^sha256:[0-9a-f]{64}$/);
   assert.equal(report.write_safety.ok, false);
   assert.equal(fs.existsSync(fixture.outputDirectory), false);
 });
@@ -131,7 +139,7 @@ test('apply keeps only a fully verified output directory', t => {
     {
       ...fixture.options,
       apply: true,
-      operator: 'github:receiver-operator',
+      operator: 'service:receiver-operator',
     },
     {
       ...safeBuildDependencies(),
@@ -142,7 +150,7 @@ test('apply keeps only a fully verified output directory', t => {
     },
   );
   assert.equal(report.bundle_directory, 'cet4-bundle-b');
-  assert.equal(report.execution.operator, 'github:receiver-operator');
+  assert.equal(report.execution.operator, 'service:receiver-operator');
   assert.equal(report.write_safety.ok, true);
   assert.equal(
     fs.existsSync(path.join(fixture.outputDirectory, 'release-bundle.json')),
@@ -171,7 +179,7 @@ test('apply requires operator, exact Node, clean main, and origin parity', t => 
         {
           ...fixture.options,
           apply: true,
-          operator: 'github:receiver-operator',
+          operator: 'service:receiver-operator',
         },
         {
           ...safeBuildDependencies(),
@@ -198,22 +206,24 @@ test('default core verifier accepts the fully assembled formal fixture', t => {
   assert.equal(report.bundle_directory, null);
 });
 
-test('builder rejects missing user approval, audit drift, missing human QC, and empty verification', t => {
+test('builder rejects stale model authorization, audit drift, missing model QC, and empty verification', t => {
   const fixture = createFixture();
   t.after(() => fs.rmSync(fixture.root, {recursive: true, force: true}));
-  const approval = readJson(fixture.approvalPath);
-  approval.approved_by_user = false;
-  writeJson(fixture.approvalPath, approval);
+  const authorization = readJson(fixture.authorizationPath);
+  authorization.model_acceptances[1] = structuredClone(
+    authorization.model_acceptances[0],
+  );
+  writeJson(fixture.authorizationPath, authorization);
   assert.throws(
     () => assembleFormalReleaseBundle(fixture.options, {verify: () => ({ok: true})}),
-    /Full-track approval is not bound/,
+    /run IDs must be distinct/,
   );
 
-  approval.approved_by_user = true;
-  writeJson(fixture.approvalPath, approval);
-  fs.appendFileSync(fixture.auditPath, ' ');
+  const drifted = createFixture();
+  t.after(() => fs.rmSync(drifted.root, {recursive: true, force: true}));
+  fs.appendFileSync(drifted.auditPath, ' ');
   assert.throws(
-    () => assembleFormalReleaseBundle(fixture.options, {verify: () => ({ok: true})}),
+    () => assembleFormalReleaseBundle(drifted.options, {verify: () => ({ok: true})}),
     /Quality audit bytes/,
   );
 
@@ -240,7 +250,8 @@ function createFixture() {
   const profilePath = path.join(root, 'profile.json');
   const contentPayloadPath = path.join(assetsDirectory, 'cet4.json');
   const auditPath = path.join(root, 'quality-audit.json');
-  const approvalPath = path.join(root, 'approval.json');
+  const authorizationPath = path.join(root, 'authorization.json');
+  const modelReviewPath = path.join(root, 'model-review.json');
   const outputDirectory = path.join(root, 'output', 'cet4-bundle-b');
   fs.mkdirSync(assetsDirectory, {recursive: true});
   fs.mkdirSync(audioQcDirectory, {recursive: true});
@@ -281,6 +292,7 @@ function createFixture() {
   });
   const assets = [];
   const generatedAssets = [];
+  const transcripts = [];
   const perCardQc = [];
   for (let index = 0; index < 301; index += 1) {
     const assetId = `a${String(index).padStart(3, '0')}`;
@@ -307,9 +319,30 @@ function createFixture() {
     fs.writeFileSync(target, bytes);
     generatedAssets.push({
       card_id: card.card_id,
+      path: assetPath,
       file_sha256: sha256.slice('sha256:'.length),
+      transcript_sha256: hash(card.audio.transcript),
     });
-    perCardQc.push({card_id: card.card_id, passed: true});
+    transcripts.push({
+      card_id: card.card_id,
+      transcript: card.audio.transcript,
+      target_signal: 'Formal target signal',
+      pronunciation_notes: 'Complete model-owned fixture review.',
+      text_review_result: 'passed',
+    });
+    perCardQc.push({
+      card_id: card.card_id,
+      asset_path: assetPath,
+      complete_asset_consumed: true,
+      matches_text: true,
+      target_signal: true,
+      pronunciation: true,
+      speed: true,
+      rhythm: true,
+      stress_pauses: true,
+      no_noise: true,
+      notes: 'Complete model-owned fixture review.',
+    });
   }
   const corpusDigest = hash('formal-corpus');
   const rawContent = {
@@ -319,10 +352,7 @@ function createFixture() {
     card_records: cards,
     release: null,
   };
-  const content = {
-    ...validateCardSourceForReleaseBundle(rawContent, 'cet4'),
-    corpus_fingerprint: `sha256:${corpusDigest}`,
-  };
+  const content = validateCardSourceForReleaseBundle(rawContent, 'cet4');
   writeJson(contentPayloadPath, content);
   const bySeverity = {
     hard_blocker: 0,
@@ -342,38 +372,164 @@ function createFixture() {
     },
   };
   writeJson(auditPath, audit);
-  const approval = {
-    approval_id: 'cet4-full-track-final-001',
-    approval_mode: 'full_track_final',
-    approved_by_user: true,
-    approved_at: '2026-08-23T09:00:00.000Z',
-    scope: {
-      track: 'cet4',
-      box_prefixes: boxIds,
-      card_ids: cards.map(card => card.card_id),
+  const auditSha256 = digest(fs.readFileSync(auditPath));
+  const cardIds = cards.map(card => card.card_id);
+  const reviewScope = {track: 'cet4', box_prefixes: boxIds, card_ids: cardIds};
+  const reviewInput = buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_review',
+    scope: reviewScope,
+    corpusFingerprint: `sha256:${corpusDigest}`,
+    auditSha256,
+  });
+  const modelReview = {
+    schema_version: 'model-owned-full-track-review.v2',
+    review_id: 'cet4-full-track-model-review-001',
+    created_at: '2026-08-23T08:30:00.000Z',
+    model_acceptances: [
+      modelAcceptance('formal-review-a', reviewInput, [
+        'card_semantic_review',
+        'source_provenance_review',
+      ]),
+      modelAcceptance('formal-review-b', reviewInput, [
+        'card_semantic_review',
+        'source_provenance_review',
+      ]),
+    ],
+    scope: reviewScope,
+    specs_read: ['spec/review-workflow.json', 'spec/content-quality-contract.json'],
+    coverage: {
+      expected_card_count: 1180,
+      reviewed_card_ids: cardIds,
+      analysis_reference_check: {
+        answer_matches_card: true,
+        choice_or_bank_references_match_source: true,
+        distractor_labels_match_explanations: true,
+      },
+      boxes: boxIds.map(boxPrefix => ({box_prefix: boxPrefix, status: 'pass'})),
     },
-    card_quality_audit: {
+    quality_audit: {
       report: 'audit/cet4-quality.json',
-      report_sha256: digest(fs.readFileSync(auditPath)),
+      report_sha256: auditSha256,
       corpus_fingerprint: corpusDigest,
       scope_has_no_hard_blockers: true,
       scope_summary: {
-        card_ids: cards.map(card => card.card_id),
-        card_count: cards.length,
+        card_ids: cardIds,
+        card_count: 1180,
+        issue_count: 1180,
         by_severity: bySeverity,
+        by_rule: {synthetic_source: 1180},
       },
     },
-  };
-  writeJson(approvalPath, approval);
-  writeJson(path.join(audioQcDirectory, 'cet4-all-audio.json'), {
-    verdict: {formal_audio_ready: true},
-    legacy_adoption: {
-      reviewer: 'external:human-audio-reviewer',
-      reviewed_at: '2026-08-23T08:00:00.000Z',
+    representative_cards: [cardIds[0]],
+    removed_cards: [],
+    batch_review: {
+      status: 'ready_for_model_authorization',
+      summary: 'Exact full-track fixture review passed.',
+      remaining_risks: [],
+      next_step: 'Create exact-scope model authorization.',
     },
+  };
+  writeJson(modelReviewPath, modelReview);
+  const modelReviewSha256 = digest(fs.readFileSync(modelReviewPath));
+  const authorizationScope = {
+    track: 'cet4',
+    purpose: 'formal_content',
+    box_prefixes: boxIds,
+    card_ids: cardIds,
+  };
+  const linkedModelReview = 'reviews/agent_self_review/cet4-full-model-review.json';
+  const authorizationInput = buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_content_authorization',
+    scope: authorizationScope,
+    corpusFingerprint: `sha256:${corpusDigest}`,
+    auditSha256,
+    linkedReviewIdentity: {
+      path: linkedModelReview,
+      sha256: modelReviewSha256,
+    },
+    additionalBindings: {
+      content_version: content.content_version,
+    },
+  });
+  const authorization = {
+    schema_version: 'model-owned-content-authorization.v2',
+    authorization_id: 'cet4-full-track-authorization-001',
+    authorization_mode: 'full_track',
+    content_version: content.content_version,
+    authorized_at: '2026-08-23T09:00:00.000Z',
+    model_acceptances: [
+      modelAcceptance('formal-authorization-a', authorizationInput, [
+        'content_authorization',
+      ]),
+      modelAcceptance('formal-authorization-b', authorizationInput, [
+        'content_authorization',
+      ]),
+    ],
+    scope: authorizationScope,
+    summary: 'Exact full-track model authorization fixture.',
+    representative_cards: [cardIds[0]],
+    card_quality_audit: {
+      report: 'audit/cet4-quality.json',
+      report_sha256: auditSha256,
+      corpus_fingerprint: corpusDigest,
+      scope_has_no_hard_blockers: true,
+      scope_summary: {
+        card_ids: cardIds,
+        card_count: cards.length,
+        issue_count: 1180,
+        by_severity: bySeverity,
+        by_rule: {synthetic_source: 1180},
+      },
+    },
+    validation: {
+      model_review: linkedModelReview,
+      model_review_sha256: modelReviewSha256,
+    },
+    authorization_limits: ['Exact immutable fixture scope only.'],
+  };
+  writeJson(authorizationPath, authorization);
+  const perCardById = new Map(perCardQc.map(item => [item.card_id, item]));
+  const audioInput = digest(Buffer.from(JSON.stringify(generatedAssets.map(asset => {
+    const result = perCardById.get(asset.card_id);
+    return {
+      card_id: asset.card_id,
+      path: asset.path,
+      file_sha256: asset.file_sha256,
+      transcript_sha256: asset.transcript_sha256,
+      per_card_qc: {
+        complete_asset_consumed: result.complete_asset_consumed,
+        matches_text: result.matches_text,
+        target_signal: result.target_signal,
+        pronunciation: result.pronunciation,
+        speed: result.speed,
+        rhythm: result.rhythm,
+        stress_pauses: result.stress_pauses,
+        no_noise: result.no_noise,
+      },
+    };
+  }).sort((left, right) =>
+    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path)))));
+  writeJson(path.join(audioQcDirectory, 'cet4-all-audio.json'), {
+    schema_version: 'model-owned-audio-qc.v2',
+    model_acceptances: [
+      modelAcceptance('formal-audio-a', audioInput, ['audio_perceptual_review']),
+      modelAcceptance('formal-audio-b', audioInput, ['audio_perceptual_review']),
+    ],
+    scope: {card_ids: generatedAssets.map(asset => asset.card_id)},
+    text_gate: {transcripts},
     qa_checks: Object.fromEntries(REQUIRED_QC_CHECKS.map(check => [check, true])),
     generated_assets: generatedAssets,
     per_card_qc: perCardQc,
+    verdict: {
+      candidate_audio_ok: true,
+      formal_audio_ready: true,
+      requires_regeneration: false,
+      reason: 'Two exact-input model audio reviews passed.',
+    },
+    approval_boundary: {
+      current_model_owned_content_authorization_required: true,
+      external_facts_must_not_be_inferred: true,
+    },
   });
   writeJson(profilePath, {
     schema_version: 'delivery-profile.v1',
@@ -391,13 +547,15 @@ function createFixture() {
     profilePath,
     contentPayloadPath,
     auditPath,
-    approvalPath,
+    authorizationPath,
+    modelReviewPath,
     audioQcDirectory,
     outputDirectory,
     options: {
       profilePath,
       contentPayloadPath,
-      approvalPath,
+      authorizationPath,
+      modelReviewPath,
       auditPath,
       audioQcDirectory,
       assetRoot: assetsDirectory,
@@ -412,6 +570,26 @@ function createFixture() {
   };
 }
 
+function modelAcceptance(runId, inputSha256, capabilities) {
+  return {
+    schema_version: 'model-acceptance.v2',
+    actor: {
+      kind: 'model_harness',
+      agent: `agent:${runId}`,
+      model: 'gpt-5.6-sol',
+      run_id: runId,
+    },
+    evidence: {
+      reviewed_at: '2026-08-23T08:00:00.000Z',
+      input_sha256: inputSha256,
+      capabilities,
+      summary: `Independent ${runId} fixture pass.`,
+      findings: [],
+    },
+    decision: 'accepted',
+  };
+}
+
 function verifyStagingBundle(bundlePath) {
   const root = path.dirname(bundlePath);
   const bundle = readJson(bundlePath);
@@ -422,6 +600,10 @@ function verifyStagingBundle(bundlePath) {
   assert.equal(bundle.parent_release_id, 'cet4-release-a');
   assert.equal(fs.existsSync(path.join(root, bundle.content.payload_path)), true);
   assert.equal(fs.existsSync(path.join(root, bundle.approval.record_path)), true);
+  assert.equal(
+    fs.existsSync(path.join(root, bundle.approval.model_review_path)),
+    true,
+  );
   assert.equal(fs.existsSync(path.join(root, bundle.audit.report_path)), true);
   assert.equal(fs.existsSync(path.join(root, bundle.audio.manifest_path)), true);
   assert.equal(fs.existsSync(path.join(root, bundle.audio.qc_index_path)), true);

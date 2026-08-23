@@ -759,26 +759,6 @@
       "status": "active"
     },
     {
-      "path": "docs/agent-runs/README.md",
-      "authority": "agent_run_record_guidance",
-      "audience": [
-        "agent",
-        "engineer",
-        "reviewer"
-      ],
-      "load_when": [
-        "agent_run_record_task",
-        "pr_bound_governance_or_harness_task",
-        "context_handoff_task"
-      ],
-      "depends_on": [
-        "spec/agent-run-record.json",
-        "spec/repo-delivery-contract.json",
-        "spec/agent-harness.json"
-      ],
-      "status": "active"
-    },
-    {
       "path": "spec/cet4-closed-beta-readiness.json",
       "authority": "cet4_closed_beta_readiness_owner",
       "audience": [
@@ -843,29 +823,13 @@
         "spec/runtime-boundaries.json"
       ],
       "status": "active"
-    },
-    {
-      "path": "docs/agent-runs/TEMPLATE.md",
-      "authority": "agent_run_record_template",
-      "audience": [
-        "agent",
-        "engineer",
-        "reviewer"
-      ],
-      "load_when": [
-        "agent_run_record_task",
-        "context_handoff_task"
-      ],
-      "depends_on": [
-        "spec/agent-run-record.json"
-      ],
-      "status": "active"
     }
   ],
   "active_specs": [
     "spec/doc-manifest.json",
     "spec/product-core.json",
     "spec/requirement-memory.json",
+    "spec/machine-acceptance.json",
     "spec/authority-map.json",
     "spec/account-sync-contract.json",
     "spec/platform-contract.json",
