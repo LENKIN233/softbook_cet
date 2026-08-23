@@ -135,3 +135,30 @@ favorite and sleep actions; the original snapshot is never sent.
 
 Both `GET /v1/space/state-sync` and `POST /v1/space/state-sync` return 410 in
 every runtime. Retained legacy documents remain read-only migration input.
+
+## Receiver Space sync drill report
+
+`infra/cloudbase/run-space-sync-drill.mjs` is dry-run by default. Apply requires
+Node 22.13.0, clean local `main` exactly equal to `origin/main`, a receiver
+closed-beta delivery profile, an identified operator and two distinct active
+session tokens supplied only through process environment. The tokens and phone
+identity never enter the report.
+
+On one exact CET4 card, client A applies a favorite action, client B observes
+the new canonical revision, exact replay returns `duplicate`, and a conflicting
+reuse returns `space_action_id_conflict` without advancing state. Client B then
+applies sleep while client A proves favorite and sleep merge independently.
+New favorite and sleep actions finally restore the initial projection. Every
+new ledger must advance the Space component revision exactly once; duplicate
+and rejected conflict must not. A post-initial failure triggers best-effort new
+restore actions and a bootstrap verification, but never produces a passed
+report.
+
+The privacy-safe `space-sync-drill-report.v1` binds repository commit, raw
+profile SHA-256, expected backend deployment identity, content version, a hash
+of the card ID, action hashes, revision sequence, client observations, write
+safety and execution. It remains `gate_eligible=false`; repository mocks or the
+raw report alone are not `space-sync-test` evidence, receiver deployment proof
+or launch readiness. A later formal wrapper must pair it with exact production
+deployment evidence rather than treating the locally derived expected identity
+as remote inspection.

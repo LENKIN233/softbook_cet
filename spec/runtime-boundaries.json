@@ -170,6 +170,7 @@
     "legacy_queue_migration": "valid_sync_space_state_cards_become_deterministic_favorite_and_sleep_actions_original_snapshots_are_never_replayed",
     "legacy_snapshot_routes": "get_and_post_v1_space_state_sync_always_disabled",
     "scheduler_boundary": "sleep_actions_change_eligibility_only_after_canonical_acknowledgement_and_bootstrap_session_reconciliation",
+    "receiver_drill_report": "space_sync_drill_report_v1_binds_repository_commit_profile_hash_expected_backend_deployment_content_version_cross_client_apply_duplicate_conflict_independent_dimension_revision_and_cleanup_observations_without_tokens_phone_or_raw_card_id_and_remains_gate_ineligible",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"
   },
