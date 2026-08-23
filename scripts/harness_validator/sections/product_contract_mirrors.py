@@ -2837,6 +2837,11 @@ def launch_evidence_contract_findings(
             "rollback_requires_verified_true_and_retention_status_retained_before_pointer_activation",
         ),
         (
+            "release backend deployment identity",
+            ("release_delivery_runtime", "backend_deployment_identity"),
+            "receiver_delivery_report_v2_binds_one_deterministic_commit_profile_environment_and_function_topology_fingerprint_in_the_API_runtime_then_rereads_the_remote_function_configuration_after_deploy_and_during_verify_without_exposing_secret_values",
+        ),
+        (
             "release repository simulation status",
             (
                 "release_delivery_runtime",

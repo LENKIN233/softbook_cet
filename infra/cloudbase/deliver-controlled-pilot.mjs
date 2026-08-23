@@ -9,10 +9,12 @@ import {
   createCloudBaseReceiverAdapter,
 } from './cloudbase-receiver-adapter.mjs';
 import {
+  buildBackendDeploymentId,
   buildReceiverRuntimeEnvironment,
   createProcessRunner,
   deployReceiverFunction,
   inspectReceiver,
+  inspectApiFunction,
   inspectReceiverSecrets,
   inspectWriteSafety,
   provisionCollections,
@@ -90,13 +92,18 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
     const processRunner = dependencies.processRunner ?? createProcessRunner();
     const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
     const repository = dependencies.repository ?? readRepositoryState();
+    const backendDeploymentId = buildBackendDeploymentId({
+      profile,
+      repositoryCommit: repository.head,
+    });
     const preflight = await inspectReceiver({profile, runner});
     const secretInspection = inspectReceiverSecrets(profile, env);
     const writeSafety = inspectWriteSafety({nodeVersion, repository});
     const base = {
-      schema_version: 'controlled-pilot-receiver-delivery-report.v1',
+      schema_version: 'controlled-pilot-receiver-delivery-report.v2',
       operation: options.command,
       applied: options.apply,
+      backend_deployment_id: backendDeploymentId,
       gate_eligible: false,
       pilot_id: profile.pilot_id,
       profile: {
@@ -158,6 +165,7 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
         fail('deploy requires the complete collection catalog.');
       }
       const deployed = await deployReceiverFunction({
+        backendDeploymentId,
         description: 'Softbook CET receiver-owned controlled pilot runtime',
         env,
         processRunner,
@@ -208,6 +216,11 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
       profile.api_base_url,
       dependencies.fetchImpl ?? globalThis.fetch,
     );
+    const backendDeployment = await inspectApiFunction({
+      envId: profile.environment_id,
+      expectedDeploymentId: backendDeploymentId,
+      runner,
+    });
     const dataCounts = await readUserDataCounts({profile, runner});
     return {
       ...base,
@@ -217,9 +230,12 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
         release_id: active.release.release_id,
       },
       api_route: endpoint,
+      backend_deployment: backendDeployment.public,
       release: publicVerifiedPilot(verified),
       status:
-        preflight.catalog.required_collections_present && endpoint.ok
+        preflight.catalog.required_collections_present &&
+        backendDeployment.ok &&
+        endpoint.ok
           ? 'passed'
           : 'blocked',
       user_data_observation: dataCounts,

@@ -382,6 +382,13 @@ node infra/cloudbase/deliver-release.mjs rollback \
   --release cet4-beta-previous
 ```
 
+Every command reports `receiver-delivery-report.v2`. Its
+`backend_deployment_id` deterministically binds the exact clean `main` commit,
+receiver profile/environment and fixed API/worker topology. Deploy injects this
+non-secret ID into `softbook-api`; deploy and verify both reread the remote
+function configuration and fail on ID, handler, runtime, timeout or fixed-code
+drift. Public reports expose variable names only, never values.
+
 Add `--apply` only to `provision`, `deploy`, `publish`, or `rollback` after
 reviewing the plan. Apply requires Node 22.13.0 and clean exact `main`.
 Receiver/CI secrets are never stored in `delivery-profile.v1`:

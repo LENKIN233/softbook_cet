@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import {createPrivateKey} from 'node:crypto';
+import {createHash, createPrivateKey} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {
   chmodSync,
@@ -30,6 +30,7 @@ import {
   createCloudBaseCommandRunner,
   createCloudBaseReceiverAdapter,
 } from './cloudbase-receiver-adapter.mjs';
+import {validateControlledPilotProfile} from './controlled-pilot-v1.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
@@ -38,6 +39,7 @@ const ACCOUNT_DELETION_WORKER_NAME = 'softbook-account-deletion-worker';
 const ACCOUNT_DELETION_TRIGGER_NAME = 'account-deletion-every-minute';
 const ACCOUNT_DELETION_TRIGGER_CRON = '0 */1 * * * * *';
 const FUNCTION_RUNTIME = 'Nodejs20.19';
+const BACKEND_DEPLOYMENT_ID_PREFIX = 'backend-deployment:sha256:';
 const COMMANDS = new Set(['preflight', 'provision', 'deploy', 'publish', 'verify', 'rollback']);
 const COMMON_SECRET_ENV_NAMES = Object.freeze([
   'SOFTBOOK_AUTH_INDEX_SECRET',
@@ -138,13 +140,18 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
   const processRunner = dependencies.processRunner ?? createProcessRunner();
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
   const repository = dependencies.repository ?? readRepositoryState();
+  const backendDeploymentId = buildBackendDeploymentId({
+    profile,
+    repositoryCommit: repository.head,
+  });
   const preflight = await inspectReceiver({profile, runner});
   const secretInspection = inspectReceiverSecrets(profile, env);
   const writeSafety = inspectWriteSafety({nodeVersion, repository});
   const base = {
-    schema_version: 'receiver-delivery-report.v1',
+    schema_version: 'receiver-delivery-report.v2',
     operation: options.command,
     applied: options.apply,
+    backend_deployment_id: backendDeploymentId,
     profile: publicProfile(profile),
     preflight,
     receiver_secrets: secretInspection.public,
@@ -197,6 +204,7 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
       throw new ReleaseDeliveryError('deploy requires the complete collection catalog.');
     }
     const deployed = await deployReceiverFunction({
+      backendDeploymentId,
       env,
       processRunner,
       profile,
@@ -243,6 +251,11 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
       profile.api_base_url,
       dependencies.fetchImpl ?? globalThis.fetch,
     );
+    const backendDeployment = await inspectApiFunction({
+      envId: profile.environment_id,
+      expectedDeploymentId: backendDeploymentId,
+      runner,
+    });
     return {
       ...base,
       active_release: {
@@ -250,9 +263,13 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
         release_id: active.release.release_id,
       },
       api_route: endpoint,
+      backend_deployment: backendDeployment.public,
       release: publicVerifiedBundle(verified),
       status:
-        preflight.catalog.required_collections_present && dataCounts.total === 0 && endpoint.ok
+        preflight.catalog.required_collections_present &&
+        backendDeployment.ok &&
+        dataCounts.total === 0 &&
+        endpoint.ok
           ? 'passed'
           : 'blocked',
       user_data_import_check: dataCounts,
@@ -394,6 +411,7 @@ async function waitForCompleteCatalog(input) {
 }
 
 export async function deployReceiverFunction({
+  backendDeploymentId,
   description = 'Softbook CET receiver-owned closed beta runtime',
   env,
   processRunner,
@@ -401,6 +419,7 @@ export async function deployReceiverFunction({
   runner,
   runtimeMode = 'production',
 }) {
+  requireBackendDeploymentId(backendDeploymentId);
   const temporaryDirectory = mkdtempSync(join(tmpdir(), 'softbook-receiver-deploy-'));
   const artifactDirectory = join(temporaryDirectory, 'function');
   const configPath = join(temporaryDirectory, 'cloudbaserc.json');
@@ -432,7 +451,10 @@ export async function deployReceiverFunction({
       filter: path => !path.split(sep).includes('test'),
       recursive: true,
     });
-    const runtime = buildReceiverRuntimeEnvironment(profile, env, {runtimeMode});
+    const runtime = buildReceiverRuntimeEnvironment(profile, env, {
+      backendDeploymentId,
+      runtimeMode,
+    });
     const functions = [
       {
         description,
@@ -523,7 +545,19 @@ export async function deployReceiverFunction({
       envId: profile.environment_id,
       runner,
     });
+    const apiFunction = await inspectApiFunction({
+      envId: profile.environment_id,
+      expectedDeploymentId: backendDeploymentId,
+      runner,
+    });
+    if (!apiFunction.ok) {
+      throw new ReleaseDeliveryError(
+        `receiver API function verification failed: ${apiFunction.errors.join('; ')}`,
+      );
+    }
     return {
+      api_function: apiFunction.public,
+      backend_deployment_id: backendDeploymentId,
       deletion_worker: deletionWorker,
       deletion_worker_runtime_variable_names: [],
       deletion_worker_trigger: ACCOUNT_DELETION_TRIGGER_NAME,
@@ -691,16 +725,18 @@ function normalizeAccountDeletionTriggerConfig(value) {
 export function buildReceiverRuntimeEnvironment(
   profile,
   env,
-  {runtimeMode = 'production'} = {},
+  {backendDeploymentId, runtimeMode = 'production'} = {},
 ) {
   if (runtimeMode !== 'production' && runtimeMode !== 'controlled_pilot') {
     throw new ReleaseDeliveryError('receiver runtime mode is invalid.');
   }
+  requireBackendDeploymentId(backendDeploymentId);
   const inspection = inspectReceiverSecrets(profile, env);
   if (!inspection.ok) {
     throw new ReleaseDeliveryError(inspection.errors.join('; '));
   }
   const runtime = {
+    SOFTBOOK_BACKEND_DEPLOYMENT_ID: backendDeploymentId,
     SOFTBOOK_AUTH_INDEX_SECRET: env.SOFTBOOK_AUTH_INDEX_SECRET,
     SOFTBOOK_AUTH_TOKEN_SECRET: env.SOFTBOOK_AUTH_TOKEN_SECRET,
     SOFTBOOK_CONTENT_MANIFEST_KEY_ID: profile.signing_key_id,
@@ -739,6 +775,103 @@ export function buildReceiverRuntimeEnvironment(
       env.SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS,
     SOFTBOOK_SMS_TENCENT_TIMEOUT_MS: env.SOFTBOOK_SMS_TENCENT_TIMEOUT_MS || '5000',
   };
+}
+
+export function buildBackendDeploymentId({profile, repositoryCommit} = {}) {
+  if (!/^[0-9a-f]{40}$/.test(repositoryCommit ?? '')) {
+    throw new ReleaseDeliveryError('repository commit must be a full lowercase SHA-1.');
+  }
+  const normalizedProfile =
+    profile?.schema_version === 'controlled-pilot-profile.v1'
+      ? validateControlledPilotProfile(profile)
+      : validateDeliveryProfile(profile);
+  const identity = JSON.stringify({
+    functions: [
+      {
+        handler: 'index.main',
+        name: FUNCTION_NAME,
+        runtime: FUNCTION_RUNTIME,
+        timeout: 10,
+      },
+      {
+        handler: 'index.accountDeletionWorkerMain',
+        name: ACCOUNT_DELETION_WORKER_NAME,
+        runtime: FUNCTION_RUNTIME,
+        timeout: 60,
+        trigger: ACCOUNT_DELETION_TRIGGER_CRON,
+      },
+    ],
+    profile: normalizedProfile,
+    repository_commit: repositoryCommit,
+    runtime: FUNCTION_RUNTIME,
+    schema_version: 'backend-deployment-identity.v1',
+  });
+  return `${BACKEND_DEPLOYMENT_ID_PREFIX}${createHash('sha256')
+    .update(identity)
+    .digest('hex')}`;
+}
+
+export async function inspectApiFunction({
+  envId,
+  expectedDeploymentId,
+  runner,
+}) {
+  requireBackendDeploymentId(expectedDeploymentId);
+  const payload = parseTcbJson(
+    await runner.run(
+      ['-e', envId, 'fn', 'detail', FUNCTION_NAME, '--json'],
+      {label: 'inspect receiver API function'},
+    ),
+  );
+  const data = payload?.data ?? payload;
+  const errors = [];
+  if (data?.FunctionName !== FUNCTION_NAME) errors.push('function name mismatch');
+  if (data?.Handler !== 'index.main') errors.push('handler mismatch');
+  if (data?.Runtime !== FUNCTION_RUNTIME) errors.push('runtime mismatch');
+  if (Number(data?.Timeout) !== 10) errors.push('timeout mismatch');
+  const variables = data?.Environment?.Variables;
+  if (!Array.isArray(variables)) errors.push('environment variables are unavailable');
+  const entries = Array.isArray(variables)
+    ? variables.filter(
+        variable =>
+          typeof variable?.Key === 'string' && typeof variable?.Value === 'string',
+      )
+    : [];
+  const variableNames = entries.map(variable => variable.Key).sort();
+  const deploymentValues = entries
+    .filter(variable => variable.Key === 'SOFTBOOK_BACKEND_DEPLOYMENT_ID')
+    .map(variable => variable.Value);
+  if (
+    deploymentValues.length !== 1 ||
+    deploymentValues[0] !== expectedDeploymentId
+  ) {
+    errors.push('backend deployment ID mismatch');
+  }
+  if (variableNames.includes('SOFTBOOK_SMS_DEV_CODE')) {
+    errors.push('fixed SMS code must not be deployed');
+  }
+  return {
+    errors,
+    ok: errors.length === 0,
+    public: {
+      backend_deployment_id:
+        deploymentValues.length === 1 ? deploymentValues[0] : null,
+      function_name: data?.FunctionName ?? null,
+      handler: data?.Handler ?? null,
+      runtime: data?.Runtime ?? null,
+      timeout: Number.isFinite(Number(data?.Timeout))
+        ? Number(data.Timeout)
+        : null,
+      variable_names: variableNames,
+    },
+  };
+}
+
+function requireBackendDeploymentId(value) {
+  if (!/^backend-deployment:sha256:[0-9a-f]{64}$/.test(value ?? '')) {
+    throw new ReleaseDeliveryError('backend deployment ID is invalid.');
+  }
+  return value;
 }
 
 export function inspectReceiverSecrets(profile, env) {

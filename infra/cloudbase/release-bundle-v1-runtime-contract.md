@@ -95,6 +95,14 @@ verification is true and its `retention_status` is exactly `retained`.
 Verification alone is not enough to make an arbitrary staged version a
 rollback target.
 
+Every receiver command emits `receiver-delivery-report.v2` with a deterministic
+backend deployment ID derived from the exact repository commit, receiver
+profile/environment and fixed function topology. Deployment injects that
+non-secret ID into `softbook-api`; after deploy and again during formal verify,
+the command rereads the remote function configuration and requires the exact
+ID, handler, runtime and timeout while publishing only variable names, never
+secret values. A dry-run or local report cannot satisfy this remote reread.
+
 The concrete receiver adapter stores immutable staged versions in
 `softbook_card_source_versions`. It re-downloads every uploaded private audio
 object and verifies byte length and SHA-256 before staging, binds the staged
@@ -121,6 +129,9 @@ existing trigger without duplicate creation), requires its custom environment
 variable set to remain empty so API auth/SMS/signing secrets are not injected,
 uses a mode-0600 temporary
 CloudBase config, and removes it after use. The
+remote `softbook-api` configuration must also contain the exact deterministic
+backend deployment ID for that clean `main` commit and receiver profile.
+`verify` fails closed when the remote ID or function shape drifts. The
 production runtime excludes `SOFTBOOK_SMS_DEV_CODE` and requires the receiver
 to select either the credentialed HTTPS webhook or direct Tencent Cloud SMS
 adapter, plus separate auth, SMS, and Ed25519 signing secrets. Tencent Cloud

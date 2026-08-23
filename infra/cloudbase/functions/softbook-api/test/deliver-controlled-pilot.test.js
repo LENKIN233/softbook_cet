@@ -9,6 +9,7 @@ const {after, before, test} = require('node:test');
 let cli;
 let deploymentSafety;
 const temporaryDirectories = [];
+const TEST_COMMIT = 'b'.repeat(40);
 
 before(async () => {
   cli = await import(
@@ -72,6 +73,8 @@ test('controlled-pilot preflight is read-only and always reports gate ineligibil
   );
 
   assert.equal(report.status, 'passed');
+  assert.equal(report.schema_version, 'controlled-pilot-receiver-delivery-report.v2');
+  assert.match(report.backend_deployment_id, /^backend-deployment:sha256:[0-9a-f]{64}$/);
   assert.equal(report.gate_eligible, false);
   assert.equal(report.writes_performed, false);
   assert.equal(report.profile.runtime_mode, 'controlled_pilot');
@@ -105,6 +108,11 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
   );
 
   assert.equal(report.status, 'passed');
+  assert.equal(report.deployed.backend_deployment_id, report.backend_deployment_id);
+  assert.equal(
+    report.deployed.api_function.backend_deployment_id,
+    report.backend_deployment_id,
+  );
   assert.deepEqual(report.deployed.function_names, [
     'softbook-api',
     'softbook-account-deletion-worker',
@@ -151,6 +159,7 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
     ],
   );
   assert.equal(runtime.SOFTBOOK_RUNTIME_MODE, 'controlled_pilot');
+  assert.equal(runtime.SOFTBOOK_BACKEND_DEPLOYMENT_ID, report.backend_deployment_id);
   assert.equal(runtime.SOFTBOOK_PILOT_ID, 'cet4-pilot-2026');
   assert.equal(runtime.SOFTBOOK_PILOT_EXPIRES_AT, '2026-09-10T00:00:00.000Z');
   assert.equal(
@@ -180,8 +189,8 @@ test('controlled-pilot apply remains exact-main only', async () => {
           repository: {
             branch: 'infra/unsafe-topic',
             dirty: false,
-            head: 'abc',
-            originMain: 'abc',
+            head: TEST_COMMIT,
+            originMain: TEST_COMMIT,
           },
         },
       ),
@@ -196,8 +205,8 @@ function safeDependencies(runner) {
     repository: {
       branch: 'main',
       dirty: false,
-      head: 'abc',
-      originMain: 'abc',
+      head: TEST_COMMIT,
+      originMain: TEST_COMMIT,
     },
     runner,
   };
@@ -215,7 +224,11 @@ function createCloudRunner(initialCollections) {
     },
     async run(args, options = {}) {
       calls.push(args);
-      if (args.includes('fn') && args.includes('detail')) {
+      if (
+        args.includes('fn') &&
+        args.includes('detail') &&
+        args.includes('softbook-account-deletion-worker')
+      ) {
         return JSON.stringify({
           data: {
             FunctionName: 'softbook-account-deletion-worker',
@@ -232,6 +245,24 @@ function createCloudRunner(initialCollections) {
                   },
                 ]
               : [],
+          },
+        });
+      }
+      if (
+        args.includes('fn') &&
+        args.includes('detail') &&
+        args.includes('softbook-api')
+      ) {
+        const runtime = deployedConfig?.functions?.[0]?.envVariables ?? {};
+        return JSON.stringify({
+          data: {
+            FunctionName: 'softbook-api',
+            Handler: 'index.main',
+            Runtime: 'Nodejs20.19',
+            Timeout: 10,
+            Environment: {
+              Variables: Object.entries(runtime).map(([Key, Value]) => ({Key, Value})),
+            },
           },
         });
       }
