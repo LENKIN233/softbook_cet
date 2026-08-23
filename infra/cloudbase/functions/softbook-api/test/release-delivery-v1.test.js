@@ -15,6 +15,7 @@ const {after, before, test} = require('node:test');
 let delivery;
 let catalogModule;
 let verifyCli;
+let modelContract;
 const temporaryDirectories = [];
 
 before(async () => {
@@ -26,6 +27,9 @@ before(async () => {
   );
   verifyCli = await import(
     pathToFileURL(resolve(__dirname, '../../../verify-release-bundle.mjs'))
+  );
+  modelContract = await import(
+    pathToFileURL(resolve(__dirname, '../../../../../scripts/lib/model_acceptance_contract.mjs'))
   );
 });
 
@@ -219,6 +223,116 @@ test('read-only verifier CLI reports publisher readiness without writing CloudBa
   assert.equal(result.cloudbase_writes_performed, false);
   assert.equal(result.card_count, 1180);
   assert.equal(result.audio_qc_count, 301);
+});
+
+test('legacy user approval cannot authorize a formal release bundle', () => {
+  const fixture = createValidBundleFixture();
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  const approvalPath = join(fixture.directory, bundle.approval.record_path);
+  const current = JSON.parse(readFileSync(approvalPath, 'utf8'));
+  const legacy = {
+    approval_id: current.authorization_id,
+    approval_mode: 'full_track_final',
+    approved_by_user: true,
+    approved_at: current.authorized_at,
+    scope: current.scope,
+    summary: current.summary,
+    representative_cards: current.representative_cards,
+    card_quality_audit: current.card_quality_audit,
+    validation: current.validation,
+    approval_limits: [],
+  };
+  writeFileSync(approvalPath, `${JSON.stringify(legacy, null, 2)}\n`);
+  bundle.approval.record_sha256 = hash(readFileSync(approvalPath));
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /model content authorization/,
+  );
+});
+
+test('formal content authorization cannot reuse a corpus-only acceptance', () => {
+  const fixture = createValidBundleFixture();
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  const approvalPath = join(fixture.directory, bundle.approval.record_path);
+  const approval = JSON.parse(readFileSync(approvalPath, 'utf8'));
+  for (const acceptance of approval.model_acceptances) {
+    acceptance.evidence.input_sha256 = bundle.content.corpus_fingerprint;
+  }
+  writeFileSync(approvalPath, `${JSON.stringify(approval, null, 2)}\n`);
+  bundle.approval.record_sha256 = hash(readFileSync(approvalPath));
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /exact expected input/,
+  );
+});
+
+test('formal model review acceptance cannot reuse another input', () => {
+  const fixture = createValidBundleFixture();
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  const reviewPath = join(fixture.directory, bundle.approval.model_review_path);
+  const review = JSON.parse(readFileSync(reviewPath, 'utf8'));
+  review.model_acceptances[0].evidence.input_sha256 = `sha256:${'9'.repeat(64)}`;
+  writeFileSync(reviewPath, `${JSON.stringify(review, null, 2)}\n`);
+  const reviewHash = hash(readFileSync(reviewPath));
+  bundle.approval.model_review_sha256 = reviewHash;
+
+  const approvalPath = join(fixture.directory, bundle.approval.record_path);
+  const approval = JSON.parse(readFileSync(approvalPath, 'utf8'));
+  approval.validation.model_review_sha256 = reviewHash;
+  const authorizationInput = modelContract.buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_content_authorization',
+    scope: approval.scope,
+    corpusFingerprint: bundle.content.corpus_fingerprint,
+    auditSha256: bundle.audit.report_sha256,
+    linkedReviewIdentity: {
+      path: approval.validation.model_review,
+      sha256: reviewHash,
+    },
+  });
+  for (const acceptance of approval.model_acceptances) {
+    acceptance.evidence.input_sha256 = authorizationInput;
+  }
+  writeFileSync(approvalPath, `${JSON.stringify(approval, null, 2)}\n`);
+  bundle.approval.record_sha256 = hash(readFileSync(approvalPath));
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /formal full-track model review.*exact expected input/,
+  );
+});
+
+test('model audio QC cannot reuse acceptance from another input', () => {
+  const fixture = createValidBundleFixture();
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  const indexPath = join(fixture.directory, bundle.audio.qc_index_path);
+  const index = JSON.parse(readFileSync(indexPath, 'utf8'));
+  const recordPath = join(fixture.directory, index.assets[0].record_path);
+  const record = JSON.parse(readFileSync(recordPath, 'utf8'));
+  record.model_acceptances[0].evidence.input_sha256 = `sha256:${'b'.repeat(64)}`;
+  writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`);
+  const recordHash = hash(readFileSync(recordPath));
+  for (const asset of index.assets) asset.record_sha256 = recordHash;
+  writeFileSync(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+  bundle.audio.qc_index_sha256 = hash(readFileSync(indexPath));
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /exact expected input/,
+  );
 });
 
 test('release bundle fails closed when one audio byte changes', () => {
@@ -466,16 +580,105 @@ function createValidBundleFixture(track = 'cet4') {
     audit,
   );
   const auditHash = hash(readFileSync(auditPath));
-  const approval = {
-    approval_id: `20260729-${track}-full-track-final`,
-    approval_mode: 'full_track_final',
-    approved_by_user: true,
-    approved_at: '2026-07-29T12:00:00+08:00',
+  const authorizationId = `20260729-${track}-full-track-final`;
+  const authorizationScope = {
+    track,
+    purpose: 'formal_content',
+    box_prefixes: entries.map(([ref]) => ref),
+    card_ids: cards.map(card => card.card_id),
+  };
+  const modelReview = {
+    schema_version: 'model-owned-full-track-review.v2',
+    review_id: `20260729-${track}-full-model-review`,
+    created_at: '2026-07-29T10:30:00+08:00',
+    model_acceptances: [],
     scope: {
       track,
-      box_prefixes: entries.map(([ref]) => ref),
-      card_ids: cards.map(card => card.card_id),
+      box_prefixes: [...authorizationScope.box_prefixes],
+      card_ids: [...authorizationScope.card_ids],
     },
+    specs_read: ['spec/review-workflow.json', 'spec/content-quality-contract.json'],
+    coverage: {
+      expected_card_count: cards.length,
+      reviewed_card_ids: [...authorizationScope.card_ids],
+      analysis_reference_check: {
+        answer_matches_card: true,
+        choice_or_bank_references_match_source: true,
+        distractor_labels_match_explanations: true,
+      },
+      boxes: entries.map(([ref]) => ({box_prefix: ref, status: 'passed'})),
+    },
+    quality_audit: {
+      report: 'evidence/card-quality-audit.json',
+      report_sha256: auditHash,
+      corpus_fingerprint: corpusDigest,
+      scope_has_no_hard_blockers: true,
+      scope_summary: {
+        card_ids: [...authorizationScope.card_ids],
+        card_count: cards.length,
+        issue_count: 0,
+        by_severity: {hard_blocker: 0, content_risk: 0, review_gap: 0, source_risk: 0},
+        by_rule: {},
+      },
+    },
+    representative_cards: [cards[0].card_id],
+    removed_cards: [],
+    batch_review: {
+      status: 'ready_for_model_authorization',
+      summary: 'Exact full-track fixture model review.',
+      remaining_risks: [],
+      next_step: 'Create exact-scope model-owned content authorization.',
+    },
+  };
+  const modelReviewInput = modelContract.buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_review',
+    scope: modelReview.scope,
+    corpusFingerprint: `sha256:${corpusDigest}`,
+    auditSha256: auditHash,
+  });
+  modelReview.model_acceptances = [
+    modelAcceptance(
+      'full-track-review-first',
+      modelReviewInput,
+      ['card_semantic_review', 'source_provenance_review'],
+    ),
+    modelAcceptance(
+      'full-track-review-second',
+      modelReviewInput,
+      ['card_semantic_review', 'source_provenance_review'],
+    ),
+  ];
+  const modelReviewPath = writeJson(
+    directory,
+    'evidence/model-review.json',
+    modelReview,
+  );
+  const modelReviewHash = hash(readFileSync(modelReviewPath));
+  const linkedModelReviewPath = `reviews/agent_self_review/${track}-full-model-review.json`;
+  const authorizationInput = modelContract.buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_content_authorization',
+    scope: authorizationScope,
+    corpusFingerprint: `sha256:${corpusDigest}`,
+    auditSha256: auditHash,
+    linkedReviewIdentity: {
+      path: linkedModelReviewPath,
+      sha256: modelReviewHash,
+    },
+    additionalBindings: {
+      content_version: content.content_version,
+    },
+  });
+  const approval = {
+    schema_version: 'model-owned-content-authorization.v2',
+    authorization_id: authorizationId,
+    authorization_mode: 'full_track',
+    content_version: content.content_version,
+    authorized_at: '2026-07-29T12:00:00+08:00',
+    model_acceptances: [
+      modelAcceptance('content-review-first', authorizationInput, 'content_authorization'),
+      modelAcceptance('content-review-second', authorizationInput, 'content_authorization'),
+    ],
+    scope: authorizationScope,
     summary: 'Unit-test approval record; not formal content.',
     representative_cards: [cards[0].card_id],
     card_quality_audit: {
@@ -495,8 +698,11 @@ function createValidBundleFixture(track = 'cet4') {
         },
       },
     },
-    validation: {},
-    approval_limits: [],
+    validation: {
+      model_review: linkedModelReviewPath,
+      model_review_sha256: modelReviewHash,
+    },
+    authorization_limits: [],
   };
   const approvalPath = writeJson(
     directory,
@@ -518,14 +724,67 @@ function createValidBundleFixture(track = 'cet4') {
       'tts_audio_not_used_as_source_authenticity',
     ].map(key => [key, true]),
   );
+  const audioCards = cards.slice(0, policy.audioCount);
+  const transcripts = audioCards.map(card => ({
+    card_id: card.card_id,
+    transcript: card.audio.transcript,
+    target_signal: 'Contract target signal',
+    pronunciation_notes: 'Contract pronunciation notes',
+    text_review_result: 'passed',
+  }));
+  const generatedAssets = audioCards.map((card, index) => ({
+    card_id: card.card_id,
+    path: assets[index].asset_path,
+    file_sha256: assets[index].sha256.slice('sha256:'.length),
+    transcript_sha256: createHash('sha256').update(card.audio.transcript).digest('hex'),
+  }));
+  const perCardQc = audioCards.map((card, index) => ({
+    card_id: card.card_id,
+    asset_path: assets[index].asset_path,
+    complete_asset_consumed: true,
+    matches_text: true,
+    target_signal: true,
+    pronunciation: true,
+    speed: true,
+    rhythm: true,
+    stress_pauses: true,
+    no_noise: true,
+    notes: 'Contract fixture',
+  }));
+  const perCardById = new Map(perCardQc.map(item => [item.card_id, item]));
+  const audioInput = hash(Buffer.from(JSON.stringify(generatedAssets.map(asset => ({
+    card_id: asset.card_id,
+    path: asset.path,
+    file_sha256: asset.file_sha256,
+    transcript_sha256: asset.transcript_sha256,
+    per_card_qc: {
+      complete_asset_consumed: perCardById.get(asset.card_id).complete_asset_consumed,
+      matches_text: perCardById.get(asset.card_id).matches_text,
+      target_signal: perCardById.get(asset.card_id).target_signal,
+      pronunciation: perCardById.get(asset.card_id).pronunciation,
+      speed: perCardById.get(asset.card_id).speed,
+      rhythm: perCardById.get(asset.card_id).rhythm,
+      stress_pauses: perCardById.get(asset.card_id).stress_pauses,
+      no_noise: perCardById.get(asset.card_id).no_noise,
+    },
+  })).sort((left, right) =>
+    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path)))));
   const qcRecord = {
+    schema_version: 'model-owned-audio-qc.v2',
+    scope: {card_ids: audioCards.map(card => card.card_id)},
+    model_acceptances: [
+      modelAcceptance(
+        'audio-review-first',
+        audioInput,
+        'audio_perceptual_review',
+        'agent:audio-review-1',
+      ),
+      modelAcceptance('audio-review-second', audioInput, 'audio_perceptual_review'),
+    ],
+    text_gate: {transcripts},
+    generated_assets: generatedAssets,
     qa_checks: qaChecks,
-    per_card_qc: cards.slice(0, policy.audioCount).map(card => ({
-      card_id: card.card_id,
-      audio_matches_text: true,
-      target_signal_audible: true,
-      notes: 'Contract fixture',
-    })),
+    per_card_qc: perCardQc,
     verdict: {formal_audio_ready: true},
   };
   const qcRecordPath = writeJson(
@@ -560,7 +819,7 @@ function createValidBundleFixture(track = 'cet4') {
       card_ids: [cards[index].card_id],
       record_path: 'evidence/audio-qc-record.json',
       record_sha256: qcRecordHash,
-      reviewed_by: 'fixture-reviewer',
+      reviewed_by: 'agent:audio-review-1',
       reviewed_at: '2026-07-29T11:00:00+08:00',
       formal_audio_ready: true,
     })),
@@ -594,7 +853,9 @@ function createValidBundleFixture(track = 'cet4') {
     approval: {
       record_path: 'evidence/final-approval.json',
       record_sha256: approvalHash,
-      approval_id: approval.approval_id,
+      approval_id: approval.authorization_id,
+      model_review_path: 'evidence/model-review.json',
+      model_review_sha256: modelReviewHash,
     },
     audit: {
       report_path: 'evidence/card-quality-audit.json',
@@ -637,6 +898,26 @@ function profileFixture(runtimeMode = 'closed_beta') {
     enabled_tracks: production ? ['cet4', 'cet6'] : ['cet4'],
     minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
     signing_key_id: 'receiver-signing-key-v1',
+  };
+}
+
+function modelAcceptance(runId, inputSha256, capability, agent = 'agent:fixture-model') {
+  return {
+    schema_version: 'model-acceptance.v2',
+    actor: {
+      kind: 'model_harness',
+      agent,
+      model: 'gpt-5.6-sol',
+      run_id: runId,
+    },
+    evidence: {
+      reviewed_at: '2026-07-29T11:00:00+08:00',
+      input_sha256: inputSha256,
+      capabilities: Array.isArray(capability) ? capability : [capability],
+      summary: 'Reviewed exact contract fixture identity.',
+      findings: [],
+    },
+    decision: 'accepted',
   };
 }
 

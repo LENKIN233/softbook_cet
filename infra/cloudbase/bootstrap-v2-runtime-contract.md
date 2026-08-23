@@ -358,7 +358,7 @@ This contract does not prove:
   `learning-events.v2` replay and `/v2/learning/session` selection binding;
 - receiver deployment or real-device proof of installed-client minimum-version
   enforcement, receiver-owned formal manifest key injection, complete
-  identified-human audio QC, private-object byte delivery, or real-device
+  model-owned complete-asset audio QC, private-object byte delivery, or automated real-device
   playback;
 - complete formal whole-track approved content or any conversion of the
   controlled-pilot payload, fixtures, dry-runs, or smoke reports into beta or

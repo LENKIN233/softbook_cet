@@ -1,5 +1,5 @@
 /**
- * Opt-in acceptance smoke for one exact externally approved controlled-pilot
+ * Opt-in acceptance smoke for one exact model-authorized controlled-pilot
  * payload. The runner supplies a short-lived backend-generated fixture in /tmp.
  */
 
@@ -106,7 +106,7 @@ beforeAll(() => {
   }
 });
 
-test('all 120 approved cards complete through their owned scoring semantics', () => {
+test('all 120 authorized cards complete through their owned scoring semantics', () => {
   const parsed = parseSoftbookRemoteLearningCardSourcePayload(
     fixture.card_source,
     'cet4',
@@ -606,9 +606,9 @@ function writeSafeAcceptanceReport() {
         ephemeral_manifest_signature_verified_by_mobile: true,
         pilot_bootstrap_content_exact_shape_verified: true,
         visible_runtime_metadata_leak_guard_verified: true,
-        human_audio_qc_verified: false,
+        model_audio_qc_verified: false,
         persistent_receiver_verified: false,
-        real_device_verified: false,
+        automated_real_device_evidence_verified: false,
         installed_client_minimum_version_enforced: false,
         release_public_key_injection_verified: false,
         gate_eligible: false,

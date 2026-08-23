@@ -20,6 +20,7 @@ const {
 let catalog;
 let publisher;
 let bundleBuilder;
+let modelContract;
 const temporaryDirectories = [];
 
 before(async () => {
@@ -33,6 +34,9 @@ before(async () => {
   );
   bundleBuilder = await import(
     pathToFileURL(resolve(__dirname, '../../../../../scripts/build_controlled_pilot_bundle.mjs'))
+  );
+  modelContract = await import(
+    pathToFileURL(resolve(__dirname, '../../../../../scripts/lib/model_acceptance_contract.mjs'))
   );
 });
 
@@ -133,7 +137,7 @@ test('pilot verification binds the detailed 120-card source-risk audit', async (
         bundlePath: missingCard.bundlePath,
         profilePath: missingCard.profilePath,
       }),
-    /audit scope does not match the content payload/,
+    /model authorization or review artifact is invalid or unbound/,
   );
 
   const unknownRisk = await createFixture();
@@ -146,7 +150,7 @@ test('pilot verification binds the detailed 120-card source-risk audit', async (
         bundlePath: unknownRisk.bundlePath,
         profilePath: unknownRisk.profilePath,
       }),
-    /rule unverified_source is not allowed/,
+    /model authorization or review artifact is invalid or unbound/,
   );
 
   const wrongScopeDigest = await createFixture();
@@ -234,40 +238,47 @@ test('pilot bundle builder normalizes offset evidence time and rejects incomplet
   );
 });
 
-test('pilot bundle builder rejects agent-authored perceptual QC', () => {
+test('pilot bundle builder accepts identified model-harness perceptual QC', () => {
   const directory = mkdtempSync(join(tmpdir(), 'controlled-pilot-builder-qc-'));
   temporaryDirectories.push(directory);
   const hash = digestText('approved-audio').slice('sha256:'.length);
-  writeJson(join(directory, 'qc.json'), {
-    verdict: {formal_audio_ready: true},
-    legacy_adoption: {
-      reviewer: 'codex-agent',
-      reviewed_at: '2026-08-09T00:00:00.000Z',
-    },
-    generated_assets: [{card_id: '000001', file_sha256: hash}],
-    qa_checks: Object.fromEntries(
-      [
-        'audio_matches_text',
-        'target_signal_audible',
-        'accurate_pronunciation',
-        'suitable_speed',
-        'natural_rhythm',
-        'stress_and_pauses_do_not_mislead',
-        'no_unwanted_noise_or_clipping',
-        'no_autoplay_assumption',
-        'front_side_no_required_subtitles',
-        'tts_audio_not_used_as_source_authenticity',
-      ].map(check => [check, true]),
-    ),
-    per_card_qc: [{card_id: '000001'}],
+  const asset = {
+    asset_id: 'cet4-000001-audio',
+    asset_path: 'audio/cet4-000001-audio.mp3',
+    sha256: `sha256:${hash}`,
+  };
+  const record = modelAudioQcFixture({
+    assetPath: asset.asset_path,
+    cardIds: ['000001'],
+    fileHash: hash,
+    runPrefix: 'direct-audio',
   });
+  writeJson(join(directory, 'qc.json'), record);
+  const input = {
+    assets: [asset],
+    cards: [{card_id: '000001', audio: {asset_id: 'cet4-000001-audio'}}],
+    qcDirectory: directory,
+  };
+  const result = bundleBuilder.collectAudioQcBindings(input);
+  assert.equal(result.bindings[0].reviewed_by, 'agent:direct-audio-a');
+
+  record.model_acceptances[1] = structuredClone(record.model_acceptances[0]);
+  writeJson(join(directory, 'qc.json'), record);
   assert.throws(
-    () => bundleBuilder.collectAudioQcBindings({
-      assets: [{asset_id: 'cet4-000001-audio', sha256: `sha256:${hash}`}],
-      cards: [{card_id: '000001', audio: {asset_id: 'cet4-000001-audio'}}],
-      qcDirectory: directory,
-    }),
-    /identified human reviewer/,
+    () => bundleBuilder.collectAudioQcBindings(input),
+    /run IDs must be distinct/,
+  );
+
+  record.model_acceptances[1] = modelAcceptanceFixture(
+    'direct-audio-b',
+    record.model_acceptances[0].evidence.input_sha256,
+    'audio_perceptual_review',
+  );
+  record.per_card_qc[0].complete_asset_consumed = false;
+  writeJson(join(directory, 'qc.json'), record);
+  assert.throws(
+    () => bundleBuilder.collectAudioQcBindings(input),
+    /complete_asset_consumed/,
   );
 });
 
@@ -286,11 +297,11 @@ async function createFixture() {
     refsByLibrary.set(metadata.library, list);
   }
   const libraries = [
-    ['listening', '听力', 24, 16, 4],
-    ['careful_reading', '仔细阅读', 24, 12, 4],
-    ['cloze', '选词填空', 16, 8, 3],
-    ['writing', '写作', 16, 8, 3],
-    ['translation', '翻译', 16, 6, 3],
+    ['listening', '听力', 24, 16, 2],
+    ['careful_reading', '仔细阅读', 24, 12, 2],
+    ['cloze', '选词填空', 16, 8, 2],
+    ['writing', '写作', 16, 8, 2],
+    ['translation', '翻译', 16, 6, 2],
     ['vocabulary', '词汇', 12, 5, 2],
     ['grammar', '语法', 12, 5, 2],
   ];
@@ -377,22 +388,100 @@ async function createFixture() {
   });
   const candidatePayloadPath = join(directory, 'candidate-payload.json');
   const candidatePayloadHash = writeJson(candidatePayloadPath, content);
-  const approvalHash = writeJson(join(directory, 'approval/pilot-approval.json'), {
-    schema_version: 'controlled-pilot-approval.v1',
-    pilot_id: 'cet4-pilot-2026',
-    content_version: content.content_version,
-    scope: 'controlled_pilot_120',
-    status: 'approved',
-    approved_by_user: true,
-    approved_at: '2026-08-09T08:00:00+08:00',
-    card_ids: content.card_records.map(card => card.card_id),
-  });
   const auditPath = join(directory, 'audit/pilot-audit.json');
   const auditCorpusDigest = digestText('card-make-corpus').slice('sha256:'.length);
   const auditHash = writeJson(
     auditPath,
     detailedAuditFixture(content.card_records, auditCorpusDigest),
   );
+  const cardIds = content.card_records.map(card => card.card_id);
+  const boxPrefixes = [...new Set(content.card_records.map(card => card.knowledge_ref))];
+  assert.equal(boxPrefixes.length, 14);
+  const pilotReviewPath = join(directory, 'controlled-pilot-review.json');
+  const pilotReview = {
+    schema_version: 'controlled-pilot-review.v2',
+    review_id: '20260809-cet4-controlled-pilot-120',
+    created_at: '2026-08-09T08:00:00+08:00',
+    pilot_id: 'cet4-pilot-2026',
+    content_version: content.content_version,
+    scope: {
+      track: 'cet4',
+      purpose: 'controlled_pilot',
+      card_count: 120,
+      box_prefixes: [...boxPrefixes].reverse(),
+      card_ids: [...cardIds].reverse(),
+    },
+    source_records: {
+      runtime_payload: 'exports/candidate-payload.json',
+      runtime_payload_sha256: candidatePayloadHash,
+      model_reviews: ['reviews/agent_self_review/pilot-model-review.json'],
+      scoped_audit: 'reviews/audit_scopes/pilot-audit.json',
+      scoped_audit_sha256: auditHash,
+    },
+    coverage: {
+      reviewed_cards: 120,
+      boxes: boxPrefixes.map(boxPrefix => ({
+        box_prefix: boxPrefix,
+        card_ids: cardIds.filter(cardId =>
+          content.card_records.find(card => card.card_id === cardId).knowledge_ref === boxPrefix),
+        status: 'passed',
+      })),
+    },
+    quality: {
+      corpus_fingerprint: `sha256:${auditCorpusDigest}`,
+      hard_blockers: 0,
+      content_risks: 0,
+      review_gaps: 0,
+      source_risks: 120,
+      synthetic_source_cards: 120,
+      source_disclosure: 'synthetic_training_content_not_true_exam',
+    },
+    authorization: {
+      model_acceptance: null,
+      authorized_at: null,
+      artifact_path: null,
+    },
+    authorization_boundary: {
+      audio_qc_required_separately: true,
+      pilot_publication_required_separately: true,
+      external_facts_must_not_be_inferred: true,
+      gate_eligible: false,
+    },
+    status: 'ready_for_model_authorization',
+  };
+  const pilotReviewHash = writeJson(pilotReviewPath, pilotReview);
+  const reviewIdentity = 'reviews/controlled_pilot_reviews/pilot-review.json';
+  const authorizationInput = modelContract.buildModelAcceptanceInputSha256({
+    decisionType: 'controlled_pilot_authorization',
+    scope: pilotReview.scope,
+    corpusFingerprint: `sha256:${auditCorpusDigest}`,
+    auditSha256: auditHash,
+    linkedReviewIdentity: {path: reviewIdentity, sha256: pilotReviewHash},
+    additionalBindings: {
+      pilot_id: pilotReview.pilot_id,
+      content_version: content.content_version,
+      runtime_payload_sha256: candidatePayloadHash,
+    },
+  });
+  const approvalPath = join(directory, 'approval/pilot-authorization.json');
+  const approval = {
+    schema_version: 'controlled-pilot-authorization.v2',
+    pilot_id: pilotReview.pilot_id,
+    content_version: content.content_version,
+    scope: 'controlled_pilot_120',
+    status: 'authorized',
+    authorized_at: '2026-08-09T08:30:00+08:00',
+    model_acceptances: [
+      modelAcceptanceFixture('pilot-authorization-a', authorizationInput, 'content_authorization'),
+      modelAcceptanceFixture('pilot-authorization-b', authorizationInput, 'content_authorization'),
+    ],
+    review: reviewIdentity,
+    review_sha256: pilotReviewHash,
+    runtime_payload_sha256: candidatePayloadHash,
+    scoped_audit_sha256: auditHash,
+    card_ids: cardIds,
+  };
+  const approvalHash = writeJson(approvalPath, approval);
   const manifestHash = writeJson(join(directory, 'audio/manifest.json'), {
     schema_version: 'release-audio-manifest.v1',
     track: 'cet4',
@@ -411,38 +500,19 @@ async function createFixture() {
       .filter(card => card.audio?.asset_id === asset.asset_id)
       .map(card => card.card_id);
     const recordPath = `audio/qc/${asset.asset_id}.json`;
-    const recordHash = writeJson(join(directory, recordPath), {
-      verdict: {formal_audio_ready: true},
-      legacy_adoption: {
-        reviewer: 'human-reviewer',
-        reviewed_at: '2026-08-09T08:00:00+08:00',
-      },
-      generated_assets: cardIds.map(cardId => ({
-        card_id: cardId,
-        file_sha256: asset.sha256.slice('sha256:'.length),
-      })),
-      qa_checks: Object.fromEntries(
-        [
-          'audio_matches_text',
-          'target_signal_audible',
-          'accurate_pronunciation',
-          'suitable_speed',
-          'natural_rhythm',
-          'stress_and_pauses_do_not_mislead',
-          'no_unwanted_noise_or_clipping',
-          'no_autoplay_assumption',
-          'front_side_no_required_subtitles',
-          'tts_audio_not_used_as_source_authenticity',
-        ].map(check => [check, true]),
-      ),
-      per_card_qc: cardIds.map(cardId => ({card_id: cardId})),
+    const record = modelAudioQcFixture({
+      assetPath: asset.asset_path,
+      cardIds,
+      fileHash: asset.sha256.slice('sha256:'.length),
+      runPrefix: asset.asset_id,
     });
+    const recordHash = writeJson(join(directory, recordPath), record);
     return {
       asset_id: asset.asset_id,
       card_ids: cardIds,
       record_path: recordPath,
       record_sha256: recordHash,
-      reviewed_by: 'human-reviewer',
+      reviewed_by: record.model_acceptances[0].actor.agent,
       reviewed_at: '2026-08-09T00:00:00.000Z',
       formal_audio_ready: true,
     };
@@ -469,99 +539,11 @@ async function createFixture() {
     pilot_expires_at: '2026-09-10T00:00:00.000Z',
     gate_eligible: false,
   });
-  const bundlePath = join(directory, 'controlled-pilot-bundle.json');
-  writeJson(bundlePath, {
-    schema_version: 'controlled-pilot-bundle.v1',
-    bundle_id: 'cet4-pilot-bundle-001',
-    profile_id: 'receiver-pilot-profile',
-    pilot_id: 'cet4-pilot-2026',
-    release_id: 'cet4-pilot-release-001',
-    track: 'cet4',
-    runtime_mode: 'controlled_pilot',
-    created_at: '2026-08-09T00:00:00.000Z',
-    release_at: '2026-08-10T00:00:00.000Z',
-    pilot_expires_at: '2026-09-10T00:00:00.000Z',
-    content: {
-      payload_path: 'content/cet4-pilot.json',
-      payload_sha256: contentHash,
-      content_version: content.content_version,
-      corpus_fingerprint: corpusFingerprint,
-      card_count: 120,
-      free_card_count: 60,
-      library_card_counts: Object.fromEntries(
-        libraries.map(([key, , total]) => [key, total]),
-      ),
-      free_library_card_counts: Object.fromEntries(
-        libraries.map(([key, , , free]) => [key, free]),
-      ),
-      library_box_counts: Object.fromEntries(
-        libraries.map(([key, , , , boxes]) => [key, boxes]),
-      ),
-      interaction_card_counts: {
-        flip: 40,
-        multiple_choice: 30,
-        lock: 20,
-        elimination: 15,
-        swipe: 15,
-      },
-      mapped_card_count: 120,
-      unmapped_card_count: 0,
-      duplicate_card_id_count: 0,
-    },
-    approval: {
-      record_path: 'approval/pilot-approval.json',
-      record_sha256: approvalHash,
-      scope: 'controlled_pilot_120',
-      status: 'approved',
-      approved_at: '2026-08-09T00:00:00.000Z',
-    },
-    audit: {
-      report_path: 'audit/pilot-audit.json',
-      report_sha256: auditHash,
-      audit_version: 'card-make-quality-audit-v1',
-      report_type: 'scoped_card_quality_audit',
-      scope_card_count: 120,
-      scope_card_ids_sha256: digestJson(
-        content.card_records
-          .map(card => card.card_id)
-          .sort((left, right) => left.localeCompare(right)),
-      ),
-      corpus_sha256: `sha256:${auditCorpusDigest}`,
-      unresolved_blockers: 0,
-      unexplained_risks: 0,
-      metadata_coverage: 1,
-      explained_risks: [
-        {
-          rule_id: 'synthetic_source',
-          severity: 'source_risk',
-          card_count: 120,
-          disclosure: 'synthetic_training_content_not_true_exam',
-        },
-      ],
-    },
-    audio: {
-      manifest_path: 'audio/manifest.json',
-      manifest_sha256: manifestHash,
-      qc_index_path: 'audio/qc-index.json',
-      qc_index_sha256: qcHash,
-      referenced_asset_count: 24,
-      qc_asset_count: 24,
-    },
-    minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
-    gate_eligible: false,
-  });
-  const pilotReviewPath = join(directory, 'controlled-pilot-review.json');
-  writeJson(pilotReviewPath, {
-    status: 'user_approved',
-    content_version: content.content_version,
-    approval: {approved_by_user: true},
-    source_records: {runtime_payload_sha256: candidatePayloadHash},
-  });
   const assembledDirectory = join(directory, 'assembled');
   bundleBuilder.assembleControlledPilotBundle({
     profilePath,
     pilotReviewPath,
-    approvalPath: join(directory, 'approval/pilot-approval.json'),
+    approvalPath,
     auditPath,
     candidatePayloadPath,
     audioQcDirectory: join(directory, 'audio/qc'),
@@ -656,6 +638,157 @@ function detailedAuditFixture(cards, corpusDigest) {
       ]),
     ),
     scoped_hard_blocker_issues: [],
+  };
+}
+
+function modelAcceptanceFixture(runId, inputSha256, capability) {
+  return {
+    schema_version: 'model-acceptance.v2',
+    actor: {
+      kind: 'model_harness',
+      agent: `agent:${runId}`,
+      model: 'gpt-5.6-sol',
+      run_id: runId,
+    },
+    evidence: {
+      reviewed_at: '2026-08-09T00:00:00.000Z',
+      input_sha256: inputSha256,
+      capabilities: [capability],
+      summary: `Independent ${capability} fixture review.`,
+      findings: [],
+    },
+    decision: 'accepted',
+  };
+}
+
+function modelAudioQcFixture({assetPath, cardIds, fileHash, runPrefix}) {
+  const transcripts = cardIds.map(cardId => ({
+    card_id: cardId,
+    transcript: `Spoken training prompt for ${cardId}.`,
+    target_signal: cardId,
+    pronunciation_notes: 'Reviewed from the complete asset.',
+    text_review_result: 'passed',
+  }));
+  const generatedAssets = transcripts.map(item => ({
+    card_id: item.card_id,
+    path: assetPath,
+    transcript_sha256: crypto
+      .createHash('sha256')
+      .update(item.transcript)
+      .digest('hex'),
+    generated_at: '2026-08-09T00:00:00.000Z',
+    generator_version: 'fixture-v1',
+    file_sha256: fileHash,
+    provenance_note: 'Deterministic fixture bytes.',
+  }));
+  const perCardQc = cardIds.map(cardId => ({
+    card_id: cardId,
+    asset_path: assetPath,
+    complete_asset_consumed: true,
+    matches_text: true,
+    target_signal: true,
+    pronunciation: true,
+    speed: true,
+    rhythm: true,
+    stress_pauses: true,
+    no_noise: true,
+    notes: 'Complete fixture asset reviewed.',
+  }));
+  const perCardById = new Map(perCardQc.map(item => [item.card_id, item]));
+  const identities = generatedAssets
+    .map(item => {
+      const result = perCardById.get(item.card_id);
+      return {
+        card_id: item.card_id,
+        path: item.path,
+        file_sha256: item.file_sha256,
+        transcript_sha256: item.transcript_sha256,
+        per_card_qc: {
+          complete_asset_consumed: result.complete_asset_consumed,
+          matches_text: result.matches_text,
+          target_signal: result.target_signal,
+          pronunciation: result.pronunciation,
+          speed: result.speed,
+          rhythm: result.rhythm,
+          stress_pauses: result.stress_pauses,
+          no_noise: result.no_noise,
+        },
+      };
+    })
+    .sort((left, right) =>
+      left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
+  const inputSha256 = digestJson(identities);
+  return {
+    schema_version: 'model-owned-audio-qc.v2',
+    audio_qc_id: `${runPrefix}-audio-qc`,
+    created_at: '2026-08-09T00:00:00.000Z',
+    model_acceptances: [
+      modelAcceptanceFixture(`${runPrefix}-a`, inputSha256, 'audio_perceptual_review'),
+      modelAcceptanceFixture(`${runPrefix}-b`, inputSha256, 'audio_perceptual_review'),
+    ],
+    scope: {
+      library: '听力',
+      group: 'fixture',
+      box: 'fixture',
+      box_prefixes: [],
+      card_ids: [...cardIds],
+    },
+    source_records: {
+      card_files: [],
+      linked_agent_self_review: 'reviews/agent_self_review/audio.json',
+      linked_approved_batch: 'reviews/approved_batches/cet4.json',
+    },
+    text_gate: {
+      tts_text_reviewed: true,
+      text_source_type: 'synthetic_training_content',
+      transcripts,
+    },
+    generation_plan: {
+      method: 'TTS_AI_generated',
+      provider: 'fixture',
+      voice_or_speaker: 'fixture',
+      speed: 'normal',
+      style_notes: 'fixture',
+      output_dir: 'audio/',
+      overwrite_existing_assets: false,
+      replacement_reason: '',
+    },
+    legacy_adoption: {
+      enabled: false,
+      reviewed_at: '',
+      reproducibility_status: 'reproducible',
+    },
+    generated_assets: generatedAssets,
+    qa_checks: Object.fromEntries(
+      [
+        'audio_matches_text',
+        'target_signal_audible',
+        'accurate_pronunciation',
+        'suitable_speed',
+        'natural_rhythm',
+        'stress_and_pauses_do_not_mislead',
+        'no_unwanted_noise_or_clipping',
+        'no_autoplay_assumption',
+        'front_side_no_required_subtitles',
+        'tts_audio_not_used_as_source_authenticity',
+      ].map(check => [check, true]),
+    ),
+    per_card_qc: perCardQc,
+    verdict: {
+      candidate_audio_ok: true,
+      formal_audio_ready: true,
+      requires_regeneration: false,
+      reason: 'Two independent model-owned QC runs passed.',
+    },
+    approval_boundary: {
+      tts_audio_is_not_source_authenticity_evidence: true,
+      current_model_owned_content_authorization_required: true,
+      external_facts_must_not_be_inferred: true,
+    },
+    validation: {
+      audio_qc: 'node scripts/validate_audio_qc.mjs',
+      harness: 'node scripts/validate_harness.mjs',
+    },
   };
 }
 

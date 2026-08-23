@@ -3,6 +3,7 @@
 ## 当前任务引用的 spec
 
 - `spec/requirement-memory.json`
+- `spec/machine-acceptance.json`
 - `spec/authority-map.json`
 - `spec/product-core.json`
 - `spec/account-sync-contract.json`
@@ -15,6 +16,7 @@
 
 ## 当前阶段
 
+- `product_truth`: 目标是 `2026-09` 尽快上线；产品内部由 model+harness 持续决策，不存在人工、用户或 product-owner 点击 gate。
 - `product_truth`: `v1` 仍然要闭合 `learning / space / statistics / mine` 四个顶层入口，并满足登录先于学习、试用/会员矩阵、日级进度同步和跨端统一 entitlement。
 - `product_truth`: 所有呈现给用户的 screen / component / state / chrome 必须先有已接受设计稿或等价设计基准，再进入实现；现有 RN UI 只能作为行为原型，不能作为视觉权威。
 - `implementation_hypothesis`: `main` 上的 `apps/mobile` 已经形成 iOS 优先的本地安全基线：手机号验证码登录门槛、学习/复习、知识地图空间、统计签到、我的页、会员试用/付费墙、日级进度同步都先在本地宿主闭环；下一步优先推进设计稿基准与真实账号 / entitlement / sync 合同接线，而不是继续堆新页面。
@@ -24,10 +26,11 @@
 - `spec/`: 活跃产品与合同真相源
 - `apps/mobile/`: React Native 移动端工程
 - `docs/`: 工程协作约定与流程文档
-- `.github/workflows/pr-gates.yml`: PR 质量门禁（design artifact gate + harness/learning-events contract 回归 + Maestro selector guard + agent review / agent run record 记录 + mobile quality + backend contract）
-- `scripts/validate_agent_review.py`: PR body agent review 与 agent run record 记录校验（merge 前必须记录 passed review、无阻塞问题，并引用 `docs/agent-runs/*.md`）
+- `.github/workflows/pr-gates.yml`: 按改动路径运行 task-relevant checks；`main` / schedule / `workflow_dispatch` 仍执行全量验证
+- `.github/workflows/trusted-model-review.yml`: 用 trusted base workflow 和官方 OpenAI Codex Action 对 exact diff 做两次隔离审查；PR body 中的自填 run ID 仅为过渡元数据，不是信任根
+- Trusted-review bootstrap：GitHub 只从默认分支加载 `pull_request_target` workflow，因此安装它的这一张 PR 仍使用既有 required checks 加两次独立外部 exact-diff model review；合并后配置 `OPENAI_API_KEY`，先用下一张 PR 验证两个 Codex job 与聚合 check，再切换 branch protection
 - `scripts/validate_maestro_selectors.py`: Maestro smoke selector 校验（禁止用用户可见文案作为 `tapOn` / `assertVisible` 等 selector，并要求 id 有 RN `testID` 背书）
-- `.github/pull_request_template.md`: PR 合同模板（spec / 摘要 / 验证 / agent run record / 视觉 checklist）
+- `.github/pull_request_template.md`: 精简 PR 合同模板（spec / 摘要 / 验证 / Model review）
 - `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏 + Maestro selector 防回归）
 - `scripts/run_local_gates`: 独立本地质量总入口；`dev` 无远端门禁，`pr` 绑定真实 PR，`release` 追加 macOS Release build，报告只写入忽略的 `exports/local-gates/`
 - `docs/release/` / `scripts/validate_launch_readiness.mjs`: 上线状态合同与失败关闭证据校验；绿色 CI 不等于外部账户、正式内容或上线批准
@@ -53,7 +56,7 @@
 分支策略文档见 [docs/branching-strategy.md](/Users/lenkin/programing/softbook_cet/docs/branching-strategy.md)。
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
 clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
-任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> agent review 记录 + agent run record -> merge；只有 review / gate / 权限失败时才停在 PR 或 branch handoff。
+任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> trusted-model-review -> required checks -> auto-merge；不等待人工或用户批准。
 任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / direction / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。
 Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。
 
@@ -152,8 +155,8 @@ npm start
 
 ### CET4 受控试点 bundle 装配
 
-卡片候选内容和批准仍只发生在同级 `card make` 工作区。收到它导出的 120 卡
-runtime payload、正式用户批准、scoped audit，以及 24 条音频的完整人耳 QC 后，
+卡片候选内容和模型授权仍只发生在同级 `card make` 工作区。收到它导出的 120 卡
+runtime payload、两次独立模型授权、scoped audit，以及 24 条音频的逐卡完整模型听审后，
 用产品仓库的装配器生成发布器可直接验证的 `controlled-pilot-bundle.v1`：
 
 ```bash
@@ -172,7 +175,7 @@ node scripts/build_controlled_pilot_bundle.mjs \
 ```
 
 默认只在临时目录装配并执行生产发布器的完整校验；加 `--apply` 才保留输出目录。
-缺少或重复音频 QC、非人类 reviewer、hash/范围漂移都会 fail closed。装配结果始终
+缺少或重复音频 QC、非模型 reviewer、复用 run ID、hash/范围漂移都会 fail closed。装配结果始终
 `gate_eligible=false`，不能替代正式封闭内测或 launch evidence。
 
 ### iOS / CloudBase 远端 smoke
@@ -181,7 +184,7 @@ node scripts/build_controlled_pilot_bundle.mjs \
 
 `implementation_hypothesis`: 当前 CloudBase dev 环境是 staging runtime，不是最终生产后端；`infra/cloudbase/smoke-ios-runtime.sh` 只验证移动端 REST 合同和 iOS debug runtime profile 注入路径，不会修改 tracked 默认本地配置。
 
-脚本默认用 `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` 为合同写入检查生成一次性测试手机号，避免 membership mutation 把共享手动验收手机号推进到 `premium`。如果要刻意复用 `SOFTBOOK_CET_TEST_PHONE` 做合同写入检查，可显式设置 `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=0`。
+脚本默认用 `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1` 为合同写入检查生成一次性测试手机号，避免 membership mutation 污染共享测试身份。如果要刻意复用 `SOFTBOOK_CET_TEST_PHONE` 做合同写入检查，可显式设置 `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=0`。
 
 先跑后端合同和 JS runtime profile 解析：
 
@@ -190,7 +193,7 @@ SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
-需要同时拉起 iOS debug app 时追加：
+需要同时验证 iOS Simulator debug 构建、安装和 runtime profile 注入时追加：
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
@@ -198,17 +201,9 @@ SOFTBOOK_CET_IOS_LAUNCH=1 \
 infra/cloudbase/smoke-ios-runtime.sh
 ```
 
-启动段会先验证 launch 参数、手动验收手机号和 bundle ID，再把已启动设备或 `SOFTBOOK_CET_IOS_SIMULATOR` 精确解析为唯一 UDID；显式 `SOFTBOOK_CET_IOS_DEVICE` 优先。目标设备、JS runtime profile 测试、debug 构建及已安装 app 查询全部通过后，脚本才执行远端写入 smoke，最后通过 `xcrun simctl launch` 的 `SIMCTL_CHILD_*` 环境变量重新启动 `com.softbook.cet`，确保 AppDelegate 能读到同一组远端 runtime profile。默认模拟器名为 `iPhone 17`，默认 Metro 端口为 `8081`；如需覆盖可设置 `SOFTBOOK_CET_IOS_DEVICE`、`SOFTBOOK_CET_IOS_SIMULATOR`、`SOFTBOOK_CET_IOS_BUNDLE_ID` 或 `SOFTBOOK_CET_METRO_PORT`。如果脚本自己启动 Metro，会在打印手动验收清单后保持运行，验收完成后按 `Ctrl+C` 清理；构建失败或运行中断会自动清理该 Metro，正常退出时也可用 `SOFTBOOK_CET_STOP_METRO_ON_EXIT=1` 要求立即清理。
+启动段会先验证 launch 参数和 bundle ID，再把已启动 Simulator 或 `SOFTBOOK_CET_IOS_SIMULATOR` 精确解析为唯一 UDID；显式 `SOFTBOOK_CET_IOS_DEVICE` 优先。目标、JS runtime profile 测试、debug 构建及已安装 app 查询全部通过后，脚本才执行远端写入 smoke，最后通过 `xcrun simctl launch` 的 `SIMCTL_CHILD_*` 环境变量重新启动 `com.softbook.cet`。脚本完成后自动清理自己创建的 Metro 和隔离 CloudBase 记录，不再等待按键、点击或人工结论。该路径只记录 `automated_simulator_launch_verified=true`；UI 流程和物理真机证据仍为 `false`，`gate_eligible=false`。
 
-当 `SOFTBOOK_CET_IOS_LAUNCH=1` 时，脚本会打印一个 `19xxxxxxxxx` 形式的一次性手动验收手机号；验证码仍使用 dev fixed code `2468`。如需复现某次验收，可显式设置 `SOFTBOOK_CET_MANUAL_TEST_PHONE` 为脚本打印的手机号。`SOFTBOOK_CET_TEST_CODE` 仍可覆盖验证码，但不应接入真实短信。
-
-手动验收点：
-
-- 登录页显示远端认证模式，并用脚本打印的一次性手机号 / dev fixed code 完成登录。
-- 学习页加载远端 `cet4` 或 `cet6` 卡源，仍保持单卡流。
-- 首次进入空间启动试用，空间解锁后显示远端卡源的 library / group / box。
-- 完成一张卡后，统计页显示日级同步已推送到远端。
-- 学习状态、空间状态和会员 refresh 不出现离线队列错误；若远端暂时 5xx，UI 应保留登录态并进入重试队列。
+完整远端 UI 流程由 harness 运行 `infra/cloudbase/smoke-ios-maestro-runtime.sh`。它自动创建隔离身份并执行登录、学习、空间、同步和统计交互；缺少 Maestro、Java、Simulator 或远端 capability 时直接失败，不回退为人工步骤。模拟器通过只记录 `automated_simulator_ui_evidence_verified=true`；必须由物理设备执行器实际观测后，`automated_real_device_evidence_verified` 才能从 `false` 变为 `true`。
 
 ### 本地会员/付费墙壳层
 

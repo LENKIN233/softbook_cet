@@ -4,9 +4,13 @@ import {spawnSync} from 'node:child_process';
 import {createHash, randomInt, randomUUID, timingSafeEqual} from 'node:crypto';
 import {
   chmodSync,
+  closeSync,
+  constants as fsConstants,
   existsSync,
+  fstatSync,
   lstatSync,
   mkdirSync,
+  openSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -16,13 +20,21 @@ import {createRequire} from 'node:module';
 import {dirname, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+import {
+  ed25519PublicKeyFingerprint,
+  requireEd25519PublicKey,
+  validateSmsReceiverEvidence,
+  verifySmsReceiverEvidence,
+} from './sms-receiver-evidence-contract.mjs';
+import {parseStrictJson} from '../../scripts/lib/strict_json.mjs';
+
 const require = createRequire(import.meta.url);
 const {createRuntimeSmsProvider} = require('./functions/softbook-api/sms-provider.js');
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const STATE_SCHEMA = 'sms-provider-smoke-state.v1';
-export const REPORT_SCHEMA = 'sms-provider-smoke.v1';
+export const REPORT_SCHEMA = 'sms-provider-smoke.v2';
 const OPERATION_SCHEMA = 'sms-provider-smoke-operation.v1';
 const MAX_CONFIRMATION_ATTEMPTS = 3;
 const CHALLENGE_TTL_MS = 5 * 60_000;
@@ -47,6 +59,7 @@ export async function prepareSmsProviderSmoke({
 
   const phoneNumber = requirePhoneNumber(env.SOFTBOOK_SMS_SMOKE_PHONE);
   const targetId = requireTargetId(env.SOFTBOOK_SMS_SMOKE_TARGET_ID);
+  const receiverTrust = requireReceiverTrustConfiguration(env);
   const provider = providerFactory({env, runtimeMode: 'production'});
   const configurationFingerprint = fingerprint(
     runId,
@@ -61,6 +74,7 @@ export async function prepareSmsProviderSmoke({
       provider: provider.kind,
       delivery: provider.delivery,
       target_id: targetId,
+      receiver_trust: receiverTrust,
       repository_ready: repositoryIsExactMain(repository),
       state_path: relativeToRepository(absoluteStatePath, repositoryRoot),
     };
@@ -79,6 +93,7 @@ export async function prepareSmsProviderSmoke({
     provider: provider.kind,
     delivery: provider.delivery,
     provider_configuration_fingerprint: configurationFingerprint,
+    receiver_trust: receiverTrust,
     phone_number: phoneNumber,
     code,
     created_at: now.toISOString(),
@@ -131,16 +146,62 @@ export function inspectSmsProviderSmoke({
 export function confirmSmsProviderSmoke({
   apply = false,
   clock = () => new Date(),
-  receivedCode,
   reportPath,
+  receiverAdapterId = process.env.SOFTBOOK_SMS_RECEIVER_ADAPTER_ID,
+  receiverEvidencePath,
+  receiverKeyId = process.env.SOFTBOOK_SMS_RECEIVER_KEY_ID,
+  receiverPrivateKey = process.env.SOFTBOOK_SMS_RECEIVER_PRIVATE_KEY,
+  receiverPublicKey = process.env.SOFTBOOK_SMS_RECEIVER_PUBLIC_KEY,
   repository = readRepositoryState(),
   repositoryRoot = REPOSITORY_ROOT,
   statePath,
   verifier = process.env.SOFTBOOK_SMS_SMOKE_VERIFIER,
+  verificationRunId = process.env.SOFTBOOK_SMS_SMOKE_VERIFIER_RUN_ID,
 } = {}) {
   const absoluteStatePath = requireStatePath(statePath, repositoryRoot);
   const absoluteReportPath = requireReportPath(reportPath, repositoryRoot);
+  const absoluteReceiverEvidencePath = requireReceiverEvidencePath(
+    receiverEvidencePath,
+    repositoryRoot,
+  );
+  if (absoluteReceiverEvidencePath === absoluteStatePath) {
+    throw new Error('SMS receiver evidence must be separate from smoke private state.');
+  }
+  if (typeof receiverPrivateKey === 'string' && receiverPrivateKey.trim() !== '') {
+    throw new Error(
+      'SMS smoke confirmation must not have access to the receiver private key.',
+    );
+  }
   const state = readPrivateState(absoluteStatePath);
+  if (apply) {
+    assertExactMain(repository);
+    if (repository.head !== state.repository_commit) {
+      throw new Error('SMS smoke confirmation must use the preparation commit.');
+    }
+    if (existsSync(absoluteReportPath)) {
+      throw new Error('SMS smoke report already exists and will not be overwritten.');
+    }
+  }
+  const now = asDate(clock());
+  const receiverEvidence = readVerifiedReceiverEvidence({
+    adapterId: state.receiver_trust.adapter_id,
+    evidencePath: absoluteReceiverEvidencePath,
+    expectedRunId: state.run_id,
+    expectedTarget: state.target_id,
+    expectedKeyId: state.receiver_trust.key_id,
+    expectedPublicKeyFingerprint:
+      state.receiver_trust.public_key_fingerprint,
+    now,
+    publicKey: receiverPublicKey,
+    sentAt: state.sent_at,
+    expiresAt: state.expires_at,
+  });
+  if (
+    receiverAdapterId !== state.receiver_trust.adapter_id ||
+    receiverKeyId !== state.receiver_trust.key_id
+  ) {
+    throw new Error('SMS receiver trust configuration changed after prepare.');
+  }
 
   if (!apply) {
     return {
@@ -148,24 +209,26 @@ export function confirmSmsProviderSmoke({
       action: 'confirm',
       status: 'ready_for_confirmation',
       report_path: relativeToRepository(absoluteReportPath, repositoryRoot),
+      receiver_evidence: {
+        ...receiverEvidence.public,
+        artifact_removed: false,
+      },
     };
   }
 
-  assertExactMain(repository);
-  if (repository.head !== state.repository_commit) {
-    throw new Error('SMS smoke confirmation must use the preparation commit.');
-  }
-  if (existsSync(absoluteReportPath)) {
-    throw new Error('SMS smoke report already exists and will not be overwritten.');
-  }
-  const now = asDate(clock());
   if (now.getTime() > Date.parse(state.expires_at)) {
     rmSync(absoluteStatePath, {force: true});
+    rmSync(absoluteReceiverEvidencePath, {force: true});
     throw new Error('SMS smoke confirmation expired; private state was removed.');
   }
-  const humanVerifier = requireHumanVerifier(verifier);
-  const candidate = requireSmsCode(receivedCode);
+  const machineVerifier = requireMachinePrincipal(verifier);
+  const machineVerificationRunId = requireMachineRunId(verificationRunId);
+  if (machineVerifier === receiverEvidence.adapterId) {
+    throw new Error('SMS smoke verifier must be independent from the receiver adapter.');
+  }
+  const candidate = receiverEvidence.code;
   if (!safeCodeEqual(state.code, candidate)) {
+    rmSync(absoluteReceiverEvidencePath, {force: true});
     state.failed_confirmation_attempts += 1;
     if (state.failed_confirmation_attempts >= MAX_CONFIRMATION_ATTEMPTS) {
       rmSync(absoluteStatePath, {force: true});
@@ -174,7 +237,6 @@ export function confirmSmsProviderSmoke({
     writePrivateJson(absoluteStatePath, state);
     throw new Error('SMS smoke confirmation failed.');
   }
-
   const report = {
     schema_version: REPORT_SCHEMA,
     run_id: state.run_id,
@@ -189,8 +251,16 @@ export function confirmSmsProviderSmoke({
     sent_at: state.sent_at,
     confirmed_at: now.toISOString(),
     expires_at: state.expires_at,
-    confirmation_method: 'human_received_code_match',
-    verifier: {kind: 'human', id: humanVerifier},
+    confirmation_method: 'automated_receiver_code_match',
+    receiver_evidence: {
+      ...receiverEvidence.public,
+      artifact_removed: true,
+    },
+    verifier: {
+      kind: 'machine',
+      id: machineVerifier,
+      run_id: machineVerificationRunId,
+    },
     private_state_removed: true,
     generated_at: now.toISOString(),
   };
@@ -198,7 +268,11 @@ export function confirmSmsProviderSmoke({
   if (errors.length > 0) {
     throw new Error(`SMS smoke report is invalid: ${errors.join('; ')}`);
   }
-  publishReportAfterPrivateStateRemoval(absoluteReportPath, absoluteStatePath, report);
+  publishReportAfterPrivateArtifactsRemoval(
+    absoluteReportPath,
+    [absoluteStatePath, absoluteReceiverEvidencePath],
+    report,
+  );
   return report;
 }
 
@@ -236,6 +310,7 @@ export function validateSmsProviderSmokeReport(report) {
     'confirmed_at',
     'expires_at',
     'confirmation_method',
+    'receiver_evidence',
     'verifier',
     'private_state_removed',
     'generated_at',
@@ -276,12 +351,26 @@ export function validateSmsProviderSmokeReport(report) {
     if (generatedAt !== confirmedAt) errors.push('generated_at must equal confirmed_at');
     if (expiresAt - sentAt > CHALLENGE_TTL_MS) errors.push('expiry window exceeds five minutes');
   }
-  if (report?.confirmation_method !== 'human_received_code_match') {
+  if (report?.confirmation_method !== 'automated_receiver_code_match') {
     errors.push('confirmation_method is invalid');
   }
+  validateReceiverEvidence(
+    report?.receiver_evidence,
+    {
+      confirmedAt,
+      expiresAt,
+      sentAt,
+    },
+    errors,
+  );
   if (report?.private_state_removed !== true) errors.push('private_state_removed must be true');
-  if (report?.verifier?.kind !== 'human' || !isHumanVerifier(report?.verifier?.id)) {
-    errors.push('verifier must identify a human reviewer');
+  requireExactKeys(report?.verifier, ['kind', 'id', 'run_id'], 'verifier', errors);
+  if (
+    report?.verifier?.kind !== 'machine' ||
+    !isMachinePrincipal(report?.verifier?.id) ||
+    !isMachineRunId(report?.verifier?.run_id)
+  ) {
+    errors.push('verifier must identify a machine principal and run');
   }
   return errors;
 }
@@ -354,6 +443,58 @@ function providerConfiguration(provider, env) {
   };
 }
 
+function requireReceiverTrustConfiguration(env) {
+  if (
+    typeof env.SOFTBOOK_SMS_RECEIVER_PRIVATE_KEY === 'string' &&
+    env.SOFTBOOK_SMS_RECEIVER_PRIVATE_KEY.trim() !== ''
+  ) {
+    throw new Error('SMS sender preparation must not have the receiver private key.');
+  }
+  const adapterId = env.SOFTBOOK_SMS_RECEIVER_ADAPTER_ID;
+  const keyId = env.SOFTBOOK_SMS_RECEIVER_KEY_ID;
+  const publicKey = env.SOFTBOOK_SMS_RECEIVER_PUBLIC_KEY;
+  if (!isMachinePrincipal(adapterId)) {
+    throw new Error('SOFTBOOK_SMS_RECEIVER_ADAPTER_ID must identify a machine adapter.');
+  }
+  if (
+    typeof keyId !== 'string' ||
+    !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(keyId)
+  ) {
+    throw new Error('SOFTBOOK_SMS_RECEIVER_KEY_ID is required and invalid.');
+  }
+  if (typeof publicKey !== 'string' || publicKey.trim() === '') {
+    throw new Error('SOFTBOOK_SMS_RECEIVER_PUBLIC_KEY is required.');
+  }
+  return {
+    adapter_id: adapterId,
+    key_id: keyId,
+    public_key_fingerprint: ed25519PublicKeyFingerprint(
+      requireEd25519PublicKey(publicKey),
+    ),
+  };
+}
+
+function validateReceiverTrust(value, errors) {
+  requireExactKeys(
+    value,
+    ['adapter_id', 'key_id', 'public_key_fingerprint'],
+    'state receiver_trust',
+    errors,
+  );
+  if (!isMachinePrincipal(value?.adapter_id)) {
+    errors.push('state receiver trust adapter is invalid');
+  }
+  if (
+    typeof value?.key_id !== 'string' ||
+    !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(value.key_id)
+  ) {
+    errors.push('state receiver trust key ID is invalid');
+  }
+  if (!SHA256_RE.test(String(value?.public_key_fingerprint || ''))) {
+    errors.push('state receiver trust public key fingerprint is invalid');
+  }
+}
+
 function readPrivateState(path, {allowSending = false} = {}) {
   const stats = lstatSync(path);
   if (!stats.isFile() || (stats.mode & 0o077) !== 0) {
@@ -372,6 +513,7 @@ function readPrivateState(path, {allowSending = false} = {}) {
       'provider',
       'delivery',
       'provider_configuration_fingerprint',
+      'receiver_trust',
       'phone_number',
       'code',
       'created_at',
@@ -397,6 +539,7 @@ function readPrivateState(path, {allowSending = false} = {}) {
   if (!isEvidenceSha(state?.provider_configuration_fingerprint)) {
     errors.push('state configuration fingerprint is invalid');
   }
+  validateReceiverTrust(state?.receiver_trust, errors);
   try {
     requirePhoneNumber(state?.phone_number);
     requireSmsCode(state?.code);
@@ -432,6 +575,7 @@ function publicStateSummary(state, statePath, repositoryRoot) {
     delivery: state.delivery,
     target_id: state.target_id,
     repository_commit: state.repository_commit,
+    receiver_trust: state.receiver_trust,
     expires_at: state.expires_at,
     phone_fingerprint: fingerprint(state.run_id, state.phone_number),
     state_path: relativeToRepository(statePath, repositoryRoot),
@@ -489,6 +633,14 @@ function requireReportPath(path, repositoryRoot) {
   );
 }
 
+function requireReceiverEvidencePath(path, repositoryRoot) {
+  return requirePathBelow(
+    path,
+    resolve(repositoryRoot, 'docs', 'agent-runs', 'artifacts'),
+    'SMS receiver evidence',
+  );
+}
+
 function requirePathBelow(path, root, label) {
   if (typeof path !== 'string' || path.trim() === '') {
     throw new Error(`${label} path is required.`);
@@ -527,7 +679,11 @@ function writeAtomicJson(path, value, mode) {
   }
 }
 
-function publishReportAfterPrivateStateRemoval(reportPath, statePath, report) {
+function publishReportAfterPrivateArtifactsRemoval(
+  reportPath,
+  privateArtifactPaths,
+  report,
+) {
   const temporary = `${reportPath}.tmp-${randomUUID()}`;
   let published = false;
   try {
@@ -538,7 +694,9 @@ function publishReportAfterPrivateStateRemoval(reportPath, statePath, report) {
       mode: 0o644,
     });
     chmodSync(temporary, 0o644);
-    rmSync(statePath);
+    for (const privateArtifactPath of privateArtifactPaths) {
+      rmSync(privateArtifactPath);
+    }
     renameSync(temporary, reportPath);
     published = true;
   } finally {
@@ -571,19 +729,188 @@ function isTargetId(value) {
   return typeof value === 'string' && /^[a-z0-9][a-z0-9._-]{2,63}$/.test(value);
 }
 
-function requireHumanVerifier(value) {
-  if (!isHumanVerifier(value)) {
-    throw new Error('SOFTBOOK_SMS_SMOKE_VERIFIER must identify a human and not an agent.');
+function requireMachinePrincipal(value) {
+  if (!isMachinePrincipal(value)) {
+    throw new Error(
+      'SOFTBOOK_SMS_SMOKE_VERIFIER must identify a model, agent, service, or oidc machine principal.',
+    );
   }
   return value;
 }
 
-function isHumanVerifier(value) {
+function isMachinePrincipal(value) {
   return (
     typeof value === 'string' &&
-    /^(?:github|team|external):[A-Za-z0-9][A-Za-z0-9._@-]{2,63}$/.test(value) &&
-    !/(?:agent|bot|codex|automation|ci)/i.test(value)
+    /^(?:model|agent|service|oidc):[A-Za-z0-9][A-Za-z0-9._@-]{2,127}$/.test(value)
   );
+}
+
+function requireMachineRunId(value) {
+  if (!isMachineRunId(value)) {
+    throw new Error(
+      'SOFTBOOK_SMS_SMOKE_VERIFIER_RUN_ID must identify the machine verification run.',
+    );
+  }
+  return value;
+}
+
+function isMachineRunId(value) {
+  return (
+    typeof value === 'string' &&
+    /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(value)
+  );
+}
+
+function readVerifiedReceiverEvidence({
+  adapterId,
+  evidencePath,
+  expectedKeyId,
+  expectedPublicKeyFingerprint,
+  expectedRunId,
+  expectedTarget,
+  expiresAt,
+  now,
+  publicKey,
+  sentAt,
+}) {
+  if (!isMachinePrincipal(adapterId)) {
+    throw new Error(
+      'SOFTBOOK_SMS_RECEIVER_ADAPTER_ID must identify the independent receiver adapter.',
+    );
+  }
+  if (typeof expectedKeyId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(expectedKeyId)) {
+    throw new Error('SOFTBOOK_SMS_RECEIVER_KEY_ID is required and invalid.');
+  }
+  if (publicKey == null || publicKey === '') {
+    throw new Error('SOFTBOOK_SMS_RECEIVER_PUBLIC_KEY is required.');
+  }
+  if (!existsSync(evidencePath)) {
+    throw new Error('SMS receiver evidence artifact is required and missing.');
+  }
+  const bytes = readExactPrivateArtifact(evidencePath);
+  let evidence;
+  try {
+    evidence = parseStrictJson(bytes, 'SMS receiver evidence artifact');
+  } catch (error) {
+    throw new Error(`SMS receiver evidence is not strict JSON: ${error.message}`, {
+      cause: error,
+    });
+  }
+  const validationErrors = validateSmsReceiverEvidence(evidence);
+  if (validationErrors.length > 0) {
+    throw new Error(
+      `SMS receiver evidence is invalid: ${validationErrors.join('; ')}`,
+    );
+  }
+  if (evidence.adapter_id !== adapterId) {
+    throw new Error('SMS receiver evidence adapter identity does not match.');
+  }
+  if (evidence.key_id !== expectedKeyId) {
+    throw new Error('SMS receiver evidence key_id does not match configured key.');
+  }
+  if (evidence.run_id !== expectedRunId) {
+    throw new Error('SMS receiver evidence run_id does not match smoke state.');
+  }
+  if (evidence.target !== expectedTarget) {
+    throw new Error('SMS receiver evidence target does not match smoke state.');
+  }
+  const receivedAt = Date.parse(evidence.received_at);
+  if (
+    receivedAt < Date.parse(sentAt) ||
+    receivedAt > Date.parse(expiresAt) ||
+    receivedAt > now.getTime()
+  ) {
+    throw new Error('SMS receiver evidence received_at is outside the confirmation window.');
+  }
+  const key = requireEd25519PublicKey(publicKey);
+  const keyFingerprint = ed25519PublicKeyFingerprint(key);
+  if (keyFingerprint !== expectedPublicKeyFingerprint) {
+    throw new Error('SMS receiver public key fingerprint changed after prepare.');
+  }
+  if (!verifySmsReceiverEvidence(evidence, key)) {
+    throw new Error('SMS receiver evidence Ed25519 signature verification failed.');
+  }
+  return {
+    adapterId: evidence.adapter_id,
+    code: evidence.code,
+    public: {
+      artifact_sha256: createHash('sha256').update(bytes).digest('hex'),
+      key_fingerprint: keyFingerprint,
+      key_id: evidence.key_id,
+      received_at: evidence.received_at,
+      signature_verified: true,
+    },
+  };
+}
+
+function readExactPrivateArtifact(path) {
+  let descriptor;
+  try {
+    descriptor = openSync(
+      path,
+      fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
+    );
+  } catch (error) {
+    throw new Error(
+      'SMS receiver evidence must be a mode-0600 exact regular private artifact.',
+      {cause: error},
+    );
+  }
+  try {
+    const stats = fstatSync(descriptor);
+    if (!stats.isFile() || (stats.mode & 0o077) !== 0) {
+      throw new Error(
+        'SMS receiver evidence must be a mode-0600 exact regular private artifact.',
+      );
+    }
+    return readFileSync(descriptor);
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
+function validateReceiverEvidence(value, times, errors) {
+  requireExactKeys(
+    value,
+    [
+      'artifact_sha256',
+      'key_fingerprint',
+      'key_id',
+      'received_at',
+      'signature_verified',
+      'artifact_removed',
+    ],
+    'receiver_evidence',
+    errors,
+  );
+  if (!isEvidenceSha(value?.artifact_sha256)) {
+    errors.push('receiver_evidence artifact_sha256 is invalid');
+  }
+  if (!isEvidenceSha(value?.key_fingerprint)) {
+    errors.push('receiver_evidence key_fingerprint is invalid');
+  }
+  if (typeof value?.key_id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(value.key_id)) {
+    errors.push('receiver_evidence key_id is invalid');
+  }
+  const receivedAt = Date.parse(value?.received_at);
+  if (!Number.isFinite(receivedAt)) {
+    errors.push('receiver_evidence received_at is invalid');
+  } else if (
+    Number.isFinite(times.sentAt) &&
+    Number.isFinite(times.confirmedAt) &&
+    Number.isFinite(times.expiresAt) &&
+    (receivedAt < times.sentAt ||
+      receivedAt > times.confirmedAt ||
+      receivedAt > times.expiresAt)
+  ) {
+    errors.push('receiver_evidence received_at is outside the confirmation window');
+  }
+  if (value?.signature_verified !== true) {
+    errors.push('receiver_evidence signature_verified must be true');
+  }
+  if (value?.artifact_removed !== true) {
+    errors.push('receiver_evidence artifact_removed must be true');
+  }
 }
 
 function requireRunId(value) {
@@ -641,18 +968,32 @@ export function parseArguments(argv) {
   if (!['prepare', 'confirm', 'discard'].includes(command)) {
     throw new Error('Command must be prepare, confirm, or discard.');
   }
-  const options = {apply: false, command, format: 'text', reportPath: null, statePath: null};
+  const options = {
+    apply: false,
+    command,
+    format: 'text',
+    receiverEvidencePath: null,
+    reportPath: null,
+    statePath: null,
+  };
   for (let index = 0; index < rest.length; index += 1) {
     const argument = rest[index];
     if (argument === '--apply') {
       options.apply = true;
       continue;
     }
-    if (['--format', '--report', '--state'].includes(argument)) {
+    if (
+      ['--format', '--receiver-evidence', '--report', '--state'].includes(
+        argument,
+      )
+    ) {
       const value = rest[index + 1];
       if (!value || value.startsWith('--')) throw new Error(`${argument} requires a value.`);
       index += 1;
       if (argument === '--format') options.format = value;
+      if (argument === '--receiver-evidence') {
+        options.receiverEvidencePath = value;
+      }
       if (argument === '--report') options.reportPath = value;
       if (argument === '--state') options.statePath = value;
       continue;
@@ -661,7 +1002,13 @@ export function parseArguments(argv) {
   }
   if (!options.statePath) throw new Error('--state is required.');
   if (command === 'confirm' && !options.reportPath) throw new Error('confirm requires --report.');
+  if (command === 'confirm' && !options.receiverEvidencePath) {
+    throw new Error('confirm requires --receiver-evidence.');
+  }
   if (command !== 'confirm' && options.reportPath) throw new Error('--report is valid only for confirm.');
+  if (command !== 'confirm' && options.receiverEvidencePath) {
+    throw new Error('--receiver-evidence is valid only for confirm.');
+  }
   if (!['json', 'text'].includes(options.format)) throw new Error('--format must be text or json.');
   return options;
 }
@@ -684,10 +1031,9 @@ async function main() {
         statePath: options.statePath,
       });
     } else if (options.command === 'confirm') {
-      const receivedCode = options.apply ? readFileSync(0, 'utf8').trim() : undefined;
       result = confirmSmsProviderSmoke({
         apply: options.apply,
-        receivedCode,
+        receiverEvidencePath: options.receiverEvidencePath,
         reportPath: options.reportPath,
         statePath: options.statePath,
       });

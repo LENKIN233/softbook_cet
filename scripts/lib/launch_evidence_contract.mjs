@@ -9,7 +9,9 @@ const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
 const STRICT_SEMVER_PATTERN =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
-const VERIFIER_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
+const MACHINE_PRINCIPAL_PATTERN =
+  /^(model|agent|service|oidc):[A-Za-z0-9][A-Za-z0-9_.@-]{2,127}$/;
+const MACHINE_RUN_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
 const FORBIDDEN_ENVIRONMENT_PATTERN =
   /(^|[-_.:])(local|mock|simulation|simulator|personal|development|dev)([-_.:]|$)/i;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
@@ -37,16 +39,6 @@ export const RELEASE_OPERATIONAL_EVIDENCE_TYPES = Object.freeze([
   'rollback-drill',
 ]);
 
-export const CET4_FORMAL_CONTENT_EVIDENCE_TYPES = Object.freeze([
-  'cet4-approved-box-coverage-report',
-  'cet4-approved-card-coverage-report',
-  'cet4-audio-qc-coverage-report',
-  'cet4-content-pack-integrity-report',
-]);
-const CET4_FORMAL_CONTENT_EVIDENCE_SET = new Set(
-  CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
-);
-
 export const EXTERNAL_CAPABILITY_COMMON_CHECKS = Object.freeze([
   'provider-subject-bound',
   'owner-control-confirmed',
@@ -58,6 +50,14 @@ export const EXTERNAL_CAPABILITY_OBSERVATION_MODES = Object.freeze([
   'official_registry',
   'public_endpoint',
 ]);
+
+export const EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS = Object.freeze({
+  'android-distribution/release-signing': Object.freeze({
+    report_schema: 'android-signed-release.v1',
+    raw_artifact_role: 'android-signed-release-report',
+    validator_id: 'android-signed-release-report-and-launch-binding.v1',
+  }),
+});
 
 export const EXTERNAL_CAPABILITY_REQUIRED_CHECKS = Object.freeze({
   'apple-developer': {
@@ -352,27 +352,6 @@ export const REQUIRED_EVIDENCE_CHECKS = Object.freeze({
     'whole-scope-approval-bound',
     'zero-unapproved-boxes',
   ],
-  'cet4-approved-box-coverage-report': [
-    'all-108-boxes-covered',
-    'whole-scope-approval-bound',
-    'zero-unapproved-boxes',
-  ],
-  'cet4-approved-card-coverage-report': [
-    'all-1180-cards-covered',
-    'whole-scope-approval-bound',
-    'zero-unapproved-cards',
-  ],
-  'cet4-audio-qc-coverage-report': [
-    'all-301-assets-covered',
-    'all-qc-records-formally-ready',
-    'asset-hashes-match-content-release',
-  ],
-  'cet4-content-pack-integrity-report': [
-    'content-version-and-corpus-bound',
-    'bundle-evidence-hashes-match',
-    'private-assets-hash-bound',
-    'source-integrity-complete',
-  ],
   'approved-card-coverage-report': [
     'all-2414-cards-covered',
     'whole-scope-approval-bound',
@@ -590,6 +569,7 @@ export function validateReleaseOperationalPolicy(policy) {
       'status',
       'target_release',
       'quality_policy',
+      'machine_acceptance_policy',
       'evidence_validity_days',
       'environment',
       'common_binding',
@@ -625,14 +605,20 @@ export function validateReleaseOperationalPolicy(policy) {
   assertEqual(policy.status, 'active', `${label}.status`, errors);
   assertEqual(
     policy.target_release,
-    '2027-Q2',
+    '2026-09',
     `${label}.target_release`,
     errors,
   );
   assertEqual(
     policy.quality_policy,
-    'move_release_date_before_reducing_gate',
+    'automate_internal_acceptance_keep_objective_gates',
     `${label}.quality_policy`,
+    errors,
+  );
+  assertEqual(
+    policy.machine_acceptance_policy,
+    'spec/machine-acceptance.json',
+    `${label}.machine_acceptance_policy`,
     errors,
   );
   requireAtLeast(
@@ -666,9 +652,8 @@ export function validateGateEvidenceArtifact(
     outerEvidence = null,
     releaseOperationalPolicy = null,
     productionDeploymentEvidence = null,
-    cet4FormalContentEvidence = null,
     smsProviderSmokeReport = null,
-    targetRelease = '2027-Q2',
+    targetRelease = '2026-09',
   } = {},
 ) {
   const errors = [];
@@ -750,6 +735,7 @@ export function validateGateEvidenceArtifact(
     outerEvidence,
     executionTimes.completedAt,
     executionTimes.operator,
+    executionTimes.operatorRunId,
     RELEASE_OPERATIONAL_EVIDENCE_SET.has(evidenceType)
       ? releaseOperationalPolicy?.evidence_validity_days
       : 180,
@@ -792,16 +778,6 @@ export function validateGateEvidenceArtifact(
       artifact.measurements,
       artifactRoles,
       productionDeploymentEvidence,
-      artifact,
-      executionTimes,
-      `${label} measurements`,
-      errors,
-    );
-  } else if (CET4_FORMAL_CONTENT_EVIDENCE_SET.has(evidenceType)) {
-    validateCet4FormalContentMeasurements(
-      artifact.measurements,
-      artifactRoles,
-      cet4FormalContentEvidence,
       artifact,
       executionTimes,
       `${label} measurements`,
@@ -1009,547 +985,6 @@ function validateProductionDeploymentMeasurements(
     `${label} verify report`,
     errors,
   );
-}
-
-function validateCet4FormalContentMeasurements(
-  value,
-  artifactRoles,
-  loaded,
-  artifact,
-  executionTimes,
-  label,
-  errors,
-) {
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return;
-  }
-  const roleFields = [
-    'build_report_role',
-    'profile_role',
-    'bundle_role',
-    'content_role',
-    'approval_role',
-    'audit_role',
-    'audio_manifest_role',
-    'audio_qc_index_role',
-  ];
-  assertExactKeys(
-    value,
-    [
-      ...roleFields,
-      'content_version',
-      'corpus_fingerprint',
-      'bundle_id',
-      'approval_id',
-      'card_count',
-      'box_count',
-      'audio_asset_count',
-      'assertions',
-    ],
-    label,
-    errors,
-  );
-  const roles = roleFields.map(field => value[field]);
-  for (const field of roleFields) {
-    requirePattern(value[field], ID_PATTERN, `${label}.${field}`, errors);
-    if (!artifactRoles.has(value[field])) {
-      errors.push(`${label}.${field} must reference a declared raw artifact role.`);
-    }
-  }
-  if (new Set(roles).size !== roles.length) {
-    errors.push(`${label} raw artifact roles must be distinct.`);
-  }
-  requirePattern(
-    value.content_version,
-    CONTENT_VERSION_PATTERN,
-    `${label}.content_version`,
-    errors,
-  );
-  requirePattern(
-    value.corpus_fingerprint,
-    CONTENT_VERSION_PATTERN,
-    `${label}.corpus_fingerprint`,
-    errors,
-  );
-  requirePattern(value.approval_id, ID_PATTERN, `${label}.approval_id`, errors);
-  requirePattern(value.bundle_id, ID_PATTERN, `${label}.bundle_id`, errors);
-  assertEqual(value.card_count, 1180, `${label}.card_count`, errors);
-  assertEqual(value.box_count, 108, `${label}.box_count`, errors);
-  assertEqual(value.audio_asset_count, 301, `${label}.audio_asset_count`, errors);
-  validateTrueAssertions(
-    value.assertions,
-    [
-      'exact_cet4_scope',
-      'full_track_final_approval_bound',
-      'quality_audit_bound',
-      'complete_formal_audio_qc',
-      'bundle_hashes_match',
-      'core_verification_passed',
-    ],
-    `${label}.assertions`,
-    errors,
-  );
-  if (!isRecord(loaded)) {
-    errors.push(`${label} roles must resolve to strict formal content artifacts.`);
-    return;
-  }
-  const rawByRole = new Map(
-    (Array.isArray(artifact.raw_artifacts) ? artifact.raw_artifacts : []).map(
-      item => [item?.role, item],
-    ),
-  );
-  const raw = field => rawByRole.get(value[field]);
-  const reportTimes = validateFormalBundleBuildReport(
-    loaded.buildReport,
-    {
-      artifact,
-      executionTimes,
-      profileRaw: raw('profile_role'),
-      bundleRaw: raw('bundle_role'),
-      approvalRaw: raw('approval_role'),
-      auditRaw: raw('audit_role'),
-      manifestRaw: raw('audio_manifest_role'),
-      qcIndexRaw: raw('audio_qc_index_role'),
-    },
-    `${label} build report`,
-    errors,
-  );
-  assertEqual(
-    loaded.buildReport?.bundle_id,
-    value.bundle_id,
-    `${label} build report.bundle_id`,
-    errors,
-  );
-  assertEqual(
-    loaded.buildReport?.approval_id,
-    value.approval_id,
-    `${label} build report.approval_id`,
-    errors,
-  );
-  validateFormalContentProfile(
-    loaded.profile,
-    artifact.subject,
-    `${label} profile`,
-    errors,
-  );
-  validateFormalContentBundle(
-    loaded.bundle,
-    value,
-    artifact.subject,
-    {
-      contentRaw: raw('content_role'),
-      approvalRaw: raw('approval_role'),
-      auditRaw: raw('audit_role'),
-      manifestRaw: raw('audio_manifest_role'),
-      qcIndexRaw: raw('audio_qc_index_role'),
-    },
-    `${label} bundle`,
-    errors,
-  );
-  const scope = validateFormalContentPayload(
-    loaded.content,
-    value,
-    `${label} content`,
-    errors,
-  );
-  validateFormalApproval(
-    loaded.approval,
-    loaded.bundle,
-    scope,
-    value,
-    `${label} approval`,
-    errors,
-  );
-  validateFormalAudit(
-    loaded.audit,
-    scope,
-    value,
-    `${label} audit`,
-    errors,
-  );
-  const manifestAssets = validateFormalAudioManifestEvidence(
-    loaded.audioManifest,
-    loaded.content,
-    value,
-    `${label} audio manifest`,
-    errors,
-  );
-  const qcScope = validateFormalAudioQcIndexEvidence(
-    loaded.audioQcIndex,
-    manifestAssets,
-    scope,
-    value,
-    `${label} audio QC index`,
-    errors,
-  );
-  assertEqual(
-    loaded.buildReport?.unique_qc_record_count,
-    qcScope.uniqueRecordCount,
-    `${label} build report.unique_qc_record_count`,
-    errors,
-  );
-  if (
-    reportTimes.completedAt &&
-    executionTimes.completedAt &&
-    reportTimes.completedAt > executionTimes.completedAt
-  ) {
-    errors.push(`${label} build report must complete within evidence execution.`);
-  }
-}
-
-function validateFormalBundleBuildReport(
-  report,
-  {
-    artifact,
-    executionTimes,
-    profileRaw,
-    bundleRaw,
-    approvalRaw,
-    auditRaw,
-    manifestRaw,
-    qcIndexRaw,
-  },
-  label,
-  errors,
-) {
-  if (!isRecord(report)) {
-    errors.push(`${label} must be an object.`);
-    return {completedAt: null, startedAt: null};
-  }
-  assertExactKeys(
-    report,
-    [
-      'schema_version',
-      'apply',
-      'bundle_directory',
-      'repository_commit',
-      'profile_id',
-      'profile_sha256',
-      'bundle_id',
-      'bundle_sha256',
-      'release_id',
-      'parent_release_id',
-      'content_version',
-      'card_count',
-      'box_count',
-      'audio_asset_count',
-      'audio_qc_entry_count',
-      'unique_qc_record_count',
-      'approval_id',
-      'approval_sha256',
-      'audit_sha256',
-      'audio_manifest_sha256',
-      'audio_qc_index_sha256',
-      'verified',
-      'execution',
-      'write_safety',
-      'cloudbase_writes_performed',
-      'gate_eligible',
-    ],
-    label,
-    errors,
-  );
-  assertEqual(report.schema_version, 'formal-release-bundle-build-report.v2', `${label}.schema_version`, errors);
-  assertEqual(report.apply, true, `${label}.apply`, errors);
-  if (
-    typeof report.bundle_directory !== 'string' ||
-    !/^[A-Za-z0-9._-]{3,128}$/.test(report.bundle_directory)
-  ) {
-    errors.push(`${label}.bundle_directory must be a basename only.`);
-  }
-  assertEqual(report.repository_commit, artifact.subject?.commit_sha, `${label}.repository_commit`, errors);
-  assertEqual(report.profile_id, artifact.subject?.environment?.profile_id, `${label}.profile_id`, errors);
-  assertEqual(stripSha(report.profile_sha256), profileRaw?.sha256, `${label}.profile_sha256`, errors);
-  assertEqual(stripSha(report.bundle_sha256), bundleRaw?.sha256, `${label}.bundle_sha256`, errors);
-  assertEqual(stripSha(report.approval_sha256), approvalRaw?.sha256, `${label}.approval_sha256`, errors);
-  assertEqual(stripSha(report.audit_sha256), auditRaw?.sha256, `${label}.audit_sha256`, errors);
-  assertEqual(stripSha(report.audio_manifest_sha256), manifestRaw?.sha256, `${label}.audio_manifest_sha256`, errors);
-  assertEqual(stripSha(report.audio_qc_index_sha256), qcIndexRaw?.sha256, `${label}.audio_qc_index_sha256`, errors);
-  assertEqual(report.bundle_sha256, `sha256:${artifact.subject?.release?.bundle_sha256}`, `${label}.bundle subject binding`, errors);
-  assertEqual(report.release_id, artifact.subject?.release?.release_id, `${label}.release_id`, errors);
-  assertEqual(report.parent_release_id, artifact.subject?.release?.parent_release_id, `${label}.parent_release_id`, errors);
-  assertEqual(report.content_version, artifact.subject?.release?.content_version, `${label}.content_version`, errors);
-  assertEqual(report.card_count, 1180, `${label}.card_count`, errors);
-  assertEqual(report.box_count, 108, `${label}.box_count`, errors);
-  assertEqual(report.audio_asset_count, 301, `${label}.audio_asset_count`, errors);
-  assertEqual(report.audio_qc_entry_count, 301, `${label}.audio_qc_entry_count`, errors);
-  requirePositiveInteger(report.unique_qc_record_count, `${label}.unique_qc_record_count`, errors);
-  assertEqual(report.verified, true, `${label}.verified`, errors);
-  assertEqual(report.cloudbase_writes_performed, false, `${label}.cloudbase_writes_performed`, errors);
-  assertEqual(report.gate_eligible, false, `${label}.gate_eligible`, errors);
-  validateFormalBuildWriteSafety(report.write_safety, artifact.subject, `${label}.write_safety`, errors);
-  const times = validateRawExecution(
-    report.execution,
-    artifact.execution?.operator,
-    executionTimes,
-    `${label}.execution`,
-    errors,
-  );
-  return times;
-}
-
-function validateFormalBuildWriteSafety(value, subject, label, errors) {
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return;
-  }
-  assertExactKeys(value, ['errors', 'ok', 'branch', 'dirty', 'head', 'origin_main', 'node_version'], label, errors);
-  requireExactArray(value.errors, [], `${label}.errors`, errors);
-  assertEqual(value.ok, true, `${label}.ok`, errors);
-  assertEqual(value.branch, 'main', `${label}.branch`, errors);
-  assertEqual(value.dirty, false, `${label}.dirty`, errors);
-  assertEqual(value.head, subject?.commit_sha, `${label}.head`, errors);
-  assertEqual(value.origin_main, subject?.commit_sha, `${label}.origin_main`, errors);
-  assertEqual(value.node_version, '22.13.0', `${label}.node_version`, errors);
-}
-
-function validateRawExecution(value, expectedOperator, outerTimes, label, errors) {
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return {completedAt: null, startedAt: null};
-  }
-  assertExactKeys(value, ['started_at', 'completed_at', 'operator'], label, errors);
-  assertEqual(value.operator, expectedOperator, `${label}.operator`, errors);
-  const startedAt = parseTimestamp(value.started_at, `${label}.started_at`, null, errors);
-  const completedAt = parseTimestamp(value.completed_at, `${label}.completed_at`, null, errors);
-  if (startedAt && completedAt && completedAt < startedAt) {
-    errors.push(`${label}.completed_at must not predate started_at.`);
-  }
-  requireTimestampWithinExecution(startedAt, outerTimes, `${label}.started_at`, errors);
-  requireTimestampWithinExecution(completedAt, outerTimes, `${label}.completed_at`, errors);
-  return {completedAt, startedAt};
-}
-
-function validateFormalContentProfile(value, subject, label, errors) {
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return;
-  }
-  assertEqual(value.schema_version, 'delivery-profile.v1', `${label}.schema_version`, errors);
-  assertEqual(value.profile_id, subject?.environment?.profile_id, `${label}.profile_id`, errors);
-  assertEqual(value.environment_id, subject?.environment?.environment_id, `${label}.environment_id`, errors);
-  assertEqual(value.runtime_mode, 'closed_beta', `${label}.runtime_mode`, errors);
-  requireExactArray(value.enabled_tracks, ['cet4'], `${label}.enabled_tracks`, errors);
-}
-
-function validateFormalContentBundle(value, measurements, subject, raw, label, errors) {
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return;
-  }
-  assertEqual(value.schema_version, 'release-bundle.v1', `${label}.schema_version`, errors);
-  assertEqual(value.track, 'cet4', `${label}.track`, errors);
-  assertEqual(value.bundle_id, measurements.bundle_id, `${label}.bundle_id`, errors);
-  assertEqual(value.release_id, subject?.release?.release_id, `${label}.release_id`, errors);
-  assertEqual(value.parent_release_id, subject?.release?.parent_release_id, `${label}.parent_release_id`, errors);
-  assertEqual(value.content?.content_version, measurements.content_version, `${label}.content_version`, errors);
-  assertEqual(value.content?.corpus_fingerprint, measurements.corpus_fingerprint, `${label}.corpus_fingerprint`, errors);
-  assertEqual(value.content?.card_count, 1180, `${label}.card_count`, errors);
-  assertEqual(stripSha(value.content?.payload_sha256), raw.contentRaw?.sha256, `${label}.payload_sha256`, errors);
-  assertEqual(stripSha(value.approval?.record_sha256), raw.approvalRaw?.sha256, `${label}.approval_sha256`, errors);
-  assertEqual(stripSha(value.audit?.report_sha256), raw.auditRaw?.sha256, `${label}.audit_sha256`, errors);
-  assertEqual(stripSha(value.audio?.manifest_sha256), raw.manifestRaw?.sha256, `${label}.manifest_sha256`, errors);
-  assertEqual(stripSha(value.audio?.qc_index_sha256), raw.qcIndexRaw?.sha256, `${label}.qc_index_sha256`, errors);
-  assertEqual(value.audio?.asset_count, 301, `${label}.audio.asset_count`, errors);
-  assertEqual(value.audio?.qc_passed_count, 301, `${label}.audio.qc_passed_count`, errors);
-  assertEqual(value.approval?.approval_id, measurements.approval_id, `${label}.approval_id`, errors);
-}
-
-function validateFormalContentPayload(value, measurements, label, errors) {
-  const scope = {
-    cardIds: [],
-    boxIds: [],
-    audioCardIds: [],
-    assetIds: [],
-    audioCardIdsByAsset: new Map(),
-  };
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return scope;
-  }
-  assertEqual(value.track, 'cet4', `${label}.track`, errors);
-  assertEqual(value.content_version, measurements.content_version, `${label}.content_version`, errors);
-  assertEqual(value.corpus_fingerprint, measurements.corpus_fingerprint, `${label}.corpus_fingerprint`, errors);
-  const cards = Array.isArray(value.card_records) ? value.card_records : [];
-  const assets = Array.isArray(value.assets) ? value.assets : [];
-  assertEqual(cards.length, 1180, `${label}.card_count`, errors);
-  assertEqual(assets.length, 301, `${label}.asset_count`, errors);
-  scope.cardIds = cards.map(card => String(card?.card_id));
-  scope.boxIds = [...new Set(cards.map(card => String(card?.knowledge_ref)))];
-  scope.audioCardIds = cards.filter(card => card?.audio).map(card => String(card.card_id));
-  scope.assetIds = assets.map(asset => String(asset?.asset_id));
-  assertUniqueCount(scope.cardIds, 1180, `${label}.card_ids`, errors);
-  assertUniqueCount(scope.boxIds, 108, `${label}.box_ids`, errors);
-  assertUniqueCount(scope.audioCardIds, 301, `${label}.audio_card_ids`, errors);
-  assertUniqueCount(scope.assetIds, 301, `${label}.asset_ids`, errors);
-  const assetIdSet = new Set(scope.assetIds);
-  for (const card of cards.filter(item => item?.audio)) {
-    const cardId = String(card?.card_id);
-    const assetId = String(card?.audio?.asset_id);
-    if (!assetIdSet.has(assetId)) {
-      errors.push(`${label}.${cardId}.audio.asset_id must reference a bound asset.`);
-      continue;
-    }
-    const cardIds = scope.audioCardIdsByAsset.get(assetId) ?? [];
-    cardIds.push(cardId);
-    scope.audioCardIdsByAsset.set(assetId, cardIds);
-  }
-  assertSameStringSet(
-    [...scope.audioCardIdsByAsset.keys()],
-    scope.assetIds,
-    `${label}.audio asset references`,
-    errors,
-  );
-  return scope;
-}
-
-function validateFormalApproval(value, bundle, scope, measurements, label, errors) {
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return;
-  }
-  assertEqual(value.approval_id, measurements.approval_id, `${label}.approval_id`, errors);
-  assertEqual(value.approval_mode, 'full_track_final', `${label}.approval_mode`, errors);
-  assertEqual(value.approved_by_user, true, `${label}.approved_by_user`, errors);
-  parseTimestamp(value.approved_at, `${label}.approved_at`, null, errors);
-  assertEqual(value.scope?.track, 'cet4', `${label}.track`, errors);
-  assertSameStringSet(value.scope?.card_ids, scope.cardIds, `${label}.card_ids`, errors);
-  assertSameStringSet(value.scope?.box_prefixes, scope.boxIds, `${label}.box_prefixes`, errors);
-  assertEqual(value.card_quality_audit?.corpus_fingerprint, measurements.corpus_fingerprint.slice('sha256:'.length), `${label}.corpus_fingerprint`, errors);
-  assertEqual(value.card_quality_audit?.report, bundle?.audit?.report_path, `${label}.audit_path`, errors);
-  assertEqual(value.card_quality_audit?.report_sha256, bundle?.audit?.report_sha256, `${label}.audit_sha256`, errors);
-  assertEqual(value.card_quality_audit?.scope_has_no_hard_blockers, true, `${label}.scope_has_no_hard_blockers`, errors);
-  const summary = value.card_quality_audit?.scope_summary;
-  assertEqual(summary?.card_count, 1180, `${label}.scope_summary.card_count`, errors);
-  assertSameStringSet(summary?.card_ids, scope.cardIds, `${label}.scope_summary.card_ids`, errors);
-  for (const field of ['hard_blocker', 'content_risk', 'review_gap']) {
-    assertEqual(summary?.by_severity?.[field], 0, `${label}.scope_summary.${field}`, errors);
-  }
-}
-
-function validateFormalAudit(value, scope, measurements, label, errors) {
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return;
-  }
-  assertEqual(value.corpus_fingerprint?.digest, measurements.corpus_fingerprint.slice('sha256:'.length), `${label}.corpus_fingerprint`, errors);
-  assertEqual(value.scope_summary?.card_count, 1180, `${label}.card_count`, errors);
-  assertSameStringSet(value.scope_summary?.card_ids, scope.cardIds, `${label}.card_ids`, errors);
-  for (const field of ['hard_blocker', 'content_risk', 'review_gap']) {
-    assertEqual(value.scope_summary?.by_severity?.[field], 0, `${label}.${field}`, errors);
-  }
-  requireExactArray(value.scope?.missing_card_ids, [], `${label}.missing_card_ids`, errors);
-}
-
-function validateFormalAudioManifestEvidence(value, content, measurements, label, errors) {
-  const assets = Array.isArray(value?.assets) ? value.assets : [];
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return assets;
-  }
-  assertEqual(value.schema_version, 'release-audio-manifest.v1', `${label}.schema_version`, errors);
-  assertEqual(value.track, 'cet4', `${label}.track`, errors);
-  assertEqual(assets.length, 301, `${label}.asset_count`, errors);
-  const contentById = new Map((Array.isArray(content?.assets) ? content.assets : []).map(asset => [asset.asset_id, asset]));
-  assertUniqueCount(assets.map(asset => asset?.asset_id), 301, `${label}.asset_ids`, errors);
-  for (const asset of assets) {
-    const expected = contentById.get(asset.asset_id);
-    for (const field of ['asset_path', 'sha256', 'size_bytes', 'duration_ms']) {
-      assertEqual(asset?.[field], expected?.[field], `${label}.${asset?.asset_id}.${field}`, errors);
-    }
-  }
-  assertEqual(measurements.audio_asset_count, assets.length, `${label}.measurement_count`, errors);
-  return assets;
-}
-
-function validateFormalAudioQcIndexEvidence(value, manifestAssets, scope, measurements, label, errors) {
-  const assets = Array.isArray(value?.assets) ? value.assets : [];
-  if (!isRecord(value)) {
-    errors.push(`${label} must be an object.`);
-    return {uniqueRecordCount: 0};
-  }
-  assertExactKeys(value, ['schema_version', 'track', 'corpus_fingerprint', 'assets'], label, errors);
-  assertEqual(value.schema_version, 'audio-qc-index.v1', `${label}.schema_version`, errors);
-  assertEqual(value.track, 'cet4', `${label}.track`, errors);
-  assertEqual(value.corpus_fingerprint, measurements.corpus_fingerprint, `${label}.corpus_fingerprint`, errors);
-  assertEqual(assets.length, 301, `${label}.asset_count`, errors);
-  assertSameStringSet(assets.map(asset => asset?.asset_id), manifestAssets.map(asset => asset?.asset_id), `${label}.asset_ids`, errors);
-  const audioCards = new Set(scope.audioCardIds);
-  const coveredCards = new Set();
-  for (const asset of assets) {
-    const assetLabel = `${label}.${asset?.asset_id}`;
-    if (!isRecord(asset)) {
-      errors.push(`${assetLabel} must be an object.`);
-      continue;
-    }
-    assertExactKeys(
-      asset,
-      [
-        'asset_id',
-        'card_ids',
-        'record_path',
-        'record_sha256',
-        'reviewed_by',
-        'reviewed_at',
-        'formal_audio_ready',
-      ],
-      assetLabel,
-      errors,
-    );
-    requirePattern(asset.asset_id, ID_PATTERN, `${assetLabel}.asset_id`, errors);
-    assertEqual(asset?.formal_audio_ready, true, `${label}.${asset?.asset_id}.formal_audio_ready`, errors);
-    requireSha256(asset?.record_sha256?.replace(/^sha256:/, ''), `${label}.${asset?.asset_id}.record_sha256`, errors);
-    const recordHash = stripSha(asset.record_sha256);
-    assertEqual(asset.record_path, `audio/qc/${recordHash}.json`, `${assetLabel}.record_path`, errors);
-    requirePattern(asset?.reviewed_by, VERIFIER_PATTERN, `${label}.${asset?.asset_id}.reviewed_by`, errors);
-    if (/\b(?:agent|codex|bot|automation)\b/i.test(asset.reviewed_by ?? '')) {
-      errors.push(`${assetLabel}.reviewed_by must identify a human reviewer.`);
-    }
-    parseTimestamp(asset?.reviewed_at, `${label}.${asset?.asset_id}.reviewed_at`, null, errors);
-    if (!Array.isArray(asset?.card_ids) || asset.card_ids.some(cardId => !audioCards.has(String(cardId)))) {
-      errors.push(`${label}.${asset?.asset_id}.card_ids must cover only bound audio cards.`);
-    } else {
-      assertSameStringSet(
-        asset.card_ids,
-        scope.audioCardIdsByAsset.get(String(asset.asset_id)) ?? [],
-        `${assetLabel}.card_ids`,
-        errors,
-      );
-      for (const cardId of asset.card_ids) coveredCards.add(String(cardId));
-    }
-  }
-  assertSameStringSet(
-    [...coveredCards],
-    scope.audioCardIds,
-    `${label}.card coverage`,
-    errors,
-  );
-  return {
-    uniqueRecordCount: new Set(assets.map(asset => stripSha(asset?.record_sha256))).size,
-  };
-}
-
-function stripSha(value) {
-  return typeof value === 'string' ? value.replace(/^sha256:/, '') : value;
-}
-
-function assertUniqueCount(values, count, label, errors) {
-  if (!Array.isArray(values) || values.length !== count || new Set(values).size !== count) {
-    errors.push(`${label} must contain exactly ${count} unique values.`);
-  }
-}
-
-function assertSameStringSet(left, right, label, errors) {
-  if (!Array.isArray(left) || !Array.isArray(right)) {
-    errors.push(`${label} must be arrays.`);
-    return;
-  }
-  const a = [...left].map(String).sort();
-  const b = [...right].map(String).sort();
-  if (a.length !== b.length || new Set(a).size !== a.length || a.some((value, index) => value !== b[index])) {
-    errors.push(`${label} sets do not match.`);
-  }
 }
 
 function validateReceiverDeliveryReport(
@@ -2368,8 +1803,25 @@ function validateSmsProviderSmokeMeasurements(
     errors.push(`${label} must be an object.`);
     return;
   }
-  assertExactKeys(value, ['report_role'], label, errors);
+  assertExactKeys(
+    value,
+    ['report_role', 'receiver_key_id', 'receiver_key_fingerprint'],
+    label,
+    errors,
+  );
   requirePattern(value.report_role, ID_PATTERN, `${label}.report_role`, errors);
+  requirePattern(
+    value.receiver_key_id,
+    ID_PATTERN,
+    `${label}.receiver_key_id`,
+    errors,
+  );
+  requirePattern(
+    value.receiver_key_fingerprint,
+    SHA256_PATTERN,
+    `${label}.receiver_key_fingerprint`,
+    errors,
+  );
   if (
     typeof value.report_role === 'string' &&
     !artifactRoles.has(value.report_role)
@@ -2413,9 +1865,24 @@ function validateSmsProviderSmokeMeasurements(
       artifact.execution?.completed_at,
     ],
     [
-      'human verifier',
+      'automated receiver verifier',
       report.verifier?.id,
       artifact.verification?.verified_by,
+    ],
+    [
+      'automated receiver verification run',
+      report.verifier?.run_id,
+      artifact.verification?.run_id,
+    ],
+    [
+      'receiver key ID',
+      report.receiver_evidence?.key_id,
+      value.receiver_key_id,
+    ],
+    [
+      'receiver key fingerprint',
+      report.receiver_evidence?.key_fingerprint,
+      value.receiver_key_fingerprint,
     ],
     [
       'verification timestamp',
@@ -2428,6 +1895,9 @@ function validateSmsProviderSmokeMeasurements(
       errors.push(`${label} raw report ${binding} binding does not match.`);
     }
   }
+  errors.push(
+    `${label} trusted receiver key registry and deployed IAM attestation are not implemented; SMS evidence remains ineligible.`,
+  );
 }
 
 function validateReleasePolicyEnvironment(value, errors) {
@@ -2515,6 +1985,8 @@ function validateReleasePolicyCommonBinding(value, errors) {
       'require_repository_raw_artifacts_only',
       'require_independent_verification',
       'require_distinct_operator_and_verifier',
+      'require_machine_principals',
+      'require_distinct_machine_run_ids',
       'require_execution_window_binding',
     ],
     label,
@@ -2541,6 +2013,8 @@ function validateReleasePolicyCommonBinding(value, errors) {
     'require_repository_raw_artifacts_only',
     'require_independent_verification',
     'require_distinct_operator_and_verifier',
+    'require_machine_principals',
+    'require_distinct_machine_run_ids',
     'require_execution_window_binding',
   ]) {
     assertEqual(value[field], true, `${label}.${field}`, errors);
@@ -2557,11 +2031,15 @@ function validateExternalCapabilityPolicy(value, errors) {
     value,
     [
       'schema_version',
-      'product_owner',
-      'protected_approval_environment',
+      'acceptance_authority',
+      'machine_acceptance_policy',
+      'internal_human_approval_required',
+      'external_facts_fail_closed',
       'target_release_binding_required',
       'repository_report_and_raw_artifacts_must_be_rehashed',
       'capability_evidence_cannot_replace_launch_gate',
+      'unregistered_type_specific_semantics_fail_closed',
+      'registered_type_specific_semantics',
       'allowed_observation_modes',
       'common_required_checks',
       'required_checks',
@@ -2576,15 +2054,27 @@ function validateExternalCapabilityPolicy(value, errors) {
     errors,
   );
   assertEqual(
-    value.product_owner,
-    'github:LENKIN233',
-    `${label}.product_owner`,
+    value.acceptance_authority,
+    'service:softbook-machine-harness',
+    `${label}.acceptance_authority`,
     errors,
   );
   assertEqual(
-    value.protected_approval_environment,
-    'formal-product-owner-approval',
-    `${label}.protected_approval_environment`,
+    value.machine_acceptance_policy,
+    'spec/machine-acceptance.json',
+    `${label}.machine_acceptance_policy`,
+    errors,
+  );
+  assertEqual(
+    value.internal_human_approval_required,
+    false,
+    `${label}.internal_human_approval_required`,
+    errors,
+  );
+  assertEqual(
+    value.external_facts_fail_closed,
+    true,
+    `${label}.external_facts_fail_closed`,
     errors,
   );
   assertEqual(
@@ -2605,6 +2095,41 @@ function validateExternalCapabilityPolicy(value, errors) {
     `${label}.capability_evidence_cannot_replace_launch_gate`,
     errors,
   );
+  assertEqual(
+    value.unregistered_type_specific_semantics_fail_closed,
+    true,
+    `${label}.unregistered_type_specific_semantics_fail_closed`,
+    errors,
+  );
+  if (!isRecord(value.registered_type_specific_semantics)) {
+    errors.push(`${label}.registered_type_specific_semantics must be an object.`);
+  } else {
+    requireExactSet(
+      Object.keys(value.registered_type_specific_semantics),
+      Object.keys(EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS),
+      `${label}.registered_type_specific_semantics keys`,
+      errors,
+    );
+    for (const [key, expected] of Object.entries(
+      EXTERNAL_CAPABILITY_REGISTERED_TYPE_SEMANTICS,
+    )) {
+      const actual = value.registered_type_specific_semantics[key];
+      const semanticLabel = `${label}.registered_type_specific_semantics.${key}`;
+      if (!isRecord(actual)) {
+        errors.push(`${semanticLabel} must be an object.`);
+        continue;
+      }
+      assertExactKeys(
+        actual,
+        ['report_schema', 'raw_artifact_role', 'validator_id'],
+        semanticLabel,
+        errors,
+      );
+      for (const field of ['report_schema', 'raw_artifact_role', 'validator_id']) {
+        assertEqual(actual[field], expected[field], `${semanticLabel}.${field}`, errors);
+      }
+    }
+  }
   requireExactSet(
     value.allowed_observation_modes,
     EXTERNAL_CAPABILITY_OBSERVATION_MODES,
@@ -3243,13 +2768,14 @@ function validateExecution(
   let startedAt = null;
   let completedAt = null;
   let operator = null;
+  let operatorRunId = null;
   if (!isRecord(value)) {
     errors.push(`${label} must be an object.`);
-    return {completedAt, operator, startedAt};
+    return {completedAt, operator, operatorRunId, startedAt};
   }
   assertExactKeys(
     value,
-    ['started_at', 'completed_at', 'operator', 'tool'],
+    ['started_at', 'completed_at', 'operator', 'run_id', 'tool'],
     label,
     errors,
   );
@@ -3281,10 +2807,15 @@ function validateExecution(
   if (startedAt && completedAt && completedAt < startedAt) {
     errors.push(`${label}.completed_at must not predate started_at.`);
   }
-  if (!VERIFIER_PATTERN.test(value.operator ?? '')) {
-    errors.push(`${label}.operator must identify a github, team, or external operator.`);
+  if (!MACHINE_PRINCIPAL_PATTERN.test(value.operator ?? '')) {
+    errors.push(`${label}.operator must identify a model, agent, service, or oidc machine principal.`);
   } else {
     operator = value.operator;
+  }
+  if (!MACHINE_RUN_ID_PATTERN.test(value.run_id ?? '')) {
+    errors.push(`${label}.run_id must identify the machine execution run.`);
+  } else {
+    operatorRunId = value.run_id;
   }
   if (!isRecord(value.tool)) {
     errors.push(`${label}.tool must be an object.`);
@@ -3303,7 +2834,7 @@ function validateExecution(
       errors,
     );
   }
-  return {completedAt, operator, startedAt};
+  return {completedAt, operator, operatorRunId, startedAt};
 }
 
 function validateRawArtifacts(value, label, errors) {
@@ -3424,6 +2955,7 @@ function validateVerification(
   outerEvidence,
   completedAt,
   operator,
+  operatorRunId,
   evidenceValidityDays,
   now,
   label,
@@ -3435,7 +2967,7 @@ function validateVerification(
   }
   assertExactKeys(
     value,
-    ['verified_at', 'verified_by', 'independent', 'attestation'],
+    ['verified_at', 'verified_by', 'run_id', 'independent', 'attestation'],
     label,
     errors,
   );
@@ -3464,8 +2996,11 @@ function validateVerification(
       )}-day evidence validity policy.`,
     );
   }
-  if (!VERIFIER_PATTERN.test(value.verified_by ?? '')) {
-    errors.push(`${label}.verified_by must identify a github, team, or external verifier.`);
+  if (!MACHINE_PRINCIPAL_PATTERN.test(value.verified_by ?? '')) {
+    errors.push(`${label}.verified_by must identify a model, agent, service, or oidc machine principal.`);
+  }
+  if (!MACHINE_RUN_ID_PATTERN.test(value.run_id ?? '')) {
+    errors.push(`${label}.run_id must identify the machine verification run.`);
   }
   if (value.independent !== true) {
     errors.push(`${label}.independent must be true.`);
@@ -3476,6 +3011,13 @@ function validateVerification(
     value.verified_by === operator
   ) {
     errors.push(`${label}.verified_by must differ from the execution operator.`);
+  }
+  if (
+    typeof operatorRunId === 'string' &&
+    typeof value.run_id === 'string' &&
+    value.run_id === operatorRunId
+  ) {
+    errors.push(`${label}.run_id must differ from the execution run_id.`);
   }
   if (outerEvidence) {
     assertEqual(
@@ -3488,6 +3030,12 @@ function validateVerification(
       value.verified_by,
       outerEvidence.verified_by,
       `${label}.verified_by outer binding`,
+      errors,
+    );
+    assertEqual(
+      value.run_id,
+      outerEvidence.verification_run_id,
+      `${label}.run_id outer binding`,
       errors,
     );
   }
@@ -3503,7 +3051,8 @@ function validateVerification(
     if (
       ![
         'github_actions_oidc',
-        'protected_environment',
+        'model_run',
+        'service_signature',
         'external_signature',
         'regulatory_record',
       ].includes(value.attestation.provider)
@@ -4464,8 +4013,8 @@ function validatePenetrationMeasurements(value, policy, label, errors) {
   );
   requireExactSet(value.scope, policy?.required_scope, `${label}.scope`, errors);
   requireNonEmptyString(value.methodology, `${label}.methodology`, errors);
-  if (!VERIFIER_PATTERN.test(value.tester ?? '')) {
-    errors.push(`${label}.tester must identify a team or external tester.`);
+  if (!MACHINE_PRINCIPAL_PATTERN.test(value.tester ?? '')) {
+    errors.push(`${label}.tester must identify a model, agent, service, or oidc machine principal.`);
   }
   if (!isRecord(value.findings)) {
     errors.push(`${label}.findings must be an object.`);

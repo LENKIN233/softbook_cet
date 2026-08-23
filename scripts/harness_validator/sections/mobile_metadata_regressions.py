@@ -162,8 +162,6 @@ def validate(context) -> None:
         "SOFTBOOK_CET_IOS_SIMULATOR",
         "SOFTBOOK_CET_IOS_BUNDLE_ID",
         "SOFTBOOK_CET_METRO_PORT",
-        "SOFTBOOK_CET_STOP_METRO_ON_EXIT",
-        "SOFTBOOK_CET_MANUAL_TEST_PHONE",
         "SOFTBOOK_CET_IOS_MAESTRO_FLOW",
         "SOFTBOOK_CET_MAESTRO_PHONE",
         "SOFTBOOK_CET_MAESTRO_CODE",
@@ -171,9 +169,7 @@ def validate(context) -> None:
         "IOS_DEVICE",
         "IOS_BUNDLE_ID",
         "METRO_PORT",
-        "STOP_METRO_ON_EXIT",
         "SMS_CODE",
-        "MANUAL_TEST_PHONE",
         "MAESTRO_FLOW",
         "MAESTRO_PHONE",
         "MAESTRO_CODE",
@@ -902,7 +898,7 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/IosLaunchEnvMetadataPropLeak.tsx").write_text(
             "export function IosLaunchEnvMetadataPropLeak() {\n"
-            "  return <Pressable accessibilityLabel=\"SOFTBOOK_CET_IOS_BUNDLE_ID SOFTBOOK_CET_METRO_PORT SOFTBOOK_CET_STOP_METRO_ON_EXIT\" />;\n"
+            "  return <Pressable accessibilityLabel=\"SOFTBOOK_CET_IOS_BUNDLE_ID SOFTBOOK_CET_METRO_PORT\" />;\n"
             "}\n",
             encoding="utf-8",
         )
@@ -914,7 +910,7 @@ def validate(context) -> None:
         )
         (tmp_app_root / "src/learning/IosMaestroEnvMetadataTextLeak.tsx").write_text(
             "export function IosMaestroEnvMetadataTextLeak() {\n"
-            "  return <Text>SOFTBOOK_CET_MANUAL_TEST_PHONE SOFTBOOK_CET_MAESTRO_PHONE</Text>;\n"
+            "  return <Text>SOFTBOOK_CET_MAESTRO_PHONE</Text>;\n"
             "}\n",
             encoding="utf-8",
         )

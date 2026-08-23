@@ -71,6 +71,7 @@ def validate(context) -> None:
         "",
         [
             "apps/mobile/__tests__/SpaceSurface.test.tsx",
+            "apps/mobile/acceptance/controlledPilotAuthorizedPayload.acceptance.tsx",
             "apps/mobile/src/space/SpaceSurface.test.tsx",
         ],
     )

@@ -334,8 +334,10 @@ function bundleFixture() {
       duplicate_card_id_count: 0,
     },
     approval: {
-      record_path: 'approval/pilot-approval.json',
+      record_path: 'approval/pilot-authorization.json',
       record_sha256: digest('4'),
+      review_path: 'approval/pilot-review.json',
+      review_sha256: digest('6'),
       scope: 'controlled_pilot_120',
       status: 'approved',
       approved_at: '2026-08-09T00:00:00.000Z',

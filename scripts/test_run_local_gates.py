@@ -176,9 +176,12 @@ class LocalGateRunnerTests(unittest.TestCase):
             )
         )
         self.assertIn("--strict", strict.argv)
-        self.assertIn("--remote", strict.argv)
-        self.assertIn("--expected-max-worktrees", strict.argv)
-        self.assertIn("--require-upstreams", strict.argv)
+        self.assertIn("--profile", strict.argv)
+        self.assertIn("local", strict.argv)
+        self.assertNotIn("--remote", strict.argv)
+        self.assertNotIn("--expected-max-worktrees", strict.argv)
+        self.assertNotIn("--require-upstreams", strict.argv)
+        self.assertFalse(catalog["repo-health-strict"].network)
 
     def test_multiple_gate_failures_are_collected_and_schema_is_stable(self):
         catalog = (
@@ -448,24 +451,12 @@ class LocalGateRunnerTests(unittest.TestCase):
 
 - [x] `python3 scripts/validate_harness.py`
 
-## Agent review
+## Model review
 
-- Reviewer: Codex
+- Reviewer: agent:codex
 - Review status: Pending
 - Blocking findings: Pending
 - Review summary: Pending
-
-## Agent run record
-
-- Run record: docs/agent-runs/example.md
-
-## 设计稿来源（用户可见 UI 如适用）
-
-- N/A
-
-## design_review_checklist（如适用）
-
-- N/A
 """
         for label, body in (("pending", pending_body), ("missing", "")):
             context = self.context(

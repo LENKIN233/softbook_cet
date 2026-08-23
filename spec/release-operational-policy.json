@@ -3,8 +3,9 @@
   "policy_id": "softbook-release-operations.v1",
   "classification": "implementation_hypothesis",
   "status": "active",
-  "target_release": "2027-Q2",
-  "quality_policy": "move_release_date_before_reducing_gate",
+  "target_release": "2026-09",
+  "quality_policy": "automate_internal_acceptance_keep_objective_gates",
+  "machine_acceptance_policy": "spec/machine-acceptance.json",
   "evidence_validity_days": 180,
   "environment": {
     "allowed_classes": [
@@ -37,15 +38,27 @@
     "require_repository_raw_artifacts_only": true,
     "require_independent_verification": true,
     "require_distinct_operator_and_verifier": true,
+    "require_machine_principals": true,
+    "require_distinct_machine_run_ids": true,
     "require_execution_window_binding": true
   },
   "external_capability": {
     "schema_version": "external-capability-evidence.v1",
-    "product_owner": "github:LENKIN233",
-    "protected_approval_environment": "formal-product-owner-approval",
+    "acceptance_authority": "service:softbook-machine-harness",
+    "machine_acceptance_policy": "spec/machine-acceptance.json",
+    "internal_human_approval_required": false,
+    "external_facts_fail_closed": true,
     "target_release_binding_required": true,
     "repository_report_and_raw_artifacts_must_be_rehashed": true,
     "capability_evidence_cannot_replace_launch_gate": true,
+    "unregistered_type_specific_semantics_fail_closed": true,
+    "registered_type_specific_semantics": {
+      "android-distribution/release-signing": {
+        "report_schema": "android-signed-release.v1",
+        "raw_artifact_role": "android-signed-release-report",
+        "validator_id": "android-signed-release-report-and-launch-binding.v1"
+      }
+    },
     "allowed_observation_modes": [
       "provider_control_plane",
       "official_registry",

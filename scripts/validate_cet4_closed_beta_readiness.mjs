@@ -10,13 +10,11 @@ import {parseStrictJson} from './lib/strict_json.mjs';
 import {
   LEARNING_RUNTIME_EVIDENCE_TYPES,
   RELEASE_OPERATIONAL_EVIDENCE_TYPES,
-  CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
   validateGateEvidenceArtifact,
   validateGateEvidenceCoherence,
 } from './lib/launch_evidence_contract.mjs';
 import {
   loadLaunchEvidenceSemanticContext,
-  loadCet4FormalContentEvidence,
   loadProductionDeploymentEvidence,
   loadSmsProviderSmokeReport,
   verifyInnerRepositoryArtifact,
@@ -40,7 +38,7 @@ const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
-const ACTOR_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
+const ACTOR_PATTERN = /^(model|agent|service|oidc):[A-Za-z0-9_.@/-]+$/;
 const FORBIDDEN_ENVIRONMENT_PATTERN =
   /(^|[-_.:])(local|mock|simulation|simulator|personal|development|dev)([-_.:]|$)/i;
 const STATUS_VALUES = new Set(['not_ready', 'ready']);
@@ -55,10 +53,8 @@ const MAX_REPOSITORY_EVIDENCE_BYTES = 1024 * 1024;
 
 export const CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES = Object.freeze([
   'production-deployment',
-  'sms-provider-smoke',
   ...LEARNING_RUNTIME_EVIDENCE_TYPES,
   ...RELEASE_OPERATIONAL_EVIDENCE_TYPES,
-  ...CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
 ]);
 const SUPPORTED_EVIDENCE_SET = new Set(
   CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES,
@@ -69,7 +65,7 @@ export const CET4_CLOSED_BETA_DEPENDENCY_IDS = Object.freeze([
   'sms-provider',
   'apple-private-distribution',
   'android-private-distribution',
-  'human-content-review',
+  'model-content-acceptance',
 ]);
 
 export const CET4_CLOSED_BETA_GATE_DEFINITIONS = Object.freeze({
@@ -124,7 +120,7 @@ const EXPECTED_BLOCKERS = Object.freeze({
     'sms-provider',
   ],
   'canonical-learning-and-space': ['tencent-cloud-receiver'],
-  'approved-cet4-content': ['human-content-review'],
+  'approved-cet4-content': ['model-content-acceptance'],
   'beta-entitlement': ['tencent-cloud-receiver'],
   'private-distribution-and-device-acceptance': [
     'tencent-cloud-receiver',
@@ -134,13 +130,16 @@ const EXPECTED_BLOCKERS = Object.freeze({
   'release-recovery': ['tencent-cloud-receiver'],
 });
 
-const FORMAL_APPROVAL_POLICY = Object.freeze({
-  provider: 'github_environment',
-  environment: 'formal-product-owner-approval',
-  required_reviewer: 'github:LENKIN233',
-  administrators_can_bypass: false,
-  workflow: '.github/workflows/formal-approval.yml',
-  required_check: 'formal-approval',
+const MACHINE_ACCEPTANCE_POLICY = Object.freeze({
+  provider: 'model_harness',
+  policy: 'spec/machine-acceptance.json',
+  authority: 'model_harness',
+  required_independent_runs: 2,
+  independence_unit: 'workflow_review_job',
+  human_review_required: false,
+  user_review_required: false,
+  product_owner_click_required: false,
+  required_check: 'trusted-model-review',
 });
 
 export function validateCet4ClosedBetaReadiness(
@@ -166,7 +165,7 @@ export function validateCet4ClosedBetaReadiness(
       'current_milestone',
       'quality_policy',
       'formal_evidence_ingestion',
-      'formal_approval',
+      'machine_acceptance',
       'release_candidate',
       'scope',
       'external_dependencies',
@@ -185,19 +184,19 @@ export function validateCet4ClosedBetaReadiness(
   assertEqual(contract.target_release, 'cet4-closed-beta', 'target_release', errors);
   assertEqual(
     contract.quality_policy,
-    'move_closed_beta_date_before_reducing_gate',
+    'accelerate_with_machine_acceptance_without_lowering_objective_gates',
     'quality_policy',
     errors,
   );
-  assertEqual(
-    contract.formal_evidence_ingestion,
+  if (![
     'registered_types_implemented_unregistered_fail_closed',
-    'formal_evidence_ingestion',
-    errors,
-  );
+    'all_required_types_implemented',
+  ].includes(contract.formal_evidence_ingestion)) {
+    errors.push('formal_evidence_ingestion must be a supported implementation state.');
+  }
   requireNonEmptyString(contract.current_milestone, 'current_milestone', errors);
   if (!STATUS_VALUES.has(contract.status)) errors.push('status must be not_ready or ready.');
-  validateFormalApproval(contract.formal_approval, errors);
+  validateMachineAcceptance(contract.machine_acceptance, errors);
   validateScope(contract.scope, spec?.product_truth, errors);
   const dependencies = mapById(
     contract.external_dependencies,
@@ -212,7 +211,7 @@ export function validateCet4ClosedBetaReadiness(
   );
   for (const [id, dependency] of dependencies) {
     assertExactKeys(dependency, ['id', 'owner', 'status'], `dependency ${id}`, errors);
-    assertEqual(dependency.owner, 'product_owner', `dependency ${id}.owner`, errors);
+    assertEqual(dependency.owner, 'model_harness', `dependency ${id}.owner`, errors);
     if (!DEPENDENCY_STATUS_VALUES.has(dependency.status)) {
       errors.push(`dependency ${id}.status is invalid.`);
     }
@@ -410,16 +409,6 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
           })
         : {errors: [], evidence: null, ok: true};
     errors.push(...deploymentResult.errors);
-    const contentResult = CET4_FORMAL_CONTENT_EVIDENCE_TYPES.includes(
-      evidence.type,
-    )
-      ? loadCet4FormalContentEvidence(artifact, {
-          label,
-          root,
-          trackedFiles,
-        })
-      : {errors: [], evidence: null, ok: true};
-    errors.push(...contentResult.errors);
     const result = validateGateEvidenceArtifact(artifact, {
       evidenceType: evidence.type,
       expectedPolicy,
@@ -428,18 +417,12 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
       now,
       outerEvidence: evidence,
       productionDeploymentEvidence: deploymentResult.evidence,
-      cet4FormalContentEvidence: contentResult.evidence,
       releaseOperationalPolicy: loadedContext.releaseOperationalPolicy,
       smsProviderSmokeReport: smsResult.report,
       targetRelease: 'cet4-closed-beta',
     });
     errors.push(...result.errors);
-    if (
-      result.ok &&
-      smsResult.ok &&
-      deploymentResult.ok &&
-      contentResult.ok
-    ) {
+    if (result.ok && smsResult.ok && deploymentResult.ok) {
       const gateReports = parsedReports.get(gateId) ?? [];
       gateReports.push(artifact);
       parsedReports.set(gateId, gateReports);
@@ -651,14 +634,19 @@ function validateReadinessSpec(spec, errors) {
   }
 }
 
-function validateFormalApproval(value, errors) {
+function validateMachineAcceptance(value, errors) {
   if (!isRecord(value)) {
-    errors.push('formal_approval must be an object.');
+    errors.push('machine_acceptance must be an object.');
     return;
   }
-  assertExactKeys(value, Object.keys(FORMAL_APPROVAL_POLICY), 'formal_approval', errors);
-  for (const [field, expected] of Object.entries(FORMAL_APPROVAL_POLICY)) {
-    assertEqual(value[field], expected, `formal_approval.${field}`, errors);
+  assertExactKeys(
+    value,
+    Object.keys(MACHINE_ACCEPTANCE_POLICY),
+    'machine_acceptance',
+    errors,
+  );
+  for (const [field, expected] of Object.entries(MACHINE_ACCEPTANCE_POLICY)) {
+    assertEqual(value[field], expected, `machine_acceptance.${field}`, errors);
   }
 }
 
@@ -785,6 +773,7 @@ function validateEvidenceRecord(
       'artifact_size_bytes',
       'verified_at',
       'verified_by',
+      'verification_run_id',
       'subject_commit_sha',
     ],
     label,
@@ -809,7 +798,10 @@ function validateEvidenceRecord(
   }
   parseTimestamp(value.verified_at, `${label}.verified_at`, now, errors);
   if (!ACTOR_PATTERN.test(value.verified_by ?? '')) {
-    errors.push(`${label}.verified_by must identify a github, team, or external verifier.`);
+    errors.push(`${label}.verified_by must identify a model, agent, service, or oidc verifier.`);
+  }
+  if (!ID_PATTERN.test(value.verification_run_id ?? '')) {
+    errors.push(`${label}.verification_run_id must identify the machine verification run.`);
   }
   if (!COMMIT_PATTERN.test(value.subject_commit_sha ?? '')) {
     errors.push(`${label}.subject_commit_sha must be a full lowercase commit SHA.`);
@@ -850,7 +842,12 @@ function validateReleaseCandidate(value, now, errors) {
   if (!COMMIT_PATTERN.test(value.commit_sha ?? '')) errors.push('release_candidate.commit_sha is invalid.');
   assertEqual(value.target_release, 'cet4-closed-beta', 'release_candidate.target_release', errors);
   parseTimestamp(value.recorded_at, 'release_candidate.recorded_at', now, errors);
-  assertEqual(value.recorded_by, 'github:LENKIN233', 'release_candidate.recorded_by', errors);
+  assertEqual(
+    value.recorded_by,
+    'service:softbook-machine-harness',
+    'release_candidate.recorded_by',
+    errors,
+  );
   validateCandidateEnvironment(value.environment, errors);
   validateCandidateRelease(value.release, errors);
   validateCandidateContent(value.content, errors);
@@ -928,7 +925,7 @@ function validateCandidateContent(value, errors) {
       'card_count',
       'box_count',
       'audio_asset_count',
-      'full_track_approval_sha256',
+      'full_track_authorization_sha256',
       'audio_qc_index_sha256',
     ],
     'release_candidate.content',
@@ -939,8 +936,8 @@ function validateCandidateContent(value, errors) {
   assertEqual(value.box_count, 108, 'release_candidate.content.box_count', errors);
   assertEqual(value.audio_asset_count, 301, 'release_candidate.content.audio_asset_count', errors);
   requireSha256(
-    value.full_track_approval_sha256,
-    'release_candidate.content.full_track_approval_sha256',
+    value.full_track_authorization_sha256,
+    'release_candidate.content.full_track_authorization_sha256',
     errors,
   );
   requireSha256(

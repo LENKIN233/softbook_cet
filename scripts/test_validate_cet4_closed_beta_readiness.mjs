@@ -46,6 +46,17 @@ test('tracked CET4 closed-beta baseline is valid, exact, and honestly not ready'
   assert.equal(contract.launch_non_replacement.launch_status_unchanged, 'not_ready');
 });
 
+test('all-required evidence semantics is a valid future implementation state', () => {
+  const future = structuredClone(contract);
+  future.formal_evidence_ingestion = 'all_required_types_implemented';
+  const result = validateCet4ClosedBetaReadiness(future, spec, {
+    launchContract,
+    now: NOW,
+  });
+  assert.equal(result.ok, true, result.errors.join('\n'));
+  assert.equal(result.ready, false);
+});
+
 test('closed-beta scope cannot shrink, expand, or silently drop a release target', () => {
   const changed = structuredClone(contract);
   changed.scope.card_count = 120;
@@ -220,6 +231,7 @@ test('registered learning evidence validates from tracked raw bytes for the clos
       artifact_size_bytes: Buffer.byteLength(artifactPayload),
       verified_at: artifact.verification.verified_at,
       verified_by: artifact.verification.verified_by,
+      verification_run_id: artifact.verification.run_id,
       subject_commit_sha: candidate.commit_sha,
     },
   ];
@@ -253,7 +265,7 @@ test('registered learning evidence validates from tracked raw bytes for the clos
   assert.match(tampered.errors.join('\n'), /(byte size|SHA-256) does not match/);
 });
 
-test('unregistered closed-beta evidence types remain semantically ineligible', t => {
+test('formal CET4 media evidence remains ineligible without trusted receipt semantics', t => {
   const tempRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), 'softbook-cet4-beta-unregistered-'),
   );
@@ -265,7 +277,7 @@ test('unregistered closed-beta evidence types remain semantically ineligible', t
   );
   const candidate = validCandidate();
   const artifactRelativePath =
-    'docs/release/evidence/cet4-beta-space-sync.json';
+    'docs/release/evidence/cet4-content-pack-integrity.json';
   const artifact = {
     schema_version: 'launch-gate-evidence.v1',
     subject: {commit_sha: candidate.commit_sha},
@@ -275,19 +287,17 @@ test('unregistered closed-beta evidence types remain semantically ineligible', t
   writeFile(tempRoot, artifactRelativePath, payload);
   const changed = structuredClone(contract);
   changed.release_candidate = candidate;
-  const gate = changed.gates.find(
-    item => item.id === 'canonical-learning-and-space',
-  );
+  const gate = changed.gates.find(item => item.id === 'approved-cet4-content');
   gate.status = 'in_progress';
   gate.blocked_by = [];
   gate.evidence = [
     {
-      type: 'space-sync-test',
+      type: 'cet4-content-pack-integrity-report',
       artifact_uri: `repo://${artifactRelativePath}`,
       artifact_sha256: hash(payload),
       artifact_size_bytes: Buffer.byteLength(payload),
       verified_at: '2026-08-23T13:00:00.000Z',
-      verified_by: 'external:closed-beta-auditor',
+      verified_by: 'agent:closed-beta-auditor',
       subject_commit_sha: candidate.commit_sha,
     },
   ];
@@ -300,6 +310,12 @@ test('unregistered closed-beta evidence types remain semantically ineligible', t
   });
   assert.equal(result.ok, false);
   assert.match(result.errors.join('\n'), /no registered CET4 closed-beta type-specific semantic contract/);
+  assert.equal(
+    CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES.includes(
+      'cet4-content-pack-integrity-report',
+    ),
+    false,
+  );
 });
 
 function validCandidate() {
@@ -309,7 +325,7 @@ function validCandidate() {
     commit_sha: hash('candidate-commit').slice(0, 40),
     target_release: 'cet4-closed-beta',
     recorded_at: '2026-08-23T12:00:00.000Z',
-    recorded_by: 'github:LENKIN233',
+    recorded_by: 'service:softbook-machine-harness',
     environment: {
       profile_id: 'receiver-cet4-beta-profile',
       profile_sha256: hash('profile'),
@@ -329,7 +345,7 @@ function validCandidate() {
       card_count: 1180,
       box_count: 108,
       audio_asset_count: 301,
-      full_track_approval_sha256: hash('approval'),
+      full_track_authorization_sha256: hash('authorization'),
       audio_qc_index_sha256: hash('audio-qc'),
     },
     client_builds: {
@@ -351,7 +367,8 @@ function evidenceRecord(type, index) {
     artifact_sha256: hash(`artifact-${type}`),
     artifact_size_bytes: 1024 + index,
     verified_at: '2026-08-23T13:00:00.000Z',
-    verified_by: 'external:closed-beta-auditor',
+    verified_by: 'agent:closed-beta-auditor',
+    verification_run_id: 'closed-beta-verification-run-002',
     subject_commit_sha: hash('candidate-commit').slice(0, 40),
   };
 }
@@ -384,7 +401,8 @@ function validFsrsEvidenceArtifact(
     execution: {
       started_at: '2026-08-23T10:00:00.000Z',
       completed_at: '2026-08-23T10:05:00.000Z',
-      operator: 'team:closed-beta-release',
+      operator: 'service:closed-beta-release',
+      run_id: 'closed-beta-execution-run-001',
       tool: {
         name: 'softbook-evidence-runner',
         version: '1.0.0',
@@ -393,10 +411,11 @@ function validFsrsEvidenceArtifact(
     },
     verification: {
       verified_at: '2026-08-23T11:00:00.000Z',
-      verified_by: 'external:closed-beta-auditor',
+      verified_by: 'agent:closed-beta-auditor',
+      run_id: 'closed-beta-verification-run-002',
       independent: true,
       attestation: {
-        provider: 'protected_environment',
+        provider: 'model_run',
         id: 'cet4-beta-fsrs-attestation',
         sha256: hash('fsrs-attestation'),
       },

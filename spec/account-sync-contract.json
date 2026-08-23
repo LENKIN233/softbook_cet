@@ -49,8 +49,8 @@
     "subject_binding": "exact_repository_reachable_commit_target_release_policy_hash_account_id_and_capability_id",
     "required_checks": "policy_common_checks_plus_exact_capability_specific_checks",
     "repository_evidence_rule": "outer_report_and_every_referenced_raw_artifact_are_tracked_regular_root_contained_size_checked_and_sha256_rehashed",
-    "truth_authority": "protected_formal_product_owner_approval_for_the_exact_pull_request_head",
-    "metadata_rule": "verified_by_observation_and_portal_artifacts_are_reviewable_metadata_not_provider_authentication_by_themselves",
+    "truth_authority": "machine_harness_acceptance_bound_to_exact_pull_request_head_and_spec_machine_acceptance_json",
+    "metadata_rule": "machine_principal_run_id_observation_and_portal_artifacts_are_evidence_metadata_while_provider_or_registry_state_must_still_be_observed_fail_closed",
     "gate_nonreplacement_rule": "capability_evidence_is_gate_eligible_false_and_cannot_replace_runtime_payment_distribution_compliance_or_security_launch_gates",
     "current_status": "all_capabilities_unverified"
   },

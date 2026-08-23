@@ -816,7 +816,7 @@ async function main() {
     if (options.command === "prepare") {
       const provided = [
         process.env.SOFTBOOK_CET_TEST_PHONE,
-        process.env.SOFTBOOK_CET_MANUAL_TEST_PHONE,
+        process.env.SOFTBOOK_CET_MAESTRO_PHONE,
       ];
       const result = prepareSmokeLifecycle({
         manifestPath: options.manifest,

@@ -16,7 +16,7 @@ def validate(context) -> None:
 
     harness_architecture_spec = load("harness-architecture.json")
 
-    check_equal("harness architecture version", "vnext-6", harness_architecture_spec["version"])
+    check_equal("harness architecture version", "vnext-7", harness_architecture_spec["version"])
     check_equal("harness architecture layer", "repo_governance_truth", harness_architecture_spec["layer"])
 
     runner_contract = harness_architecture_spec["runner_contract"]
@@ -76,7 +76,6 @@ def validate(context) -> None:
                 "visual_language",
                 "workspace_boundary",
                 "governance_contracts",
-                "agent_run_record",
                 "design_contracts",
             ],
             "capabilities": [
@@ -244,7 +243,7 @@ def validate(context) -> None:
                     "full_remote_harness",
                     "real_pull_request_body_gates",
                     "dependency_security_with_visible_exceptions",
-                    "strict_local_and_remote_repository_health",
+                    "strict_changed_tree_repository_health",
                     "git_lfs_fsck",
                     "remote_agent_evidence_validation",
                 ],
@@ -461,10 +460,10 @@ def validate(context) -> None:
         delivery_local_feedback["may_replace_required_github_checks"],
     )
     check_equal(
-        "local gates cannot update formal states",
+        "local gates cannot update model review or launch state",
         False,
         delivery_local_feedback[
-            "may_update_agent_review_or_formal_approval_or_launch_readiness"
+            "may_update_model_review_or_launch_readiness"
         ],
     )
 
@@ -579,7 +578,7 @@ def validate(context) -> None:
             "test_local_mode_is_injected_without_remote_guard_access",
             "test_local_cli_does_not_invoke_gh_and_full_reports_unavailable_github",
             "test_full_cli_rejects_disabled_repository_auto_merge",
-            "test_partial_cli_commands_cannot_satisfy_full_pr_validation",
+            "test_pr_review_accepts_task_relevant_passed_validation",
         ]:
             check_contains("Harness runner unit coverage", runner_test_text, snippet)
 

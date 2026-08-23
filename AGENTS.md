@@ -17,9 +17,9 @@ status: active
 ## 活跃源
 
 - `spec/requirement-memory.json`
+- `spec/machine-acceptance.json`（产品内部判断权、无需人工/用户审核、machine evidence、2026-09 上线目标与精简 harness 原则的唯一 owner）
 - `spec/authority-map.json`
 - `spec/workspace-boundary.json`
-- `spec/harness-architecture.json`
 - `spec/harness-architecture.json`
 - `spec/product-core.json`
 - `spec/account-sync-contract.json`
@@ -54,7 +54,7 @@ status: active
 
 - 原始需求校准：`requirement-memory`
 - 权威定位：`authority-map`
-- 产品/范围：`requirement-memory -> product-core`
+- 产品/范围：`requirement-memory -> machine-acceptance -> product-core`
 - 认证/同步/购买：`requirement-memory -> account-sync-contract -> membership -> runtime-boundaries`（实现账号删除或 auth/session runtime 时追加 `infra/cloudbase/auth-v2-runtime-contract.md`；实现 learning events 时追加 `infra/cloudbase/learning-events-v2-runtime-contract.md`；实现物理空间同步时追加 `infra/cloudbase/space-actions-v2-runtime-contract.md`）
 - 服务端学习调度：`requirement-memory -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> infra/cloudbase/learning-events-v2-runtime-contract.md -> infra/cloudbase/learning-session-v1-runtime-contract.md`
 - 物理空间 action 同步：`requirement-memory -> product-core -> account-sync-contract -> knowledge-map -> space-operations -> box-catalog -> runtime-boundaries -> infra/cloudbase/space-actions-v2-runtime-contract.md`
@@ -65,9 +65,9 @@ status: active
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`（涉及封闭内测资格发放、撤销或审计时追加 `account-sync-contract -> runtime-boundaries -> infra/cloudbase/beta-entitlement-v1-runtime-contract.md`）
 - CET4 受控试点：`requirement-memory -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> infra/cloudbase/learning-session-v1-runtime-contract.md -> infra/cloudbase/content-manifest-v1-runtime-contract.md -> infra/cloudbase/controlled-pilot-v1-runtime-contract.md`（正式发布非替代校验追加 `infra/cloudbase/release-bundle-v1-runtime-contract.md`）
-- CET4 正式封闭内测 readiness：`requirement-memory -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> cet4-closed-beta-readiness -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
-- 交付 / PR / CI：`authority-map -> agent-harness -> repo-delivery-contract -> evals`（涉及接收方环境、正式内容发布或回滚时追加 `runtime-boundaries -> infra/cloudbase/release-bundle-v1-runtime-contract.md`）
-- 上线证据 / 外部账号 capability / SLO / 恢复演练：`authority-map -> account-sync-contract -> runtime-boundaries -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
+- CET4 正式封闭内测 readiness：`requirement-memory -> machine-acceptance -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> cet4-closed-beta-readiness -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
+- 交付 / PR / CI：`authority-map -> machine-acceptance -> agent-harness -> repo-delivery-contract -> evals`（涉及接收方环境、正式内容发布或回滚时追加 `runtime-boundaries -> infra/cloudbase/release-bundle-v1-runtime-contract.md`）
+- 上线证据 / 外部账号 capability / SLO / 恢复演练：`authority-map -> machine-acceptance -> account-sync-contract -> runtime-boundaries -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
 - Agent run records / context handoff：`authority-map -> agent-run-record -> workspace-boundary -> harness-architecture -> agent-harness -> repo-delivery-contract -> evals`
 - 工作区边界 / agent 默认读取：`authority-map -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
 - Harness 架构 / validator 分层：`authority-map -> harness-architecture -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
@@ -80,6 +80,10 @@ status: active
 
 ## 硬约束
 
+- 产品内部不存在人工或用户审核 gate；model+harness 拥有产品、内容、音频、设计、PR、发布与部署的持续决策权，不得把工作停在“请用户确认/审核/点击批准”
+- 外部平台的账号、凭证、实名、备案、审核、部署与真机状态必须据实读取；harness 可以执行已授权操作，但不得伪造不存在的外部事实或把它们改写成主观人工审核
+- Harness 默认相信 model：同一规则只写一次，只加载任务相关上下文；新增静态 guard 必须先有可复现失败与代表性 eval，历史流程规则按组删除并回跑同一 eval
+
 - 不要把产品写成泛英语教学系统或背单词工具
 - 不要把物理空间缩成收藏/休眠二盒展示
 - 不要把提示层写成独立卡型
@@ -90,7 +94,7 @@ status: active
 - 不要默认把 generated / dependency / cache / machine-local / archive / external workspace 当作 agent 语义上下文；先按 `spec/workspace-boundary.json` 分类，再决定是否读取
 - 不要把 truth/workspace 纯检查、delivery 远端治理、design fixture 回归和 runtime smoke 混在同一 harness 层；按 `spec/harness-architecture.json` 分层
 - 不要把 `scripts/run_local_gates` 的本地报告当作 GitHub required checks、Agent review、正式内容批准或 launch readiness；`dev` / `pr` / `release` profile 与 `local-gate-report.v1` 以 `spec/harness-architecture.json#local_gate_runner_contract` 为准
-- 不要把仓库内存模拟、dry-run、任意 JSON 或仅有路径/哈希的文件当作正式上线证据；gate evidence 必须匹配 `launch-release-candidate.v1` 的单一 commit/profile/environment/release/build cohort，通过已注册类型语义，且 outer/raw 只能引用 tracked + regular + size/SHA-256 重验的 `repo://` 文件（远端大文件先进入 `evidence-archive` 已验证 manifest）、commit 可从验证 HEAD 到达、执行窗口有效、操作者与复核者不同；availability 必须逐 route 记录并重算 probe，备份每个必需 source dataset 必须非空；未实现类型语义时 fail closed，模拟始终 `gate_eligible=false`
+- 不要把仓库内存模拟、dry-run、任意 JSON 或仅有路径/哈希的文件当作外部运行事实；release evidence 必须绑定同一 commit/profile/environment/release/build cohort，引用可重验的实际 artifact，并以独立 machine run 验证。模拟只能证明本地实现，不得伪造部署、平台账号、真机或用户结果
 - 不要把 CET4 受控试点的 120 卡、60 卡 free 子集、pilot profile/bundle/release/entitlement/outcome report 当作正式封闭内测或 launch evidence；当前仓库开发卡源、candidate handoff、dry-run 和 runtime fixture 也不得计入 120 张正式批准卡
 - 不要把 CET4 closed-beta readiness 的 `ready` 当作正式产品 launch readiness；它只覆盖精确 CET4 1,180 卡/108 盒/301 音频与其封闭内测 cohort，不降低 CET6、公开分发、支付、合规或 `docs/release/launch-readiness.v1.json` 的任何 gate
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
@@ -104,26 +108,27 @@ status: active
 
 ## 工程治理约束
 
-- 不要把 PR 绑定的治理、harness、用户可见 UI、runtime、卡片交接或多文件重构工作只留在聊天历史里；必须按 `spec/agent-run-record.json` 在 `docs/agent-runs/` 提交最小运行记录并在 PR 中引用
+- 普通 PR 不再新增 tracked `docs/agent-runs` 记录；以精简 PR 摘要、trusted OpenAI Codex Action exact-diff review 与 required checks 为交付记录。外部 release/deploy 事实仍写入其专用 evidence schema
 - `main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送
 - 若本地 `main` worktree 存在且干净，merge 后只允许 fast-forward 到 `origin/main`；不要把 stale local main 或 worktree lock 当成远端 merge 失败
 - 开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`
 - clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`
 - 若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发
-- 任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 agent review 通过、PR 描述记录 passed review 且 required gates 全绿后自动合并
+- 任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 trusted-model-review 与 required gates 全绿后自动合并；不等待用户或人工批准
+- 新增 `pull_request_target` trusted reviewer 的安装 PR 是一次性 bootstrap：它只能在旧 required checks 与两次独立 out-of-band exact-diff model review 通过后合并；workflow 到达 `main` 后先配置 Actions `OPENAI_API_KEY`、用下一 PR 实测两个 Codex review job 与聚合 check，再把 branch protection 从 `agent-review`/`formal-approval` 切到 `trusted-model-review`并删除旧 environment；不得在安装前要求不存在的 check
 - 未完成 agent review、PR 描述未记录 passed review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`
 - 如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因
 
 ## 输出要求
 
-- 若任务属于 PR 绑定的治理、harness、用户可见 UI、runtime、卡片交接或多文件重构，输出/PR 必须引用已提交的 `docs/agent-runs/*.md` 运行记录
+- PR 输出必须记录引用 spec、变更摘要和验证；模型复核由 trusted base workflow 直接产出，不把作者可编辑 PR body 当作信任根；不再要求新增 `docs/agent-runs/*.md`
 - 先指出当前任务引用了哪些 spec
 - 若任务会影响产品定义，先用 `spec/requirement-memory.json` 对齐原始需求
 - 如果多个 spec 出现同一概念，严格以 `spec/authority-map.json` 指定的 owner 为准
 - 默认只读完成任务所需的最小 spec 子集；只有跨域耦合或明确冲突时才升级读取范围
 - 明确区分 `product_truth` 与 `implementation_hypothesis`
 - 如果新增交互、盒码或访问规则，先更新对应 spec，再给结论
-- 若任务包含持久化仓库改动，PR 描述必须包含引用 spec、变更摘要、验证、Agent review 与 Agent run record；若涉及用户可见 UI，必须写明设计稿来源、interaction/motion 或 physical-space artifact（如适用）、实现映射与未实现 gap，并回答 design review checklist；默认在 review + gate 通过后自动收口合并
+- 若任务包含持久化仓库改动，PR 描述只保留引用 spec、变更摘要、验证与 Model review；设计、内容交接、发布和外部事实由各自 owner validator 按实际改动路径要求证据，不复制无关 checklist；默认在 review + gate 通过后自动收口合并
 
 ## 压缩保留
 

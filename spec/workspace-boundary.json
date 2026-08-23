@@ -32,7 +32,7 @@
       "default_read": "only_when_task_relevant"
     },
     "source": {
-      "description": "Human-authored implementation source and scripts.",
+      "description": "Governed implementation source and scripts.",
       "examples": [
         "apps/mobile/App.tsx",
         "apps/mobile/src/**",

@@ -13,9 +13,7 @@ ISOLATED_CONTRACT_PHONE="${SOFTBOOK_CET_SMOKE_ISOLATED_PHONE:-1}"
 SMOKE_WRITE="${SOFTBOOK_CET_SMOKE_WRITE:-1}"
 SMOKE_MEMBERSHIP_MUTATIONS="${SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS:-1}"
 METRO_PORT="${SOFTBOOK_CET_METRO_PORT:-8081}"
-STOP_METRO_ON_EXIT="${SOFTBOOK_CET_STOP_METRO_ON_EXIT:-0}"
 SMS_CODE="${SOFTBOOK_CET_TEST_CODE:-2468}"
-MANUAL_TEST_PHONE="${SOFTBOOK_CET_MANUAL_TEST_PHONE:-}"
 CONTRACT_TEST_PHONE="${SOFTBOOK_CET_TEST_PHONE:-}"
 SMOKE_LIFECYCLE_OWNER="${SOFTBOOK_CET_SMOKE_LIFECYCLE_OWNER:-self}"
 SMOKE_LIFECYCLE_MANIFEST="${SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST:-}"
@@ -24,25 +22,9 @@ METRO_PID=""
 RESOLVED_IOS_DEVICE=""
 RESOLVED_IOS_DEVICE_STATE=""
 
-create_manual_test_phone() {
-  local suffix
-  suffix="$(printf '%05d%04d' "$(( $(date +%s) % 100000 ))" "$(( RANDOM % 10000 ))")"
-
-  printf '19%s\n' "${suffix}"
-}
-
-prepare_ios_acceptance_inputs() {
+prepare_ios_launch_inputs() {
   if [[ -z "${IOS_BUNDLE_ID// }" ]]; then
     echo "SOFTBOOK_CET_IOS_BUNDLE_ID must not be blank." >&2
-    exit 1
-  fi
-
-  if [[ -z "${MANUAL_TEST_PHONE// }" ]]; then
-    MANUAL_TEST_PHONE="$(create_manual_test_phone)"
-  fi
-
-  if [[ ! "${MANUAL_TEST_PHONE}" =~ ^19[0-9]{9}$ ]]; then
-    echo "SOFTBOOK_CET_MANUAL_TEST_PHONE must match 19xxxxxxxxx." >&2
     exit 1
   fi
 }
@@ -120,7 +102,6 @@ resolve_ios_launch_target() {
 }
 
 cleanup() {
-  local exit_code="${1:-0}"
   local cleanup_failed="0"
 
   if [[ "${SMOKE_LIFECYCLE_ACTIVE}" == "1" ]]; then
@@ -134,7 +115,7 @@ cleanup() {
     SMOKE_LIFECYCLE_ACTIVE="0"
   fi
 
-  if [[ -n "${METRO_PID}" && ("${STOP_METRO_ON_EXIT}" == "1" || "${exit_code}" != "0") ]]; then
+  if [[ -n "${METRO_PID}" ]]; then
     kill_process_tree "${METRO_PID}"
     METRO_PID=""
   fi
@@ -143,7 +124,7 @@ cleanup() {
 }
 
 prepare_smoke_lifecycle() {
-  local phone_count prepared
+  local prepared
 
   if [[ "${BASE_URL}" != "${DEV_BASE_URL}" ]]; then
     return
@@ -169,24 +150,19 @@ prepare_smoke_lifecycle() {
     exit 1
   fi
 
-  phone_count="1"
-  if [[ "${LAUNCH_IOS}" == "1" ]]; then
-    phone_count="2"
-  fi
   if [[ -z "${SMOKE_LIFECYCLE_MANIFEST}" ]]; then
     SMOKE_LIFECYCLE_MANIFEST="${ROOT_DIR}/exports/cloudbase-smoke/ios-$(date -u +%Y%m%dT%H%M%SZ)-$$/manifest.json"
   fi
 
   prepared="$(
     SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}" \
-    SOFTBOOK_CET_MANUAL_TEST_PHONE="${MANUAL_TEST_PHONE}" \
     node "${ROOT_DIR}/infra/cloudbase/smoke-record-lifecycle.mjs" \
       prepare \
       --manifest "${SMOKE_LIFECYCLE_MANIFEST}" \
-      --phone-count "${phone_count}" \
+      --phone-count 1 \
       --format tsv
   )"
-  IFS=$'\t' read -r CONTRACT_TEST_PHONE MANUAL_TEST_PHONE <<<"${prepared}"
+  IFS=$'\t' read -r CONTRACT_TEST_PHONE <<<"${prepared}"
   export SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}"
   export SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST
   SMOKE_LIFECYCLE_ACTIVE="1"
@@ -208,7 +184,7 @@ kill_process_tree() {
 on_exit() {
   local exit_code="$?"
   trap - EXIT
-  if ! cleanup "${exit_code}"; then
+  if ! cleanup; then
     exit_code="1"
   fi
   exit "${exit_code}"
@@ -233,8 +209,6 @@ require_binary_flag "SOFTBOOK_CET_SMOKE_WRITE" "${SMOKE_WRITE}"
 require_binary_flag \
   "SOFTBOOK_CET_SMOKE_MEMBERSHIP_MUTATIONS" \
   "${SMOKE_MEMBERSHIP_MUTATIONS}"
-require_binary_flag "SOFTBOOK_CET_STOP_METRO_ON_EXIT" "${STOP_METRO_ON_EXIT}"
-
 if [[ -z "${SOFTBOOK_CET_AUTH_TOKEN:-}" && "${ISOLATED_CONTRACT_PHONE}" != "1" ]]; then
   if [[ -z "${SOFTBOOK_CET_TEST_PHONE:-}" ]]; then
     echo "SOFTBOOK_CET_TEST_PHONE is required when SOFTBOOK_CET_AUTH_TOKEN is not set and isolated contract phone mode is disabled." >&2
@@ -253,7 +227,7 @@ export SOFTBOOK_CET_SMOKE_ISOLATED_PHONE="${ISOLATED_CONTRACT_PHONE}"
 export SOFTBOOK_CET_TEST_CODE="${SMS_CODE}"
 
 if [[ "${LAUNCH_IOS}" == "1" ]]; then
-  prepare_ios_acceptance_inputs
+  prepare_ios_launch_inputs
   echo "==> Resolving iOS launch target before remote smoke writes"
   resolve_ios_launch_target
 fi
@@ -289,27 +263,14 @@ node "${ROOT_DIR}/infra/cloudbase/smoke-softbook-api.mjs"
 if [[ "${LAUNCH_IOS}" != "1" ]]; then
   cat <<EOF
 ==> iOS launch skipped
-Set SOFTBOOK_CET_IOS_LAUNCH=1 to start the debug app with the same remote profile.
-
-Expected manual iOS smoke after launch:
-- 登录页显示远端认证模式。
-- 使用脚本打印的一次性手机号和 dev fixed code ${SMS_CODE} 完成登录。
-- 学习页加载 ${TRACK} 远端卡源，并保留单卡流。
-- 首次进入空间会启动试用；空间入口解锁后显示远端卡源的 library/group/box。
-- 完成一张卡后，统计页显示远端日级同步，学习状态同步不报错。
+automated_simulator_launch_verified=false
+automated_simulator_ui_evidence_verified=false
+automated_real_device_evidence_verified=false
+gate_eligible=false
 
 EOF
   exit 0
 fi
-
-cat <<EOF
-==> Manual iOS acceptance account
-Phone: ${MANUAL_TEST_PHONE}
-Code: ${SMS_CODE} (dev fixed code)
-
-Use SOFTBOOK_CET_MANUAL_TEST_PHONE=${MANUAL_TEST_PHONE} to reproduce this manual acceptance run.
-
-EOF
 
 echo "==> Relaunching iOS app with simulator child environment"
 SIMCTL_CHILD_SOFTBOOK_CET_REMOTE_BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL}" \
@@ -318,31 +279,10 @@ SIMCTL_CHILD_SOFTBOOK_CET_LEARNING_TRACK="${TRACK}" \
 SIMCTL_CHILD_SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES="${SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES:-}" \
 xcrun simctl launch --terminate-running-process "${RESOLVED_IOS_DEVICE}" "${IOS_BUNDLE_ID}"
 
-if [[ -n "${METRO_PID}" && "${STOP_METRO_ON_EXIT}" != "1" ]]; then
-  cat <<EOF
-==> Metro is running for manual acceptance
-PID: ${METRO_PID}
-Log: /tmp/softbook-cet-metro.log
-Press Ctrl+C after manual acceptance to stop this Metro session.
-
-EOF
-fi
-
 cat <<EOF
-==> Manual iOS smoke after launch
-- 登录页显示远端认证模式。
-- 使用 ${MANUAL_TEST_PHONE} 和 dev fixed code ${SMS_CODE} 完成登录。
-- 学习页加载 ${TRACK} 远端卡源，并保留单卡流。
-- 首次进入空间会启动试用；空间入口解锁后显示远端卡源的 library/group/box。
-- 完成一张卡后，统计页显示远端日级同步，学习状态同步不报错。
-
+==> Automated iOS Simulator launch verification complete
+automated_simulator_launch_verified=true
+automated_simulator_ui_evidence_verified=false
+automated_real_device_evidence_verified=false
+gate_eligible=false
 EOF
-
-if [[ "${SMOKE_LIFECYCLE_ACTIVE}" == "1" ]]; then
-  echo "==> Press Ctrl+C after manual acceptance to clean the isolated CloudBase records."
-  while true; do
-    sleep 3600
-  done
-elif [[ -n "${METRO_PID}" && "${STOP_METRO_ON_EXIT}" != "1" ]]; then
-  wait "${METRO_PID}"
-fi

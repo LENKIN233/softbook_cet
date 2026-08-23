@@ -1,7 +1,7 @@
 {
   "version": "vnext-3",
   "layer": "implementation_hypothesis_with_minimal_product_truth",
-  "purpose": "Stabilize visual output across agents and human designers so that every new screen, mock, or component inherits the same atmosphere instead of reinventing one. This file is the structured entry; the canonical visual anchor is docs/design/visual-reference.html and the prose canon is docs/design/canon.md. All three move together.",
+  "purpose": "Stabilize visual output across model agents and implementation systems so that every new screen, mock, or component inherits the same atmosphere instead of reinventing one. This file is the structured entry; the canonical visual anchor is docs/design/visual-reference.html and the prose canon is docs/design/canon.md. All three move together.",
   "authority_note": "Nothing here can override spec/product-core.json, spec/interactions.json, spec/knowledge-map.json, spec/card-system.json, spec/action-surface.json, or spec/membership.json. When this file disagrees with an owner listed in spec/authority-map.json, the owner wins and this file is edited to match.",
   "references": {
     "canonical_visual_anchor": "docs/design/visual-reference.html",
@@ -378,7 +378,7 @@
     ],
     "stop_when": "visual_output_or_user_facing_implementation_has_an_accepted_design_artifact_and_inherits_tokens_and_silhouettes_from_this_file_without_reinventing_them",
     "escalate_when": [
-      "product_owner_spec_disagrees_with_a_claim_here",
+      "authoritative_product_spec_disagrees_with_a_claim_here",
       "a_new_library_or_new_interaction_appears_that_has_no_identity_mapping",
       "a_surface_requires_a_visual_semantic_not_covered_here"
     ]

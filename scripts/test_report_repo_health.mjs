@@ -36,13 +36,23 @@ try {
 
   const result = spawnSync(
     process.execPath,
-    ['scripts/report_repo_health.mjs', '--base', base, '--strict'],
+    [
+      'scripts/report_repo_health.mjs',
+      '--profile',
+      'local',
+      '--base',
+      base,
+      '--strict',
+    ],
     {cwd: tempRoot, encoding: 'utf8'},
   );
   const report = JSON.parse(result.stdout);
 
   assert.notEqual(result.status, 0, 'transient oversized blob must fail');
   assert.equal(report.ok, false);
+  assert.equal(report.profile, 'local');
+  assert.equal(report.remote, null);
+  assert.equal(report.metrics.workspace_topology_checked, false);
   assert.ok(
     report.errors.some(error => error.code === 'ordinary_git_blob_too_large'),
   );
@@ -55,10 +65,14 @@ try {
     fakeGh,
     `#!/usr/bin/env node
 const args = process.argv.slice(2);
+if (process.env.FAIL_ON_GH === 'true') {
+  process.stderr.write('gh must not run in local repository-health profile\\n');
+  process.exit(97);
+}
 const checks = [
   'design-artifact-gate',
   'validate-harness',
-  'agent-review',
+  'trusted-model-review',
   'mobile-quality',
   'web-quality',
   'backend-contract',
@@ -67,7 +81,6 @@ const checks = [
   'android-release',
   'repo-health',
   'evidence-archive',
-  'formal-approval',
 ];
 if (process.env.MISSING_ANDROID_RELEASE === 'true') {
   checks.splice(checks.indexOf('android-release'), 1);
@@ -126,23 +139,6 @@ if (args[0] === 'repo' && args[1] === 'view') {
       allow_force_pushes: {enabled: false},
       allow_deletions: {enabled: false},
     }));
-  } else if (endpoint.endsWith('/environments/formal-product-owner-approval')) {
-    if (process.env.FORMAL_ENV_MISSING === 'true') process.exit(1);
-    const reviewers = process.env.FORMAL_REVIEWER_MISSING === 'true'
-      ? []
-      : [{type: 'User', reviewer: {login: 'LENKIN233'}}];
-    if (process.env.FORMAL_EXTRA_TEAM === 'true') {
-      reviewers.push({type: 'Team', reviewer: {slug: 'release-reviewers'}});
-    }
-    process.stdout.write(JSON.stringify({
-      name: 'formal-product-owner-approval',
-      can_admins_bypass: process.env.FORMAL_ADMIN_BYPASS === 'true',
-      protection_rules: [{
-        type: 'required_reviewers',
-        prevent_self_review: false,
-        reviewers,
-      }],
-    }));
   } else {
     process.exit(1);
   }
@@ -155,8 +151,9 @@ if (args[0] === 'repo' && args[1] === 'view') {
 
   const remoteArgs = [
     'scripts/report_repo_health.mjs',
+    '--profile',
+    'remote',
     '--full-tree',
-    '--remote',
     '--strict',
   ];
   const remoteEnvironment = overrides => ({
@@ -164,6 +161,31 @@ if (args[0] === 'repo' && args[1] === 'view') {
     PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
     ...overrides,
   });
+  const isolatedLocal = spawnSync(
+    process.execPath,
+    [
+      'scripts/report_repo_health.mjs',
+      '--profile',
+      'local',
+      '--full-tree',
+      '--strict',
+    ],
+    {
+      cwd: tempRoot,
+      encoding: 'utf8',
+      env: remoteEnvironment({FAIL_ON_GH: 'true'}),
+    },
+  );
+  const isolatedLocalReport = JSON.parse(isolatedLocal.stdout);
+  assert.equal(
+    isolatedLocal.status,
+    0,
+    `${isolatedLocal.stderr}\n${isolatedLocal.stdout}`,
+  );
+  assert.equal(isolatedLocalReport.profile, 'local');
+  assert.equal(isolatedLocalReport.remote, null);
+  assert.equal(isolatedLocalReport.metrics.workspace_topology_checked, false);
+
   const healthyRemote = spawnSync(process.execPath, remoteArgs, {
     cwd: tempRoot,
     encoding: 'utf8',
@@ -176,12 +198,8 @@ if (args[0] === 'repo' && args[1] === 'view') {
     `${healthyRemote.stderr}\n${healthyRemote.stdout}`,
   );
   assert.equal(healthyRemoteReport.ok, true);
-  assert.deepEqual(healthyRemoteReport.remote.formal_approval.reviewers, ['LENKIN233']);
-  assert.deepEqual(healthyRemoteReport.remote.formal_approval.reviewer_entries, [{
-    type: 'User',
-    login: 'LENKIN233',
-    slug: null,
-  }]);
+  assert.equal(healthyRemoteReport.profile, 'remote');
+  assert.equal(healthyRemoteReport.metrics.workspace_topology_checked, true);
   assert.deepEqual(healthyRemoteReport.remote.merge_methods, {
     allow_squash_merge: true,
     allow_merge_commit: false,
@@ -197,10 +215,6 @@ if (args[0] === 'repo' && args[1] === 'view') {
   });
 
   for (const [environment, expectedCode, expectedCheck] of [
-    [{FORMAL_ADMIN_BYPASS: 'true'}, 'formal_approval_admin_bypass_enabled'],
-    [{FORMAL_REVIEWER_MISSING: 'true'}, 'formal_approval_reviewer_drift'],
-    [{FORMAL_EXTRA_TEAM: 'true'}, 'formal_approval_reviewer_drift'],
-    [{FORMAL_ENV_MISSING: 'true'}, 'formal_approval_environment_unavailable'],
     [{SIGNATURES_MISSING: 'true'}, 'required_signatures_unavailable'],
     [{REPOSITORY_SETTINGS_MISSING: 'true'}, 'remote_repository_settings_unavailable'],
     [{REPOSITORY_SETTINGS_MALFORMED: 'true'}, 'remote_repository_settings_malformed'],
@@ -250,15 +264,8 @@ if (args[0] === 'repo' && args[1] === 'view') {
         allow_rebase_merge: false,
       });
     }
-    if (environment.FORMAL_EXTRA_TEAM === 'true') {
-      const finding = driftReport.errors.find(error => error.code === expectedCode);
-      assert.deepEqual(finding.actual, [
-        {type: 'User', login: 'LENKIN233', slug: null},
-        {type: 'Team', login: null, slug: 'release-reviewers'},
-      ]);
-    }
   }
-  console.log('PASS: repository health fails closed on repository and approval drift.');
+  console.log('PASS: repository health fails closed on remote repository drift.');
 
   execFileSync('git', ['init', '--bare', remoteRoot], {stdio: 'ignore'});
   git('remote', 'add', 'origin', remoteRoot);
@@ -275,6 +282,8 @@ if (args[0] === 'repo' && args[1] === 'view') {
     process.execPath,
     [
       'scripts/report_repo_health.mjs',
+      '--profile',
+      'local',
       '--full-tree',
       '--strict',
       '--expected-max-worktrees',
@@ -298,6 +307,7 @@ if (args[0] === 'repo' && args[1] === 'view') {
   assert.ok(errorCodes.has('branch_upstream_missing'));
   assert.ok(errorCodes.has('gone_local_branches'));
   assert.equal(workspaceReport.metrics.worktrees, 2);
+  assert.equal(workspaceReport.metrics.workspace_topology_checked, true);
   assert.equal(workspaceReport.metrics.dirty_worktrees, 1);
   assert.equal(workspaceReport.metrics.stashes, 1);
   assert.equal(workspaceReport.metrics.topic_branches, 2);

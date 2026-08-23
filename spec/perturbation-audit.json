@@ -193,7 +193,7 @@
     {
       "id": "P-27",
       "change": "Ship visual output (screens, mocks, reference HTML changes) without answering the design_review_checklist",
-      "expected_failure": "removes the last gate between agent-produced design and user review; reintroduces taste drift and layout bugs that the checklist would have caught",
+      "expected_failure": "removes the machine-owned design acceptance gate; reintroduces taste drift and layout bugs that the checklist and visual evals would have caught",
       "guarded_by": ["spec/visual-language.json", "spec/agent-harness.json"],
       "status": "rejected"
     },
@@ -220,7 +220,7 @@
     },
     {
       "id": "P-31",
-      "change": "Merge a pull request before agent review finishes or while required gates are red",
+      "change": "Merge a pull request before exact-diff model review finishes or while required gates are red",
       "expected_failure": "bypasses the review-and-gate contract and can land unchecked changes on main",
       "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
       "status": "rejected"
@@ -255,8 +255,8 @@
     },
     {
       "id": "P-36",
-      "change": "Treat agent review as an unrecorded convention outside required PR gates",
-      "expected_failure": "lets a PR merge without a durable review artifact even though repo delivery policy requires clean agent review before merge",
+      "change": "Merge without a concise exact-diff model decision bound to the pull request",
+      "expected_failure": "lets a PR merge without machine acceptance even though no human approval is required",
       "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_agent_review.py"],
       "status": "rejected"
     },

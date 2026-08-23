@@ -2,16 +2,19 @@
   "schema_version": "cet4-closed-beta-readiness.v1",
   "target_release": "cet4-closed-beta",
   "status": "not_ready",
-  "current_milestone": "repository_runtime_and_evidence_contracts",
-  "quality_policy": "move_closed_beta_date_before_reducing_gate",
+  "current_milestone": "machine_owned_closed_beta_execution",
+  "quality_policy": "accelerate_with_machine_acceptance_without_lowering_objective_gates",
   "formal_evidence_ingestion": "registered_types_implemented_unregistered_fail_closed",
-  "formal_approval": {
-    "provider": "github_environment",
-    "environment": "formal-product-owner-approval",
-    "required_reviewer": "github:LENKIN233",
-    "administrators_can_bypass": false,
-    "workflow": ".github/workflows/formal-approval.yml",
-    "required_check": "formal-approval"
+  "machine_acceptance": {
+    "provider": "model_harness",
+    "policy": "spec/machine-acceptance.json",
+    "authority": "model_harness",
+    "required_independent_runs": 2,
+    "independence_unit": "workflow_review_job",
+    "human_review_required": false,
+    "user_review_required": false,
+    "product_owner_click_required": false,
+    "required_check": "trusted-model-review"
   },
   "release_candidate": null,
   "scope": {
@@ -29,27 +32,27 @@
   "external_dependencies": [
     {
       "id": "tencent-cloud-receiver",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "blocked"
     },
     {
       "id": "sms-provider",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified"
     },
     {
       "id": "apple-private-distribution",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified"
     },
     {
       "id": "android-private-distribution",
-      "owner": "product_owner",
+      "owner": "model_harness",
       "status": "unverified"
     },
     {
-      "id": "human-content-review",
-      "owner": "product_owner",
+      "id": "model-content-acceptance",
+      "owner": "model_harness",
       "status": "blocked"
     }
   ],
@@ -84,7 +87,7 @@
       "status": "blocked",
       "evidence": [],
       "blocked_by": [
-        "human-content-review"
+        "model-content-acceptance"
       ]
     },
     {

@@ -6,7 +6,7 @@ State source generation and target generation.
 
 ## Failure Signal
 
-Name the observed failure from hard filters, pairwise review, human checkpoint, or rendered proof.
+Name the observed failure from hard filters, pairwise review, model acceptance checkpoint, or rendered proof.
 
 ## Targeted Mutation
 

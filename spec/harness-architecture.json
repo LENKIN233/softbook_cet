@@ -1,7 +1,7 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "layer": "repo_governance_truth",
-  "purpose": "Define the architecture of scripts/validate_harness.py and the independent local quality-gate entrypoint so governance checks stay layered while runtime and release jobs remain delegated and diagnosable.",
+  "purpose": "Define a lean layered Harness: owner and behavior invariants stay local, task-relevant CI runs by changed path, and runtime or external facts remain delegated and diagnosable.",
   "authority_note": "This file owns validator layer boundaries, section ownership, and side-effect policy. It does not own product truth, UI design truth, workspace classification, or PR delivery policy; those remain in their owner specs.",
   "product_truth": {
     "none": "Harness architecture is repo governance truth, not product truth. It protects product truth by making validator responsibilities explicit."
@@ -54,7 +54,6 @@
           "visual_language",
           "workspace_boundary",
           "governance_contracts",
-          "agent_run_record",
           "design_contracts"
         ],
         "capabilities": [
@@ -202,7 +201,7 @@
           "full_remote_harness",
           "real_pull_request_body_gates",
           "dependency_security_with_visible_exceptions",
-          "strict_local_and_remote_repository_health",
+          "strict_changed_tree_repository_health",
           "git_lfs_fsck",
           "remote_agent_evidence_validation"
         ]
@@ -361,7 +360,6 @@
       "name": "Delivery governance and PR gates",
       "sections": [
         "governance_contracts",
-        "agent_run_record",
         "agent_review_regressions",
         "delivery_runtime"
       ],
@@ -434,7 +432,6 @@
     "visual_language",
     "workspace_boundary",
     "governance_contracts",
-    "agent_run_record",
     "agent_review_regressions",
     "delivery_runtime",
     "design_contracts",

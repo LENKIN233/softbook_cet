@@ -17,7 +17,6 @@ READ_ONLY_SECTIONS = {
     "visual_language",
     "workspace_boundary",
     "governance_contracts",
-    "agent_run_record",
     "design_contracts",
 }
 FIXTURE_SECTION_OWNERS = {
@@ -35,7 +34,6 @@ KNOWN_SECTION_OWNERS = {
     "visual_language": "truth_spec_layer",
     "workspace_boundary": "workspace_hygiene_layer",
     "governance_contracts": "delivery_governance_layer",
-    "agent_run_record": "delivery_governance_layer",
     "agent_review_regressions": "delivery_governance_layer",
     "delivery_runtime": "delivery_governance_layer",
     "design_contracts": "design_governance_layer",

@@ -223,7 +223,6 @@ test('invalid launch configuration exits before device or remote commands', () =
   const blankBundle = runWrapper('smoke-ios-runtime.sh', {
     SOFTBOOK_CET_IOS_BUNDLE_ID: ' ',
     SOFTBOOK_CET_IOS_LAUNCH: '1',
-    SOFTBOOK_CET_MANUAL_TEST_PHONE: '19123456789',
   });
   const invalidIsolation = runWrapper('smoke-ios-runtime.sh', {
     SOFTBOOK_CET_IOS_LAUNCH: '0',
@@ -246,7 +245,7 @@ test('a missing Maestro flow exits before target resolution or remote smoke', ()
   const result = runWrapper('smoke-ios-maestro-runtime.sh', {
     JAVA_HOME: '/missing-java',
     SOFTBOOK_CET_IOS_MAESTRO_FLOW: '/missing-flow.yaml',
-    SOFTBOOK_CET_MANUAL_TEST_PHONE: '19123456789',
+    SOFTBOOK_CET_MAESTRO_PHONE: '19123456789',
   });
 
   assert.equal(result.status, 1);
@@ -278,15 +277,15 @@ test('the launch script resolves and builds before any remote write smoke', () =
   assert.ok(launchIndex > smokeIndex);
   assert.doesNotMatch(script, /npm run ios -- --simulator/);
   assert.match(script, /npm run ios -- --udid .* --verbose/);
-  assert.match(script, /cleanup "\$\{exit_code\}"/);
+  assert.match(script, /if ! cleanup; then/);
 });
 
-test('manual acceptance inputs fail before the remote write smoke', () => {
+test('automated launch inputs fail before the remote write smoke', () => {
   const script = readFileSync(
     new URL('./smoke-ios-runtime.sh', import.meta.url),
     'utf8',
   );
-  const prepareIndex = script.indexOf('\n  prepare_ios_acceptance_inputs\n');
+  const prepareIndex = script.indexOf('\n  prepare_ios_launch_inputs\n');
   const resolveIndex = script.indexOf('\n  resolve_ios_launch_target\n');
   const smokeIndex = script.indexOf(
     'node "${ROOT_DIR}/infra/cloudbase/smoke-softbook-api.mjs"',
@@ -300,6 +299,9 @@ test('manual acceptance inputs fail before the remote write smoke', () => {
     /require_binary_flag "SOFTBOOK_CET_IOS_LAUNCH" "\$\{LAUNCH_IOS\}"/,
   );
   assert.match(script, /SOFTBOOK_CET_IOS_BUNDLE_ID must not be blank/);
+  assert.doesNotMatch(script, /manual acceptance|Ctrl\+C|sleep 3600/i);
+  assert.match(script, /automated_simulator_launch_verified=true/);
+  assert.match(script, /automated_real_device_evidence_verified=false/);
 });
 
 test('the Maestro wrapper pins every device operation to the resolved UDID', () => {
@@ -327,4 +329,7 @@ test('the Maestro wrapper pins every device operation to the resolved UDID', () 
   assert.doesNotMatch(script, /simctl uninstall "\$\{IOS_DEVICE\}"/);
   assert.match(script, /JAVA_HOME must identify a Java runtime for Maestro/);
   assert.match(script, /maestro must be installed and available on PATH/);
+  assert.doesNotMatch(script, /manual acceptance|Ctrl\+C/i);
+  assert.match(script, /automated_simulator_ui_evidence_verified=true/);
+  assert.match(script, /automated_real_device_evidence_verified=false/);
 });

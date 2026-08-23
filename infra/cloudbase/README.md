@@ -307,9 +307,9 @@ version in `softbook_card_source_versions`, registers the new version as
 `CLOUDBASE_ENV_ID`, defaulting to `test-d2gzcyxr9f7e80972` when the variable is
 not set. The JSON payload must contain `source`, `track`, and `card_records`.
 Validation computes and persists a deterministic `content_version`; a candidate
-without final approval persists `release: null`. This development importer
+without current model authorization persists `release: null`. This development importer
 rejects any non-null release descriptor. Only a separate pipeline that verifies
-formal approval evidence may add a matching `content-release.v1` descriptor.
+model-owned authorization evidence may add a matching `content-release.v1` descriptor.
 
 Audit the current CloudBase documents without writing:
 
@@ -318,9 +318,9 @@ node infra/cloudbase/audit-card-sources.mjs
 node infra/cloudbase/audit-card-sources.mjs --track cet4
 ```
 
-An exact approved controlled-pilot candidate can be exercised locally through
+An exact model-authorized controlled-pilot candidate can be exercised locally through
 the authenticated v2 card-source, five-card server round and signed manifest
-without claiming deployment or audio approval:
+without claiming deployment or audio authorization:
 
 ```bash
 node infra/cloudbase/smoke-controlled-pilot-candidate-runtime.mjs \
@@ -335,7 +335,7 @@ The report is repository validation only and always `gate_eligible=false`.
 
 The audit command reads `softbook_card_sources` with `QUERY`, reuses the same
 runtime validator, and checks `spec/box-catalog.json` prefix/path alignment, so
-it is safe to run after manual imports or deploys.
+it is safe to run after out-of-band imports or deploys.
 
 ## Formal track release bundles
 
@@ -356,8 +356,8 @@ Receiver delivery uses the fail-closed contracts in
 `release-bundle-v1-runtime-contract.md` and the implementation in
 `release-delivery-v1.mjs`. A `delivery-profile.v1` must name a receiver-owned
 environment and cannot contain secrets. A `release-bundle.v1` must bind the
-complete track payload, final whole-track approval, audit hash, and exact audio
-QC coverage before publisher orchestration can start. CET4 remains exactly
+complete track payload, two-run whole-track model authorization, audit hash,
+and exact model-owned audio QC coverage before publisher orchestration can start. CET4 remains exactly
 1,180 cards / 108 boxes / 301 audio entries. The formal product adds CET6 as a
 separate exact 1,234-card / 110-box / 328-audio bundle. A `closed_beta` profile
 enables only CET4; a `production` profile enables CET4 and CET6 in canonical
@@ -390,7 +390,7 @@ node infra/cloudbase/deliver-release.mjs publish \
 node infra/cloudbase/deliver-release.mjs verify \
   --profile path/to/delivery-profile.json \
   --bundle path/to/release-bundle.json \
-  --operator github:<receiver-operator>
+  --operator service:<receiver-operator>
 node infra/cloudbase/deliver-release.mjs rollback \
   --profile path/to/delivery-profile.json \
   --release cet4-beta-previous
@@ -405,8 +405,8 @@ drift. The reread also binds the non-secret signing key ID, runtime/store modes
 and SMS provider. Public reports expose only those values plus variable names,
 never secret values. Every report
 has canonical execution start/completion timestamps; apply and verify require
-`--operator github:<account>` (or `team:` / `external:`) for auditable raw
-execution identity.
+`--operator service:<machine-principal>` (or `model:`, `agent:`, `oidc:`) for
+auditable raw execution identity.
 
 Formal `production-deployment` evidence must bind tracked strict JSON for the
 applied deploy report, passed verify report, delivery profile and release
@@ -417,15 +417,17 @@ no retained parent cannot satisfy this gate; publish and retain an earlier
 verified release before selecting the final release candidate. Pilot, dry-run
 and simulation reports remain ineligible.
 
-Build a formal CET4 bundle only after the exact full-track approval, audit,
-301-asset human QC and private audio bytes exist. The command verifies a
+Build a formal CET4 bundle only after the exact full-track model authorization,
+linked full-track model review, scoped audit, 301-asset model-owned QC and
+private audio bytes exist. The command verifies a
 temporary bundle and removes it by default:
 
 ```bash
 node scripts/build_formal_release_bundle.mjs \
   --profile path/to/delivery-profile.json \
   --content-payload path/to/cet4-formal-payload.json \
-  --approval path/to/full-track-final.json \
+  --authorization path/to/full-track-authorization.json \
+  --model-review path/to/full-track-model-review.json \
   --audit path/to/card-quality-audit.json \
   --audio-qc-dir path/to/audio-qc \
   --asset-root path/to/payload-assets \
@@ -437,21 +439,21 @@ node scripts/build_formal_release_bundle.mjs \
   --release-at <ISO-8601>
 ```
 
-Add `--apply --operator github:<receiver-operator>` only from Node 22.13.0 on
+Add `--apply --operator service:<receiver-operator>` only from Node 22.13.0 on
 clean `main` exactly equal to `origin/main` to retain the fully core-verified
-output. Report v2 binds the exact commit, profile/bundle/evidence hashes and
-execution window without exposing the machine-local output path. The builder
-does not create approval/QC, deploy, publish, or create readiness evidence.
+output. Report v2 binds the exact commit, profile/bundle/model-authorization/
+model-review/audit/audio-manifest/QC-index hashes and execution window without
+exposing the machine-local output path. The builder does not create
+authorization/QC, deploy, publish, or create readiness evidence.
 
-An applied build report v2 becomes usable only inside one of the four
-type-specific CET4 content evidence wrappers together with tracked profile,
-bundle, content, approval, audit, audio manifest and QC index bytes. The
-closed-beta loader rehashes and cross-binds exact 1,180/108/301 scope; the raw
-report alone remains gate-ineligible and cannot manufacture human approval or
-QC.
+The raw report remains gate-ineligible. Formal media launch evidence also
+remains unregistered and fail-closed until the repository defines a trusted
+media-run receipt with type-specific provenance semantics; structural model
+acceptance records cannot manufacture playback, device, provider, or other
+external facts.
 
-Add `--apply --operator github:<receiver-operator>` only to `provision`,
-`deploy`, `publish`, or `rollback` after reviewing the plan. Apply requires
+Add `--apply --operator service:<receiver-operator>` only to `provision`,
+`deploy`, `publish`, or `rollback` after machine preflight passes. Apply requires
 Node 22.13.0 and clean exact `main`.
 Receiver/CI secrets are never stored in `delivery-profile.v1`:
 
@@ -483,10 +485,10 @@ node infra/cloudbase/deliver-controlled-pilot.mjs publish \
 node infra/cloudbase/deliver-controlled-pilot.mjs verify \
   --profile path/to/controlled-pilot-profile.json \
   --bundle path/to/controlled-pilot-bundle.json \
-  --operator github:<receiver-operator>
+  --operator service:<receiver-operator>
 ```
 
-Add `--apply --operator github:<receiver-operator>` only to `provision`,
+Add `--apply --operator service:<receiver-operator>` only to `provision`,
 `deploy`, or `publish`. Apply has the same Node 22.13.0, clean exact-`main`,
 independent receiver, collection, and secret
 requirements as formal delivery, but injects
@@ -575,6 +577,9 @@ validates the selected production adapter without sending:
 ```bash
 SOFTBOOK_SMS_SMOKE_PHONE=<receiver-owned-test-phone> \
 SOFTBOOK_SMS_SMOKE_TARGET_ID=<receiver-environment-id> \
+SOFTBOOK_SMS_RECEIVER_ADAPTER_ID=service:sms-receiver-adapter \
+SOFTBOOK_SMS_RECEIVER_KEY_ID=<receiver-key-id> \
+SOFTBOOK_SMS_RECEIVER_PUBLIC_KEY="$SMS_RECEIVER_PUBLIC_KEY" \
 node infra/cloudbase/smoke-sms-provider.mjs prepare \
   --state docs/agent-runs/artifacts/sms-provider-smoke.json \
   --format json
@@ -582,22 +587,42 @@ node infra/cloudbase/smoke-sms-provider.mjs prepare \
 
 Run the same command with `--apply` only from clean `main` exactly matching
 `origin/main`. The raw phone and generated code then exist only in the ignored,
-mode-0600 state file. After a human receives the message, pass the received code
-through stdin rather than an argument or environment variable:
+mode-0600 state file. Prepare also pins the receiver adapter, key ID, and
+Ed25519 public-key fingerprint; the receiver private key is forbidden in the
+sender process. A separate receiver automation reads the real inbox or
+receiver webhook, then invokes `sms-receiver-adapter.mjs` with its received code,
+receipt, run/target identity and Ed25519 private key to write a signed mode-0600
+artifact. These values are supplied by the receiver job; no person copies or
+enters the code. The sender state is not accepted as delivery proof:
 
 ```bash
-read -r -s RECEIVED_SMS_CODE
-printf '%s' "$RECEIVED_SMS_CODE" | \
-  SOFTBOOK_SMS_SMOKE_VERIFIER=github:LENKIN233 \
-  node infra/cloudbase/smoke-sms-provider.mjs confirm \
-    --state docs/agent-runs/artifacts/sms-provider-smoke.json \
-    --report docs/release/evidence/raw/sms-provider-smoke.json \
-    --apply --format json
-unset RECEIVED_SMS_CODE
+SOFTBOOK_SMS_RECEIVER_ADAPTER_ID=service:sms-receiver-adapter \
+SOFTBOOK_SMS_RECEIVER_RUN_ID=<prepare-run-id> \
+SOFTBOOK_SMS_RECEIVER_TARGET=<receiver-environment-id> \
+SOFTBOOK_SMS_RECEIVER_SOURCE=receiver_webhook \
+SOFTBOOK_SMS_RECEIVER_RECEIVED_AT=<receiver-observed-ISO-time> \
+SOFTBOOK_SMS_RECEIVER_CODE=<receiver-observed-code> \
+SOFTBOOK_SMS_RECEIVER_RECEIPT_ID=<receiver-receipt-id> \
+SOFTBOOK_SMS_RECEIVER_KEY_ID=<receiver-key-id> \
+SOFTBOOK_SMS_RECEIVER_PRIVATE_KEY="$RECEIVER_JOB_PRIVATE_KEY" \
+node infra/cloudbase/sms-receiver-adapter.mjs \
+  --output docs/agent-runs/artifacts/sms-receiver-evidence.json --format json
+
+SOFTBOOK_SMS_RECEIVER_ADAPTER_ID=service:sms-receiver-adapter \
+SOFTBOOK_SMS_RECEIVER_KEY_ID=<receiver-key-id> \
+SOFTBOOK_SMS_RECEIVER_PUBLIC_KEY="$SMS_RECEIVER_PUBLIC_KEY" \
+SOFTBOOK_SMS_SMOKE_VERIFIER=service:sms-smoke-verifier \
+SOFTBOOK_SMS_SMOKE_VERIFIER_RUN_ID=<independent-machine-run-id> \
+node infra/cloudbase/smoke-sms-provider.mjs confirm \
+  --state docs/agent-runs/artifacts/sms-provider-smoke.json \
+  --receiver-evidence docs/agent-runs/artifacts/sms-receiver-evidence.json \
+  --report docs/release/evidence/raw/sms-provider-smoke.json \
+  --apply --format json
 ```
 
-Successful confirmation atomically removes private state before publishing the
-PII-free raw `sms-provider-smoke.v1` report below
+The receiver private key must not be present in the confirmation process.
+Successful confirmation verifies the signature and atomically removes both
+private artifacts before publishing the PII-free raw `sms-provider-smoke.v2` report below
 `docs/release/evidence/raw/`. The target ID must be the receiver environment ID
 used by the release candidate. A wrong code is limited to three local attempts;
 expiry or the third mismatch deletes private state and produces no evidence.
@@ -606,8 +631,9 @@ Use `discard --state ... --apply` to remove an interrupted state.
 The raw report is not itself a gate record. Formal evidence must wrap it in a
 `launch-gate-evidence.v1` artifact for `sms-provider-smoke`, set
 `measurements.report_role` to the raw report role, and bind the same run ID,
-repository commit, receiver environment, send/confirmation window, human
-verifier, release candidate, independent attestation, file size, and SHA-256.
+repository commit, receiver environment, send/confirmation window, receiver
+adapter/key fingerprint, machine verifier/run, receiver receipt fingerprint, release candidate, independent
+attestation, file size, and SHA-256.
 The launch validator re-hashes both files and validates these bindings; a direct
 raw report, generic summary, local test, or mismatched wrapper remains
 ineligible.
@@ -669,7 +695,7 @@ does not prove the final production backend.
 
 By default the wrapper sets `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=1`, so contract
 write checks use a generated one-off phone number. This keeps membership
-mutations from pushing the shared manual-acceptance phone into `premium`. Set
+mutations from pushing a shared test identity into `premium`. Set
 `SOFTBOOK_CET_SMOKE_ISOLATED_PHONE=0` only when you intentionally want contract
 checks to reuse `SOFTBOOK_CET_TEST_PHONE`.
 
@@ -690,14 +716,14 @@ infra/cloudbase/smoke-ios-runtime.sh
 ```
 
 For an iOS launch, the wrapper first resolves one available Simulator to an
-exact UDID. An explicit `SOFTBOOK_CET_IOS_DEVICE` wins over the human-readable
+exact UDID. An explicit `SOFTBOOK_CET_IOS_DEVICE` wins over the display-name
 selector; otherwise one booted device is used, or
 `SOFTBOOK_CET_IOS_SIMULATOR` must resolve without ambiguity. A shutdown target
 is booted and awaited before local tests or build work begins. The wrapper then
 reuses an existing Metro server or starts one and lets the React Native CLI
 build and install the debug app with `--udid` and unfiltered build diagnostics.
-Launch flags, the manual acceptance phone, and the bundle identifier are also
-validated before local device work. Only after those inputs, target resolution,
+Launch flags and the bundle identifier are also validated before local device
+work. Only after those inputs, target resolution,
 local runtime-profile tests, the debug build, and installed app lookup have
 passed does it run the remote write smoke. After that it relaunches
 `com.softbook.cet` with `xcrun simctl launch` and the required `SIMCTL_CHILD_*`
@@ -705,41 +731,20 @@ environment variables. This matters because
 `AppDelegate.swift` reads the app process environment, not the shell environment
 around the helper script. Defaults can be overridden with
 `SOFTBOOK_CET_IOS_DEVICE`, `SOFTBOOK_CET_IOS_SIMULATOR`,
-`SOFTBOOK_CET_IOS_BUNDLE_ID`, and `SOFTBOOK_CET_METRO_PORT`. When the wrapper
-starts Metro itself, it keeps running after the manual acceptance checklist is
-printed; press `Ctrl+C` after acceptance to stop that Metro session. Set
-`SOFTBOOK_CET_STOP_METRO_ON_EXIT=1` when you want the wrapper to stop its own
-Metro process as soon as the launch sequence finishes. A failed build or an
-interrupted run always stops a Metro process started by the wrapper. An already
-running Metro server is reused and left alone. For the allowlisted CloudBase dev
-environment, the wrapper remains attached even when Metro was reused so
-`Ctrl+C` can close the acceptance window and verify exact smoke-record cleanup.
+`SOFTBOOK_CET_IOS_BUNDLE_ID`, and `SOFTBOOK_CET_METRO_PORT`. A failed or
+successful run always stops a Metro process started by this wrapper; an already
+running Metro server is reused and left alone. The exit trap also removes the
+exact lifecycle-owned CloudBase records. The command never opens an acceptance
+window, waits for `Ctrl+C`, or asks a person to operate the app.
 
-When `SOFTBOOK_CET_IOS_LAUNCH=1`, the wrapper prints a one-off manual
-acceptance phone in the `19xxxxxxxxx` format. Use that printed phone in the app;
-the verification code remains the development fixed code `2468`. Set
-`SOFTBOOK_CET_MANUAL_TEST_PHONE` to the printed value when a previous manual
-acceptance run needs to be reproduced. `SOFTBOOK_CET_TEST_CODE` may still
-override the code for non-default dev environments, but this flow must not use
-real SMS.
+The launch wrapper records only build, install, remote-contract and Simulator
+launch facts. A successful launch reports
+`automated_simulator_launch_verified=true`, while
+`automated_simulator_ui_evidence_verified=false`,
+`automated_real_device_evidence_verified=false`, and `gate_eligible=false`.
+It cannot promote a Simulator launch into UI or physical-device evidence.
 
-Manual acceptance after launch:
-
-- Auth screen says it is using remote SMS verification.
-- Login with the printed one-off phone and dev fixed code reaches the learning
-  bootstrap.
-- Learning loads the remote track while preserving the single-card flow.
-- First protected space entry starts trial and unlocks the physical-space map.
-- The automated space leg browses the library / group / box hierarchy, inspects
-  a box card, applies a favorite tag, moves that card into sleep, then wakes it
-  before returning to the learning flow.
-- Completing a card updates event-derived statistics, explicit check-in remains
-  independent, and learning / space state has no queued retry errors.
-
-Manual and automated acceptance run notes live in
-`ios-runtime-acceptance-log.md`.
-
-Automated Maestro acceptance after remote launch:
+Model+harness Maestro acceptance after remote launch:
 
 ```bash
 SOFTBOOK_CET_REMOTE_BASE_URL="https://test-d2gzcyxr9f7e80972.service.tcloudbase.com/softbook-api" \
@@ -759,6 +764,12 @@ trap verifies cleanup after either a passed or failed Maestro run.
 The remote Maestro flow intentionally omits `clearState` and `launchApp`, because
 the app must keep the `SIMCTL_CHILD_*` runtime environment injected by
 `smoke-ios-runtime.sh`.
+After the exact flow succeeds, the wrapper reports
+`automated_simulator_ui_evidence_verified=true` but keeps
+`automated_real_device_evidence_verified=false` and `gate_eligible=false`.
+Missing Java, Maestro, Simulator, flow, or remote capability fails closed; there
+is no person-operated fallback. A physical-device executor must independently
+observe the real device before the real-device field can become true.
 
 Local mock flow:
 

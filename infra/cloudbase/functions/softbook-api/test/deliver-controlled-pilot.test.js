@@ -104,7 +104,7 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
       bundlePath: null,
       command: 'deploy',
       format: 'json',
-      operator: 'github:receiver-operator',
+      operator: 'service:receiver-pilot-operator',
       profilePath: fixture.path,
     },
     {
@@ -120,7 +120,7 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
   );
 
   assert.equal(report.status, 'passed');
-  assert.equal(report.execution.operator, 'github:receiver-operator');
+  assert.equal(report.execution.operator, 'service:receiver-pilot-operator');
   assert.equal(report.deployed.backend_deployment_id, report.backend_deployment_id);
   assert.equal(
     report.deployed.api_function.backend_deployment_id,
@@ -195,7 +195,7 @@ test('controlled-pilot apply remains exact-main only', async () => {
           bundlePath: null,
           command: 'provision',
           format: 'json',
-          operator: 'github:receiver-operator',
+          operator: 'service:receiver-pilot-operator',
           profilePath: fixture.path,
         },
         {

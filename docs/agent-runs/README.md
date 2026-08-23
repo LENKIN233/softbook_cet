@@ -1,25 +1,17 @@
-# Agent Run Records
+# Agent Run Records (Frozen Archive)
 
-Agent run records are durable project context for significant agent-authored work.
-They preserve what was changed, which specs were used, what was verified, and
-what remains risky after context compression.
+This directory preserves historical agent-run records. New pull requests do not
+add records here. The active delivery record is the concise pull request body,
+exact-diff model review, and required checks. Real external operations use their
+registered release, deployment, device, or provider evidence schema.
 
 They do not create product truth. Product truth remains in `spec/*` owner files.
 Run records explain how a task used those owners.
 
-## When to create one
+## New-record policy
 
-Create a run record for PR-bound work that changes any of these surfaces:
-
-- repository governance
-- harness or CI behavior
-- user-facing UI or design authority
-- runtime, backend, or mobile behavior
-- card content handoff boundaries
-- multi-file refactors
-
-Local-only work may omit a committed run record only when the user explicitly
-asks for no PR. The final answer should still state the same facts.
+Do not create a new tracked run record for ordinary repository work. Keep the
+historical files immutable unless repairing a proven archive-integrity defect.
 
 ## Required filename
 
@@ -29,15 +21,7 @@ Use:
 docs/agent-runs/YYYY-MM-DD-<short-slug>.md
 ```
 
-## Required PR body reference
-
-Every PR governed by this policy must include:
-
-```markdown
-## Agent run record
-
-- Run record: docs/agent-runs/YYYY-MM-DD-<short-slug>.md
-```
+PRs no longer reference this directory as a merge gate.
 
 ## What not to include
 
@@ -52,7 +36,3 @@ Capture them under the ignored `docs/agent-runs/artifacts/` directory, publish
 an immutable archive, and commit an `agent-run-evidence.v1` manifest under
 `docs/agent-runs/evidence/`. The manifest records archive and per-file hashes so
 the run remains auditable without growing ordinary Git history.
-
-## Template
-
-Use `docs/agent-runs/TEMPLATE.md`.

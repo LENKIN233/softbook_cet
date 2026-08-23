@@ -10,7 +10,7 @@ IOS_SIMULATOR="${SOFTBOOK_CET_IOS_SIMULATOR:-iPhone 17}"
 IOS_BUNDLE_ID="${SOFTBOOK_CET_IOS_BUNDLE_ID:-com.softbook.cet}"
 METRO_PORT="${SOFTBOOK_CET_METRO_PORT:-8081}"
 SMS_CODE="${SOFTBOOK_CET_TEST_CODE:-2468}"
-MANUAL_TEST_PHONE="${SOFTBOOK_CET_MANUAL_TEST_PHONE:-}"
+MAESTRO_PHONE="${SOFTBOOK_CET_MAESTRO_PHONE:-}"
 CONTRACT_TEST_PHONE="${SOFTBOOK_CET_TEST_PHONE:-}"
 SMOKE_LIFECYCLE_MANIFEST="${SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST:-}"
 SMOKE_LIFECYCLE_ACTIVE="0"
@@ -19,7 +19,7 @@ MAESTRO_JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk}"
 METRO_PID=""
 RESOLVED_IOS_DEVICE=""
 
-create_manual_test_phone() {
+create_maestro_test_phone() {
   local suffix
   suffix="$(printf '%05d%04d' "$(( $(date +%s) % 100000 ))" "$(( RANDOM % 10000 ))")"
 
@@ -101,14 +101,14 @@ prepare_smoke_lifecycle() {
   fi
   prepared="$(
     SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}" \
-    SOFTBOOK_CET_MANUAL_TEST_PHONE="${MANUAL_TEST_PHONE}" \
+    SOFTBOOK_CET_MAESTRO_PHONE="${MAESTRO_PHONE}" \
     node "${ROOT_DIR}/infra/cloudbase/smoke-record-lifecycle.mjs" \
       prepare \
       --manifest "${SMOKE_LIFECYCLE_MANIFEST}" \
       --phone-count 2 \
       --format tsv
   )"
-  IFS=$'\t' read -r CONTRACT_TEST_PHONE MANUAL_TEST_PHONE <<<"${prepared}"
+  IFS=$'\t' read -r CONTRACT_TEST_PHONE MAESTRO_PHONE <<<"${prepared}"
   SMOKE_LIFECYCLE_ACTIVE="1"
 }
 
@@ -157,12 +157,12 @@ if [[ "${TRACK}" != "cet4" && "${TRACK}" != "cet6" ]]; then
   exit 1
 fi
 
-if [[ -z "${MANUAL_TEST_PHONE// }" ]]; then
-  MANUAL_TEST_PHONE="$(create_manual_test_phone)"
+if [[ -z "${MAESTRO_PHONE// }" ]]; then
+  MAESTRO_PHONE="$(create_maestro_test_phone)"
 fi
 
-if [[ ! "${MANUAL_TEST_PHONE}" =~ ^19[0-9]{9}$ ]]; then
-  echo "SOFTBOOK_CET_MANUAL_TEST_PHONE must match 19xxxxxxxxx." >&2
+if [[ ! "${MAESTRO_PHONE}" =~ ^19[0-9]{9}$ ]]; then
+  echo "SOFTBOOK_CET_MAESTRO_PHONE must match 19xxxxxxxxx." >&2
   exit 1
 fi
 
@@ -186,9 +186,7 @@ if ! command -v maestro >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "==> Remote Maestro acceptance account"
-echo "Phone: ${MANUAL_TEST_PHONE}"
-echo "Code: ${SMS_CODE} (dev fixed code)"
+echo "==> Preparing isolated automated Maestro acceptance inputs"
 
 resolve_ios_target
 start_metro_if_needed
@@ -203,7 +201,7 @@ SOFTBOOK_CET_IOS_LAUNCH=1 \
 SOFTBOOK_CET_SMOKE_LIFECYCLE_OWNER=external \
 SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST="${SMOKE_LIFECYCLE_MANIFEST}" \
 SOFTBOOK_CET_TEST_PHONE="${CONTRACT_TEST_PHONE}" \
-SOFTBOOK_CET_MANUAL_TEST_PHONE="${MANUAL_TEST_PHONE}" \
+SOFTBOOK_CET_MAESTRO_PHONE="${MAESTRO_PHONE}" \
 SOFTBOOK_CET_REMOTE_BASE_URL="${SOFTBOOK_CET_REMOTE_BASE_URL}" \
 SOFTBOOK_CET_REMOTE_API_KEY="${SOFTBOOK_CET_REMOTE_API_KEY:-}" \
 SOFTBOOK_CET_LEARNING_TRACK="${TRACK}" \
@@ -221,7 +219,15 @@ echo "==> Running Maestro against the already-launched remote runtime app"
   maestro test \
     --no-ansi \
     --udid "${RESOLVED_IOS_DEVICE}" \
-    -e SOFTBOOK_CET_MAESTRO_PHONE="${MANUAL_TEST_PHONE}" \
+    -e SOFTBOOK_CET_MAESTRO_PHONE="${MAESTRO_PHONE}" \
     -e SOFTBOOK_CET_MAESTRO_CODE="${SMS_CODE}" \
     "${MAESTRO_FLOW}"
 )
+
+cat <<EOF
+==> Automated iOS Simulator UI acceptance complete
+automated_simulator_launch_verified=true
+automated_simulator_ui_evidence_verified=true
+automated_real_device_evidence_verified=false
+gate_eligible=false
+EOF
