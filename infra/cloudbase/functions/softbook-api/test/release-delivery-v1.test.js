@@ -168,6 +168,10 @@ test('release bundle verifies all cards, boxes, approval, audio hashes, and QC',
   });
 
   assert.equal(verified.content.card_records.length, 1180);
+  assert.equal(
+    verified.bundle_sha256,
+    hash(readFileSync(fixture.bundlePath)).slice('sha256:'.length),
+  );
   assert.equal(verified.audio_manifest.assets.length, 301);
   assert.equal(verified.audio_qc_index.assets.length, 301);
 });

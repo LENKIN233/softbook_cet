@@ -639,17 +639,31 @@ export function verifyRepositoryEvidenceFiles(
           })
         : {errors: [], ok: true, report: null};
     errors.push(...smsProviderResult.errors);
+    const productionDeploymentResult =
+      record.evidenceType === 'production-deployment'
+        ? loadProductionDeploymentEvidence(artifact, {
+            label,
+            root,
+            trackedFiles,
+          })
+        : {errors: [], evidence: null, ok: true};
+    errors.push(...productionDeploymentResult.errors);
     const result = validateGateEvidenceArtifact(artifact, {
       evidenceType: record.evidenceType,
       expectedPolicy,
       expectedSubject: expectedReleaseCandidate,
       gateId: record.gateId,
       outerEvidence: evidence,
+      productionDeploymentEvidence: productionDeploymentResult.evidence,
       releaseOperationalPolicy: loadedContext?.releaseOperationalPolicy,
       smsProviderSmokeReport: smsProviderResult.report,
     });
     errors.push(...result.errors);
-    if (result.ok && smsProviderResult.ok) {
+    if (
+      result.ok &&
+      smsProviderResult.ok &&
+      productionDeploymentResult.ok
+    ) {
       const reports = parsedGateEvidence.get(record.gateId) ?? [];
       reports.push(artifact);
       parsedGateEvidence.set(record.gateId, reports);
@@ -1357,6 +1371,87 @@ function loadSmsProviderSmokeReport(
     return {errors, ok: false, report: null};
   }
   return {errors, ok: errors.length === 0, report};
+}
+
+function loadProductionDeploymentEvidence(
+  artifact,
+  {label, root, trackedFiles},
+) {
+  const errors = [];
+  const roleFields = {
+    deployReport: artifact?.measurements?.deploy_report_role,
+    verifyReport: artifact?.measurements?.verify_report_role,
+    profile: artifact?.measurements?.profile_role,
+    bundle: artifact?.measurements?.bundle_role,
+  };
+  const evidence = {};
+  for (const [field, role] of Object.entries(roleFields)) {
+    const loaded = loadStrictRawJsonRole(artifact, role, {
+      label: `${label} production deployment ${field}`,
+      root,
+      trackedFiles,
+    });
+    errors.push(...loaded.errors);
+    evidence[field] = loaded.value;
+  }
+  return {
+    errors,
+    evidence: errors.length === 0 ? evidence : null,
+    ok: errors.length === 0,
+  };
+}
+
+function loadStrictRawJsonRole(
+  artifact,
+  role,
+  {label, root, trackedFiles},
+) {
+  const errors = [];
+  const matches = asArray(artifact?.raw_artifacts).filter(
+    candidate => candidate?.role === role,
+  );
+  if (matches.length !== 1) {
+    errors.push(`${label} must resolve to exactly one raw artifact.`);
+    return {errors, value: null};
+  }
+  const rawArtifact = matches[0];
+  if (!rawArtifact?.artifact_uri?.startsWith('repo://')) {
+    errors.push(`${label} must use repo://.`);
+    return {errors, value: null};
+  }
+  const relativePath = rawArtifact.artifact_uri.slice('repo://'.length);
+  if (!relativePath.endsWith('.json')) {
+    errors.push(`${label} must be a JSON file.`);
+    return {errors, value: null};
+  }
+  if (!trackedFiles.has(relativePath)) {
+    errors.push(`${label} must be tracked by Git.`);
+    return {errors, value: null};
+  }
+  const resolvedRoot = path.resolve(root);
+  const resolvedPath = path.resolve(resolvedRoot, relativePath);
+  if (!resolvedPath.startsWith(`${resolvedRoot}${path.sep}`)) {
+    errors.push(`${label} escapes the repository root.`);
+    return {errors, value: null};
+  }
+  if (!fs.existsSync(resolvedPath)) {
+    errors.push(`${label} file does not exist.`);
+    return {errors, value: null};
+  }
+  const stats = fs.lstatSync(resolvedPath);
+  if (!stats.isFile() || stats.size > MAX_REPOSITORY_RAW_EVIDENCE_BYTES) {
+    errors.push(`${label} must be a regular JSON file no larger than 16 MiB.`);
+    return {errors, value: null};
+  }
+  try {
+    return {
+      errors,
+      value: parseStrictJson(fs.readFileSync(resolvedPath), label),
+    };
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+    return {errors, value: null};
+  }
 }
 
 function validateProductScope(scope, errors) {

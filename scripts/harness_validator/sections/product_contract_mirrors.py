@@ -2839,12 +2839,17 @@ def launch_evidence_contract_findings(
         (
             "release backend deployment identity",
             ("release_delivery_runtime", "backend_deployment_identity"),
-            "receiver_delivery_report_v2_binds_one_deterministic_commit_profile_environment_and_function_topology_fingerprint_in_the_API_runtime_then_rereads_the_remote_function_configuration_after_deploy_and_during_verify_without_exposing_secret_values",
+            "receiver_delivery_report_v2_binds_one_deterministic_commit_profile_environment_and_function_topology_fingerprint_in_the_API_runtime_then_rereads_the_remote_function_ID_handler_runtime_timeout_signing_key_ID_runtime_store_modes_SMS_provider_and_variable_names_after_deploy_and_during_verify_without_exposing_secret_values",
         ),
         (
             "release receiver report execution binding",
             ("release_delivery_runtime", "receiver_delivery_report_boundary"),
             "every_report_has_canonical_start_and_completion_timestamps_and_apply_or_verify_requires_one_github_team_or_external_operator_identity_dry_run_operator_may_be_null",
+        ),
+        (
+            "release production deployment evidence",
+            ("release_delivery_runtime", "production_deployment_evidence_status"),
+            "type_specific_launch_gate_semantics_require_tracked_strict_receiver_deploy_and_verify_reports_profile_bundle_exact_backend_identity_clean_main_complete_receiver_preflight_healthy_API_zero_imported_user_data_and_verified_retained_parent_pilot_dry_run_and_simulation_reports_rejected",
         ),
         (
             "release repository simulation status",
@@ -2915,6 +2920,7 @@ def launch_evidence_contract_findings(
         "independent_verification_rule": "execution_operator_and_independent_verifier_must_be_distinct_identities",
         "execution_window_rule": "measured_runtime_windows_and_events_must_fit_inside_the_recorded_execution_window",
         "generic_gate_rule": "launch_gate_evidence_without_a_registered_type_specific_measurement_contract_is_gate_ineligible_fail_closed",
+        "production_deployment_rule": "production_deployment_requires_strict_tracked_receiver_delivery_report_v2_deploy_and_verify_delivery_profile_and_release_bundle_raw_artifacts_bound_to_clean_exact_main_receiver_environment_backend_identity_active_CET4_release_zero_imported_user_data_healthy_API_exact_worker_and_verified_retained_parent",
         "learning_evidence_types": [
             "cross-device-bootstrap-test",
             "offline-replay-test",
@@ -2934,7 +2940,7 @@ def launch_evidence_contract_findings(
         "simulation_schema": "release-blank-environment-simulation.v1",
         "simulation_execution_mode": "repository_in_memory",
         "simulation_gate_eligible": False,
-        "implementation_status": "strict_repository_evidence_loader_semantic_contracts_policy_thresholds_and_repository_blank_environment_simulation_implemented",
+        "implementation_status": "strict_repository_evidence_loader_learning_production_deployment_SMS_external_capability_and_release_operational_semantic_contracts_policy_thresholds_and_repository_blank_environment_simulation_implemented",
         "deployment_status": "formal_receiver_evidence_not_created_by_repository_change",
         "launch_gate_status": "pending",
     }
@@ -2995,6 +3001,8 @@ def launch_evidence_contract_findings(
         "load_availability_backup_restore_penetration_and_rollback_results_are_recomputed",
         "receiver_owned_deployed_or_apply_execution_is_required",
         "unregistered_generic_gate_semantics_fail_closed",
+        "production_deployment_requires_strict_apply_verify_profile_bundle_and_retained_parent_raw_reports",
+        "pilot_dry_run_simulation_or_unretained_release_cannot_satisfy_production_deployment",
         "repository_simulation_is_always_gate_ineligible",
         "rollback_requires_retained_and_verified_release",
         "formal_rollback_requires_distinct_releases_and_nonempty_learning_state",
@@ -3046,6 +3054,8 @@ def launch_evidence_contract_findings(
         "learning_events_and_scheduler_reports_bind_exact_runtime_contract_hashes",
         "fsrs_version_lock_binds_exact_repository_package_lock_hash",
         "generic_evidence_without_type_specific_semantics_fails_closed",
+        "production_deployment_binds_strict_receiver_apply_verify_profile_bundle_backend_and_retained_parent_reports",
+        "production_deployment_rejects_pilot_dry_run_simulation_and_unretained_parent",
         "load_counts_ratios_latency_and_integrity_recomputed",
         "availability_each_route_counts_ratio_latency_outage_window_and_aggregate_recomputed",
         "backup_restore_uses_nonempty_source_datasets_isolated_target_matching_counts_hashes_and_recomputed_rpo_rto",

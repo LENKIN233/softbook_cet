@@ -388,10 +388,21 @@ Every command reports `receiver-delivery-report.v2`. Its
 receiver profile/environment and fixed API/worker topology. Deploy injects this
 non-secret ID into `softbook-api`; deploy and verify both reread the remote
 function configuration and fail on ID, handler, runtime, timeout or fixed-code
-drift. Public reports expose variable names only, never values. Every report
+drift. The reread also binds the non-secret signing key ID, runtime/store modes
+and SMS provider. Public reports expose only those values plus variable names,
+never secret values. Every report
 has canonical execution start/completion timestamps; apply and verify require
 `--operator github:<account>` (or `team:` / `external:`) for auditable raw
 execution identity.
+
+Formal `production-deployment` evidence must bind tracked strict JSON for the
+applied deploy report, passed verify report, delivery profile and release
+bundle. The launch validator recomputes their exact commit/profile/environment,
+backend deployment, API/worker, active CET4 release, 1,180-card/301-audio,
+zero-imported-user-data and retained-parent relationships. A first release with
+no retained parent cannot satisfy this gate; publish and retain an earlier
+verified release before selecting the final release candidate. Pilot, dry-run
+and simulation reports remain ineligible.
 
 Add `--apply --operator github:<receiver-operator>` only to `provision`,
 `deploy`, `publish`, or `rollback` after reviewing the plan. Apply requires

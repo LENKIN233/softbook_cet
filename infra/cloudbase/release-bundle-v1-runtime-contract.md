@@ -100,12 +100,29 @@ backend deployment ID derived from the exact repository commit, receiver
 profile/environment and fixed function topology. Deployment injects that
 non-secret ID into `softbook-api`; after deploy and again during formal verify,
 the command rereads the remote function configuration and requires the exact
-ID, handler, runtime and timeout while publishing only variable names, never
+ID, handler, runtime, timeout, signing key ID, runtime/store modes and SMS
+provider while publishing only non-secret values plus variable names, never
 secret values. A dry-run or local report cannot satisfy this remote reread.
 Each report also carries canonical start/completion timestamps. Every apply or
 verify invocation requires `--operator` with a `github:`, `team:` or
 `external:` identity so later formal evidence can bind the raw execution
 window and distinguish its independent verifier.
+
+`production-deployment` now has registered `launch-gate-evidence.v1`
+semantics. The semantic report must reference four distinct tracked strict-JSON
+raw artifacts: the applied `receiver-delivery-report.v2` deploy report, the
+read-only passed v2 verify report, the exact `delivery-profile.v1`, and the
+exact `release-bundle.v1`. The validator rehashes every file and binds clean
+exact `main`, receiver environment/profile, backend deployment ID, API and
+account-deletion-worker shapes, active CET4 release, 1,180 cards, 301 QC-covered
+audio assets, zero imported user data and one verified retained parent release.
+The verify report carries the SHA-256 of the exact bundle bytes that the core
+bundle validator accepted, and that hash must equal both the tracked raw bundle
+and the launch-candidate subject.
+The raw deploy/verify operator must match the evidence execution operator; the
+formal verifier must remain independent. Dry-runs, controlled-pilot reports,
+simulations, an initial release without a retained parent, or self-declared
+checks remain ineligible.
 
 The concrete receiver adapter stores immutable staged versions in
 `softbook_card_source_versions`. It re-downloads every uploaded private audio
@@ -142,7 +159,10 @@ adapter, plus separate auth, SMS, and Ed25519 signing secrets. Tencent Cloud
 mode additionally requires the receiver's region, SdkAppId, approved sign,
 approved template ID, and explicit template parameter order. `verify` is
 read-only and checks the active release, API route, bundle, catalog, and zero
-imported user-data baseline. A real lifecycle-managed production SMS/device
+imported user-data baseline. When the bundle names a parent, it also rereads
+that release through the receiver adapter and records it only if it is both
+verified and retained; this raw observation is required by formal
+`production-deployment` evidence. A real lifecycle-managed production SMS/device
 smoke is still a separate acceptance gate.
 
 Provider smoke does not use the CloudBase database. The two-phase

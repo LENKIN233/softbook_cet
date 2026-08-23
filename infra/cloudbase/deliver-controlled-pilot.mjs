@@ -251,6 +251,7 @@ export async function executeControlledPilotDelivery(options, dependencies = {})
     const backendDeployment = await inspectApiFunction({
       envId: profile.environment_id,
       expectedDeploymentId: backendDeploymentId,
+      profile,
       runner,
     });
     const dataCounts = await readUserDataCounts({profile, runner});

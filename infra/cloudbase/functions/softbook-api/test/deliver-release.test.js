@@ -120,10 +120,14 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
     profile: profileFixture(),
     repositoryCommit: TEST_COMMIT,
   });
-  const inspect = deploymentId =>
+  const inspect = (
+    deploymentId,
+    signingKeyId = 'receiver-signing-key-v1',
+  ) =>
     deliveryCli.inspectApiFunction({
       envId: 'receiver-cet4-beta',
       expectedDeploymentId,
+      profile: profileFixture(),
       runner: {
         run: async () =>
           JSON.stringify({
@@ -135,6 +139,13 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
               Environment: {
                 Variables: [
                   {Key: 'SOFTBOOK_BACKEND_DEPLOYMENT_ID', Value: deploymentId},
+                  {
+                    Key: 'SOFTBOOK_CONTENT_MANIFEST_KEY_ID',
+                    Value: signingKeyId,
+                  },
+                  {Key: 'SOFTBOOK_RUNTIME_MODE', Value: 'production'},
+                  {Key: 'SOFTBOOK_SMS_PROVIDER', Value: 'webhook'},
+                  {Key: 'SOFTBOOK_STORE_MODE', Value: 'cloudbase'},
                   {Key: 'SOFTBOOK_AUTH_TOKEN_SECRET', Value: 'do-not-expose-this-secret'},
                 ],
               },
@@ -146,11 +157,45 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
   const exact = await inspect(expectedDeploymentId);
   assert.equal(exact.ok, true);
   assert.equal(exact.public.backend_deployment_id, expectedDeploymentId);
+  assert.equal(exact.public.signing_key_id, 'receiver-signing-key-v1');
+  assert.equal(exact.public.runtime_mode, 'production');
+  assert.equal(exact.public.sms_provider, 'webhook');
   assert.equal(JSON.stringify(exact.public).includes('do-not-expose-this-secret'), false);
 
   const drifted = await inspect(`backend-deployment:sha256:${'d'.repeat(64)}`);
   assert.equal(drifted.ok, false);
   assert.match(drifted.errors.join(';'), /backend deployment ID mismatch/);
+
+  const signingDrift = await inspect(expectedDeploymentId, 'receiver-signing-key-v2');
+  assert.equal(signingDrift.ok, false);
+  assert.match(signingDrift.errors.join(';'), /signing key ID mismatch/);
+});
+
+test('formal verify reports only an exact verified retained rollback target', () => {
+  const contentVersion = `sha256:${'e'.repeat(64)}`;
+  const retained = {
+    card_source: {
+      content_version: contentVersion,
+      release: {release_id: 'cet4-release-a'},
+    },
+    release_id: 'cet4-release-a',
+    verified: true,
+  };
+  assert.deepEqual(deliveryCli.publicRetainedRollbackTarget(retained), {
+    content_version: contentVersion,
+    release_id: 'cet4-release-a',
+    retention_status: 'retained',
+    verified: true,
+  });
+  assert.equal(deliveryCli.publicRetainedRollbackTarget(null), null);
+  assert.throws(
+    () =>
+      deliveryCli.publicRetainedRollbackTarget({
+        ...retained,
+        verified: false,
+      }),
+    /retained rollback target is invalid/,
+  );
 });
 
 test('secret inspection exposes names and validation only, never values', () => {
@@ -362,7 +407,8 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
     false,
   );
   const publicReport = JSON.stringify(report);
-  for (const value of Object.values(env)) {
+  for (const [name, value] of Object.entries(env)) {
+    if (name === 'SOFTBOOK_SMS_PROVIDER') continue;
     assert.equal(publicReport.includes(value), false);
   }
 });
