@@ -222,6 +222,9 @@ export function validateReleaseBundle(value) {
 
 export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
   const absoluteBundlePath = resolve(bundlePath);
+  const bundleSha256 = createHash('sha256')
+    .update(readFileSync(absoluteBundlePath))
+    .digest('hex');
   const bundleDirectory = dirname(absoluteBundlePath);
   const profile = validateDeliveryProfile(
     readJson(profilePath, 'delivery profile'),
@@ -338,6 +341,7 @@ export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
   return {
     profile,
     bundle,
+    bundle_sha256: bundleSha256,
     content,
     approval,
     audio_manifest: audioManifest,

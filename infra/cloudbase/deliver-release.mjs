@@ -280,8 +280,12 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
     const backendDeployment = await inspectApiFunction({
       envId: profile.environment_id,
       expectedDeploymentId: backendDeploymentId,
+      profile,
       runner,
     });
+    const rollbackTarget = verified.bundle.parent_release_id
+      ? await adapter.verifyRetainedRelease(verified.bundle.parent_release_id)
+      : null;
     return completeReport({
       ...base,
       active_release: {
@@ -291,6 +295,7 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
       api_route: endpoint,
       backend_deployment: backendDeployment.public,
       release: publicVerifiedBundle(verified),
+      rollback_target: publicRetainedRollbackTarget(rollbackTarget),
       status:
         preflight.catalog.required_collections_present &&
         backendDeployment.ok &&
@@ -574,6 +579,7 @@ export async function deployReceiverFunction({
     const apiFunction = await inspectApiFunction({
       envId: profile.environment_id,
       expectedDeploymentId: backendDeploymentId,
+      profile,
       runner,
     });
     if (!apiFunction.ok) {
@@ -840,6 +846,7 @@ export function buildBackendDeploymentId({profile, repositoryCommit} = {}) {
 export async function inspectApiFunction({
   envId,
   expectedDeploymentId,
+  profile,
   runner,
 }) {
   requireBackendDeploymentId(expectedDeploymentId);
@@ -864,6 +871,10 @@ export async function inspectApiFunction({
       )
     : [];
   const variableNames = entries.map(variable => variable.Key).sort();
+  if (new Set(variableNames).size !== variableNames.length) {
+    errors.push('environment variables contain duplicate names');
+  }
+  const values = new Map(entries.map(variable => [variable.Key, variable.Value]));
   const deploymentValues = entries
     .filter(variable => variable.Key === 'SOFTBOOK_BACKEND_DEPLOYMENT_ID')
     .map(variable => variable.Value);
@@ -876,6 +887,22 @@ export async function inspectApiFunction({
   if (variableNames.includes('SOFTBOOK_SMS_DEV_CODE')) {
     errors.push('fixed SMS code must not be deployed');
   }
+  const expectedRuntimeMode =
+    profile?.schema_version === 'controlled-pilot-profile.v1'
+      ? 'controlled_pilot'
+      : 'production';
+  if (values.get('SOFTBOOK_CONTENT_MANIFEST_KEY_ID') !== profile?.signing_key_id) {
+    errors.push('content manifest signing key ID mismatch');
+  }
+  if (values.get('SOFTBOOK_RUNTIME_MODE') !== expectedRuntimeMode) {
+    errors.push('runtime mode mismatch');
+  }
+  if (values.get('SOFTBOOK_STORE_MODE') !== 'cloudbase') {
+    errors.push('store mode mismatch');
+  }
+  if (!['webhook', 'tencentcloud'].includes(values.get('SOFTBOOK_SMS_PROVIDER'))) {
+    errors.push('SMS provider mismatch');
+  }
   return {
     errors,
     ok: errors.length === 0,
@@ -885,6 +912,11 @@ export async function inspectApiFunction({
       function_name: data?.FunctionName ?? null,
       handler: data?.Handler ?? null,
       runtime: data?.Runtime ?? null,
+      runtime_mode: values.get('SOFTBOOK_RUNTIME_MODE') ?? null,
+      signing_key_id:
+        values.get('SOFTBOOK_CONTENT_MANIFEST_KEY_ID') ?? null,
+      sms_provider: values.get('SOFTBOOK_SMS_PROVIDER') ?? null,
+      store_mode: values.get('SOFTBOOK_STORE_MODE') ?? null,
       timeout: Number.isFinite(Number(data?.Timeout))
         ? Number(data.Timeout)
         : null,
@@ -1046,6 +1078,25 @@ export function inspectWriteSafety({nodeVersion, repository}) {
     errors.push('writes require HEAD exactly equal to origin/main');
   }
   return {errors, ok: errors.length === 0, ...repository};
+}
+
+export function publicRetainedRollbackTarget(retained) {
+  if (retained === null) return null;
+  if (
+    !retained ||
+    retained.verified !== true ||
+    typeof retained.release_id !== 'string' ||
+    retained.card_source?.release?.release_id !== retained.release_id ||
+    !/^sha256:[0-9a-f]{64}$/.test(retained.card_source?.content_version ?? '')
+  ) {
+    throw new ReleaseDeliveryError('retained rollback target is invalid.');
+  }
+  return {
+    content_version: retained.card_source.content_version,
+    release_id: retained.release_id,
+    retention_status: 'retained',
+    verified: true,
+  };
 }
 
 export function requireDeliveryOperator(value) {
@@ -1223,6 +1274,7 @@ function publicVerifiedBundle(verified) {
   return {
     audio_asset_count: verified.audio_manifest.assets.length,
     bundle_id: verified.bundle.bundle_id,
+    bundle_sha256: verified.bundle_sha256,
     card_count: verified.content.card_records.length,
     content_version: verified.content.content_version,
     release_id: verified.bundle.release_id,

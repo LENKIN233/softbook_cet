@@ -25,6 +25,7 @@ import {
   validateReleaseOperationalPolicy,
 } from './lib/launch_evidence_contract.mjs';
 import {parseStrictJson} from './lib/strict_json.mjs';
+import {REQUIRED_COLLECTIONS as RECEIVER_REQUIRED_COLLECTIONS} from '../infra/cloudbase/deployment-safety.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const NOW = new Date('2026-07-14T00:00:00.000Z');
@@ -758,6 +759,97 @@ test('tracked formal report and tracked raw artifact verify end to end', t => {
   );
 });
 
+test('tracked production deployment evidence loads all four strict raw bindings', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'softbook-production-deployment-'));
+  t.after(() => fs.rmSync(root, {force: true, recursive: true}));
+  const gateId = 'production-environments';
+  const evidenceType = 'production-deployment';
+  const artifact = createValidGateArtifact(gateId, evidenceType);
+  const loaded = createProductionDeploymentEvidence(artifact);
+  const profilePayload = `${JSON.stringify(loaded.profile, null, 2)}\n`;
+  const bundlePayload = `${JSON.stringify(loaded.bundle, null, 2)}\n`;
+  const profileArtifact = artifact.raw_artifacts.find(
+    item => item.role === 'delivery-profile',
+  );
+  const bundleArtifact = artifact.raw_artifacts.find(
+    item => item.role === 'release-bundle',
+  );
+  profileArtifact.sha256 = hash(profilePayload);
+  profileArtifact.size_bytes = Buffer.byteLength(profilePayload);
+  bundleArtifact.sha256 = hash(bundlePayload);
+  bundleArtifact.size_bytes = Buffer.byteLength(bundlePayload);
+  artifact.subject.environment.profile_sha256 = profileArtifact.sha256;
+  artifact.subject.release.bundle_sha256 = bundleArtifact.sha256;
+  loaded.verifyReport.release.bundle_sha256 = bundleArtifact.sha256;
+  const rawValues = new Map([
+    ['receiver-deploy-report', loaded.deployReport],
+    ['receiver-verify-report', loaded.verifyReport],
+    ['delivery-profile', loaded.profile],
+    ['release-bundle', loaded.bundle],
+  ]);
+  const trackedFiles = new Set();
+  for (const rawArtifact of artifact.raw_artifacts) {
+    const relativePath = rawArtifact.artifact_uri.slice('repo://'.length);
+    const payload = `${JSON.stringify(rawValues.get(rawArtifact.role), null, 2)}\n`;
+    const filePath = path.join(root, relativePath);
+    fs.mkdirSync(path.dirname(filePath), {recursive: true});
+    fs.writeFileSync(filePath, payload);
+    rawArtifact.sha256 = hash(payload);
+    rawArtifact.size_bytes = Buffer.byteLength(payload);
+    trackedFiles.add(relativePath);
+  }
+  const reportPayload = `${JSON.stringify(artifact, null, 2)}\n`;
+  const reportRelativePath =
+    'docs/release/evidence/production-deployment.json';
+  const reportPath = path.join(root, reportRelativePath);
+  fs.mkdirSync(path.dirname(reportPath), {recursive: true});
+  fs.writeFileSync(reportPath, reportPayload);
+  trackedFiles.add(reportRelativePath);
+
+  const launch = structuredClone(launchContract);
+  const candidate = createReleaseCandidate();
+  candidate.environment = structuredClone(artifact.subject.environment);
+  candidate.release = structuredClone(artifact.subject.release);
+  candidate.commit_sha = artifact.subject.commit_sha;
+  launch.release_candidate = candidate;
+  launch.gates.find(gate => gate.id === gateId).evidence = [
+    {
+      ...outerEvidenceForArtifact(evidenceType),
+      artifact_uri: `repo://${reportRelativePath}`,
+      artifact_sha256: hash(reportPayload),
+      artifact_size_bytes: Buffer.byteLength(reportPayload),
+    },
+  ];
+  const options = {
+    root,
+    semanticContext,
+    trackedFiles,
+    trustedCommits: TRUSTED_COMMITS,
+  };
+  const valid = verifyRepositoryEvidenceFiles(
+    launch,
+    accountsContract,
+    options,
+  );
+  assert.equal(valid.ok, true, valid.errors.join('\n'));
+
+  const verifyPath = path.join(
+    root,
+    'docs/release/evidence/raw/receiver-verify-report.json',
+  );
+  fs.appendFileSync(verifyPath, '{"tampered":true}\n');
+  const tampered = verifyRepositoryEvidenceFiles(
+    launch,
+    accountsContract,
+    options,
+  );
+  assert.equal(tampered.ok, false);
+  assert.match(
+    tampered.errors.join('\n'),
+    /receiver-verify-report\.json.*(byte size|SHA-256)|repository artifact (byte size|SHA-256)/,
+  );
+});
+
 test('all learning runtime evidence types require full deployed semantic reports', () => {
   for (const evidenceType of GATE_DEFINITIONS[
     'canonical-bootstrap-and-idempotent-events'
@@ -881,6 +973,64 @@ test('formal evidence rejects self-described independence and unsupported generi
   assert.match(learningResult.errors.join('\n'), /must differ from the execution operator/);
   assert.equal(genericResult.ok, false);
   assert.match(genericResult.errors.join('\n'), /no type-specific semantic contract/);
+});
+
+test('production deployment evidence binds exact deploy, verify, profile, bundle and rollback target', () => {
+  const gateId = 'production-environments';
+  const evidenceType = 'production-deployment';
+  const artifact = createValidGateArtifact(gateId, evidenceType);
+  const productionDeploymentEvidence = createProductionDeploymentEvidence(artifact);
+  const validate = (candidate, loaded) =>
+    validateGateEvidenceArtifact(candidate, {
+      evidenceType,
+      expectedPolicy: semanticContext.expectedPolicies[gateId],
+      gateId,
+      now: NOW,
+      outerEvidence: outerEvidenceForArtifact(evidenceType),
+      productionDeploymentEvidence: loaded,
+      releaseOperationalPolicy: semanticContext.releaseOperationalPolicy,
+    });
+
+  const valid = validate(artifact, productionDeploymentEvidence);
+  assert.equal(valid.ok, true, valid.errors.join('\n'));
+
+  const dryRun = structuredClone(productionDeploymentEvidence);
+  dryRun.deployReport.applied = false;
+  dryRun.deployReport.writes_performed = false;
+  const dryRunResult = validate(artifact, dryRun);
+  assert.equal(dryRunResult.ok, false);
+  assert.match(dryRunResult.errors.join('\n'), /deploy report\.applied/);
+
+  const unretained = structuredClone(productionDeploymentEvidence);
+  unretained.verifyReport.rollback_target.retention_status = 'verified';
+  const unretainedResult = validate(artifact, unretained);
+  assert.equal(unretainedResult.ok, false);
+  assert.match(unretainedResult.errors.join('\n'), /retention_status/);
+
+  const pilot = structuredClone(productionDeploymentEvidence);
+  pilot.deployReport.schema_version =
+    'controlled-pilot-receiver-delivery-report.v2';
+  const pilotResult = validate(artifact, pilot);
+  assert.equal(pilotResult.ok, false);
+  assert.match(pilotResult.errors.join('\n'), /schema_version/);
+
+  const profileDrift = structuredClone(productionDeploymentEvidence);
+  profileDrift.profile.signing_key_id = 'receiver-signing-key-v2';
+  const profileDriftResult = validate(artifact, profileDrift);
+  assert.equal(profileDriftResult.ok, false);
+  assert.match(profileDriftResult.errors.join('\n'), /recomputed binding/);
+
+  const operatorDrift = structuredClone(productionDeploymentEvidence);
+  operatorDrift.verifyReport.execution.operator = 'team:other-operator';
+  const operatorDriftResult = validate(artifact, operatorDrift);
+  assert.equal(operatorDriftResult.ok, false);
+  assert.match(operatorDriftResult.errors.join('\n'), /execution\.operator/);
+
+  const incompleteCatalog = structuredClone(productionDeploymentEvidence);
+  incompleteCatalog.deployReport.preflight.catalog.collection_names.pop();
+  const incompleteCatalogResult = validate(artifact, incompleteCatalog);
+  assert.equal(incompleteCatalogResult.ok, false);
+  assert.match(incompleteCatalogResult.errors.join('\n'), /collection_names/);
 });
 
 test('all release operational reports recompute policy thresholds', () => {
@@ -1469,7 +1619,7 @@ function createValidGateArtifact(gateId, evidenceType) {
     'offline-replay-test': 'receiver_fault_injection',
     'rollback-drill': 'receiver_external_apply',
   };
-  return {
+  const artifact = {
     schema_version: [
       'cross-device-bootstrap-test',
       'offline-replay-test',
@@ -1558,6 +1708,49 @@ function createValidGateArtifact(gateId, evidenceType) {
     })),
     measurements: createMeasurements(evidenceType, expectedPolicy),
   };
+  if (evidenceType === 'production-deployment') {
+    const roles = [
+      ['receiver-deploy-report', 'receiver-deploy-report.json'],
+      ['receiver-verify-report', 'receiver-verify-report.json'],
+      ['delivery-profile', 'delivery-profile.json'],
+      ['release-bundle', 'release-bundle.json'],
+    ];
+    artifact.raw_artifacts = roles.map(([role, filename]) => ({
+      role,
+      artifact_uri: `repo://docs/release/evidence/raw/${filename}`,
+      sha256: hash(`raw-${role}`),
+      size_bytes: 1024,
+    }));
+    artifact.subject.environment.profile_sha256 = artifact.raw_artifacts[2].sha256;
+    artifact.subject.release.bundle_sha256 = artifact.raw_artifacts[3].sha256;
+    artifact.subject.release.backend_deployment_id =
+      `backend-deployment:sha256:${hash('backend-deployment')}`;
+    artifact.checks = [
+      {
+        id: 'release-commit-deployed',
+        status: 'passed',
+        artifact_roles: [
+          'receiver-deploy-report',
+          'receiver-verify-report',
+          'delivery-profile',
+          'release-bundle',
+        ],
+      },
+      {
+        id: 'health-check-passed',
+        status: 'passed',
+        artifact_roles: ['receiver-verify-report'],
+      },
+      {
+        id: 'rollback-target-retained',
+        status: 'passed',
+        artifact_roles: ['receiver-verify-report', 'release-bundle'],
+      },
+    ];
+    artifact.measurements.backend_deployment_id =
+      artifact.subject.release.backend_deployment_id;
+  }
+  return artifact;
 }
 
 function createMeasurements(evidenceType, expectedPolicy) {
@@ -1607,6 +1800,27 @@ function createMeasurements(evidenceType, expectedPolicy) {
   };
   if (evidenceType === 'sms-provider-smoke') {
     return {report_role: 'raw-sms-provider-smoke'};
+  }
+  if (evidenceType === 'production-deployment') {
+    return {
+      deploy_report_role: 'receiver-deploy-report',
+      verify_report_role: 'receiver-verify-report',
+      profile_role: 'delivery-profile',
+      bundle_role: 'release-bundle',
+      backend_deployment_id: `backend-deployment:sha256:${hash('backend-deployment')}`,
+      bundle_id: 'cet4-bundle-b',
+      card_count: 1180,
+      audio_asset_count: 301,
+      function_names: ['softbook-api', 'softbook-account-deletion-worker'],
+      assertions: {
+        clean_main_deployed: true,
+        receiver_function_identity_reverified: true,
+        account_deletion_worker_reverified: true,
+        active_release_and_api_verified: true,
+        rollback_target_retained: true,
+        zero_imported_user_data: true,
+      },
+    };
   }
   if (evidenceType === 'cross-device-bootstrap-test') {
     return {
@@ -1804,6 +2018,233 @@ function createMeasurements(evidenceType, expectedPolicy) {
     scope: 'full release-bound scope',
     summary: 'All registered semantic checks passed.',
   };
+}
+
+function createProductionDeploymentEvidence(artifact) {
+  const profile = {
+    schema_version: 'delivery-profile.v1',
+    profile_id: artifact.subject.environment.profile_id,
+    environment_id: artifact.subject.environment.environment_id,
+    region: 'ap-shanghai',
+    api_base_url: 'https://receiver.example.com/softbook-api',
+    runtime_mode: 'closed_beta',
+    enabled_tracks: ['cet4'],
+    minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
+    signing_key_id: 'receiver-signing-key-v1',
+  };
+  const backendDeploymentId = computeBackendDeploymentId(
+    profile,
+    artifact.subject.commit_sha,
+  );
+  artifact.subject.release.backend_deployment_id = backendDeploymentId;
+  artifact.measurements.backend_deployment_id = backendDeploymentId;
+  const bundle = {
+    schema_version: 'release-bundle.v1',
+    bundle_id: artifact.measurements.bundle_id,
+    release_id: artifact.subject.release.release_id,
+    track: 'cet4',
+    created_at: '2026-07-11T20:00:00.000Z',
+    release_at: '2026-07-12T00:00:00.000Z',
+    parent_release_id: artifact.subject.release.parent_release_id,
+    content: {
+      payload_path: 'content/cet4.json',
+      payload_sha256: hash('content-payload'),
+      content_version: artifact.subject.release.content_version,
+      corpus_fingerprint: `sha256:${hash('corpus')}`,
+      card_count: 1180,
+    },
+    approval: {},
+    audit: {},
+    audio: {
+      manifest_path: 'evidence/audio-manifest.json',
+      manifest_sha256: hash('audio-manifest'),
+      qc_index_path: 'evidence/audio-qc-index.json',
+      qc_index_sha256: hash('audio-qc-index'),
+      asset_count: 301,
+      qc_passed_count: 301,
+    },
+    minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
+  };
+  const catalog = {
+    collection_names: [...RECEIVER_REQUIRED_COLLECTIONS].sort(),
+    errors: [],
+    missing_required_collections: [],
+    ok: true,
+    required_collections_present: true,
+  };
+  const preflight = {
+    ok: true,
+    errors: [],
+    environment: {
+      database_status: 'RUNNING',
+      env_id: artifact.subject.environment.environment_id,
+      region: 'ap-shanghai',
+      status: 'NORMAL',
+    },
+    database_instance_id: 'tnt-receiver123',
+    catalog,
+  };
+  const receiverSecrets = {
+    configured_names: [
+      'SOFTBOOK_AUTH_INDEX_SECRET',
+      'SOFTBOOK_AUTH_TOKEN_SECRET',
+      'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
+      'SOFTBOOK_SMS_PROVIDER',
+      'SOFTBOOK_SMS_WEBHOOK_SECRET',
+      'SOFTBOOK_SMS_WEBHOOK_URL',
+    ],
+    errors: [],
+    ok: true,
+    signing_key_id: profile.signing_key_id,
+  };
+  const writeSafety = {
+    errors: [],
+    ok: true,
+    branch: 'main',
+    dirty: false,
+    head: artifact.subject.commit_sha,
+    originMain: artifact.subject.commit_sha,
+  };
+  const variableNames = [
+    'SOFTBOOK_AUTH_INDEX_SECRET',
+    'SOFTBOOK_AUTH_TOKEN_SECRET',
+    'SOFTBOOK_BACKEND_DEPLOYMENT_ID',
+    'SOFTBOOK_CONTENT_MANIFEST_KEY_ID',
+    'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
+    'SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT',
+    'SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS',
+    'SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS',
+    'SOFTBOOK_RUNTIME_MODE',
+    'SOFTBOOK_SMS_PROVIDER',
+    'SOFTBOOK_SMS_WEBHOOK_SECRET',
+    'SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS',
+    'SOFTBOOK_SMS_WEBHOOK_URL',
+    'SOFTBOOK_STORE_MODE',
+  ].sort();
+  const apiFunction = {
+    backend_deployment_id: backendDeploymentId,
+    function_name: 'softbook-api',
+    handler: 'index.main',
+    runtime: 'Nodejs20.19',
+    runtime_mode: 'production',
+    signing_key_id: profile.signing_key_id,
+    sms_provider: 'webhook',
+    store_mode: 'cloudbase',
+    timeout: 10,
+    variable_names: variableNames,
+  };
+  const deployReport = {
+    schema_version: 'receiver-delivery-report.v2',
+    operation: 'deploy',
+    applied: true,
+    backend_deployment_id: backendDeploymentId,
+    profile: {
+      environment_id: profile.environment_id,
+      profile_id: profile.profile_id,
+      region: profile.region,
+    },
+    preflight,
+    receiver_secrets: receiverSecrets,
+    write_safety: writeSafety,
+    deployed: {
+      api_function: apiFunction,
+      backend_deployment_id: backendDeploymentId,
+      deletion_worker: {
+        function_name: 'softbook-account-deletion-worker',
+        handler: 'index.accountDeletionWorkerMain',
+        runtime: 'Nodejs20.19',
+        timeout: 60,
+        trigger: {
+          config: '0 */1 * * * * *',
+          name: 'account-deletion-every-minute',
+          type: 'timer',
+        },
+        variable_names: [],
+      },
+      deletion_worker_runtime_variable_names: [],
+      deletion_worker_trigger: 'account-deletion-every-minute',
+      fixed_sms_code_present: false,
+      function_name: 'softbook-api',
+      function_names: ['softbook-api', 'softbook-account-deletion-worker'],
+      runtime: 'Nodejs20.19',
+      runtime_variable_names: variableNames,
+    },
+    status: 'passed',
+    writes_performed: true,
+    execution: {
+      started_at: '2026-07-12T01:00:00.000Z',
+      completed_at: '2026-07-12T02:00:00.000Z',
+      operator: artifact.execution.operator,
+    },
+  };
+  const verifyReport = {
+    schema_version: 'receiver-delivery-report.v2',
+    operation: 'verify',
+    applied: false,
+    backend_deployment_id: backendDeploymentId,
+    profile: deployReport.profile,
+    preflight,
+    receiver_secrets: receiverSecrets,
+    write_safety: writeSafety,
+    active_release: {
+      content_version: artifact.subject.release.content_version,
+      release_id: artifact.subject.release.release_id,
+    },
+    api_route: {ok: true, status: 404},
+    backend_deployment: apiFunction,
+    release: {
+      audio_asset_count: 301,
+      bundle_id: bundle.bundle_id,
+      bundle_sha256: artifact.subject.release.bundle_sha256,
+      card_count: 1180,
+      content_version: artifact.subject.release.content_version,
+      release_id: artifact.subject.release.release_id,
+    },
+    rollback_target: {
+      content_version: `sha256:${hash('parent-content-version')}`,
+      release_id: artifact.subject.release.parent_release_id,
+      retention_status: 'retained',
+      verified: true,
+    },
+    status: 'passed',
+    user_data_import_check: {
+      counts: {softbook_accounts: 0},
+      imported_user_data_detected: false,
+      total: 0,
+    },
+    writes_performed: false,
+    execution: {
+      started_at: '2026-07-13T20:00:00.000Z',
+      completed_at: '2026-07-13T21:00:00.000Z',
+      operator: artifact.execution.operator,
+    },
+  };
+  return {bundle, deployReport, profile, verifyReport};
+}
+
+function computeBackendDeploymentId(profile, repositoryCommit) {
+  const identity = JSON.stringify({
+    functions: [
+      {
+        handler: 'index.main',
+        name: 'softbook-api',
+        runtime: 'Nodejs20.19',
+        timeout: 10,
+      },
+      {
+        handler: 'index.accountDeletionWorkerMain',
+        name: 'softbook-account-deletion-worker',
+        runtime: 'Nodejs20.19',
+        timeout: 60,
+        trigger: '0 */1 * * * * *',
+      },
+    ],
+    profile,
+    repository_commit: repositoryCommit,
+    runtime: 'Nodejs20.19',
+    schema_version: 'backend-deployment-identity.v1',
+  });
+  return `backend-deployment:sha256:${hash(identity)}`;
 }
 
 function createReadyContracts() {

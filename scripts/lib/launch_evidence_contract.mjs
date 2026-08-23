@@ -1,9 +1,14 @@
+import {createHash} from 'node:crypto';
+
 import {validateSmsProviderSmokeReport} from '../../infra/cloudbase/smoke-sms-provider.mjs';
+import {REQUIRED_COLLECTIONS as RECEIVER_REQUIRED_COLLECTIONS} from '../../infra/cloudbase/deployment-safety.mjs';
 
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
+const STRICT_SEMVER_PATTERN =
+  /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
 const VERIFIER_PATTERN = /^(github|team|external):[A-Za-z0-9_.-]+$/;
 const FORBIDDEN_ENVIRONMENT_PATTERN =
   /(^|[-_.:])(local|mock|simulation|simulator|personal|development|dev)([-_.:]|$)/i;
@@ -629,6 +634,7 @@ export function validateGateEvidenceArtifact(
     now = new Date(),
     outerEvidence = null,
     releaseOperationalPolicy = null,
+    productionDeploymentEvidence = null,
     smsProviderSmokeReport = null,
   } = {},
 ) {
@@ -747,6 +753,16 @@ export function validateGateEvidenceArtifact(
       `${label} measurements`,
       errors,
     );
+  } else if (evidenceType === 'production-deployment') {
+    validateProductionDeploymentMeasurements(
+      artifact.measurements,
+      artifactRoles,
+      productionDeploymentEvidence,
+      artifact,
+      executionTimes,
+      `${label} measurements`,
+      errors,
+    );
   } else {
     validateGenericMeasurements(
       artifact.measurements,
@@ -756,6 +772,1003 @@ export function validateGateEvidenceArtifact(
     );
   }
   return {errors, ok: errors.length === 0};
+}
+
+function validateProductionDeploymentMeasurements(
+  value,
+  artifactRoles,
+  loaded,
+  artifact,
+  executionTimes,
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    [
+      'deploy_report_role',
+      'verify_report_role',
+      'profile_role',
+      'bundle_role',
+      'backend_deployment_id',
+      'bundle_id',
+      'card_count',
+      'audio_asset_count',
+      'function_names',
+      'assertions',
+    ],
+    label,
+    errors,
+  );
+  const roleFields = [
+    'deploy_report_role',
+    'verify_report_role',
+    'profile_role',
+    'bundle_role',
+  ];
+  const roles = roleFields.map(field => value[field]);
+  for (const field of roleFields) {
+    requirePattern(value[field], ID_PATTERN, `${label}.${field}`, errors);
+    if (!artifactRoles.has(value[field])) {
+      errors.push(`${label}.${field} must reference a declared raw artifact role.`);
+    }
+  }
+  if (new Set(roles).size !== roles.length) {
+    errors.push(`${label} raw report, profile and bundle roles must be distinct.`);
+  }
+  requirePattern(
+    value.backend_deployment_id,
+    /^backend-deployment:sha256:[0-9a-f]{64}$/,
+    `${label}.backend_deployment_id`,
+    errors,
+  );
+  assertEqual(
+    value.backend_deployment_id,
+    artifact.subject?.release?.backend_deployment_id,
+    `${label}.backend_deployment_id subject binding`,
+    errors,
+  );
+  requirePattern(value.bundle_id, ID_PATTERN, `${label}.bundle_id`, errors);
+  assertEqual(value.card_count, 1180, `${label}.card_count`, errors);
+  assertEqual(value.audio_asset_count, 301, `${label}.audio_asset_count`, errors);
+  requireExactArray(
+    value.function_names,
+    ['softbook-api', 'softbook-account-deletion-worker'],
+    `${label}.function_names`,
+    errors,
+  );
+  validateTrueAssertions(
+    value.assertions,
+    [
+      'clean_main_deployed',
+      'receiver_function_identity_reverified',
+      'account_deletion_worker_reverified',
+      'active_release_and_api_verified',
+      'rollback_target_retained',
+      'zero_imported_user_data',
+    ],
+    `${label}.assertions`,
+    errors,
+  );
+  if (!isRecord(loaded)) {
+    errors.push(`${label} raw roles must resolve to strict receiver delivery evidence.`);
+    return;
+  }
+  const roleArtifacts = new Map(
+    (Array.isArray(artifact.raw_artifacts) ? artifact.raw_artifacts : []).map(
+      item => [item?.role, item],
+    ),
+  );
+  const profileArtifact = roleArtifacts.get(value.profile_role);
+  const bundleArtifact = roleArtifacts.get(value.bundle_role);
+  assertEqual(
+    profileArtifact?.sha256,
+    artifact.subject?.environment?.profile_sha256,
+    `${label}.profile_role SHA-256 subject binding`,
+    errors,
+  );
+  assertEqual(
+    bundleArtifact?.sha256,
+    artifact.subject?.release?.bundle_sha256,
+    `${label}.bundle_role SHA-256 subject binding`,
+    errors,
+  );
+  validateDeploymentProfileEvidence(
+    loaded.profile,
+    artifact.subject,
+    `${label} profile`,
+    errors,
+  );
+  assertEqual(
+    loaded.deployReport?.receiver_secrets?.signing_key_id,
+    loaded.profile?.signing_key_id,
+    `${label} deploy report signing_key_id profile binding`,
+    errors,
+  );
+  assertEqual(
+    loaded.verifyReport?.receiver_secrets?.signing_key_id,
+    loaded.profile?.signing_key_id,
+    `${label} verify report signing_key_id profile binding`,
+    errors,
+  );
+  assertEqual(
+    value.backend_deployment_id,
+    recomputeBackendDeploymentId(
+      loaded.profile,
+      artifact.subject?.commit_sha,
+    ),
+    `${label}.backend_deployment_id recomputed binding`,
+    errors,
+  );
+  validateDeploymentBundleEvidence(
+    loaded.bundle,
+    value,
+    artifact.subject,
+    `${label} bundle`,
+    errors,
+  );
+  const deployTimes = validateReceiverDeliveryReport(
+    loaded.deployReport,
+    {
+      artifact,
+      executionTimes,
+      operation: 'deploy',
+    },
+    `${label} deploy report`,
+    errors,
+  );
+  const verifyTimes = validateReceiverDeliveryReport(
+    loaded.verifyReport,
+    {
+      artifact,
+      executionTimes,
+      operation: 'verify',
+    },
+    `${label} verify report`,
+    errors,
+  );
+  if (
+    deployTimes.completedAt &&
+    verifyTimes.startedAt &&
+    verifyTimes.startedAt < deployTimes.completedAt
+  ) {
+    errors.push(`${label} verify report must start after deployment completes.`);
+  }
+  validateReceiverDeployResult(
+    loaded.deployReport?.deployed,
+    value,
+    expectedReceiverRuntimeVariableNames(
+      loaded.deployReport?.receiver_secrets?.configured_names,
+    ),
+    loaded.profile,
+    expectedReceiverSmsProvider(
+      loaded.deployReport?.receiver_secrets?.configured_names,
+    ),
+    `${label} deploy report.deployed`,
+    errors,
+  );
+  validateReceiverVerifyResult(
+    loaded.verifyReport,
+    value,
+    artifact.subject,
+    expectedReceiverRuntimeVariableNames(
+      loaded.verifyReport?.receiver_secrets?.configured_names,
+    ),
+    loaded.profile,
+    expectedReceiverSmsProvider(
+      loaded.verifyReport?.receiver_secrets?.configured_names,
+    ),
+    `${label} verify report`,
+    errors,
+  );
+}
+
+function validateReceiverDeliveryReport(
+  report,
+  {artifact, executionTimes, operation},
+  label,
+  errors,
+) {
+  const expectedKeys =
+    operation === 'deploy'
+      ? [
+          'schema_version',
+          'operation',
+          'applied',
+          'backend_deployment_id',
+          'profile',
+          'preflight',
+          'receiver_secrets',
+          'write_safety',
+          'deployed',
+          'status',
+          'writes_performed',
+          'execution',
+        ]
+      : [
+          'schema_version',
+          'operation',
+          'applied',
+          'backend_deployment_id',
+          'profile',
+          'preflight',
+          'receiver_secrets',
+          'write_safety',
+          'active_release',
+          'api_route',
+          'backend_deployment',
+          'release',
+          'rollback_target',
+          'status',
+          'user_data_import_check',
+          'writes_performed',
+          'execution',
+        ];
+  if (!isRecord(report)) {
+    errors.push(`${label} must be an object.`);
+    return {completedAt: null, startedAt: null};
+  }
+  assertExactKeys(report, expectedKeys, label, errors);
+  assertEqual(report.schema_version, 'receiver-delivery-report.v2', `${label}.schema_version`, errors);
+  assertEqual(report.operation, operation, `${label}.operation`, errors);
+  assertEqual(report.applied, operation === 'deploy', `${label}.applied`, errors);
+  assertEqual(report.status, 'passed', `${label}.status`, errors);
+  assertEqual(
+    report.writes_performed,
+    operation === 'deploy',
+    `${label}.writes_performed`,
+    errors,
+  );
+  assertEqual(
+    report.backend_deployment_id,
+    artifact.subject?.release?.backend_deployment_id,
+    `${label}.backend_deployment_id`,
+    errors,
+  );
+  validateReceiverReportProfile(report.profile, artifact.subject, `${label}.profile`, errors);
+  validateReceiverPreflight(report.preflight, artifact.subject, `${label}.preflight`, errors);
+  validateReceiverSecretSummary(report.receiver_secrets, `${label}.receiver_secrets`, errors);
+  validateReceiverWriteSafety(report.write_safety, artifact.subject, `${label}.write_safety`, errors);
+  const times = validateReceiverReportExecution(
+    report.execution,
+    artifact.execution?.operator,
+    executionTimes,
+    `${label}.execution`,
+    errors,
+  );
+  return times;
+}
+
+function validateReceiverReportProfile(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(value, ['environment_id', 'profile_id', 'region'], label, errors);
+  assertEqual(value.environment_id, subject?.environment?.environment_id, `${label}.environment_id`, errors);
+  assertEqual(value.profile_id, subject?.environment?.profile_id, `${label}.profile_id`, errors);
+  requirePattern(value.region, /^[a-z]+-[a-z]+(?:-\d+)?$/, `${label}.region`, errors);
+}
+
+function validateReceiverPreflight(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    ['ok', 'errors', 'environment', 'database_instance_id', 'catalog'],
+    label,
+    errors,
+  );
+  assertEqual(value.ok, true, `${label}.ok`, errors);
+  requireExactArray(value.errors, [], `${label}.errors`, errors);
+  if (!isRecord(value.environment)) {
+    errors.push(`${label}.environment must be an object.`);
+  } else {
+    assertExactKeys(
+      value.environment,
+      ['database_status', 'env_id', 'region', 'status'],
+      `${label}.environment`,
+      errors,
+    );
+    assertEqual(
+      value.environment.env_id,
+      subject?.environment?.environment_id,
+      `${label}.environment.env_id`,
+      errors,
+    );
+    assertEqual(value.environment.status, 'NORMAL', `${label}.environment.status`, errors);
+    assertEqual(
+      value.environment.database_status,
+      'RUNNING',
+      `${label}.environment.database_status`,
+      errors,
+    );
+  }
+  requirePattern(
+    value.database_instance_id,
+    /^tnt-[a-z0-9]+$/,
+    `${label}.database_instance_id`,
+    errors,
+  );
+  if (!isRecord(value.catalog)) {
+    errors.push(`${label}.catalog must be an object.`);
+  } else {
+    assertExactKeys(
+      value.catalog,
+      [
+        'collection_names',
+        'errors',
+        'missing_required_collections',
+        'ok',
+        'required_collections_present',
+      ],
+      `${label}.catalog`,
+      errors,
+    );
+    requireExactArray(
+      value.catalog.collection_names,
+      [...RECEIVER_REQUIRED_COLLECTIONS].sort(),
+      `${label}.catalog.collection_names`,
+      errors,
+    );
+    requireExactArray(value.catalog.errors, [], `${label}.catalog.errors`, errors);
+    requireExactArray(
+      value.catalog.missing_required_collections,
+      [],
+      `${label}.catalog.missing_required_collections`,
+      errors,
+    );
+    assertEqual(value.catalog.ok, true, `${label}.catalog.ok`, errors);
+    assertEqual(
+      value.catalog.required_collections_present,
+      true,
+      `${label}.catalog.required_collections_present`,
+      errors,
+    );
+  }
+}
+
+function validateReceiverSecretSummary(value, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(value, ['configured_names', 'errors', 'ok', 'signing_key_id'], label, errors);
+  assertEqual(value.ok, true, `${label}.ok`, errors);
+  requireExactArray(value.errors, [], `${label}.errors`, errors);
+  const common = [
+    'SOFTBOOK_AUTH_INDEX_SECRET',
+    'SOFTBOOK_AUTH_TOKEN_SECRET',
+    'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
+    'SOFTBOOK_SMS_PROVIDER',
+  ];
+  const allowedSets = [
+    [
+      ...common,
+      'SOFTBOOK_SMS_WEBHOOK_SECRET',
+      'SOFTBOOK_SMS_WEBHOOK_URL',
+    ].sort(),
+    [
+      ...common,
+      'SOFTBOOK_SMS_TENCENT_REGION',
+      'SOFTBOOK_SMS_TENCENT_SDK_APP_ID',
+      'SOFTBOOK_SMS_TENCENT_SECRET_ID',
+      'SOFTBOOK_SMS_TENCENT_SECRET_KEY',
+      'SOFTBOOK_SMS_TENCENT_SIGN_NAME',
+      'SOFTBOOK_SMS_TENCENT_TEMPLATE_ID',
+      'SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS',
+    ].sort(),
+  ];
+  const actual = Array.isArray(value.configured_names)
+    ? [...value.configured_names].sort()
+    : null;
+  if (!actual || !allowedSets.some(expected => stableJson(expected) === stableJson(actual))) {
+    errors.push(`${label}.configured_names must match one exact production SMS provider set.`);
+  }
+  requirePattern(value.signing_key_id, ID_PATTERN, `${label}.signing_key_id`, errors);
+}
+
+function validateReceiverWriteSafety(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(value, ['errors', 'ok', 'branch', 'dirty', 'head', 'originMain'], label, errors);
+  requireExactArray(value.errors, [], `${label}.errors`, errors);
+  assertEqual(value.ok, true, `${label}.ok`, errors);
+  assertEqual(value.branch, 'main', `${label}.branch`, errors);
+  assertEqual(value.dirty, false, `${label}.dirty`, errors);
+  assertEqual(value.head, subject?.commit_sha, `${label}.head`, errors);
+  assertEqual(value.originMain, subject?.commit_sha, `${label}.originMain`, errors);
+}
+
+function validateReceiverReportExecution(
+  value,
+  expectedOperator,
+  executionTimes,
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return {completedAt: null, startedAt: null};
+  }
+  assertExactKeys(value, ['completed_at', 'operator', 'started_at'], label, errors);
+  assertEqual(value.operator, expectedOperator, `${label}.operator`, errors);
+  const startedAt = parseTimestamp(value.started_at, `${label}.started_at`, null, errors);
+  const completedAt = parseTimestamp(value.completed_at, `${label}.completed_at`, null, errors);
+  if (startedAt && completedAt && completedAt < startedAt) {
+    errors.push(`${label}.completed_at must not predate started_at.`);
+  }
+  requireTimestampWithinExecution(startedAt, executionTimes, `${label}.started_at`, errors);
+  requireTimestampWithinExecution(completedAt, executionTimes, `${label}.completed_at`, errors);
+  return {completedAt, startedAt};
+}
+
+function validateDeploymentProfileEvidence(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    [
+      'schema_version',
+      'profile_id',
+      'environment_id',
+      'region',
+      'api_base_url',
+      'runtime_mode',
+      'enabled_tracks',
+      'minimum_client_versions',
+      'signing_key_id',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(value.schema_version, 'delivery-profile.v1', `${label}.schema_version`, errors);
+  assertEqual(value.profile_id, subject?.environment?.profile_id, `${label}.profile_id`, errors);
+  assertEqual(
+    value.environment_id,
+    subject?.environment?.environment_id,
+    `${label}.environment_id`,
+    errors,
+  );
+  requirePattern(value.region, /^[a-z]+-[a-z]+(?:-\d+)?$/, `${label}.region`, errors);
+  if (typeof value.api_base_url !== 'string') {
+    errors.push(`${label}.api_base_url must be HTTPS.`);
+  } else {
+    try {
+      const url = new URL(value.api_base_url);
+      if (
+        url.protocol !== 'https:' ||
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash ||
+        url.pathname === '/'
+      ) {
+        throw new Error('unsafe');
+      }
+    } catch {
+      errors.push(`${label}.api_base_url must be credential-free HTTPS with a path.`);
+    }
+  }
+  assertEqual(value.runtime_mode, 'closed_beta', `${label}.runtime_mode`, errors);
+  requireExactArray(value.enabled_tracks, ['cet4'], `${label}.enabled_tracks`, errors);
+  if (!isRecord(value.minimum_client_versions)) {
+    errors.push(`${label}.minimum_client_versions must be an object.`);
+  } else {
+    assertExactKeys(
+      value.minimum_client_versions,
+      ['ios', 'android'],
+      `${label}.minimum_client_versions`,
+      errors,
+    );
+    for (const platform of ['ios', 'android']) {
+      requirePattern(
+        value.minimum_client_versions[platform],
+        STRICT_SEMVER_PATTERN,
+        `${label}.minimum_client_versions.${platform}`,
+        errors,
+      );
+    }
+  }
+  requirePattern(value.signing_key_id, ID_PATTERN, `${label}.signing_key_id`, errors);
+}
+
+function recomputeBackendDeploymentId(profile, repositoryCommit) {
+  if (!isRecord(profile) || !COMMIT_PATTERN.test(repositoryCommit ?? '')) {
+    return null;
+  }
+  const normalizedProfile = {
+    schema_version: profile.schema_version,
+    profile_id: profile.profile_id,
+    environment_id: profile.environment_id,
+    region: profile.region,
+    api_base_url: profile.api_base_url,
+    runtime_mode: profile.runtime_mode,
+    enabled_tracks: profile.enabled_tracks,
+    minimum_client_versions: {
+      ios: profile.minimum_client_versions?.ios,
+      android: profile.minimum_client_versions?.android,
+    },
+    signing_key_id: profile.signing_key_id,
+  };
+  const identity = JSON.stringify({
+    functions: [
+      {
+        handler: 'index.main',
+        name: 'softbook-api',
+        runtime: 'Nodejs20.19',
+        timeout: 10,
+      },
+      {
+        handler: 'index.accountDeletionWorkerMain',
+        name: 'softbook-account-deletion-worker',
+        runtime: 'Nodejs20.19',
+        timeout: 60,
+        trigger: '0 */1 * * * * *',
+      },
+    ],
+    profile: normalizedProfile,
+    repository_commit: repositoryCommit,
+    runtime: 'Nodejs20.19',
+    schema_version: 'backend-deployment-identity.v1',
+  });
+  return `backend-deployment:sha256:${createHash('sha256')
+    .update(identity)
+    .digest('hex')}`;
+}
+
+function validateDeploymentBundleEvidence(value, measurements, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    [
+      'schema_version',
+      'bundle_id',
+      'release_id',
+      'track',
+      'created_at',
+      'release_at',
+      'parent_release_id',
+      'content',
+      'approval',
+      'audit',
+      'audio',
+      'minimum_client_versions',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(value.schema_version, 'release-bundle.v1', `${label}.schema_version`, errors);
+  assertEqual(value.bundle_id, measurements.bundle_id, `${label}.bundle_id`, errors);
+  assertEqual(value.release_id, subject?.release?.release_id, `${label}.release_id`, errors);
+  assertEqual(
+    value.parent_release_id,
+    subject?.release?.parent_release_id,
+    `${label}.parent_release_id`,
+    errors,
+  );
+  if (value.parent_release_id === null) {
+    errors.push(`${label}.parent_release_id must name a retained rollback target.`);
+  }
+  assertEqual(value.track, 'cet4', `${label}.track`, errors);
+  if (!isRecord(value.content)) {
+    errors.push(`${label}.content must be an object.`);
+  } else {
+    assertExactKeys(
+      value.content,
+      [
+        'payload_path',
+        'payload_sha256',
+        'content_version',
+        'corpus_fingerprint',
+        'card_count',
+      ],
+      `${label}.content`,
+      errors,
+    );
+    assertEqual(
+      value.content.content_version,
+      subject?.release?.content_version,
+      `${label}.content.content_version`,
+      errors,
+    );
+    assertEqual(value.content.card_count, 1180, `${label}.content.card_count`, errors);
+  }
+  if (!isRecord(value.audio)) {
+    errors.push(`${label}.audio must be an object.`);
+  } else {
+    assertExactKeys(
+      value.audio,
+      [
+        'manifest_path',
+        'manifest_sha256',
+        'qc_index_path',
+        'qc_index_sha256',
+        'asset_count',
+        'qc_passed_count',
+      ],
+      `${label}.audio`,
+      errors,
+    );
+    assertEqual(value.audio.asset_count, 301, `${label}.audio.asset_count`, errors);
+    assertEqual(value.audio.qc_passed_count, 301, `${label}.audio.qc_passed_count`, errors);
+  }
+}
+
+function validateReceiverApiFunction(
+  value,
+  expectedDeploymentId,
+  expectedProfile,
+  expectedSmsProvider,
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    [
+      'backend_deployment_id',
+      'function_name',
+      'handler',
+      'runtime',
+      'runtime_mode',
+      'signing_key_id',
+      'sms_provider',
+      'store_mode',
+      'timeout',
+      'variable_names',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(
+    value.backend_deployment_id,
+    expectedDeploymentId,
+    `${label}.backend_deployment_id`,
+    errors,
+  );
+  assertEqual(value.function_name, 'softbook-api', `${label}.function_name`, errors);
+  assertEqual(value.handler, 'index.main', `${label}.handler`, errors);
+  assertEqual(value.runtime, 'Nodejs20.19', `${label}.runtime`, errors);
+  assertEqual(value.runtime_mode, 'production', `${label}.runtime_mode`, errors);
+  assertEqual(
+    value.signing_key_id,
+    expectedProfile?.signing_key_id,
+    `${label}.signing_key_id`,
+    errors,
+  );
+  assertEqual(value.sms_provider, expectedSmsProvider, `${label}.sms_provider`, errors);
+  assertEqual(value.store_mode, 'cloudbase', `${label}.store_mode`, errors);
+  assertEqual(value.timeout, 10, `${label}.timeout`, errors);
+  if (
+    !Array.isArray(value.variable_names) ||
+    !value.variable_names.includes('SOFTBOOK_BACKEND_DEPLOYMENT_ID') ||
+    value.variable_names.includes('SOFTBOOK_SMS_DEV_CODE')
+  ) {
+    errors.push(`${label}.variable_names must bind deployment ID and exclude fixed SMS code.`);
+  }
+}
+
+function expectedReceiverRuntimeVariableNames(configuredNames) {
+  if (!Array.isArray(configuredNames)) return null;
+  const names = new Set(configuredNames);
+  for (const name of [
+    'SOFTBOOK_BACKEND_DEPLOYMENT_ID',
+    'SOFTBOOK_CONTENT_MANIFEST_KEY_ID',
+    'SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT',
+    'SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS',
+    'SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS',
+    'SOFTBOOK_RUNTIME_MODE',
+    'SOFTBOOK_STORE_MODE',
+  ]) {
+    names.add(name);
+  }
+  if (names.has('SOFTBOOK_SMS_WEBHOOK_URL')) {
+    names.add('SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS');
+  }
+  if (names.has('SOFTBOOK_SMS_TENCENT_REGION')) {
+    names.add('SOFTBOOK_SMS_TENCENT_TIMEOUT_MS');
+  }
+  return [...names].sort();
+}
+
+function expectedReceiverSmsProvider(configuredNames) {
+  if (!Array.isArray(configuredNames)) return null;
+  if (configuredNames.includes('SOFTBOOK_SMS_WEBHOOK_URL')) return 'webhook';
+  if (configuredNames.includes('SOFTBOOK_SMS_TENCENT_REGION')) return 'tencentcloud';
+  return null;
+}
+
+function validateReceiverDeployResult(
+  value,
+  measurements,
+  expectedRuntimeVariableNames,
+  expectedProfile,
+  expectedSmsProvider,
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    [
+      'api_function',
+      'backend_deployment_id',
+      'deletion_worker',
+      'deletion_worker_runtime_variable_names',
+      'deletion_worker_trigger',
+      'fixed_sms_code_present',
+      'function_name',
+      'function_names',
+      'runtime',
+      'runtime_variable_names',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(
+    value.backend_deployment_id,
+    measurements.backend_deployment_id,
+    `${label}.backend_deployment_id`,
+    errors,
+  );
+  validateReceiverApiFunction(
+    value.api_function,
+    measurements.backend_deployment_id,
+    expectedProfile,
+    expectedSmsProvider,
+    `${label}.api_function`,
+    errors,
+  );
+  requireExactArray(
+    value.api_function?.variable_names,
+    expectedRuntimeVariableNames,
+    `${label}.api_function.variable_names`,
+    errors,
+  );
+  assertEqual(value.function_name, 'softbook-api', `${label}.function_name`, errors);
+  requireExactArray(value.function_names, measurements.function_names, `${label}.function_names`, errors);
+  assertEqual(value.runtime, 'Nodejs20.19', `${label}.runtime`, errors);
+  assertEqual(value.fixed_sms_code_present, false, `${label}.fixed_sms_code_present`, errors);
+  assertEqual(
+    stableJson(value.runtime_variable_names),
+    stableJson(value.api_function?.variable_names),
+    `${label}.runtime_variable_names`,
+    errors,
+  );
+  requireExactArray(
+    value.deletion_worker_runtime_variable_names,
+    [],
+    `${label}.deletion_worker_runtime_variable_names`,
+    errors,
+  );
+  assertEqual(
+    value.deletion_worker_trigger,
+    'account-deletion-every-minute',
+    `${label}.deletion_worker_trigger`,
+    errors,
+  );
+  if (!isRecord(value.deletion_worker)) {
+    errors.push(`${label}.deletion_worker must be an object.`);
+  } else {
+    assertExactKeys(
+      value.deletion_worker,
+      ['function_name', 'handler', 'runtime', 'timeout', 'trigger', 'variable_names'],
+      `${label}.deletion_worker`,
+      errors,
+    );
+    assertEqual(
+      value.deletion_worker.function_name,
+      'softbook-account-deletion-worker',
+      `${label}.deletion_worker.function_name`,
+      errors,
+    );
+    assertEqual(
+      value.deletion_worker.handler,
+      'index.accountDeletionWorkerMain',
+      `${label}.deletion_worker.handler`,
+      errors,
+    );
+    assertEqual(value.deletion_worker.runtime, 'Nodejs20.19', `${label}.deletion_worker.runtime`, errors);
+    assertEqual(value.deletion_worker.timeout, 60, `${label}.deletion_worker.timeout`, errors);
+    requireExactArray(
+      value.deletion_worker.variable_names,
+      [],
+      `${label}.deletion_worker.variable_names`,
+      errors,
+    );
+    if (!isRecord(value.deletion_worker.trigger)) {
+      errors.push(`${label}.deletion_worker.trigger must be an object.`);
+    } else {
+      assertExactKeys(
+        value.deletion_worker.trigger,
+        ['config', 'name', 'type'],
+        `${label}.deletion_worker.trigger`,
+        errors,
+      );
+      assertEqual(
+        value.deletion_worker.trigger.config,
+        '0 */1 * * * * *',
+        `${label}.deletion_worker.trigger.config`,
+        errors,
+      );
+      assertEqual(
+        value.deletion_worker.trigger.name,
+        'account-deletion-every-minute',
+        `${label}.deletion_worker.trigger.name`,
+        errors,
+      );
+      if (!['timer', 'timetrigger'].includes(value.deletion_worker.trigger.type)) {
+        errors.push(`${label}.deletion_worker.trigger.type is invalid.`);
+      }
+    }
+  }
+}
+
+function validateReceiverVerifyResult(
+  report,
+  measurements,
+  subject,
+  expectedRuntimeVariableNames,
+  expectedProfile,
+  expectedSmsProvider,
+  label,
+  errors,
+) {
+  if (!isRecord(report)) return;
+  validateReceiverApiFunction(
+    report.backend_deployment,
+    measurements.backend_deployment_id,
+    expectedProfile,
+    expectedSmsProvider,
+    `${label}.backend_deployment`,
+    errors,
+  );
+  requireExactArray(
+    report.backend_deployment?.variable_names,
+    expectedRuntimeVariableNames,
+    `${label}.backend_deployment.variable_names`,
+    errors,
+  );
+  if (!isRecord(report.api_route)) {
+    errors.push(`${label}.api_route must be an object.`);
+  } else {
+    assertExactKeys(report.api_route, ['ok', 'status'], `${label}.api_route`, errors);
+    assertEqual(report.api_route.ok, true, `${label}.api_route.ok`, errors);
+    assertEqual(report.api_route.status, 404, `${label}.api_route.status`, errors);
+  }
+  if (!isRecord(report.active_release)) {
+    errors.push(`${label}.active_release must be an object.`);
+  } else {
+    assertExactKeys(
+      report.active_release,
+      ['content_version', 'release_id'],
+      `${label}.active_release`,
+      errors,
+    );
+    assertEqual(
+      report.active_release.release_id,
+      subject?.release?.release_id,
+      `${label}.active_release.release_id`,
+      errors,
+    );
+    assertEqual(
+      report.active_release.content_version,
+      subject?.release?.content_version,
+      `${label}.active_release.content_version`,
+      errors,
+    );
+  }
+  if (!isRecord(report.release)) {
+    errors.push(`${label}.release must be an object.`);
+  } else {
+    assertExactKeys(
+      report.release,
+      [
+        'audio_asset_count',
+        'bundle_id',
+        'bundle_sha256',
+        'card_count',
+        'content_version',
+        'release_id',
+      ],
+      `${label}.release`,
+      errors,
+    );
+    assertEqual(report.release.bundle_id, measurements.bundle_id, `${label}.release.bundle_id`, errors);
+    assertEqual(
+      report.release.bundle_sha256,
+      subject?.release?.bundle_sha256,
+      `${label}.release.bundle_sha256`,
+      errors,
+    );
+    assertEqual(report.release.card_count, measurements.card_count, `${label}.release.card_count`, errors);
+    assertEqual(
+      report.release.audio_asset_count,
+      measurements.audio_asset_count,
+      `${label}.release.audio_asset_count`,
+      errors,
+    );
+    assertEqual(report.release.release_id, subject?.release?.release_id, `${label}.release.release_id`, errors);
+    assertEqual(
+      report.release.content_version,
+      subject?.release?.content_version,
+      `${label}.release.content_version`,
+      errors,
+    );
+  }
+  if (!isRecord(report.rollback_target)) {
+    errors.push(`${label}.rollback_target must prove a retained parent release.`);
+  } else {
+    assertExactKeys(
+      report.rollback_target,
+      ['content_version', 'release_id', 'retention_status', 'verified'],
+      `${label}.rollback_target`,
+      errors,
+    );
+    assertEqual(
+      report.rollback_target.release_id,
+      subject?.release?.parent_release_id,
+      `${label}.rollback_target.release_id`,
+      errors,
+    );
+    requirePattern(
+      report.rollback_target.content_version,
+      CONTENT_VERSION_PATTERN,
+      `${label}.rollback_target.content_version`,
+      errors,
+    );
+    assertEqual(
+      report.rollback_target.retention_status,
+      'retained',
+      `${label}.rollback_target.retention_status`,
+      errors,
+    );
+    assertEqual(report.rollback_target.verified, true, `${label}.rollback_target.verified`, errors);
+  }
+  if (!isRecord(report.user_data_import_check)) {
+    errors.push(`${label}.user_data_import_check must be an object.`);
+  } else {
+    assertExactKeys(
+      report.user_data_import_check,
+      ['counts', 'imported_user_data_detected', 'total'],
+      `${label}.user_data_import_check`,
+      errors,
+    );
+    assertEqual(
+      report.user_data_import_check.imported_user_data_detected,
+      false,
+      `${label}.user_data_import_check.imported_user_data_detected`,
+      errors,
+    );
+    assertEqual(report.user_data_import_check.total, 0, `${label}.user_data_import_check.total`, errors);
+    if (
+      !isRecord(report.user_data_import_check.counts) ||
+      Object.keys(report.user_data_import_check.counts).length === 0 ||
+      Object.values(report.user_data_import_check.counts).some(count => count !== 0)
+    ) {
+      errors.push(`${label}.user_data_import_check.counts must contain only zero counts.`);
+    }
+  }
 }
 
 function validateSmsProviderSmokeMeasurements(
