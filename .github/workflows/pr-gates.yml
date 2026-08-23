@@ -352,8 +352,10 @@ jobs:
           set -euo pipefail
           ndk_version="27.1.12297006"
           ndk_path="${ANDROID_SDK_ROOT:?ANDROID_SDK_ROOT is required}/ndk/${ndk_version}"
+          sdkmanager_path="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          test -x "${sdkmanager_path}"
           for attempt in 1 2 3; do
-            if sdkmanager --install "ndk;${ndk_version}" && test -f "${ndk_path}/source.properties"; then
+            if "${sdkmanager_path}" --install "ndk;${ndk_version}" && test -f "${ndk_path}/source.properties"; then
               exit 0
             fi
             if [[ "${ndk_path}" == "${ANDROID_SDK_ROOT}/ndk/${ndk_version}" ]]; then

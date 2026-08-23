@@ -70,7 +70,8 @@
 - CLI validation loads the public launch record and requires the closed-beta
   non-replacement status claim to match its tracked state.
 - Android CI installs the exact Gradle-pinned NDK before the release build and
-  retries a corrupt download up to three times while deleting only the fully
+  resolves `cmdline-tools/latest/bin/sdkmanager` explicitly, retries a corrupt
+  download up to three times while deleting only the fully
   resolved partial directory for that exact NDK version.
 
 ## Workspace boundary and read scope
