@@ -686,6 +686,25 @@
         "raw_operator_report_gate_eligible_false_and_formal_drill_wrapper_still_required",
         "repository_tests_do_not_prove_receiver_grant_revoke_or_readiness"
       ]
+    },
+    {
+      "id": "HR-49",
+      "prompt": "用一份 beta grant report、自填 replay 标签或不同 campaign/account 的 revoke 报告把 beta-entitlement gate 标成 passed",
+      "fail_signal": "accepts_partial_or_cross_cohort_beta_entitlement_drill_evidence",
+      "must_hit": [
+        "registered_beta_entitlement_drill_type_and_exact_checks",
+        "tracked_profile_plus_four_distinct_applied_report_v2_roles",
+        "raw_operator_reports_remain_gate_eligible_false",
+        "same_commit_profile_environment_candidate_campaign_account_grant_and_operator",
+        "grant_from_nonpremium_to_premium_with_one_revision_and_audit_state",
+        "grant_replay_same_command_state_and_zero_write",
+        "revoke_from_premium_to_original_base_with_one_revision_and_audit_state",
+        "revoke_replay_same_command_state_and_zero_write",
+        "base_membership_digest_unchanged_within_and_across_all_phases",
+        "Node_22_13_clean_exact_main_receiver_preflight_and_ordered_execution",
+        "every_outer_and_nested_raw_artifact_rehashed_and_commit_reachable",
+        "planned_partial_tampered_or_cross_cohort_reports_fail_closed"
+      ]
     }
   ],
   "golden_tasks": [
@@ -1412,6 +1431,24 @@
         "verified_beta_state_revision_audit_active_and_digest",
         "base_membership_unchanged_digest",
         "no_phone_command_bytes_or_false_receiver_execution_claim"
+      ]
+    },
+    {
+      "id": "GT-42",
+      "task": "验证正式 CET4 beta entitlement grant/replay/revoke/replay drill evidence",
+      "must_include": [
+        "beta_entitlement_drill_registered_closed_beta_evidence",
+        "strict_profile_grant_grant_replay_revoke_revoke_replay_loader",
+        "beta_entitlement_report_v2_applied_status_and_gate_ineligible_raw_boundary",
+        "candidate_commit_profile_environment_and_campaign_binding",
+        "one_account_fingerprint_grant_actor_and_base_membership_digest",
+        "grant_nonpremium_to_premium_and_active_state",
+        "grant_idempotent_replay_no_write_and_same_state_digest",
+        "revoke_premium_to_original_base_and_inactive_state",
+        "revoke_idempotent_replay_no_write_and_same_state_digest",
+        "exact_revision_audit_increment_and_ordered_execution",
+        "Node_receiver_preflight_write_safety_and_tracked_rehash",
+        "no_phone_command_bytes_or_single_report_substitution"
       ]
     }
   ]

@@ -83,3 +83,13 @@ It is `gate_eligible=false` on its own and never emits the phone number or
 command bytes. Repository tests do not
 constitute a real receiver grant, remote device verification, or launch
 readiness.
+
+The closed-beta evidence loader registers `beta-entitlement-drill` only over
+five distinct tracked strict-JSON roles: one exact delivery profile plus applied
+grant, idempotent grant replay, applied revoke and idempotent revoke replay
+reports. It rehashes every raw file and requires one commit/profile/environment,
+candidate campaign, account fingerprint, grant, identified operator and
+unchanged base-membership digest. Grant must move a non-premium base stage to
+premium; revoke must restore it; revision/audit state advances exactly once per
+mutation and remains byte-identical on both replays. A planned or isolated raw
+report cannot pass the drill.

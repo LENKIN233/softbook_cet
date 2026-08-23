@@ -547,6 +547,12 @@ reports remain `gate_eligible=false` until a registered formal drill wrapper
 revalidates the exact grant/replay/revoke sequence. Command files contain phone
 numbers and must not be committed or included in a release bundle.
 
+Formal `beta-entitlement-drill` evidence uses one tracked profile and four
+tracked applied report v2 files in exact order: grant, idempotent grant replay,
+revoke and idempotent revoke replay. The wrapper revalidates one candidate
+campaign/account/grant/operator/commit and one unchanged base-membership digest;
+it never ingests the phone-bearing command files.
+
 Controlled-pilot continued access uses a separate receiver-only overlay and
 never reuses the formal closed-beta grant. Create an untracked
 `pilot-entitlement-command.v1`, verify its phone-free dry-run plan, then apply

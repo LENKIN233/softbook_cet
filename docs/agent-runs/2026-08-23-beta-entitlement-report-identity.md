@@ -4,7 +4,7 @@
 
 - Date: 2026-08-23
 - Branch: `infra/beta-entitlement-report-identity-v2`
-- PR: pending
+- PR: #520
 - Summary: Bind closed-beta entitlement mutations to the exact campaign and
   emit a privacy-safe, commit/profile/operator/execution-bound raw report for a
   later formal grant/replay/revoke drill wrapper.
@@ -71,14 +71,16 @@
 ## Commands run
 
 - Focused beta runtime/manager tests -> 10/10 passed.
+- Combined beta drill/content/builder/classifier/closed-beta/public-launch tests
+  -> 74/74 passed after replay onto merged #519 `main`.
 - `npm test` backend -> 298/298 passed.
 - Formal approval classifier -> 10/10 passed.
 - `python3 scripts/validate_harness.py` -> `HARNESS VALIDATION OK`.
 - Learning contract -> 17/17 passed.
 - Node 22.13.0 local gates -> 24/24 passed, zero exception; report
-  `exports/local-gates/beta-entitlement-report-identity-v2-dev.json`.
+  `exports/local-gates/beta-entitlement-and-drill-v1-dev.json`.
 - `git diff --check` -> passed.
-- PR checks -> pending publication.
+- PR checks -> pending after publication.
 
 ## Validation results
 
@@ -97,7 +99,7 @@
 ## Agent review status
 
 - Reviewer: Codex primary exact-diff and gate review.
-- Status: passed local semantic review; final replay pending stack merge.
+- Status: passed final exact-main semantic and full-gate review.
 - Blocking findings: none.
 
 ## User-visible UI impact
@@ -119,7 +121,6 @@
 
 ## Follow-up
 
-- Replay after the content-evidence PR merges, run final gates, publish and
-  auto-merge.
-- Register and implement the exact four-phase `beta-entitlement-drill` evidence
-  semantics over tracked v2 raw reports.
+- Merge together with the exact four-phase `beta-entitlement-drill` evidence
+  semantics in PR #520.
+- Continue Space sync and real private-distribution/device evidence semantics.

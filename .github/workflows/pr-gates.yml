@@ -97,6 +97,7 @@ jobs:
           node --test scripts/test_validate_cet4_closed_beta_readiness.mjs
           node scripts/validate_cet4_closed_beta_readiness.mjs
           node --test scripts/test_cet4_formal_content_evidence.mjs
+          node --test scripts/test_beta_entitlement_drill_evidence.mjs
 
   agent-review:
     if: github.event_name == 'pull_request'
