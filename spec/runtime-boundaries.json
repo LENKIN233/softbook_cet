@@ -1,5 +1,5 @@
 {
-  "version": "vnext-26",
+  "version": "vnext-27",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -320,11 +320,28 @@
     "gate_replacement": false,
     "repository_validation_gate_eligible": false,
     "in_memory_mobile_acceptance_installed_client_minimum_version_enforced": false,
-    "implementation_status": "profile_bundle_approval_audit_audio_qc_release_validation_publication_sequencing_shared_runtime_mode_content_authority_authenticated_v2_card_source_cloudbase_receiver_adapter_dry_run_first_delivery_command_exact_approved_candidate_runtime_smoke_actual_native_bootstrap_and_post_signature_manifest_minimum_client_gates_five_card_round_gate_continuation_store_mobile_completion_binding_atomic_120_hour_learning_session_trial_clock_and_audited_pilot_entitlement_overlay_implemented_locally",
-    "remaining_runtime_work": "receiver_owned_profile_secrets_and_persistent_execution, deletion-worker execution, private_object_delivery_and_real-device minimum-version_and_playback evidence",
+    "implementation_status": "profile_bundle_approval_audit_audio_qc_release_validation_publication_sequencing_shared_runtime_mode_content_authority_authenticated_v2_card_source_cloudbase_receiver_adapter_dry_run_first_delivery_command_exact_approved_candidate_runtime_smoke_actual_native_bootstrap_and_post_signature_manifest_minimum_client_gates_five_card_round_gate_continuation_store_mobile_completion_binding_atomic_120_hour_learning_session_trial_clock_audited_pilot_entitlement_overlay_and_claim_bound_account_deletion_worker_receiver_timer_plan_implemented_locally",
+    "remaining_runtime_work": "receiver_owned_profile_secrets_and_persistent_execution including deletion-worker timer and completed deletion drill, private_object_delivery_and_real-device minimum-version_and_playback evidence",
     "content_status": "exact_120_payload_user_approved_in_card_make_pr_155_for_content_version_sha256_dd2d397532556563a205351f04f98184afc09a4cd6a2580966556052ffc24f36_while_24_audio_assets_remain_not_human_perceptually_approved",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "not_applicable_controlled_pilot_never_replaces_closed_beta_or_launch_evidence"
+  },
+  "account_deletion_runtime": {
+    "classification": "implementation_hypothesis",
+    "owner": "spec/account-sync-contract.json#account_deletion",
+    "task_schema": "account-deletion-task.v1",
+    "worker_report_schema": "account-deletion-worker-report.v1",
+    "request_order": "persist_exact_task_before_account_wide_session_revocation",
+    "login_fence": "task_presence_blocks_login_refresh_and_protected_session_access_until_erasure_completes",
+    "lease_boundary": "random_claim_bound_five_minute_lease_stale_worker_cannot_complete_or_release_newer_claim",
+    "runnable_query_boundary": "oldest_queued_and_expired_processing_tasks_are_queried_separately_then_merged_by_requested_at_so_live_leases_cannot_starve_queued_work",
+    "erasure_boundary": "all_current_account_keyed_learning_progress_space_auth_session_and_phone_bound_challenge_membership_revision_beta_pilot_records_plus_retained_phone_keyed_daily_learning_space_migration_records_and_only_the_phone_rate_key",
+    "completion_boundary": "verify_idempotent_erasure_then_remove_task_last_no_tombstone_clean_re_registration_after_completion",
+    "deployment_shape": "receiver_delivery_deploys_softbook_api_and_secret_free_softbook_account_deletion_worker_with_one_minute_timer_then_rereads_exact_worker_handler_runtime_timeout_empty_variable_set_and_trigger_configuration",
+    "repository_validation_gate_eligible": false,
+    "implementation_status": "worker_repository_handler_retry_lease_collection_coverage_re_registration_and_receiver_deploy_plan_implemented_locally",
+    "deployment_status": "not_deployed_by_repository_change",
+    "launch_gate_status": "pending_receiver_execution_monitoring_provider_cleanup_and_completed_deletion_drill"
   },
   "beta_entitlement_runtime": {
     "classification": "implementation_hypothesis",

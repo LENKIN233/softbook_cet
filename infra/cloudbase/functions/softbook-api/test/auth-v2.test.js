@@ -333,6 +333,34 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
   assert.equal(repeated.statusCode, 202);
   assert.deepEqual(repeated.body.data, first.body.data);
   assert.equal(store.snapshot().accountDeletions.size, 1);
+  assert.equal(
+    [...store.snapshot().accountDeletions.values()][0].schema_version,
+    'account-deletion-task.v1',
+  );
+  assert.deepEqual(
+    {
+      attempt_count: [...store.snapshot().accountDeletions.values()][0]
+        .attempt_count,
+      last_attempt_at: [...store.snapshot().accountDeletions.values()][0]
+        .last_attempt_at,
+      last_failure_code: [...store.snapshot().accountDeletions.values()][0]
+        .last_failure_code,
+      lease_expires_at: [...store.snapshot().accountDeletions.values()][0]
+        .lease_expires_at,
+      lease_id: [...store.snapshot().accountDeletions.values()][0].lease_id,
+    },
+    {
+      attempt_count: 0,
+      last_attempt_at: null,
+      last_failure_code: null,
+      lease_expires_at: null,
+      lease_id: null,
+    },
+  );
+  assert.match(
+    [...store.snapshot().accountDeletions.values()][0].phone_rate_key,
+    /^phone:[a-f0-9]{64}$/,
+  );
   assert.match(first.body.data.deletion_request.id, /^delete_[A-Za-z0-9_-]+$/);
   assert.equal(
     first.body.data.deletion_request.id.includes(
@@ -369,6 +397,58 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
       session => session.status === 'active',
     ),
     false,
+  );
+});
+
+test('deletion worker clears current account data and permits clean re-registration', async () => {
+  const {api, store} = createV2TestApi();
+  const session = await issueSession(api, {
+    clientIp: '203.0.113.70',
+    deviceId: 'device-before-deletion',
+  });
+  const learning = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track: 'cet4'},
+  });
+  assert.equal(learning.statusCode, 200, JSON.stringify(learning.body));
+  const accountKey = store
+    .snapshot()
+    .authSessions.get(session.session_id).account_key;
+  store.snapshot().pilotEntitlements.set(PHONE_NUMBER, {
+    phone_number: PHONE_NUMBER,
+  });
+
+  const deletion = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  assert.equal(deletion.statusCode, 202);
+  const report = await store.runAccountDeletionWorkerForTest();
+
+  assert.equal(report.completed_count, 1);
+  assert.equal(store.snapshot().accountDeletions.has(accountKey), false);
+  assert.equal(store.snapshot().authSessions.size, 0);
+  assert.equal(store.snapshot().learningSessions.size, 0);
+  assert.equal(store.snapshot().memberships.has(PHONE_NUMBER), false);
+  assert.equal(store.snapshot().membershipRevisions.has(PHONE_NUMBER), false);
+  assert.equal(store.snapshot().pilotEntitlements.has(PHONE_NUMBER), false);
+  assert.equal(
+    [...store.snapshot().authChallenges.values()].some(
+      challenge => challenge.phone_number === PHONE_NUMBER,
+    ),
+    false,
+  );
+
+  const registeredAgain = await issueSession(api, {
+    clientIp: '203.0.113.71',
+    deviceId: 'device-after-deletion',
+  });
+  assert.equal(typeof registeredAgain.access_token, 'string');
+  assert.equal(
+    store.snapshot().authSessions.get(registeredAgain.session_id).status,
+    'active',
   );
 });
 

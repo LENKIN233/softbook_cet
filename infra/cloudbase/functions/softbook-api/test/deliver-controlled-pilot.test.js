@@ -105,11 +105,51 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
   );
 
   assert.equal(report.status, 'passed');
+  assert.deepEqual(report.deployed.function_names, [
+    'softbook-api',
+    'softbook-account-deletion-worker',
+  ]);
+  assert.equal(
+    report.deployed.deletion_worker_trigger,
+    'account-deletion-every-minute',
+  );
+  assert.equal(
+    report.deployed.deletion_worker.handler,
+    'index.accountDeletionWorkerMain',
+  );
+  assert.deepEqual(report.deployed.deletion_worker_runtime_variable_names, []);
+  assert.deepEqual(runner.deployedConfig.functions[1].envVariables, {});
+  assert.deepEqual(report.deployed.deletion_worker.trigger, {
+    config: '0 */1 * * * * *',
+    name: 'account-deletion-every-minute',
+    type: 'timer',
+  });
   assert.deepEqual(processCalls, [
     ['npm', 'ci'],
     ['npm', 'test'],
   ]);
   const runtime = runner.deployedConfig.functions[0].envVariables;
+  assert.equal(runner.deployedConfig.functions.length, 2);
+  assert.equal(
+    runner.deployedConfig.functions[1].handler,
+    'index.accountDeletionWorkerMain',
+  );
+  assert.deepEqual(
+    runner.calls.find(call => call.includes('trigger')),
+    [
+      '-e',
+      'receiver-cet4-pilot',
+      'fn',
+      'trigger',
+      'create',
+      'softbook-account-deletion-worker',
+      '--trigger-name',
+      'account-deletion-every-minute',
+      '--cron',
+      '0 */1 * * * * *',
+      '--json',
+    ],
+  );
   assert.equal(runtime.SOFTBOOK_RUNTIME_MODE, 'controlled_pilot');
   assert.equal(runtime.SOFTBOOK_PILOT_ID, 'cet4-pilot-2026');
   assert.equal(runtime.SOFTBOOK_PILOT_EXPIRES_AT, '2026-09-10T00:00:00.000Z');
@@ -167,6 +207,7 @@ function createCloudRunner(initialCollections) {
   const collections = new Set(initialCollections);
   const calls = [];
   let deployedConfig = null;
+  let workerTriggerCreated = false;
   return {
     calls,
     get deployedConfig() {
@@ -174,6 +215,26 @@ function createCloudRunner(initialCollections) {
     },
     async run(args, options = {}) {
       calls.push(args);
+      if (args.includes('fn') && args.includes('detail')) {
+        return JSON.stringify({
+          data: {
+            FunctionName: 'softbook-account-deletion-worker',
+            Handler: 'index.accountDeletionWorkerMain',
+            Runtime: 'Nodejs20.19',
+            Timeout: 60,
+            Environment: {Variables: []},
+            Triggers: workerTriggerCreated
+              ? [
+                  {
+                    TriggerDesc: '0 */1 * * * * *',
+                    TriggerName: 'account-deletion-every-minute',
+                    Type: 'Timer',
+                  },
+                ]
+              : [],
+          },
+        });
+      }
       if (args.includes('detail')) {
         return JSON.stringify({
           data: {
@@ -203,6 +264,10 @@ function createCloudRunner(initialCollections) {
         deployedConfig = JSON.parse(
           readFileSync(join(options.cwd, 'cloudbaserc.json'), 'utf8'),
         );
+        return JSON.stringify({data: {ok: true}});
+      }
+      if (args.includes('trigger')) {
+        workerTriggerCreated = true;
         return JSON.stringify({data: {ok: true}});
       }
       throw new Error(`unexpected CloudBase command: ${args.join(' ')}`);

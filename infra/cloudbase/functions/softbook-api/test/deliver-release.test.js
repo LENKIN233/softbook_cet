@@ -199,6 +199,25 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
   );
 
   assert.equal(report.status, 'passed');
+  assert.deepEqual(report.deployed.function_names, [
+    'softbook-api',
+    'softbook-account-deletion-worker',
+  ]);
+  assert.equal(
+    report.deployed.deletion_worker_trigger,
+    'account-deletion-every-minute',
+  );
+  assert.equal(
+    report.deployed.deletion_worker.handler,
+    'index.accountDeletionWorkerMain',
+  );
+  assert.deepEqual(report.deployed.deletion_worker_runtime_variable_names, []);
+  assert.deepEqual(runner.deployedConfig.functions[1].envVariables, {});
+  assert.deepEqual(report.deployed.deletion_worker.trigger, {
+    config: '0 */1 * * * * *',
+    name: 'account-deletion-every-minute',
+    type: 'timer',
+  });
   assert.deepEqual(
     processCalls.map(call => [call.command, call.args[0]]),
     [
@@ -207,7 +226,35 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
     ],
   );
   assert.equal(runner.deployedConfig.envId, 'receiver-cet4-beta');
+  assert.equal(runner.deployedConfig.functions.length, 2);
   assert.equal(runner.deployedConfig.functions[0].envVariables.SOFTBOOK_RUNTIME_MODE, 'production');
+  assert.equal(
+    runner.deployedConfig.functions[1].handler,
+    'index.accountDeletionWorkerMain',
+  );
+  assert.deepEqual(runner.deployedConfig.functions[1].triggers, [
+    {
+      config: '0 */1 * * * * *',
+      name: 'account-deletion-every-minute',
+      type: 'timer',
+    },
+  ]);
+  assert.deepEqual(
+    runner.calls.find(call => call.includes('trigger')),
+    [
+      '-e',
+      'receiver-cet4-beta',
+      'fn',
+      'trigger',
+      'create',
+      'softbook-account-deletion-worker',
+      '--trigger-name',
+      'account-deletion-every-minute',
+      '--cron',
+      '0 */1 * * * * *',
+      '--json',
+    ],
+  );
   assert.equal(
     Object.hasOwn(runner.deployedConfig.functions[0].envVariables, 'SOFTBOOK_SMS_DEV_CODE'),
     false,
@@ -216,6 +263,67 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
   for (const value of Object.values(env)) {
     assert.equal(publicReport.includes(value), false);
   }
+});
+
+test('account deletion worker inspection fails closed on handler or timer drift', async () => {
+  const inspect = payload =>
+    deliveryCli.inspectAccountDeletionWorker({
+      envId: 'receiver-cet4-beta',
+      runner: {
+        run: async () => JSON.stringify({data: payload}),
+      },
+    });
+  const exact = await inspect({
+    FunctionName: 'softbook-account-deletion-worker',
+    Handler: 'index.accountDeletionWorkerMain',
+    Runtime: 'Nodejs20.19',
+    Timeout: 60,
+    Environment: {Variables: []},
+    Triggers: [
+      {
+        TriggerDesc: JSON.stringify({cron: '0 */1 * * * * *'}),
+        TriggerName: 'account-deletion-every-minute',
+        Type: 'Timer',
+      },
+    ],
+  });
+  assert.equal(exact.ok, true);
+
+  const drifted = await inspect({
+    FunctionName: 'softbook-account-deletion-worker',
+    Handler: 'index.main',
+    Runtime: 'Nodejs20.19',
+    Timeout: 60,
+    Environment: {Variables: [{Key: 'SOFTBOOK_AUTH_TOKEN_SECRET', Value: 'x'}]},
+    Triggers: [
+      {
+        TriggerDesc: '0 */5 * * * * *',
+        TriggerName: 'account-deletion-every-minute',
+        Type: 'Timer',
+      },
+    ],
+  });
+  assert.equal(drifted.ok, false);
+  assert.match(drifted.errors.join(';'), /handler mismatch/);
+  assert.match(drifted.errors.join(';'), /timer trigger mismatch/);
+  assert.match(drifted.errors.join(';'), /must not receive API runtime secrets/);
+});
+
+test('receiver redeploy preserves an exact existing deletion timer without duplicate creation', async () => {
+  const runner = createCloudRunner(deploymentSafety.REQUIRED_COLLECTIONS, {
+    existingWorkerTrigger: true,
+  });
+  const deployed = await deliveryCli.deployReceiverFunction({
+    env: receiverEnvironment(),
+    processRunner: {
+      run: async () => '',
+    },
+    profile: profileFixture(),
+    runner,
+  });
+
+  assert.equal(deployed.deletion_worker_trigger, 'account-deletion-every-minute');
+  assert.equal(runner.calls.some(call => call.includes('trigger')), false);
 });
 
 test('receiver write safety blocks topic branches even when remote preflight passes', async () => {
@@ -261,10 +369,14 @@ function safeDependencies(runner) {
   };
 }
 
-function createCloudRunner(initialCollections) {
+function createCloudRunner(
+  initialCollections,
+  {existingWorkerTrigger = false} = {},
+) {
   const collections = new Set(initialCollections);
   const calls = [];
   let deployedConfig = null;
+  let workerTriggerCreated = existingWorkerTrigger;
   return {
     calls,
     get deployedConfig() {
@@ -272,6 +384,26 @@ function createCloudRunner(initialCollections) {
     },
     async run(args, options = {}) {
       calls.push(args);
+      if (args.includes('fn') && args.includes('detail')) {
+        return JSON.stringify({
+          data: {
+            FunctionName: 'softbook-account-deletion-worker',
+            Handler: 'index.accountDeletionWorkerMain',
+            Runtime: 'Nodejs20.19',
+            Timeout: 60,
+            Environment: {Variables: []},
+            Triggers: workerTriggerCreated
+              ? [
+                  {
+                    TriggerDesc: '0 */1 * * * * *',
+                    TriggerName: 'account-deletion-every-minute',
+                    Type: 'Timer',
+                  },
+                ]
+              : [],
+          },
+        });
+      }
       if (args.includes('detail')) {
         return JSON.stringify({
           data: {
@@ -300,6 +432,10 @@ function createCloudRunner(initialCollections) {
       }
       if (args.includes('deploy')) {
         deployedConfig = JSON.parse(readFileSync(join(options.cwd, 'cloudbaserc.json'), 'utf8'));
+        return JSON.stringify({data: {ok: true}});
+      }
+      if (args.includes('trigger')) {
+        workerTriggerCreated = true;
         return JSON.stringify({data: {ok: true}});
       }
       throw new Error(`unexpected CloudBase command: ${args.join(' ')}`);

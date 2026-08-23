@@ -1231,6 +1231,31 @@
         "formal_scope_classifier_covers_policy_semantic_parser_and_validator",
         "repository_baseline_remains_unverified"
       ]
+    },
+    {
+      "id": "GT-37",
+      "task": "实现并部署可重试的 account-deletion worker 边界",
+      "must_include": [
+        "account_sync_contract_owner",
+        "exact_task_persists_before_account_wide_session_revocation",
+        "task_presence_blocks_login_refresh_and_protected_access",
+        "strict_account_deletion_task_v1_retry_and_lease_fields",
+        "all_current_account_keyed_learning_progress_space_and_auth_session_collections",
+        "phone_challenges_membership_revision_beta_and_pilot_documents",
+        "retained_phone_keyed_daily_learning_and_space_migration_state",
+        "delete_only_phone_rate_key_and_preserve_shared_ip_limits",
+        "random_claim_bound_five_minute_lease",
+        "queued_tasks_not_starved_by_older_live_processing_leases",
+        "stale_worker_cannot_complete_or_release_newer_claim",
+        "partial_failure_requeues_same_lease_and_duplicate_timer_is_idempotent",
+        "task_is_removed_last_without_tombstone_then_clean_re_registration",
+        "pii_free_account_deletion_worker_report_v1",
+        "separate_non_http_worker_handler_and_one_minute_timer",
+        "formal_and_controlled_pilot_receiver_delivery_include_both_functions",
+        "worker_deploy_rereads_handler_runtime_timeout_and_timer",
+        "deletion_worker_receives_no_api_runtime_secrets_or_custom_variables",
+        "repository_tests_and_deploy_plan_are_not_receiver_execution_or_deletion_drill"
+      ]
     }
   ]
 }

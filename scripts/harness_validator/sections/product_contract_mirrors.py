@@ -39,6 +39,207 @@ def _entry_by_id(entries, entry_id):
     return None
 
 
+def account_deletion_contract_findings(
+    auth,
+    runtime,
+    agent,
+    evals,
+    runtime_text,
+    worker_text,
+    auth_service_text,
+    delivery_text,
+):
+    findings = []
+    account_collections = [
+        "softbook_auth_sessions",
+        "softbook_daily_check_ins",
+        "softbook_daily_progress",
+        "softbook_learning_event_cursors",
+        "softbook_learning_events",
+        "softbook_learning_event_sequences",
+        "softbook_learning_migration_revisions",
+        "softbook_learning_sessions",
+        "softbook_learning_states",
+        "softbook_pilot_round_continuations",
+        "softbook_space_action_lineages",
+        "softbook_space_actions",
+        "softbook_space_state_revisions",
+        "softbook_space_states",
+    ]
+    phone_documents = [
+        "softbook_beta_entitlements",
+        "softbook_memberships",
+        "softbook_membership_revisions",
+        "softbook_pilot_entitlements",
+    ]
+    owner_expectations = [
+        (
+            "request order",
+            ("account_deletion", "request_rule"),
+            "POST /v2/account/deletion derives account and phone identity only from the signed active session, persists one exact account-deletion-task.v1 before account-wide session revocation, and blocks login refresh and protected access while that task exists",
+        ),
+        (
+            "task schema",
+            ("account_deletion", "task_rule"),
+            "the account-keyed task stores deletion_id, phone, derived phone-only rate-limit key, attempt count, last attempt, failure code, lease ID, lease expiry, requested time, and queued or processing status; unknown or malformed worker fields fail closed",
+        ),
+        (
+            "worker",
+            ("account_deletion", "worker_rule"),
+            "the separately deployed softbook-account-deletion-worker claims at most 50 queued or expired-lease tasks with a random claim-bound five-minute lease, erases all current account-keyed and phone-keyed user collections idempotently, and removes the login-blocking task last",
+        ),
+        (
+            "queue selection",
+            ("account_deletion", "queue_selection_rule"),
+            "query oldest queued tasks and lease_expires_at <= now processing tasks independently before merging by requested_at and applying the run limit, so older live processing leases cannot starve queued work",
+        ),
+        (
+            "account collections",
+            ("account_deletion", "account_keyed_collections"),
+            account_collections,
+        ),
+        (
+            "phone filter collections",
+            ("account_deletion", "phone_filtered_collections"),
+            [
+                "softbook_auth_challenges",
+                "softbook_daily_progress",
+                "softbook_learning_states",
+                "softbook_space_states",
+            ],
+        ),
+        (
+            "phone document collections",
+            ("account_deletion", "phone_document_collections"),
+            phone_documents,
+        ),
+        (
+            "rate limit",
+            ("account_deletion", "rate_limit_rule"),
+            "delete only the task-bound phone rate-limit key and preserve shared IP rate-limit records",
+        ),
+        (
+            "retry",
+            ("account_deletion", "retry_rule"),
+            "partial deletion releases only the same live lease back to queued with account_cleanup_incomplete; a stale worker cannot complete or release a task claimed by another worker; duplicate timer delivery and repeated deletion are idempotent",
+        ),
+        (
+            "completion",
+            ("account_deletion", "completion_rule"),
+            "verified erasure deletes account-deletion-task.v1 last, uses no retained tombstone, and permits clean re-registration only after the task is gone",
+        ),
+        (
+            "report",
+            ("account_deletion", "report_rule"),
+            "account-deletion-worker-report.v1 contains counts, generated time, deletion-ID fingerprints, and completed retry_queued or lease_lost status without phone numbers, account keys, tokens, or document contents",
+        ),
+        (
+            "deployment",
+            ("account_deletion", "deployment_rule"),
+            "receiver delivery deploys softbook-api plus the non-HTTP index.accountDeletionWorkerMain function without API auth, SMS, signing, or other custom runtime variables, creates or preserves the exact account-deletion-every-minute timer, and rereads function name, handler, runtime, timeout, empty variable set, and trigger configuration before success; repository implementation and deployment plans are not receiver execution or a completed deletion drill",
+        ),
+        (
+            "status",
+            ("account_deletion", "implementation_status"),
+            "implemented_locally_not_deployed",
+        ),
+    ]
+    for label, keys, expected in owner_expectations:
+        _expect_contract_path(
+            findings, "account-deletion", label, auth, keys, expected
+        )
+
+    runtime_expectations = [
+        ("owner", ("account_deletion_runtime", "owner"), "spec/account-sync-contract.json#account_deletion"),
+        ("task", ("account_deletion_runtime", "task_schema"), "account-deletion-task.v1"),
+        ("report", ("account_deletion_runtime", "worker_report_schema"), "account-deletion-worker-report.v1"),
+        ("gate", ("account_deletion_runtime", "repository_validation_gate_eligible"), False),
+        ("deployment", ("account_deletion_runtime", "deployment_status"), "not_deployed_by_repository_change"),
+    ]
+    for label, keys, expected in runtime_expectations:
+        _expect_contract_path(
+            findings, "account-deletion runtime", label, runtime, keys, expected
+        )
+
+    expected_gt37 = [
+        "account_sync_contract_owner",
+        "exact_task_persists_before_account_wide_session_revocation",
+        "task_presence_blocks_login_refresh_and_protected_access",
+        "strict_account_deletion_task_v1_retry_and_lease_fields",
+        "all_current_account_keyed_learning_progress_space_and_auth_session_collections",
+        "phone_challenges_membership_revision_beta_and_pilot_documents",
+        "retained_phone_keyed_daily_learning_and_space_migration_state",
+        "delete_only_phone_rate_key_and_preserve_shared_ip_limits",
+        "random_claim_bound_five_minute_lease",
+        "queued_tasks_not_starved_by_older_live_processing_leases",
+        "stale_worker_cannot_complete_or_release_newer_claim",
+        "partial_failure_requeues_same_lease_and_duplicate_timer_is_idempotent",
+        "task_is_removed_last_without_tombstone_then_clean_re_registration",
+        "pii_free_account_deletion_worker_report_v1",
+        "separate_non_http_worker_handler_and_one_minute_timer",
+        "formal_and_controlled_pilot_receiver_delivery_include_both_functions",
+        "worker_deploy_rereads_handler_runtime_timeout_and_timer",
+        "deletion_worker_receives_no_api_runtime_secrets_or_custom_variables",
+        "repository_tests_and_deploy_plan_are_not_receiver_execution_or_deletion_drill",
+    ]
+    gt37 = _entry_by_id(evals.get("golden_tasks", []), "GT-37")
+    if not gt37:
+        findings.append("account-deletion contract evals: missing GT-37")
+    elif gt37.get("must_include") != expected_gt37:
+        findings.append("account-deletion contract evals: GT-37 must_include drift")
+
+    required_snippets = {
+        "auth runtime": (
+            runtime_text,
+            [
+                "`softbook-account-deletion-worker`",
+                "claim-bound five-minute lease",
+                "Shared IP rate limits and global",
+                "task is removed last",
+            ],
+        ),
+        "worker source": (
+            worker_text,
+            [
+                "softbook_space_action_lineages",
+                "softbook_space_state_revisions",
+                "softbook_membership_revisions",
+                "account-deletion-worker-report.v1",
+                "lease_lost",
+            ],
+        ),
+        "auth service": (
+            auth_service_text,
+            [
+                "account-deletion-task.v1",
+                "phone_rate_key",
+                "lease_expires_at: null",
+            ],
+        ),
+        "receiver delivery": (
+            delivery_text,
+            [
+                "index.accountDeletionWorkerMain",
+                "account-deletion-every-minute",
+                "softbook-account-deletion-worker",
+            ],
+        ),
+    }
+    for label, (text, snippets) in required_snippets.items():
+        for snippet in snippets:
+            if snippet not in text:
+                findings.append(
+                    f"account-deletion {label} missing exact snippet: {snippet!r}"
+                )
+
+    auth_path = agent.get("read_paths", {}).get("auth_or_sync_or_purchase", [])
+    if "infra/cloudbase/auth-v2-runtime-contract.md" not in auth_path:
+        findings.append(
+            "account-deletion agent read path must include auth-v2 runtime contract"
+        )
+    return findings
+
+
 def learning_events_contract_findings(
     auth,
     runtime,
@@ -3137,6 +3338,37 @@ def validate(context) -> None:
         if release_runtime_contract.is_file()
         else ""
     )
+    auth_runtime_contract = (
+        context.root / "infra/cloudbase/auth-v2-runtime-contract.md"
+    )
+    auth_runtime_text = (
+        auth_runtime_contract.read_text(encoding="utf-8")
+        if auth_runtime_contract.is_file()
+        else ""
+    )
+    deletion_worker_path = (
+        context.root
+        / "infra/cloudbase/functions/softbook-api/account-deletion-worker-v1.js"
+    )
+    deletion_worker_text = (
+        deletion_worker_path.read_text(encoding="utf-8")
+        if deletion_worker_path.is_file()
+        else ""
+    )
+    auth_service_path = (
+        context.root / "infra/cloudbase/functions/softbook-api/auth-v2.js"
+    )
+    auth_service_text = (
+        auth_service_path.read_text(encoding="utf-8")
+        if auth_service_path.is_file()
+        else ""
+    )
+    receiver_delivery_path = context.root / "infra/cloudbase/deliver-release.mjs"
+    receiver_delivery_text = (
+        receiver_delivery_path.read_text(encoding="utf-8")
+        if receiver_delivery_path.is_file()
+        else ""
+    )
     provision_path = context.root / "infra/cloudbase/provision-softbook-nosql.mjs"
     provision_text = (
         provision_path.read_text(encoding="utf-8")
@@ -3151,6 +3383,18 @@ def validate(context) -> None:
     )
     agent_entry_text = (context.root / "AGENTS.md").read_text(encoding="utf-8")
 
+    context.errors.extend(
+        account_deletion_contract_findings(
+            auth,
+            runtime,
+            agent,
+            evals,
+            auth_runtime_text,
+            deletion_worker_text,
+            auth_service_text,
+            receiver_delivery_text,
+        )
+    )
     context.errors.extend(
         learning_events_contract_findings(
             auth,

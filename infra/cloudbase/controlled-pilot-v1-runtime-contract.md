@@ -26,7 +26,7 @@ Referenced active sources:
 - The repository implements fail-closed profile, bundle, approval, audit, audio-QC and release validators plus publication sequencing through an injected receiver adapter.
 - Runtime content authority distinguishes `development`, `production` and `controlled_pilot`: production accepts only `content-release.v1`; controlled pilot accepts only a current `pilot-content-release.v1` with exactly 120 cards and a 60-card free prefix; neither mode falls back to development content.
 - The shared authenticated `GET /v2/learning/card-source`, Bootstrap, Learning Events, Learning Session, content-manifest and Space paths apply that mode boundary. Bootstrap and content-manifest expose exact `controlled_pilot` variants rather than mixing formal release fields into pilot responses, and the mobile repositories parse those variants fail closed. Non-development authentication still requires strong separate secrets, a persistent store, trusted client IP and a non-development SMS provider. The controlled-pilot mobile runtime has no `/v1` dependency for loading card bodies.
-- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, and dry-run-first approved-artifact bundle assembler are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, audited pilot entitlement operations, strict dual-platform minimum-version shape validation, exact pilot Bootstrap/content-manifest parsing, and actual native iOS/Android minimum-version enforcement are implemented in the repository but remain undeployed. Bootstrap gates the canonical snapshot early; the manifest gates independently only after Ed25519 verification. Receiver-owned profile/secrets and execution, complete identified-human audio QC, deletion-worker execution, persistent-environment proof, and real-device evidence remain separate and incomplete.
+- A concrete CloudBase receiver adapter, dry-run-first `preflight|provision|deploy|publish|verify` command, dry-run-first approved-artifact bundle assembler, and separately deployed leased account-deletion worker with one-minute timer are implemented locally. Five-card round gating, its exact continuation store, the mobile completion-state binding, the atomic 120-hour Learning Session trial clock, audited pilot entitlement operations, strict dual-platform minimum-version shape validation, exact pilot Bootstrap/content-manifest parsing, and actual native iOS/Android minimum-version enforcement are implemented in the repository but remain undeployed. Bootstrap gates the canonical snapshot early; the manifest gates independently only after Ed25519 verification. Receiver-owned profile/secrets and execution, complete identified-human audio QC, persistent deletion-worker execution/drill, persistent-environment proof, and real-device evidence remain separate and incomplete.
 - Every pilot schema carries an exact `pilot_id` and every release-shaped pilot artifact states `gate_eligible=false`.
 - None of this has been deployed to the receiver environment in this repository run. Repository validation, fixtures, dry-runs and simulations cannot make the pilot externally ready or satisfy beta/launch gates.
 
@@ -191,7 +191,7 @@ resulting stage. Grant must result in
 implementation rederives and atomically verifies those stages while storing
 the event and active overlay, leave base membership unchanged, reject client
 routes. The collection is included in exact lifecycle cleanup and remains a
-required target for the still-pending account-deletion worker. Dry-run/apply is
+required target for the repository-local account-deletion worker. Dry-run/apply is
 an execution mode outside the immutable command:
 tooling defaults to dry-run and requires an explicit apply flag so the exact
 same command hash can be verified before mutation.
@@ -209,18 +209,23 @@ base, beta and pilot records and commits audit plus overlay in one database
 transaction, after which the CLI independently rereads the audit event. These
 repository guarantees remain undeployed until receiver execution is completed.
 
-## Account deletion (target extension; not yet implemented on current `main`)
+## Account deletion (repository implementation; not yet deployed)
 
 `POST /v2/account/deletion` stores the account key, phone, derived phone-rate
 key and retry metadata before revoking sessions. The independent deletion
-worker claims tasks with a bounded lease, deletes account-keyed learning and
-Space data, phone-bound auth challenges, the phone-only rate-limit key,
-membership, beta entitlement and pilot entitlement, and removes the deletion
-task last. A partial failure requeues the task; duplicate timer delivery is
-safe. Removing the task last keeps login blocked until erasure is verified and
-permits a clean registration only after completion. Repository tests exercise
-interruption/retry and post-deletion registration, but receiver execution and
-monitoring evidence remain pending.
+worker claims tasks with a random claim-bound five-minute lease, deletes every
+current account-keyed Learning/Progress/Space/Auth Session record, phone-bound
+auth challenges plus retained legacy daily/learning/Space records, only the
+phone rate-limit key, membership plus its revision,
+beta entitlement and pilot entitlement, and removes the deletion task last. A
+partial failure requeues only the same live lease; a stale worker cannot complete
+or release another claim; duplicate timer delivery is safe. Removing the task
+last keeps login blocked until erasure is verified and permits clean
+re-registration only after completion. Formal and controlled-pilot receiver
+deployment now plans `softbook-api` plus `softbook-account-deletion-worker` and
+the `account-deletion-every-minute` timer. Repository tests exercise CloudBase
+collection coverage, lease loss, interruption/retry and post-deletion
+registration, but receiver execution and monitoring evidence remain pending.
 
 ## Publication and deployment
 
