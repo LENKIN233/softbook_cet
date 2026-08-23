@@ -4,7 +4,7 @@
 
 - Date: 2026-08-23
 - Branch: `infra/account-deletion-worker-v1`
-- PR: pending publication
+- PR: https://github.com/LENKIN233/softbook_cet/pull/512
 - Summary: Implement the repository and receiver-deployment boundary that
   leases queued account-deletion tasks, erases all current and retained user
   records idempotently, removes the login fence last, and permits clean
