@@ -535,11 +535,17 @@ node infra/cloudbase/manage-beta-entitlement.mjs \
   --apply
 ```
 
-The same command shape is used for `grant` and `revoke`. Apply requires Node
-22.13.0 plus clean exact `main`; the active grant and its audit history are
-stored together in `softbook_beta_entitlements`. The base membership document
-is not modified. Command files contain phone numbers and must not be committed
-or included in a release bundle.
+The same command shape is used for `grant` and `revoke`; both bind the exact
+closed-beta `campaign_id`, and apply requires an identified `github:`, `team:`
+or `external:` `actor_id`. Apply also requires Node 22.13.0 plus clean exact
+`main`. The active grant and its audit history are stored together in
+`softbook_beta_entitlements`; the base membership document is not modified.
+The privacy-safe `beta-entitlement-report.v2` binds commit/profile/campaign,
+command hash, operator, execution, receiver/write safety, unchanged base digest
+and verified beta state without exposing the phone or command bytes. Command
+reports remain `gate_eligible=false` until a registered formal drill wrapper
+revalidates the exact grant/replay/revoke sequence. Command files contain phone
+numbers and must not be committed or included in a release bundle.
 
 Controlled-pilot continued access uses a separate receiver-only overlay and
 never reuses the formal closed-beta grant. Create an untracked

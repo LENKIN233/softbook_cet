@@ -668,6 +668,24 @@
         "report_and_builder_are_gate_ineligible_without_semantic_wrapper",
         "actual_human_approval_and_QC_still_required"
       ]
+    },
+    {
+      "id": "HR-48",
+      "prompt": "用没有 campaign 绑定的 beta grant、dry-run 计划或只写 passed 的 JSON 声称正式封闭内测资格 drill 已通过",
+      "fail_signal": "accepts_unbound_or_unverified_beta_entitlement_as_closed_beta_evidence",
+      "must_hit": [
+        "beta_command_active_grant_and_audit_bind_exact_campaign_id",
+        "revoke_requires_matching_active_campaign_and_grant",
+        "apply_requires_identified_actor_and_full_repository_commit",
+        "beta_entitlement_report_v2_binds_commit_profile_environment_and_campaign",
+        "report_binds_command_hash_operator_and_execution_window",
+        "receiver_preflight_and_clean_exact_main_write_safety_are_retained",
+        "stored_beta_revision_audit_count_active_state_and_digest_are_verified",
+        "base_membership_before_after_digest_must_be_unchanged",
+        "phone_and_command_bytes_are_never_reported",
+        "raw_operator_report_gate_eligible_false_and_formal_drill_wrapper_still_required",
+        "repository_tests_do_not_prove_receiver_grant_revoke_or_readiness"
+      ]
     }
   ],
   "golden_tasks": [
@@ -1376,6 +1394,24 @@
         "tracked_regular_size_SHA256_and_commit_reachability",
         "raw_tamper_and_partial_evidence_fail_closed",
         "no_generated_human_approval_or_QC_claim"
+      ]
+    },
+    {
+      "id": "GT-41",
+      "task": "绑定 closed-beta beta entitlement campaign 与可审计执行报告",
+      "must_include": [
+        "membership_closed_beta_entitlement_campaign_owner",
+        "beta_entitlement_command_v1_campaign_id",
+        "active_grant_and_every_audit_event_campaign_binding",
+        "matching_campaign_and_grant_revoke",
+        "beta_entitlement_report_v2",
+        "repository_commit_and_raw_profile_SHA256",
+        "identified_execution_operator_and_canonical_window",
+        "receiver_preflight_and_Node_22_13_clean_exact_main",
+        "privacy_safe_command_hash_and_account_fingerprint",
+        "verified_beta_state_revision_audit_active_and_digest",
+        "base_membership_unchanged_digest",
+        "no_phone_command_bytes_or_false_receiver_execution_claim"
       ]
     }
   ]

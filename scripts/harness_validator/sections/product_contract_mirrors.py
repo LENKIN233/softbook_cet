@@ -3330,6 +3330,7 @@ def cet4_closed_beta_readiness_findings(
     readiness_spec,
     authority,
     runtime,
+    membership,
     agent,
     evals,
     agent_entry_text,
@@ -3417,6 +3418,48 @@ def cet4_closed_beta_readiness_findings(
         runtime,
         ("cet4_closed_beta_readiness",),
         expected_runtime,
+    )
+    expected_closed_beta_entitlement = {
+        "access_state": "premium",
+        "delivery_rule": "receiver_operator_grant_only",
+        "payment_required": False,
+        "audit_required": True,
+        "client_self_grant_forbidden": True,
+        "campaign_binding_required": True,
+        "grant_state_and_audit_history_must_share_one_atomic_record": True,
+        "base_membership_must_not_be_overwritten": True,
+    }
+    _expect_contract_path(
+        findings,
+        "cet4-closed-beta",
+        "membership beta entitlement",
+        membership,
+        ("policy", "closed_beta_entitlement"),
+        expected_closed_beta_entitlement,
+    )
+    expected_beta_runtime = {
+        "classification": "implementation_hypothesis",
+        "owner": "spec/membership.json#policy.closed_beta_entitlement",
+        "command_schema": "beta-entitlement-command.v1",
+        "scope": "receiver_owned_closed_beta_environment_only",
+        "campaign_boundary": "every_command_active_grant_audit_event_and_applied_report_bind_the_exact_closed_beta_release_candidate_campaign_id",
+        "access_state": "premium",
+        "mutation_boundary": "receiver_operator_only_via_iam_authenticated_non_http_function_invocation_with_independent_command_bound_hmac_no_client_route",
+        "audit_boundary": "idempotent_event_id_actor_reason_timestamp_previous_stage_resulting_stage_and_command_hash_saved_atomically_with_the_active_beta_grant_record_while_base_membership_remains_unchanged",
+        "write_safety": "dry_run_by_default_apply_requires_clean_main_exactly_equal_to_origin_main_and_a_receiver_delivery_profile",
+        "revoke_boundary": "revoke_only_an_active_matching_beta_campaign_and_grant_then_resolve_the_unchanged_current_base_membership_without_downgrading_a_later_non_beta_premium_entitlement",
+        "report_boundary": "beta_entitlement_report_v2_binds_applied_repository_commit_profile_hash_environment_campaign_command_hash_identified_operator_execution_window_preflight_write_safety_base_membership_before_after_digest_and_verified_beta_revision_audit_active_state_without_phone_number",
+        "personal_data_boundary": "command_files_are_operator_inputs_not_release_bundle_artifacts_and_must_not_be_committed_or_exported",
+        "deployment_status": "not_deployed_by_repository_change",
+        "launch_gate_status": "pending",
+    }
+    _expect_contract_path(
+        findings,
+        "cet4-closed-beta",
+        "beta entitlement runtime mirror",
+        runtime,
+        ("beta_entitlement_runtime",),
+        expected_beta_runtime,
     )
     expected_registered_evidence = [
         "production-deployment",
@@ -3651,6 +3694,94 @@ def cet4_closed_beta_readiness_findings(
     if not gt40 or gt40.get("must_include") != expected_gt40:
         findings.append("CET4 formal content evidence evals: GT-40 drift")
 
+    expected_hr48 = [
+        "beta_command_active_grant_and_audit_bind_exact_campaign_id",
+        "revoke_requires_matching_active_campaign_and_grant",
+        "apply_requires_identified_actor_and_full_repository_commit",
+        "beta_entitlement_report_v2_binds_commit_profile_environment_and_campaign",
+        "report_binds_command_hash_operator_and_execution_window",
+        "receiver_preflight_and_clean_exact_main_write_safety_are_retained",
+        "stored_beta_revision_audit_count_active_state_and_digest_are_verified",
+        "base_membership_before_after_digest_must_be_unchanged",
+        "phone_and_command_bytes_are_never_reported",
+        "raw_operator_report_gate_eligible_false_and_formal_drill_wrapper_still_required",
+        "repository_tests_do_not_prove_receiver_grant_revoke_or_readiness",
+    ]
+    hr48 = _entry_by_id(evals.get("regressions", []), "HR-48")
+    if not hr48 or hr48.get("must_hit") != expected_hr48:
+        findings.append("beta entitlement identity evals: HR-48 drift")
+    expected_gt41 = [
+        "membership_closed_beta_entitlement_campaign_owner",
+        "beta_entitlement_command_v1_campaign_id",
+        "active_grant_and_every_audit_event_campaign_binding",
+        "matching_campaign_and_grant_revoke",
+        "beta_entitlement_report_v2",
+        "repository_commit_and_raw_profile_SHA256",
+        "identified_execution_operator_and_canonical_window",
+        "receiver_preflight_and_Node_22_13_clean_exact_main",
+        "privacy_safe_command_hash_and_account_fingerprint",
+        "verified_beta_state_revision_audit_active_and_digest",
+        "base_membership_unchanged_digest",
+        "no_phone_command_bytes_or_false_receiver_execution_claim",
+    ]
+    gt41 = _entry_by_id(evals.get("golden_tasks", []), "GT-41")
+    if not gt41 or gt41.get("must_include") != expected_gt41:
+        findings.append("beta entitlement identity evals: GT-41 drift")
+
+    beta_runtime_path = root / "infra/cloudbase/beta-entitlement-v1.mjs"
+    beta_manager_path = root / "infra/cloudbase/manage-beta-entitlement.mjs"
+    beta_test_path = (
+        root
+        / "infra/cloudbase/functions/softbook-api/test/manage-beta-entitlement.test.js"
+    )
+    beta_runtime_text = (
+        beta_runtime_path.read_text(encoding="utf-8")
+        if beta_runtime_path.is_file()
+        else ""
+    )
+    beta_manager_text = (
+        beta_manager_path.read_text(encoding="utf-8")
+        if beta_manager_path.is_file()
+        else ""
+    )
+    beta_test_text = (
+        beta_test_path.read_text(encoding="utf-8")
+        if beta_test_path.is_file()
+        else ""
+    )
+    for snippet in [
+        "'campaign_id'",
+        "active.campaign_id !== command.campaign_id",
+        "campaign_id: command.campaign_id",
+    ]:
+        if snippet not in beta_runtime_text:
+            findings.append(
+                f"beta entitlement runtime missing campaign binding: {snippet!r}"
+            )
+    for snippet in [
+        "beta-entitlement-report.v2",
+        "gate_eligible: false",
+        "profile_sha256: sha256Bytes(profileBytes)",
+        "node_version: nodeVersion",
+        "base membership changed during beta entitlement mutation",
+        "apply requires an identified github, team, or external actor_id",
+        "state_sha256: betaEntitlementInternals.hashCanonical(document)",
+    ]:
+        if snippet not in beta_manager_text:
+            findings.append(
+                f"beta entitlement report identity missing exact snippet: {snippet!r}"
+            )
+    for snippet in [
+        "never reports a phone number",
+        "exact replay is idempotent",
+        "requires a formal actor identity and full repository commit",
+        "base membership changes during the mutation",
+    ]:
+        if snippet not in beta_test_text:
+            findings.append(
+                f"beta entitlement identity tests missing exact snippet: {snippet!r}"
+            )
+
     content_evidence_test_path = root / "scripts/test_cet4_formal_content_evidence.mjs"
     content_evidence_test_text = (
         content_evidence_test_path.read_text(encoding="utf-8")
@@ -3736,6 +3867,10 @@ def cet4_closed_beta_readiness_findings(
         "'scripts/build_formal_release_bundle.mjs'",
         "'scripts/test_build_formal_release_bundle.mjs'",
         "'scripts/test_cet4_formal_content_evidence.mjs'",
+        "'infra/cloudbase/beta-entitlement-v1.mjs'",
+        "'infra/cloudbase/manage-beta-entitlement.mjs'",
+        "'infra/cloudbase/beta-entitlement-v1-runtime-contract.md'",
+        "'spec/membership.json'",
         "'spec/cet4-closed-beta-readiness.json'",
     ]:
         if sensitive_path not in classifier_text:
@@ -3901,6 +4036,7 @@ def validate(context) -> None:
             closed_beta_readiness,
             authority,
             runtime,
+            membership,
             agent,
             evals,
             agent_entry_text,

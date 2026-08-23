@@ -2643,6 +2643,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     schema_version: 'beta-entitlement-audit.v1',
     action: 'grant',
     actor_id: 'receiver-operator',
+    campaign_id: 'cet4-beta-campaign-001',
     command_sha256: `sha256:${'a'.repeat(64)}`,
     event_id: 'beta-event-grant-0001',
     grant_id: 'cet4-beta-grant-0001',
@@ -2655,6 +2656,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     active_grant: {
       schema_version: 'beta-entitlement.v1',
       actor_id: grantEvent.actor_id,
+      campaign_id: grantEvent.campaign_id,
       command_sha256: grantEvent.command_sha256,
       grant_event_id: grantEvent.event_id,
       grant_id: grantEvent.grant_id,
@@ -2748,6 +2750,7 @@ test('learning-session Trial activation rejects a beta grant that races the sele
     schema_version: 'beta-entitlement-audit.v1',
     action: 'grant',
     actor_id: 'receiver-operator',
+    campaign_id: 'cet4-beta-campaign-001',
     command_sha256: `sha256:${'b'.repeat(64)}`,
     event_id: 'beta-event-race-grant-0001',
     grant_id: 'cet4-beta-race-grant-0001',
@@ -2760,6 +2763,7 @@ test('learning-session Trial activation rejects a beta grant that races the sele
     active_grant: {
       schema_version: 'beta-entitlement.v1',
       actor_id: grantEvent.actor_id,
+      campaign_id: grantEvent.campaign_id,
       command_sha256: grantEvent.command_sha256,
       grant_event_id: grantEvent.event_id,
       grant_id: grantEvent.grant_id,

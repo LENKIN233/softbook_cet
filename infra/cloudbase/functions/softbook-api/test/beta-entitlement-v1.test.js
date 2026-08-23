@@ -16,6 +16,7 @@ test('grant creates premium access evidence without changing base membership', (
   const plan = beta.planBetaEntitlementMutation(command('grant'), null, base);
 
   assert.equal(plan.changed, true);
+  assert.equal(plan.document.active_grant.campaign_id, 'cet4-beta-campaign-001');
   assert.equal(plan.document.active_grant.grant_id, 'cet4-beta-grant-0001');
   assert.equal(plan.document.audit.length, 1);
   assert.equal(plan.document.audit[0].previous_stage, 'trial');
@@ -69,7 +70,16 @@ test('revoke removes only the matching grant and resolves current base membershi
         grant.document,
         membership('free'),
       ),
-    /matching active beta grant/,
+    /matching active beta campaign and grant/,
+  );
+  assert.throws(
+    () =>
+      beta.planBetaEntitlementMutation(
+        {...command('revoke'), campaign_id: 'cet4-beta-campaign-other'},
+        grant.document,
+        membership('free'),
+      ),
+    /matching active beta campaign and grant/,
   );
 });
 
@@ -98,6 +108,7 @@ function command(action) {
     event_id: action === 'grant' ? 'beta-event-grant-0001' : 'beta-event-revoke-0001',
     action,
     phone_number: '13800138000',
+    campaign_id: 'cet4-beta-campaign-001',
     grant_id: 'cet4-beta-grant-0001',
     actor_id: 'receiver-operator',
     reason: 'closed_beta_access',

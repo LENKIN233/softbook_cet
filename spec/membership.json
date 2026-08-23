@@ -24,6 +24,7 @@
       "payment_required": false,
       "audit_required": true,
       "client_self_grant_forbidden": true,
+      "campaign_binding_required": true,
       "grant_state_and_audit_history_must_share_one_atomic_record": true,
       "base_membership_must_not_be_overwritten": true
     },

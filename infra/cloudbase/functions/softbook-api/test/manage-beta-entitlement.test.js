@@ -41,8 +41,15 @@ test('beta entitlement CLI is dry-run by default and never reports a phone numbe
   );
 
   assert.equal(report.status, 'planned');
+  assert.equal(report.schema_version, 'beta-entitlement-report.v2');
+  assert.equal(report.gate_eligible, false);
   assert.equal(report.writes_performed, false);
   assert.equal(report.plan.resulting_stage, 'premium');
+  assert.equal(report.command.campaign_id, 'cet4-beta-campaign-001');
+  assert.match(report.profile.profile_sha256, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(report.base_membership.unchanged, true);
+  assert.equal(report.beta_state.active, true);
+  assert.equal(report.write_safety.node_version, '22.13.0');
   assert.equal(JSON.stringify(report).includes('13800138000'), false);
   assert.equal(runner.updateCount(), 0);
 });
@@ -68,6 +75,15 @@ test('apply writes and verifies one auditable grant while exact replay is idempo
 
   assert.equal(first.status, 'passed');
   assert.equal(first.writes_performed, true);
+  assert.equal(first.repository_commit, 'a'.repeat(40));
+  assert.equal(first.execution.operator, 'team:receiver-operator');
+  assert.equal(first.beta_state.revision, 1);
+  assert.equal(first.beta_state.audit_event_count, 1);
+  assert.equal(first.beta_state.active_campaign_id, 'cet4-beta-campaign-001');
+  assert.equal(
+    first.base_membership.before_sha256,
+    first.base_membership.after_sha256,
+  );
   assert.equal(replay.status, 'passed');
   assert.equal(replay.writes_performed, false);
   assert.equal(replay.result.idempotent, true);
@@ -101,6 +117,67 @@ test('apply refuses topic branches even when receiver preflight passes', async (
   assert.equal(runner.updateCount(), 0);
 });
 
+test('apply requires a formal actor identity and full repository commit', async () => {
+  const unidentified = createFixture('closed_beta', 'receiver-operator');
+  const unidentifiedRunner = createRunner();
+  const unidentifiedOptions = cli.parseBetaEntitlementArguments([
+    '--profile',
+    unidentified.profilePath,
+    '--command',
+    unidentified.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () =>
+      cli.executeBetaEntitlementCommand(
+        unidentifiedOptions,
+        dependencies(unidentifiedRunner),
+      ),
+    /identified github, team, or external actor_id/,
+  );
+  assert.equal(unidentifiedRunner.updateCount(), 0);
+
+  const invalidCommit = createFixture();
+  const invalidCommitRunner = createRunner();
+  const invalidCommitOptions = cli.parseBetaEntitlementArguments([
+    '--profile',
+    invalidCommit.profilePath,
+    '--command',
+    invalidCommit.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () =>
+      cli.executeBetaEntitlementCommand(invalidCommitOptions, {
+        ...dependencies(invalidCommitRunner),
+        repository: {
+          branch: 'main',
+          dirty: false,
+          head: 'same',
+          originMain: 'same',
+        },
+      }),
+    /full lowercase repository commit SHA-1/,
+  );
+  assert.equal(invalidCommitRunner.updateCount(), 0);
+});
+
+test('apply fails verification when base membership changes during the mutation', async () => {
+  const fixture = createFixture();
+  const runner = createRunner({mutateMembershipOnBetaWrite: true});
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executeBetaEntitlementCommand(options, dependencies(runner)),
+    /base membership changed/,
+  );
+});
+
 test('beta entitlement commands reject a formal production profile', async () => {
   const fixture = createFixture('production');
   const options = cli.parseBetaEntitlementArguments([
@@ -117,7 +194,10 @@ test('beta entitlement commands reject a formal production profile', async () =>
   );
 });
 
-function createFixture(runtimeMode = 'closed_beta') {
+function createFixture(
+  runtimeMode = 'closed_beta',
+  actorId = 'team:receiver-operator',
+) {
   const directory = mkdtempSync(join(tmpdir(), 'beta-entitlement-test-'));
   temporaryDirectories.push(directory);
   const profilePath = join(directory, 'delivery-profile.json');
@@ -150,8 +230,9 @@ function createFixture(runtimeMode = 'closed_beta') {
       event_id: 'beta-event-grant-0001',
       action: 'grant',
       phone_number: '13800138000',
+      campaign_id: 'cet4-beta-campaign-001',
       grant_id: 'cet4-beta-grant-0001',
-      actor_id: 'receiver-operator',
+      actor_id: actorId,
       reason: 'closed_beta_access',
       occurred_at: '2026-07-29T10:00:00.000Z',
     }),
@@ -165,14 +246,14 @@ function dependencies(runner) {
     repository: {
       branch: 'main',
       dirty: false,
-      head: 'same',
-      originMain: 'same',
+      head: 'a'.repeat(40),
+      originMain: 'a'.repeat(40),
     },
     runner,
   };
 }
 
-function createRunner() {
+function createRunner({mutateMembershipOnBetaWrite = false} = {}) {
   const collections = new Map([
     ['softbook_beta_entitlements', new Map()],
     ['softbook_memberships', new Map()],
@@ -222,6 +303,21 @@ function createRunner() {
             collections
               .get(wrapper.TableName)
               .set(id, structuredClone(update.u.$set));
+            if (
+              mutateMembershipOnBetaWrite &&
+              wrapper.TableName === 'softbook_beta_entitlements'
+            ) {
+              collections.get('softbook_memberships').set(id, {
+                entitlement: {
+                  counted_entry_count: 1,
+                  last_experience_ended_by: null,
+                  recovery_prompt_visible: false,
+                  stage: 'premium',
+                  trial_duration_days: 5,
+                  trial_started_at_entry_count: 1,
+                },
+              });
+            }
             return [{ok: 1, n: 1}];
           }
           throw new Error(`unexpected database command ${wrapper.CommandType}`);
