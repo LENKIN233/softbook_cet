@@ -4,7 +4,7 @@
 
 - Date: 2026-08-23
 - Branch: `infra/formal-release-bundle-builder-v1`
-- PR: pending
+- PR: https://github.com/LENKIN233/softbook_cet/pull/517
 - Summary: Add the missing dry-run-first assembler that can turn already
   approved exact CET4 content, audit, human audio QC and private bytes into a
   fully core-verified `release-bundle.v1` without creating approval, QC,
