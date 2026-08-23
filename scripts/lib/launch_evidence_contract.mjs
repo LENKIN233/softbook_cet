@@ -54,6 +54,9 @@ const BETA_ENTITLEMENT_EVIDENCE_SET = new Set(
   BETA_ENTITLEMENT_EVIDENCE_TYPES,
 );
 
+export const SPACE_SYNC_EVIDENCE_TYPES = Object.freeze(['space-sync-test']);
+const SPACE_SYNC_EVIDENCE_SET = new Set(SPACE_SYNC_EVIDENCE_TYPES);
+
 export const EXTERNAL_CAPABILITY_COMMON_CHECKS = Object.freeze([
   'provider-subject-bound',
   'owner-control-confirmed',
@@ -387,6 +390,13 @@ export const REQUIRED_EVIDENCE_CHECKS = Object.freeze({
     'revoke-replay-idempotent',
     'campaign-account-and-base-membership-bound',
   ],
+  'space-sync-test': [
+    'two-client-canonical-convergence',
+    'duplicate-and-conflict-no-commit',
+    'independent-favorite-sleep-merge',
+    'exact-space-revision-sequence',
+    'initial-space-state-restored',
+  ],
   'approved-card-coverage-report': [
     'all-2414-cards-covered',
     'whole-scope-approval-bound',
@@ -682,6 +692,7 @@ export function validateGateEvidenceArtifact(
     productionDeploymentEvidence = null,
     cet4FormalContentEvidence = null,
     betaEntitlementDrillEvidence = null,
+    spaceSyncEvidence = null,
     smsProviderSmokeReport = null,
     targetRelease = '2027-Q2',
   } = {},
@@ -827,6 +838,17 @@ export function validateGateEvidenceArtifact(
       artifact.measurements,
       artifactRoles,
       betaEntitlementDrillEvidence,
+      artifact,
+      expectedSubject,
+      executionTimes,
+      `${label} measurements`,
+      errors,
+    );
+  } else if (SPACE_SYNC_EVIDENCE_SET.has(evidenceType)) {
+    validateSpaceSyncMeasurements(
+      artifact.measurements,
+      artifactRoles,
+      spaceSyncEvidence,
       artifact,
       expectedSubject,
       executionTimes,
@@ -2091,6 +2113,379 @@ function validateBetaEntitlementPhaseRelationships(phases, measurements, label, 
       errors.push(`${label} phases must execute in grant/replay/revoke/replay order.`);
     }
   }
+}
+
+function validateSpaceSyncMeasurements(
+  value,
+  artifactRoles,
+  loaded,
+  artifact,
+  expectedSubject,
+  executionTimes,
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    [
+      'profile_role',
+      'space_report_role',
+      'content_version',
+      'expected_backend_deployment_id',
+      'assertions',
+    ],
+    label,
+    errors,
+  );
+  const roles = [value.profile_role, value.space_report_role];
+  for (const [field, role] of [
+    ['profile_role', value.profile_role],
+    ['space_report_role', value.space_report_role],
+  ]) {
+    requirePattern(role, ID_PATTERN, `${label}.${field}`, errors);
+    if (!artifactRoles.has(role)) {
+      errors.push(`${label}.${field} must reference a declared raw artifact role.`);
+    }
+  }
+  if (new Set(roles).size !== roles.length) {
+    errors.push(`${label} raw artifact roles must be distinct.`);
+  }
+  requirePattern(
+    value.content_version,
+    CONTENT_VERSION_PATTERN,
+    `${label}.content_version`,
+    errors,
+  );
+  requirePattern(
+    value.expected_backend_deployment_id,
+    /^backend-deployment:sha256:[0-9a-f]{64}$/,
+    `${label}.expected_backend_deployment_id`,
+    errors,
+  );
+  assertEqual(
+    value.content_version,
+    expectedSubject?.release?.content_version,
+    `${label}.content_version candidate binding`,
+    errors,
+  );
+  assertEqual(
+    value.expected_backend_deployment_id,
+    expectedSubject?.release?.backend_deployment_id,
+    `${label}.expected_backend_deployment_id candidate binding`,
+    errors,
+  );
+  validateTrueAssertions(
+    value.assertions,
+    [
+      'report_applied_on_receiver',
+      'same_account_distinct_clients',
+      'exact_revision_sequence',
+      'idempotency_and_conflict_no_commit',
+      'independent_dimensions',
+      'initial_state_restored',
+      'raw_report_gate_ineligible',
+    ],
+    `${label}.assertions`,
+    errors,
+  );
+  if (!isRecord(loaded)) {
+    errors.push(`${label} roles must resolve to strict Space sync artifacts.`);
+    return;
+  }
+  const rawByRole = new Map(
+    (Array.isArray(artifact.raw_artifacts) ? artifact.raw_artifacts : []).map(
+      item => [item?.role, item],
+    ),
+  );
+  validateSpaceSyncProfile(
+    loaded.profile,
+    artifact.subject,
+    `${label} profile`,
+    errors,
+  );
+  validateSpaceSyncReport(
+    loaded.spaceReport,
+    {
+      artifact,
+      executionTimes,
+      expectedSubject,
+      measurements: value,
+      profileRaw: rawByRole.get(value.profile_role),
+    },
+    `${label} report`,
+    errors,
+  );
+}
+
+function validateSpaceSyncProfile(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertEqual(value.schema_version, 'delivery-profile.v1', `${label}.schema_version`, errors);
+  assertEqual(value.profile_id, subject?.environment?.profile_id, `${label}.profile_id`, errors);
+  assertEqual(value.environment_id, subject?.environment?.environment_id, `${label}.environment_id`, errors);
+  assertEqual(value.runtime_mode, 'closed_beta', `${label}.runtime_mode`, errors);
+  requireExactArray(value.enabled_tracks, ['cet4'], `${label}.enabled_tracks`, errors);
+}
+
+function validateSpaceSyncReport(
+  report,
+  {
+    artifact,
+    executionTimes,
+    expectedSubject,
+    measurements,
+    profileRaw,
+  },
+  label,
+  errors,
+) {
+  if (!isRecord(report)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    report,
+    [
+      'schema_version',
+      'applied',
+      'gate_eligible',
+      'repository_commit',
+      'expected_backend_deployment_id',
+      'profile',
+      'write_safety',
+      'scope',
+      'clients',
+      'observations',
+      'assertions',
+      'status',
+      'remote_requests_performed',
+      'remote_writes_performed',
+      'execution',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(report.schema_version, 'space-sync-drill-report.v1', `${label}.schema_version`, errors);
+  assertEqual(report.applied, true, `${label}.applied`, errors);
+  assertEqual(report.gate_eligible, false, `${label}.gate_eligible`, errors);
+  assertEqual(report.repository_commit, artifact.subject?.commit_sha, `${label}.repository_commit`, errors);
+  assertEqual(
+    report.expected_backend_deployment_id,
+    measurements.expected_backend_deployment_id,
+    `${label}.expected_backend_deployment_id`,
+    errors,
+  );
+  assertEqual(
+    report.expected_backend_deployment_id,
+    expectedSubject?.release?.backend_deployment_id,
+    `${label}.candidate backend deployment`,
+    errors,
+  );
+  validateSpaceSyncReportProfile(
+    report.profile,
+    artifact.subject,
+    profileRaw,
+    `${label}.profile`,
+    errors,
+  );
+  validateSpaceSyncWriteSafety(
+    report.write_safety,
+    artifact.subject,
+    `${label}.write_safety`,
+    errors,
+  );
+  validateSpaceSyncScope(
+    report.scope,
+    measurements,
+    `${label}.scope`,
+    errors,
+  );
+  validateSpaceSyncClients(report.clients, `${label}.clients`, errors);
+  validateSpaceSyncObservations(
+    report.observations,
+    `${label}.observations`,
+    errors,
+  );
+  validateTrueAssertions(
+    report.assertions,
+    [
+      'same_account_distinct_clients',
+      'canonical_revision_incremented_once_per_new_action',
+      'duplicate_did_not_increment_revision',
+      'conflicting_replay_committed_nothing',
+      'favorite_and_sleep_merged_independently',
+      'both_clients_observed_canonical_state',
+      'initial_state_restored',
+    ],
+    `${label}.assertions`,
+    errors,
+  );
+  assertEqual(report.status, 'passed', `${label}.status`, errors);
+  assertEqual(report.remote_requests_performed, true, `${label}.remote_requests_performed`, errors);
+  assertEqual(report.remote_writes_performed, true, `${label}.remote_writes_performed`, errors);
+  validateRawExecution(
+    report.execution,
+    artifact.execution?.operator,
+    executionTimes,
+    `${label}.execution`,
+    errors,
+  );
+}
+
+function validateSpaceSyncReportProfile(value, subject, raw, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    ['environment_id', 'profile_id', 'profile_sha256', 'runtime_mode'],
+    label,
+    errors,
+  );
+  assertEqual(value.environment_id, subject?.environment?.environment_id, `${label}.environment_id`, errors);
+  assertEqual(value.profile_id, subject?.environment?.profile_id, `${label}.profile_id`, errors);
+  assertEqual(stripSha(value.profile_sha256), raw?.sha256, `${label}.profile_sha256`, errors);
+  assertEqual(value.runtime_mode, 'closed_beta', `${label}.runtime_mode`, errors);
+}
+
+function validateSpaceSyncWriteSafety(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    ['errors', 'ok', 'branch', 'dirty', 'head', 'originMain', 'node_version'],
+    label,
+    errors,
+  );
+  requireExactArray(value.errors, [], `${label}.errors`, errors);
+  assertEqual(value.ok, true, `${label}.ok`, errors);
+  assertEqual(value.branch, 'main', `${label}.branch`, errors);
+  assertEqual(value.dirty, false, `${label}.dirty`, errors);
+  assertEqual(value.head, subject?.commit_sha, `${label}.head`, errors);
+  assertEqual(value.originMain, subject?.commit_sha, `${label}.originMain`, errors);
+  assertEqual(value.node_version, '22.13.0', `${label}.node_version`, errors);
+}
+
+function validateSpaceSyncScope(value, measurements, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(value, ['card_id_sha256', 'content_version', 'track'], label, errors);
+  requireSha256(stripSha(value.card_id_sha256), `${label}.card_id_sha256`, errors);
+  assertEqual(value.content_version, measurements.content_version, `${label}.content_version`, errors);
+  assertEqual(value.track, 'cet4', `${label}.track`, errors);
+}
+
+function validateSpaceSyncClients(value, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(value, ['distinct_sessions', 'secret_values_reported'], label, errors);
+  assertEqual(value.distinct_sessions, true, `${label}.distinct_sessions`, errors);
+  assertEqual(value.secret_values_reported, false, `${label}.secret_values_reported`, errors);
+}
+
+function validateSpaceSyncObservations(value, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  const revisionFields = [
+    'initial_revision',
+    'favorite_applied_revision',
+    'favorite_replay_revision',
+    'conflict_rejected_revision',
+    'sleep_applied_revision',
+    'favorite_restored_revision',
+    'final_restored_revision',
+  ];
+  const actionHashFields = [
+    'favorite_action_sha256',
+    'sleep_action_sha256',
+    'favorite_restore_action_sha256',
+    'sleep_restore_action_sha256',
+  ];
+  assertExactKeys(
+    value,
+    [
+      ...revisionFields,
+      'initial_state',
+      'toggled_state',
+      'final_state',
+      ...actionHashFields,
+      'favorite_apply_status',
+      'favorite_replay_status',
+      'conflict_status',
+      'sleep_apply_status',
+      'favorite_restore_status',
+      'sleep_restore_status',
+    ],
+    label,
+    errors,
+  );
+  for (const field of revisionFields) {
+    if (!Number.isSafeInteger(value[field]) || value[field] < 0) {
+      errors.push(`${label}.${field} must be a non-negative integer.`);
+    }
+  }
+  const initial = value.initial_revision;
+  assertEqual(value.favorite_applied_revision, initial + 1, `${label}.favorite_applied_revision`, errors);
+  assertEqual(value.favorite_replay_revision, value.favorite_applied_revision, `${label}.favorite_replay_revision`, errors);
+  assertEqual(value.conflict_rejected_revision, value.favorite_replay_revision, `${label}.conflict_rejected_revision`, errors);
+  assertEqual(value.sleep_applied_revision, value.conflict_rejected_revision + 1, `${label}.sleep_applied_revision`, errors);
+  assertEqual(value.favorite_restored_revision, value.sleep_applied_revision + 1, `${label}.favorite_restored_revision`, errors);
+  assertEqual(value.final_restored_revision, value.favorite_restored_revision + 1, `${label}.final_restored_revision`, errors);
+  const initialState = validateSpaceSyncState(value.initial_state, `${label}.initial_state`, errors);
+  const toggledState = validateSpaceSyncState(value.toggled_state, `${label}.toggled_state`, errors);
+  const finalState = validateSpaceSyncState(value.final_state, `${label}.final_state`, errors);
+  assertEqual(finalState.favorite, initialState.favorite, `${label}.final_state.favorite`, errors);
+  assertEqual(finalState.sleep, initialState.sleep, `${label}.final_state.sleep`, errors);
+  assertEqual(toggledState.favorite, !initialState.favorite, `${label}.toggled_state.favorite`, errors);
+  assertEqual(toggledState.sleep, !initialState.sleep, `${label}.toggled_state.sleep`, errors);
+  const hashes = [];
+  for (const field of actionHashFields) {
+    requireSha256(stripSha(value[field]), `${label}.${field}`, errors);
+    hashes.push(value[field]);
+  }
+  if (new Set(hashes).size !== hashes.length) {
+    errors.push(`${label} action hashes must be distinct.`);
+  }
+  for (const [field, expected] of [
+    ['favorite_apply_status', 'applied'],
+    ['favorite_replay_status', 'duplicate'],
+    ['conflict_status', 'space_action_id_conflict'],
+    ['sleep_apply_status', 'applied'],
+    ['favorite_restore_status', 'applied'],
+    ['sleep_restore_status', 'applied'],
+  ]) {
+    assertEqual(value[field], expected, `${label}.${field}`, errors);
+  }
+}
+
+function validateSpaceSyncState(value, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return {favorite: null, sleep: null};
+  }
+  assertExactKeys(value, ['favorite', 'sleep'], label, errors);
+  if (typeof value.favorite !== 'boolean') {
+    errors.push(`${label}.favorite must be boolean.`);
+  }
+  if (typeof value.sleep !== 'boolean') {
+    errors.push(`${label}.sleep must be boolean.`);
+  }
+  return value;
 }
 
 function validateReceiverDeliveryReport(

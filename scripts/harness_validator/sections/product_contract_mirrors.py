@@ -3540,7 +3540,8 @@ def cet4_closed_beta_readiness_findings(
         "formal_evidence_ingestion": "registered_types_implemented_unregistered_fail_closed",
         "formal_content_evidence": "four_type_specific_CET4_box_card_audio_QC_and_content_pack_semantics_require_applied_bundle_report_v2_and_tracked_profile_bundle_content_approval_audit_manifest_QC_index_with_exact_1180_108_301_scope",
         "formal_entitlement_evidence": "beta_entitlement_drill_semantics_require_tracked_profile_and_four_applied_report_v2_phases_grant_idempotent_replay_revoke_idempotent_replay_on_one_candidate_campaign_account_base_membership_and_exact_commit",
-        "implementation_status": "exact_readiness_spec_state_candidate_structural_validator_tracked_repository_loader_registered_receiver_SMS_learning_recovery_CET4_content_QC_and_beta_entitlement_drill_semantics_negative_tests_and_launch_non_replacement_guard_implemented",
+        "formal_space_evidence": "space_sync_test_semantics_require_tracked_profile_and_applied_space_sync_drill_report_v1_with_exact_candidate_commit_profile_expected_backend_content_cross_client_revision_idempotency_conflict_independent_dimension_and_cleanup_binding",
+        "implementation_status": "exact_readiness_spec_state_candidate_structural_validator_tracked_repository_loader_registered_receiver_SMS_learning_recovery_CET4_content_QC_beta_entitlement_and_Space_sync_semantics_negative_tests_and_launch_non_replacement_guard_implemented",
         "deployment_status": "not_deployed_by_repository_change",
         "readiness_status": "not_ready",
     }
@@ -3613,6 +3614,7 @@ def cet4_closed_beta_readiness_findings(
         "cet4-audio-qc-coverage-report",
         "cet4-content-pack-integrity-report",
         "beta-entitlement-drill",
+        "space-sync-test",
     ]
     _expect_contract_path(
         findings,
@@ -3895,6 +3897,40 @@ def cet4_closed_beta_readiness_findings(
     gt42 = _entry_by_id(evals.get("golden_tasks", []), "GT-42")
     if not gt42 or gt42.get("must_include") != expected_gt42:
         findings.append("beta entitlement drill evidence evals: GT-42 drift")
+    expected_hr51 = [
+        "registered_space_sync_test_type_and_exact_checks",
+        "tracked_profile_and_applied_space_sync_drill_report_v1_required",
+        "outer_and_nested_raw_artifacts_rehashed_and_commit_reachable",
+        "candidate_commit_profile_environment_content_and_expected_backend_bound",
+        "report_Node_clean_exact_main_operator_and_execution_revalidated",
+        "remote_requests_and_writes_true_but_raw_report_gate_eligible_false",
+        "two_distinct_sessions_and_no_secret_values_reported",
+        "favorite_apply_revision_plus_one_and_cross_client_observation",
+        "duplicate_and_conflict_revision_unchanged",
+        "sleep_and_restore_actions_each_increment_once",
+        "favorite_sleep_toggled_independently_and_initial_state_restored",
+        "production_deployment_gate_remains_independently_required",
+    ]
+    hr51 = _entry_by_id(evals.get("regressions", []), "HR-51")
+    if not hr51 or hr51.get("must_hit") != expected_hr51:
+        findings.append("Space sync evidence evals: HR-51 drift")
+    expected_gt44 = [
+        "space_sync_test_registered_closed_beta_evidence",
+        "strict_profile_and_space_sync_drill_report_loader",
+        "applied_passed_remote_raw_report_gate_ineligible_boundary",
+        "candidate_commit_profile_environment_content_and_expected_backend_binding",
+        "Node_22_13_clean_exact_main_and_execution_operator_window",
+        "two_client_secret_free_observation",
+        "exact_initial_apply_replay_conflict_sleep_restore_revision_sequence",
+        "unique_action_hashes_and_exact_statuses",
+        "independent_favorite_sleep_toggle_and_final_cleanup",
+        "tracked_size_SHA256_root_containment_and_raw_tamper_failure",
+        "overall_readiness_still_requires_production_deployment",
+        "no_dry_run_mock_or_expected_backend_substitution",
+    ]
+    gt44 = _entry_by_id(evals.get("golden_tasks", []), "GT-44")
+    if not gt44 or gt44.get("must_include") != expected_gt44:
+        findings.append("Space sync evidence evals: GT-44 drift")
 
     beta_runtime_path = root / "infra/cloudbase/beta-entitlement-v1.mjs"
     beta_manager_path = root / "infra/cloudbase/manage-beta-entitlement.mjs"
@@ -3964,6 +4000,22 @@ def cet4_closed_beta_readiness_findings(
         if snippet not in beta_drill_test_text:
             findings.append(
                 f"beta entitlement drill tests missing exact snippet: {snippet!r}"
+            )
+
+    space_sync_test_path = root / "scripts/test_space_sync_evidence.mjs"
+    space_sync_test_text = (
+        space_sync_test_path.read_text(encoding="utf-8")
+        if space_sync_test_path.is_file()
+        else ""
+    )
+    for snippet in [
+        "binds exact candidate and recomputes cross-client revision sequence",
+        "rejects plan, backend, content, revision and cleanup drift",
+        "tracked Space sync evidence validates end to end and raw tamper fails",
+    ]:
+        if snippet not in space_sync_test_text:
+            findings.append(
+                f"Space sync evidence tests missing exact snippet: {snippet!r}"
             )
 
     content_evidence_test_path = root / "scripts/test_cet4_formal_content_evidence.mjs"
@@ -4037,6 +4089,7 @@ def cet4_closed_beta_readiness_findings(
         "node scripts/validate_cet4_closed_beta_readiness.mjs",
         "node --test scripts/test_cet4_formal_content_evidence.mjs",
         "node --test scripts/test_beta_entitlement_drill_evidence.mjs",
+        "node --test scripts/test_space_sync_evidence.mjs",
         "node --test ../../../../scripts/test_build_formal_release_bundle.mjs",
     ]:
         if snippet not in workflow_text:
@@ -4053,6 +4106,7 @@ def cet4_closed_beta_readiness_findings(
         "'scripts/test_build_formal_release_bundle.mjs'",
         "'scripts/test_cet4_formal_content_evidence.mjs'",
         "'scripts/test_beta_entitlement_drill_evidence.mjs'",
+        "'scripts/test_space_sync_evidence.mjs'",
         "'infra/cloudbase/beta-entitlement-v1.mjs'",
         "'infra/cloudbase/manage-beta-entitlement.mjs'",
         "'infra/cloudbase/beta-entitlement-v1-runtime-contract.md'",

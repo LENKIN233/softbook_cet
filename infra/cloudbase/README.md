@@ -577,6 +577,14 @@ card identity and never emits tokens or phone data. It remains
 `gate_eligible=false` until registered `space-sync-test` semantics revalidate a
 real receiver report.
 
+Formal `space-sync-test` evidence wraps one tracked receiver profile and one
+tracked applied report v1, then revalidates candidate commit/profile/environment,
+expected backend ID, content version, exact revision sequence, cross-client
+observations, duplicate/conflict no-commit behavior, dimension independence and
+cleanup. Closed-beta readiness separately requires `production-deployment`;
+this wrapper cannot substitute its locally expected backend identity for remote
+deployment inspection.
+
 Controlled-pilot continued access uses a separate receiver-only overlay and
 never reuses the formal closed-beta grant. Create an untracked
 `pilot-entitlement-command.v1`, verify its phone-free dry-run plan, then apply

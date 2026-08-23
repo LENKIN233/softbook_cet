@@ -265,7 +265,7 @@ test('unregistered closed-beta evidence types remain semantically ineligible', t
   );
   const candidate = validCandidate();
   const artifactRelativePath =
-    'docs/release/evidence/cet4-beta-space-sync.json';
+    'docs/release/evidence/cet4-beta-auth-abuse.json';
   const artifact = {
     schema_version: 'launch-gate-evidence.v1',
     subject: {commit_sha: candidate.commit_sha},
@@ -282,7 +282,7 @@ test('unregistered closed-beta evidence types remain semantically ineligible', t
   gate.blocked_by = [];
   gate.evidence = [
     {
-      type: 'space-sync-test',
+      type: 'auth-abuse-test',
       artifact_uri: `repo://${artifactRelativePath}`,
       artifact_sha256: hash(payload),
       artifact_size_bytes: Buffer.byteLength(payload),
