@@ -1,0 +1,122 @@
+{
+  "schema_version": "cet4-closed-beta-readiness.v1",
+  "target_release": "cet4-closed-beta",
+  "status": "not_ready",
+  "current_milestone": "repository_runtime_and_evidence_contracts",
+  "quality_policy": "move_closed_beta_date_before_reducing_gate",
+  "formal_evidence_ingestion": "not_implemented_fail_closed",
+  "formal_approval": {
+    "provider": "github_environment",
+    "environment": "formal-product-owner-approval",
+    "required_reviewer": "github:LENKIN233",
+    "administrators_can_bypass": false,
+    "workflow": ".github/workflows/formal-approval.yml",
+    "required_check": "formal-approval"
+  },
+  "release_candidate": null,
+  "scope": {
+    "track": "cet4",
+    "card_count": 1180,
+    "box_count": 108,
+    "audio_asset_count": 301,
+    "release_targets": [
+      "ios",
+      "android",
+      "pc_web"
+    ],
+    "membership_access": "beta-entitlement.v1"
+  },
+  "external_dependencies": [
+    {
+      "id": "tencent-cloud-receiver",
+      "owner": "product_owner",
+      "status": "blocked"
+    },
+    {
+      "id": "sms-provider",
+      "owner": "product_owner",
+      "status": "unverified"
+    },
+    {
+      "id": "apple-private-distribution",
+      "owner": "product_owner",
+      "status": "unverified"
+    },
+    {
+      "id": "android-private-distribution",
+      "owner": "product_owner",
+      "status": "unverified"
+    },
+    {
+      "id": "human-content-review",
+      "owner": "product_owner",
+      "status": "blocked"
+    }
+  ],
+  "gates": [
+    {
+      "id": "receiver-runtime",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "tencent-cloud-receiver"
+      ]
+    },
+    {
+      "id": "auth-and-account-deletion",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "tencent-cloud-receiver",
+        "sms-provider"
+      ]
+    },
+    {
+      "id": "canonical-learning-and-space",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "tencent-cloud-receiver"
+      ]
+    },
+    {
+      "id": "approved-cet4-content",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "human-content-review"
+      ]
+    },
+    {
+      "id": "beta-entitlement",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "tencent-cloud-receiver"
+      ]
+    },
+    {
+      "id": "private-distribution-and-device-acceptance",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "tencent-cloud-receiver",
+        "apple-private-distribution",
+        "android-private-distribution"
+      ]
+    },
+    {
+      "id": "release-recovery",
+      "status": "blocked",
+      "evidence": [],
+      "blocked_by": [
+        "tencent-cloud-receiver"
+      ]
+    }
+  ],
+  "launch_non_replacement": {
+    "launch_readiness_path": "docs/release/launch-readiness.v1.json",
+    "launch_status_unchanged": "not_ready",
+    "closed_beta_ready_does_not_imply_public_launch_ready": true
+  }
+}

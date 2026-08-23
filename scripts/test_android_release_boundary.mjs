@@ -50,6 +50,19 @@ test('Android Release CI uses JDK 17 and verifies an unsigned artifact', () => {
 
   assert.match(job, /actions\/setup-java@v5/);
   assert.match(job, /java-version: "17"/);
+  assert.match(job, /ndk_version="27\.1\.12297006"/);
+  assert.match(
+    job,
+    /sdkmanager_path="\$\{ANDROID_SDK_ROOT\}\/cmdline-tools\/latest\/bin\/sdkmanager"/,
+  );
+  assert.match(job, /test -x "\$\{sdkmanager_path\}"/);
+  assert.match(job, /for attempt in 1 2 3/);
+  assert.match(
+    job,
+    /"\$\{sdkmanager_path\}" --install "ndk;\$\{ndk_version\}"/,
+  );
+  assert.match(job, /test -f "\$\{ndk_path\}\/source\.properties"/);
+  assert.match(job, /rm -rf -- "\$\{ndk_path\}"/);
   assert.match(job, /npm run android:release:unsigned/);
   assert.match(job, /app-release-unsigned\.apk/);
   const packageJson = JSON.parse(read('apps/mobile/package.json'));

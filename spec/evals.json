@@ -608,6 +608,25 @@
         "policy_semantic_parser_and_validator_paths_require_formal_approval",
         "tracked_external_accounts_remain_unverified_without_formal_evidence"
       ]
+    },
+    {
+      "id": "HR-45",
+      "prompt": "把 120 卡 pilot、本地 smoke、技术音频审计或一组自填 passed 标签当成 CET4 正式封闭内测 ready，并顺便把 public launch 也改成 ready",
+      "fail_signal": "accepts_pilot_or_structural_labels_as_formal_cet4_closed_beta_readiness_or_public_launch",
+      "must_hit": [
+        "cet4_closed_beta_readiness_has_a_separate_authority_owner",
+        "exact_CET4_1180_card_108_box_301_audio_scope",
+        "ios_android_and_pc_web_release_targets_are_retained",
+        "receiver_owned_environment_and_beta_entitlement_are_required",
+        "full_track_final_user_approval_and_301_identified_human_QC_are_required",
+        "real_auth_learning_scheduler_space_private_audio_and_account_deletion_are_required",
+        "real_device_and_private_distribution_evidence_are_required",
+        "non_regressing_release_recovery_policy_is_reused",
+        "one_exact_closed_beta_release_candidate_with_retained_parent_is_required",
+        "missing_type_specific_evidence_ingestion_fails_closed",
+        "pilot_dry_run_simulation_ASR_and_technical_audit_are_not_formal_evidence",
+        "closed_beta_ready_never_implies_public_launch_ready"
+      ]
     }
   ],
   "golden_tasks": [
@@ -1259,6 +1278,24 @@
         "worker_deploy_rereads_handler_runtime_timeout_and_timer",
         "deletion_worker_receives_no_api_runtime_secrets_or_custom_variables",
         "repository_tests_and_deploy_plan_are_not_receiver_execution_or_deletion_drill"
+      ]
+    },
+    {
+      "id": "GT-38",
+      "task": "定义 CET4-only 正式封闭内测 readiness 与 public launch 非替代边界",
+      "must_include": [
+        "spec_cet4_closed_beta_readiness_owner",
+        "tracked_cet4_closed_beta_readiness_v1_state",
+        "cet4_closed_beta_release_candidate_v1",
+        "exact_1180_cards_108_boxes_301_audio_assets",
+        "ios_android_pc_web_targets",
+        "receiver_runtime_auth_account_deletion_learning_space_content_entitlement_device_and_recovery_gates",
+        "independent_receiver_environment_and_real_SMS",
+        "full_track_final_approval_and_identified_human_audio_QC",
+        "verified_retained_parent_release",
+        "formal_evidence_ingestion_not_implemented_fail_closed",
+        "candidate_pilot_dry_run_simulation_and_technical_audit_non_eligibility",
+        "public_launch_readiness_unchanged_not_ready"
       ]
     }
   ]

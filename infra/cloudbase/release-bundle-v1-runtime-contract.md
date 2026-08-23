@@ -8,6 +8,7 @@ Referenced active specs:
 - `spec/account-sync-contract.json`
 - `spec/membership.json`
 - `spec/runtime-boundaries.json`
+- `spec/cet4-closed-beta-readiness.json`
 - `spec/repo-delivery-contract.json`
 
 ## Authority boundary
@@ -20,6 +21,11 @@ Referenced active specs:
 - Audio remains a card resource and cannot enter a release without complete QC.
 - Delivery does not include development users, learning records, credentials,
   signing private keys, or fixed SMS codes.
+- CET4 closed-beta readiness is recorded separately in
+  `docs/release/cet4-closed-beta-readiness.v1.json` with exact 1,180-card,
+  108-box and 301-audio scope. Its future `ready` state never changes or lowers
+  `docs/release/launch-readiness.v1.json`, CET6, public distribution, payment or
+  compliance gates.
 
 `implementation_hypothesis`:
 

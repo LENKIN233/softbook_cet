@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-10",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -779,6 +779,50 @@
       "status": "active"
     },
     {
+      "path": "spec/cet4-closed-beta-readiness.json",
+      "authority": "cet4_closed_beta_readiness_owner",
+      "audience": [
+        "agent",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "cet4_closed_beta_candidate_task",
+        "cet4_closed_beta_readiness_task",
+        "receiver_closed_beta_evidence_task",
+        "closed_beta_device_acceptance_task"
+      ],
+      "depends_on": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json",
+        "spec/account-sync-contract.json",
+        "spec/membership.json",
+        "spec/runtime-boundaries.json",
+        "spec/release-operational-policy.json",
+        "infra/cloudbase/release-bundle-v1-runtime-contract.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/release/cet4-closed-beta-readiness.v1.json",
+      "authority": "cet4_closed_beta_readiness_state",
+      "audience": [
+        "agent",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "cet4_closed_beta_candidate_task",
+        "cet4_closed_beta_readiness_task"
+      ],
+      "depends_on": [
+        "spec/cet4-closed-beta-readiness.json",
+        "spec/release-operational-policy.json",
+        "infra/cloudbase/release-bundle-v1-runtime-contract.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "infra/cloudbase/controlled-pilot-v1-runtime-contract.md",
       "authority": "controlled_pilot_runtime_contract",
       "audience": [
@@ -833,6 +877,7 @@
     "spec/box-catalog.json",
     "spec/membership.json",
     "spec/runtime-boundaries.json",
+    "spec/cet4-closed-beta-readiness.json",
     "spec/release-operational-policy.json",
     "spec/repo-delivery-contract.json",
     "spec/agent-harness.json",

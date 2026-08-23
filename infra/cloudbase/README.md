@@ -339,6 +339,14 @@ it is safe to run after manual imports or deploys.
 
 ## Formal track release bundles
 
+CET4-only formal closed-beta readiness is owned by
+`spec/cet4-closed-beta-readiness.json` and recorded in
+`docs/release/cet4-closed-beta-readiness.v1.json`. Validate the tracked baseline
+with `node scripts/validate_cet4_closed_beta_readiness.mjs`; it is expected to
+remain `not_ready` until type-specific evidence ingestion, one exact retained-
+parent candidate, every dependency and every gate are complete. This state is
+separate from and cannot promote `docs/release/launch-readiness.v1.json`.
+
 Receiver delivery uses the fail-closed contracts in
 `release-bundle-v1-runtime-contract.md` and the implementation in
 `release-delivery-v1.mjs`. A `delivery-profile.v1` must name a receiver-owned

@@ -94,6 +94,8 @@ jobs:
         run: |
           node --test scripts/test_validate_launch_readiness.mjs
           node scripts/validate_launch_readiness.mjs
+          node --test scripts/test_validate_cet4_closed_beta_readiness.mjs
+          node scripts/validate_cet4_closed_beta_readiness.mjs
 
   agent-review:
     if: github.event_name == 'pull_request'
@@ -343,6 +345,26 @@ jobs:
 
       - name: Install JavaScript dependencies
         run: npm ci
+
+      - name: Install pinned Android NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          ndk_version="27.1.12297006"
+          ndk_path="${ANDROID_SDK_ROOT:?ANDROID_SDK_ROOT is required}/ndk/${ndk_version}"
+          sdkmanager_path="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          test -x "${sdkmanager_path}"
+          for attempt in 1 2 3; do
+            if "${sdkmanager_path}" --install "ndk;${ndk_version}" && test -f "${ndk_path}/source.properties"; then
+              exit 0
+            fi
+            if [[ "${ndk_path}" == "${ANDROID_SDK_ROOT}/ndk/${ndk_version}" ]]; then
+              rm -rf -- "${ndk_path}"
+            fi
+            echo "::warning title=Android NDK install retry::Attempt ${attempt} failed for ${ndk_version}."
+          done
+          echo "::error title=Android NDK install failed::Unable to install ${ndk_version} after 3 attempts."
+          exit 1
 
       - name: Build unsigned Android Release APK
         run: npm run android:release:unsigned

@@ -1,0 +1,138 @@
+{
+  "version": "cet4-closed-beta-readiness-v1",
+  "status": "active",
+  "classification": "product_truth_and_implementation_hypothesis",
+  "purpose": "Define the exact non-launch-replacing evidence boundary for starting the formal CET4-only closed beta.",
+  "product_truth": {
+    "target_release": "cet4-closed-beta",
+    "track": "cet4",
+    "card_count": 1180,
+    "box_count": 108,
+    "audio_asset_count": 301,
+    "release_targets": [
+      "ios",
+      "android",
+      "pc_web"
+    ],
+    "membership_access": "receiver_operator_beta_entitlement_v1",
+    "content_approval": "one_exact_full_track_final_user_approval_bound_to_the_CET4_corpus",
+    "audio_approval": "one_formal_identified_human_QC_record_for_every_referenced_audio_asset",
+    "receiver_environment": "independent_receiver_owned_CloudBase_environment_not_the_personal_development_environment"
+  },
+  "authority_boundary": {
+    "state_record": "docs/release/cet4-closed-beta-readiness.v1.json",
+    "validator": "scripts/validate_cet4_closed_beta_readiness.mjs",
+    "formal_evidence_schemas": [
+      "launch-gate-evidence.v1",
+      "learning-runtime-evidence.v1",
+      "release-operational-evidence.v1",
+      "external-capability-evidence.v1"
+    ],
+    "release_bundle_contract": "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+    "operational_policy": "spec/release-operational-policy.json",
+    "does_not_replace": [
+      "docs/release/launch-readiness.v1.json",
+      "CET6_full_track_approval",
+      "public_store_or_regulatory_launch_approval",
+      "payment_launch_gates"
+    ],
+    "candidate_pilot_dry_run_simulation_or_technical_audit_is_formal_evidence": false
+  },
+  "release_candidate": {
+    "schema_version": "cet4-closed-beta-release-candidate.v1",
+    "required_fields": [
+      "repository",
+      "commit_sha",
+      "target_release",
+      "recorded_at",
+      "recorded_by",
+      "environment",
+      "release",
+      "content",
+      "client_builds",
+      "entitlement"
+    ],
+    "cohort_binding": "every formal gate report matches the same commit, profile, environment, release, retained parent, bundle, content version, backend deployment and client builds",
+    "content_binding": "exactly CET4 1180 cards, 108 boxes and 301 audio assets with full-track approval and complete formal QC",
+    "retained_parent_required": true,
+    "product_owner_record_required": true
+  },
+  "external_dependencies": {
+    "tencent-cloud-receiver": "independent_environment_IAM_database_function_storage_logging_and_backup_control",
+    "sms-provider": "approved_sender_template_credentials_quota_and_real_delivery",
+    "apple-private-distribution": "developer_team_signing_profile_private_beta_distribution_and_real_device_install",
+    "android-private-distribution": "receiver_keystore_private_channel_and_real_device_install",
+    "human-content-review": "identified_human_CET_full_track_review_final_user_approval_and_301_asset_perceptual_QC"
+  },
+  "gates": {
+    "receiver-runtime": [
+      "dev-environment-isolation",
+      "production-deployment",
+      "secret-access-audit",
+      "release-permission-audit"
+    ],
+    "auth-and-account-deletion": [
+      "sms-provider-smoke",
+      "auth-abuse-test",
+      "session-revocation-test",
+      "account-deletion-drill"
+    ],
+    "canonical-learning-and-space": [
+      "cross-device-bootstrap-test",
+      "offline-replay-test",
+      "canonical-state-test",
+      "fsrs-version-lock",
+      "scheduler-contract-test",
+      "clock-boundary-test",
+      "space-sync-test"
+    ],
+    "approved-cet4-content": [
+      "cet4-approved-box-coverage-report",
+      "cet4-approved-card-coverage-report",
+      "cet4-audio-qc-coverage-report",
+      "cet4-content-pack-integrity-report"
+    ],
+    "beta-entitlement": [
+      "beta-entitlement-drill"
+    ],
+    "private-distribution-and-device-acceptance": [
+      "ios-private-beta-device-report",
+      "android-private-beta-device-report",
+      "pc-web-closed-beta-report",
+      "cross-platform-private-audio-report",
+      "closed-beta-device-matrix-report"
+    ],
+    "release-recovery": [
+      "load-test-report",
+      "availability-observation",
+      "backup-restore-drill",
+      "penetration-test-report",
+      "rollback-drill"
+    ]
+  },
+  "state_policy": {
+    "formal_evidence_ingestion": "not_implemented_fail_closed",
+    "statuses": [
+      "not_ready",
+      "ready"
+    ],
+    "gate_statuses": [
+      "pending",
+      "in_progress",
+      "blocked",
+      "passed"
+    ],
+    "dependency_statuses": [
+      "unverified",
+      "blocked",
+      "ready"
+    ],
+    "ready_requires": [
+      "one_exact_release_candidate",
+      "every_external_dependency_ready",
+      "every_gate_passed_with_all_required_type_specific_evidence",
+      "protected_product_owner_approval_for_the_exact_candidate_and_evidence_commit"
+    ],
+    "missing_or_unregistered_type_specific_semantics": "fail_closed"
+  }
+}
