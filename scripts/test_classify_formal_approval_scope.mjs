@@ -35,6 +35,8 @@ test('launch records, evidence, validators, and workflows require approval', () 
     'scripts/validate_launch_readiness.mjs',
     'scripts/validate_cet4_closed_beta_readiness.mjs',
     'scripts/test_validate_cet4_closed_beta_readiness.mjs',
+    'scripts/build_formal_release_bundle.mjs',
+    'scripts/test_build_formal_release_bundle.mjs',
     'scripts/report_repo_health.mjs',
     'scripts/harness_validator/sections/product_contract_mirrors.py',
     'scripts/harness_validator/sections/truth_mirrors.py',

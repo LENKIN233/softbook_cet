@@ -417,6 +417,29 @@ no retained parent cannot satisfy this gate; publish and retain an earlier
 verified release before selecting the final release candidate. Pilot, dry-run
 and simulation reports remain ineligible.
 
+Build a formal CET4 bundle only after the exact full-track approval, audit,
+301-asset human QC and private audio bytes exist. The command verifies a
+temporary bundle and removes it by default:
+
+```bash
+node scripts/build_formal_release_bundle.mjs \
+  --profile path/to/delivery-profile.json \
+  --content-payload path/to/cet4-formal-payload.json \
+  --approval path/to/full-track-final.json \
+  --audit path/to/card-quality-audit.json \
+  --audio-qc-dir path/to/audio-qc \
+  --asset-root path/to/payload-assets \
+  --output-dir path/to/cet4-bundle-b \
+  --bundle-id cet4-bundle-b \
+  --release-id cet4-release-b \
+  --parent-release-id cet4-release-a \
+  --created-at <ISO-8601> \
+  --release-at <ISO-8601>
+```
+
+Add `--apply` only to retain the fully core-verified output. The builder does
+not create approval/QC, deploy, publish, or create readiness evidence.
+
 Add `--apply --operator github:<receiver-operator>` only to `provision`,
 `deploy`, `publish`, or `rollback` after reviewing the plan. Apply requires
 Node 22.13.0 and clean exact `main`.

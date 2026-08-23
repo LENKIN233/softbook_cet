@@ -87,6 +87,25 @@ The bundle is track-scoped and requires:
 Every referenced file must remain inside the bundle directory and match its
 declared SHA-256. Missing evidence fails closed.
 
+## Formal bundle builder
+
+`scripts/build_formal_release_bundle.mjs` is the only repository assembler for
+a formal CET4 bundle. It consumes an already exported exact 1,180-card / 108-box
+/ 301-audio payload, one `full_track_final` user approval, the exact audit bytes
+named and hashed by that approval, complete identified-human formal audio QC,
+private audio bytes and a `closed_beta` receiver profile. It never produces or
+approves content or QC.
+
+The command is dry-run by default. It assembles in a temporary directory,
+copies every hash-bound artifact, builds one audio manifest and one QC index
+entry per asset, then calls the full `verifyReleaseBundleDirectory` core
+validator. A missing/false verification result fails; `--apply` may retain the
+directory only after verification, and refuses to overwrite an existing
+output. The build report is always `gate_eligible=false` and records no
+CloudBase write. An optional distinct parent release supports initial A and
+retained-parent B assembly without claiming that the parent is remotely
+retained; receiver verify remains the authority for that fact.
+
 ## Publish and rollback ordering
 
 Publishing performs only this order:
