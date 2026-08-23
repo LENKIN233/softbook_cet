@@ -116,6 +116,18 @@ the machine-local path. Dry-run may execute on a topic branch for preparation,
 but its failed write-safety observation and null operator cannot be promoted as
 an applied formal raw report.
 
+The closed-beta evidence loader registers four CET4 content types: exact box
+coverage, exact card coverage, formal audio-QC coverage and content-pack
+integrity. Each semantic report resolves eight distinct tracked strict-JSON
+roles: applied build report v2, profile, bundle, content, full-track approval,
+quality audit, audio manifest and audio-QC index. The validator rehashes every
+file, binds the exact candidate cohort, recomputes 1,180-card/108-box/301-audio
+membership, checks full-track approval/card/box/corpus/audit relationships,
+requires zero hard/content/review blockers and no missing cards, and matches all
+301 formally ready QC entries to manifest assets and audio-bearing cards. The
+builder/report never substitutes for the human evidence carried by those raw
+artifacts.
+
 ## Publish and rollback ordering
 
 Publishing performs only this order:

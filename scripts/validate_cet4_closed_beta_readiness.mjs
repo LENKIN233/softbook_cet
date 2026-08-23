@@ -10,11 +10,13 @@ import {parseStrictJson} from './lib/strict_json.mjs';
 import {
   LEARNING_RUNTIME_EVIDENCE_TYPES,
   RELEASE_OPERATIONAL_EVIDENCE_TYPES,
+  CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
   validateGateEvidenceArtifact,
   validateGateEvidenceCoherence,
 } from './lib/launch_evidence_contract.mjs';
 import {
   loadLaunchEvidenceSemanticContext,
+  loadCet4FormalContentEvidence,
   loadProductionDeploymentEvidence,
   loadSmsProviderSmokeReport,
   verifyInnerRepositoryArtifact,
@@ -56,6 +58,7 @@ export const CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES = Object.freeze([
   'sms-provider-smoke',
   ...LEARNING_RUNTIME_EVIDENCE_TYPES,
   ...RELEASE_OPERATIONAL_EVIDENCE_TYPES,
+  ...CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
 ]);
 const SUPPORTED_EVIDENCE_SET = new Set(
   CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES,
@@ -407,6 +410,16 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
           })
         : {errors: [], evidence: null, ok: true};
     errors.push(...deploymentResult.errors);
+    const contentResult = CET4_FORMAL_CONTENT_EVIDENCE_TYPES.includes(
+      evidence.type,
+    )
+      ? loadCet4FormalContentEvidence(artifact, {
+          label,
+          root,
+          trackedFiles,
+        })
+      : {errors: [], evidence: null, ok: true};
+    errors.push(...contentResult.errors);
     const result = validateGateEvidenceArtifact(artifact, {
       evidenceType: evidence.type,
       expectedPolicy,
@@ -415,12 +428,18 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
       now,
       outerEvidence: evidence,
       productionDeploymentEvidence: deploymentResult.evidence,
+      cet4FormalContentEvidence: contentResult.evidence,
       releaseOperationalPolicy: loadedContext.releaseOperationalPolicy,
       smsProviderSmokeReport: smsResult.report,
       targetRelease: 'cet4-closed-beta',
     });
     errors.push(...result.errors);
-    if (result.ok && smsResult.ok && deploymentResult.ok) {
+    if (
+      result.ok &&
+      smsResult.ok &&
+      deploymentResult.ok &&
+      contentResult.ok
+    ) {
       const gateReports = parsedReports.get(gateId) ?? [];
       gateReports.push(artifact);
       parsedReports.set(gateId, gateReports);

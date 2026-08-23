@@ -23,6 +23,7 @@ const EXACT_SENSITIVE_PATHS = new Set([
   'scripts/test_validate_cet4_closed_beta_readiness.mjs',
   'scripts/build_formal_release_bundle.mjs',
   'scripts/test_build_formal_release_bundle.mjs',
+  'scripts/test_cet4_formal_content_evidence.mjs',
   'scripts/harness_validator/sections/governance_contracts.py',
   'scripts/harness_validator/sections/delivery_runtime.py',
   'security/dependency-audit-policy.json',

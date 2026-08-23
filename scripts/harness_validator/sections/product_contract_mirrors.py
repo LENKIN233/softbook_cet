@@ -3405,7 +3405,8 @@ def cet4_closed_beta_readiness_findings(
         "recovery_boundary": "non_regressing_release_operational_policy_with_verified_retained_parent_and_real_rollback",
         "launch_non_replacement": "closed_beta_ready_never_implies_docs_release_launch_readiness_v1_ready_and_does_not_lower_CET6_public_launch_payment_distribution_or_compliance_gates",
         "formal_evidence_ingestion": "registered_types_implemented_unregistered_fail_closed",
-        "implementation_status": "exact_readiness_spec_state_candidate_structural_validator_tracked_repository_loader_registered_receiver_SMS_learning_and_recovery_semantics_negative_tests_and_launch_non_replacement_guard_implemented",
+        "formal_content_evidence": "four_type_specific_CET4_box_card_audio_QC_and_content_pack_semantics_require_applied_bundle_report_v2_and_tracked_profile_bundle_content_approval_audit_manifest_QC_index_with_exact_1180_108_301_scope",
+        "implementation_status": "exact_readiness_spec_state_candidate_structural_validator_tracked_repository_loader_registered_receiver_SMS_learning_recovery_and_CET4_content_QC_semantics_negative_tests_and_launch_non_replacement_guard_implemented",
         "deployment_status": "not_deployed_by_repository_change",
         "readiness_status": "not_ready",
     }
@@ -3431,6 +3432,10 @@ def cet4_closed_beta_readiness_findings(
         "backup-restore-drill",
         "penetration-test-report",
         "rollback-drill",
+        "cet4-approved-box-coverage-report",
+        "cet4-approved-card-coverage-report",
+        "cet4-audio-qc-coverage-report",
+        "cet4-content-pack-integrity-report",
     ]
     _expect_contract_path(
         findings,
@@ -3611,6 +3616,57 @@ def cet4_closed_beta_readiness_findings(
     if not gt39 or gt39.get("must_include") != expected_gt39:
         findings.append("formal release bundle builder evals: GT-39 drift")
 
+    expected_hr47 = [
+        "applied_formal_bundle_build_report_v2_required",
+        "build_report_clean_main_commit_operator_execution_and_hashes_revalidated",
+        "tracked_profile_bundle_content_approval_audit_manifest_and_QC_index_required",
+        "every_outer_and_nested_raw_artifact_rehashed",
+        "exact_1180_cards_108_boxes_301_audio_assets",
+        "full_track_final_user_approval_exact_card_box_corpus_and_audit_binding",
+        "zero_hard_content_review_blockers_and_no_missing_cards",
+        "301_formal_audio_QC_entries_match_manifest_assets_and_audio_cards",
+        "bundle_declared_hashes_match_every_raw_artifact",
+        "all_four_CET4_content_evidence_types_have_registered_checks",
+        "report_and_builder_are_gate_ineligible_without_semantic_wrapper",
+        "actual_human_approval_and_QC_still_required",
+    ]
+    hr47 = _entry_by_id(evals.get("regressions", []), "HR-47")
+    if not hr47 or hr47.get("must_hit") != expected_hr47:
+        findings.append("CET4 formal content evidence evals: HR-47 drift")
+    expected_gt40 = [
+        "cet4_approved_box_card_audio_QC_and_content_pack_evidence_types",
+        "strict_eight_role_raw_artifact_loader",
+        "formal_release_bundle_build_report_v2_apply_and_write_safety",
+        "profile_and_bundle_candidate_cohort_binding",
+        "content_1180_card_108_box_301_audio_membership",
+        "full_track_final_approval_scope_and_audit_hash",
+        "quality_audit_zero_blockers_and_missing_cards",
+        "audio_manifest_matches_content_assets",
+        "audio_QC_index_301_formal_entries_and_full_card_coverage",
+        "tracked_regular_size_SHA256_and_commit_reachability",
+        "raw_tamper_and_partial_evidence_fail_closed",
+        "no_generated_human_approval_or_QC_claim",
+    ]
+    gt40 = _entry_by_id(evals.get("golden_tasks", []), "GT-40")
+    if not gt40 or gt40.get("must_include") != expected_gt40:
+        findings.append("CET4 formal content evidence evals: GT-40 drift")
+
+    content_evidence_test_path = root / "scripts/test_cet4_formal_content_evidence.mjs"
+    content_evidence_test_text = (
+        content_evidence_test_path.read_text(encoding="utf-8")
+        if content_evidence_test_path.is_file()
+        else ""
+    )
+    for snippet in [
+        "binds exact bundle, approval, audit and 301 QC entries",
+        "rejects dry-run report, approval drift, QC gap and bundle hash mismatch",
+        "tracked formal content evidence validates end to end and raw tamper fails",
+    ]:
+        if snippet not in content_evidence_test_text:
+            findings.append(
+                f"CET4 formal content evidence tests missing exact snippet: {snippet!r}"
+            )
+
     formal_builder_path = root / "scripts/build_formal_release_bundle.mjs"
     formal_builder_test_path = root / "scripts/test_build_formal_release_bundle.mjs"
     formal_builder_text = (
@@ -3664,6 +3720,7 @@ def cet4_closed_beta_readiness_findings(
     for snippet in [
         "node --test scripts/test_validate_cet4_closed_beta_readiness.mjs",
         "node scripts/validate_cet4_closed_beta_readiness.mjs",
+        "node --test scripts/test_cet4_formal_content_evidence.mjs",
         "node --test ../../../../scripts/test_build_formal_release_bundle.mjs",
     ]:
         if snippet not in workflow_text:
@@ -3678,6 +3735,7 @@ def cet4_closed_beta_readiness_findings(
         "'scripts/test_validate_cet4_closed_beta_readiness.mjs'",
         "'scripts/build_formal_release_bundle.mjs'",
         "'scripts/test_build_formal_release_bundle.mjs'",
+        "'scripts/test_cet4_formal_content_evidence.mjs'",
         "'spec/cet4-closed-beta-readiness.json'",
     ]:
         if sensitive_path not in classifier_text:
