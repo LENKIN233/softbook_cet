@@ -210,6 +210,13 @@ def validate(context) -> None:
         "account-deletion-task.v1",
         deletion_runtime["task_schema"],
     )
+    for token in (
+        "every_erasure_mutation_transactionally_rechecks_current_task_lease",
+        "stale_worker_cannot_delete_post_completion_reregistration_data",
+        "stale_worker_cannot_complete_or_release_newer_claim",
+    ):
+        if token not in deletion_runtime["lease_boundary"]:
+            errors.append(f"account deletion lease boundary missing: {token}")
     if deletion_runtime["deployment_status"] != "not_deployed_by_repository_change":
         errors.append("repository changes must not claim account-deletion deployment")
 

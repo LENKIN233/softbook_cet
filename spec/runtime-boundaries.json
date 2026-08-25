@@ -364,7 +364,7 @@
     "worker_report_schema": "account-deletion-worker-report.v1",
     "request_order": "persist_exact_task_before_account_wide_session_revocation",
     "login_fence": "task_presence_blocks_login_refresh_and_protected_session_access_until_erasure_completes",
-    "lease_boundary": "random_claim_bound_five_minute_lease_stale_worker_cannot_complete_or_release_newer_claim",
+    "lease_boundary": "random_claim_bound_five_minute_lease_every_erasure_mutation_transactionally_rechecks_current_task_lease_stale_worker_cannot_delete_post_completion_reregistration_data_stale_worker_cannot_complete_or_release_newer_claim",
     "runnable_query_boundary": "oldest_queued_and_expired_processing_tasks_are_queried_separately_then_merged_by_requested_at_so_live_leases_cannot_starve_queued_work",
     "erasure_boundary": "all_current_account_keyed_learning_progress_space_auth_session_and_phone_bound_challenge_membership_revision_beta_pilot_records_plus_retained_phone_keyed_daily_learning_space_migration_records_and_only_the_phone_rate_key",
     "completion_boundary": "verify_idempotent_erasure_then_remove_task_last_no_tombstone_clean_re_registration_after_completion",

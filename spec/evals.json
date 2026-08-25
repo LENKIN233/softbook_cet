@@ -1412,6 +1412,8 @@
         "delete_only_phone_rate_key_and_preserve_shared_ip_limits",
         "random_claim_bound_five_minute_lease",
         "queued_tasks_not_starved_by_older_live_processing_leases",
+        "every_erasure_mutation_transactionally_rechecks_current_task_lease",
+        "stale_worker_cannot_delete_post_completion_reregistration_data",
         "stale_worker_cannot_complete_or_release_newer_claim",
         "partial_failure_requeues_same_lease_and_duplicate_timer_is_idempotent",
         "task_is_removed_last_without_tombstone_then_clean_re_registration",

@@ -125,7 +125,9 @@ while `/v2` owns authentication and the canonical bootstrap read:
   `softbook-account-deletion-worker` from the same tested artifact with a
   one-minute timer and no API auth/SMS/signing custom variables. It uses claim-bound leases, erases every current account or
   phone-owned runtime record plus retained phone-keyed migration state, preserves shared IP rate limits and global
-  content, and removes the login-blocking task last. This is repository-local
+  content, transactionally rechecks the current lease inside every erasure,
+  and removes the login-blocking task last. A stale worker cannot erase data
+  written after a newer worker completed and clean re-registration began. This is repository-local
   implementation, not a completed receiver deletion drill.
 - Bootstrap v2 reads server-side membership, progress, learning, physical
   space, and content-version state without accepting a phone number. See
