@@ -192,7 +192,11 @@ and Space action/lineage/revision/state records; phone-filtered SMS challenges
 plus retained legacy daily-progress, learning-state and Space-state records;
 phone-keyed base membership, membership revision, beta entitlement and pilot
 entitlement; and only the phone rate-limit key. Shared IP rate limits and global
-content releases remain untouched. Every deletion is idempotently re-read or
+content releases remain untouched. Every individual erasure runs in a
+transaction that re-reads the account-deletion task and requires the current
+lease ID before deleting. A stale worker therefore cannot continue after a
+newer worker owns or removes the task and cannot erase data written by a clean
+post-completion re-registration. Every deletion is idempotently re-read or
 re-queried, the task is removed last, partial failure returns the same live
 lease to queued, and a completed task leaves no tombstone so a clean
 re-registration is allowed.
