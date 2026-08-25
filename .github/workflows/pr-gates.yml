@@ -565,6 +565,7 @@ jobs:
         run: npm ci
 
       - name: Install pinned Android NDK
+        if: env.RUN_GATE == 'true'
         shell: bash
         run: |
           set -euo pipefail

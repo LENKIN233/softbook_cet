@@ -63,6 +63,13 @@ test('Android Release CI uses JDK 17 and verifies an unsigned artifact', () => {
   );
   assert.match(job, /test -f "\$\{ndk_path\}\/source\.properties"/);
   assert.match(job, /rm -rf -- "\$\{ndk_path\}"/);
+  const ndkStepStart = job.indexOf('      - name: Install pinned Android NDK');
+  const ndkStep = job.slice(
+    ndkStepStart,
+    job.indexOf('\n      - name: Build unsigned Android Release APK', ndkStepStart),
+  );
+  assert.notEqual(ndkStepStart, -1);
+  assert.match(ndkStep, /if: env\.RUN_GATE == 'true'/);
   assert.match(job, /npm run android:release:unsigned/);
   assert.match(job, /app-release-unsigned\.apk/);
   const packageJson = JSON.parse(read('apps/mobile/package.json'));
