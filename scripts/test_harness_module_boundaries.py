@@ -15,7 +15,6 @@ from harness_validator.context import (
     DeliveryContext,
     FixtureContext,
     ReadOnlyContext,
-    context_for_layer,
 )
 from harness_validator.runner import HARNESS_LAYERS, SECTION_DIR
 from harness_validator.runtime_policy import (
@@ -46,7 +45,7 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
             ("truth_spec_layer", "prelude"),
             ("workspace_hygiene_layer", "design_contracts"),
             ("delivery_governance_layer", "design_contracts"),
-            ("design_governance_layer", "agent_review_regressions"),
+            ("design_governance_layer", "delivery_runtime"),
         )
         for layer, section in cases:
             with self.subTest(layer=layer), self.section_module("pass\n") as path:
@@ -190,7 +189,7 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
             section="design_search_regressions",
         )
         with self.assertRaisesRegex(CapabilityError, "not allowlisted"):
-            context.run_validator("scripts/validate_agent_review.py")
+            context.run_validator("scripts/validate_harness.py")
         with self.assertRaisesRegex(CapabilityError, "outside repository and fixture roots"):
             context.run_validator(
                 "scripts/validate_design_search_run.py",
@@ -201,24 +200,6 @@ class HarnessModuleBoundaryTests(unittest.TestCase):
                 "scripts/validate_design_search_run.py",
                 env={"TOKEN": "secret"},
             )
-
-    def test_context_factory_moves_agent_review_regressions_to_delivery(self):
-        delivery_fixture = context_for_layer(
-            layer="delivery_governance_layer",
-            root=ROOT,
-            mode="local",
-            section="agent_review_regressions",
-        )
-        wrong_owner = context_for_layer(
-            layer="design_governance_layer",
-            root=ROOT,
-            mode="local",
-            section="agent_review_regressions",
-        )
-
-        self.assertIsInstance(delivery_fixture, FixtureContext)
-        self.assertIsInstance(wrong_owner, ReadOnlyContext)
-        self.assertNotIsInstance(wrong_owner, FixtureContext)
 
     def test_runtime_smoke_layer_rejects_runnable_harness_section(self):
         with self.section_module("pass\n") as path:

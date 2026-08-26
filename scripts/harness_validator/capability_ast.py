@@ -23,7 +23,6 @@ FIXTURE_SECTION_OWNERS = {
     "mobile_metadata_regressions": "design_governance_layer",
     "design_metadata_regressions": "design_governance_layer",
     "design_search_regressions": "design_governance_layer",
-    "agent_review_regressions": "delivery_governance_layer",
     "pr_design_gate_regressions": "design_governance_layer",
 }
 KNOWN_SECTION_OWNERS = {
@@ -34,7 +33,6 @@ KNOWN_SECTION_OWNERS = {
     "visual_language": "truth_spec_layer",
     "workspace_boundary": "workspace_hygiene_layer",
     "governance_contracts": "delivery_governance_layer",
-    "agent_review_regressions": "delivery_governance_layer",
     "delivery_runtime": "delivery_governance_layer",
     "design_contracts": "design_governance_layer",
     "mobile_metadata_regressions": "design_governance_layer",

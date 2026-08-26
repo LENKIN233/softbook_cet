@@ -16,7 +16,7 @@ def validate(context) -> None:
 
     harness_architecture_spec = load("harness-architecture.json")
 
-    check_equal("harness architecture version", "vnext-7", harness_architecture_spec["version"])
+    check_equal("harness architecture version", "vnext-8", harness_architecture_spec["version"])
     check_equal("harness architecture layer", "repo_governance_truth", harness_architecture_spec["layer"])
 
     runner_contract = harness_architecture_spec["runner_contract"]
@@ -40,7 +40,6 @@ def validate(context) -> None:
     check_equal(
         "harness runner logical prerequisites",
         {
-            "agent_review_regressions": ["governance_contracts"],
             "delivery_runtime": ["governance_contracts"],
         },
         runner_contract["section_dependencies"],
@@ -106,7 +105,6 @@ def validate(context) -> None:
                 "mobile_metadata_regressions",
                 "design_metadata_regressions",
                 "design_search_regressions",
-                "agent_review_regressions",
                 "pr_design_gate_regressions",
             ],
             "capabilities": [
@@ -418,7 +416,6 @@ def validate(context) -> None:
             "test_remote_unavailable_is_an_attributed_pr_context_finding",
             "test_missing_unique_pr_context_fails_closed",
             "test_pr_context_rejects_malformed_remote_fields_and_stale_base",
-            "test_pending_agent_review_and_missing_pr_body_fail_real_pr_gate",
             "test_pr_catalog_delegates_oversized_blob_and_untracked_evidence_failures_to_strict_health",
             "test_dependency_exceptions_remain_visible_in_report_state",
             "test_tracked_snapshot_detects_and_preserves_user_changes",
@@ -578,7 +575,6 @@ def validate(context) -> None:
             "test_local_mode_is_injected_without_remote_guard_access",
             "test_local_cli_does_not_invoke_gh_and_full_reports_unavailable_github",
             "test_full_cli_rejects_disabled_repository_auto_merge",
-            "test_pr_review_accepts_task_relevant_passed_validation",
         ]:
             check_contains("Harness runner unit coverage", runner_test_text, snippet)
 
@@ -655,7 +651,6 @@ def validate(context) -> None:
             "test_fixture_section_rejects_write_without_fixture_provenance",
             "test_fixture_context_uses_system_temp_and_cleans_it",
             "test_fixture_context_rejects_unallowlisted_validator_cwd_and_env",
-            "test_context_factory_moves_agent_review_regressions_to_delivery",
             "test_runtime_smoke_layer_rejects_runnable_harness_section",
             "test_executable_top_level_statement_is_rejected",
             "test_validate_signature_rejects_definition_time_execution_hooks",
@@ -743,7 +738,7 @@ def validate(context) -> None:
             "all_sections_export_validate_context",
             "each_selected_section_runs_in_an_isolated_worker",
             "section_timeout_is_attributed_and_does_not_suppress_later_diagnostics",
-            "agent_review_regressions_belong_to_delivery_governance",
+            "author_editable_PR_body_review_gate_is_deleted",
             "zero_legacy_exec_paths",
         ]:
             if expected not in runner_regression["must_hit"]:

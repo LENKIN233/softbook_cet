@@ -1,5 +1,5 @@
 {
-  "version": "vnext-7",
+  "version": "vnext-8",
   "layer": "repo_governance_truth",
   "purpose": "Define a lean layered Harness: owner and behavior invariants stay local, task-relevant CI runs by changed path, and runtime or external facts remain delegated and diagnosable.",
   "authority_note": "This file owns validator layer boundaries, section ownership, and side-effect policy. It does not own product truth, UI design truth, workspace classification, or PR delivery policy; those remain in their owner specs.",
@@ -30,9 +30,6 @@
     ],
     "selection_dependency_policy": "declared_logical_prerequisites_are_added_and_reported_in_selected_sections",
     "section_dependencies": {
-      "agent_review_regressions": [
-        "governance_contracts"
-      ],
       "delivery_runtime": [
         "governance_contracts"
       ]
@@ -78,7 +75,6 @@
           "mobile_metadata_regressions",
           "design_metadata_regressions",
           "design_search_regressions",
-          "agent_review_regressions",
           "pr_design_gate_regressions"
         ],
         "capabilities": [
@@ -360,10 +356,9 @@
       "name": "Delivery governance and PR gates",
       "sections": [
         "governance_contracts",
-        "agent_review_regressions",
         "delivery_runtime"
       ],
-      "responsibility": "Check branch policy, hooks, branch protection, workflow wiring, Agent review regressions, PR body gates, and local delivery validators.",
+      "responsibility": "Check branch policy, hooks, branch protection, trusted model-review workflow wiring, and local delivery validators without treating author-editable PR body metadata as review authority.",
       "side_effect_policy": "allowed_local_commands_and_remote_github_reads",
       "allowed_operations": [
         "git_read_commands",
@@ -432,7 +427,6 @@
     "visual_language",
     "workspace_boundary",
     "governance_contracts",
-    "agent_review_regressions",
     "delivery_runtime",
     "design_contracts",
     "mobile_metadata_regressions",
@@ -451,7 +445,6 @@
   ],
   "sections_allowed_subprocess_or_tempfiles": [
     "delivery_runtime",
-    "agent_review_regressions",
     "mobile_metadata_regressions",
     "design_metadata_regressions",
     "design_search_regressions",

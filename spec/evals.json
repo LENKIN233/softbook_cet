@@ -1,5 +1,5 @@
 {
-  "version": "vnext-30",
+  "version": "vnext-31",
   "regressions": [
     {
       "id": "HR-01",
@@ -378,7 +378,7 @@
         "all_sections_export_validate_context",
         "each_selected_section_runs_in_an_isolated_worker",
         "section_timeout_is_attributed_and_does_not_suppress_later_diagnostics",
-        "agent_review_regressions_belong_to_delivery_governance",
+        "author_editable_PR_body_review_gate_is_deleted",
         "zero_legacy_exec_paths"
       ]
     },
