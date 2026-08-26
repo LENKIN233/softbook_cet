@@ -264,25 +264,6 @@ def build_catalog() -> tuple[GateSpec, ...]:
             stage=21,
         ),
         GateSpec(
-            "agent-review",
-            pr,
-            60,
-            False,
-            lambda context: CommandSpec(
-                (
-                    sys.executable,
-                    "scripts/validate_agent_review.py",
-                    "--expected-head",
-                    context.head,
-                    "--minimum-runs",
-                    "2",
-                ),
-                env=pr_body_environment(context),
-            ),
-            requires_pr_context=True,
-            stage=21,
-        ),
-        GateSpec(
             "dependency-policy-tests",
             pr,
             60,

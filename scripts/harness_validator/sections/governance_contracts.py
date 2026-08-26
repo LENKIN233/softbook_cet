@@ -178,15 +178,6 @@ def validate(context) -> None:
         if stale in pr_template:
             errors.append(f"PR template contains stale gate: {stale}")
 
-    review_validator = (root / "scripts/validate_agent_review.py").read_text(
-        encoding="utf-8"
-    )
-    for token in ("pr-model-review.v1", "expected_head", "minimum_runs"):
-        if token not in review_validator:
-            errors.append(f"model review validator missing semantic token: {token}")
-    if "docs/agent-runs/" in review_validator:
-        errors.append("model review validator must not require tracked run records")
-
     workflow = (root / ".github/workflows/pr-gates.yml").read_text(encoding="utf-8")
     for token in (
         "validate-harness",
@@ -213,6 +204,13 @@ def validate(context) -> None:
         errors.append("PR workflow must run model-owned acceptance regressions")
     if "node --test scripts/test_verify_trusted_media_run_receipt.mjs" not in workflow:
         errors.append("PR workflow must run trusted media receipt regressions")
+    for stale in (
+        "  agent-review:",
+        "scripts/validate_agent_review.py",
+        "pr-model-review.v1",
+    ):
+        if stale in workflow:
+            errors.append(f"PR workflow contains stale author-editable review gate: {stale}")
 
     trusted_workflow_path = root / ".github/workflows/trusted-model-review.yml"
     if not trusted_workflow_path.is_file():

@@ -91,6 +91,8 @@ def validate(context) -> None:
         ".github/workflows/formal-approval.yml",
         "scripts/classify_formal_approval_scope.mjs",
         "scripts/test_classify_formal_approval_scope.mjs",
+        "scripts/validate_agent_review.py",
+        "scripts/harness_validator/sections/agent_review_regressions.py",
     ):
         if (root / stale).exists():
             errors.append(f"stale human approval artifact remains active: {stale}")

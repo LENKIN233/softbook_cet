@@ -35,7 +35,6 @@ FIXTURE_VALIDATOR_ALLOWLIST = MappingProxyType(
         "design_search_regressions": frozenset(
             {"scripts/validate_design_search_run.py"}
         ),
-        "agent_review_regressions": frozenset({"scripts/validate_agent_review.py"}),
         "pr_design_gate_regressions": frozenset({"scripts/validate_pr_design_gate.py"}),
     }
 )
@@ -49,7 +48,6 @@ FIXTURE_SECTION_LAYERS = MappingProxyType(
         "mobile_metadata_regressions": "design_governance_layer",
         "design_metadata_regressions": "design_governance_layer",
         "design_search_regressions": "design_governance_layer",
-        "agent_review_regressions": "delivery_governance_layer",
         "pr_design_gate_regressions": "design_governance_layer",
     }
 )

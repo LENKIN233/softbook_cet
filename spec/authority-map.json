@@ -172,7 +172,8 @@
         "spec/agent-harness.json",
         "spec/repo-delivery-contract.json",
         "spec/evals.json",
-        "scripts/validate_agent_review.py",
+        ".github/workflows/trusted-model-review.yml",
+        "scripts/trusted_model_review.py",
         ".github/pull_request_template.md"
       ],
       "conflict_policy": "spec/agent-run-record.json owns the frozen archive and confirms that new PRs do not require tracked run records."

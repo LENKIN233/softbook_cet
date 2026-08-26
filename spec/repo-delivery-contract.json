@@ -221,10 +221,6 @@
         "command": "python3 scripts/validate_maestro_selectors.py"
       },
       {
-        "id": "agent_review_record",
-        "command": "gh api repos/<repo>/pulls/<pr> --jq .body > <temp> && python3 scripts/validate_agent_review.py --body-file <temp>"
-      },
-      {
         "id": "mobile_lint",
         "command": "cd apps/mobile && npm run lint -- --quiet"
       },

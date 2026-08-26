@@ -12,7 +12,6 @@ import tempfile
 import time
 import unittest
 import uuid
-from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -433,44 +432,6 @@ class LocalGateRunnerTests(unittest.TestCase):
             stale = resolve_pr_context(context, capture=lambda _arguments: remote)
         self.assertEqual(stale.status, "failed")
         self.assertIn("base_ref_stale", [finding["type"] for finding in stale.findings])
-
-    def test_pending_agent_review_and_missing_pr_body_fail_real_pr_gate(self):
-        gate = replace(
-            next(gate for gate in build_catalog() if gate.id == "agent-review"),
-            network=True,
-        )
-        pending_body = """## 当前任务引用的 spec
-
-- `spec/harness-architecture.json`
-
-## 变更摘要
-
-- Governance-only change.
-
-## 验证
-
-- [x] `python3 scripts/validate_harness.py`
-
-## Model review
-
-- Reviewer: agent:codex
-- Review status: Pending
-- Blocking findings: Pending
-- Review summary: Pending
-"""
-        for label, body in (("pending", pending_body), ("missing", "")):
-            context = self.context(
-                options=self.options(profile="pr"),
-                pr_context={"base_sha": tracked_snapshot()["head"]},
-                pr_body=body,
-            )
-            outcome, _duration = execute_gate(
-                context,
-                gate,
-                self.test_root / f"{label}-agent-review.log",
-            )
-            self.assertEqual(outcome.status, "failed", label)
-            self.assertEqual(outcome.findings[0]["type"], "command_failure", label)
 
     def test_dependency_exceptions_remain_visible_in_report_state(self):
         context = self.context(options=self.options(profile="pr"))
