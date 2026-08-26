@@ -211,6 +211,8 @@ def validate(context) -> None:
         errors.append("PR workflow must run signed Android release evidence regressions")
     if "node --test scripts/test_model_acceptance_contract.mjs" not in workflow:
         errors.append("PR workflow must run model-owned acceptance regressions")
+    if "node --test scripts/test_verify_trusted_media_run_receipt.mjs" not in workflow:
+        errors.append("PR workflow must run trusted media receipt regressions")
 
     trusted_workflow_path = root / ".github/workflows/trusted-model-review.yml"
     if not trusted_workflow_path.is_file():

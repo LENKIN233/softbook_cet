@@ -1,5 +1,5 @@
 {
-  "version": "vnext-24",
+  "version": "vnext-25",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -49,6 +49,7 @@
       "spec/membership.json",
       "spec/runtime-boundaries.json",
       "spec/cet4-closed-beta-readiness.json",
+      "spec/trusted-media-run-receipt.json",
       "spec/release-operational-policy.json",
       "infra/cloudbase/learning-events-v2-runtime-contract.md",
       "infra/cloudbase/learning-session-v1-runtime-contract.md",

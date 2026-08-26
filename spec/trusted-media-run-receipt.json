@@ -1,0 +1,59 @@
+{
+  "version": "trusted-media-run-receipt-v1",
+  "status": "active",
+  "classification": "evidence_contract",
+  "owner": "spec/machine-acceptance.json",
+  "purpose": "Bind an exact media-review result to a trusted GitHub Actions workflow, immutable source commit, complete media bytes, model runtime identity, and a cryptographically verified GitHub Artifact Attestation without treating structural model records as execution provenance.",
+  "producer": {
+    "repository": "LENKIN233/card-make",
+    "source_ref": "refs/heads/main",
+    "signer_workflow": "LENKIN233/card-make/.github/workflows/trusted-media-run.yml",
+    "workflow_path": ".github/workflows/trusted-media-run.yml",
+    "predicate_type": "https://slsa.dev/provenance/v1",
+    "oidc_issuer": "https://token.actions.githubusercontent.com",
+    "artifact_attestation_provider": "github_sigstore",
+    "required_runner_class": "self_hosted_macos_arm64"
+  },
+  "receipt": {
+    "schema_version": "trusted-media-run-receipt.v1",
+    "maximum_bytes": 1048576,
+    "exact_cet4_scope": {
+      "track": "cet4",
+      "card_count": 1180,
+      "box_count": 108,
+      "audio_asset_count": 301
+    },
+    "minimum_full_perceptual_runs": 2,
+    "minimum_complete_asset_consumptions": 602,
+    "required_result": {
+      "reviewed_card_count": 301,
+      "passed_card_count": 301,
+      "failed_card_count": 0,
+      "every_card_has_two_independent_acceptances": true,
+      "all_assets_complete_consumed": true,
+      "all_required_checks_passed": true
+    }
+  },
+  "verification": {
+    "command": "gh attestation verify <receipt> --repo LENKIN233/card-make --bundle <bundle> --signer-workflow LENKIN233/card-make/.github/workflows/trusted-media-run.yml --signer-digest <source_commit_sha> --source-digest <source_commit_sha> --source-ref refs/heads/main --cert-oidc-issuer https://token.actions.githubusercontent.com --predicate-type https://slsa.dev/provenance/v1 --format json",
+    "require_local_receipt_sha256_in_verified_statement": true,
+    "require_nonempty_verified_timestamp": true,
+    "author_editable_json_is_trust_root": false,
+    "attestation_alone_proves_result_correctness": false,
+    "type_specific_semantic_validation_required": true,
+    "real_attested_receipt_required_before_formal_media_registration": true
+  },
+  "current_boundary": {
+    "structural_verifier": "scripts/verify_trusted_media_run_receipt.mjs",
+    "representative_eval": "scripts/test_verify_trusted_media_run_receipt.mjs",
+    "producer_workflow_implemented": false,
+    "real_attested_receipt_observed": false,
+    "formal_cet4_media_types_registered": false,
+    "closed_beta_gate_effect": "none_until_real_attestation_and_type_registration"
+  },
+  "official_sources": [
+    "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",
+    "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating",
+    "https://cli.github.com/manual/gh_attestation_verify"
+  ]
+}

@@ -29,6 +29,7 @@
       "external-capability-evidence.v1"
     ],
     "release_bundle_contract": "infra/cloudbase/release-bundle-v1-runtime-contract.md",
+    "trusted_media_receipt_contract": "spec/trusted-media-run-receipt.json",
     "operational_policy": "spec/release-operational-policy.json",
     "does_not_replace": [
       "docs/release/launch-readiness.v1.json",

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-16",
+  "version": "vnext-17",
   "purpose": "Lean repository delivery contract for model-owned changes: topic branch, pull request, exact-diff model review, task-relevant required checks, and automatic merge without human approval.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -211,6 +211,10 @@
       {
         "id": "launch_readiness_governance",
         "command": "node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs"
+      },
+      {
+        "id": "trusted_media_run_receipt",
+        "command": "node --test scripts/test_verify_trusted_media_run_receipt.mjs"
       },
       {
         "id": "maestro_selector_guard",

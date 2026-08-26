@@ -35,6 +35,7 @@ def validate(context) -> None:
         )
     )
     closed_beta_spec = load("cet4-closed-beta-readiness.json")
+    media_receipt = load("trusted-media-run-receipt.json")
     closed_beta = json.loads(
         (root / "docs/release/cet4-closed-beta-readiness.v1.json").read_text(
             encoding="utf-8"
@@ -284,11 +285,41 @@ def validate(context) -> None:
     )
     for token in (
         "unregistered_and_fail_closed",
-        "trusted_media_run_receipt",
+        "trusted_media_run_receipt_v1",
         "exact_1180_108_301_scope",
+        "GitHub_Sigstore",
+        "no_real_attested_receipt",
     ):
         if token not in formal_media_boundary:
             errors.append(f"formal media boundary missing: {token}")
+    check_equal(
+        "trusted media receipt owner",
+        "spec/machine-acceptance.json",
+        media_receipt.get("owner"),
+    )
+    check_equal(
+        "trusted media receipt producer repository",
+        "LENKIN233/card-make",
+        media_receipt.get("producer", {}).get("repository"),
+    )
+    check_equal(
+        "trusted media receipt fixed workflow",
+        "LENKIN233/card-make/.github/workflows/trusted-media-run.yml",
+        media_receipt.get("producer", {}).get("signer_workflow"),
+    )
+    check_equal(
+        "trusted media receipt real observation boundary",
+        False,
+        media_receipt.get("current_boundary", {}).get(
+            "real_attested_receipt_observed"
+        ),
+    )
+    for asset in (
+        "scripts/verify_trusted_media_run_receipt.mjs",
+        "scripts/test_verify_trusted_media_run_receipt.mjs",
+    ):
+        if not (root / asset).is_file():
+            errors.append(f"trusted media receipt asset missing: {asset}")
     formal_entitlement_boundary = runtime["cet4_closed_beta_readiness"].get(
         "formal_entitlement_evidence", ""
     )
