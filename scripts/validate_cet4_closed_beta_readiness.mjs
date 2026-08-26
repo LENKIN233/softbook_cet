@@ -631,6 +631,12 @@ function validateReadinessSpec(spec, errors) {
     errors,
   );
   assertEqual(
+    spec.authority_boundary?.trusted_media_receipt_contract,
+    'spec/trusted-media-run-receipt.json',
+    'spec trusted media receipt contract',
+    errors,
+  );
+  assertEqual(
     spec.state_policy?.formal_evidence_ingestion,
     'registered_types_implemented_unregistered_fail_closed',
     'spec formal_evidence_ingestion',

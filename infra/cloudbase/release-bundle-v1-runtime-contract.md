@@ -101,9 +101,13 @@ fails closed.
 `model-acceptance.v2` records bind inputs and decisions but are not standalone
 cryptographic proof that a model execution or media consumption occurred.
 Repository authority additionally depends on the trusted Codex Action PR gate.
-Formal audio launch evidence remains ineligible until a signed trusted
-media-run receipt type is registered; current model-owned QC structures alone
-cannot satisfy launch or closed-beta readiness.
+Formal audio launch evidence remains ineligible until one real
+`trusted-media-run-receipt.v1` is produced by the fixed `card-make` main-branch
+workflow, its exact bytes pass GitHub Artifact Attestation verification, and
+the four CET4 content/media evidence types are registered. The repository now
+contains the receipt schema and structural/attestation verifier, but current
+model-owned QC structures alone still cannot satisfy launch or closed-beta
+readiness.
 
 ## Formal bundle builder
 
@@ -137,12 +141,14 @@ but its failed write-safety observation and null operator cannot be promoted as
 an applied formal raw report.
 
 The four required CET4 content/media evidence types remain deliberately
-unregistered. They cannot pass closed-beta readiness until a signed trusted
-media-run receipt contract binds the exact candidate, authorization, linked
-review, audit, 1,180-card/108-box/301-audio membership, consumed media bytes,
-transcripts and complete per-asset results. The builder report and structural
-`model-acceptance.v2` records remain useful inputs but cannot manufacture a
-real model execution, playback, device or provider fact.
+unregistered. `spec/trusted-media-run-receipt.json` and
+`scripts/verify_trusted_media_run_receipt.mjs` now define and test the exact
+candidate, authorization, linked review, audit, 1,180-card/108-box/301-audio
+membership, two full perceptual runs, consumed media bytes, fixed trusted
+workflow, source commit and GitHub Sigstore binding. Registration still waits
+for the producer workflow and one real attested receipt; the builder report and
+structural `model-acceptance.v2` records remain useful inputs but cannot
+manufacture a model execution, playback, device or provider fact.
 
 ## Publish and rollback ordering
 

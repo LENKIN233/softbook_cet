@@ -43,7 +43,7 @@
       "revise",
       "blocked"
     ],
-    "domain_record_boundary": "model-acceptance.v2 proves exact JSON input binding and decision shape, not cryptographic model execution provenance. Such records gain repository authority only on a head that passes trusted-model-review. Media-consumption claims additionally require a registered trusted media-run receipt; no such receipt type is currently registered, so formal media evidence remains fail closed.",
+    "domain_record_boundary": "model-acceptance.v2 proves exact JSON input binding and decision shape, not cryptographic model execution provenance. Such records gain repository authority only on a head that passes trusted-model-review. Media-consumption claims additionally require a trusted-media-run-receipt.v1 whose exact bytes pass GitHub Artifact Attestation verification against the fixed card-make main workflow and type-specific semantic validation. The structural verifier now exists, but no real attested receipt or formal media type registration exists, so formal media evidence remains fail closed.",
     "must_not": [
       "claim_a_model_consumed_audio_images_device_state_or_external_control_plane_data_it_did_not_receive",
       "invent_source_authenticity_credentials_provider_state_deployment_device_or_user_outcomes",
@@ -71,13 +71,16 @@
     "release_evidence_records_external_facts_not_hidden_reasoning": true
   },
   "methodology_refresh": {
-    "last_checked_at": "2026-08-23",
+    "last_checked_at": "2026-08-26",
     "official_sources": [
       "https://developers.openai.com/api/docs/guides/latest-model",
       "https://developers.openai.com/blog/codex-as-a-platform",
       "https://github.com/openai/codex-action",
       "https://github.com/openai/codex-action/blob/main/docs/security.md",
-      "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions"
+      "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions",
+      "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",
+      "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating",
+      "https://cli.github.com/manual/gh_attestation_verify"
     ],
     "refresh_rule": "Before a major harness expansion or model migration, recheck current official model, tool, context, eval, and harness guidance; adopt changes only after representative repository evals."
   },

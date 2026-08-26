@@ -34,6 +34,7 @@ status: active
 - `spec/membership.json`
 - `spec/runtime-boundaries.json`
 - `spec/cet4-closed-beta-readiness.json`（仅在 CET4 正式封闭内测 candidate、gate、receiver evidence、真机验收或 readiness 状态任务中读取；其 `ready` 不替代正式产品 launch readiness）
+- `spec/trusted-media-run-receipt.json`（仅在正式音频/媒体执行收据、GitHub Artifact Attestation 或 CET4 content/media evidence 注册任务中读取；结构校验不得替代真实 attestation）
 - `spec/release-operational-policy.json`（仅在上线证据、外部账号 capability、SLO、备份恢复、渗透或回滚演练任务中读取；定义不得降低的正式证据阈值、外部控制面检查、gate 非替代与模拟非正式边界）
 - `infra/cloudbase/learning-events-v2-runtime-contract.md`（仅在 learning events 合同或实现任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `infra/cloudbase/learning-session-v1-runtime-contract.md`（仅在服务端调度或 learning session 任务中读取；当前为仓库内已实现、移动端未接线且未部署的 runtime 边界）
@@ -65,7 +66,7 @@ status: active
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`（涉及封闭内测资格发放、撤销或审计时追加 `account-sync-contract -> runtime-boundaries -> infra/cloudbase/beta-entitlement-v1-runtime-contract.md`）
 - CET4 受控试点：`requirement-memory -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> infra/cloudbase/learning-session-v1-runtime-contract.md -> infra/cloudbase/content-manifest-v1-runtime-contract.md -> infra/cloudbase/controlled-pilot-v1-runtime-contract.md`（正式发布非替代校验追加 `infra/cloudbase/release-bundle-v1-runtime-contract.md`）
-- CET4 正式封闭内测 readiness：`requirement-memory -> machine-acceptance -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> cet4-closed-beta-readiness -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
+- CET4 正式封闭内测 readiness：`requirement-memory -> machine-acceptance -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> cet4-closed-beta-readiness -> trusted-media-run-receipt（涉及正式媒体证据时） -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
 - 交付 / PR / CI：`authority-map -> machine-acceptance -> agent-harness -> repo-delivery-contract -> evals`（涉及接收方环境、正式内容发布或回滚时追加 `runtime-boundaries -> infra/cloudbase/release-bundle-v1-runtime-contract.md`）
 - 上线证据 / 外部账号 capability / SLO / 恢复演练：`authority-map -> machine-acceptance -> account-sync-contract -> runtime-boundaries -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
 - Agent run records / context handoff：`authority-map -> agent-run-record -> workspace-boundary -> harness-architecture -> agent-harness -> repo-delivery-contract -> evals`
