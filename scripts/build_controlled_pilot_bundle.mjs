@@ -64,6 +64,7 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
   const records = readQcRecords(qcDirectory);
   const bindings = [];
   const usedRecords = new Map();
+  const sourcePathsByAssetId = new Map();
   const validatedRecords = new Set();
   const cardsByAsset = new Map();
   const cardsById = new Map(cards.map(card => [card.card_id, card]));
@@ -107,6 +108,19 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
       validateQcRecord(match.record, scopeCardIds, assetByCardId, asset.asset_id);
       validatedRecords.add(match.path);
     }
+    const sourcePaths = [...new Set(
+      cardIds.map(cardId =>
+        match.record.generated_assets?.find(item =>
+          String(item?.card_id ?? '') === cardId)?.path),
+    )];
+    if (
+      sourcePaths.length !== 1 ||
+      typeof sourcePaths[0] !== 'string' ||
+      !sourcePaths[0].trim()
+    ) {
+      fail(`Audio QC record for ${asset.asset_id} must bind one exact source asset path.`);
+    }
+    sourcePathsByAssetId.set(asset.asset_id, sourcePaths[0]);
     const hash = sha256Bytes(match.bytes);
     const recordPath = `audio/qc/${hash.slice('sha256:'.length)}.json`;
     usedRecords.set(recordPath, match);
@@ -123,7 +137,7 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
       formal_audio_ready: true,
     });
   }
-  return {bindings, usedRecords};
+  return {bindings, sourcePathsByAssetId, usedRecords};
 }
 
 export function assembleControlledPilotBundle(
@@ -613,9 +627,8 @@ function validateQcRecord(record, cardIds, assetByCardId, assetId) {
       !String(transcript?.transcript ?? '').trim() ||
       generatedAsset?.transcript_sha256 !== transcriptSha256 ||
       !asset ||
-      generatedAsset?.path !== asset.asset_path ||
       generatedAsset?.file_sha256 !== asset.sha256.replace(/^sha256:/, '') ||
-      result?.asset_path !== asset.asset_path
+      result?.asset_path !== generatedAsset?.path
     ) {
       fail(`Audio QC record for ${assetId} has unbound bytes or transcript for ${cardId}.`);
     }
@@ -668,7 +681,6 @@ function recordCoversAsset(record, cardId, asset) {
   const expectedHash = asset.sha256.replace(/^sha256:/, '');
   return (record.generated_assets ?? []).some(item =>
     String(item?.card_id ?? '') === cardId &&
-    item?.path === asset.asset_path &&
     item?.file_sha256 === expectedHash,
   );
 }

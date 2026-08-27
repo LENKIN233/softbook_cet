@@ -1066,7 +1066,7 @@ function indexUniqueAudioRecords(value, label) {
   return result;
 }
 
-function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
+function verifyModelAudioQcRecord(record, indexedAsset, manifestById) {
   requireExact(record.schema_version, MODEL_AUDIO_QC_SCHEMA, 'model audio QC schema');
   const expectedInput = modelAudioQcInput(record);
   requireIndependentModelAcceptances(record.model_acceptances, {
@@ -1095,7 +1095,7 @@ function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
     if (!generated || !result) {
       throw new ReleaseDeliveryError(`${indexedAsset.asset_id} lacks model evidence for ${cardId}.`);
     }
-    const manifestAsset = manifestByPath.get(generated.path);
+    const manifestAsset = manifestById.get(indexedAsset.asset_id);
     if (!manifestAsset) {
       throw new ReleaseDeliveryError(`${cardId} model audio asset is absent from the manifest.`);
     }
@@ -1145,8 +1145,8 @@ function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
     manifest.assets.map(asset => asset.asset_id),
     'audio QC asset coverage',
   );
-  const manifestByPath = new Map(
-    manifest.assets.map(asset => [asset.asset_path, asset]),
+  const manifestById = new Map(
+    manifest.assets.map(asset => [asset.asset_id, asset]),
   );
 
   for (const asset of index.assets) {
@@ -1157,7 +1157,7 @@ function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
       `audio QC record ${asset.asset_id}`,
     );
     const record = readJson(recordPath, `audio QC record ${asset.asset_id}`);
-    verifyModelAudioQcRecord(record, asset, manifestByPath);
+    verifyModelAudioQcRecord(record, asset, manifestById);
     requireExact(
       record.verdict?.formal_audio_ready,
       true,
