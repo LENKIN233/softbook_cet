@@ -248,7 +248,7 @@ test('pilot bundle builder accepts identified model-harness perceptual QC', () =
     sha256: `sha256:${hash}`,
   };
   const record = modelAudioQcFixture({
-    assetPath: asset.asset_path,
+    assetPath: 'ai_tts/cet4/0000/000001.mp3',
     cardIds: ['000001'],
     fileHash: hash,
     runPrefix: 'direct-audio',
@@ -261,6 +261,10 @@ test('pilot bundle builder accepts identified model-harness perceptual QC', () =
   };
   const result = bundleBuilder.collectAudioQcBindings(input);
   assert.equal(result.bindings[0].reviewed_by, 'agent:direct-audio-a');
+  assert.equal(
+    result.sourcePathsByAssetId.get(asset.asset_id),
+    'ai_tts/cet4/0000/000001.mp3',
+  );
 
   record.model_acceptances[1] = structuredClone(record.model_acceptances[0]);
   writeJson(join(directory, 'qc.json'), record);

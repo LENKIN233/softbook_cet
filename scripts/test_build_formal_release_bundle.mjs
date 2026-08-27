@@ -297,6 +297,7 @@ function createFixture() {
   for (let index = 0; index < 301; index += 1) {
     const assetId = `a${String(index).padStart(3, '0')}`;
     const assetPath = `audio/${assetId}.mp3`;
+    const sourceAssetPath = `ai_tts/${assetId}.mp3`;
     const bytes = Buffer.from(`formal-audio-${index}`);
     const sha256 = digest(bytes);
     const card = cards[index];
@@ -314,12 +315,12 @@ function createFixture() {
       duration_ms: 1000 + index,
       media_type: 'audio/mpeg',
     });
-    const target = path.join(assetsDirectory, assetPath);
+    const target = path.join(assetsDirectory, sourceAssetPath);
     fs.mkdirSync(path.dirname(target), {recursive: true});
     fs.writeFileSync(target, bytes);
     generatedAssets.push({
       card_id: card.card_id,
-      path: assetPath,
+      path: sourceAssetPath,
       file_sha256: sha256.slice('sha256:'.length),
       transcript_sha256: hash(card.audio.transcript),
     });
@@ -332,7 +333,7 @@ function createFixture() {
     });
     perCardQc.push({
       card_id: card.card_id,
-      asset_path: assetPath,
+      asset_path: sourceAssetPath,
       complete_asset_consumed: true,
       matches_text: true,
       target_signal: true,

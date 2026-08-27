@@ -57,6 +57,12 @@ uses a safe relative `asset_path`; the publisher uploads those bytes, obtains
 private CloudBase file IDs, and then revalidates that the hydrated runtime
 source still has the bundle content version.
 
+The repository source path recorded by model-owned QC may differ from the
+bundle delivery path. QC remains bound to its original source path and exact
+bytes; the assembler joins QC to the release asset by card ID, asset ID and
+SHA-256, copies from the QC source path, and writes to the manifest's delivery
+path. The formal QC index never exposes the repository source path.
+
 ## `delivery-profile.v1`
 
 The profile contains `profile_id`, receiver `environment_id`, `region`, HTTPS

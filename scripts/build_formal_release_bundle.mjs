@@ -101,7 +101,7 @@ export function assembleFormalReleaseBundle(
   });
   const cards = content.card_records;
   const assets = content.assets;
-  const {bindings, usedRecords} = collectAudioQcBindings({
+  const {bindings, sourcePathsByAssetId, usedRecords} = collectAudioQcBindings({
     assets,
     cards,
     qcDirectory: normalized.audioQcDirectory,
@@ -135,7 +135,7 @@ export function assembleFormalReleaseBundle(
     for (const asset of assets) {
       const source = resolveInside(
         normalized.assetRoot,
-        asset.asset_path,
+        sourcePathsByAssetId.get(asset.asset_id),
         `source audio ${asset.asset_id}`,
       );
       const target = resolveInside(
