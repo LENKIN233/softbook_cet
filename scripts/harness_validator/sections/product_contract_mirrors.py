@@ -393,6 +393,10 @@ def validate(context) -> None:
         "rotated_access_survival",
         "logout_idempotency",
         "operator_cannot_embed_phone_or_credential",
+        "tracked_HEAD_identical",
+        "control_plane_verified_backend_deployment",
+        "redirect_error",
+        "10_second_abort",
         "without_phone_or_token_values",
         "gate_eligible_false",
     ):

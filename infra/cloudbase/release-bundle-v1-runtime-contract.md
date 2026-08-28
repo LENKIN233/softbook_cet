@@ -111,7 +111,13 @@ Formal audio launch evidence remains ineligible until one real
 `trusted-media-run-receipt.v1` is produced by the fixed `card-make` main-branch
 workflow, its exact bytes pass GitHub Artifact Attestation verification, and
 the four CET4 content/media evidence types are registered. The repository now
-contains the receipt schema and structural/attestation verifier, but current
+contains the receipt schema and structural/attestation verifier. Formal-ready
+verification additionally requires the exact downloaded artifact directory;
+the consumer rehashes the audio manifest, reviewed worklist, raw-run manifest
+and every referenced JSONL run, recomputes exact 301-card media identity, two
+full perceptual plus two blind-transcript runs, per-card dual acceptances and
+measured untruncated sample coverage. Attestation without those bytes remains
+non-formal. Current
 model-owned QC structures alone still cannot satisfy launch or closed-beta
 readiness.
 

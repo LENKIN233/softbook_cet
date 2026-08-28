@@ -24,7 +24,19 @@
       "audio_asset_count": 301
     },
     "minimum_full_perceptual_runs": 2,
-    "minimum_complete_asset_consumptions": 602,
+    "minimum_blind_transcript_runs": 2,
+    "minimum_complete_asset_consumptions": 1204,
+    "artifact_files": {
+      "audio_manifest": "audio-manifest.json",
+      "review_worklist": "reviewed-worklist.json",
+      "raw_run_manifest": "raw-run-manifest.json"
+    },
+    "required_audio_coverage": {
+      "decoder": "mlx_audio.stt.utils.load_audio",
+      "sample_rate_hz": 16000,
+      "model_max_sample_count": 480000,
+      "truncated": false
+    },
     "required_result": {
       "reviewed_card_count": 301,
       "passed_card_count": 301,

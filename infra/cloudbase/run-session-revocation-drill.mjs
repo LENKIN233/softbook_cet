@@ -2,15 +2,17 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { lstatSync, readFileSync } from 'node:fs';
+import { dirname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseStrictJson } from '../../scripts/lib/strict_json.mjs';
 import {
   buildBackendDeploymentId,
+  inspectApiFunction,
   receiverDeliveryInternals,
 } from './deliver-release.mjs';
+import { createCloudBaseCommandRunner } from './cloudbase-receiver-adapter.mjs';
 import { validateDeliveryProfile } from './release-delivery-v1.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
@@ -22,6 +24,7 @@ const ACCESS_A = 'SOFTBOOK_CET_SESSION_DRILL_ACCESS_A';
 const REFRESH_A = 'SOFTBOOK_CET_SESSION_DRILL_REFRESH_A';
 const ACCESS_B = 'SOFTBOOK_CET_SESSION_DRILL_ACCESS_B';
 const REFRESH_B = 'SOFTBOOK_CET_SESSION_DRILL_REFRESH_B';
+const REQUEST_TIMEOUT_MS = 10_000;
 
 export class SessionRevocationDrillError extends Error {}
 
@@ -58,7 +61,10 @@ export async function executeSessionRevocationDrill(
 ) {
   const clock = dependencies.clock ?? (() => new Date());
   const startedAt = readTimestamp(clock, 'session drill start');
-  const profileBytes = readFileSync(resolve(options.profilePath));
+  const loadedProfile = dependencies.loadProfile
+    ? dependencies.loadProfile(options.profilePath)
+    : loadTrackedProfile(options.profilePath);
+  const profileBytes = loadedProfile.bytes;
   const profile = validateDeliveryProfile(
     parseStrictJson(profileBytes, 'session drill delivery profile')
   );
@@ -76,12 +82,13 @@ export async function executeSessionRevocationDrill(
     }),
     node_version: nodeVersion,
   };
+  const expectedBackendDeploymentId = buildBackendDeploymentId({
+    profile,
+    repositoryCommit: repository.head,
+  });
   const base = {
     applied: options.apply,
-    expected_backend_deployment_id: buildBackendDeploymentId({
-      profile,
-      repositoryCommit: repository.head,
-    }),
+    expected_backend_deployment_id: expectedBackendDeploymentId,
     gate_eligible: false,
     profile: {
       environment_id: profile.environment_id,
@@ -103,6 +110,21 @@ export async function executeSessionRevocationDrill(
     };
   }
   requireApplyReady({ operator: options.operator, repository, writeSafety });
+  const inspectDeployment = dependencies.inspectDeployment ?? inspectApiFunction;
+  const deployment = await inspectDeployment({
+    envId: profile.environment_id,
+    expectedDeploymentId: expectedBackendDeploymentId,
+    profile,
+    runner:
+      dependencies.runner ?? createCloudBaseCommandRunner({ cwd: REPOSITORY_ROOT }),
+  });
+  if (deployment?.ok !== true) {
+    throw new SessionRevocationDrillError(
+      `receiver deployment identity preflight failed: ${(deployment?.errors ?? [
+        'unavailable deployment evidence',
+      ]).join(', ')}`
+    );
+  }
   const env = dependencies.env ?? process.env;
   const credentials = {
     accessA: requireSecret(env[ACCESS_A], ACCESS_A, 'softbook_v2.'),
@@ -175,6 +197,7 @@ export async function executeSessionRevocationDrill(
     },
     observations,
     assertions: {
+      receiver_deployment_identity_verified: true,
       both_sessions_initially_active: true,
       refresh_rotated_credentials: true,
       old_refresh_replay_revoked_only_client_a: true,
@@ -342,11 +365,20 @@ async function runAppliedSequence({
   };
 }
 
-export function createRemoteSessionTransport({ baseUrl, fetchImpl = fetch }) {
+export function createRemoteSessionTransport({
+  baseUrl,
+  fetchImpl = fetch,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+}) {
   const normalized = String(baseUrl ?? '').replace(/\/+$/, '');
   if (!/^https:\/\//.test(normalized)) {
     throw new SessionRevocationDrillError(
       'session drill requires an HTTPS API base URL.'
+    );
+  }
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 30_000) {
+    throw new SessionRevocationDrillError(
+      'session drill request timeout must be between 1000 and 30000 milliseconds.'
     );
   }
   return {
@@ -355,9 +387,12 @@ export function createRemoteSessionTransport({ baseUrl, fetchImpl = fetch }) {
       requestPath,
       { body = null, method = 'GET' } = {}
     ) {
+      const target = `${normalized}${requestPath}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
       let response;
       try {
-        response = await fetchImpl(`${normalized}${requestPath}`, {
+        response = await fetchImpl(target, {
           ...(body === null ? {} : { body: JSON.stringify(body) }),
           headers: {
             ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
@@ -365,10 +400,19 @@ export function createRemoteSessionTransport({ baseUrl, fetchImpl = fetch }) {
             'x-softbook-client': 'mobile',
           },
           method,
+          redirect: 'error',
+          signal: controller.signal,
         });
       } catch {
         throw new SessionRevocationDrillError(
           'session drill remote request failed.'
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
+      if (response.redirected === true || (response.url && response.url !== target)) {
+        throw new SessionRevocationDrillError(
+          'session drill remote response changed the tracked receiver URL.'
         );
       }
       if (response.status === 204) {
@@ -385,6 +429,51 @@ export function createRemoteSessionTransport({ baseUrl, fetchImpl = fetch }) {
       return { payload, status: response.status };
     },
   };
+}
+
+function loadTrackedProfile(profilePath) {
+  const absolute = resolve(profilePath);
+  const relativePath = relative(REPOSITORY_ROOT, absolute).split(sep).join('/');
+  if (
+    relativePath.startsWith('../') ||
+    relativePath.includes('\\') ||
+    !relativePath.endsWith('.json')
+  ) {
+    throw new SessionRevocationDrillError(
+      'session revocation drill profile must be a tracked JSON file inside the repository.'
+    );
+  }
+  const stats = lstatSync(absolute);
+  if (!stats.isFile() || (stats.mode & 0o111) !== 0) {
+    throw new SessionRevocationDrillError(
+      'session revocation drill profile must be a non-executable regular file.'
+    );
+  }
+  const bytes = readFileSync(absolute);
+  let treeEntry;
+  let headBytes;
+  try {
+    treeEntry = execFileSync(
+      'git',
+      ['ls-tree', 'HEAD', '--', relativePath],
+      { cwd: REPOSITORY_ROOT, encoding: 'utf8' }
+    ).trim();
+    headBytes = execFileSync(
+      'git',
+      ['show', `HEAD:${relativePath}`],
+      { cwd: REPOSITORY_ROOT, encoding: null }
+    );
+  } catch {
+    throw new SessionRevocationDrillError(
+      'session revocation drill profile must be tracked at exact HEAD.'
+    );
+  }
+  if (!treeEntry.startsWith('100644 blob ') || !bytes.equals(headBytes)) {
+    throw new SessionRevocationDrillError(
+      'session revocation drill profile bytes must equal a regular 100644 blob at exact HEAD.'
+    );
+  }
+  return { bytes, relativePath };
 }
 
 function parseBootstrap(response, label) {

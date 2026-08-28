@@ -232,7 +232,8 @@ existing API error envelope.
 
 `infra/cloudbase/run-session-revocation-drill.mjs` is dry-run by default. Apply
 requires Node 22.13.0, clean local `main` exactly equal to `origin/main`, a
-receiver closed-beta profile, an identified operator, and two fresh access plus
+tracked regular 100644 receiver closed-beta profile whose bytes equal exact
+`HEAD`, an identified operator, and two fresh access plus
 refresh credential pairs supplied only through process environment. The access
 claims must identify the same phone account and different server session IDs;
 each refresh claim must match its access session. Both access tokens are first
@@ -253,6 +254,15 @@ The machine operator is part of the report, so apply rejects an operator value
 that embeds the decoded phone or credential-shaped material before any remote
 request. This keeps execution attribution without creating a phone/token
 side-channel through an otherwise valid machine principal.
+
+Before the four session credentials are read, apply reuses the receiver control
+plane inspector and requires the deployed `softbook-api` function identity,
+runtime, handler, timeout, signing key, store/runtime modes and deterministic
+backend deployment ID to match the exact commit and tracked profile. Requests
+then use only that profile's exact HTTPS API base, set `redirect=error`, reject
+any changed response URL and abort after ten seconds. A profile outside the
+repository, a dirty or untracked profile, deployment drift, redirect or timeout
+fails before token transmission.
 
 The privacy-safe `session-revocation-drill-report.v1` binds repository commit,
 raw profile SHA-256, expected backend deployment identity, one content/release

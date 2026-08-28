@@ -671,6 +671,8 @@
         "model_authorization_and_model_review_replace_human_approval",
         "structural_model_acceptance_is_not_cryptographic_execution_provenance",
         "trusted_media_run_receipt_v1_requires_exact_receipt_bytes_fixed_signer_workflow_source_commit_oidc_issuer_verified_timestamp_and_type_specific_semantics",
+        "formal_ready_requires_rehashed_audio_manifest_reviewed_worklist_raw_run_manifest_and_every_raw_JSONL_record",
+        "consumer_recomputes_exact_301_asset_identity_two_full_runs_two_blind_runs_model_acceptances_and_untruncated_sample_coverage",
         "formal_media_evidence_types_remain_unregistered_until_one_real_attested_receipt_exists",
         "unregistered_evidence_types_fail_closed",
         "external_playback_device_provider_and_distribution_facts_cannot_be_inferred"
@@ -774,6 +776,9 @@
         "account_sync_contract_authentication_owner",
         "dry_run_performs_no_remote_request",
         "apply_requires_Node_22_13_clean_exact_main_receiver_profile_and_operator",
+        "receiver_profile_is_tracked_regular_HEAD_identical_and_hash_bound",
+        "control_plane_backend_deployment_identity_verified_before_loading_session_credentials",
+        "exact_tracked_HTTPS_target_redirect_rejection_and_bounded_request_timeout",
         "two_fresh_same_phone_distinct_session_access_refresh_pairs",
         "access_and_refresh_session_claims_match_then_access_is_server_confirmed",
         "client_A_refresh_rotates_both_credentials",

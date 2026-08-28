@@ -179,7 +179,7 @@ export function assembleControlledPilotBundle(
     profile,
     reviewHash,
   });
-  const {bindings, usedRecords} = collectAudioQcBindings({
+  const {bindings, sourcePathsByAssetId, usedRecords} = collectAudioQcBindings({
     assets,
     cards,
     qcDirectory: normalized.audioQcDirectory,
@@ -208,7 +208,11 @@ export function assembleControlledPilotBundle(
 
     const candidateRoot = dirname(normalized.candidatePayloadPath);
     for (const asset of assets) {
-      const source = resolveInside(candidateRoot, asset.asset_path, 'candidate audio asset');
+      const source = resolveInside(
+        candidateRoot,
+        sourcePathsByAssetId.get(asset.asset_id),
+        'candidate audio asset',
+      );
       const target = resolveInside(staging, asset.asset_path, 'bundle audio asset');
       mkdirSync(dirname(target), {recursive: true});
       copyFileSync(source, target);

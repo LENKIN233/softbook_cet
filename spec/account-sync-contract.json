@@ -17,10 +17,11 @@
     "receiver_session_revocation_drill": {
       "runner": "infra/cloudbase/run-session-revocation-drill.mjs",
       "report_schema": "session-revocation-drill-report.v1",
-      "execution_rule": "dry_run_by_default_apply_requires_Node_22_13_clean_exact_main_receiver_closed_beta_profile_identified_operator_and_fresh_same_phone_distinct_session_A_B_access_refresh_pairs",
+      "execution_rule": "dry_run_by_default_apply_requires_Node_22_13_clean_exact_main_tracked_HEAD_identical_receiver_closed_beta_profile_control_plane_verified_backend_deployment_identified_operator_and_fresh_same_phone_distinct_session_A_B_access_refresh_pairs",
       "sequence_rule": "both_sessions_active_then_A_refresh_rotates_old_A_refresh_replay_revokes_only_A_rotated_A_refresh_and_access_fail_B_refresh_rotates_and_rotated_access_remains_active_then_B_logout_and_exact_logout_replay_are_idempotent_and_rotated_B_access_refresh_fail",
       "identity_rule": "decode_claimed_phone_and_session_only_in_memory_require_same_phone_distinct_session_and_matching_access_refresh_session_ids_then_confirm_each_access_token_against_the_receiver",
       "privacy_rule": "operator_cannot_embed_phone_or_credential_material_report_contains_only_session_ID_hashes_content_release_statuses_and_assertions_without_phone_or_token_values_and_remains_gate_eligible_false",
+      "transport_boundary": "tokens_are_loaded_only_after_control_plane_deployment_identity_passes_requests_use_the_exact_tracked_HTTPS_base_reject_redirects_and_abort_within_10_seconds",
       "mutation_boundary": "apply_intentionally_revokes_both_supplied_dedicated_test_sessions_and_cannot_restore_them"
     }
   },

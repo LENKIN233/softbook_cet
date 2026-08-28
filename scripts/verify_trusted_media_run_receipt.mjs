@@ -19,6 +19,15 @@ const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/;
 const MODEL_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{2,255}$/;
+const PERCEPTUAL_CHECKS = Object.freeze([
+  'audio_matches_text',
+  'target_signal_audible',
+  'accurate_pronunciation',
+  'suitable_speed',
+  'natural_rhythm',
+  'stress_and_pauses_do_not_mislead',
+  'no_unwanted_noise_or_clipping',
+]);
 
 function exactKeys(value, keys, label, errors) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -74,6 +83,308 @@ function validateArtifactIdentity(value, label, errors) {
   if (!Number.isInteger(value.size_bytes) || value.size_bytes <= 0) {
     errors.push(`${label}.size_bytes must be a positive integer.`);
   }
+}
+
+function loadBoundArtifact(directory, filename, identity, label, errors) {
+  const root = path.resolve(directory ?? '');
+  const target = path.resolve(root, filename);
+  if (path.dirname(target) !== root) {
+    errors.push(`${label} path escapes the artifact directory.`);
+    return null;
+  }
+  const bytes = loadRegularFile(target, 16 * 1024 * 1024, label, errors);
+  if (!bytes) return null;
+  const observed = createHash('sha256').update(bytes).digest('hex');
+  if (observed !== identity?.sha256 || bytes.length !== identity?.size_bytes) {
+    errors.push(`${label} bytes do not match the attested receipt identity.`);
+    return null;
+  }
+  return {bytes, path: target};
+}
+
+function parseArtifactJson(file, label, errors) {
+  if (!file) return null;
+  try {
+    return parseStrictJson(file.bytes, label);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+    return null;
+  }
+}
+
+function validateAudioCoverage(value, policy, label, errors) {
+  if (!exactKeys(
+    value,
+    [
+      'decoder',
+      'decoded_sample_count',
+      'model_input_sample_count',
+      'model_max_sample_count',
+      'sample_rate_hz',
+      'truncated',
+    ],
+    label,
+    errors,
+  )) return;
+  const expected = policy.receipt.required_audio_coverage;
+  if (
+    value.decoder !== expected.decoder ||
+    !Number.isSafeInteger(value.decoded_sample_count) ||
+    value.decoded_sample_count < 1 ||
+    value.model_input_sample_count !== value.decoded_sample_count ||
+    value.model_max_sample_count !== expected.model_max_sample_count ||
+    value.decoded_sample_count > value.model_max_sample_count ||
+    value.sample_rate_hz !== expected.sample_rate_hz ||
+    value.truncated !== expected.truncated
+  ) {
+    errors.push(`${label} does not prove complete untruncated model input.`);
+  }
+}
+
+function parseJsonLines(bytes, label, errors) {
+  const records = [];
+  for (const [index, line] of bytes.toString('utf8').split('\n').entries()) {
+    if (!line) continue;
+    try {
+      records.push(parseStrictJson(Buffer.from(line), `${label} line ${index + 1}`));
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+  return records;
+}
+
+function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
+  if (!artifactDirectory) {
+    errors.push('formal media verification requires --artifact-dir with the exact run artifacts.');
+    return false;
+  }
+  const filenames = policy.receipt.artifact_files;
+  const audioManifestFile = loadBoundArtifact(
+    artifactDirectory,
+    filenames.audio_manifest,
+    receipt.artifacts.audio_manifest,
+    'trusted media audio manifest',
+    errors,
+  );
+  const worklistFile = loadBoundArtifact(
+    artifactDirectory,
+    filenames.review_worklist,
+    receipt.artifacts.review_worklist,
+    'trusted media reviewed worklist',
+    errors,
+  );
+  const rawManifestFile = loadBoundArtifact(
+    artifactDirectory,
+    filenames.raw_run_manifest,
+    receipt.artifacts.raw_run_manifest,
+    'trusted media raw run manifest',
+    errors,
+  );
+  const audioManifest = parseArtifactJson(audioManifestFile, 'trusted media audio manifest', errors);
+  const worklist = parseArtifactJson(worklistFile, 'trusted media reviewed worklist', errors);
+  const rawManifest = parseArtifactJson(rawManifestFile, 'trusted media raw run manifest', errors);
+  if (!audioManifest || !worklist || !rawManifest) return false;
+
+  if (
+    audioManifest.schema_version !== 'trusted-media-audio-manifest.v1' ||
+    audioManifest.track !== 'cet4' ||
+    audioManifest.asset_count !== 301 ||
+    !Array.isArray(audioManifest.assets) ||
+    audioManifest.assets.length !== 301
+  ) {
+    errors.push('trusted media audio manifest does not contain the exact CET4 301-asset scope.');
+    return false;
+  }
+  const assetsByCard = new Map();
+  for (const [index, asset] of audioManifest.assets.entries()) {
+    const label = `audio manifest assets[${index}]`;
+    if (!exactKeys(
+      asset,
+      ['card_id', 'asset_path', 'file_sha256', 'size_bytes', 'transcript_sha256'],
+      label,
+      errors,
+    )) continue;
+    if (
+      typeof asset.card_id !== 'string' ||
+      assetsByCard.has(asset.card_id) ||
+      typeof asset.asset_path !== 'string' ||
+      !asset.asset_path.startsWith('ai_tts/cet4/') ||
+      !asset.asset_path.endsWith('.mp3') ||
+      !SHA256_PATTERN.test(asset.file_sha256 ?? '') ||
+      !SHA256_PATTERN.test(asset.transcript_sha256 ?? '') ||
+      !Number.isSafeInteger(asset.size_bytes) ||
+      asset.size_bytes < 1
+    ) {
+      errors.push(`${label} has an invalid or duplicate media identity.`);
+      continue;
+    }
+    assetsByCard.set(asset.card_id, asset);
+  }
+  if (assetsByCard.size !== 301) {
+    errors.push('trusted media audio manifest card identities are incomplete.');
+  }
+
+  if (
+    worklist.schema_version !== 'audio-perceptual-worklist.v3' ||
+    worklist.track !== 'cet4' ||
+    !Array.isArray(worklist.entries) ||
+    worklist.entries.length !== 301 ||
+    worklist.progress?.passed !== 301 ||
+    worklist.progress?.failed !== 0 ||
+    worklist.progress?.pending !== 0
+  ) {
+    errors.push('trusted media reviewed worklist is not an exact complete CET4 pass.');
+    return false;
+  }
+  const entriesByCard = new Map();
+  for (const [index, entry] of worklist.entries.entries()) {
+    const label = `reviewed worklist entries[${index}]`;
+    const asset = assetsByCard.get(entry?.card_id);
+    if (
+      !asset ||
+      entriesByCard.has(entry.card_id) ||
+      !SHA256_PATTERN.test(entry?.entry_identity_sha256 ?? '') ||
+      entry.audio?.asset_path !== asset.asset_path ||
+      entry.audio?.file_sha256 !== asset.file_sha256 ||
+      entry.audio?.size_bytes !== asset.size_bytes ||
+      entry.audio?.transcript_sha256 !== asset.transcript_sha256 ||
+      entry.review?.status !== 'passed' ||
+      entry.review?.complete_asset_consumed !== true ||
+      !Array.isArray(entry.review?.model_acceptances) ||
+      entry.review.model_acceptances.length !== 2 ||
+      PERCEPTUAL_CHECKS.some(check => entry.checks?.[check] !== 'pass')
+    ) {
+      errors.push(`${label} does not bind an exact passed media decision.`);
+      continue;
+    }
+    const agents = entry.review.model_acceptances.map(item => item?.actor?.agent).sort();
+    const runIds = entry.review.model_acceptances.map(item => item?.actor?.run_id);
+    if (
+      JSON.stringify(agents) !== JSON.stringify(['agent:trusted-media-af', 'agent:trusted-media-bg']) ||
+      new Set(runIds).size !== 2 ||
+      entry.review.model_acceptances.some(item =>
+        item?.schema_version !== 'model-acceptance.v2' ||
+        item?.actor?.model !== receipt.execution.model.id ||
+        item?.decision !== 'accepted' ||
+        !item?.evidence?.capabilities?.includes('audio_perceptual_review'))
+    ) {
+      errors.push(`${label} lacks the two independent trusted media acceptances.`);
+    }
+    entriesByCard.set(entry.card_id, entry);
+  }
+
+  if (
+    rawManifest.schema_version !== 'trusted-media-raw-run-manifest.v1' ||
+    JSON.stringify(rawManifest.model) !== JSON.stringify(receipt.execution.model) ||
+    !Array.isArray(rawManifest.runs)
+  ) {
+    errors.push('trusted media raw run manifest identity is invalid.');
+    return false;
+  }
+  const receiptRuns = new Map(receipt.review_runs.map(run => [run.run_id, run]));
+  const mandatoryCoverage = new Map([
+    ['full_perceptual', 0],
+    ['blind_transcript', 0],
+  ]);
+  for (const [index, run] of rawManifest.runs.entries()) {
+    const label = `raw run manifest runs[${index}]`;
+    const receiptRun = receiptRuns.get(run?.run_id);
+    if (
+      !receiptRun ||
+      run.purpose !== receiptRun.purpose ||
+      run.sha256 !== receiptRun.raw_output_sha256 ||
+      run.card_count !== receiptRun.card_count ||
+      run.complete_asset_count !== receiptRun.complete_asset_count ||
+      typeof run.path !== 'string' ||
+      path.basename(run.path) !== run.path
+    ) {
+      errors.push(`${label} does not match the attested receipt run identity.`);
+      continue;
+    }
+    const runFile = loadBoundArtifact(
+      artifactDirectory,
+      run.path,
+      {sha256: run.sha256, size_bytes: run.size_bytes},
+      `trusted media raw run ${run.run_id}`,
+      errors,
+    );
+    if (!runFile) continue;
+    const records = parseJsonLines(runFile.bytes, `trusted media raw run ${run.run_id}`, errors);
+    if (records.length !== run.card_count || records.length !== run.complete_asset_count) {
+      errors.push(`${label} record counts do not match complete consumption claims.`);
+    }
+    const seen = new Set();
+    for (const [recordIndex, record] of records.entries()) {
+      const recordLabel = `${label} records[${recordIndex}]`;
+      const entry = entriesByCard.get(record?.card_id);
+      if (
+        !entry ||
+        seen.has(record.card_id) ||
+        record.run_id !== run.run_id ||
+        record.purpose !== run.purpose ||
+        record.entry_identity_sha256 !== entry.entry_identity_sha256 ||
+        record.asset_path !== entry.audio.asset_path ||
+        record.asset_sha256 !== entry.audio.file_sha256 ||
+        record.complete_asset_consumed !== true ||
+        record.status !== 'ok'
+      ) {
+        errors.push(`${recordLabel} does not bind the exact reviewed asset and run.`);
+        continue;
+      }
+      validateAudioCoverage(record.audio_coverage, policy, `${recordLabel}.audio_coverage`, errors);
+      if (!Array.isArray(record.raw_outputs) || record.raw_outputs.length < 1) {
+        errors.push(`${recordLabel} does not retain a raw model output.`);
+      }
+      if (!record.result || typeof record.result !== 'object' || Array.isArray(record.result)) {
+        errors.push(`${recordLabel} result is not an object.`);
+      } else if (['full_perceptual', 'adjudication'].includes(run.purpose)) {
+        if (
+          typeof record.result.transcript_heard !== 'string' ||
+          typeof record.result.notes !== 'string' ||
+          [
+            'matches_text',
+            'target_signal_audible',
+            'accurate_pronunciation',
+            'suitable_speed',
+            'natural_rhythm',
+            'stress_pauses_do_not_mislead',
+            'no_unwanted_noise_or_clipping',
+          ].some(field => typeof record.result[field] !== 'boolean')
+        ) {
+          errors.push(`${recordLabel} full perceptual result shape is invalid.`);
+        }
+      } else if (
+        run.purpose === 'blind_transcript' &&
+        typeof record.result.transcript_heard !== 'string'
+      ) {
+        errors.push(`${recordLabel} blind transcript result is invalid.`);
+      }
+      if (
+        run.purpose === 'blind_transcript' &&
+        (!Number.isFinite(record.transcript_similarity) || record.transcript_similarity < 0.85)
+      ) {
+        errors.push(`${recordLabel} blind transcript did not pass deterministic similarity.`);
+      }
+      seen.add(record.card_id);
+    }
+    if (['full_perceptual', 'blind_transcript'].includes(run.purpose)) {
+      if (seen.size !== 301) {
+        errors.push(`${label} must cover all 301 exact card assets.`);
+      }
+      mandatoryCoverage.set(run.purpose, mandatoryCoverage.get(run.purpose) + 1);
+    }
+  }
+  if (receiptRuns.size !== rawManifest.runs.length) {
+    errors.push('raw run manifest does not cover every receipt review run exactly once.');
+  }
+  if (mandatoryCoverage.get('full_perceptual') < policy.receipt.minimum_full_perceptual_runs) {
+    errors.push('raw artifacts lack two complete full_perceptual runs.');
+  }
+  if (mandatoryCoverage.get('blind_transcript') < policy.receipt.minimum_blind_transcript_runs) {
+    errors.push('raw artifacts lack two complete blind_transcript runs.');
+  }
+  return errors.length === 0;
 }
 
 function validateReceipt(receipt, policy, errors) {
@@ -357,6 +668,7 @@ function findVerifiedSubjectDigest(verification, receiptSha256) {
 export function verifyTrustedMediaRunReceipt({
   receiptPath,
   bundlePath = null,
+  artifactDirectory = null,
   verifyAttestation = false,
   execFile = execFileSync,
 } = {}) {
@@ -396,6 +708,17 @@ export function verifyTrustedMediaRunReceipt({
   const receiptSha256 = receiptBytes
     ? createHash('sha256').update(receiptBytes).digest('hex')
     : null;
+  let artifactsVerified = false;
+  if (receipt && errors.length === 0 && artifactDirectory) {
+    artifactsVerified = validateArtifactEvidence(
+      receipt,
+      policy,
+      artifactDirectory,
+      errors,
+    );
+  } else if (verifyAttestation && receipt && !artifactDirectory) {
+    errors.push('formal media verification requires --artifact-dir.');
+  }
   let attestationVerified = false;
   if (verifyAttestation && receipt && errors.length === 0) {
     const bundleBytes = loadRegularFile(
@@ -455,8 +778,9 @@ export function verifyTrustedMediaRunReceipt({
   }
   return {
     ok: errors.length === 0,
-    formal_ready: errors.length === 0 && attestationVerified,
+    formal_ready: errors.length === 0 && attestationVerified && artifactsVerified,
     attestation_verified: attestationVerified,
+    artifacts_verified: artifactsVerified,
     receipt_sha256: receiptSha256,
     source_commit_sha: receipt?.source?.commit_sha ?? null,
     errors,
@@ -469,12 +793,13 @@ function parseArgs(argv) {
     const token = argv[index];
     if (token === '--verify-attestation') {
       result.verifyAttestation = true;
-    } else if (token === '--receipt' || token === '--bundle') {
+    } else if (token === '--receipt' || token === '--bundle' || token === '--artifact-dir') {
       const value = argv[index + 1];
       if (!value) throw new Error(`${token} requires a value.`);
       index += 1;
       if (token === '--receipt') result.receiptPath = value;
       if (token === '--bundle') result.bundlePath = value;
+      if (token === '--artifact-dir') result.artifactDirectory = value;
     } else {
       throw new Error(`unknown argument: ${token}`);
     }
@@ -482,6 +807,9 @@ function parseArgs(argv) {
   if (!result.receiptPath) throw new Error('--receipt is required.');
   if (result.verifyAttestation && !result.bundlePath) {
     throw new Error('--bundle is required with --verify-attestation.');
+  }
+  if (result.verifyAttestation && !result.artifactDirectory) {
+    throw new Error('--artifact-dir is required with --verify-attestation.');
   }
   return result;
 }

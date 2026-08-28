@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { mkdtempSync, rmSync, writeFileSync } = require('node:fs');
+const { mkdtempSync, readFileSync, rmSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join, resolve } = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -210,6 +210,90 @@ test('apply rejects unsafe repository and mismatched account/session credentials
   );
 });
 
+test('repository execution rejects an untracked receiver profile before any request', async () => {
+  const fixture = createFixture();
+  let requests = 0;
+  await assert.rejects(
+    () =>
+      drill.executeSessionRevocationDrill(
+        drill.parseSessionRevocationDrillArguments(['--profile', fixture.profilePath]),
+        {
+          clock: createClock(),
+          transport: { request: async () => (requests += 1) },
+        }
+      ),
+    /tracked JSON file inside the repository/
+  );
+  assert.equal(requests, 0);
+});
+
+test('apply verifies receiver deployment identity before reading or sending session credentials', async () => {
+  const fixture = createFixture();
+  let requests = 0;
+  const options = drill.parseSessionRevocationDrillArguments([
+    '--profile',
+    fixture.profilePath,
+    '--apply',
+    '--operator',
+    'service:auth-auditor',
+  ]);
+  await assert.rejects(
+    () =>
+      drill.executeSessionRevocationDrill(options, {
+        ...dependencies(),
+        env: {},
+        inspectDeployment: async () => ({
+          errors: ['backend deployment ID mismatch'],
+          ok: false,
+        }),
+        transport: { request: async () => (requests += 1) },
+      }),
+    /receiver deployment identity preflight failed: backend deployment ID mismatch/
+  );
+  assert.equal(requests, 0);
+});
+
+test('remote transport rejects redirects and enforces a bounded abort signal', async () => {
+  let observed = null;
+  const target = 'https://receiver.example/softbook-api/v2/auth/logout';
+  const transport = drill.createRemoteSessionTransport({
+    baseUrl: 'https://receiver.example/softbook-api',
+    timeoutMs: 1000,
+    fetchImpl: async (url, options) => {
+      observed = { options, url };
+      return { redirected: false, status: 204, url };
+    },
+  });
+  assert.deepEqual(await transport.request('token', '/v2/auth/logout', {method: 'POST'}), {
+    payload: null,
+    status: 204,
+  });
+  assert.equal(observed.url, target);
+  assert.equal(observed.options.redirect, 'error');
+  assert.equal(observed.options.signal instanceof AbortSignal, true);
+
+  const redirected = drill.createRemoteSessionTransport({
+    baseUrl: 'https://receiver.example/softbook-api',
+    fetchImpl: async () => ({
+      redirected: true,
+      status: 204,
+      url: 'https://attacker.example/capture',
+    }),
+  });
+  await assert.rejects(
+    () => redirected.request('token', '/v2/auth/logout', {method: 'POST'}),
+    /changed the tracked receiver URL/
+  );
+  assert.throws(
+    () =>
+      drill.createRemoteSessionTransport({
+        baseUrl: 'https://receiver.example/softbook-api',
+        timeoutMs: 999,
+      }),
+    /timeout must be between 1000 and 30000/
+  );
+});
+
 test('apply rejects operator values that could disclose phone or credential material', async () => {
   const fixture = createFixture();
   const credentials = createCredentials();
@@ -366,6 +450,14 @@ function dependencies() {
     clock: createClock(),
     env: credentialEnv(credentials),
     nodeVersion: '22.13.0',
+    loadProfile(profilePath) {
+      return { bytes: readFileSync(profilePath), relativePath: 'test/profile.json' };
+    },
+    inspectDeployment: async ({ expectedDeploymentId }) => ({
+      errors: [],
+      ok: true,
+      public: { backend_deployment_id: expectedDeploymentId },
+    }),
     repository: {
       branch: 'main',
       dirty: false,
