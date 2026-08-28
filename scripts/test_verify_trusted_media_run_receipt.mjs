@@ -13,6 +13,21 @@ import {
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 
+function cet4RuntimeCatalog() {
+  const document = JSON.parse(fs.readFileSync(
+    path.resolve(import.meta.dirname, '../spec/box-catalog.json'),
+  ));
+  return new Map(document.libraries.flatMap(library =>
+    library.groups.flatMap(group => group.boxes.flatMap(box => {
+      const prefix = box.resolved_box_prefixes?.cet4;
+      return prefix ? [[prefix, {
+        library: library.name,
+        group: group.name,
+        box: box.name,
+      }]] : [];
+    }))));
+}
+
 function validReceipt() {
   return {
     schema_version: 'trusted-media-run-receipt.v1',
@@ -365,6 +380,8 @@ function createArtifactFixture(root, receipt) {
 }
 
 function writeCandidateEvidence(root, receipt, assets) {
+  const catalog = cet4RuntimeCatalog();
+  const fillerPrefixes = [...catalog.keys()].filter(prefix => prefix !== '0000');
   const reviewedCards = assets.map(asset => ({
     card_id: asset.card_id,
     knowledge_ref: asset.knowledge_ref,
@@ -376,16 +393,17 @@ function writeCandidateEvidence(root, receipt, assets) {
   }));
   const fillerCards = Array.from({length: 879}, (_, index) => {
     const number = index + 302;
-    const boxPrefix = String((index % 107) + 1).padStart(4, '0');
+    const boxPrefix = fillerPrefixes[index % fillerPrefixes.length];
+    const catalogEntry = catalog.get(boxPrefix);
     return {
       card_id: String(number).padStart(6, '0'),
       knowledge_ref: {
         library_id: '1',
-        library_name: '阅读',
+        library_name: catalogEntry.library,
         group_id: '1',
-        group_name: '测试',
+        group_name: catalogEntry.group,
         box_id: boxPrefix,
-        box_name: `测试盒 ${boxPrefix}`,
+        box_name: catalogEntry.box,
         box_prefix: boxPrefix,
       },
       quality_metadata: {
@@ -410,6 +428,7 @@ function writeCandidateEvidence(root, receipt, assets) {
   }));
   const runtimeCards = cards.map(card => {
     const asset = assetByCard.get(card.card_id);
+    const catalogEntry = catalog.get(card.knowledge_ref.box_prefix);
     return {
       card_id: card.card_id,
       track: 'cet4',
@@ -419,9 +438,9 @@ function writeCandidateEvidence(root, receipt, assets) {
       analysis: {title: '测试', summary: '测试', exam_tip: '测试'},
       space_metadata: {
         box_ref: card.knowledge_ref.box_prefix,
-        library: card.knowledge_ref.library_name,
-        group: card.knowledge_ref.group_name,
-        box: card.knowledge_ref.box_name,
+        library: catalogEntry.library,
+        group: catalogEntry.group,
+        box: catalogEntry.box,
       },
       back_text: '测试',
       ...(asset ? {
@@ -775,7 +794,7 @@ test('runtime audio cards must own the exact asset catalog one to one', t => {
   assert.match(result.errors.join('\n'), /own the exact 301-asset catalog/);
 });
 
-test('transformed runtime space metadata must match the source card', t => {
+test('transformed audio runtime space metadata must match the canonical catalog', t => {
   const receipt = validReceipt();
   const fixtureValue = fixture(t, receipt);
   rebindCandidateRuntime(fixtureValue, receipt, runtime => {
@@ -783,7 +802,31 @@ test('transformed runtime space metadata must match the source card', t => {
   });
   const result = verifyAttested(fixtureValue, receipt);
   assert.equal(result.formal_ready, false);
-  assert.match(result.errors.join('\n'), /does not bind the authorized candidate card/);
+  assert.match(result.errors.join('\n'), /does not match the CET4 box catalog/);
+});
+
+test('all transformed runtime cards must match the canonical box catalog', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  rebindCandidateRuntime(fixtureValue, receipt, runtime => {
+    runtime.card_records.find(card => !card.audio).space_metadata.group = '错误分组';
+  });
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /does not match the CET4 box catalog/);
+});
+
+test('runtime asset IDs must retain the canonical nonempty card binding', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  rebindCandidateRuntime(fixtureValue, receipt, runtime => {
+    const prior = runtime.card_records[0].audio.asset_id;
+    runtime.card_records[0].audio.asset_id = '';
+    runtime.assets.find(asset => asset.asset_id === prior).asset_id = '';
+  });
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /1180-card\/108-box candidate/);
 });
 
 test('audio manifest rejects one media path reused by different cards', t => {

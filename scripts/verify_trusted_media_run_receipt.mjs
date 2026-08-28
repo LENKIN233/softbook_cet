@@ -1047,6 +1047,8 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
   }
   const runtime = resolveCandidateRuntimePayload(runtimeDocument, candidateRoot, errors);
   if (!runtime) return;
+  const runtimeCatalog = loadCet4RuntimeCatalog(errors);
+  if (!runtimeCatalog) return;
   const cards = runtime.card_records;
   const cardIds = cards.map(card => String(card?.card_id ?? ''));
   const uniqueBoxes = [...new Set(cards.map(runtimeBoxPrefix))].sort();
@@ -1061,6 +1063,15 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
     !Array.isArray(runtime.assets) ||
     runtime.assets.length !== 301 ||
     new Set(runtime.assets.map(asset => asset?.asset_id)).size !== 301 ||
+    runtime.assets.some(asset =>
+      !/^[a-z0-9][a-z0-9._-]{2,127}$/.test(String(asset?.asset_id ?? '')) ||
+      !/^audio\/cet4\/[0-9]{4}\/[0-9]{6}\.mp3$/.test(String(asset?.asset_path ?? '')) ||
+      !CONTENT_VERSION_PATTERN.test(asset?.sha256 ?? '') ||
+      !Number.isSafeInteger(asset?.size_bytes) ||
+      asset.size_bytes <= 0 ||
+      !Number.isSafeInteger(asset?.duration_ms) ||
+      asset.duration_ms <= 0 ||
+      asset?.media_type !== 'audio/mpeg') ||
     JSON.stringify([...cardIds].sort()) !== JSON.stringify(authorizedCards) ||
     JSON.stringify(uniqueBoxes) !== JSON.stringify(authorizedBoxes) ||
     contentVersion !== authorization.content_version ||
@@ -1084,6 +1095,21 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
   ) {
     errors.push('authorized runtime audio cards do not own the exact 301-asset catalog.');
     return;
+  }
+  for (const runtimeCard of cards) {
+    const prefix = runtimeBoxPrefix(runtimeCard);
+    const catalogEntry = runtimeCatalog.get(prefix);
+    if (
+      !catalogEntry ||
+      runtimeCard.track !== 'cet4' ||
+      runtimeCard.space_metadata?.box_ref !== prefix ||
+      runtimeCard.space_metadata?.library !== catalogEntry.library ||
+      runtimeCard.space_metadata?.group !== catalogEntry.group ||
+      runtimeCard.space_metadata?.box !== catalogEntry.box
+    ) {
+      errors.push(`runtime card ${String(runtimeCard?.card_id)} does not match the CET4 box catalog.`);
+      return;
+    }
   }
   const sourceCache = new Map();
   for (const entry of worklist.entries) {
@@ -1117,10 +1143,7 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
       entry.audio.transcript !== transcript ||
       runtimeCard.track !== 'cet4' ||
       runtimeBoxPrefix(runtimeCard) !== entry.knowledge_ref.box_prefix ||
-      runtimeCard.space_metadata?.box_ref !== entry.knowledge_ref.box_prefix ||
-      runtimeCard.space_metadata?.library !== entry.knowledge_ref.library_name ||
-      runtimeCard.space_metadata?.group !== entry.knowledge_ref.group_name ||
-      runtimeCard.space_metadata?.box !== entry.knowledge_ref.box_name ||
+      runtimeCard.audio?.asset_id !== `cet4-${entry.card_id}-audio` ||
       runtimeCard.audio?.transcript !== entry.audio.transcript ||
       runtimeCard.audio?.duration_ms !== entry.audio.declared_duration_ms ||
       normalizeSha(runtimeCard.audio?.sha256) !== entry.audio.file_sha256 ||
@@ -1217,6 +1240,46 @@ function normalizedKnowledgeRef(card) {
     box_name: String(card?.knowledge_ref?.box_name ?? card?.card_box_name ?? ''),
     box_prefix: String(card?.knowledge_ref?.box_prefix ?? card?.card_box_code ?? ''),
   };
+}
+
+function loadCet4RuntimeCatalog(errors) {
+  const bytes = loadRegularFile(
+    path.join(ROOT, 'spec/box-catalog.json'),
+    4 * 1024 * 1024,
+    'CET4 box catalog',
+    errors,
+  );
+  if (!bytes) return null;
+  let document;
+  try {
+    document = parseStrictJson(bytes, 'CET4 box catalog');
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+    return null;
+  }
+  const result = new Map();
+  for (const library of document.libraries ?? []) {
+    for (const group of library.groups ?? []) {
+      for (const box of group.boxes ?? []) {
+        const prefix = box.resolved_box_prefixes?.cet4;
+        if (typeof prefix !== 'string') continue;
+        if (result.has(prefix)) {
+          errors.push(`CET4 box catalog repeats prefix ${prefix}.`);
+          return null;
+        }
+        result.set(prefix, {
+          library: library.name,
+          group: group.name,
+          box: box.name,
+        });
+      }
+    }
+  }
+  if (result.size !== 108) {
+    errors.push('CET4 box catalog does not contain exactly 108 boxes.');
+    return null;
+  }
+  return result;
 }
 
 function runtimeBoxPrefix(card) {
