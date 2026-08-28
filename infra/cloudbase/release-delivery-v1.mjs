@@ -910,6 +910,7 @@ function verifyApprovalRecord(approval, modelReview, bundle, content) {
     },
     additionalBindings: {
       content_version: bundle.content.content_version,
+      runtime_payload_sha256: approval.validation?.runtime_payload_sha256,
     },
   });
   requireIndependentModelAcceptances(approval.model_acceptances, {

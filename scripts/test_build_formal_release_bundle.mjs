@@ -355,6 +355,7 @@ function createFixture() {
   };
   const content = validateCardSourceForReleaseBundle(rawContent, 'cet4');
   writeJson(contentPayloadPath, content);
+  const runtimePayloadSha256 = `sha256:${hash(fs.readFileSync(contentPayloadPath))}`;
   const bySeverity = {
     hard_blocker: 0,
     content_risk: 0,
@@ -450,6 +451,7 @@ function createFixture() {
     },
     additionalBindings: {
       content_version: content.content_version,
+      runtime_payload_sha256: runtimePayloadSha256,
     },
   });
   const authorization = {
@@ -485,6 +487,8 @@ function createFixture() {
     validation: {
       model_review: linkedModelReview,
       model_review_sha256: modelReviewSha256,
+      runtime_payload: 'reviews/runtime_payloads/cet4-formal.json',
+      runtime_payload_sha256: runtimePayloadSha256,
     },
     authorization_limits: ['Exact immutable fixture scope only.'],
   };

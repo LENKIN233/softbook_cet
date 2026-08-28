@@ -389,8 +389,8 @@ function assertAudioEvidence(
   }
   const qcItems = requireArray(qcIndex.assets, 'audio QC assets');
   const qcIds = new Set();
-  const manifestByPath = new Map(
-    manifestAssets.map(asset => [asset.asset_path, asset]),
+  const manifestById = new Map(
+    manifestAssets.map(asset => [asset.asset_id, asset]),
   );
   for (const item of qcItems) {
     assertExactObjectKeys(
@@ -425,7 +425,7 @@ function assertAudioEvidence(
       `audio QC record ${item.asset_id}`,
     );
     const record = readJson(recordPath, `audio QC record ${item.asset_id}`);
-    verifyModelAudioQcRecord(record, item, manifestByPath);
+    verifyModelAudioQcRecord(record, item, manifestById);
     qcIds.add(item.asset_id);
   }
   if (
@@ -439,7 +439,7 @@ function assertAudioEvidence(
   }
 }
 
-function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
+function verifyModelAudioQcRecord(record, indexedAsset, manifestById) {
   if (
     record.schema_version !== 'model-owned-audio-qc.v2' ||
     record.verdict?.formal_audio_ready !== true ||
@@ -486,7 +486,7 @@ function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
     const transcriptSha256 = createHash('sha256')
       .update(String(transcript?.transcript ?? ''), 'utf8')
       .digest('hex');
-    const manifestAsset = manifestByPath.get(asset?.path);
+    const manifestAsset = manifestById.get(indexedAsset.asset_id);
     if (
       !String(transcript?.transcript ?? '').trim() ||
       asset?.transcript_sha256 !== transcriptSha256 ||

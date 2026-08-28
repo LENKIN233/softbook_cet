@@ -87,7 +87,7 @@ The bundle is track-scoped and requires:
 - a `model-owned-content-authorization.v2` full-track record with two distinct
   accepted runs whose exact input binds card/box scope, corpus fingerprint,
   audit, linked model review, and the recomputed canonical runtime
-  `content_version`;
+  `content_version` plus the source runtime payload/manifest byte SHA-256;
 - a hash-bound audit with zero unresolved blockers, zero unexplained risks, and
   100% quality metadata coverage;
 - the exact track audio count whose paths, sizes, durations, hashes, and QC
@@ -113,7 +113,7 @@ workflow, its exact bytes pass GitHub Artifact Attestation verification, and
 the four CET4 content/media evidence types are registered. The repository now
 contains the receipt schema and structural/attestation verifier. Formal-ready
 verification additionally requires the exact downloaded artifact directory;
-the consumer rehashes the audio manifest, reviewed worklist, raw-run manifest
+the consumer rehashes all 301 exact audio files, the audio manifest, reviewed worklist, raw-run manifest
 and every referenced JSONL run, recomputes exact 301-card media identity, two
 full perceptual plus two blind-transcript runs, per-card dual acceptances and
 measured untruncated sample coverage. Attestation without those bytes remains

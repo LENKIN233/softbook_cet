@@ -103,6 +103,23 @@ function loadBoundArtifact(directory, filename, identity, label, errors) {
   return {bytes, path: target};
 }
 
+function loadBoundMedia(directory, filename, identity, label, errors) {
+  const root = path.resolve(directory ?? '');
+  const target = path.resolve(root, String(filename ?? ''));
+  if (!target.startsWith(`${root}${path.sep}`)) {
+    errors.push(`${label} path escapes the artifact directory.`);
+    return null;
+  }
+  const bytes = loadRegularFile(target, 64 * 1024 * 1024, label, errors);
+  if (!bytes) return null;
+  const observed = createHash('sha256').update(bytes).digest('hex');
+  if (observed !== identity?.sha256 || bytes.length !== identity?.size_bytes) {
+    errors.push(`${label} bytes do not match the attested media identity.`);
+    return null;
+  }
+  return {bytes, path: target};
+}
+
 function parseArtifactJson(file, label, errors) {
   if (!file) return null;
   try {
@@ -136,6 +153,25 @@ function decisionInputSha256(entry) {
   return `sha256:${createHash('sha256')
     .update(canonicalStringify(payload))
     .digest('hex')}`;
+}
+
+function recomputedEntryIdentitySha256(entry) {
+  const identity = {
+    card_id: entry.card_id,
+    card_source_file: entry.card_source_file,
+    knowledge_ref: entry.knowledge_ref,
+    training_context: entry.training_context,
+    audio: {
+      asset_path: entry.audio?.asset_path,
+      file_sha256: entry.audio?.file_sha256,
+      size_bytes: entry.audio?.size_bytes,
+      declared_duration_ms: entry.audio?.declared_duration_ms,
+      probed_duration_ms: entry.audio?.probed_duration_ms,
+      transcript: entry.audio?.transcript,
+      transcript_sha256: entry.audio?.transcript_sha256,
+    },
+  };
+  return createHash('sha256').update(canonicalStringify(identity)).digest('hex');
 }
 
 function normalizedWords(value) {
@@ -230,7 +266,13 @@ function parseJsonLines(bytes, label, errors) {
   return records;
 }
 
-function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
+function validateArtifactEvidence(
+  receipt,
+  policy,
+  artifactDirectory,
+  audioRoot,
+  errors,
+) {
   if (!artifactDirectory) {
     errors.push('formal media verification requires --artifact-dir with the exact run artifacts.');
     return false;
@@ -271,14 +313,14 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
     'trusted media model weights manifest',
     errors,
   );
-  loadBoundArtifact(
+  const mlxAudioPackageManifestFile = loadBoundArtifact(
     artifactDirectory,
     filenames.mlx_audio_package_manifest,
     receipt.artifacts.mlx_audio_package_manifest,
     'trusted media mlx_audio package manifest',
     errors,
   );
-  loadBoundArtifact(
+  const pythonEnvironmentManifestFile = loadBoundArtifact(
     artifactDirectory,
     filenames.python_environment_manifest,
     receipt.artifacts.python_environment_manifest,
@@ -294,7 +336,25 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
     'trusted media model weights manifest',
     errors,
   );
-  if (!audioManifest || !worklist || !rawManifest || !runPackage || !modelWeightsManifest) {
+  const mlxAudioPackageManifest = parseArtifactJson(
+    mlxAudioPackageManifestFile,
+    'trusted media mlx_audio package manifest',
+    errors,
+  );
+  const pythonEnvironmentManifest = parseArtifactJson(
+    pythonEnvironmentManifestFile,
+    'trusted media Python environment manifest',
+    errors,
+  );
+  if (
+    !audioManifest ||
+    !worklist ||
+    !rawManifest ||
+    !runPackage ||
+    !modelWeightsManifest ||
+    !mlxAudioPackageManifest ||
+    !pythonEnvironmentManifest
+  ) {
     return false;
   }
   const modelManifestDigest = createHash('sha256')
@@ -305,6 +365,31 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
     modelManifestDigest !== modelWeightsManifest.sha256
   ) {
     errors.push('trusted media model weights manifest does not match the receipt model identity.');
+  }
+  for (const [label, manifest, expected] of [
+    [
+      'mlx_audio package',
+      mlxAudioPackageManifest,
+      receipt.execution.harness.mlx_audio_package_manifest_sha256,
+    ],
+    [
+      'Python environment',
+      pythonEnvironmentManifest,
+      receipt.execution.harness.python_environment_manifest_sha256,
+    ],
+  ]) {
+    const files = Array.isArray(manifest.files) ? manifest.files : null;
+    const digest = files
+      ? createHash('sha256').update(canonicalStringify(files)).digest('hex')
+      : null;
+    if (
+      !files ||
+      files.length === 0 ||
+      manifest.sha256 !== expected ||
+      digest !== manifest.sha256
+    ) {
+      errors.push(`trusted media ${label} manifest does not match execution.harness.`);
+    }
   }
 
   if (
@@ -340,6 +425,13 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
       errors.push(`${label} has an invalid or duplicate media identity.`);
       continue;
     }
+    loadBoundMedia(
+      audioRoot,
+      asset.asset_path,
+      {sha256: asset.file_sha256, size_bytes: asset.size_bytes},
+      `${label} media`,
+      errors,
+    );
     assetsByCard.set(asset.card_id, asset);
   }
   if (assetsByCard.size !== 301) {
@@ -366,6 +458,7 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
       !asset ||
       entriesByCard.has(entry.card_id) ||
       !SHA256_PATTERN.test(entry?.entry_identity_sha256 ?? '') ||
+      entry.entry_identity_sha256 !== recomputedEntryIdentitySha256(entry) ||
       entry.audio?.asset_path !== asset.asset_path ||
       entry.audio?.file_sha256 !== asset.file_sha256 ||
       entry.audio?.size_bytes !== asset.size_bytes ||
@@ -790,7 +883,12 @@ function validateReceipt(receipt, policy, errors) {
     }
     if (exactKeys(
       execution.harness,
-      ['driver_bundle_sha256', 'dependency_lock_sha256'],
+      [
+        'driver_bundle_sha256',
+        'dependency_lock_sha256',
+        'mlx_audio_package_manifest_sha256',
+        'python_environment_manifest_sha256',
+      ],
       'receipt.execution.harness',
       errors,
     )) {
@@ -802,6 +900,16 @@ function validateReceipt(receipt, policy, errors) {
       nonPlaceholderSha(
         execution.harness.dependency_lock_sha256,
         'receipt.execution.harness.dependency_lock_sha256',
+        errors,
+      );
+      nonPlaceholderSha(
+        execution.harness.mlx_audio_package_manifest_sha256,
+        'receipt.execution.harness.mlx_audio_package_manifest_sha256',
+        errors,
+      );
+      nonPlaceholderSha(
+        execution.harness.python_environment_manifest_sha256,
+        'receipt.execution.harness.python_environment_manifest_sha256',
         errors,
       );
     }
@@ -978,6 +1086,7 @@ export function verifyTrustedMediaRunReceipt({
   receiptPath,
   bundlePath = null,
   artifactDirectory = null,
+  audioRoot = null,
   verifyAttestation = false,
   execFile = execFileSync,
 } = {}) {
@@ -1023,6 +1132,7 @@ export function verifyTrustedMediaRunReceipt({
       receipt,
       policy,
       artifactDirectory,
+      audioRoot ?? artifactDirectory,
       errors,
     );
   } else if (verifyAttestation && receipt && !artifactDirectory) {
@@ -1045,6 +1155,7 @@ export function verifyTrustedMediaRunReceipt({
         policy.producer.repository,
         '--bundle',
         path.resolve(bundlePath),
+        '--deny-self-hosted-runners',
         '--signer-workflow',
         policy.producer.signer_workflow,
         '--signer-digest',
@@ -1097,18 +1208,24 @@ export function verifyTrustedMediaRunReceipt({
 }
 
 function parseArgs(argv) {
-  const result = {verifyAttestation: false};
+  const result = {verifyAttestation: false, audioRoot: null};
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === '--verify-attestation') {
       result.verifyAttestation = true;
-    } else if (token === '--receipt' || token === '--bundle' || token === '--artifact-dir') {
+    } else if (
+      token === '--receipt' ||
+      token === '--bundle' ||
+      token === '--artifact-dir' ||
+      token === '--audio-root'
+    ) {
       const value = argv[index + 1];
       if (!value) throw new Error(`${token} requires a value.`);
       index += 1;
       if (token === '--receipt') result.receiptPath = value;
       if (token === '--bundle') result.bundlePath = value;
       if (token === '--artifact-dir') result.artifactDirectory = value;
+      if (token === '--audio-root') result.audioRoot = value;
     } else {
       throw new Error(`unknown argument: ${token}`);
     }

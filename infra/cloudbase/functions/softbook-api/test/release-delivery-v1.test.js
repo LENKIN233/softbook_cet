@@ -296,6 +296,10 @@ test('formal model review acceptance cannot reuse another input', () => {
       path: approval.validation.model_review,
       sha256: reviewHash,
     },
+    additionalBindings: {
+      content_version: bundle.content.content_version,
+      runtime_payload_sha256: approval.validation.runtime_payload_sha256,
+    },
   });
   for (const acceptance of approval.model_acceptances) {
     acceptance.evidence.input_sha256 = authorizationInput;
@@ -666,6 +670,7 @@ function createValidBundleFixture(track = 'cet4') {
     },
     additionalBindings: {
       content_version: content.content_version,
+      runtime_payload_sha256: contentHash,
     },
   });
   const approval = {
@@ -701,6 +706,8 @@ function createValidBundleFixture(track = 'cet4') {
     validation: {
       model_review: linkedModelReviewPath,
       model_review_sha256: modelReviewHash,
+      runtime_payload: `reviews/runtime_payloads/${track}-formal.json`,
+      runtime_payload_sha256: contentHash,
     },
     authorization_limits: [],
   };

@@ -43,6 +43,12 @@
       "model_audio_token_count": 750,
       "truncated": false
     },
+    "required_harness_identity_fields": [
+      "driver_bundle_sha256",
+      "dependency_lock_sha256",
+      "mlx_audio_package_manifest_sha256",
+      "python_environment_manifest_sha256"
+    ],
     "required_result": {
       "reviewed_card_count": 301,
       "passed_card_count": 301,
@@ -53,7 +59,7 @@
     }
   },
   "verification": {
-    "command": "gh attestation verify <receipt> --repo LENKIN233/card-make --bundle <bundle> --signer-workflow LENKIN233/card-make/.github/workflows/trusted-media-run.yml --signer-digest <source_commit_sha> --source-digest <source_commit_sha> --source-ref refs/heads/main --cert-oidc-issuer https://token.actions.githubusercontent.com --predicate-type https://slsa.dev/provenance/v1 --format json",
+    "command": "gh attestation verify <receipt> --repo LENKIN233/card-make --bundle <bundle> --deny-self-hosted-runners --signer-workflow LENKIN233/card-make/.github/workflows/trusted-media-run.yml --signer-digest <source_commit_sha> --source-digest <source_commit_sha> --source-ref refs/heads/main --cert-oidc-issuer https://token.actions.githubusercontent.com --predicate-type https://slsa.dev/provenance/v1 --format json",
     "require_local_receipt_sha256_in_verified_statement": true,
     "require_nonempty_verified_timestamp": true,
     "author_editable_json_is_trust_root": false,
@@ -61,9 +67,12 @@
     "type_specific_semantic_validation_required": true,
     "type_specific_semantics": [
       "exact_unique_raw_run_ID_name_path_hash_and_card_sets",
+      "all_301_audio_files_are_regular_and_rehashed_from_exact_bytes",
+      "entry_identity_is_recomputed_from_card_context_media_bytes_duration_and_transcript",
       "raw_run_results_replay_every_final_decision",
       "reviewed_transcript_bytes_rehash_to_declared_digest",
       "blind_transcript_similarity_is_recomputed",
+      "model_package_and_Python_environment_manifests_are_parsed_recomputed_and_bound_to_execution_harness",
       "model_acceptances_bind_the_recomputed_per_card_media_input_and_source_runs"
     ],
     "real_attested_receipt_required_before_formal_media_registration": true

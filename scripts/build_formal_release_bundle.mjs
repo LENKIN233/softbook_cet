@@ -64,10 +64,8 @@ export function assembleFormalReleaseBundle(
   const profile = validateDeliveryProfile(
     parseJsonBytes(profileBytes, 'delivery profile'),
   );
-  const rawContent = readJson(
-    normalized.contentPayloadPath,
-    'CET4 content payload',
-  );
+  const contentPayloadBytes = readFileSync(normalized.contentPayloadPath);
+  const rawContent = parseJsonBytes(contentPayloadBytes, 'CET4 content payload');
   const authorization = readJson(
     normalized.authorizationPath,
     'full-track model authorization',
@@ -95,6 +93,7 @@ export function assembleFormalReleaseBundle(
     audit,
     auditBytes,
     content,
+    contentHash: sha256Bytes(contentPayloadBytes),
     modelReview,
     modelReviewBytes,
     profile,
@@ -269,6 +268,7 @@ function validateInputs({
   audit,
   auditBytes,
   content,
+  contentHash,
   modelReview,
   modelReviewBytes,
   profile,
@@ -391,8 +391,15 @@ function validateInputs({
     },
     additionalBindings: {
       content_version: content.content_version,
+      runtime_payload_sha256: authorization.validation.runtime_payload_sha256,
     },
   });
+  if (
+    normalizeSha256(authorization.validation.runtime_payload_sha256) !==
+    normalizeSha256(contentHash)
+  ) {
+    fail('Full-track authorization runtime payload hash does not match content bytes.');
+  }
   try {
     requireIndependentModelAcceptances(modelReview.model_acceptances, {
       expectedInputSha256: expectedReviewInput,

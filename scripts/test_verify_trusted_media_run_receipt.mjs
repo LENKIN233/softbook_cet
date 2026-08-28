@@ -35,6 +35,8 @@ function validReceipt() {
       harness: {
         driver_bundle_sha256: hash('driver bundle'),
         dependency_lock_sha256: hash('dependency lock'),
+        mlx_audio_package_manifest_sha256: hash('mlx manifest'),
+        python_environment_manifest_sha256: hash('python environment manifest'),
       },
     },
     candidate: {
@@ -119,14 +121,44 @@ function createArtifactFixture(root, receipt) {
   const assets = Array.from({length: 301}, (_, index) => {
     const cardId = String(index + 1).padStart(6, '0');
     const transcript = `Trusted media transcript ${cardId}.`;
-    return {
+    const assetPath = `ai_tts/cet4/0000/${cardId}.mp3`;
+    const audioBytes = Buffer.from(`audio-${cardId}`);
+    const absoluteAssetPath = path.join(artifactDirectory, assetPath);
+    fs.mkdirSync(path.dirname(absoluteAssetPath), {recursive: true});
+    fs.writeFileSync(absoluteAssetPath, audioBytes);
+    const identity = {
       card_id: cardId,
-      asset_path: `ai_tts/cet4/0000/${cardId}.mp3`,
-      file_sha256: hash(`audio-${cardId}`),
-      size_bytes: 1000 + index,
-      transcript_sha256: hash(transcript),
-      transcript,
-      entry_identity_sha256: hash(`entry-${cardId}`),
+      card_source_file: 'card_boxes_json/cet4-listening.json',
+      knowledge_ref: {
+        library_id: '0',
+        library_name: '听力',
+        group_id: '0',
+        group_name: '测试',
+        box_id: '0',
+        box_name: '测试盒',
+        box_prefix: '0000',
+      },
+      training_context: {
+        main_training_goal: '完整听取音频',
+        box_progression_role: 'recognition',
+      },
+      audio: {
+        asset_path: assetPath,
+        file_sha256: hash(audioBytes),
+        size_bytes: audioBytes.length,
+        declared_duration_ms: 1000,
+        probed_duration_ms: 1000,
+        transcript,
+        transcript_sha256: hash(transcript),
+      },
+    };
+    return {
+      ...identity.audio,
+      card_id: cardId,
+      card_source_file: identity.card_source_file,
+      knowledge_ref: identity.knowledge_ref,
+      training_context: identity.training_context,
+      entry_identity_sha256: hash(canonicalStringify(identity)),
     };
   });
   receipt.artifacts.audio_manifest = writeArtifactJson(
@@ -136,7 +168,16 @@ function createArtifactFixture(root, receipt) {
       schema_version: 'trusted-media-audio-manifest.v1',
       track: 'cet4',
       asset_count: 301,
-      assets: assets.map(({transcript, entry_identity_sha256, ...asset}) => asset),
+      assets: assets.map(({
+        card_source_file,
+        declared_duration_ms,
+        entry_identity_sha256,
+        knowledge_ref,
+        probed_duration_ms,
+        training_context,
+        transcript,
+        ...asset
+      }) => asset),
     },
   );
   receipt.artifacts.review_worklist = writeArtifactJson(
@@ -148,11 +189,16 @@ function createArtifactFixture(root, receipt) {
       progress: {pending: 0, passed: 301, failed: 0},
       entries: assets.map(asset => ({
         card_id: asset.card_id,
+        card_source_file: asset.card_source_file,
         entry_identity_sha256: asset.entry_identity_sha256,
+        knowledge_ref: asset.knowledge_ref,
+        training_context: asset.training_context,
         audio: {
           asset_path: asset.asset_path,
           file_sha256: asset.file_sha256,
           size_bytes: asset.size_bytes,
+          declared_duration_ms: asset.declared_duration_ms,
+          probed_duration_ms: asset.probed_duration_ms,
           transcript: asset.transcript,
           transcript_sha256: asset.transcript_sha256,
         },
@@ -282,15 +328,25 @@ function createArtifactFixture(root, receipt) {
     'model-weights-manifest.json',
     {files: modelFiles, sha256: receipt.execution.model.weights_manifest_sha256},
   );
+  const mlxFiles = [{path: '__init__.py', sha256: hash('mlx-audio'), size_bytes: 10}];
+  receipt.execution.harness.mlx_audio_package_manifest_sha256 =
+    hash(canonicalStringify(mlxFiles));
   receipt.artifacts.mlx_audio_package_manifest = writeArtifactJson(
     artifactDirectory,
     'mlx-audio-package-manifest.json',
-    {files: [{path: '__init__.py', sha256: hash('mlx-audio'), size_bytes: 10}], sha256: hash('mlx-manifest')},
+    {files: mlxFiles, sha256: receipt.execution.harness.mlx_audio_package_manifest_sha256},
   );
+  const pythonFiles = [{
+    path: 'mlx_audio/__init__.py',
+    sha256: hash('python-env'),
+    size_bytes: 10,
+  }];
+  receipt.execution.harness.python_environment_manifest_sha256 =
+    hash(canonicalStringify(pythonFiles));
   receipt.artifacts.python_environment_manifest = writeArtifactJson(
     artifactDirectory,
     'python-environment-manifest.json',
-    {files: [{path: 'mlx_audio/__init__.py', sha256: hash('python-env'), size_bytes: 10}], sha256: hash('python-environment-manifest')},
+    {files: pythonFiles, sha256: receipt.execution.harness.python_environment_manifest_sha256},
   );
   return artifactDirectory;
 }
@@ -588,6 +644,33 @@ test('worklist model acceptances must bind the recomputed media input', t => {
   const result = verifyAttested(fixtureValue, receipt);
   assert.equal(result.formal_ready, false);
   assert.match(result.errors.join('\n'), /model acceptance is not bound/);
+});
+
+test('formal verification requires every exact audio byte', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  fs.rmSync(path.join(
+    fixtureValue.artifactDirectory,
+    'ai_tts/cet4/0000/000001.mp3',
+  ));
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /media does not exist/);
+});
+
+test('runtime environment manifests require internally bound file identities', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  updateArtifact(
+    receipt,
+    fixtureValue.artifactDirectory,
+    'python_environment_manifest',
+    'python-environment-manifest.json',
+    {files: 'not-an-array', sha256: receipt.execution.harness.python_environment_manifest_sha256},
+  );
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /Python environment manifest/);
 });
 
 function updateArtifact(receipt, artifactDirectory, field, filename, value) {

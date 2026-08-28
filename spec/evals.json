@@ -673,6 +673,7 @@
         "trusted_media_run_receipt_v1_requires_exact_receipt_bytes_fixed_signer_workflow_source_commit_oidc_issuer_verified_timestamp_and_type_specific_semantics",
         "formal_ready_requires_rehashed_audio_manifest_reviewed_worklist_raw_run_manifest_and_every_raw_JSONL_record",
         "consumer_recomputes_exact_301_asset_identity_two_full_runs_two_blind_runs_model_acceptances_and_untruncated_sample_coverage",
+        "consumer_rehashes_all_301_audio_files_recomputes_entry_identity_and_validates_runtime_manifests",
         "consumer_rejects_duplicate_runs_failed_raw_decision_replay_transcript_hash_drift_and_unbound_acceptance_inputs",
         "formal_media_evidence_types_remain_unregistered_until_one_real_attested_receipt_exists",
         "unregistered_evidence_types_fail_closed",
