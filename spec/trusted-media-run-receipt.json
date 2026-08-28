@@ -70,8 +70,10 @@
       "all_301_audio_files_are_regular_and_rehashed_from_exact_bytes",
       "entry_identity_is_recomputed_from_card_context_media_bytes_duration_and_transcript",
       "raw_run_results_replay_every_final_decision",
+      "final_result_is_reparsed_from_the_last_retained_bounded_JSON_or_Python_literal_model_output",
       "reviewed_transcript_bytes_rehash_to_declared_digest",
       "blind_transcript_similarity_is_recomputed",
+      "decoded_sample_count_matches_the_bound_probed_duration_at_the_locked_sample_rate_within_50ms",
       "model_weights_model_package_and_Python_environment_manifests_each_identify_one_or_more_unique_safe_file_path_hash_size_tuples_are_recomputed_and_bound_to_execution_harness",
       "model_acceptances_bind_the_recomputed_per_card_media_input_and_source_runs"
     ],
@@ -79,6 +81,7 @@
   },
   "current_boundary": {
     "structural_verifier": "scripts/verify_trusted_media_run_receipt.mjs",
+    "raw_output_replayer": "scripts/replay_trusted_media_raw_outputs.py",
     "representative_eval": "scripts/test_verify_trusted_media_run_receipt.mjs",
     "producer_workflow_implemented": false,
     "real_attested_receipt_observed": false,

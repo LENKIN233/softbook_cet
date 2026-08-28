@@ -248,7 +248,8 @@ function validateCompleteWorklistEntry(entry, index, errors) {
     !Number.isSafeInteger(entry?.audio?.declared_duration_ms) ||
     entry.audio.declared_duration_ms < 1 ||
     !Number.isSafeInteger(entry?.audio?.probed_duration_ms) ||
-    entry.audio.probed_duration_ms < 1
+    entry.audio.probed_duration_ms < 1 ||
+    normalizedWords(entry?.audio?.transcript).length === 0
   ) {
     errors.push(`${label} has an incomplete or invalid bound identity.`);
     valid = false;
@@ -263,7 +264,7 @@ function normalizedWords(value) {
 function sequenceMatcherRatio(left, right) {
   const a = normalizedWords(left);
   const b = normalizedWords(right);
-  if (a.length + b.length === 0) return 1;
+  if (a.length === 0 || b.length === 0) return 0;
   const b2j = new Map();
   for (const [index, token] of b.entries()) {
     if (!b2j.has(token)) b2j.set(token, []);
@@ -302,7 +303,7 @@ function sequenceMatcherRatio(left, right) {
   return (2 * matches) / (a.length + b.length);
 }
 
-function validateAudioCoverage(value, policy, label, errors) {
+export function validateAudioCoverage(value, policy, label, errors, durationMs) {
   if (!exactKeys(
     value,
     [
@@ -319,6 +320,12 @@ function validateAudioCoverage(value, policy, label, errors) {
     errors,
   )) return;
   const expected = policy.receipt.required_audio_coverage;
+  const decodedDurationMs =
+    Number.isSafeInteger(value?.decoded_sample_count) &&
+    Number.isSafeInteger(value?.sample_rate_hz) &&
+    value.sample_rate_hz > 0
+      ? (value.decoded_sample_count * 1000) / value.sample_rate_hz
+      : NaN;
   if (
     value.decoder !== expected.decoder ||
     !Number.isSafeInteger(value.decoded_sample_count) ||
@@ -329,7 +336,9 @@ function validateAudioCoverage(value, policy, label, errors) {
     value.model_audio_token_count !== expected.model_audio_token_count ||
     value.decoded_sample_count > value.model_max_sample_count ||
     value.sample_rate_hz !== expected.sample_rate_hz ||
-    value.truncated !== expected.truncated
+    value.truncated !== expected.truncated ||
+    !Number.isSafeInteger(durationMs) ||
+    Math.abs(decodedDurationMs - durationMs) > 50
   ) {
     errors.push(`${label} does not prove complete untruncated model input.`);
   }
@@ -437,6 +446,33 @@ function validateArtifactEvidence(
     !mlxAudioPackageManifest ||
     !pythonEnvironmentManifest
   ) {
+    return false;
+  }
+  let rawReplay;
+  try {
+    rawReplay = parseStrictJson(
+      Buffer.from(execFileSync(
+        'python3',
+        [
+          '-B',
+          path.join(ROOT, 'scripts/replay_trusted_media_raw_outputs.py'),
+          '--artifact-dir',
+          path.resolve(artifactDirectory),
+          '--run-package',
+          filenames.run_package,
+          '--worklist',
+          filenames.review_worklist,
+        ],
+        {cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']},
+      )),
+      'trusted media retained raw-output replay',
+    );
+  } catch {
+    errors.push('trusted media retained raw model outputs do not replay packaged results.');
+    return false;
+  }
+  if (rawReplay?.ok !== true || !Number.isSafeInteger(rawReplay.records)) {
+    errors.push('trusted media retained raw-output replay returned an invalid result.');
     return false;
   }
   const modelManifestFiles = validateRuntimeManifestFiles(
@@ -672,10 +708,13 @@ function validateArtifactEvidence(
         errors.push(`${recordLabel} does not bind the exact reviewed asset and run.`);
         continue;
       }
-      validateAudioCoverage(record.audio_coverage, policy, `${recordLabel}.audio_coverage`, errors);
-      if (!Array.isArray(record.raw_outputs) || record.raw_outputs.length < 1) {
-        errors.push(`${recordLabel} does not retain a raw model output.`);
-      }
+      validateAudioCoverage(
+        record.audio_coverage,
+        policy,
+        `${recordLabel}.audio_coverage`,
+        errors,
+        entry.audio.probed_duration_ms,
+      );
       if (!record.result || typeof record.result !== 'object' || Array.isArray(record.result)) {
         errors.push(`${recordLabel} result is not an object.`);
       } else if (['full_perceptual', 'adjudication'].includes(run.purpose)) {

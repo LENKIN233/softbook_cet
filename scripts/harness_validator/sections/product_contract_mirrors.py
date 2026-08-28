@@ -325,6 +325,7 @@ def validate(context) -> None:
     )
     for asset in (
         "scripts/verify_trusted_media_run_receipt.mjs",
+        "scripts/replay_trusted_media_raw_outputs.py",
         "scripts/test_verify_trusted_media_run_receipt.mjs",
     ):
         if not (root / asset).is_file():

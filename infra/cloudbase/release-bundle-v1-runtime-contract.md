@@ -100,6 +100,8 @@ The bundle is track-scoped and requires:
   contain two distinct audio-capable model runs, prove complete per-card asset
   consumption, and pass all required text, pronunciation, rhythm, noise,
   no-autoplay, subtitle, and provenance checks;
+- every QC index card set to equal the content cards that reference that exact
+  asset ID, even when different assets happen to contain identical bytes;
 - explicit minimum iOS/Android versions, parent release, and release time.
 
 Every referenced file must remain inside the bundle directory and match its

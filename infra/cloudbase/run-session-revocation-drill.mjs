@@ -256,7 +256,8 @@ async function runAppliedSequence({
   const rotatedA = parseRotatedSession(
     rotatedAResponse,
     identityA.sessionId,
-    'client A'
+    'client A',
+    decodeRefreshIdentity(credentials.refreshA, 'client A original refresh token').rotation
   );
   if (
     rotatedA.accessToken === credentials.accessA ||
@@ -299,7 +300,8 @@ async function runAppliedSequence({
   const rotatedB = parseRotatedSession(
     rotatedBResponse,
     identityB.sessionId,
-    'client B'
+    'client B',
+    decodeRefreshIdentity(credentials.refreshB, 'client B original refresh token').rotation
   );
   if (
     rotatedB.accessToken === credentials.accessB ||
@@ -518,7 +520,12 @@ function parseBootstrap(response, label) {
   };
 }
 
-function parseRotatedSession(response, expectedSessionId, clientLabel) {
+function parseRotatedSession(
+  response,
+  expectedSessionId,
+  clientLabel,
+  previousRotation
+) {
   const rotationLabel = `${clientLabel} refresh rotation`;
   expectStatus(response, 200, rotationLabel);
   const data = requireObject(response.payload?.data, `${rotationLabel} data`);
@@ -544,10 +551,11 @@ function parseRotatedSession(response, expectedSessionId, clientLabel) {
   );
   if (
     accessIdentity.sessionId !== expectedSessionId ||
-    refreshIdentity.sessionId !== expectedSessionId
+    refreshIdentity.sessionId !== expectedSessionId ||
+    refreshIdentity.rotation !== previousRotation + 1
   ) {
     throw new SessionRevocationDrillError(
-      'rotated credentials do not retain the server session ID.'
+      'rotated credentials do not retain the session or advance one refresh generation.'
     );
   }
   return {

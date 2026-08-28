@@ -126,6 +126,8 @@ content-type: application/json
 Every successful call rotates the refresh token. A cryptographically valid
 older rotation is treated as replay and revokes the entire session. Random or
 malformed tokens fail without disclosing whether a session exists.
+Receiver drills require each returned refresh payload to advance exactly one
+generation; changed bytes with the same or an older rotation do not prove rotation.
 
 ### Logout
 

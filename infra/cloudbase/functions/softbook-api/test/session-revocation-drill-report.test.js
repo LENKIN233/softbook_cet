@@ -418,6 +418,26 @@ test('drill fails closed before logout when client B refresh is stale or invalid
   }
 });
 
+test('drill rejects changed refresh bytes that do not advance generation', async () => {
+  const fixture = createFixture();
+  const credentials = createCredentials();
+  const options = drill.parseSessionRevocationDrillArguments([
+    '--profile',
+    fixture.profilePath,
+    '--apply',
+    '--operator',
+    'service:auth-auditor',
+  ]);
+  await assert.rejects(
+    () => drill.executeSessionRevocationDrill(options, {
+      ...dependencies(),
+      env: credentialEnv(credentials),
+      transport: createTransport(credentials, {sameRotationA: true}),
+    }),
+    /advance one refresh generation/,
+  );
+});
+
 test('drill fails closed before logout when rotated client B scope drifts', async () => {
   const fixture = createFixture();
   const credentials = createCredentials();
@@ -550,6 +570,7 @@ function createTransport(
     revokeSiblingOnReplay = false,
     rotatedBContentDrift = false,
     rotatedBReleaseDrift = false,
+    sameRotationA = false,
     staleBRefresh = false,
     wrongReplayCode = false,
   } = {}
@@ -576,7 +597,11 @@ function createTransport(
     'session-a-0001',
     1700000100
   );
-  const rotatedRefreshA = makeRefresh('session-a-0001', 1, 'refresh-a-rotated');
+  const rotatedRefreshA = makeRefresh(
+    'session-a-0001',
+    sameRotationA ? 0 : 1,
+    'refresh-a-rotated',
+  );
   const rotatedAccessB = makeAccess(
     credentials.phone,
     'session-b-0001',

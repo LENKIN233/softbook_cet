@@ -5,7 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import {verifyTrustedMediaRunReceipt} from './verify_trusted_media_run_receipt.mjs';
+import {
+  validateAudioCoverage,
+  verifyTrustedMediaRunReceipt,
+} from './verify_trusted_media_run_receipt.mjs';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 
@@ -264,9 +267,12 @@ function createArtifactFixture(root, receipt) {
             no_unwanted_noise_or_clipping: true,
             notes: '',
           },
-      raw_outputs: ['model-output'],
+      raw_outputs: [],
       transcript_similarity: 1,
     }));
+    for (const record of records) {
+      record.raw_outputs = [JSON.stringify(record.result)];
+    }
     const bytes = Buffer.from(`${records.map(record => JSON.stringify(record)).join('\n')}\n`);
     const filename = `run-${name}.jsonl`;
     fs.writeFileSync(path.join(artifactDirectory, filename), bytes);
@@ -413,6 +419,24 @@ test('valid structural receipt stays non-formal without cryptographic attestatio
   assert.equal(result.ok, true, result.errors.join('\n'));
   assert.equal(result.attestation_verified, false);
   assert.equal(result.formal_ready, false);
+});
+
+test('decoded samples must cover the bound probed media duration', () => {
+  const policy = JSON.parse(fs.readFileSync(
+    path.resolve(import.meta.dirname, '../spec/trusted-media-run-receipt.json'),
+  ));
+  const errors = [];
+  validateAudioCoverage({
+    decoder: 'mlx_audio.stt.utils.load_audio',
+    decoded_sample_count: 16000,
+    model_input_sample_count: 16000,
+    model_max_sample_count: 480000,
+    model_feature_frame_count: 3001,
+    model_audio_token_count: 750,
+    sample_rate_hz: 16000,
+    truncated: false,
+  }, policy, 'fixture coverage', errors, 10000);
+  assert.match(errors.join('\n'), /complete untruncated model input/);
 });
 
 test('verified exact workflow and receipt digest make the receipt formally ready', t => {
@@ -667,7 +691,10 @@ test('failed raw perceptual result cannot remain formal-ready', t => {
   }
   const result = verifyAttested(fixtureValue, receipt);
   assert.equal(result.formal_ready, false);
-  assert.match(result.errors.join('\n'), /decision checks do not replay raw model results/);
+  assert.match(
+    result.errors.join('\n'),
+    /retained raw model outputs do not replay packaged results|decision checks do not replay raw model results/,
+  );
 });
 
 test('reviewed transcript text must match its bound digest', t => {
@@ -681,7 +708,10 @@ test('reviewed transcript text must match its bound digest', t => {
     'reviewed-worklist.json', worklist);
   const result = verifyAttested(fixtureValue, receipt);
   assert.equal(result.formal_ready, false);
-  assert.match(result.errors.join('\n'), /does not bind an exact passed media decision/);
+  assert.match(
+    result.errors.join('\n'),
+    /does not bind an exact passed media decision|retained raw model outputs do not replay packaged results/,
+  );
 });
 
 test('worklist model acceptances must bind the recomputed media input', t => {

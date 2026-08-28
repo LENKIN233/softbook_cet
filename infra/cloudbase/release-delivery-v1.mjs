@@ -384,7 +384,7 @@ export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
     readJson(qcIndexPath, 'audio QC index'),
     bundle.track,
   );
-  verifyAudioQcIndex(qcIndex, audioManifest, bundle, bundleDirectory);
+  verifyAudioQcIndex(qcIndex, audioManifest, bundle, bundleDirectory, content);
 
   return {
     profile,
@@ -1182,7 +1182,7 @@ function verifyModelAudioQcRecord(record, indexedAsset, manifestById) {
   }
 }
 
-function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
+function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory, content) {
   assertEqual(
     index.corpus_fingerprint,
     bundle.content.corpus_fingerprint,
@@ -1211,8 +1211,17 @@ function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
   const manifestById = new Map(
     manifest.assets.map(asset => [asset.asset_id, asset]),
   );
+  const cardIdsByAssetId = new Map(manifest.assets.map(asset => [asset.asset_id, []]));
+  for (const card of content.card_records) {
+    if (card.audio) cardIdsByAssetId.get(card.audio.asset_id)?.push(card.card_id);
+  }
 
   for (const asset of index.assets) {
+    assertSameSet(
+      asset.card_ids,
+      cardIdsByAssetId.get(asset.asset_id) ?? [],
+      `audio QC ${asset.asset_id} content card ownership`,
+    );
     const recordPath = resolveBundlePath(bundleDirectory, asset.record_path);
     assertFileHash(
       recordPath,

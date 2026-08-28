@@ -180,6 +180,29 @@ test('release bundle verifies all cards, boxes, approval, audio hashes, and QC',
   assert.equal(verified.audio_qc_index.assets.length, 301);
 });
 
+test('release bundle binds QC card ownership even when two assets share bytes', () => {
+  const fixture = createValidBundleFixture('cet4', {
+    duplicateFirstTwoAssetBytes: true,
+  });
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  const qcIndexPath = join(fixture.directory, bundle.audio.qc_index_path);
+  const qcIndex = JSON.parse(readFileSync(qcIndexPath, 'utf8'));
+  [qcIndex.assets[0].card_ids, qcIndex.assets[1].card_ids] = [
+    qcIndex.assets[1].card_ids,
+    qcIndex.assets[0].card_ids,
+  ];
+  writeFileSync(qcIndexPath, `${JSON.stringify(qcIndex, null, 2)}\n`);
+  bundle.audio.qc_index_sha256 = hash(readFileSync(qcIndexPath));
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /content card ownership/,
+  );
+});
+
 test('production release bundle verifies the complete CET6 track', () => {
   const fixture = createValidBundleFixture('cet6');
   const verified = delivery.verifyReleaseBundleDirectory({
@@ -516,7 +539,10 @@ test('rollback switches only to a verified retained release', async () => {
   assert.equal(result.deleted_learning_data, false);
 });
 
-function createValidBundleFixture(track = 'cet4') {
+function createValidBundleFixture(
+  track = 'cet4',
+  {duplicateFirstTwoAssetBytes = false} = {},
+) {
   const directory = mkdtempSync(join(tmpdir(), 'softbook-release-bundle-'));
   temporaryDirectories.push(directory);
   const catalog = catalogModule.loadBoxCatalog();
@@ -564,7 +590,9 @@ function createValidBundleFixture(track = 'cet4') {
     if (index < policy.audioCount) {
       const assetId = `${track}.${cardId}.prompt`;
       const assetPath = `audio/${assetId}.mp3`;
-      const bytes = Buffer.from(`contract-audio-${index}`);
+      const bytes = Buffer.from(
+        `contract-audio-${duplicateFirstTwoAssetBytes && index === 1 ? 0 : index}`,
+      );
       writeFixture(directory, assetPath, bytes);
       const sha256 = hash(bytes);
       const asset = {
