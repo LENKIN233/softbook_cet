@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -353,9 +354,105 @@ function createArtifactFixture(root, receipt) {
   receipt.artifacts.python_environment_manifest = writeArtifactJson(
     artifactDirectory,
     'python-environment-manifest.json',
-    {files: pythonFiles, sha256: receipt.execution.harness.python_environment_manifest_sha256},
+    {
+      schema_version: 'trusted-media-tree-manifest.v2',
+      files: pythonFiles.map(entry => [entry.path, entry.size_bytes, entry.sha256]),
+      sha256: receipt.execution.harness.python_environment_manifest_sha256,
+    },
   );
-  return artifactDirectory;
+  const authorizationPath = writeCandidateEvidence(root, receipt, assets);
+  return {artifactDirectory, authorizationPath};
+}
+
+function writeCandidateEvidence(root, receipt, assets) {
+  const reviewedCards = assets.map(asset => ({
+    card_id: asset.card_id,
+    knowledge_ref: asset.knowledge_ref,
+    quality_metadata: {
+      main_training_goal: asset.training_context.main_training_goal,
+      box_progression_role: asset.training_context.box_progression_role,
+    },
+    audio: {path: asset.asset_path, transcript: asset.transcript},
+  }));
+  const fillerCards = Array.from({length: 879}, (_, index) => {
+    const number = index + 302;
+    const boxPrefix = String((index % 107) + 1).padStart(4, '0');
+    return {
+      card_id: String(number).padStart(6, '0'),
+      knowledge_ref: {
+        library_id: '1',
+        library_name: '阅读',
+        group_id: '1',
+        group_name: '测试',
+        box_id: boxPrefix,
+        box_name: `测试盒 ${boxPrefix}`,
+        box_prefix: boxPrefix,
+      },
+      quality_metadata: {
+        main_training_goal: '测试正式内容绑定',
+        box_progression_role: 'recognition',
+      },
+      prompt: `Candidate card ${number}`,
+    };
+  });
+  const cards = [...reviewedCards, ...fillerCards];
+  const sourcePath = path.join(root, 'card_boxes_json/cet4-listening.json');
+  fs.mkdirSync(path.dirname(sourcePath), {recursive: true});
+  fs.writeFileSync(sourcePath, `${JSON.stringify({track: 'cet4', cards})}\n`);
+  const runtime = {
+    source: {id: 'trusted-media-test', label: 'Trusted media test'},
+    track: 'cet4',
+    card_records: cards,
+    assets: [],
+    release: null,
+  };
+  runtime.content_version = `sha256:${hash(canonicalStringify({
+    card_records: runtime.card_records,
+    source: runtime.source,
+    track: runtime.track,
+  }))}`;
+  const runtimePath = path.join(root, 'reviews/runtime_payloads/candidate.json');
+  fs.mkdirSync(path.dirname(runtimePath), {recursive: true});
+  const runtimeBytes = Buffer.from(`${JSON.stringify(runtime)}\n`);
+  fs.writeFileSync(runtimePath, runtimeBytes);
+  const reviewPath = path.join(root, 'reviews/agent_self_review/candidate.json');
+  const auditPath = path.join(root, 'reviews/audit_scopes/candidate.json');
+  fs.mkdirSync(path.dirname(reviewPath), {recursive: true});
+  fs.mkdirSync(path.dirname(auditPath), {recursive: true});
+  const reviewBytes = Buffer.from('{"schema_version":"model-owned-full-track-review.v2"}\n');
+  const auditBytes = Buffer.from('{"ok":true}\n');
+  fs.writeFileSync(reviewPath, reviewBytes);
+  fs.writeFileSync(auditPath, auditBytes);
+  const authorization = {
+    schema_version: 'model-owned-content-authorization.v2',
+    authorization_mode: 'full_track',
+    content_version: runtime.content_version,
+    scope: {
+      track: 'cet4',
+      purpose: 'formal_content',
+      card_ids: cards.map(card => card.card_id),
+      box_prefixes: [...new Set(cards.map(card => card.knowledge_ref.box_prefix))].sort(),
+    },
+    card_quality_audit: {
+      report: 'reviews/audit_scopes/candidate.json',
+      report_sha256: `sha256:${hash(auditBytes)}`,
+    },
+    validation: {
+      model_review: 'reviews/agent_self_review/candidate.json',
+      model_review_sha256: `sha256:${hash(reviewBytes)}`,
+      runtime_payload: 'reviews/runtime_payloads/candidate.json',
+      runtime_payload_sha256: `sha256:${hash(runtimeBytes)}`,
+    },
+  };
+  const authorizationPath = path.join(root, 'reviews/approved_batches/candidate.json');
+  fs.mkdirSync(path.dirname(authorizationPath), {recursive: true});
+  const authorizationBytes = Buffer.from(`${JSON.stringify(authorization)}\n`);
+  fs.writeFileSync(authorizationPath, authorizationBytes);
+  receipt.candidate.content_version = runtime.content_version;
+  receipt.candidate.content_authorization_sha256 = hash(authorizationBytes);
+  receipt.candidate.full_track_review_sha256 = hash(reviewBytes);
+  receipt.candidate.quality_audit_sha256 = hash(auditBytes);
+  return authorizationPath;
 }
 
 function modelAcceptance(receipt, asset, sources) {
@@ -407,10 +504,17 @@ function fixture(t, receipt = validReceipt()) {
   t.after(() => fs.rmSync(root, {force: true, recursive: true}));
   const receiptPath = path.join(root, 'receipt.json');
   const bundlePath = path.join(root, 'bundle.jsonl');
-  const artifactDirectory = createArtifactFixture(root, receipt);
+  const candidate = createArtifactFixture(root, receipt);
+  const artifactDirectory = candidate.artifactDirectory;
   fs.writeFileSync(receiptPath, `${JSON.stringify(receipt)}\n`);
   fs.writeFileSync(bundlePath, '{"mediaType":"application/vnd.dev.sigstore.bundle+json;version=0.3"}\n');
-  return {artifactDirectory, bundlePath, receiptPath};
+  return {
+    artifactDirectory,
+    authorizationPath: candidate.authorizationPath,
+    bundlePath,
+    candidateRoot: root,
+    receiptPath,
+  };
 }
 
 test('valid structural receipt stays non-formal without cryptographic attestation', t => {
@@ -439,14 +543,34 @@ test('decoded samples must cover the bound probed media duration', () => {
   assert.match(errors.join('\n'), /complete untruncated model input/);
 });
 
+test('retained raw-output replay uses the same no-autojunk transcript similarity', () => {
+  const output = execFileSync(
+    'python3',
+    [
+      '-c',
+      [
+        'from scripts.replay_trusted_media_raw_outputs import similarity',
+        "left = ' '.join(['the','cat','sat','on','mat'] * 40)",
+        "right = ' '.join((['the','cat','sat','on','mat'] * 20) + ['different'] * 5 + (['the','cat','sat','on','mat'] * 19))",
+        'print(similarity(left, right))',
+      ].join('; '),
+    ],
+    {cwd: path.resolve(import.meta.dirname, '..'), encoding: 'utf8'},
+  );
+  assert.ok(Number(output.trim()) > 0.9);
+});
+
 test('verified exact workflow and receipt digest make the receipt formally ready', t => {
-  const {artifactDirectory, bundlePath, receiptPath} = fixture(t);
+  const {artifactDirectory, authorizationPath, bundlePath, candidateRoot, receiptPath} = fixture(t);
   const receiptSha256 = hash(fs.readFileSync(receiptPath));
   let observedArgs = null;
   const result = verifyTrustedMediaRunReceipt({
     bundlePath,
     artifactDirectory,
+    authorizationPath,
     receiptPath,
+    candidateRoot,
+    probeMediaDuration: () => 1000,
     verifyAttestation: true,
     execFile(command, args) {
       assert.equal(command, 'gh');
@@ -477,11 +601,14 @@ test('verified exact workflow and receipt digest make the receipt formally ready
 });
 
 test('attestation for different receipt bytes fails closed', t => {
-  const {artifactDirectory, bundlePath, receiptPath} = fixture(t);
+  const {artifactDirectory, authorizationPath, bundlePath, candidateRoot, receiptPath} = fixture(t);
   const result = verifyTrustedMediaRunReceipt({
     bundlePath,
     artifactDirectory,
+    authorizationPath,
     receiptPath,
+    candidateRoot,
+    probeMediaDuration: () => 1000,
     verifyAttestation: true,
     execFile: () => JSON.stringify([{
       verificationResult: {
@@ -496,12 +623,15 @@ test('attestation for different receipt bytes fails closed', t => {
 });
 
 test('matching subject without a verified timestamp fails closed', t => {
-  const {artifactDirectory, bundlePath, receiptPath} = fixture(t);
+  const {artifactDirectory, authorizationPath, bundlePath, candidateRoot, receiptPath} = fixture(t);
   const receiptSha256 = hash(fs.readFileSync(receiptPath));
   const result = verifyTrustedMediaRunReceipt({
     bundlePath,
     artifactDirectory,
+    authorizationPath,
     receiptPath,
+    candidateRoot,
+    probeMediaDuration: () => 1000,
     verifyAttestation: true,
     execFile: () => JSON.stringify([{
       verificationResult: {
@@ -531,6 +661,41 @@ test('attestation cannot make a receipt formal without exact artifact recomputat
   });
   assert.equal(result.formal_ready, false);
   assert.match(result.errors.join('\n'), /requires --artifact-dir/);
+});
+
+test('non-decodable media bytes cannot become formal through matching hashes', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  fs.writeFileSync(fixtureValue.receiptPath, `${JSON.stringify(receipt)}\n`);
+  const receiptSha256 = hash(fs.readFileSync(fixtureValue.receiptPath));
+  const result = verifyTrustedMediaRunReceipt({
+    artifactDirectory: fixtureValue.artifactDirectory,
+    authorizationPath: fixtureValue.authorizationPath,
+    bundlePath: fixtureValue.bundlePath,
+    candidateRoot: fixtureValue.candidateRoot,
+    receiptPath: fixtureValue.receiptPath,
+    verifyAttestation: true,
+    probeMediaDuration: () => {
+      throw new Error('non-decodable MP3');
+    },
+    execFile: () => JSON.stringify([{
+      verificationResult: {
+        verifiedTimestamps: [{type: 'transparency_log'}],
+        statement: {subject: [{digest: {sha256: receiptSha256}}]},
+      },
+    }]),
+  });
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /cannot be decoded and duration-probed/);
+});
+
+test('attested arbitrary candidate hashes cannot replace exact authorization bytes', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  receipt.candidate.content_authorization_sha256 = hash('unrelated authorization');
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /authorization does not match the receipt candidate/);
 });
 
 test('audio manifest rejects one media path reused by different cards', t => {
@@ -586,7 +751,7 @@ test('structural receipt requires two complete blind transcript runs', t => {
 });
 
 test('tampered per-asset model coverage fails before attestation can authorize media', t => {
-  const {artifactDirectory, bundlePath, receiptPath} = fixture(t);
+  const {artifactDirectory, authorizationPath, bundlePath, candidateRoot, receiptPath} = fixture(t);
   const runPath = path.join(artifactDirectory, 'run-a.jsonl');
   const records = fs.readFileSync(runPath, 'utf8').trim().split('\n').map(JSON.parse);
   records[0].audio_coverage.model_input_sample_count -= 1;
@@ -594,8 +759,11 @@ test('tampered per-asset model coverage fails before attestation can authorize m
   const receiptSha256 = hash(fs.readFileSync(receiptPath));
   const result = verifyTrustedMediaRunReceipt({
     artifactDirectory,
+    authorizationPath,
     bundlePath,
+    candidateRoot,
     receiptPath,
+    probeMediaDuration: () => 1000,
     verifyAttestation: true,
     execFile: () => JSON.stringify([{
       verificationResult: {
@@ -792,7 +960,10 @@ function verifyAttested(fixtureValue, receipt) {
   const receiptSha256 = hash(fs.readFileSync(fixtureValue.receiptPath));
   return verifyTrustedMediaRunReceipt({
     artifactDirectory: fixtureValue.artifactDirectory,
+    authorizationPath: fixtureValue.authorizationPath,
     bundlePath: fixtureValue.bundlePath,
+    candidateRoot: fixtureValue.candidateRoot,
+    probeMediaDuration: () => 1000,
     receiptPath: fixtureValue.receiptPath,
     verifyAttestation: true,
     execFile: () => JSON.stringify([{

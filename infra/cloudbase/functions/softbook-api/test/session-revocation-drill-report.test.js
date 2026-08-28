@@ -268,6 +268,18 @@ test('preflight subprocess environment strips all live session credentials', () 
   }
 });
 
+test('every preflight Git subprocess receives the credential-free environment', () => {
+  const source = readFileSync(
+    resolve(__dirname, '../../../run-session-revocation-drill.mjs'),
+    'utf8'
+  );
+  assert.match(source, /loadTrackedProfile\(options\.profilePath, preflightEnv\)/);
+  assert.match(source, /readRepositoryState\(preflightEnv\)/);
+  assert.match(source, /\{ cwd: REPOSITORY_ROOT, encoding: 'utf8', env \}/);
+  assert.match(source, /\{ cwd: REPOSITORY_ROOT, encoding: null, env \}/);
+  assert.match(source, /function git\(args, env\)[\s\S]*?encoding: 'utf8',[\s\S]*?env,/);
+});
+
 test('remote transport rejects redirects and enforces a bounded abort signal', async () => {
   let observed = null;
   const target = 'https://receiver.example/softbook-api/v2/auth/logout';

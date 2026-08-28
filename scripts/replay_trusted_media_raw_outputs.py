@@ -73,7 +73,7 @@ def similarity(expected: str, heard: str):
     left, right = words(expected), words(heard)
     if not left or not right:
         return 0.0
-    return difflib.SequenceMatcher(None, left, right).ratio()
+    return difflib.SequenceMatcher(None, left, right, autojunk=False).ratio()
 
 
 def replay(artifact_dir: Path, run_package_name: str, worklist_name: str):

@@ -74,7 +74,10 @@
       "reviewed_transcript_bytes_rehash_to_declared_digest",
       "blind_transcript_similarity_is_recomputed",
       "decoded_sample_count_matches_the_bound_probed_duration_at_the_locked_sample_rate_within_50ms",
-      "model_weights_model_package_and_Python_environment_manifests_each_identify_one_or_more_unique_safe_file_path_hash_size_tuples_are_recomputed_and_bound_to_execution_harness",
+      "consumer_ffprobe_decodes_each_exact_audio_byte_sequence_and_recomputes_duration_within_50ms_of_the_worklist",
+      "content_authorization_full_track_review_quality_audit_and_runtime_payload_bytes_rehash_to_the_receipt_and_bind_exact_1180_card_108_box_scope",
+      "all_301_media_entries_join_to_their_exact_authorized_runtime_and_card_source_records",
+      "model_weights_model_package_and_compact_v2_Python_environment_manifests_each_identify_one_or_more_unique_safe_file_path_hash_size_tuples_are_recomputed_and_bound_to_execution_harness",
       "model_acceptances_bind_the_recomputed_per_card_media_input_and_source_runs"
     ],
     "real_attested_receipt_required_before_formal_media_registration": true

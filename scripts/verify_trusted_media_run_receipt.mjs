@@ -120,6 +120,29 @@ function loadBoundMedia(directory, filename, identity, label, errors) {
   return {bytes, path: target};
 }
 
+export function probeMediaDurationMs(filePath) {
+  const output = execFileSync(
+    'ffprobe',
+    [
+      '-v',
+      'error',
+      '-show_entries',
+      'stream=codec_type,duration:format=duration',
+      '-of',
+      'json',
+      filePath,
+    ],
+    {encoding: 'utf8', maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']},
+  );
+  const document = parseStrictJson(Buffer.from(output), 'ffprobe duration output');
+  const stream = document.streams?.find(item => item?.codec_type === 'audio');
+  const seconds = Number(stream?.duration ?? document.format?.duration);
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    throw new Error('ffprobe did not return a positive audio duration');
+  }
+  return Math.round(seconds * 1000);
+}
+
 function parseArtifactJson(file, label, errors) {
   if (!file) return null;
   try {
@@ -362,6 +385,9 @@ function validateArtifactEvidence(
   policy,
   artifactDirectory,
   audioRoot,
+  candidateRoot,
+  authorizationPath,
+  probeMediaDuration,
   errors,
 ) {
   if (!artifactDirectory) {
@@ -503,6 +529,20 @@ function validateArtifactEvidence(
       receipt.execution.harness.python_environment_manifest_sha256,
     ],
   ]) {
+    if (
+      label === 'Python environment' &&
+      (
+        manifest.schema_version !== 'trusted-media-tree-manifest.v2' ||
+        !exactKeys(
+          manifest,
+          ['schema_version', 'files', 'sha256'],
+          'trusted media Python environment manifest',
+          errors,
+        )
+      )
+    ) {
+      errors.push('trusted media Python environment manifest must use the compact v2 schema.');
+    }
     const files = validateRuntimeManifestFiles(manifest.files, label, errors);
     const digest = files
       ? createHash('sha256').update(canonicalStringify(files)).digest('hex')
@@ -528,6 +568,7 @@ function validateArtifactEvidence(
   }
   const assetsByCard = new Map();
   const assetPaths = new Set();
+  const probedDurationByCard = new Map();
   for (const [index, asset] of audioManifest.assets.entries()) {
     const label = `audio manifest assets[${index}]`;
     if (!exactKeys(
@@ -550,13 +591,28 @@ function validateArtifactEvidence(
       continue;
     }
     assetPaths.add(asset.asset_path);
-    loadBoundMedia(
+    const media = loadBoundMedia(
       audioRoot,
       asset.asset_path,
       {sha256: asset.file_sha256, size_bytes: asset.size_bytes},
       `${label} media`,
       errors,
     );
+    if (media) {
+      try {
+        const durationMs = probeMediaDuration(media.path);
+        if (!Number.isSafeInteger(durationMs) || durationMs <= 0) {
+          throw new Error('duration is not a positive integer');
+        }
+        probedDurationByCard.set(asset.card_id, durationMs);
+      } catch (error) {
+        errors.push(
+          `${label} media cannot be decoded and duration-probed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
     assetsByCard.set(asset.card_id, asset);
   }
   if (assetsByCard.size !== 301) {
@@ -590,6 +646,8 @@ function validateArtifactEvidence(
       entry.audio?.file_sha256 !== asset.file_sha256 ||
       entry.audio?.size_bytes !== asset.size_bytes ||
       entry.audio?.transcript_sha256 !== asset.transcript_sha256 ||
+      !probedDurationByCard.has(entry.card_id) ||
+      Math.abs(probedDurationByCard.get(entry.card_id) - entry.audio?.probed_duration_ms) > 50 ||
       typeof entry.audio?.transcript !== 'string' ||
       !entry.audio.transcript.trim() ||
       createHash('sha256').update(entry.audio.transcript).digest('hex') !==
@@ -617,6 +675,13 @@ function validateArtifactEvidence(
     }
     entriesByCard.set(entry.card_id, entry);
   }
+  validateCandidateEvidence(
+    receipt,
+    candidateRoot,
+    authorizationPath,
+    worklist,
+    errors,
+  );
 
   if (
     rawManifest.schema_version !== 'trusted-media-raw-run-manifest.v1' ||
@@ -896,8 +961,12 @@ function validateRunDecisions({
       laneIdentities.length === 2 &&
       (
         laneIdentities[0].generalName === laneIdentities[1].generalName ||
-        laneIdentities[0].blindName === laneIdentities[1].blindName ||
-        (
+      laneIdentities[0].blindName === laneIdentities[1].blindName ||
+      (
+        (laneIdentities[0].pronunciationName === null) !==
+        (laneIdentities[1].pronunciationName === null)
+      ) ||
+      (
           laneIdentities[0].pronunciationName !== null &&
           laneIdentities[0].pronunciationName === laneIdentities[1].pronunciationName
         )
@@ -908,33 +977,259 @@ function validateRunDecisions({
   }
 }
 
+function validateCandidateEvidence(receipt, root, authorizationPath, worklist, errors) {
+  if (!root || !authorizationPath) {
+    errors.push('formal media verification requires the exact candidate root and authorization.');
+    return;
+  }
+  const candidateRoot = path.resolve(root);
+  const authorizationFile = loadCandidateFile(
+    candidateRoot,
+    authorizationPath,
+    8 * 1024 * 1024,
+    'trusted media content authorization',
+    errors,
+  );
+  const authorization = parseArtifactJson(
+    authorizationFile,
+    'trusted media content authorization',
+    errors,
+  );
+  if (!authorization) return;
+  if (
+    createHash('sha256').update(authorizationFile.bytes).digest('hex') !==
+      receipt.candidate.content_authorization_sha256 ||
+    authorization.schema_version !== 'model-owned-content-authorization.v2' ||
+    authorization.authorization_mode !== 'full_track' ||
+    authorization.scope?.track !== 'cet4' ||
+    authorization.scope?.purpose !== 'formal_content'
+  ) {
+    errors.push('trusted media content authorization does not match the receipt candidate.');
+    return;
+  }
+  const bindings = [
+    [
+      'full-track model review',
+      authorization.validation?.model_review,
+      authorization.validation?.model_review_sha256,
+      receipt.candidate.full_track_review_sha256,
+    ],
+    [
+      'quality audit',
+      authorization.card_quality_audit?.report,
+      authorization.card_quality_audit?.report_sha256,
+      receipt.candidate.quality_audit_sha256,
+    ],
+  ];
+  for (const [label, relativePath, authorizationSha, receiptSha] of bindings) {
+    const file = loadCandidateFile(candidateRoot, relativePath, 16 * 1024 * 1024, label, errors);
+    if (!file) continue;
+    const observed = createHash('sha256').update(file.bytes).digest('hex');
+    if (observed !== normalizeSha(authorizationSha) || observed !== receiptSha) {
+      errors.push(`${label} bytes do not match candidate evidence identities.`);
+    }
+  }
+  const runtimeFile = loadCandidateFile(
+    candidateRoot,
+    authorization.validation?.runtime_payload,
+    16 * 1024 * 1024,
+    'authorized runtime payload',
+    errors,
+  );
+  const runtimeDocument = parseArtifactJson(runtimeFile, 'authorized runtime payload', errors);
+  if (!runtimeDocument) return;
+  if (
+    createHash('sha256').update(runtimeFile.bytes).digest('hex') !==
+      normalizeSha(authorization.validation?.runtime_payload_sha256)
+  ) {
+    errors.push('authorized runtime payload bytes do not match authorization.');
+    return;
+  }
+  const runtime = resolveCandidateRuntimePayload(runtimeDocument, candidateRoot, errors);
+  if (!runtime) return;
+  const cards = runtime.card_records;
+  const cardIds = cards.map(card => String(card?.card_id ?? ''));
+  const uniqueBoxes = [...new Set(cards.map(card => normalizedKnowledgeRef(card).box_prefix))].sort();
+  const authorizedCards = [...(authorization.scope?.card_ids ?? [])].map(String).sort();
+  const authorizedBoxes = [...(authorization.scope?.box_prefixes ?? [])].map(String).sort();
+  const contentVersion = deriveCandidateContentVersion(runtime);
+  if (
+    runtime.track !== 'cet4' ||
+    cards.length !== 1180 ||
+    new Set(cardIds).size !== 1180 ||
+    uniqueBoxes.length !== 108 ||
+    JSON.stringify([...cardIds].sort()) !== JSON.stringify(authorizedCards) ||
+    JSON.stringify(uniqueBoxes) !== JSON.stringify(authorizedBoxes) ||
+    contentVersion !== authorization.content_version ||
+    contentVersion !== receipt.candidate.content_version
+  ) {
+    errors.push('authorized runtime payload does not bind the exact CET4 1180-card/108-box candidate.');
+    return;
+  }
+  const runtimeByCard = new Map(cards.map(card => [String(card.card_id), card]));
+  const sourceCache = new Map();
+  for (const entry of worklist.entries) {
+    const runtimeCard = runtimeByCard.get(entry.card_id);
+    let sourceDocument = sourceCache.get(entry.card_source_file);
+    if (!sourceDocument) {
+      sourceDocument = parseArtifactJson(
+        loadCandidateFile(
+          candidateRoot,
+          entry.card_source_file,
+          16 * 1024 * 1024,
+          `candidate card source ${entry.card_source_file}`,
+          errors,
+        ),
+        `candidate card source ${entry.card_source_file}`,
+        errors,
+      );
+      if (sourceDocument) sourceCache.set(entry.card_source_file, sourceDocument);
+    }
+    const sourceCard = sourceDocument?.cards?.find(card => String(card?.card_id) === entry.card_id);
+    const transcript = typeof sourceCard?.audio?.transcript === 'string'
+      ? sourceCard.audio.transcript.trim()
+      : '';
+    if (
+      !runtimeCard ||
+      !sourceCard ||
+      canonicalStringify(runtimeCard) !== canonicalStringify(sourceCard) ||
+      canonicalStringify(entry.knowledge_ref) !== canonicalStringify(normalizedKnowledgeRef(sourceCard)) ||
+      canonicalStringify(entry.training_context) !== canonicalStringify(normalizedTrainingContext(sourceCard)) ||
+      entry.audio.asset_path !== (sourceCard.audio?.path ?? sourceCard.audio?.url) ||
+      entry.audio.transcript !== transcript
+    ) {
+      errors.push(`reviewed media card ${entry.card_id} does not bind the authorized candidate card.`);
+    }
+  }
+}
+
+function loadCandidateFile(root, file, maximumBytes, label, errors) {
+  const target = path.resolve(root, String(file ?? ''));
+  if (!target.startsWith(`${root}${path.sep}`)) {
+    errors.push(`${label} escapes the candidate root.`);
+    return null;
+  }
+  const bytes = loadRegularFile(target, maximumBytes, label, errors);
+  return bytes ? {bytes, path: target} : null;
+}
+
+function normalizeSha(value) {
+  return typeof value === 'string' && value.startsWith('sha256:') ? value.slice(7) : value;
+}
+
+function resolveCandidateRuntimePayload(document, root, errors) {
+  if (document?.schema_version !== 'card-make-runtime-payload-manifest.v1') return document;
+  if (!Array.isArray(document.card_record_shards) || document.card_record_shards.length === 0) {
+    errors.push('authorized runtime payload manifest has no card shards.');
+    return null;
+  }
+  const cardRecords = [];
+  const paths = new Set();
+  for (const descriptor of document.card_record_shards) {
+    if (paths.has(descriptor?.path)) {
+      errors.push('authorized runtime payload repeats a card shard.');
+      return null;
+    }
+    paths.add(descriptor?.path);
+    const file = loadCandidateFile(root, descriptor?.path, 1024 * 1024, 'runtime card shard', errors);
+    const shard = parseArtifactJson(file, 'runtime card shard', errors);
+    if (
+      !file ||
+      !shard ||
+      createHash('sha256').update(file.bytes).digest('hex') !== normalizeSha(descriptor?.sha256) ||
+      shard.schema_version !== 'card-make-runtime-card-shard.v1' ||
+      shard.track !== document.track ||
+      !Array.isArray(shard.card_records) ||
+      shard.card_records.length !== descriptor.card_count
+    ) {
+      errors.push('authorized runtime payload shard identity is invalid.');
+      return null;
+    }
+    cardRecords.push(...shard.card_records);
+  }
+  return {
+    source: document.source,
+    track: document.track,
+    card_records: cardRecords,
+    assets: document.assets ?? [],
+    release: document.release ?? null,
+    content_version: document.content_version,
+  };
+}
+
+function deriveCandidateContentVersion(payload) {
+  const versioned = {
+    card_records: payload.card_records,
+    source: {id: payload.source?.id, label: payload.source?.label},
+    track: payload.track,
+  };
+  if (Array.isArray(payload.assets) && payload.assets.length > 0) {
+    versioned.assets = payload.assets.map(asset => ({
+      asset_id: asset.asset_id,
+      duration_ms: asset.duration_ms,
+      media_type: asset.media_type,
+      sha256: asset.sha256,
+      size_bytes: asset.size_bytes,
+    })).sort((left, right) => String(left.asset_id).localeCompare(String(right.asset_id)));
+  }
+  return `sha256:${createHash('sha256').update(canonicalStringify(versioned)).digest('hex')}`;
+}
+
+function normalizedKnowledgeRef(card) {
+  return {
+    library_id: String(card?.knowledge_ref?.library_id ?? card?.library ?? ''),
+    library_name: String(card?.knowledge_ref?.library_name ?? ''),
+    group_id: String(card?.knowledge_ref?.group_id ?? card?.group ?? ''),
+    group_name: String(card?.knowledge_ref?.group_name ?? card?.card_group_name ?? ''),
+    box_id: String(card?.knowledge_ref?.box_id ?? card?.box ?? ''),
+    box_name: String(card?.knowledge_ref?.box_name ?? card?.card_box_name ?? ''),
+    box_prefix: String(card?.knowledge_ref?.box_prefix ?? card?.card_box_code ?? ''),
+  };
+}
+
+function normalizedTrainingContext(card) {
+  return {
+    main_training_goal: textOrNull(card?.quality_metadata?.main_training_goal),
+    box_progression_role: textOrNull(card?.quality_metadata?.box_progression_role),
+  };
+}
+
+function textOrNull(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
 function validateRuntimeManifestFiles(value, label, errors) {
   if (!Array.isArray(value) || value.length === 0) {
     errors.push(`trusted media ${label} manifest must identify at least one file.`);
     return null;
   }
   const paths = new Set();
+  const normalizedEntries = [];
   for (const [index, entry] of value.entries()) {
     const entryLabel = `trusted media ${label} manifest files[${index}]`;
-    if (!exactKeys(entry, ['path', 'sha256', 'size_bytes'], entryLabel, errors)) {
-      continue;
-    }
+    const normalized = Array.isArray(entry) && entry.length === 3
+      ? {path: entry[0], size_bytes: entry[1], sha256: entry[2]}
+      : entry;
+    if (!exactKeys(normalized, ['path', 'sha256', 'size_bytes'], entryLabel, errors)) continue;
     if (
-      typeof entry.path !== 'string' ||
-      !entry.path ||
-      entry.path.startsWith('/') ||
-      entry.path.includes('\\') ||
-      entry.path.split('/').includes('..') ||
-      paths.has(entry.path) ||
-      !/^[a-f0-9]{64}$/.test(entry.sha256 ?? '') ||
-      !Number.isSafeInteger(entry.size_bytes) ||
-      entry.size_bytes < 0
+      typeof normalized.path !== 'string' ||
+      !normalized.path ||
+      normalized.path.startsWith('/') ||
+      normalized.path.includes('\\') ||
+      normalized.path.split('/').includes('..') ||
+      paths.has(normalized.path) ||
+      !/^[a-f0-9]{64}$/.test(normalized.sha256 ?? '') ||
+      !Number.isSafeInteger(normalized.size_bytes) ||
+      normalized.size_bytes < 0
     ) {
       errors.push(`${entryLabel} has an invalid or duplicate file identity.`);
     }
-    paths.add(entry.path);
+    paths.add(normalized.path);
+    normalizedEntries.push(normalized);
   }
-  return paths.size === value.length ? value : null;
+  return paths.size === value.length && normalizedEntries.length === value.length
+    ? normalizedEntries
+    : null;
 }
 
 function validateReceipt(receipt, policy, errors) {
@@ -1261,8 +1556,11 @@ export function verifyTrustedMediaRunReceipt({
   bundlePath = null,
   artifactDirectory = null,
   audioRoot = null,
+  candidateRoot = null,
+  authorizationPath = null,
   verifyAttestation = false,
   execFile = execFileSync,
+  probeMediaDuration = probeMediaDurationMs,
 } = {}) {
   const errors = [];
   const policyBytes = loadRegularFile(
@@ -1307,6 +1605,9 @@ export function verifyTrustedMediaRunReceipt({
       policy,
       artifactDirectory,
       audioRoot ?? artifactDirectory,
+      candidateRoot,
+      authorizationPath,
+      probeMediaDuration,
       errors,
     );
   } else if (verifyAttestation && receipt && !artifactDirectory) {
@@ -1382,7 +1683,7 @@ export function verifyTrustedMediaRunReceipt({
 }
 
 function parseArgs(argv) {
-  const result = {verifyAttestation: false, audioRoot: null};
+  const result = {verifyAttestation: false, audioRoot: null, candidateRoot: null};
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === '--verify-attestation') {
@@ -1391,7 +1692,9 @@ function parseArgs(argv) {
       token === '--receipt' ||
       token === '--bundle' ||
       token === '--artifact-dir' ||
-      token === '--audio-root'
+      token === '--audio-root' ||
+      token === '--candidate-root' ||
+      token === '--authorization'
     ) {
       const value = argv[index + 1];
       if (!value) throw new Error(`${token} requires a value.`);
@@ -1400,6 +1703,8 @@ function parseArgs(argv) {
       if (token === '--bundle') result.bundlePath = value;
       if (token === '--artifact-dir') result.artifactDirectory = value;
       if (token === '--audio-root') result.audioRoot = value;
+      if (token === '--candidate-root') result.candidateRoot = value;
+      if (token === '--authorization') result.authorizationPath = value;
     } else {
       throw new Error(`unknown argument: ${token}`);
     }
@@ -1410,6 +1715,9 @@ function parseArgs(argv) {
   }
   if (result.verifyAttestation && !result.artifactDirectory) {
     throw new Error('--artifact-dir is required with --verify-attestation.');
+  }
+  if (result.verifyAttestation && (!result.candidateRoot || !result.authorizationPath)) {
+    throw new Error('--candidate-root and --authorization are required with --verify-attestation.');
   }
   return result;
 }

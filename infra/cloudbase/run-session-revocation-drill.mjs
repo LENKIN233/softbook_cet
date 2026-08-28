@@ -59,11 +59,13 @@ export async function executeSessionRevocationDrill(
   options,
   dependencies = {}
 ) {
+  const env = dependencies.env ?? process.env;
+  const preflightEnv = credentialFreePreflightEnvironment(env);
   const clock = dependencies.clock ?? (() => new Date());
   const startedAt = readTimestamp(clock, 'session drill start');
   const loadedProfile = dependencies.loadProfile
     ? dependencies.loadProfile(options.profilePath)
-    : loadTrackedProfile(options.profilePath);
+    : loadTrackedProfile(options.profilePath, preflightEnv);
   const profileBytes = loadedProfile.bytes;
   const profile = validateDeliveryProfile(
     parseStrictJson(profileBytes, 'session drill delivery profile')
@@ -73,7 +75,7 @@ export async function executeSessionRevocationDrill(
       'session revocation drill requires a closed_beta delivery profile.'
     );
   }
-  const repository = dependencies.repository ?? readRepositoryState();
+  const repository = dependencies.repository ?? readRepositoryState(preflightEnv);
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
   const writeSafety = {
     ...receiverDeliveryInternals.inspectWriteSafety({
@@ -110,7 +112,6 @@ export async function executeSessionRevocationDrill(
     };
   }
   requireApplyReady({ operator: options.operator, repository, writeSafety });
-  const env = dependencies.env ?? process.env;
   const inspectDeployment = dependencies.inspectDeployment ?? inspectApiFunction;
   const deployment = await inspectDeployment({
     envId: profile.environment_id,
@@ -120,7 +121,7 @@ export async function executeSessionRevocationDrill(
       dependencies.runner ??
       createCloudBaseCommandRunner({
         cwd: REPOSITORY_ROOT,
-        env: credentialFreePreflightEnvironment(env),
+        env: preflightEnv,
       }),
   });
   if (deployment?.ok !== true) {
@@ -457,7 +458,7 @@ export function createRemoteSessionTransport({
   };
 }
 
-function loadTrackedProfile(profilePath) {
+function loadTrackedProfile(profilePath, env = credentialFreePreflightEnvironment()) {
   const absolute = resolve(profilePath);
   const relativePath = relative(REPOSITORY_ROOT, absolute).split(sep).join('/');
   if (
@@ -482,12 +483,12 @@ function loadTrackedProfile(profilePath) {
     treeEntry = execFileSync(
       'git',
       ['ls-tree', 'HEAD', '--', relativePath],
-      { cwd: REPOSITORY_ROOT, encoding: 'utf8' }
+      { cwd: REPOSITORY_ROOT, encoding: 'utf8', env }
     ).trim();
     headBytes = execFileSync(
       'git',
       ['show', `HEAD:${relativePath}`],
-      { cwd: REPOSITORY_ROOT, encoding: null }
+      { cwd: REPOSITORY_ROOT, encoding: null, env }
     );
   } catch {
     throw new SessionRevocationDrillError(
@@ -724,19 +725,20 @@ function digestBytes(value) {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
-function readRepositoryState() {
+function readRepositoryState(env = credentialFreePreflightEnvironment()) {
   return {
-    branch: git(['branch', '--show-current']),
-    dirty: git(['status', '--porcelain=v1', '--untracked-files=all']) !== '',
-    head: git(['rev-parse', 'HEAD']),
-    originMain: git(['rev-parse', 'origin/main']),
+    branch: git(['branch', '--show-current'], env),
+    dirty: git(['status', '--porcelain=v1', '--untracked-files=all'], env) !== '',
+    head: git(['rev-parse', 'HEAD'], env),
+    originMain: git(['rev-parse', 'origin/main'], env),
   };
 }
 
-function git(args) {
+function git(args, env) {
   return execFileSync('git', args, {
     cwd: REPOSITORY_ROOT,
     encoding: 'utf8',
+    env,
   }).trim();
 }
 

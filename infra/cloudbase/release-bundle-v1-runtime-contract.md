@@ -161,9 +161,11 @@ an applied formal raw report.
 The four required CET4 content/media evidence types remain deliberately
 unregistered. `spec/trusted-media-run-receipt.json` and
 `scripts/verify_trusted_media_run_receipt.mjs` now define and test the exact
-candidate, authorization, linked review, audit, 1,180-card/108-box/301-audio
-membership, two full perceptual runs, consumed media bytes, fixed trusted
-workflow, source commit and GitHub Sigstore binding. Registration still waits
+candidate authorization/runtime/card-source join; linked review and audit;
+1,180-card/108-box/301-audio membership; consumer-side `ffprobe` duration replay
+from the exact audio bytes; compact locked Python environment manifest; two full
+perceptual runs; fixed trusted workflow, source commit and GitHub Sigstore
+binding. Registration still waits
 for the producer workflow and one real attested receipt; the builder report and
 structural `model-acceptance.v2` records remain useful inputs but cannot
 manufacture a model execution, playback, device or provider fact.

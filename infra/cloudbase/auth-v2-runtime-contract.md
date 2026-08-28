@@ -254,7 +254,7 @@ destroys both dedicated test sessions and cannot restore them.
 
 The machine operator is part of the report, so apply rejects an operator value
 that embeds the decoded phone, including separator-obfuscated digit forms, or
-credential-shaped material before any remote request. This keeps execution attribution without creating a phone/token
+credential-shaped material before any session or data-plane request. This keeps execution attribution without creating a phone/token
 side-channel through an otherwise valid machine principal.
 
 Before the four session credentials are read, apply removes all four credential
