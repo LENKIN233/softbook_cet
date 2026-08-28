@@ -1073,6 +1073,18 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
   const runtimeAssetById = new Map(
     runtime.assets.map(asset => [String(asset?.asset_id ?? ''), asset]),
   );
+  const runtimeAudioCards = cards.filter(card => card?.audio);
+  const referencedRuntimeAssetIds = runtimeAudioCards.map(card =>
+    String(card.audio.asset_id ?? ''));
+  if (
+    runtimeAudioCards.length !== 301 ||
+    new Set(referencedRuntimeAssetIds).size !== 301 ||
+    JSON.stringify([...referencedRuntimeAssetIds].sort()) !==
+      JSON.stringify([...runtimeAssetById.keys()].sort())
+  ) {
+    errors.push('authorized runtime audio cards do not own the exact 301-asset catalog.');
+    return;
+  }
   const sourceCache = new Map();
   for (const entry of worklist.entries) {
     const runtimeCard = runtimeByCard.get(entry.card_id);
@@ -1105,6 +1117,10 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
       entry.audio.transcript !== transcript ||
       runtimeCard.track !== 'cet4' ||
       runtimeBoxPrefix(runtimeCard) !== entry.knowledge_ref.box_prefix ||
+      runtimeCard.space_metadata?.box_ref !== entry.knowledge_ref.box_prefix ||
+      runtimeCard.space_metadata?.library !== entry.knowledge_ref.library_name ||
+      runtimeCard.space_metadata?.group !== entry.knowledge_ref.group_name ||
+      runtimeCard.space_metadata?.box !== entry.knowledge_ref.box_name ||
       runtimeCard.audio?.transcript !== entry.audio.transcript ||
       runtimeCard.audio?.duration_ms !== entry.audio.declared_duration_ms ||
       normalizeSha(runtimeCard.audio?.sha256) !== entry.audio.file_sha256 ||

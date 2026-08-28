@@ -441,18 +441,7 @@ function writeCandidateEvidence(root, receipt, assets) {
     assets: runtimeAssets,
     release: null,
   };
-  runtime.content_version = `sha256:${hash(canonicalStringify({
-    assets: runtime.assets.map(asset => ({
-      asset_id: asset.asset_id,
-      duration_ms: asset.duration_ms,
-      media_type: asset.media_type,
-      sha256: asset.sha256,
-      size_bytes: asset.size_bytes,
-    })).sort((left, right) => left.asset_id.localeCompare(right.asset_id)),
-    card_records: runtime.card_records,
-    source: runtime.source,
-    track: runtime.track,
-  }))}`;
+  runtime.content_version = runtimeContentVersion(runtime);
   const runtimePath = path.join(root, 'reviews/runtime_payloads/candidate.json');
   fs.mkdirSync(path.dirname(runtimePath), {recursive: true});
   const runtimeBytes = Buffer.from(`${JSON.stringify(runtime)}\n`);
@@ -495,6 +484,41 @@ function writeCandidateEvidence(root, receipt, assets) {
   receipt.candidate.full_track_review_sha256 = hash(reviewBytes);
   receipt.candidate.quality_audit_sha256 = hash(auditBytes);
   return authorizationPath;
+}
+
+function runtimeContentVersion(runtime) {
+  return `sha256:${hash(canonicalStringify({
+    assets: runtime.assets.map(asset => ({
+      asset_id: asset.asset_id,
+      duration_ms: asset.duration_ms,
+      media_type: asset.media_type,
+      sha256: asset.sha256,
+      size_bytes: asset.size_bytes,
+    })).sort((left, right) => left.asset_id.localeCompare(right.asset_id)),
+    card_records: runtime.card_records,
+    source: runtime.source,
+    track: runtime.track,
+  }))}`;
+}
+
+function rebindCandidateRuntime(fixtureValue, receipt, mutate) {
+  const runtimePath = path.join(
+    fixtureValue.candidateRoot,
+    'reviews/runtime_payloads/candidate.json',
+  );
+  const authorizationPath = fixtureValue.authorizationPath;
+  const runtime = JSON.parse(fs.readFileSync(runtimePath));
+  mutate(runtime);
+  runtime.content_version = runtimeContentVersion(runtime);
+  const runtimeBytes = Buffer.from(`${JSON.stringify(runtime)}\n`);
+  fs.writeFileSync(runtimePath, runtimeBytes);
+  const authorization = JSON.parse(fs.readFileSync(authorizationPath));
+  authorization.content_version = runtime.content_version;
+  authorization.validation.runtime_payload_sha256 = `sha256:${hash(runtimeBytes)}`;
+  const authorizationBytes = Buffer.from(`${JSON.stringify(authorization)}\n`);
+  fs.writeFileSync(authorizationPath, authorizationBytes);
+  receipt.candidate.content_version = runtime.content_version;
+  receipt.candidate.content_authorization_sha256 = hash(authorizationBytes);
 }
 
 function modelAcceptance(receipt, asset, sources) {
@@ -738,6 +762,28 @@ test('attested arbitrary candidate hashes cannot replace exact authorization byt
   const result = verifyAttested(fixtureValue, receipt);
   assert.equal(result.formal_ready, false);
   assert.match(result.errors.join('\n'), /authorization does not match the receipt candidate/);
+});
+
+test('runtime audio cards must own the exact asset catalog one to one', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  rebindCandidateRuntime(fixtureValue, receipt, runtime => {
+    runtime.card_records[1].audio.asset_id = runtime.card_records[0].audio.asset_id;
+  });
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /own the exact 301-asset catalog/);
+});
+
+test('transformed runtime space metadata must match the source card', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  rebindCandidateRuntime(fixtureValue, receipt, runtime => {
+    runtime.card_records[0].space_metadata.group = '错误分组';
+  });
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /does not bind the authorized candidate card/);
 });
 
 test('audio manifest rejects one media path reused by different cards', t => {
