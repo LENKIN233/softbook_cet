@@ -1049,7 +1049,7 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
   if (!runtime) return;
   const cards = runtime.card_records;
   const cardIds = cards.map(card => String(card?.card_id ?? ''));
-  const uniqueBoxes = [...new Set(cards.map(card => normalizedKnowledgeRef(card).box_prefix))].sort();
+  const uniqueBoxes = [...new Set(cards.map(runtimeBoxPrefix))].sort();
   const authorizedCards = [...(authorization.scope?.card_ids ?? [])].map(String).sort();
   const authorizedBoxes = [...(authorization.scope?.box_prefixes ?? [])].map(String).sort();
   const contentVersion = deriveCandidateContentVersion(runtime);
@@ -1058,6 +1058,9 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
     cards.length !== 1180 ||
     new Set(cardIds).size !== 1180 ||
     uniqueBoxes.length !== 108 ||
+    !Array.isArray(runtime.assets) ||
+    runtime.assets.length !== 301 ||
+    new Set(runtime.assets.map(asset => asset?.asset_id)).size !== 301 ||
     JSON.stringify([...cardIds].sort()) !== JSON.stringify(authorizedCards) ||
     JSON.stringify(uniqueBoxes) !== JSON.stringify(authorizedBoxes) ||
     contentVersion !== authorization.content_version ||
@@ -1067,6 +1070,9 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
     return;
   }
   const runtimeByCard = new Map(cards.map(card => [String(card.card_id), card]));
+  const runtimeAssetById = new Map(
+    runtime.assets.map(asset => [String(asset?.asset_id ?? ''), asset]),
+  );
   const sourceCache = new Map();
   for (const entry of worklist.entries) {
     const runtimeCard = runtimeByCard.get(entry.card_id);
@@ -1086,17 +1092,27 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
       if (sourceDocument) sourceCache.set(entry.card_source_file, sourceDocument);
     }
     const sourceCard = sourceDocument?.cards?.find(card => String(card?.card_id) === entry.card_id);
+    const runtimeAsset = runtimeAssetById.get(String(runtimeCard?.audio?.asset_id ?? ''));
     const transcript = typeof sourceCard?.audio?.transcript === 'string'
       ? sourceCard.audio.transcript.trim()
       : '';
     if (
       !runtimeCard ||
       !sourceCard ||
-      canonicalStringify(runtimeCard) !== canonicalStringify(sourceCard) ||
       canonicalStringify(entry.knowledge_ref) !== canonicalStringify(normalizedKnowledgeRef(sourceCard)) ||
       canonicalStringify(entry.training_context) !== canonicalStringify(normalizedTrainingContext(sourceCard)) ||
       entry.audio.asset_path !== (sourceCard.audio?.path ?? sourceCard.audio?.url) ||
-      entry.audio.transcript !== transcript
+      entry.audio.transcript !== transcript ||
+      runtimeCard.track !== 'cet4' ||
+      runtimeBoxPrefix(runtimeCard) !== entry.knowledge_ref.box_prefix ||
+      runtimeCard.audio?.transcript !== entry.audio.transcript ||
+      runtimeCard.audio?.duration_ms !== entry.audio.declared_duration_ms ||
+      normalizeSha(runtimeCard.audio?.sha256) !== entry.audio.file_sha256 ||
+      !runtimeAsset ||
+      normalizeSha(runtimeAsset.sha256) !== entry.audio.file_sha256 ||
+      runtimeAsset.size_bytes !== entry.audio.size_bytes ||
+      runtimeAsset.duration_ms !== entry.audio.declared_duration_ms ||
+      runtimeAsset.media_type !== 'audio/mpeg'
     ) {
       errors.push(`reviewed media card ${entry.card_id} does not bind the authorized candidate card.`);
     }
@@ -1185,6 +1201,12 @@ function normalizedKnowledgeRef(card) {
     box_name: String(card?.knowledge_ref?.box_name ?? card?.card_box_name ?? ''),
     box_prefix: String(card?.knowledge_ref?.box_prefix ?? card?.card_box_code ?? ''),
   };
+}
+
+function runtimeBoxPrefix(card) {
+  return typeof card?.knowledge_ref === 'string'
+    ? card.knowledge_ref
+    : normalizedKnowledgeRef(card).box_prefix;
 }
 
 function normalizedTrainingContext(card) {

@@ -399,14 +399,56 @@ function writeCandidateEvidence(root, receipt, assets) {
   const sourcePath = path.join(root, 'card_boxes_json/cet4-listening.json');
   fs.mkdirSync(path.dirname(sourcePath), {recursive: true});
   fs.writeFileSync(sourcePath, `${JSON.stringify({track: 'cet4', cards})}\n`);
+  const assetByCard = new Map(assets.map(asset => [asset.card_id, asset]));
+  const runtimeAssets = assets.map(asset => ({
+    asset_id: `cet4-${asset.card_id}-audio`,
+    asset_path: `audio/cet4/${asset.card_id.slice(0, 4)}/${asset.card_id}.mp3`,
+    duration_ms: asset.declared_duration_ms,
+    media_type: 'audio/mpeg',
+    sha256: `sha256:${asset.file_sha256}`,
+    size_bytes: asset.size_bytes,
+  }));
+  const runtimeCards = cards.map(card => {
+    const asset = assetByCard.get(card.card_id);
+    return {
+      card_id: card.card_id,
+      track: 'cet4',
+      knowledge_ref: card.knowledge_ref.box_prefix,
+      interaction_id: 'flip',
+      front: {eyebrow: '测试', prompt: '测试', support: '测试', context: '测试'},
+      analysis: {title: '测试', summary: '测试', exam_tip: '测试'},
+      space_metadata: {
+        box_ref: card.knowledge_ref.box_prefix,
+        library: card.knowledge_ref.library_name,
+        group: card.knowledge_ref.group_name,
+        box: card.knowledge_ref.box_name,
+      },
+      back_text: '测试',
+      ...(asset ? {
+        audio: {
+          asset_id: `cet4-${card.card_id}-audio`,
+          duration_ms: asset.declared_duration_ms,
+          sha256: `sha256:${asset.file_sha256}`,
+          transcript: asset.transcript,
+        },
+      } : {}),
+    };
+  });
   const runtime = {
     source: {id: 'trusted-media-test', label: 'Trusted media test'},
     track: 'cet4',
-    card_records: cards,
-    assets: [],
+    card_records: runtimeCards,
+    assets: runtimeAssets,
     release: null,
   };
   runtime.content_version = `sha256:${hash(canonicalStringify({
+    assets: runtime.assets.map(asset => ({
+      asset_id: asset.asset_id,
+      duration_ms: asset.duration_ms,
+      media_type: asset.media_type,
+      sha256: asset.sha256,
+      size_bytes: asset.size_bytes,
+    })).sort((left, right) => left.asset_id.localeCompare(right.asset_id)),
     card_records: runtime.card_records,
     source: runtime.source,
     track: runtime.track,
