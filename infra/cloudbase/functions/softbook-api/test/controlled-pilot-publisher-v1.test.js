@@ -289,7 +289,7 @@ test('pilot bundle builder accepts identified model-harness perceptual QC', () =
 async function createFixture() {
   const directory = mkdtempSync(join(tmpdir(), 'controlled-pilot-publisher-'));
   temporaryDirectories.push(directory);
-  for (const child of ['approval', 'audio/qc', 'content', 'audit']) {
+  for (const child of ['approval', 'audio/qc', 'content', 'audit', 'exports']) {
     mkdirSync(join(directory, child), {recursive: true});
   }
   const development = await developmentCardSource();
@@ -390,7 +390,7 @@ async function createFixture() {
     ...content,
     corpus_fingerprint: corpusFingerprint,
   });
-  const candidatePayloadPath = join(directory, 'candidate-payload.json');
+  const candidatePayloadPath = join(directory, 'exports/candidate-payload.json');
   const candidatePayloadHash = writeJson(candidatePayloadPath, content);
   const auditPath = join(directory, 'audit/pilot-audit.json');
   const auditCorpusDigest = digestText('card-make-corpus').slice('sha256:'.length);
@@ -550,6 +550,7 @@ async function createFixture() {
     approvalPath,
     auditPath,
     candidatePayloadPath,
+    assetRoot: directory,
     audioQcDirectory: join(directory, 'audio/qc'),
     outputDirectory: assembledDirectory,
     bundleId: 'cet4-pilot-bundle-assembled',

@@ -7,6 +7,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {parseStrictJson} from './lib/strict_json.mjs';
+import {validateModelAcceptance} from './lib/model_acceptance_contract.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_POLICY_PATH = path.join(
@@ -121,6 +122,66 @@ function canonicalStringify(value) {
       .join(',')}}`;
   }
   return JSON.stringify(value);
+}
+
+function decisionInputSha256(entry) {
+  const payload = {
+    schema_version: 'audio-perceptual-decision-input.v1',
+    entry_identity_sha256: entry.entry_identity_sha256,
+    complete_asset_consumed: true,
+    checks: Object.fromEntries(
+      PERCEPTUAL_CHECKS.map(check => [check, entry.checks?.[check] ?? null]),
+    ),
+  };
+  return `sha256:${createHash('sha256')
+    .update(canonicalStringify(payload))
+    .digest('hex')}`;
+}
+
+function normalizedWords(value) {
+  return String(value ?? '').toLowerCase().match(/[a-z0-9]+/g) ?? [];
+}
+
+function sequenceMatcherRatio(left, right) {
+  const a = normalizedWords(left);
+  const b = normalizedWords(right);
+  if (a.length + b.length === 0) return 1;
+  const b2j = new Map();
+  for (const [index, token] of b.entries()) {
+    if (!b2j.has(token)) b2j.set(token, []);
+    b2j.get(token).push(index);
+  }
+  const queue = [[0, a.length, 0, b.length]];
+  let matches = 0;
+  while (queue.length > 0) {
+    const [alo, ahi, blo, bhi] = queue.pop();
+    let bestI = alo;
+    let bestJ = blo;
+    let bestSize = 0;
+    let previous = new Map();
+    for (let i = alo; i < ahi; i += 1) {
+      const current = new Map();
+      for (const j of b2j.get(a[i]) ?? []) {
+        if (j < blo) continue;
+        if (j >= bhi) break;
+        const size = (previous.get(j - 1) ?? 0) + 1;
+        current.set(j, size);
+        if (size > bestSize) {
+          bestI = i - size + 1;
+          bestJ = j - size + 1;
+          bestSize = size;
+        }
+      }
+      previous = current;
+    }
+    if (bestSize === 0) continue;
+    matches += bestSize;
+    if (alo < bestI && blo < bestJ) queue.push([alo, bestI, blo, bestJ]);
+    const afterI = bestI + bestSize;
+    const afterJ = bestJ + bestSize;
+    if (afterI < ahi && afterJ < bhi) queue.push([afterI, ahi, afterJ, bhi]);
+  }
+  return (2 * matches) / (a.length + b.length);
 }
 
 function validateAudioCoverage(value, policy, label, errors) {
@@ -309,6 +370,10 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
       entry.audio?.file_sha256 !== asset.file_sha256 ||
       entry.audio?.size_bytes !== asset.size_bytes ||
       entry.audio?.transcript_sha256 !== asset.transcript_sha256 ||
+      typeof entry.audio?.transcript !== 'string' ||
+      !entry.audio.transcript.trim() ||
+      createHash('sha256').update(entry.audio.transcript).digest('hex') !==
+        entry.audio.transcript_sha256 ||
       entry.review?.status !== 'passed' ||
       entry.review?.complete_asset_consumed !== true ||
       !Array.isArray(entry.review?.model_acceptances) ||
@@ -318,13 +383,12 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
       errors.push(`${label} does not bind an exact passed media decision.`);
       continue;
     }
-    const agents = entry.review.model_acceptances.map(item => item?.actor?.agent).sort();
     const runIds = entry.review.model_acceptances.map(item => item?.actor?.run_id);
     if (
-      JSON.stringify(agents) !== JSON.stringify(['agent:trusted-media-af', 'agent:trusted-media-bg']) ||
       new Set(runIds).size !== 2 ||
       entry.review.model_acceptances.some(item =>
         item?.schema_version !== 'model-acceptance.v2' ||
+        item?.actor?.kind !== 'model_harness' ||
         item?.actor?.model !== receipt.execution.model.id ||
         item?.decision !== 'accepted' ||
         !item?.evidence?.capabilities?.includes('audio_perceptual_review'))
@@ -357,12 +421,30 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
     errors.push('trusted media run package does not match the receipt and raw run manifest.');
   }
   const receiptRuns = new Map(receipt.review_runs.map(run => [run.run_id, run]));
+  const rawRunIds = new Set();
+  const rawRunNames = new Set();
+  const rawRunPaths = new Set();
+  const rawRunHashes = new Set();
+  const rawRunsByName = new Map();
   const mandatoryCoverage = new Map([
     ['full_perceptual', 0],
     ['blind_transcript', 0],
   ]);
   for (const [index, run] of rawManifest.runs.entries()) {
     const label = `raw run manifest runs[${index}]`;
+    if (
+      rawRunIds.has(run?.run_id) ||
+      rawRunNames.has(run?.name) ||
+      rawRunPaths.has(run?.path) ||
+      rawRunHashes.has(run?.sha256)
+    ) {
+      errors.push(`${label} duplicates a run ID, name, path, or SHA-256.`);
+      continue;
+    }
+    rawRunIds.add(run.run_id);
+    rawRunNames.add(run.name);
+    rawRunPaths.add(run.path);
+    rawRunHashes.add(run.sha256);
     const receiptRun = receiptRuns.get(run?.run_id);
     if (
       !receiptRun ||
@@ -436,20 +518,39 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
       }
       if (
         run.purpose === 'blind_transcript' &&
-        (!Number.isFinite(record.transcript_similarity) || record.transcript_similarity < 0.85)
+        (
+          !Number.isFinite(record.transcript_similarity) ||
+          record.transcript_similarity !== Number(
+            sequenceMatcherRatio(
+              entry.audio.transcript,
+              record.result?.transcript_heard,
+            ).toFixed(6),
+          ) ||
+          record.transcript_similarity < 0.85
+        )
       ) {
         errors.push(`${recordLabel} blind transcript did not pass deterministic similarity.`);
       }
       seen.add(record.card_id);
     }
+    rawRunsByName.set(run.name, {
+      ...run,
+      records: new Map(records.map(record => [record.card_id, record])),
+    });
     if (['full_perceptual', 'blind_transcript'].includes(run.purpose)) {
-      if (seen.size !== 301) {
+      if (
+        seen.size !== 301 ||
+        [...entriesByCard.keys()].some(cardId => !seen.has(cardId))
+      ) {
         errors.push(`${label} must cover all 301 exact card assets.`);
       }
       mandatoryCoverage.set(run.purpose, mandatoryCoverage.get(run.purpose) + 1);
     }
   }
-  if (receiptRuns.size !== rawManifest.runs.length) {
+  if (
+    receiptRuns.size !== rawManifest.runs.length ||
+    [...receiptRuns.keys()].some(runId => !rawRunIds.has(runId))
+  ) {
     errors.push('raw run manifest does not cover every receipt review run exactly once.');
   }
   if (mandatoryCoverage.get('full_perceptual') < policy.receipt.minimum_full_perceptual_runs) {
@@ -458,7 +559,125 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
   if (mandatoryCoverage.get('blind_transcript') < policy.receipt.minimum_blind_transcript_runs) {
     errors.push('raw artifacts lack two complete blind_transcript runs.');
   }
+  validateRunDecisions({
+    entriesByCard,
+    receipt,
+    rawRunsByName,
+    runPackage,
+    errors,
+  });
   return errors.length === 0;
+}
+
+function validateRunDecisions({
+  entriesByCard,
+  errors,
+  rawRunsByName,
+  receipt,
+  runPackage,
+}) {
+  if (!Array.isArray(runPackage.decisions) || runPackage.decisions.length !== 301) {
+    errors.push('trusted media run package does not contain exactly 301 decisions.');
+    return;
+  }
+  const decisions = new Map();
+  for (const [index, decision] of runPackage.decisions.entries()) {
+    const label = `run package decisions[${index}]`;
+    if (
+      !exactKeys(decision, ['card_id', 'checks', 'acceptance_sources'], label, errors) ||
+      decisions.has(decision?.card_id) ||
+      !entriesByCard.has(decision?.card_id) ||
+      !exactKeys(decision.checks, PERCEPTUAL_CHECKS, `${label}.checks`, errors) ||
+      PERCEPTUAL_CHECKS.some(check => decision.checks?.[check] !== true) ||
+      !Array.isArray(decision.acceptance_sources) ||
+      decision.acceptance_sources.length !== 2
+    ) {
+      errors.push(`${label} is not an exact passed two-lane decision.`);
+      continue;
+    }
+    decisions.set(decision.card_id, decision);
+  }
+  for (const [cardId, entry] of entriesByCard) {
+    const decision = decisions.get(cardId);
+    if (!decision) {
+      errors.push(`run package omits decision for ${cardId}.`);
+      continue;
+    }
+    const laneIdentities = [];
+    for (const [lane, group] of decision.acceptance_sources.entries()) {
+      const label = `decision ${cardId} lane ${lane + 1}`;
+      if (
+        !Array.isArray(group) ||
+        group.length < 2 ||
+        group.length > 3 ||
+        new Set(group).size !== group.length
+      ) {
+        errors.push(`${label} has an invalid bounded source group.`);
+        continue;
+      }
+      const runs = group.map(name => rawRunsByName.get(name));
+      if (runs.some(run => !run || !run.records.has(cardId))) {
+        errors.push(`${label} references a missing exact-card raw run.`);
+        continue;
+      }
+      const general = runs.filter(run =>
+        ['full_perceptual', 'adjudication'].includes(run.purpose));
+      const blind = runs.filter(run => run.purpose === 'blind_transcript');
+      const pronunciation = runs.filter(run => run.purpose === 'pronunciation');
+      if (general.length !== 1 || blind.length !== 1 || pronunciation.length > 1) {
+        errors.push(`${label} must contain one general, one blind, and at most one pronunciation run.`);
+        continue;
+      }
+      const generalResult = general[0].records.get(cardId).result;
+      const blindRecord = blind[0].records.get(cardId);
+      const pronunciationRecord = pronunciation[0]?.records.get(cardId) ?? null;
+      const expectedChecks = {
+        audio_matches_text: blindRecord.transcript_similarity >= 0.85,
+        target_signal_audible: generalResult?.target_signal_audible === true,
+        accurate_pronunciation: pronunciationRecord
+          ? pronunciationRecord.result?.accurate_pronunciation === true
+          : generalResult?.accurate_pronunciation === true,
+        suitable_speed: generalResult?.suitable_speed === true,
+        natural_rhythm: generalResult?.natural_rhythm === true,
+        stress_and_pauses_do_not_mislead:
+          generalResult?.stress_pauses_do_not_mislead === true,
+        no_unwanted_noise_or_clipping:
+          generalResult?.no_unwanted_noise_or_clipping === true,
+      };
+      if (PERCEPTUAL_CHECKS.some(check =>
+        decision.checks[check] !== expectedChecks[check])) {
+        errors.push(`${label} decision checks do not replay raw model results.`);
+      }
+      laneIdentities.push({
+        agent: `agent:trusted-media-${group.join('')}`,
+        blindName: blind[0].name,
+        generalName: general[0].name,
+        runId: `${receipt.execution.workflow_run_id}:${cardId}:${group.join('')}`,
+      });
+      const acceptance = entry.review.model_acceptances[lane];
+      const acceptanceErrors = validateModelAcceptance(acceptance, {
+        expectedInputSha256: decisionInputSha256(entry),
+        requiredCapabilities: ['audio_perceptual_review'],
+      });
+      if (
+        acceptanceErrors.length > 0 ||
+        acceptance?.actor?.agent !== laneIdentities.at(-1).agent ||
+        acceptance?.actor?.model !== receipt.execution.model.id ||
+        acceptance?.actor?.run_id !== laneIdentities.at(-1).runId
+      ) {
+        errors.push(`${label} model acceptance is not bound to the replayed media decision.`);
+      }
+    }
+    if (
+      laneIdentities.length === 2 &&
+      (
+        laneIdentities[0].generalName === laneIdentities[1].generalName ||
+        laneIdentities[0].blindName === laneIdentities[1].blindName
+      )
+    ) {
+      errors.push(`decision ${cardId} reuses a general or blind run across lanes.`);
+    }
+  }
 }
 
 function validateReceipt(receipt, policy, errors) {

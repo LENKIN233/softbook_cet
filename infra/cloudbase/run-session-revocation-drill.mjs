@@ -389,44 +389,56 @@ export function createRemoteSessionTransport({
     ) {
       const target = `${normalized}${requestPath}`;
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
-      let response;
+      let timeout;
+      const deadline = new Promise((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new SessionRevocationDrillError(
+            'session drill remote request timed out.'
+          ));
+        }, timeoutMs);
+      });
       try {
-        response = await fetchImpl(target, {
-          ...(body === null ? {} : { body: JSON.stringify(body) }),
-          headers: {
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-            'content-type': 'application/json',
-            'x-softbook-client': 'mobile',
-          },
-          method,
-          redirect: 'error',
-          signal: controller.signal,
-        });
-      } catch {
-        throw new SessionRevocationDrillError(
-          'session drill remote request failed.'
-        );
+        let response;
+        try {
+          response = await Promise.race([fetchImpl(target, {
+            ...(body === null ? {} : { body: JSON.stringify(body) }),
+            headers: {
+              ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+              'content-type': 'application/json',
+              'x-softbook-client': 'mobile',
+            },
+            method,
+            redirect: 'error',
+            signal: controller.signal,
+          }), deadline]);
+        } catch (error) {
+          if (error instanceof SessionRevocationDrillError) throw error;
+          throw new SessionRevocationDrillError(
+            'session drill remote request failed.'
+          );
+        }
+        if (response.redirected === true || (response.url && response.url !== target)) {
+          throw new SessionRevocationDrillError(
+            'session drill remote response changed the tracked receiver URL.'
+          );
+        }
+        if (response.status === 204) {
+          return { payload: null, status: 204 };
+        }
+        let payload;
+        try {
+          payload = await Promise.race([response.json(), deadline]);
+        } catch (error) {
+          if (error instanceof SessionRevocationDrillError) throw error;
+          throw new SessionRevocationDrillError(
+            'session drill remote response was not JSON.'
+          );
+        }
+        return { payload, status: response.status };
       } finally {
         clearTimeout(timeout);
       }
-      if (response.redirected === true || (response.url && response.url !== target)) {
-        throw new SessionRevocationDrillError(
-          'session drill remote response changed the tracked receiver URL.'
-        );
-      }
-      if (response.status === 204) {
-        return { payload: null, status: 204 };
-      }
-      let payload;
-      try {
-        payload = await response.json();
-      } catch {
-        throw new SessionRevocationDrillError(
-          'session drill remote response was not JSON.'
-        );
-      }
-      return { payload, status: response.status };
     },
   };
 }
@@ -637,8 +649,10 @@ function requireDistinctSecrets(value) {
 
 function requirePrivateOperator(operator, { phoneNumber, secrets }) {
   const value = String(operator ?? '');
+  const normalizedDigits = value.replace(/\D/g, '');
   if (
     value.includes(phoneNumber) ||
+    normalizedDigits.includes(phoneNumber) ||
     /softbook_(?:v2|refresh)\./.test(value) ||
     secrets.some((secret) => value.includes(secret))
   ) {

@@ -166,6 +166,7 @@ node scripts/build_controlled_pilot_bundle.mjs \
   --approval /absolute/path/controlled-pilot-approval.json \
   --audit /absolute/path/controlled-pilot-audit.json \
   --candidate-payload /absolute/path/card-source.json \
+  --asset-root '/absolute/path/card make' \
   --audio-qc-dir '/absolute/path/card make/reviews/audio_qc' \
   --output-dir /absolute/path/cet4-controlled-pilot-bundle \
   --bundle-id cet4-pilot-bundle-001 \

@@ -206,10 +206,9 @@ export function assembleControlledPilotBundle(
       fail('Controlled-pilot review changed while the bundle was assembled.');
     }
 
-    const candidateRoot = dirname(normalized.candidatePayloadPath);
     for (const asset of assets) {
       const source = resolveInside(
-        candidateRoot,
+        normalized.assetRoot,
         sourcePathsByAssetId.get(asset.asset_id),
         'candidate audio asset',
       );
@@ -750,13 +749,15 @@ function normalizeOptions(options) {
     if (!options?.[key]) fail(`${key} is required.`);
   }
   const outputDirectory = resolve(options.outputDirectory);
+  const candidatePayloadPath = resolve(options.candidatePayloadPath);
   return {
     ...options,
     profilePath: resolve(options.profilePath),
     pilotReviewPath: resolve(options.pilotReviewPath),
     approvalPath: resolve(options.approvalPath),
     auditPath: resolve(options.auditPath),
-    candidatePayloadPath: resolve(options.candidatePayloadPath),
+    candidatePayloadPath,
+    assetRoot: resolve(options.assetRoot ?? dirname(candidatePayloadPath)),
     audioQcDirectory: resolve(options.audioQcDirectory),
     outputDirectory,
     outputParent: dirname(outputDirectory),
@@ -776,6 +777,7 @@ function parseArgs(argv) {
     ['--approval', 'approvalPath'],
     ['--audit', 'auditPath'],
     ['--candidate-payload', 'candidatePayloadPath'],
+    ['--asset-root', 'assetRoot'],
     ['--audio-qc-dir', 'audioQcDirectory'],
     ['--output-dir', 'outputDirectory'],
     ['--bundle-id', 'bundleId'],
@@ -800,7 +802,7 @@ function parseArgs(argv) {
 }
 
 function printUsage() {
-  console.log(`Usage: node scripts/build_controlled_pilot_bundle.mjs [options]\n\nRequired: --profile --pilot-review --approval --audit --candidate-payload --audio-qc-dir --output-dir --bundle-id --release-id --created-at --release-at\n\nThe command verifies a complete bundle in temporary storage. It is dry-run by default; pass --apply to keep the verified output directory.`);
+  console.log(`Usage: node scripts/build_controlled_pilot_bundle.mjs [options]\n\nRequired: --profile --pilot-review --approval --audit --candidate-payload --audio-qc-dir --output-dir --bundle-id --release-id --created-at --release-at\nOptional: --asset-root <card-workspace-root> when QC source paths are not relative to the exported candidate payload.\n\nThe command verifies a complete bundle in temporary storage. It is dry-run by default; pass --apply to keep the verified output directory.`);
 }
 
 function libraryKey(card) {

@@ -673,6 +673,7 @@
         "trusted_media_run_receipt_v1_requires_exact_receipt_bytes_fixed_signer_workflow_source_commit_oidc_issuer_verified_timestamp_and_type_specific_semantics",
         "formal_ready_requires_rehashed_audio_manifest_reviewed_worklist_raw_run_manifest_and_every_raw_JSONL_record",
         "consumer_recomputes_exact_301_asset_identity_two_full_runs_two_blind_runs_model_acceptances_and_untruncated_sample_coverage",
+        "consumer_rejects_duplicate_runs_failed_raw_decision_replay_transcript_hash_drift_and_unbound_acceptance_inputs",
         "formal_media_evidence_types_remain_unregistered_until_one_real_attested_receipt_exists",
         "unregistered_evidence_types_fail_closed",
         "external_playback_device_provider_and_distribution_facts_cannot_be_inferred"
@@ -778,7 +779,7 @@
         "apply_requires_Node_22_13_clean_exact_main_receiver_profile_and_operator",
         "receiver_profile_is_tracked_regular_HEAD_identical_and_hash_bound",
         "control_plane_backend_deployment_identity_verified_before_loading_session_credentials",
-        "exact_tracked_HTTPS_target_redirect_rejection_and_bounded_request_timeout",
+        "exact_tracked_HTTPS_target_redirect_rejection_and_bounded_request_plus_response_body_timeout",
         "two_fresh_same_phone_distinct_session_access_refresh_pairs",
         "access_and_refresh_session_claims_match_then_access_is_server_confirmed",
         "client_A_refresh_rotates_both_credentials",
@@ -787,7 +788,7 @@
         "client_B_refresh_rotates_before_logout_and_rotated_access_remains_active",
         "client_B_logout_replay_is_idempotent_204",
         "rotated_client_B_access_and_refresh_fail_after_logout",
-        "operator_cannot_embed_phone_or_credential_material",
+        "operator_cannot_embed_literal_or_separator_normalized_phone_or_credential_material",
         "phone_and_token_values_absent_raw_report_gate_eligible_false"
       ]
     }

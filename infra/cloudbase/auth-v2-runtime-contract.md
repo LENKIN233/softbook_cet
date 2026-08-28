@@ -251,8 +251,8 @@ credentials must then return `revoked_auth_session`. Apply intentionally
 destroys both dedicated test sessions and cannot restore them.
 
 The machine operator is part of the report, so apply rejects an operator value
-that embeds the decoded phone or credential-shaped material before any remote
-request. This keeps execution attribution without creating a phone/token
+that embeds the decoded phone, including separator-obfuscated digit forms, or
+credential-shaped material before any remote request. This keeps execution attribution without creating a phone/token
 side-channel through an otherwise valid machine principal.
 
 Before the four session credentials are read, apply reuses the receiver control
@@ -260,7 +260,8 @@ plane inspector and requires the deployed `softbook-api` function identity,
 runtime, handler, timeout, signing key, store/runtime modes and deterministic
 backend deployment ID to match the exact commit and tracked profile. Requests
 then use only that profile's exact HTTPS API base, set `redirect=error`, reject
-any changed response URL and abort after ten seconds. A profile outside the
+any changed response URL and enforces one ten-second deadline through response
+body parsing. A profile outside the
 repository, a dirty or untracked profile, deployment drift, redirect or timeout
 fails before token transmission.
 

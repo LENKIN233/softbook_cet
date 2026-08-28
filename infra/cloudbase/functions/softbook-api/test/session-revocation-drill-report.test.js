@@ -284,6 +284,20 @@ test('remote transport rejects redirects and enforces a bounded abort signal', a
     () => redirected.request('token', '/v2/auth/logout', {method: 'POST'}),
     /changed the tracked receiver URL/
   );
+  const stalledBody = drill.createRemoteSessionTransport({
+    baseUrl: 'https://receiver.example/softbook-api',
+    timeoutMs: 1000,
+    fetchImpl: async (url) => ({
+      redirected: false,
+      status: 200,
+      url,
+      json: () => new Promise(() => {}),
+    }),
+  });
+  await assert.rejects(
+    () => stalledBody.request('token', '/v2/bootstrap'),
+    /timed out/
+  );
   assert.throws(
     () =>
       drill.createRemoteSessionTransport({
@@ -299,6 +313,7 @@ test('apply rejects operator values that could disclose phone or credential mate
   const credentials = createCredentials();
   for (const operator of [
     `service:operator-${credentials.phone}`,
+    'service:operator-138-0013-8000',
     'service:softbook_refresh.token.marker',
   ]) {
     let requests = 0;

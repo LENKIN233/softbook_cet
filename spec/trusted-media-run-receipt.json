@@ -59,6 +59,13 @@
     "author_editable_json_is_trust_root": false,
     "attestation_alone_proves_result_correctness": false,
     "type_specific_semantic_validation_required": true,
+    "type_specific_semantics": [
+      "exact_unique_raw_run_ID_name_path_hash_and_card_sets",
+      "raw_run_results_replay_every_final_decision",
+      "reviewed_transcript_bytes_rehash_to_declared_digest",
+      "blind_transcript_similarity_is_recomputed",
+      "model_acceptances_bind_the_recomputed_per_card_media_input_and_source_runs"
+    ],
     "real_attested_receipt_required_before_formal_media_registration": true
   },
   "current_boundary": {

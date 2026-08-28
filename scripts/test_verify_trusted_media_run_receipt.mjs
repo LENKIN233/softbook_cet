@@ -169,8 +169,8 @@ function createArtifactFixture(root, receipt) {
           status: 'passed',
           complete_asset_consumed: true,
           model_acceptances: [
-            modelAcceptance(receipt, asset.card_id, 'af'),
-            modelAcceptance(receipt, asset.card_id, 'bg'),
+            modelAcceptance(receipt, asset, 'af'),
+            modelAcceptance(receipt, asset, 'bg'),
           ],
         },
       })),
@@ -295,24 +295,48 @@ function createArtifactFixture(root, receipt) {
   return artifactDirectory;
 }
 
-function modelAcceptance(receipt, cardId, sources) {
+function modelAcceptance(receipt, asset, sources) {
+  const checks = Object.fromEntries([
+    'audio_matches_text',
+    'target_signal_audible',
+    'accurate_pronunciation',
+    'suitable_speed',
+    'natural_rhythm',
+    'stress_and_pauses_do_not_mislead',
+    'no_unwanted_noise_or_clipping',
+  ].map(check => [check, 'pass']));
+  const inputSha256 = `sha256:${hash(canonicalStringify({
+    schema_version: 'audio-perceptual-decision-input.v1',
+    entry_identity_sha256: asset.entry_identity_sha256,
+    complete_asset_consumed: true,
+    checks,
+  }))}`;
   return {
     schema_version: 'model-acceptance.v2',
     actor: {
       kind: 'model_harness',
       agent: `agent:trusted-media-${sources}`,
       model: receipt.execution.model.id,
-      run_id: `${receipt.execution.workflow_run_id}:${cardId}:${sources}`,
+      run_id: `${receipt.execution.workflow_run_id}:${asset.card_id}:${sources}`,
     },
     evidence: {
       reviewed_at: receipt.execution.completed_at,
-      input_sha256: `sha256:${hash(`input-${cardId}`)}`,
+      input_sha256: inputSha256,
       capabilities: ['audio_perceptual_review'],
       summary: 'Exact test-only media acceptance.',
       findings: [],
     },
     decision: 'accepted',
   };
+}
+
+function canonicalStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(key =>
+      `${JSON.stringify(key)}:${canonicalStringify(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function fixture(t, receipt = validReceipt()) {
@@ -490,3 +514,99 @@ test('two run ids cannot reuse one raw model-output artifact', t => {
   assert.equal(result.ok, false);
   assert.match(result.errors.join('\n'), /raw_output_sha256 is duplicated/);
 });
+
+test('duplicate raw run cannot replace an independent run', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  const raw = JSON.parse(fs.readFileSync(
+    path.join(fixtureValue.artifactDirectory, 'raw-run-manifest.json'),
+  ));
+  raw.runs[1] = structuredClone(raw.runs[0]);
+  updateArtifact(receipt, fixtureValue.artifactDirectory, 'raw_run_manifest',
+    'raw-run-manifest.json', raw);
+  const runPackage = JSON.parse(fs.readFileSync(
+    path.join(fixtureValue.artifactDirectory, 'run-package.json'),
+  ));
+  runPackage.runs[1] = structuredClone(runPackage.runs[0]);
+  updateArtifact(receipt, fixtureValue.artifactDirectory, 'run_package',
+    'run-package.json', runPackage);
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /duplicates a run ID, name, path, or SHA-256/);
+});
+
+test('failed raw perceptual result cannot remain formal-ready', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  const runPath = path.join(fixtureValue.artifactDirectory, 'run-a.jsonl');
+  const records = fs.readFileSync(runPath, 'utf8').trim().split('\n').map(JSON.parse);
+  records[0].result.target_signal_audible = false;
+  const bytes = Buffer.from(`${records.map(record => JSON.stringify(record)).join('\n')}\n`);
+  fs.writeFileSync(runPath, bytes);
+  const runSha = hash(bytes);
+  receipt.review_runs[0].raw_output_sha256 = runSha;
+  for (const [field, filename] of [
+    ['raw_run_manifest', 'raw-run-manifest.json'],
+    ['run_package', 'run-package.json'],
+  ]) {
+    const value = JSON.parse(fs.readFileSync(
+      path.join(fixtureValue.artifactDirectory, filename),
+    ));
+    value.runs[0].sha256 = runSha;
+    value.runs[0].size_bytes = bytes.length;
+    updateArtifact(receipt, fixtureValue.artifactDirectory, field, filename, value);
+  }
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /decision checks do not replay raw model results/);
+});
+
+test('reviewed transcript text must match its bound digest', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  const worklist = JSON.parse(fs.readFileSync(
+    path.join(fixtureValue.artifactDirectory, 'reviewed-worklist.json'),
+  ));
+  worklist.entries[0].audio.transcript = 'different transcript bytes';
+  updateArtifact(receipt, fixtureValue.artifactDirectory, 'review_worklist',
+    'reviewed-worklist.json', worklist);
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /does not bind an exact passed media decision/);
+});
+
+test('worklist model acceptances must bind the recomputed media input', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  const worklist = JSON.parse(fs.readFileSync(
+    path.join(fixtureValue.artifactDirectory, 'reviewed-worklist.json'),
+  ));
+  worklist.entries[0].review.model_acceptances[0].evidence.input_sha256 =
+    `sha256:${hash('unrelated input')}`;
+  updateArtifact(receipt, fixtureValue.artifactDirectory, 'review_worklist',
+    'reviewed-worklist.json', worklist);
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /model acceptance is not bound/);
+});
+
+function updateArtifact(receipt, artifactDirectory, field, filename, value) {
+  receipt.artifacts[field] = writeArtifactJson(artifactDirectory, filename, value);
+}
+
+function verifyAttested(fixtureValue, receipt) {
+  fs.writeFileSync(fixtureValue.receiptPath, `${JSON.stringify(receipt)}\n`);
+  const receiptSha256 = hash(fs.readFileSync(fixtureValue.receiptPath));
+  return verifyTrustedMediaRunReceipt({
+    artifactDirectory: fixtureValue.artifactDirectory,
+    bundlePath: fixtureValue.bundlePath,
+    receiptPath: fixtureValue.receiptPath,
+    verifyAttestation: true,
+    execFile: () => JSON.stringify([{
+      verificationResult: {
+        verifiedTimestamps: [{type: 'transparency_log'}],
+        statement: {subject: [{digest: {sha256: receiptSha256}}]},
+      },
+    }]),
+  });
+}
