@@ -137,10 +137,14 @@ function createArtifactFixture(root, receipt) {
     size_bytes: 1234,
   }];
   receipt.execution.model.weights_manifest_sha256 = hash(JSON.stringify(modelFiles));
+  const catalog = cet4RuntimeCatalog();
+  const prefixes = [...catalog.keys()];
   const assets = Array.from({length: 301}, (_, index) => {
-    const cardId = String(index + 1).padStart(6, '0');
+    const boxPrefix = prefixes[index % prefixes.length];
+    const suffix = String(Math.floor(index / prefixes.length) + 1).padStart(2, '0');
+    const cardId = `${boxPrefix}${suffix}`;
     const transcript = `Trusted media transcript ${cardId}.`;
-    const assetPath = `ai_tts/cet4/0000/${cardId}.mp3`;
+    const assetPath = `ai_tts/cet4/${boxPrefix}/${cardId}.mp3`;
     const audioBytes = Buffer.from(`audio-${cardId}`);
     const absoluteAssetPath = path.join(artifactDirectory, assetPath);
     fs.mkdirSync(path.dirname(absoluteAssetPath), {recursive: true});
@@ -155,7 +159,7 @@ function createArtifactFixture(root, receipt) {
         group_name: '测试',
         box_id: '0',
         box_name: '测试盒',
-        box_prefix: '0000',
+        box_prefix: boxPrefix,
       },
       training_context: {
         main_training_goal: '完整听取音频',
@@ -392,11 +396,12 @@ function writeCandidateEvidence(root, receipt, assets) {
     audio: {path: asset.asset_path, transcript: asset.transcript},
   }));
   const fillerCards = Array.from({length: 879}, (_, index) => {
-    const number = index + 302;
     const boxPrefix = fillerPrefixes[index % fillerPrefixes.length];
     const catalogEntry = catalog.get(boxPrefix);
+    const suffix = String(Math.floor(index / fillerPrefixes.length) + 10).padStart(2, '0');
+    const cardId = `${boxPrefix}${suffix}`;
     return {
-      card_id: String(number).padStart(6, '0'),
+      card_id: cardId,
       knowledge_ref: {
         library_id: '1',
         library_name: catalogEntry.library,
@@ -410,7 +415,7 @@ function writeCandidateEvidence(root, receipt, assets) {
         main_training_goal: '测试正式内容绑定',
         box_progression_role: 'recognition',
       },
-      prompt: `Candidate card ${number}`,
+      prompt: `Candidate card ${cardId}`,
     };
   });
   const cards = [...reviewedCards, ...fillerCards];
@@ -827,6 +832,33 @@ test('runtime asset IDs must retain the canonical nonempty card binding', t => {
   const result = verifyAttested(fixtureValue, receipt);
   assert.equal(result.formal_ready, false);
   assert.match(result.errors.join('\n'), /1180-card\/108-box candidate/);
+});
+
+test('runtime card IDs must retain their four-digit catalog prefix', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  rebindCandidateRuntime(fixtureValue, receipt, runtime => {
+    const catalog = cet4RuntimeCatalog();
+    const card = runtime.card_records.find(candidate => !candidate.audio);
+    const replacement = [...catalog.entries()].find(([prefix]) =>
+      prefix !== card.card_id.slice(0, 4));
+    card.knowledge_ref = replacement[0];
+    card.space_metadata = {box_ref: replacement[0], ...replacement[1]};
+  });
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /does not match the CET4 box catalog/);
+});
+
+test('runtime asset delivery path must derive from its owning card', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  rebindCandidateRuntime(fixtureValue, receipt, runtime => {
+    runtime.assets[0].asset_path = 'audio/cet4/9999/000001.mp3';
+  });
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /does not bind the authorized candidate card/);
 });
 
 test('audio manifest rejects one media path reused by different cards', t => {

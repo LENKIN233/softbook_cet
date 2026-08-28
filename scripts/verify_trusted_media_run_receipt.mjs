@@ -1101,6 +1101,8 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
     const catalogEntry = runtimeCatalog.get(prefix);
     if (
       !catalogEntry ||
+      !/^[0-9]{6}$/.test(String(runtimeCard?.card_id ?? '')) ||
+      String(runtimeCard.card_id).slice(0, 4) !== prefix ||
       runtimeCard.track !== 'cet4' ||
       runtimeCard.space_metadata?.box_ref !== prefix ||
       runtimeCard.space_metadata?.library !== catalogEntry.library ||
@@ -1148,6 +1150,8 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
       runtimeCard.audio?.duration_ms !== entry.audio.declared_duration_ms ||
       normalizeSha(runtimeCard.audio?.sha256) !== entry.audio.file_sha256 ||
       !runtimeAsset ||
+      runtimeAsset.asset_path !==
+        `audio/cet4/${entry.card_id.slice(0, 4)}/${entry.card_id}.mp3` ||
       normalizeSha(runtimeAsset.sha256) !== entry.audio.file_sha256 ||
       runtimeAsset.size_bytes !== entry.audio.size_bytes ||
       runtimeAsset.duration_ms !== entry.audio.declared_duration_ms ||
