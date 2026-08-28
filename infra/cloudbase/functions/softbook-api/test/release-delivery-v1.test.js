@@ -752,7 +752,17 @@ function createValidBundleFixture(track = 'cet4') {
     notes: 'Contract fixture',
   }));
   const perCardById = new Map(perCardQc.map(item => [item.card_id, item]));
-  const audioInput = hash(Buffer.from(JSON.stringify(generatedAssets.map(asset => ({
+  const trustedMedia = {
+    receipt_path: 'reviews/trusted_media_receipts/fixture-receipt.json',
+    receipt_sha256: 'a'.repeat(64),
+    attestation_bundle_path:
+      'reviews/trusted_media_receipts/fixture-attestation.json',
+    attestation_bundle_sha256: 'b'.repeat(64),
+    source_commit: 'c'.repeat(40),
+    model_id: 'Qwen/Qwen2-Audio-7B-Instruct',
+    model_revision: 'd'.repeat(40),
+  };
+  const audioIdentities = generatedAssets.map(asset => ({
     card_id: asset.card_id,
     path: asset.path,
     file_sha256: asset.file_sha256,
@@ -768,7 +778,11 @@ function createValidBundleFixture(track = 'cet4') {
       no_noise: perCardById.get(asset.card_id).no_noise,
     },
   })).sort((left, right) =>
-    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path)))));
+    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
+  const audioInput = hash(Buffer.from(JSON.stringify({
+    assets: audioIdentities,
+    trusted_media: trustedMedia,
+  })));
   const qcRecord = {
     schema_version: 'model-owned-audio-qc.v2',
     scope: {card_ids: audioCards.map(card => card.card_id)},
@@ -782,6 +796,16 @@ function createValidBundleFixture(track = 'cet4') {
       modelAcceptance('audio-review-second', audioInput, 'audio_perceptual_review'),
     ],
     text_gate: {transcripts},
+    source_records: {
+      trusted_media_receipt: trustedMedia.receipt_path,
+      trusted_media_receipt_sha256: trustedMedia.receipt_sha256,
+      trusted_media_attestation_bundle: trustedMedia.attestation_bundle_path,
+      trusted_media_attestation_bundle_sha256:
+        trustedMedia.attestation_bundle_sha256,
+      trusted_media_source_commit: trustedMedia.source_commit,
+      trusted_media_model_id: trustedMedia.model_id,
+      trusted_media_model_revision: trustedMedia.model_revision,
+    },
     generated_assets: generatedAssets,
     qa_checks: qaChecks,
     per_card_qc: perCardQc,

@@ -29,12 +29,18 @@
     "artifact_files": {
       "audio_manifest": "audio-manifest.json",
       "review_worklist": "reviewed-worklist.json",
-      "raw_run_manifest": "raw-run-manifest.json"
+      "raw_run_manifest": "raw-run-manifest.json",
+      "run_package": "run-package.json",
+      "model_weights_manifest": "model-weights-manifest.json",
+      "mlx_audio_package_manifest": "mlx-audio-package-manifest.json",
+      "python_environment_manifest": "python-environment-manifest.json"
     },
     "required_audio_coverage": {
       "decoder": "mlx_audio.stt.utils.load_audio",
       "sample_rate_hz": 16000,
       "model_max_sample_count": 480000,
+      "model_feature_frame_count": 3001,
+      "model_audio_token_count": 750,
       "truncated": false
     },
     "required_result": {

@@ -1036,7 +1036,34 @@ function modelAudioQcInput(record) {
   });
   identities.sort((left, right) =>
     left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
-  return `sha256:${createHash('sha256').update(JSON.stringify(identities)).digest('hex')}`;
+  const trustedMedia = {
+    receipt_path: record.source_records?.trusted_media_receipt,
+    receipt_sha256: record.source_records?.trusted_media_receipt_sha256,
+    attestation_bundle_path:
+      record.source_records?.trusted_media_attestation_bundle,
+    attestation_bundle_sha256:
+      record.source_records?.trusted_media_attestation_bundle_sha256,
+    source_commit: record.source_records?.trusted_media_source_commit,
+    model_id: record.source_records?.trusted_media_model_id,
+    model_revision: record.source_records?.trusted_media_model_revision,
+  };
+  if (
+    typeof trustedMedia.receipt_path !== 'string' ||
+    !trustedMedia.receipt_path.startsWith('reviews/trusted_media_receipts/') ||
+    !/^[a-f0-9]{64}$/.test(trustedMedia.receipt_sha256 || '') ||
+    typeof trustedMedia.attestation_bundle_path !== 'string' ||
+    !trustedMedia.attestation_bundle_path.startsWith('reviews/trusted_media_receipts/') ||
+    !/^[a-f0-9]{64}$/.test(trustedMedia.attestation_bundle_sha256 || '') ||
+    !/^[a-f0-9]{40}$/.test(trustedMedia.source_commit || '') ||
+    typeof trustedMedia.model_id !== 'string' ||
+    trustedMedia.model_id.length < 3 ||
+    !/^[a-f0-9]{40}$/.test(trustedMedia.model_revision || '')
+  ) {
+    throw new ReleaseDeliveryError('model audio QC trusted media receipt binding is invalid.');
+  }
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify({assets: identities, trusted_media: trustedMedia}))
+    .digest('hex')}`;
 }
 
 function canonicalPerCardAudioQc(value, cardId) {

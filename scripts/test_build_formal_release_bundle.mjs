@@ -490,7 +490,16 @@ function createFixture() {
   };
   writeJson(authorizationPath, authorization);
   const perCardById = new Map(perCardQc.map(item => [item.card_id, item]));
-  const audioInput = digest(Buffer.from(JSON.stringify(generatedAssets.map(asset => {
+  const trustedMedia = {
+    receipt_path: 'reviews/trusted_media_receipts/fixture-receipt.json',
+    receipt_sha256: hash('trusted-media-receipt'),
+    attestation_bundle_path: 'reviews/trusted_media_receipts/fixture-bundle.jsonl',
+    attestation_bundle_sha256: hash('trusted-media-bundle'),
+    source_commit: 'a'.repeat(40),
+    model_id: 'mlx-community/Qwen2-Audio-7B-Instruct-4bit',
+    model_revision: 'b'.repeat(40),
+  };
+  const audioIdentities = generatedAssets.map(asset => {
     const result = perCardById.get(asset.card_id);
     return {
       card_id: asset.card_id,
@@ -509,7 +518,11 @@ function createFixture() {
       },
     };
   }).sort((left, right) =>
-    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path)))));
+    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
+  const audioInput = digest(Buffer.from(JSON.stringify({
+    assets: audioIdentities,
+    trusted_media: trustedMedia,
+  })));
   writeJson(path.join(audioQcDirectory, 'cet4-all-audio.json'), {
     schema_version: 'model-owned-audio-qc.v2',
     model_acceptances: [
@@ -517,6 +530,15 @@ function createFixture() {
       modelAcceptance('formal-audio-b', audioInput, ['audio_perceptual_review']),
     ],
     scope: {card_ids: generatedAssets.map(asset => asset.card_id)},
+    source_records: {
+      trusted_media_receipt: trustedMedia.receipt_path,
+      trusted_media_receipt_sha256: trustedMedia.receipt_sha256,
+      trusted_media_attestation_bundle: trustedMedia.attestation_bundle_path,
+      trusted_media_attestation_bundle_sha256: trustedMedia.attestation_bundle_sha256,
+      trusted_media_source_commit: trustedMedia.source_commit,
+      trusted_media_model_id: trustedMedia.model_id,
+      trusted_media_model_revision: trustedMedia.model_revision,
+    },
     text_gate: {transcripts},
     qa_checks: Object.fromEntries(REQUIRED_QC_CHECKS.map(check => [check, true])),
     generated_assets: generatedAssets,

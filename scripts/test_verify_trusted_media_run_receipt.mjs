@@ -110,6 +110,12 @@ function writeArtifactJson(artifactDirectory, filename, value) {
 function createArtifactFixture(root, receipt) {
   const artifactDirectory = path.join(root, 'artifacts');
   fs.mkdirSync(artifactDirectory);
+  const modelFiles = [{
+    path: 'weights.safetensors',
+    sha256: hash('model-weights-bytes'),
+    size_bytes: 1234,
+  }];
+  receipt.execution.model.weights_manifest_sha256 = hash(JSON.stringify(modelFiles));
   const assets = Array.from({length: 301}, (_, index) => {
     const cardId = String(index + 1).padStart(6, '0');
     const transcript = `Trusted media transcript ${cardId}.`;
@@ -191,6 +197,8 @@ function createArtifactFixture(root, receipt) {
         decoded_sample_count: 16000,
         model_input_sample_count: 16000,
         model_max_sample_count: 480000,
+        model_feature_frame_count: 3001,
+        model_audio_token_count: 750,
         sample_rate_hz: 16000,
         truncated: false,
       },
@@ -238,6 +246,51 @@ function createArtifactFixture(root, receipt) {
       model: receipt.execution.model,
       runs: rawRuns,
     },
+  );
+  receipt.artifacts.run_package = writeArtifactJson(
+    artifactDirectory,
+    'run-package.json',
+    {
+      schema_version: 'trusted-media-model-run-package.v1',
+      model: receipt.execution.model,
+      execution: {
+        workflow_run_id: receipt.execution.workflow_run_id,
+        workflow_run_attempt: receipt.execution.workflow_run_attempt,
+        runner_class: receipt.execution.runner_class,
+        started_at: receipt.execution.started_at,
+        completed_at: receipt.execution.completed_at,
+      },
+      runs: rawRuns,
+      decisions: assets.map(asset => ({
+        card_id: asset.card_id,
+        checks: Object.fromEntries([
+          'audio_matches_text',
+          'target_signal_audible',
+          'accurate_pronunciation',
+          'suitable_speed',
+          'natural_rhythm',
+          'stress_and_pauses_do_not_mislead',
+          'no_unwanted_noise_or_clipping',
+        ].map(check => [check, true])),
+        acceptance_sources: [['a', 'f'], ['b', 'g']],
+      })),
+      result: {reviewed_card_count: 301, passed_card_count: 301, failed_card_count: 0},
+    },
+  );
+  receipt.artifacts.model_weights_manifest = writeArtifactJson(
+    artifactDirectory,
+    'model-weights-manifest.json',
+    {files: modelFiles, sha256: receipt.execution.model.weights_manifest_sha256},
+  );
+  receipt.artifacts.mlx_audio_package_manifest = writeArtifactJson(
+    artifactDirectory,
+    'mlx-audio-package-manifest.json',
+    {files: [{path: '__init__.py', sha256: hash('mlx-audio'), size_bytes: 10}], sha256: hash('mlx-manifest')},
+  );
+  receipt.artifacts.python_environment_manifest = writeArtifactJson(
+    artifactDirectory,
+    'python-environment-manifest.json',
+    {files: [{path: 'mlx_audio/__init__.py', sha256: hash('python-env'), size_bytes: 10}], sha256: hash('python-environment-manifest')},
   );
   return artifactDirectory;
 }

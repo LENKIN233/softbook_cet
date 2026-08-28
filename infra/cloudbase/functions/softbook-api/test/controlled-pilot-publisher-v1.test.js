@@ -666,6 +666,16 @@ function modelAcceptanceFixture(runId, inputSha256, capability) {
 }
 
 function modelAudioQcFixture({assetPath, cardIds, fileHash, runPrefix}) {
+  const trustedMedia = {
+    receipt_path: 'reviews/trusted_media_receipts/fixture-receipt.json',
+    receipt_sha256: 'a'.repeat(64),
+    attestation_bundle_path:
+      'reviews/trusted_media_receipts/fixture-attestation.json',
+    attestation_bundle_sha256: 'b'.repeat(64),
+    source_commit: 'c'.repeat(40),
+    model_id: 'Qwen/Qwen2-Audio-7B-Instruct',
+    model_revision: 'd'.repeat(40),
+  };
   const transcripts = cardIds.map(cardId => ({
     card_id: cardId,
     transcript: `Spoken training prompt for ${cardId}.`,
@@ -721,7 +731,10 @@ function modelAudioQcFixture({assetPath, cardIds, fileHash, runPrefix}) {
     })
     .sort((left, right) =>
       left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
-  const inputSha256 = digestJson(identities);
+  const inputSha256 = digestJson({
+    assets: identities,
+    trusted_media: trustedMedia,
+  });
   return {
     schema_version: 'model-owned-audio-qc.v2',
     audio_qc_id: `${runPrefix}-audio-qc`,
@@ -741,6 +754,14 @@ function modelAudioQcFixture({assetPath, cardIds, fileHash, runPrefix}) {
       card_files: [],
       linked_agent_self_review: 'reviews/agent_self_review/audio.json',
       linked_approved_batch: 'reviews/approved_batches/cet4.json',
+      trusted_media_receipt: trustedMedia.receipt_path,
+      trusted_media_receipt_sha256: trustedMedia.receipt_sha256,
+      trusted_media_attestation_bundle: trustedMedia.attestation_bundle_path,
+      trusted_media_attestation_bundle_sha256:
+        trustedMedia.attestation_bundle_sha256,
+      trusted_media_source_commit: trustedMedia.source_commit,
+      trusted_media_model_id: trustedMedia.model_id,
+      trusted_media_model_revision: trustedMedia.model_revision,
     },
     text_gate: {
       tts_text_reviewed: true,

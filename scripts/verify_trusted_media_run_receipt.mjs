@@ -112,6 +112,17 @@ function parseArtifactJson(file, label, errors) {
   }
 }
 
+function canonicalStringify(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalStringify).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${canonicalStringify(value[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
 function validateAudioCoverage(value, policy, label, errors) {
   if (!exactKeys(
     value,
@@ -120,6 +131,8 @@ function validateAudioCoverage(value, policy, label, errors) {
       'decoded_sample_count',
       'model_input_sample_count',
       'model_max_sample_count',
+      'model_feature_frame_count',
+      'model_audio_token_count',
       'sample_rate_hz',
       'truncated',
     ],
@@ -133,6 +146,8 @@ function validateAudioCoverage(value, policy, label, errors) {
     value.decoded_sample_count < 1 ||
     value.model_input_sample_count !== value.decoded_sample_count ||
     value.model_max_sample_count !== expected.model_max_sample_count ||
+    value.model_feature_frame_count !== expected.model_feature_frame_count ||
+    value.model_audio_token_count !== expected.model_audio_token_count ||
     value.decoded_sample_count > value.model_max_sample_count ||
     value.sample_rate_hz !== expected.sample_rate_hz ||
     value.truncated !== expected.truncated
@@ -181,10 +196,55 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
     'trusted media raw run manifest',
     errors,
   );
+  const runPackageFile = loadBoundArtifact(
+    artifactDirectory,
+    filenames.run_package,
+    receipt.artifacts.run_package,
+    'trusted media run package',
+    errors,
+  );
+  const modelWeightsManifestFile = loadBoundArtifact(
+    artifactDirectory,
+    filenames.model_weights_manifest,
+    receipt.artifacts.model_weights_manifest,
+    'trusted media model weights manifest',
+    errors,
+  );
+  loadBoundArtifact(
+    artifactDirectory,
+    filenames.mlx_audio_package_manifest,
+    receipt.artifacts.mlx_audio_package_manifest,
+    'trusted media mlx_audio package manifest',
+    errors,
+  );
+  loadBoundArtifact(
+    artifactDirectory,
+    filenames.python_environment_manifest,
+    receipt.artifacts.python_environment_manifest,
+    'trusted media Python environment manifest',
+    errors,
+  );
   const audioManifest = parseArtifactJson(audioManifestFile, 'trusted media audio manifest', errors);
   const worklist = parseArtifactJson(worklistFile, 'trusted media reviewed worklist', errors);
   const rawManifest = parseArtifactJson(rawManifestFile, 'trusted media raw run manifest', errors);
-  if (!audioManifest || !worklist || !rawManifest) return false;
+  const runPackage = parseArtifactJson(runPackageFile, 'trusted media run package', errors);
+  const modelWeightsManifest = parseArtifactJson(
+    modelWeightsManifestFile,
+    'trusted media model weights manifest',
+    errors,
+  );
+  if (!audioManifest || !worklist || !rawManifest || !runPackage || !modelWeightsManifest) {
+    return false;
+  }
+  const modelManifestDigest = createHash('sha256')
+    .update(canonicalStringify(modelWeightsManifest.files))
+    .digest('hex');
+  if (
+    modelWeightsManifest.sha256 !== receipt.execution.model.weights_manifest_sha256 ||
+    modelManifestDigest !== modelWeightsManifest.sha256
+  ) {
+    errors.push('trusted media model weights manifest does not match the receipt model identity.');
+  }
 
   if (
     audioManifest.schema_version !== 'trusted-media-audio-manifest.v1' ||
@@ -281,6 +341,20 @@ function validateArtifactEvidence(receipt, policy, artifactDirectory, errors) {
   ) {
     errors.push('trusted media raw run manifest identity is invalid.');
     return false;
+  }
+  if (
+    runPackage.schema_version !== 'trusted-media-model-run-package.v1' ||
+    JSON.stringify(runPackage.model) !== JSON.stringify(receipt.execution.model) ||
+    runPackage.execution?.workflow_run_id !== receipt.execution.workflow_run_id ||
+    runPackage.execution?.workflow_run_attempt !== receipt.execution.workflow_run_attempt ||
+    runPackage.execution?.runner_class !== receipt.execution.runner_class ||
+    !Array.isArray(runPackage.runs) ||
+    JSON.stringify(runPackage.runs) !== JSON.stringify(rawManifest.runs) ||
+    runPackage.result?.reviewed_card_count !== 301 ||
+    runPackage.result?.passed_card_count !== 301 ||
+    runPackage.result?.failed_card_count !== 0
+  ) {
+    errors.push('trusted media run package does not match the receipt and raw run manifest.');
   }
   const receiptRuns = new Map(receipt.review_runs.map(run => [run.run_id, run]));
   const mandatoryCoverage = new Map([
@@ -551,11 +625,27 @@ function validateReceipt(receipt, policy, errors) {
   const artifacts = receipt.artifacts;
   if (exactKeys(
     artifacts,
-    ['audio_manifest', 'review_worklist', 'raw_run_manifest'],
+    [
+      'audio_manifest',
+      'review_worklist',
+      'raw_run_manifest',
+      'run_package',
+      'model_weights_manifest',
+      'mlx_audio_package_manifest',
+      'python_environment_manifest',
+    ],
     'receipt.artifacts',
     errors,
   )) {
-    for (const field of ['audio_manifest', 'review_worklist', 'raw_run_manifest']) {
+    for (const field of [
+      'audio_manifest',
+      'review_worklist',
+      'raw_run_manifest',
+      'run_package',
+      'model_weights_manifest',
+      'mlx_audio_package_manifest',
+      'python_environment_manifest',
+    ]) {
       validateArtifactIdentity(artifacts[field], `receipt.artifacts.${field}`, errors);
     }
   }
