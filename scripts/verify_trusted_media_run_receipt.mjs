@@ -174,6 +174,88 @@ function recomputedEntryIdentitySha256(entry) {
   return createHash('sha256').update(canonicalStringify(identity)).digest('hex');
 }
 
+function isSafeRelativeMediaPath(value) {
+  return (
+    typeof value === 'string' &&
+    value.startsWith('ai_tts/cet4/') &&
+    value.endsWith('.mp3') &&
+    !value.includes('\\') &&
+    !/[\u0000-\u001f\u007f\u2028\u2029]/u.test(value) &&
+    !value.split('/').some(segment => segment === '' || segment === '.' || segment === '..') &&
+    path.posix.normalize(value) === value
+  );
+}
+
+function validateCompleteWorklistEntry(entry, index, errors) {
+  const label = `reviewed worklist entries[${index}]`;
+  let valid = exactKeys(
+    entry,
+    [
+      'sequence',
+      'card_id',
+      'card_source_file',
+      'knowledge_ref',
+      'training_context',
+      'audio',
+      'entry_identity_sha256',
+      'checks',
+      'review',
+    ],
+    label,
+    errors,
+  );
+  valid = exactKeys(
+    entry?.knowledge_ref,
+    ['library_id', 'library_name', 'group_id', 'group_name', 'box_id', 'box_name', 'box_prefix'],
+    `${label}.knowledge_ref`,
+    errors,
+  ) && valid;
+  valid = exactKeys(
+    entry?.training_context,
+    ['main_training_goal', 'box_progression_role'],
+    `${label}.training_context`,
+    errors,
+  ) && valid;
+  valid = exactKeys(
+    entry?.audio,
+    [
+      'asset_path',
+      'file_sha256',
+      'size_bytes',
+      'declared_duration_ms',
+      'probed_duration_ms',
+      'transcript',
+      'transcript_sha256',
+    ],
+    `${label}.audio`,
+    errors,
+  ) && valid;
+  if (
+    entry?.sequence !== index + 1 ||
+    !/^[0-9]{6}$/.test(entry?.card_id ?? '') ||
+    typeof entry?.card_source_file !== 'string' ||
+    !entry.card_source_file.startsWith('card_boxes_json/') ||
+    !entry.card_source_file.endsWith('.json') ||
+    entry.card_source_file.includes('\\') ||
+    entry.card_source_file.split('/').some(segment => segment === '' || segment === '.' || segment === '..') ||
+    !Object.values(entry?.knowledge_ref ?? {}).every(value =>
+      typeof value === 'string' && value.trim().length > 0) ||
+    !Object.values(entry?.training_context ?? {}).every(value =>
+      typeof value === 'string' && value.trim().length > 0) ||
+    !isSafeRelativeMediaPath(entry?.audio?.asset_path) ||
+    !Number.isSafeInteger(entry?.audio?.size_bytes) ||
+    entry.audio.size_bytes < 1 ||
+    !Number.isSafeInteger(entry?.audio?.declared_duration_ms) ||
+    entry.audio.declared_duration_ms < 1 ||
+    !Number.isSafeInteger(entry?.audio?.probed_duration_ms) ||
+    entry.audio.probed_duration_ms < 1
+  ) {
+    errors.push(`${label} has an incomplete or invalid bound identity.`);
+    valid = false;
+  }
+  return valid;
+}
+
 function normalizedWords(value) {
   return String(value ?? '').toLowerCase().match(/[a-z0-9]+/g) ?? [];
 }
@@ -409,6 +491,7 @@ function validateArtifactEvidence(
     return false;
   }
   const assetsByCard = new Map();
+  const assetPaths = new Set();
   for (const [index, asset] of audioManifest.assets.entries()) {
     const label = `audio manifest assets[${index}]`;
     if (!exactKeys(
@@ -420,9 +503,8 @@ function validateArtifactEvidence(
     if (
       typeof asset.card_id !== 'string' ||
       assetsByCard.has(asset.card_id) ||
-      typeof asset.asset_path !== 'string' ||
-      !asset.asset_path.startsWith('ai_tts/cet4/') ||
-      !asset.asset_path.endsWith('.mp3') ||
+      !isSafeRelativeMediaPath(asset.asset_path) ||
+      assetPaths.has(asset.asset_path) ||
       !SHA256_PATTERN.test(asset.file_sha256 ?? '') ||
       !SHA256_PATTERN.test(asset.transcript_sha256 ?? '') ||
       !Number.isSafeInteger(asset.size_bytes) ||
@@ -431,6 +513,7 @@ function validateArtifactEvidence(
       errors.push(`${label} has an invalid or duplicate media identity.`);
       continue;
     }
+    assetPaths.add(asset.asset_path);
     loadBoundMedia(
       audioRoot,
       asset.asset_path,
@@ -459,8 +542,10 @@ function validateArtifactEvidence(
   const entriesByCard = new Map();
   for (const [index, entry] of worklist.entries.entries()) {
     const label = `reviewed worklist entries[${index}]`;
+    const completeIdentity = validateCompleteWorklistEntry(entry, index, errors);
     const asset = assetsByCard.get(entry?.card_id);
     if (
+      !completeIdentity ||
       !asset ||
       entriesByCard.has(entry.card_id) ||
       !SHA256_PATTERN.test(entry?.entry_identity_sha256 ?? '') ||
@@ -1023,6 +1108,7 @@ function validateReceipt(receipt, policy, errors) {
     const runIds = new Set();
     const rawOutputHashes = new Set();
     let fullRunCount = 0;
+    let blindRunCount = 0;
     let completeConsumptionCount = 0;
     for (const [index, run] of receipt.review_runs.entries()) {
       const label = `receipt.review_runs[${index}]`;
@@ -1077,9 +1163,18 @@ function validateReceipt(receipt, policy, errors) {
           errors.push(`${label} full_perceptual run must cover all 301 assets.`);
         }
       }
+      if (run.purpose === 'blind_transcript') {
+        blindRunCount += 1;
+        if (run.card_count !== 301) {
+          errors.push(`${label} blind_transcript run must cover all 301 assets.`);
+        }
+      }
     }
     if (fullRunCount < policy.receipt.minimum_full_perceptual_runs) {
       errors.push('receipt does not contain two complete full_perceptual runs.');
+    }
+    if (blindRunCount < policy.receipt.minimum_blind_transcript_runs) {
+      errors.push('receipt does not contain two complete blind_transcript runs.');
     }
     if (completeConsumptionCount < policy.receipt.minimum_complete_asset_consumptions) {
       errors.push('receipt complete asset consumption count is below policy.');

@@ -187,7 +187,8 @@ function createArtifactFixture(root, receipt) {
       schema_version: 'audio-perceptual-worklist.v3',
       track: 'cet4',
       progress: {pending: 0, passed: 301, failed: 0},
-      entries: assets.map(asset => ({
+      entries: assets.map((asset, index) => ({
+        sequence: index + 1,
         card_id: asset.card_id,
         card_source_file: asset.card_source_file,
         entry_identity_sha256: asset.entry_identity_sha256,
@@ -506,6 +507,58 @@ test('attestation cannot make a receipt formal without exact artifact recomputat
   });
   assert.equal(result.formal_ready, false);
   assert.match(result.errors.join('\n'), /requires --artifact-dir/);
+});
+
+test('audio manifest rejects one media path reused by different cards', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(fixtureValue.artifactDirectory, 'audio-manifest.json'),
+  ));
+  manifest.assets[1].asset_path = manifest.assets[0].asset_path;
+  manifest.assets[1].file_sha256 = manifest.assets[0].file_sha256;
+  manifest.assets[1].size_bytes = manifest.assets[0].size_bytes;
+  updateArtifact(
+    receipt,
+    fixtureValue.artifactDirectory,
+    'audio_manifest',
+    'audio-manifest.json',
+    manifest,
+  );
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /duplicate media identity/);
+});
+
+test('reviewed worklist requires complete card context and duration identity fields', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  const worklist = JSON.parse(fs.readFileSync(
+    path.join(fixtureValue.artifactDirectory, 'reviewed-worklist.json'),
+  ));
+  delete worklist.entries[0].card_source_file;
+  updateArtifact(
+    receipt,
+    fixtureValue.artifactDirectory,
+    'review_worklist',
+    'reviewed-worklist.json',
+    worklist,
+  );
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /card_source_file|incomplete or invalid bound identity/);
+});
+
+test('structural receipt requires two complete blind transcript runs', t => {
+  const receipt = validReceipt();
+  for (const run of receipt.review_runs.filter(item => item.purpose === 'blind_transcript')) {
+    run.purpose = 'pronunciation';
+  }
+  const {receiptPath} = fixture(t, receipt);
+  fs.writeFileSync(receiptPath, `${JSON.stringify(receipt)}\n`);
+  const result = verifyTrustedMediaRunReceipt({receiptPath});
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /two complete blind_transcript runs/);
 });
 
 test('tampered per-asset model coverage fails before attestation can authorize media', t => {
