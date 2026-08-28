@@ -376,6 +376,41 @@ test('release bundle fails closed when exported content loses its approved corpu
   );
 });
 
+test('release bundle requires the exact retained runtime payload authorized by the model', () => {
+  const fixture = createValidBundleFixture();
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  const approval = JSON.parse(readFileSync(
+    join(fixture.directory, bundle.approval.record_path),
+    'utf8',
+  ));
+  const runtimePath = join(fixture.directory, approval.validation.runtime_payload);
+  writeFileSync(runtimePath, Buffer.concat([
+    readFileSync(runtimePath),
+    Buffer.from(' '),
+  ]));
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /authorized runtime payload SHA-256 mismatch/,
+  );
+
+  delete approval.validation.runtime_payload;
+  delete approval.validation.runtime_payload_sha256;
+  const approvalPath = join(fixture.directory, bundle.approval.record_path);
+  writeFileSync(approvalPath, `${JSON.stringify(approval, null, 2)}\n`);
+  bundle.approval.record_sha256 = hash(readFileSync(approvalPath));
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /authorization runtime payload path/,
+  );
+});
+
 test('publisher activates only after every upload, stage, and verification succeeds', async () => {
   const fixture = createValidBundleFixture();
   const verified = delivery.verifyReleaseBundleDirectory({
@@ -573,6 +608,12 @@ function createValidBundleFixture(track = 'cet4') {
     corpus_fingerprint: `sha256:${corpusDigest}`,
   });
   const contentHash = hash(readFileSync(contentPath));
+  const authorizedRuntimePayloadPath = `reviews/runtime_payloads/${track}-formal.json`;
+  writeFixture(
+    directory,
+    authorizedRuntimePayloadPath,
+    readFileSync(contentPath),
+  );
   const audit = {
     report_type: 'card-quality-audit',
     corpus_fingerprint: {algorithm: 'sha256', digest: corpusDigest},
@@ -706,7 +747,7 @@ function createValidBundleFixture(track = 'cet4') {
     validation: {
       model_review: linkedModelReviewPath,
       model_review_sha256: modelReviewHash,
-      runtime_payload: `reviews/runtime_payloads/${track}-formal.json`,
+      runtime_payload: authorizedRuntimePayloadPath,
       runtime_payload_sha256: contentHash,
     },
     authorization_limits: [],

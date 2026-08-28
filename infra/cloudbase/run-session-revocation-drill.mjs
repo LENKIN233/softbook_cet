@@ -110,13 +110,18 @@ export async function executeSessionRevocationDrill(
     };
   }
   requireApplyReady({ operator: options.operator, repository, writeSafety });
+  const env = dependencies.env ?? process.env;
   const inspectDeployment = dependencies.inspectDeployment ?? inspectApiFunction;
   const deployment = await inspectDeployment({
     envId: profile.environment_id,
     expectedDeploymentId: expectedBackendDeploymentId,
     profile,
     runner:
-      dependencies.runner ?? createCloudBaseCommandRunner({ cwd: REPOSITORY_ROOT }),
+      dependencies.runner ??
+      createCloudBaseCommandRunner({
+        cwd: REPOSITORY_ROOT,
+        env: credentialFreePreflightEnvironment(env),
+      }),
   });
   if (deployment?.ok !== true) {
     throw new SessionRevocationDrillError(
@@ -125,7 +130,6 @@ export async function executeSessionRevocationDrill(
       ]).join(', ')}`
     );
   }
-  const env = dependencies.env ?? process.env;
   const credentials = {
     accessA: requireSecret(env[ACCESS_A], ACCESS_A, 'softbook_v2.'),
     refreshA: requireSecret(env[REFRESH_A], REFRESH_A, 'softbook_refresh.'),
@@ -210,6 +214,14 @@ export async function executeSessionRevocationDrill(
     },
     execution: completeExecution(clock, options.operator, startedAt),
   };
+}
+
+export function credentialFreePreflightEnvironment(source = process.env) {
+  const env = { ...source };
+  for (const name of [ACCESS_A, REFRESH_A, ACCESS_B, REFRESH_B]) {
+    delete env[name];
+  }
+  return env;
 }
 
 async function runAppliedSequence({

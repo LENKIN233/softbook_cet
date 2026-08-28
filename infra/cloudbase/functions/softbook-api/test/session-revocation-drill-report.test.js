@@ -253,6 +253,21 @@ test('apply verifies receiver deployment identity before reading or sending sess
   assert.equal(requests, 0);
 });
 
+test('preflight subprocess environment strips all live session credentials', () => {
+  const credentials = createCredentials();
+  const source = {
+    ...credentialEnv(credentials),
+    CLOUDBASE_CLI: '/trusted/tcb',
+    PATH: '/trusted/bin',
+  };
+  const sanitized = drill.credentialFreePreflightEnvironment(source);
+  assert.equal(sanitized.CLOUDBASE_CLI, '/trusted/tcb');
+  assert.equal(sanitized.PATH, '/trusted/bin');
+  for (const name of Object.keys(credentialEnv(credentials))) {
+    assert.equal(Object.hasOwn(sanitized, name), false);
+  }
+});
+
 test('remote transport rejects redirects and enforces a bounded abort signal', async () => {
   let observed = null;
   const target = 'https://receiver.example/softbook-api/v2/auth/logout';

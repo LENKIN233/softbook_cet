@@ -118,6 +118,29 @@ export function assembleFormalReleaseBundle(
       normalized.authorizationPath,
       join(staging, AUTHORIZATION_PATH),
     );
+    const authorizedRuntimePayloadPath = requireSafeRelativeJsonPath(
+      authorization.validation?.runtime_payload,
+      'authorization runtime payload path',
+    );
+    if ([CONTENT_PATH, AUTHORIZATION_PATH, MODEL_REVIEW_PATH].includes(
+      authorizedRuntimePayloadPath,
+    )) {
+      fail('Authorization runtime payload path collides with a reserved bundle artifact.');
+    }
+    const authorizedRuntimePayloadHash = copyBoundJson(
+      normalized.contentPayloadPath,
+      resolveInside(
+        staging,
+        authorizedRuntimePayloadPath,
+        'authorized runtime payload',
+      ),
+    );
+    if (
+      normalizeSha256(authorization.validation.runtime_payload_sha256) !==
+      authorizedRuntimePayloadHash
+    ) {
+      fail('Copied authorization runtime payload does not match its declared hash.');
+    }
     const modelReviewHash = copyBoundJson(
       normalized.modelReviewPath,
       join(staging, MODEL_REVIEW_PATH),

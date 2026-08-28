@@ -357,9 +357,16 @@ function validateArtifactEvidence(
   ) {
     return false;
   }
-  const modelManifestDigest = createHash('sha256')
-    .update(canonicalStringify(modelWeightsManifest.files))
-    .digest('hex');
+  const modelManifestFiles = validateRuntimeManifestFiles(
+    modelWeightsManifest.files,
+    'model weights',
+    errors,
+  );
+  const modelManifestDigest = modelManifestFiles
+    ? createHash('sha256')
+      .update(canonicalStringify(modelManifestFiles))
+      .digest('hex')
+    : null;
   if (
     modelWeightsManifest.sha256 !== receipt.execution.model.weights_manifest_sha256 ||
     modelManifestDigest !== modelWeightsManifest.sha256
@@ -378,13 +385,12 @@ function validateArtifactEvidence(
       receipt.execution.harness.python_environment_manifest_sha256,
     ],
   ]) {
-    const files = Array.isArray(manifest.files) ? manifest.files : null;
+    const files = validateRuntimeManifestFiles(manifest.files, label, errors);
     const digest = files
       ? createHash('sha256').update(canonicalStringify(files)).digest('hex')
       : null;
     if (
       !files ||
-      files.length === 0 ||
       manifest.sha256 !== expected ||
       digest !== manifest.sha256
     ) {
@@ -745,6 +751,7 @@ function validateRunDecisions({
         agent: `agent:trusted-media-${group.join('')}`,
         blindName: blind[0].name,
         generalName: general[0].name,
+        pronunciationName: pronunciation[0]?.name ?? null,
         runId: `${receipt.execution.workflow_run_id}:${cardId}:${group.join('')}`,
       });
       const acceptance = entry.review.model_acceptances[lane];
@@ -765,12 +772,45 @@ function validateRunDecisions({
       laneIdentities.length === 2 &&
       (
         laneIdentities[0].generalName === laneIdentities[1].generalName ||
-        laneIdentities[0].blindName === laneIdentities[1].blindName
+        laneIdentities[0].blindName === laneIdentities[1].blindName ||
+        (
+          laneIdentities[0].pronunciationName !== null &&
+          laneIdentities[0].pronunciationName === laneIdentities[1].pronunciationName
+        )
       )
     ) {
-      errors.push(`decision ${cardId} reuses a general or blind run across lanes.`);
+      errors.push(`decision ${cardId} reuses a general, blind, or pronunciation run across lanes.`);
     }
   }
+}
+
+function validateRuntimeManifestFiles(value, label, errors) {
+  if (!Array.isArray(value) || value.length === 0) {
+    errors.push(`trusted media ${label} manifest must identify at least one file.`);
+    return null;
+  }
+  const paths = new Set();
+  for (const [index, entry] of value.entries()) {
+    const entryLabel = `trusted media ${label} manifest files[${index}]`;
+    if (!exactKeys(entry, ['path', 'sha256', 'size_bytes'], entryLabel, errors)) {
+      continue;
+    }
+    if (
+      typeof entry.path !== 'string' ||
+      !entry.path ||
+      entry.path.startsWith('/') ||
+      entry.path.includes('\\') ||
+      entry.path.split('/').includes('..') ||
+      paths.has(entry.path) ||
+      !/^[a-f0-9]{64}$/.test(entry.sha256 ?? '') ||
+      !Number.isSafeInteger(entry.size_bytes) ||
+      entry.size_bytes < 0
+    ) {
+      errors.push(`${entryLabel} has an invalid or duplicate file identity.`);
+    }
+    paths.add(entry.path);
+  }
+  return paths.size === value.length ? value : null;
 }
 
 function validateReceipt(receipt, policy, errors) {

@@ -255,8 +255,9 @@ that embeds the decoded phone, including separator-obfuscated digit forms, or
 credential-shaped material before any remote request. This keeps execution attribution without creating a phone/token
 side-channel through an otherwise valid machine principal.
 
-Before the four session credentials are read, apply reuses the receiver control
-plane inspector and requires the deployed `softbook-api` function identity,
+Before the four session credentials are read, apply removes all four credential
+variables from every control-plane subprocess environment, reuses the receiver
+control-plane inspector, and requires the deployed `softbook-api` function identity,
 runtime, handler, timeout, signing key, store/runtime modes and deterministic
 backend deployment ID to match the exact commit and tracked profile. Requests
 then use only that profile's exact HTTPS API base, set `redirect=error`, reject

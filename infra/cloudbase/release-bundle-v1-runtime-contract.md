@@ -88,6 +88,10 @@ The bundle is track-scoped and requires:
   accepted runs whose exact input binds card/box scope, corpus fingerprint,
   audit, linked model review, and the recomputed canonical runtime
   `content_version` plus the source runtime payload/manifest byte SHA-256;
+- the exact authorized source runtime payload retained at the authorization's
+  safe `validation.runtime_payload` path, rehashed by the receiver and required
+  to normalize to the same publish content; a missing path, content-version-only
+  legacy acceptance, or byte drift fails closed;
 - a hash-bound audit with zero unresolved blockers, zero unexplained risks, and
   100% quality metadata coverage;
 - the exact track audio count whose paths, sizes, durations, hashes, and QC

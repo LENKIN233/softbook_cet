@@ -673,6 +673,33 @@ test('runtime environment manifests require internally bound file identities', t
   assert.match(result.errors.join('\n'), /Python environment manifest/);
 });
 
+test('model weights manifest must identify at least one concrete file', t => {
+  const receipt = validReceipt();
+  const fixtureValue = fixture(t, receipt);
+  const emptyDigest = hash(canonicalStringify([]));
+  receipt.execution.model.weights_manifest_sha256 = emptyDigest;
+  updateArtifact(
+    receipt,
+    fixtureValue.artifactDirectory,
+    'model_weights_manifest',
+    'model-weights-manifest.json',
+    {files: [], sha256: emptyDigest},
+  );
+  for (const [field, filename] of [
+    ['raw_run_manifest', 'raw-run-manifest.json'],
+    ['run_package', 'run-package.json'],
+  ]) {
+    const value = JSON.parse(fs.readFileSync(
+      path.join(fixtureValue.artifactDirectory, filename),
+    ));
+    value.model = receipt.execution.model;
+    updateArtifact(receipt, fixtureValue.artifactDirectory, field, filename, value);
+  }
+  const result = verifyAttested(fixtureValue, receipt);
+  assert.equal(result.formal_ready, false);
+  assert.match(result.errors.join('\n'), /model weights manifest must identify/);
+});
+
 function updateArtifact(receipt, artifactDirectory, field, filename, value) {
   receipt.artifacts[field] = writeArtifactJson(artifactDirectory, filename, value);
 }

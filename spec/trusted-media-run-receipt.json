@@ -72,7 +72,7 @@
       "raw_run_results_replay_every_final_decision",
       "reviewed_transcript_bytes_rehash_to_declared_digest",
       "blind_transcript_similarity_is_recomputed",
-      "model_package_and_Python_environment_manifests_are_parsed_recomputed_and_bound_to_execution_harness",
+      "model_weights_model_package_and_Python_environment_manifests_each_identify_one_or_more_unique_safe_file_path_hash_size_tuples_are_recomputed_and_bound_to_execution_harness",
       "model_acceptances_bind_the_recomputed_per_card_media_input_and_source_runs"
     ],
     "real_attested_receipt_required_before_formal_media_registration": true

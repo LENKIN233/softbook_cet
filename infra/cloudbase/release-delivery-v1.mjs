@@ -309,6 +309,38 @@ export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
     'approval record',
   );
   const approval = readJson(approvalPath, 'approval record');
+  const authorizedRuntimePayloadPath = resolveBundlePath(
+    bundleDirectory,
+    requireRelativePath(
+      approval.validation?.runtime_payload,
+      'authorization runtime payload path',
+      '.json',
+    ),
+  );
+  const authorizedRuntimePayloadSha256 = normalizeSha256(
+    approval.validation?.runtime_payload_sha256,
+  );
+  assertFileHash(
+    authorizedRuntimePayloadPath,
+    authorizedRuntimePayloadSha256,
+    'authorized runtime payload',
+  );
+  const authorizedRuntimePayload = readJson(
+    authorizedRuntimePayloadPath,
+    'authorized runtime payload',
+  );
+  const {
+    corpus_fingerprint: _authorizedCorpusFingerprint,
+    ...authorizedCardSourcePayload
+  } = authorizedRuntimePayload;
+  const authorizedContent = validateCardSourceCatalogMapping(
+    validateCardSourceForReleaseBundle(authorizedCardSourcePayload, bundle.track),
+  );
+  assertJsonEqual(
+    authorizedContent,
+    content,
+    'authorized runtime payload normalized content',
+  );
   const modelReviewPath = resolveBundlePath(
     bundleDirectory,
     bundle.approval.model_review_path,
@@ -910,7 +942,10 @@ function verifyApprovalRecord(approval, modelReview, bundle, content) {
     },
     additionalBindings: {
       content_version: bundle.content.content_version,
-      runtime_payload_sha256: approval.validation?.runtime_payload_sha256,
+      runtime_payload_sha256: requireString(
+        approval.validation?.runtime_payload_sha256,
+        'authorization runtime payload SHA-256',
+      ),
     },
   });
   requireIndependentModelAcceptances(approval.model_acceptances, {
@@ -1540,6 +1575,12 @@ function requireFormalTrack(value, label) {
 
 function assertEqual(actual, expected, label) {
   if (actual !== expected) {
+    throw new ReleaseDeliveryError(`${label} mismatch.`);
+  }
+}
+
+function assertJsonEqual(actual, expected, label) {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new ReleaseDeliveryError(`${label} mismatch.`);
   }
 }
