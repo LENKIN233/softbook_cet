@@ -285,9 +285,17 @@ function normalizedWords(value) {
   return String(value ?? '').toLowerCase().match(/[a-z0-9]+/g) ?? [];
 }
 
-function sequenceMatcherRatio(left, right) {
-  const a = normalizedWords(left);
-  const b = normalizedWords(right);
+export function sequenceMatcherRatio(left, right) {
+  const leftWords = normalizedWords(left);
+  const rightWords = normalizedWords(right);
+  if (leftWords.length === 0 || rightWords.length === 0) return 0;
+  return Math.max(
+    sequenceMatcherItems(leftWords, rightWords),
+    sequenceMatcherItems([...leftWords.join('')], [...rightWords.join('')]),
+  );
+}
+
+function sequenceMatcherItems(a, b) {
   if (a.length === 0 || b.length === 0) return 0;
   const b2j = new Map();
   for (const [index, token] of b.entries()) {
