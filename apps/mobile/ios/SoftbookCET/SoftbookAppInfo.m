@@ -20,9 +20,25 @@ RCT_EXPORT_MODULE();
   NSString *version = [versionValue isKindOfClass:[NSString class]]
       ? (NSString *)versionValue
       : @"";
+  NSURL *profileURL = [[NSBundle mainBundle]
+      URLForResource:@"softbook-release-runtime-profile"
+      withExtension:@"json"];
+  NSString *releaseRuntimeProfileJson = @"";
+  if (profileURL != nil) {
+    NSData *profileData = [NSData dataWithContentsOfURL:profileURL];
+    if (profileData != nil) {
+      NSString *profileText = [[NSString alloc]
+          initWithData:profileData
+          encoding:NSUTF8StringEncoding];
+      if (profileText != nil) {
+        releaseRuntimeProfileJson = profileText;
+      }
+    }
+  }
 
   return @{
     @"platform" : @"ios",
+    @"releaseRuntimeProfileJson" : releaseRuntimeProfileJson,
     @"version" : version
   };
 }

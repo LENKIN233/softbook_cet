@@ -86,6 +86,13 @@ def configuredReleaseSigningValues = releaseSigningValues.count { value -> value
 def releaseSigningConfigured = configuredReleaseSigningValues == releaseSigningValues.size()
 def requireSignedRelease = project.findProperty('softbookRequireSignedRelease') == 'true'
 def requireUnsignedRelease = project.findProperty('softbookRequireUnsignedRelease') == 'true'
+def configuredReleaseRuntimeProfile = project.findProperty('softbookReleaseRuntimeProfile') ?:
+    System.getenv('SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE')
+def repositoryFixtureRuntimeProfile = file("$rootDir/../e2e/fixtures/mobile-release-runtime-profile.repository-fixture.json")
+def releaseRuntimeProfileFile = configuredReleaseRuntimeProfile ?
+    file(configuredReleaseRuntimeProfile) :
+    (requireUnsignedRelease ? repositoryFixtureRuntimeProfile : null)
+def generatedReleaseRuntimeAssets = file("$buildDir/generated/softbook/releaseRuntimeProfile")
 
 if (requireSignedRelease && requireUnsignedRelease) {
     throw new GradleException('Android release cannot require signed and unsigned modes together.')
@@ -144,6 +151,43 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
+    }
+    sourceSets {
+        release {
+            assets.srcDir generatedReleaseRuntimeAssets
+        }
+    }
+}
+
+def stageReleaseRuntimeProfile = tasks.register('stageReleaseRuntimeProfile', Exec) {
+    def outputFile = file("$generatedReleaseRuntimeAssets/softbook-release-runtime-profile.json")
+    outputs.file(outputFile)
+    if (releaseRuntimeProfileFile != null) {
+        inputs.file(releaseRuntimeProfileFile)
+    }
+    doFirst {
+        if (releaseRuntimeProfileFile == null || !releaseRuntimeProfileFile.isFile()) {
+            throw new GradleException(
+                'Android Release requires -PsoftbookReleaseRuntimeProfile or SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE.'
+            )
+        }
+        generatedReleaseRuntimeAssets.mkdirs()
+        def command = [
+            'node',
+            file("$rootDir/../../../scripts/stage_mobile_release_runtime_profile.mjs").absolutePath,
+            '--input', releaseRuntimeProfileFile.absolutePath,
+            '--output', outputFile.absolutePath,
+        ]
+        if (requireUnsignedRelease && releaseRuntimeProfileFile == repositoryFixtureRuntimeProfile) {
+            command.add('--allow-repository-fixture')
+        }
+        commandLine command
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name == 'preReleaseBuild') {
+        task.dependsOn stageReleaseRuntimeProfile
     }
 }
 

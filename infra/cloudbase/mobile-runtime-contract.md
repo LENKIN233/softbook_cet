@@ -58,6 +58,16 @@ Current boundary:
 
 Remote mode is installed in `apps/mobile/index.js` before `App` is registered.
 
+iOS and Android Release artifacts embed the same canonical, public-only
+`mobile-release-runtime-profile.v1` JSON. Native `SoftbookAppInfo` exposes the
+exact bytes synchronously; JavaScript strictly parses them before App
+registration and installs all remote-capable surfaces as remote. Signed Release
+builds fail when the profile is missing or invalid and never fall back to local
+cards, state, API keys or feature overrides. Unsigned repository CI builds may
+embed only the explicit `repository_fixture` profile with
+`gate_eligible=false`; IPA/APK inspection rehashes the unique embedded resource.
+Debug retains environment/initial-props injection solely for automated smoke.
+
 Environment:
 
 - `SOFTBOOK_CET_REMOTE_BASE_URL`: enables remote runtime profile.

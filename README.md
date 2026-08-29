@@ -141,6 +141,27 @@ npm start
 
 如果要分段 smoke，可用逗号分隔的 `SOFTBOOK_CET_LOCAL_RUNTIME_FEATURES` 暂时把某些 surface 留在本地，例如 `spaceState`。若把卡源留在本地，必须同时选择 `accountBootstrap,learningSource,learningState`，避免远端事件引用未经 canonical bootstrap 验证的本地内容版本。
 
+正式 iOS/Android Release 不读取这些环境变量作为运行时权威。接收方使用无秘密的
+`delivery-profile.v1` 与公开 Ed25519 keyring 生成一份确定性的
+`mobile-release-runtime-profile.v1`，两端嵌入完全相同的 JSON 字节：
+
+```bash
+node scripts/build_mobile_release_runtime_profile.mjs \
+  --delivery-profile receiver-profile.json \
+  --public-keyring content-manifest-public-keyring.json \
+  --commit "$(git rev-parse HEAD)" \
+  --output mobile-release-runtime-profile.json
+
+SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE=/absolute/path/mobile-release-runtime-profile.json \
+  npm --prefix apps/mobile run android:release:signed -- build --state docs/agent-runs/artifacts/android-release.json --apply
+```
+
+签名 Release 缺失或无法严格解析该资源时在构建或 App 注册前失败，绝不回退到本地
+卡片、状态或 feature override。仓库的 unsigned CI 只允许嵌入
+`configuration_class=repository_fixture`、`gate_eligible=false` 的固定测试资源；
+`scripts/inspect_mobile_release_runtime_artifact.mjs` 会从 APK、IPA、`.app` 或
+`.xcarchive` 中重取并核对唯一资源的原始字节。
+
 - `auth`：手机号验证码请求 / 校验仓储
 - `learningSource`：学习卡源仓储
 - `membership`：entitlement 读取、开始试用、开通会员、恢复购买提醒状态更新
