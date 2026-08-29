@@ -7,11 +7,33 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  sequenceMatcherRatio,
   validateAudioCoverage,
   verifyTrustedMediaRunReceipt,
 } from './verify_trusted_media_run_receipt.mjs';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
+
+test('product verifier preserves phonetic spelling without accepting omitted clauses', () => {
+  assert.ok(
+    sequenceMatcherRatio(
+      'Listen to turn off the light, where n links into off and sounds closer to tur noff in natural speed.',
+      "Listen to turn off the light. We're in links into off and sounds closer to turn off in natural speed.",
+    ) >= 0.85,
+  );
+  assert.ok(
+    sequenceMatcherRatio(
+      'In put it on, the final t of put links forward, so the phrase is heard as pu ti ton in connected speech.',
+      'In put it on, the final T of put links forward so the phrase is heard as P U T I-T O N in connected speech.',
+    ) >= 0.85,
+  );
+  assert.ok(
+    sequenceMatcherRatio(
+      'The initial feedback seemed positive; however, several users reported serious security concerns.',
+      'The initial feedback seemed positive.',
+    ) < 0.85,
+  );
+});
 
 function cet4RuntimeCatalog() {
   const document = JSON.parse(fs.readFileSync(
