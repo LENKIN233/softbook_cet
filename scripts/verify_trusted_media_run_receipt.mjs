@@ -707,7 +707,7 @@ function validateArtifactEvidence(
     runPackage.execution?.workflow_run_attempt !== receipt.execution.workflow_run_attempt ||
     runPackage.execution?.runner_class !== receipt.execution.runner_class ||
     !Array.isArray(runPackage.runs) ||
-    JSON.stringify(runPackage.runs) !== JSON.stringify(rawManifest.runs) ||
+    canonicalStringify(runPackage.runs) !== canonicalStringify(rawManifest.runs) ||
     runPackage.result?.reviewed_card_count !== 301 ||
     runPackage.result?.passed_card_count !== 301 ||
     runPackage.result?.failed_card_count !== 0

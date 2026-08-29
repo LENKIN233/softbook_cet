@@ -22,12 +22,66 @@ GENERAL_BOOL_KEYS = (
 )
 
 
-def parse_object(text: str):
+def parse_single_quoted_object(candidate: str, fields):
+    if not candidate.startswith("{") or not candidate.endswith("}"):
+        raise ValueError("model result is not a bounded object")
+    remainder = candidate[1:-1].strip()
+    first_prefix = f"'{fields[0][0]}': "
+    if not remainder.startswith(first_prefix):
+        raise ValueError("single-quoted model result field order is invalid")
+    remainder = remainder[len(first_prefix):]
+    value = {}
+    for index, (key, expected_type) in enumerate(fields):
+        if index + 1 < len(fields):
+            separator = f", '{fields[index + 1][0]}': "
+            if remainder.count(separator) != 1:
+                raise ValueError("single-quoted model result delimiter is ambiguous")
+            token, remainder = remainder.split(separator, 1)
+        else:
+            token, remainder = remainder, ""
+        token = token.strip()
+        if expected_type is str:
+            escaped_quote = r'\"'
+            if token.startswith(escaped_quote) and token.endswith(escaped_quote):
+                parsed = token[len(escaped_quote) : -len(escaped_quote)]
+                if "\\" in parsed:
+                    raise ValueError("escaped-quote model result string is ambiguous")
+            elif len(token) >= 2 and token[0] == "'" and token[-1] == "'":
+                parsed = token[1:-1]
+            else:
+                raise ValueError("single-quoted model result string is invalid")
+            if any(ord(character) < 32 for character in parsed):
+                raise ValueError("single-quoted model result string has controls")
+        elif expected_type is bool:
+            if token not in {"True", "False", "true", "false"}:
+                raise ValueError("single-quoted model result boolean is invalid")
+            parsed = token.lower() == "true"
+        else:
+            raise ValueError("unsupported single-quoted model result field type")
+        value[key] = parsed
+    if remainder:
+        raise ValueError("single-quoted model result has trailing data")
+    return value
+
+
+def parse_object(text: str, fields):
     candidate = re.sub(r"^```(?:json|python)?\s*|\s*```$", "", text.strip())
     try:
         value = json.loads(candidate)
     except json.JSONDecodeError:
-        value = ast.literal_eval(candidate)
+        repaired = candidate.replace(r'\"', '"')
+        if (
+            candidate.startswith(r'{\"')
+            and candidate.endswith("}")
+            and "\\" not in repaired
+            and '"' not in candidate.replace(r'\"', "")
+        ):
+            value = json.loads(repaired)
+        else:
+            try:
+                value = ast.literal_eval(candidate)
+            except (SyntaxError, ValueError):
+                value = parse_single_quoted_object(candidate, fields)
     if not isinstance(value, dict):
         raise ValueError("model result must be an object")
     return value
@@ -39,12 +93,17 @@ def exact(value, keys, label):
 
 
 def parse_result(text: str, purpose: str):
-    value = parse_object(text)
     if purpose == "blind_transcript":
+        value = parse_object(text, [("transcript_heard", str)])
         exact(value, {"transcript_heard"}, "blind result")
         if not isinstance(value["transcript_heard"], str) or not value["transcript_heard"].strip():
             raise ValueError("blind transcript is invalid")
     elif purpose == "pronunciation":
+        value = parse_object(text, [
+            ("transcript_heard", str),
+            ("accurate_pronunciation", bool),
+            ("specific_error", str),
+        ])
         exact(value, {"transcript_heard", "accurate_pronunciation", "specific_error"}, "pronunciation result")
         if (
             not isinstance(value["transcript_heard"], str)
@@ -55,13 +114,17 @@ def parse_result(text: str, purpose: str):
         ):
             raise ValueError("pronunciation result is invalid")
     else:
-        exact(value, {"transcript_heard", "notes", *GENERAL_BOOL_KEYS}, "general result")
+        value = parse_object(text, [
+            ("transcript_heard", str),
+            *((key, bool) for key in GENERAL_BOOL_KEYS),
+        ])
+        exact(value, {"transcript_heard", *GENERAL_BOOL_KEYS}, "general result")
         if (
             not isinstance(value["transcript_heard"], str)
-            or not isinstance(value["notes"], str)
             or any(not isinstance(value[key], bool) for key in GENERAL_BOOL_KEYS)
         ):
             raise ValueError("general result is invalid")
+        value["notes"] = ""
     return value
 
 
@@ -73,7 +136,14 @@ def similarity(expected: str, heard: str):
     left, right = words(expected), words(heard)
     if not left or not right:
         return 0.0
-    return difflib.SequenceMatcher(None, left, right, autojunk=False).ratio()
+    word_score = difflib.SequenceMatcher(None, left, right, autojunk=False).ratio()
+    compact_score = difflib.SequenceMatcher(
+        None,
+        "".join(left),
+        "".join(right),
+        autojunk=False,
+    ).ratio()
+    return max(word_score, compact_score)
 
 
 def replay(artifact_dir: Path, run_package_name: str, worklist_name: str):

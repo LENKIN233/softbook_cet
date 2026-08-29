@@ -325,7 +325,11 @@ function createArtifactFixture(root, receipt) {
       transcript_similarity: 1,
     }));
     for (const record of records) {
-      record.raw_outputs = [JSON.stringify(record.result)];
+      const rawResult = structuredClone(record.result);
+      if (['full_perceptual', 'adjudication'].includes(purpose)) {
+        delete rawResult.notes;
+      }
+      record.raw_outputs = [JSON.stringify(rawResult)];
     }
     const bytes = Buffer.from(`${records.map(record => JSON.stringify(record)).join('\n')}\n`);
     const filename = `run-${name}.jsonl`;
