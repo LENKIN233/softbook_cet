@@ -689,6 +689,31 @@ test('receiver write safety blocks topic branches even when remote preflight pas
   );
 });
 
+test('receiver user-data counts accept CloudBase Extended JSON numbers', async () => {
+  const result = await deliveryCli.receiverDeliveryInternals.readUserDataCounts({
+    profile: profileFixture(),
+    runner: {
+      async run(args) {
+        const commands = JSON.parse(args[args.indexOf('--command') + 1]);
+        return JSON.stringify({
+          data: {
+            results: commands.map(() => [
+              {
+                n: {$numberInt: '0'},
+                ok: {$numberDouble: '1.0'},
+              },
+            ]),
+          },
+        });
+      },
+    },
+  });
+
+  assert.equal(result.imported_user_data_detected, false);
+  assert.equal(result.total, 0);
+  assert.ok(Object.keys(result.counts).length > 0);
+});
+
 function safeDependencies(runner, env = receiverEnvironment()) {
   return {
     env,

@@ -18,6 +18,7 @@ import {fileURLToPath} from 'node:url';
 import {
   REQUIRED_COLLECTIONS,
   REQUIRED_DEPLOYMENT_NODE_VERSION,
+  normalizeCloudBaseNumber,
   parseTcbJson,
 } from './deployment-safety.mjs';
 import {
@@ -1349,8 +1350,9 @@ export async function readUserDataCounts({profile, runner}) {
   const counts = {};
   results.forEach((result, index) => {
     const value = Array.isArray(result) ? result[0] : null;
-    const count = Number(value?.n);
-    if (Number(value?.ok) !== 1 || !Number.isSafeInteger(count) || count < 0) {
+    const count = normalizeCloudBaseNumber(value?.n);
+    const ok = normalizeCloudBaseNumber(value?.ok);
+    if (ok !== 1 || !Number.isSafeInteger(count) || count < 0) {
       throw new ReleaseDeliveryError(`receiver count failed for ${USER_DATA_COLLECTIONS[index]}.`);
     }
     counts[USER_DATA_COLLECTIONS[index]] = count;
