@@ -671,7 +671,7 @@ async function downloadAndInspectGitHubReleaseAsset({
   const response = await fetchImpl(resolvedAsset.request.url, {
     headers: resolvedAsset.request.headers,
     redirect: 'follow',
-    signal: AbortSignal.timeout(150_000),
+    signal: AbortSignal.timeout(600_000),
   });
   if (!response?.ok) {
     throw new Error(

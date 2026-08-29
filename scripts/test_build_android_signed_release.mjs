@@ -39,6 +39,25 @@ const MACHINE_VERIFIER_ENV = Object.freeze({
   SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID: 'android-release-verify-001',
 });
 
+test('private release download and README commands match the observed execution boundary', () => {
+  const implementation = fs.readFileSync(
+    path.resolve('scripts/build_android_signed_release.mjs'),
+    'utf8',
+  );
+  const readme = fs.readFileSync(path.resolve('apps/mobile/README.md'), 'utf8');
+  assert.match(implementation, /AbortSignal\.timeout\(600_000\)/);
+  assert.doesNotMatch(implementation, /AbortSignal\.timeout\(150_000\)/);
+  assert.match(
+    readme,
+    /--state docs\/agent-runs\/artifacts\/android-signed-release-state\.json/,
+  );
+  assert.match(
+    readme,
+    /--report docs\/release\/evidence\/android-signed-release\.json/,
+  );
+  assert.doesNotMatch(readme, /\.\.\/\.\.\/docs\/(?:agent-runs|release)\//);
+});
+
 test('signing environment is all-or-nothing and never returns secrets', t => {
   const fixture = createFixture(t);
   assert.deepEqual(inspectSigningEnvironment({}), {
