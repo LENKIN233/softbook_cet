@@ -13,7 +13,9 @@
       "production"
     ],
     "receiver_owned_required": true,
-    "personal_development_environment_forbidden": true,
+    "in_place_environment_promotion_allowed": true,
+    "in_place_promotion_requires_zero_imported_user_data": true,
+    "development_configuration_forbidden_after_promotion": true,
     "required_execution_modes": {
       "load-test-report": "receiver_deployed",
       "availability-observation": "receiver_deployed",

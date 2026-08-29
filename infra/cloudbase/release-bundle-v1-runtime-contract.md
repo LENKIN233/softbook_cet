@@ -70,8 +70,10 @@ The profile contains `profile_id`, receiver `environment_id`, `region`, HTTPS
 versions, and a public `signing_key_id`. `closed_beta` remains exactly
 `enabled_tracks=[cet4]`; the formal `production` profile is exactly
 `enabled_tracks=[cet4,cet6]`. Partial, duplicate, or reordered production track
-sets fail closed. Secret-shaped fields are rejected. The personal development
-environment is rejected as a delivery target. `region` accepts the real
+sets fail closed. Secret-shaped fields are rejected. A receiver-owned existing
+environment may be promoted in place only when receiver deployment evidence
+recomputes zero imported user data and proves that development mode, fixed-code
+SMS and other development configuration are absent after promotion. `region` accepts the real
 CloudBase environment form such as `ap-shanghai` and an optional numeric zone
 suffix.
 

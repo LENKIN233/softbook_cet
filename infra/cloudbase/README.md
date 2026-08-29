@@ -365,8 +365,10 @@ separate exact 1,234-card / 110-box / 328-audio bundle. A `closed_beta` profile
 enables only CET4; a `production` profile enables CET4 and CET6 in canonical
 order, while each bundle and active pointer remains track-scoped.
 
-The personal development environment is explicitly rejected by the delivery
-profile validator. The repository-local receiver adapter uploads and
+The delivery profile may reuse an existing receiver-owned environment, but an
+in-place promotion remains ineligible until remote deployment evidence proves
+zero imported user data and confirms that development mode, fixed-code SMS and
+other development configuration are absent. The repository-local receiver adapter uploads and
 re-downloads private assets for byte/hash verification, stages evidence-bound
 content, verifies it, and changes the current release pointer last. The
 blank-environment drill remains pending and must not be inferred from green

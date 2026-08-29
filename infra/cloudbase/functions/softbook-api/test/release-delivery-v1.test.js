@@ -39,7 +39,7 @@ after(() => {
   }
 });
 
-test('delivery profile is receiver-owned and contains no secret material', () => {
+test('delivery profile allows zero-data in-place receiver promotion and contains no secret material', () => {
   const valid = delivery.validateDeliveryProfile(profileFixture());
   assert.equal(valid.runtime_mode, 'closed_beta');
   assert.deepEqual(valid.enabled_tracks, ['cet4']);
@@ -50,13 +50,13 @@ test('delivery profile is receiver-owned and contains no secret material', () =>
   assert.equal(production.runtime_mode, 'production');
   assert.deepEqual(production.enabled_tracks, ['cet4', 'cet6']);
 
-  assert.throws(
-    () =>
-      delivery.validateDeliveryProfile({
-        ...profileFixture(),
-        environment_id: delivery.PERSONAL_DEVELOPMENT_ENVIRONMENT,
-      }),
-    /personal development environment/,
+  const promoted = delivery.validateDeliveryProfile({
+    ...profileFixture(),
+    environment_id: 'test-d2gzcyxr9f7e80972',
+  });
+  assert.equal(
+    promoted.environment_id,
+    'test-d2gzcyxr9f7e80972',
   );
   assert.throws(
     () =>
