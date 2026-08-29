@@ -86,8 +86,14 @@ jobs:
       - name: Validate PR design gate
         if: env.RUN_GATE == 'true'
         env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-        run: python3 scripts/validate_pr_design_gate.py --base "${{ github.event.pull_request.base.sha }}" --head "${{ github.sha }}"
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          PR_BODY="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .body)"
+          export PR_BODY
+          python3 scripts/validate_pr_design_gate.py \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.sha }}"
 
   validate-harness:
     runs-on: ubuntu-latest

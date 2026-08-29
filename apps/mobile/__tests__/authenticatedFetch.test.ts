@@ -84,6 +84,43 @@ test('authenticated fetch refreshes once and retries a 401 response', async () =
   expect(retryHeaders.get('authorization')).toBe('Bearer access-1');
 });
 
+test('quarantines new same-session work before reading or sending credentials', async () => {
+  const coordinator = createCoordinator();
+  const fetchImpl = jest.fn(async () => createResponse(200));
+  const authenticatedFetch = createAuthenticatedFetch({
+    authSessionCoordinator: coordinator,
+    fetchImpl: fetchImpl as typeof fetch,
+    shouldQuarantineSession: () => true,
+  });
+
+  await expect(
+    authenticatedFetch('https://api.softbook.example/resource'),
+  ).rejects.toMatchObject({reason: 'session_quarantined'});
+  expect(coordinator.getAccessToken).not.toHaveBeenCalled();
+  expect(fetchImpl).not.toHaveBeenCalled();
+  expect(coordinator.invalidate).not.toHaveBeenCalled();
+});
+
+test.each([401, 403])(
+  'preserves an in-flight %s response while its session is quarantined',
+  async status => {
+    const coordinator = createCoordinator();
+    const fetchImpl = jest.fn(async () => createResponse(status));
+    const authenticatedFetch = createAuthenticatedFetch({
+      authSessionCoordinator: coordinator,
+      fetchImpl: fetchImpl as typeof fetch,
+      shouldPreserveAuthorizationRejection: () => true,
+    });
+
+    await expect(
+      authenticatedFetch('https://api.softbook.example/resource'),
+    ).resolves.toMatchObject({status});
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(coordinator.forceRefresh).not.toHaveBeenCalled();
+    expect(coordinator.invalidate).not.toHaveBeenCalled();
+  },
+);
+
 test.each([403, 401])(
   'authenticated fetch invalidates after terminal %s authorization failure',
   async status => {
@@ -107,6 +144,7 @@ test('preserves terminal authorization semantics when refresh itself returns 401
   const session = createRemoteSession('session-old');
   const authSessionStore: AuthSessionStore = {
     clear: jest.fn(async () => undefined),
+    clearExactly: jest.fn(async () => undefined),
     load: jest.fn(async () => null),
     save: jest.fn(async () => undefined),
   };
@@ -149,6 +187,7 @@ test.each([403, 401])(
     const session = createRemoteSession('session-old');
     const authSessionStore: AuthSessionStore = {
       clear: jest.fn(async () => undefined),
+      clearExactly: jest.fn(async () => undefined),
       load: jest.fn(async () => null),
       save: jest.fn(async () => undefined),
     };

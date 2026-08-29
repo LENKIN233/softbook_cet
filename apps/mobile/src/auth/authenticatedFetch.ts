@@ -10,6 +10,10 @@ import {
 export function createAuthenticatedFetch(options: {
   authSessionCoordinator: AuthSessionCoordinator;
   fetchImpl?: typeof fetch;
+  shouldPreserveAuthorizationRejection?: (
+    sessionScopeKey: string | null,
+  ) => boolean;
+  shouldQuarantineSession?: (sessionScopeKey: string | null) => boolean;
   timeoutMs?: number;
 }): typeof fetch {
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -25,6 +29,15 @@ export function createAuthenticatedFetch(options: {
         options.authSessionCoordinator.getCurrentSession(),
       ) === requestSessionScopeKey;
     const cancellationSources = getRequestCancellationSources(input, init);
+
+    if (options.shouldQuarantineSession?.(requestSessionScopeKey)) {
+      throw new RemoteRequestLifecycleError('session_quarantined');
+    }
+
+    const shouldPreserveAuthorizationRejection = () =>
+      options.shouldPreserveAuthorizationRejection?.(
+        requestSessionScopeKey,
+      ) === true;
 
     const response = await runBoundedRemoteRequest({
       cancellationSources,
@@ -53,6 +66,13 @@ export function createAuthenticatedFetch(options: {
 
         assertRequestSessionCurrent(isRequestSessionCurrent());
 
+        if (
+          (firstResponse.status === 401 || firstResponse.status === 403) &&
+          shouldPreserveAuthorizationRejection()
+        ) {
+          return firstResponse;
+        }
+
         if (firstResponse.status === 403) {
           return firstResponse;
         }
@@ -80,7 +100,10 @@ export function createAuthenticatedFetch(options: {
       },
     });
 
-    if (response.status === 401 || response.status === 403) {
+    if (
+      (response.status === 401 || response.status === 403) &&
+      !shouldPreserveAuthorizationRejection()
+    ) {
       assertRequestSessionCurrent(isRequestSessionCurrent());
       await options.authSessionCoordinator.invalidate();
     }

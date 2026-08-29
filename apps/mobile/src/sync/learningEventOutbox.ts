@@ -284,6 +284,17 @@ export class LearningEventOutbox {
         entry => entry.accountPhoneNumber !== accountPhoneNumber,
       );
       await this.persistCandidate(candidate);
+      const persisted = await this.storage.getItem(this.key);
+
+      if (
+        !isPersistedAccountCleared(
+          persisted,
+          accountPhoneNumber,
+          this.createDeviceId,
+        )
+      ) {
+        throw new Error('Learning event outbox cleanup verification failed.');
+      }
     });
   }
 
@@ -342,6 +353,43 @@ export class LearningEventOutbox {
   private async persistCandidate(candidate: LearningEventOutboxState) {
     await this.storage.setItem(this.key, JSON.stringify(candidate));
     this.state = candidate;
+  }
+}
+
+function isPersistedAccountCleared(
+  value: string | null,
+  accountPhoneNumber: string,
+  createDeviceId: () => string,
+): boolean {
+  if (value === null) {
+    return false;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+
+    if (
+      !isExactObject(parsed, [
+        'schemaVersion',
+        'deviceId',
+        'nextSequence',
+        'entries',
+      ]) ||
+      !Array.isArray(parsed.entries)
+    ) {
+      return false;
+    }
+
+    const sanitized = sanitizeState(parsed, createDeviceId);
+    return (
+      sanitized.entries.length === parsed.entries.length &&
+      JSON.stringify(sanitized) === JSON.stringify(parsed) &&
+      sanitized.entries.every(
+        entry => entry.accountPhoneNumber !== accountPhoneNumber,
+      )
+    );
+  } catch {
+    return false;
   }
 }
 

@@ -19,6 +19,7 @@ export type AuthSessionRevocationStorage = {
 
 export type AuthSessionStore = {
   clear: () => Promise<void>;
+  clearExactly: () => Promise<void>;
   load: () => Promise<PersistedAuthSession | null>;
   save: (session: PersistedAuthSession) => Promise<void>;
 };
@@ -73,6 +74,20 @@ export function createAuthSessionStore(
         throw new Error(
           'Auth session cleanup could not persist revocation or clear credentials.',
         );
+      }
+    },
+
+    async clearExactly() {
+      await revocationStorage.setItem(AUTH_SESSION_REVOCATION_KEY, 'revoked');
+      await storage.clearCredentials();
+
+      const [marker, credentials] = await Promise.all([
+        revocationStorage.getItem(AUTH_SESSION_REVOCATION_KEY),
+        storage.loadCredentials(),
+      ]);
+
+      if (marker !== 'revoked' || credentials !== false) {
+        throw new Error('Exact auth cleanup verification failed.');
       }
     },
 

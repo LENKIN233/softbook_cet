@@ -215,6 +215,18 @@ def validate(context) -> None:
         errors.append("PR workflow must run model-owned acceptance regressions")
     if "node --test scripts/test_verify_trusted_media_run_receipt.mjs" not in workflow:
         errors.append("PR workflow must run trusted media receipt regressions")
+    if "PR_BODY: ${{ github.event.pull_request.body }}" in workflow:
+        errors.append("design gate must not reuse the stale pull-request event body on rerun")
+    for live_pr_body_token in (
+        "GH_TOKEN: ${{ github.token }}",
+        "PR_NUMBER: ${{ github.event.pull_request.number }}",
+        'gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .body',
+        "export PR_BODY",
+    ):
+        if live_pr_body_token not in workflow:
+            errors.append(
+                f"design gate must fetch the current pull-request body: {live_pr_body_token}"
+            )
     for stale in (
         "  agent-review:",
         "scripts/validate_agent_review.py",
