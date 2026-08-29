@@ -101,7 +101,10 @@ export function parseMobileReleaseRuntimeProfile(
     ID_PATTERN,
     'environment_id',
   );
-  const apiBaseUrl = requireApiBaseUrl(record.api_base_url);
+  const apiBaseUrl = requireApiBaseUrl(
+    record.api_base_url,
+    configurationClass,
+  );
   requireExact(record.runtime_mode, 'closed_beta', 'runtime_mode');
   requireExact(record.learning_track, 'cet4', 'learning_track');
   const minimumClientVersions = requireRecord(
@@ -179,7 +182,7 @@ export function parseMobileReleaseRuntimeProfile(
   ) {
     throw new Error('Receiver release runtime profile contains placeholder identity.');
   }
-  return {
+  const profile: MobileReleaseRuntimeProfile = {
     api_base_url: apiBaseUrl,
     commit_sha: record.commit_sha as string,
     configuration_class: configurationClass,
@@ -199,6 +202,10 @@ export function parseMobileReleaseRuntimeProfile(
     signing_key_id: signingKeyId,
     target_release: 'cet4-closed-beta',
   };
+  if (raw !== `${canonicalStringify(profile)}\n`) {
+    throw new Error('Mobile release runtime profile bytes must be canonical.');
+  }
+  return profile;
 }
 
 export function mobileReleaseRuntimeProfileToRemoteProfile(
@@ -283,7 +290,10 @@ function requirePattern(value: unknown, pattern: RegExp, label: string) {
   return value;
 }
 
-function requireApiBaseUrl(value: unknown) {
+function requireApiBaseUrl(
+  value: unknown,
+  configurationClass: MobileReleaseRuntimeProfile['configuration_class'],
+) {
   if (typeof value !== 'string' || value !== value.trim()) {
     throw new Error('api_base_url is invalid.');
   }
@@ -293,6 +303,21 @@ function requireApiBaseUrl(value: unknown) {
   } catch {
     throw new Error('api_base_url is invalid.');
   }
+  const hostname = url.hostname.toLowerCase();
+  const canonicalHostname = hostname.endsWith('.')
+    ? hostname.slice(0, -1)
+    : hostname;
+  const isReservedInvalidHost =
+    canonicalHostname === 'invalid' || canonicalHostname.endsWith('.invalid');
+  const isRepositoryFixtureHost =
+    hostname === 'repository-fixture.invalid';
+  const isLoopbackHost =
+    canonicalHostname === 'localhost' ||
+    canonicalHostname.endsWith('.localhost') ||
+    /^127(?:\.\d{1,3}){3}$/.test(canonicalHostname) ||
+    canonicalHostname === '0.0.0.0' ||
+    canonicalHostname === '[::1]' ||
+    canonicalHostname === '::1';
   if (
     url.protocol !== 'https:' ||
     url.username ||
@@ -300,9 +325,25 @@ function requireApiBaseUrl(value: unknown) {
     url.search ||
     url.hash ||
     url.pathname === '/' ||
-    /(^|\.)(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(url.hostname)
+    isLoopbackHost ||
+    (isReservedInvalidHost &&
+      !(configurationClass === 'repository_fixture' && isRepositoryFixtureHost))
   ) {
     throw new Error('api_base_url must be credential-free HTTPS with a path.');
   }
   return url.toString().replace(/\/$/, '');
+}
+
+function canonicalStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalStringify).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${canonicalStringify(record[key])}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
 }

@@ -852,6 +852,10 @@ test('tracked production deployment evidence loads all four strict raw bindings'
   bundleArtifact.sha256 = hash(bundlePayload);
   bundleArtifact.size_bytes = Buffer.byteLength(bundlePayload);
   artifact.subject.environment.profile_sha256 = profileArtifact.sha256;
+  loaded.deployReport.mobile_runtime_profile.delivery_profile_sha256 =
+    `sha256:${profileArtifact.sha256}`;
+  loaded.verifyReport.mobile_runtime_profile.delivery_profile_sha256 =
+    `sha256:${profileArtifact.sha256}`;
   artifact.subject.release.bundle_sha256 = bundleArtifact.sha256;
   loaded.verifyReport.release.bundle_sha256 = bundleArtifact.sha256;
   const rawValues = new Map([
@@ -893,6 +897,21 @@ test('tracked production deployment evidence loads all four strict raw bindings'
       artifact_size_bytes: Buffer.byteLength(reportPayload),
     },
   ];
+  const androidFixture = writeRegisteredReleaseSigningFixture(root, {
+    sequence: 904,
+  });
+  androidFixture.report.mobile_runtime_profile = structuredClone(
+    loaded.deployReport.mobile_runtime_profile,
+  );
+  androidFixture.writeSignedReleaseReport();
+  const accounts = structuredClone(accountsContract);
+  accounts.accounts
+    .find(account => account.id === 'android-distribution')
+    .capabilities.find(capability => capability.id === 'release-signing')
+    .evidence = [androidFixture.evidence];
+  for (const trackedFile of androidFixture.trackedFiles) {
+    trackedFiles.add(trackedFile);
+  }
   const options = {
     root,
     semanticContext,
@@ -901,10 +920,31 @@ test('tracked production deployment evidence loads all four strict raw bindings'
   };
   const valid = verifyRepositoryEvidenceFiles(
     launch,
-    accountsContract,
+    accounts,
     options,
   );
   assert.equal(valid.ok, true, valid.errors.join('\n'));
+
+  const originalAndroidRuntimeProfile = structuredClone(
+    androidFixture.report.mobile_runtime_profile,
+  );
+  androidFixture.report.mobile_runtime_profile.profile_sha256 =
+    `sha256:${hash('other-android-mobile-runtime-profile')}`;
+  androidFixture.report.mobile_runtime_profile.public_keyring_sha256 =
+    `sha256:${hash('other-android-content-keyring')}`;
+  androidFixture.writeSignedReleaseReport();
+  const crossCohortReplay = verifyRepositoryEvidenceFiles(
+    launch,
+    accounts,
+    options,
+  );
+  assert.equal(crossCohortReplay.ok, false);
+  assert.match(
+    crossCohortReplay.errors.join('\n'),
+    /must bind the same exact mobile_runtime_profile cohort/,
+  );
+  androidFixture.report.mobile_runtime_profile = originalAndroidRuntimeProfile;
+  androidFixture.writeSignedReleaseReport();
 
   const verifyPath = path.join(
     root,
@@ -913,7 +953,7 @@ test('tracked production deployment evidence loads all four strict raw bindings'
   fs.appendFileSync(verifyPath, '{"tampered":true}\n');
   const tampered = verifyRepositoryEvidenceFiles(
     launch,
-    accountsContract,
+    accounts,
     options,
   );
   assert.equal(tampered.ok, false);
@@ -1094,6 +1134,48 @@ test('production deployment evidence binds exact deploy, verify, profile, bundle
   const profileDriftResult = validate(artifact, profileDrift);
   assert.equal(profileDriftResult.ok, false);
   assert.match(profileDriftResult.errors.join('\n'), /recomputed binding/);
+
+  const runtimeEnvironmentDrift = structuredClone(
+    productionDeploymentEvidence,
+  );
+  runtimeEnvironmentDrift.deployReport.mobile_runtime_profile.profile_id =
+    'receiver-profile-other';
+  runtimeEnvironmentDrift.deployReport.mobile_runtime_profile.environment_id =
+    'receiver-prod-other';
+  runtimeEnvironmentDrift.deployReport.mobile_runtime_profile.delivery_profile_sha256 =
+    `sha256:${hash('other-delivery-profile')}`;
+  const runtimeEnvironmentDriftResult = validate(
+    artifact,
+    runtimeEnvironmentDrift,
+  );
+  assert.equal(runtimeEnvironmentDriftResult.ok, false);
+  assert.match(
+    runtimeEnvironmentDriftResult.errors.join('\n'),
+    /mobile_runtime_profile\.profile_id/,
+  );
+  assert.match(
+    runtimeEnvironmentDriftResult.errors.join('\n'),
+    /mobile_runtime_profile\.environment_id/,
+  );
+  assert.match(
+    runtimeEnvironmentDriftResult.errors.join('\n'),
+    /mobile_runtime_profile\.delivery_profile_sha256/,
+  );
+
+  const runtimeVerificationReplay = structuredClone(
+    productionDeploymentEvidence,
+  );
+  runtimeVerificationReplay.verifyReport.mobile_runtime_profile.profile_sha256 =
+    `sha256:${hash('other-mobile-runtime-profile')}`;
+  const runtimeVerificationReplayResult = validate(
+    artifact,
+    runtimeVerificationReplay,
+  );
+  assert.equal(runtimeVerificationReplayResult.ok, false);
+  assert.match(
+    runtimeVerificationReplayResult.errors.join('\n'),
+    /deploy and verify reports must bind the same mobile_runtime_profile/,
+  );
 
   const operatorDrift = structuredClone(productionDeploymentEvidence);
   operatorDrift.verifyReport.execution.operator = 'team:other-operator';
@@ -1580,13 +1662,15 @@ test('Android release-signing evidence requires the dedicated signed APK report'
   t.after(() => fs.rmSync(root, {force: true, recursive: true}));
   const fixture = writeRegisteredReleaseSigningFixture(root, {sequence: 903});
   const {report, writeSignedReleaseReport} = fixture;
+  const launchWithCandidate = structuredClone(launchContract);
+  launchWithCandidate.release_candidate = createReleaseCandidate();
   const accounts = structuredClone(accountsContract);
   const capability = accounts.accounts
     .find(account => account.id === 'android-distribution')
     .capabilities.find(candidate => candidate.id === 'release-signing');
   capability.evidence = [fixture.evidence];
 
-  const valid = verifyRepositoryEvidenceFiles(launchContract, accounts, {
+  const valid = verifyRepositoryEvidenceFiles(launchWithCandidate, accounts, {
     root,
     semanticContext,
     trackedFiles: fixture.trackedFiles,
@@ -1597,7 +1681,7 @@ test('Android release-signing evidence requires the dedicated signed APK report'
 
   report.verified_by = 'service:different-release-verifier';
   writeSignedReleaseReport();
-  const invalid = verifyRepositoryEvidenceFiles(launchContract, accounts, {
+  const invalid = verifyRepositoryEvidenceFiles(launchWithCandidate, accounts, {
     root,
     semanticContext,
     trackedFiles: fixture.trackedFiles,
@@ -1613,7 +1697,7 @@ test('Android release-signing evidence requires the dedicated signed APK report'
   );
   writeSignedReleaseReport();
   const mismatchedTarget = verifyRepositoryEvidenceFiles(
-    launchContract,
+    launchWithCandidate,
     accounts,
     {
       root,
@@ -1627,6 +1711,40 @@ test('Android release-signing evidence requires the dedicated signed APK report'
   assert.match(
     mismatchedTarget.errors.join('\n'),
     /signed-release receiver target does not match/,
+  );
+
+  fixture.artifact.observation.provider_subject_sha256 = hash(
+    `android-release-target:${report.target_id}`,
+  );
+  report.mobile_runtime_profile.profile_id = 'receiver-profile-other';
+  report.mobile_runtime_profile.environment_id = 'receiver-prod-other';
+  report.mobile_runtime_profile.delivery_profile_sha256 = `sha256:${hash(
+    'other-delivery-profile',
+  )}`;
+  writeSignedReleaseReport();
+  const mismatchedRuntimeEnvironment = verifyRepositoryEvidenceFiles(
+    launchWithCandidate,
+    accounts,
+    {
+      root,
+      semanticContext,
+      trackedFiles: fixture.trackedFiles,
+      trustedCommits: TRUSTED_COMMITS,
+      now: NOW,
+    },
+  );
+  assert.equal(mismatchedRuntimeEnvironment.ok, false);
+  assert.match(
+    mismatchedRuntimeEnvironment.errors.join('\n'),
+    /runtime profile_id does not match the launch candidate environment/,
+  );
+  assert.match(
+    mismatchedRuntimeEnvironment.errors.join('\n'),
+    /runtime environment_id does not match the launch candidate environment/,
+  );
+  assert.match(
+    mismatchedRuntimeEnvironment.errors.join('\n'),
+    /delivery profile does not match the launch candidate environment/,
   );
 });
 
@@ -2146,6 +2264,15 @@ function createProductionDeploymentEvidence(artifact) {
     profile,
     artifact.subject.commit_sha,
   );
+  const mobileRuntimeProfile = {
+    profile_sha256: `sha256:${hash('receiver-mobile-runtime-profile')}`,
+    delivery_profile_sha256: `sha256:${artifact.subject.environment.profile_sha256}`,
+    public_keyring_sha256: `sha256:${hash('receiver-content-keyring')}`,
+    profile_id: profile.profile_id,
+    environment_id: profile.environment_id,
+    signing_key_id: profile.signing_key_id,
+    key_ids: [profile.signing_key_id],
+  };
   artifact.subject.release.backend_deployment_id = backendDeploymentId;
   artifact.measurements.backend_deployment_id = backendDeploymentId;
   const bundle = {
@@ -2248,6 +2375,10 @@ function createProductionDeploymentEvidence(artifact) {
     operation: 'deploy',
     applied: true,
     backend_deployment_id: backendDeploymentId,
+    mobile_runtime_profile: {
+      ...mobileRuntimeProfile,
+      key_ids: [...mobileRuntimeProfile.key_ids],
+    },
     profile: {
       environment_id: profile.environment_id,
       profile_id: profile.profile_id,
@@ -2292,6 +2423,10 @@ function createProductionDeploymentEvidence(artifact) {
     operation: 'verify',
     applied: false,
     backend_deployment_id: backendDeploymentId,
+    mobile_runtime_profile: {
+      ...mobileRuntimeProfile,
+      key_ids: [...mobileRuntimeProfile.key_ids],
+    },
     profile: deployReport.profile,
     preflight,
     receiver_secrets: receiverSecrets,
@@ -2689,6 +2824,15 @@ function createAndroidSignedReleaseReport() {
       },
       verifier: 'android-sdk-apksigner',
       verifier_version: '35.0.0',
+    },
+    mobile_runtime_profile: {
+      profile_sha256: `sha256:${hash('receiver-mobile-runtime-profile')}`,
+      delivery_profile_sha256: `sha256:${hash('receiver-profile')}`,
+      public_keyring_sha256: `sha256:${hash('receiver-content-keyring')}`,
+      profile_id: 'receiver-profile-001',
+      environment_id: 'receiver-prod-001',
+      signing_key_id: 'receiver-content-key-001',
+      key_ids: ['receiver-content-key-001'],
     },
     built_at: '2026-07-13T22:00:00.000Z',
     archived_verified_at: '2026-07-13T23:00:00.000Z',

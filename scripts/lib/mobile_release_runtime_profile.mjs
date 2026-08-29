@@ -86,7 +86,10 @@ export function validateMobileReleaseRuntimeProfile(
     ID_PATTERN,
     'environment_id',
   );
-  const apiBaseUrl = requireApiBaseUrl(value.api_base_url);
+  const apiBaseUrl = requireApiBaseUrl(
+    value.api_base_url,
+    configurationClass,
+  );
   requireExact(value.runtime_mode, 'closed_beta', 'runtime_mode');
   requireExact(value.learning_track, 'cet4', 'learning_track');
   const minimumClientVersions = validateMinimumClientVersions(
@@ -290,7 +293,7 @@ function validateMinimumClientVersions(value) {
   };
 }
 
-function requireApiBaseUrl(value) {
+function requireApiBaseUrl(value, configurationClass) {
   const text = requireString(value, 'api_base_url');
   let url;
   try {
@@ -298,6 +301,21 @@ function requireApiBaseUrl(value) {
   } catch {
     throw new Error('api_base_url must be a valid HTTPS URL.');
   }
+  const hostname = url.hostname.toLowerCase();
+  const canonicalHostname = hostname.endsWith('.')
+    ? hostname.slice(0, -1)
+    : hostname;
+  const isReservedInvalidHost =
+    canonicalHostname === 'invalid' || canonicalHostname.endsWith('.invalid');
+  const isRepositoryFixtureHost =
+    hostname === 'repository-fixture.invalid';
+  const isLoopbackHost =
+    canonicalHostname === 'localhost' ||
+    canonicalHostname.endsWith('.localhost') ||
+    /^127(?:\.\d{1,3}){3}$/.test(canonicalHostname) ||
+    canonicalHostname === '0.0.0.0' ||
+    canonicalHostname === '[::1]' ||
+    canonicalHostname === '::1';
   if (
     url.protocol !== 'https:' ||
     url.username ||
@@ -305,8 +323,9 @@ function requireApiBaseUrl(value) {
     url.search ||
     url.hash ||
     url.pathname === '/' ||
-    (url.hostname !== 'repository-fixture.invalid' &&
-      /(^|\.)(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(url.hostname))
+    isLoopbackHost ||
+    (isReservedInvalidHost &&
+      !(configurationClass === 'repository_fixture' && isRepositoryFixtureHost))
   ) {
     throw new Error('api_base_url must be credential-free HTTPS with a non-root path.');
   }

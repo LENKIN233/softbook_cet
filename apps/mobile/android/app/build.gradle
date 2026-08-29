@@ -162,6 +162,7 @@ android {
 def stageReleaseRuntimeProfile = tasks.register('stageReleaseRuntimeProfile', Exec) {
     def outputFile = file("$generatedReleaseRuntimeAssets/softbook-release-runtime-profile.json")
     outputs.file(outputFile)
+    outputs.upToDateWhen { false }
     if (releaseRuntimeProfileFile != null) {
         inputs.file(releaseRuntimeProfileFile)
     }

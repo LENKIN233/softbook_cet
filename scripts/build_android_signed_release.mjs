@@ -7,16 +7,24 @@ import {
   existsSync,
   linkSync,
   lstatSync,
+  mkdtempSync,
   mkdirSync,
   readFileSync,
   readdirSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import {tmpdir} from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {inspectMobileReleaseRuntimeArtifact} from './inspect_mobile_release_runtime_artifact.mjs';
 import { resolveRemoteArchiveRequest } from './validate_agent_run_evidence.mjs';
+import {
+  canonicalJsonBytes,
+  sha256,
+  validateMobileReleaseRuntimeProfile,
+} from './lib/mobile_release_runtime_profile.mjs';
 import {parseStrictJson} from './lib/strict_json.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -24,7 +32,12 @@ const STATE_SCHEMA = 'android-signed-release-state.v1';
 export const REPORT_SCHEMA = 'android-signed-release.v1';
 const OPERATION_SCHEMA = 'android-signed-release-operation.v1';
 const SHA256_RE = /^[0-9a-f]{64}$/;
+const PREFIXED_SHA256_RE = /^sha256:[0-9a-f]{64}$/;
 const COMMIT_RE = /^[0-9a-f]{40}$/;
+const RUNTIME_PROFILE_ID_RE = /^[a-z0-9][a-z0-9._-]{2,127}$/;
+const MAX_SIGNED_APK_BYTES = 512 * 1024 * 1024;
+const FORBIDDEN_ENVIRONMENT_PATTERN =
+  /(^|[-_.:])(local|mock|simulation|simulator|personal|development|dev|fixture)([-_.:]|$)/i;
 const STRICT_THREE_PART_VERSION_RE =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const SIGNING_ENV_NAMES = Object.freeze([
@@ -41,6 +54,7 @@ export async function buildSignedAndroidRelease({
   repository = readRepositoryState(),
   repositoryRoot = ROOT,
   runner = createProcessRunner(),
+  runtimeProfilePath = env.SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE,
   statePath,
 } = {}) {
   const absoluteStatePath = requireStatePath(statePath, repositoryRoot);
@@ -56,6 +70,11 @@ export async function buildSignedAndroidRelease({
   const identity = readAndroidIdentity(
     resolve(repositoryRoot, 'apps/mobile/android/app/build.gradle'),
   );
+  const runtimeProfile = readReceiverMobileRuntimeProfile({
+    expectedCommit: repository.head,
+    path: runtimeProfilePath,
+    repositoryRoot,
+  });
 
   if (!apply) {
     return {
@@ -69,6 +88,7 @@ export async function buildSignedAndroidRelease({
       application_id: identity.application_id,
       version_code: identity.version_code,
       version_name: identity.version_name,
+      mobile_runtime_profile: runtimeProfile.binding,
       state_path: relativeToRepository(absoluteStatePath, repositoryRoot),
     };
   }
@@ -86,6 +106,7 @@ export async function buildSignedAndroidRelease({
       ':app:verifyReleaseSigningBoundary',
       ':app:assembleRelease',
       '-PsoftbookRequireSignedRelease=true',
+      `-PsoftbookReleaseRuntimeProfile=${runtimeProfile.path}`,
       '--no-daemon',
     ],
     { cwd: resolve(repositoryRoot, 'apps/mobile/android'), env },
@@ -96,6 +117,15 @@ export async function buildSignedAndroidRelease({
     'apps/mobile/android/app/build/outputs/apk/release/app-release.apk',
   );
   const artifact = inspectRegularArtifact(artifactPath);
+  const runtimeProfileInspection = inspectMobileReleaseRuntimeArtifact({
+    artifactPath,
+    expectedProfilePath: runtimeProfile.path,
+    format: 'apk',
+  });
+  assertRuntimeProfileInspection(
+    runtimeProfile.binding,
+    runtimeProfileInspection,
+  );
   const signerVersion = requireToolVersion(
     runner.run(apksigner, ['version'], { cwd: repositoryRoot, env }).stdout,
   );
@@ -122,6 +152,7 @@ export async function buildSignedAndroidRelease({
     certificate_sha256: verification.certificate_sha256,
     signature_schemes: verification.signature_schemes,
     apksigner_version: signerVersion,
+    mobile_runtime_profile: runtimeProfile.binding,
     built_at: builtAt.toISOString(),
   };
   writePrivateJson(absoluteStatePath, state);
@@ -137,19 +168,31 @@ export async function finalizeSignedAndroidRelease({
   reportPath,
   repository = readRepositoryState(),
   repositoryRoot = ROOT,
+  runtimeProfilePath = env.SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE,
   statePath,
   token = process.env.GITHUB_TOKEN,
 } = {}) {
   const absoluteStatePath = requireStatePath(statePath, repositoryRoot);
   const absoluteReportPath = requireReportPath(reportPath, repositoryRoot);
   const state = readPrivateState(absoluteStatePath, repositoryRoot);
+  const runtimeProfile = readReceiverMobileRuntimeProfile({
+    expectedCommit: state.repository_commit,
+    path: runtimeProfilePath,
+    repositoryRoot,
+  });
+  assertMobileRuntimeProfileBinding(
+    state.mobile_runtime_profile,
+    runtimeProfile.binding,
+    'Current receiver runtime profile does not match the signed build state.',
+  );
   const verifier = requireMachinePrincipal(env.SOFTBOOK_ANDROID_RELEASE_VERIFIER);
   const verificationRunId = requireMachineRunId(
     env.SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID,
   );
-  const remote = await inspectGitHubReleaseAsset({
+  const remote = await downloadAndInspectGitHubReleaseAsset({
     archiveUrl,
     fetchImpl,
+    runtimeProfilePath: runtimeProfile.path,
     token,
   });
 
@@ -168,6 +211,19 @@ export async function finalizeSignedAndroidRelease({
   ) {
     throw new Error('Local signed APK changed after verification.');
   }
+  const localRuntimeProfileInspection = inspectMobileReleaseRuntimeArtifact({
+    artifactPath: state.artifact_path,
+    expectedProfilePath: runtimeProfile.path,
+    format: 'apk',
+  });
+  assertRuntimeProfileInspection(
+    state.mobile_runtime_profile,
+    localRuntimeProfileInspection,
+  );
+  assertRuntimeProfileInspection(
+    state.mobile_runtime_profile,
+    remote.runtime_profile_inspection,
+  );
 
   const now = asDate(clock());
   if (!apply) {
@@ -180,6 +236,7 @@ export async function finalizeSignedAndroidRelease({
       verified_by: verifier,
       verification_run_id: verificationRunId,
       remote_digest_matches: true,
+      remote_runtime_profile_matches: true,
     };
   }
 
@@ -215,6 +272,7 @@ export async function finalizeSignedAndroidRelease({
       verifier: 'android-sdk-apksigner',
       verifier_version: state.apksigner_version,
     },
+    mobile_runtime_profile: state.mobile_runtime_profile,
     built_at: state.built_at,
     archived_verified_at: now.toISOString(),
     verified_by: verifier,
@@ -240,6 +298,7 @@ export async function verifySignedAndroidReleaseReport({
   fetchImpl = fetch,
   reportPath,
   repositoryRoot = ROOT,
+  runtimeProfilePath = process.env.SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE,
   token = process.env.GITHUB_TOKEN,
 } = {}) {
   const absoluteReportPath = requireReportPath(reportPath, repositoryRoot);
@@ -252,9 +311,20 @@ export async function verifySignedAndroidReleaseReport({
     throw new Error(
       `Android signed-release report is invalid: ${errors.join('; ')}`,
     );
-  const remote = await inspectGitHubReleaseAsset({
+  const runtimeProfile = readReceiverMobileRuntimeProfile({
+    expectedCommit: report.repository_commit,
+    path: runtimeProfilePath,
+    repositoryRoot,
+  });
+  assertMobileRuntimeProfileBinding(
+    report.mobile_runtime_profile,
+    runtimeProfile.binding,
+    'Current receiver runtime profile does not match the signed-release report.',
+  );
+  const remote = await downloadAndInspectGitHubReleaseAsset({
     archiveUrl: report.artifact.archive_url,
     fetchImpl,
+    runtimeProfilePath: runtimeProfile.path,
     token,
   });
   if (
@@ -263,6 +333,10 @@ export async function verifySignedAndroidReleaseReport({
   ) {
     throw new Error('Remote signed APK no longer matches the report.');
   }
+  assertRuntimeProfileInspection(
+    report.mobile_runtime_profile,
+    remote.runtime_profile_inspection,
+  );
   return {
     schema_version: OPERATION_SCHEMA,
     action: 'verify',
@@ -270,7 +344,9 @@ export async function verifySignedAndroidReleaseReport({
     target_id: report.target_id,
     repository_commit: report.repository_commit,
     artifact_sha256: report.artifact.sha256,
+    mobile_runtime_profile: report.mobile_runtime_profile,
     remote_digest_matches: true,
+    remote_runtime_profile_matches: true,
   };
 }
 
@@ -395,6 +471,7 @@ export function validateAndroidSignedReleaseReport(report) {
       'version_name',
       'artifact',
       'signing',
+      'mobile_runtime_profile',
       'built_at',
       'archived_verified_at',
       'verified_by',
@@ -424,6 +501,7 @@ export function validateAndroidSignedReleaseReport(report) {
   }
   validateArtifact(report?.artifact, errors);
   validateSigning(report?.signing, errors);
+  validateMobileRuntimeProfileBinding(report?.mobile_runtime_profile, errors);
   const builtAt = Date.parse(report?.built_at);
   const archivedAt = Date.parse(report?.archived_verified_at);
   const generatedAt = Date.parse(report?.generated_at);
@@ -442,6 +520,65 @@ export function validateAndroidSignedReleaseReport(report) {
   if (report?.private_state_removed !== true)
     errors.push('private_state_removed must be true');
   return errors;
+}
+
+function validateMobileRuntimeProfileBinding(binding, errors) {
+  requireExactKeys(
+    binding,
+    [
+      'profile_sha256',
+      'delivery_profile_sha256',
+      'public_keyring_sha256',
+      'profile_id',
+      'environment_id',
+      'signing_key_id',
+      'key_ids',
+    ],
+    'mobile_runtime_profile',
+    errors,
+  );
+  for (const field of [
+    'profile_sha256',
+    'delivery_profile_sha256',
+    'public_keyring_sha256',
+  ]) {
+    if (!isPrefixedEvidenceSha(binding?.[field])) {
+      errors.push(`mobile_runtime_profile ${field} is invalid`);
+    }
+  }
+  for (const field of ['profile_id', 'environment_id', 'signing_key_id']) {
+    if (!RUNTIME_PROFILE_ID_RE.test(String(binding?.[field] || ''))) {
+      errors.push(`mobile_runtime_profile ${field} is invalid`);
+    }
+  }
+  if (
+    typeof binding?.environment_id === 'string' &&
+    FORBIDDEN_ENVIRONMENT_PATTERN.test(binding.environment_id)
+  ) {
+    errors.push('mobile_runtime_profile environment_id is not receiver-grade');
+  }
+  if (
+    !Array.isArray(binding?.key_ids) ||
+    binding.key_ids.length < 1 ||
+    binding.key_ids.length > 8 ||
+    binding.key_ids.some(
+      keyId => !RUNTIME_PROFILE_ID_RE.test(String(keyId || '')),
+    ) ||
+    new Set(binding.key_ids).size !== binding.key_ids.length ||
+    JSON.stringify(binding.key_ids) !==
+      JSON.stringify([...binding.key_ids].sort())
+  ) {
+    errors.push('mobile_runtime_profile key_ids are invalid');
+  }
+  if (
+    Array.isArray(binding?.key_ids) &&
+    binding.key_ids.filter(keyId => keyId === binding.signing_key_id).length !==
+      1
+  ) {
+    errors.push(
+      'mobile_runtime_profile signing_key_id must identify exactly one key_id',
+    );
+  }
 }
 
 function validateArtifact(artifact, errors) {
@@ -497,7 +634,7 @@ function validateSigning(signing, errors) {
   }
 }
 
-async function inspectGitHubReleaseAsset({ archiveUrl, fetchImpl, token }) {
+async function resolveGitHubReleaseAsset({ archiveUrl, fetchImpl, token }) {
   if (!isGitHubReleaseAssetUrl(archiveUrl)) {
     throw new Error('Signed APK archive must be a GitHub Release asset URL.');
   }
@@ -510,10 +647,174 @@ async function inspectGitHubReleaseAsset({ archiveUrl, fetchImpl, token }) {
       'GitHub Release asset must expose an authenticated SHA-256 digest.',
     );
   }
+  if (request.assetMetadata.sizeBytes > MAX_SIGNED_APK_BYTES) {
+    throw new Error('Signed APK exceeds the maximum supported byte size.');
+  }
   return {
+    request,
     sha256: request.assetMetadata.sha256,
     size_bytes: request.assetMetadata.sizeBytes,
   };
+}
+
+async function downloadAndInspectGitHubReleaseAsset({
+  archiveUrl,
+  fetchImpl,
+  runtimeProfilePath,
+  token,
+}) {
+  const resolvedAsset = await resolveGitHubReleaseAsset({
+    archiveUrl,
+    fetchImpl,
+    token,
+  });
+  const response = await fetchImpl(resolvedAsset.request.url, {
+    headers: resolvedAsset.request.headers,
+    redirect: 'follow',
+    signal: AbortSignal.timeout(150_000),
+  });
+  if (!response?.ok) {
+    throw new Error(
+      `Signed APK download failed with HTTP ${String(response?.status ?? 'unknown')}.`,
+    );
+  }
+  if (typeof response.arrayBuffer !== 'function') {
+    throw new Error('Signed APK download response is not readable.');
+  }
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const actual = {
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    size_bytes: bytes.length,
+  };
+  if (
+    actual.sha256 !== resolvedAsset.sha256 ||
+    actual.size_bytes !== resolvedAsset.size_bytes
+  ) {
+    throw new Error(
+      'Downloaded GitHub Release APK does not match its authenticated digest and size.',
+    );
+  }
+
+  const temporaryDirectory = mkdtempSync(
+    join(tmpdir(), 'softbook-android-release-verify-'),
+  );
+  const temporaryArtifact = join(temporaryDirectory, 'app-release.apk');
+  try {
+    writeFileSync(temporaryArtifact, bytes, {flag: 'wx', mode: 0o600});
+    const runtimeProfileInspection = inspectMobileReleaseRuntimeArtifact({
+      artifactPath: temporaryArtifact,
+      expectedProfilePath: runtimeProfilePath,
+      format: 'apk',
+    });
+    return {
+      ...actual,
+      runtime_profile_inspection: runtimeProfileInspection,
+    };
+  } finally {
+    rmSync(temporaryDirectory, {force: true, recursive: true});
+  }
+}
+
+function readReceiverMobileRuntimeProfile({
+  expectedCommit,
+  path,
+  repositoryRoot,
+}) {
+  if (typeof path !== 'string' || path.trim() === '') {
+    throw new Error(
+      'Signed Android release requires SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE or --runtime-profile.',
+    );
+  }
+  const absolutePath = resolve(repositoryRoot, path);
+  const stats = lstatSync(absolutePath, {throwIfNoEntry: false});
+  if (
+    !stats?.isFile() ||
+    stats.isSymbolicLink() ||
+    stats.size < 1 ||
+    stats.size > 64 * 1024
+  ) {
+    throw new Error(
+      'Signed Android release runtime profile must be a bounded regular file.',
+    );
+  }
+  const bytes = readFileSync(absolutePath);
+  const profile = validateMobileReleaseRuntimeProfile(
+    parseStrictJson(bytes, 'signed Android release runtime profile'),
+    {expectedCommit},
+  );
+  if (profile.configuration_class !== 'receiver_release') {
+    throw new Error(
+      'Signed Android release requires a receiver_release runtime profile.',
+    );
+  }
+  if (!bytes.equals(canonicalJsonBytes(profile))) {
+    throw new Error(
+      'Signed Android release runtime profile bytes must be canonical.',
+    );
+  }
+  return {
+    binding: {
+      profile_sha256: sha256(bytes),
+      delivery_profile_sha256: profile.delivery_profile_sha256,
+      public_keyring_sha256: profile.public_keyring_sha256,
+      profile_id: profile.profile_id,
+      environment_id: profile.environment_id,
+      signing_key_id: profile.signing_key_id,
+      key_ids: profile.content_manifest_public_keys.map(item => item.key_id),
+    },
+    path: absolutePath,
+    profile,
+  };
+}
+
+function assertMobileRuntimeProfileBinding(actual, expected, message) {
+  if (!mobileRuntimeProfileBindingsEqual(actual, expected)) {
+    throw new Error(message);
+  }
+}
+
+function mobileRuntimeProfileBindingsEqual(left, right) {
+  if (!left || !right || typeof left !== 'object' || typeof right !== 'object') {
+    return false;
+  }
+  for (const field of [
+    'profile_sha256',
+    'delivery_profile_sha256',
+    'public_keyring_sha256',
+    'profile_id',
+    'environment_id',
+    'signing_key_id',
+  ]) {
+    if (left[field] !== right[field]) return false;
+  }
+  return (
+    Array.isArray(left.key_ids) &&
+    Array.isArray(right.key_ids) &&
+    left.key_ids.length === right.key_ids.length &&
+    left.key_ids.every((keyId, index) => keyId === right.key_ids[index])
+  );
+}
+
+function assertRuntimeProfileInspection(binding, inspection) {
+  const inspectedBinding = {
+    profile_sha256: inspection?.profile_sha256,
+    profile_id: inspection?.profile_id,
+    environment_id: inspection?.environment_id,
+    signing_key_id: inspection?.signing_key_id,
+    key_ids: inspection?.key_ids,
+  };
+  const expectedBinding = {
+    profile_sha256: binding?.profile_sha256,
+    profile_id: binding?.profile_id,
+    environment_id: binding?.environment_id,
+    signing_key_id: binding?.signing_key_id,
+    key_ids: binding?.key_ids,
+  };
+  if (JSON.stringify(inspectedBinding) !== JSON.stringify(expectedBinding)) {
+    throw new Error(
+      'Embedded APK runtime profile does not match the signed-release binding.',
+    );
+  }
 }
 
 function readPrivateState(path, repositoryRoot) {
@@ -545,6 +846,7 @@ function readPrivateState(path, repositoryRoot) {
       'certificate_sha256',
       'signature_schemes',
       'apksigner_version',
+      'mobile_runtime_profile',
       'built_at',
     ],
     'state',
@@ -596,6 +898,7 @@ function readPrivateState(path, repositoryRoot) {
     },
     errors,
   );
+  validateMobileRuntimeProfileBinding(state?.mobile_runtime_profile, errors);
   if (errors.length > 0)
     throw new Error(
       `Android signed-release state is invalid: ${errors.join('; ')}`,
@@ -802,6 +1105,7 @@ function publicStateSummary(state, statePath, repositoryRoot) {
     artifact_sha256: state.artifact_sha256,
     artifact_size_bytes: state.artifact_size_bytes,
     certificate_sha256: state.certificate_sha256,
+    mobile_runtime_profile: state.mobile_runtime_profile,
     state_path: relativeToRepository(statePath, repositoryRoot),
   };
 }
@@ -906,6 +1210,13 @@ function isEvidenceSha(value) {
   );
 }
 
+function isPrefixedEvidenceSha(value) {
+  return (
+    PREFIXED_SHA256_RE.test(String(value || '')) &&
+    !/^sha256:([0-9a-f])\1{63}$/.test(value)
+  );
+}
+
 function asDate(value) {
   const date = value instanceof Date ? value : new Date(value);
   if (!Number.isFinite(date.getTime()))
@@ -937,6 +1248,7 @@ export function parseArguments(argv) {
     command,
     format: 'text',
     reportPath: null,
+    runtimeProfilePath: null,
     statePath: null,
   };
   for (let index = 0; index < rest.length; index += 1) {
@@ -946,7 +1258,13 @@ export function parseArguments(argv) {
       continue;
     }
     if (
-      ['--archive-url', '--format', '--report', '--state'].includes(argument)
+      [
+        '--archive-url',
+        '--format',
+        '--report',
+        '--runtime-profile',
+        '--state',
+      ].includes(argument)
     ) {
       const value = rest[index + 1];
       if (!value || value.startsWith('--'))
@@ -955,6 +1273,7 @@ export function parseArguments(argv) {
       if (argument === '--archive-url') options.archiveUrl = value;
       if (argument === '--format') options.format = value;
       if (argument === '--report') options.reportPath = value;
+      if (argument === '--runtime-profile') options.runtimeProfilePath = value;
       if (argument === '--state') options.statePath = value;
       continue;
     }
@@ -968,6 +1287,8 @@ export function parseArguments(argv) {
     throw new Error('finalize requires --archive-url.');
   if (command !== 'finalize' && options.archiveUrl)
     throw new Error('--archive-url is valid only for finalize.');
+  if (command === 'discard' && options.runtimeProfilePath)
+    throw new Error('--runtime-profile is not valid for discard.');
   if (command === 'verify' && options.apply)
     throw new Error('verify is read-only and rejects --apply.');
   if (!['json', 'text'].includes(options.format))
@@ -992,6 +1313,7 @@ async function main() {
     if (options.command === 'build') {
       result = await buildSignedAndroidRelease({
         apply: options.apply,
+        runtimeProfilePath: options.runtimeProfilePath ?? undefined,
         statePath: options.statePath,
       });
     } else if (options.command === 'finalize') {
@@ -999,11 +1321,13 @@ async function main() {
         apply: options.apply,
         archiveUrl: options.archiveUrl,
         reportPath: options.reportPath,
+        runtimeProfilePath: options.runtimeProfilePath ?? undefined,
         statePath: options.statePath,
       });
     } else if (options.command === 'verify') {
       result = await verifySignedAndroidReleaseReport({
         reportPath: options.reportPath,
+        runtimeProfilePath: options.runtimeProfilePath ?? undefined,
       });
     } else {
       result = discardSignedAndroidRelease({

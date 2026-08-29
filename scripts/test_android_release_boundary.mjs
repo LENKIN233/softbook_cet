@@ -29,6 +29,7 @@ test('Android Release never falls back to the repository debug keystore', () => 
   assert.match(gradle, /softbookReleaseRuntimeProfile/);
   assert.match(gradle, /SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE/);
   assert.match(gradle, /mobile-release-runtime-profile\.repository-fixture\.json/);
+  assert.match(gradle, /outputs\.upToDateWhen \{ false \}/);
   assert.match(gradle, /cannot require signed and unsigned modes together/);
   for (const name of [
     'SOFTBOOK_ANDROID_RELEASE_STORE_FILE',

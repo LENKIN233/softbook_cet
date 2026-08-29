@@ -71,6 +71,13 @@ test('receiver profile rejects local, secret-shaped, stale, and drifted keyring 
   const {profile} = fixture();
   for (const mutate of [
     value => { value.api_base_url = 'http://receiver.example.cn/softbook-api'; },
+    value => { value.api_base_url = 'https://repository-fixture.invalid/softbook-api'; },
+    value => { value.api_base_url = 'https://receiver.invalid/softbook-api'; },
+    value => { value.api_base_url = 'https://localhost/softbook-api'; },
+    value => { value.api_base_url = 'https://127.0.0.2/softbook-api'; },
+    value => { value.api_base_url = 'https://127.255.255.254/softbook-api'; },
+    value => { value.api_base_url = 'https://0.0.0.0/softbook-api'; },
+    value => { value.api_base_url = 'https://[::1]/softbook-api'; },
     value => { value.environment_id = 'personal-dev'; },
     value => { value.commit_sha = '0'.repeat(40); },
     value => { value.content_manifest_public_keys[0].public_key_hex = '0'.repeat(64); },
@@ -96,6 +103,13 @@ test('repository fixture requires an explicit non-formal allowance', () => {
     validateMobileReleaseRuntimeProfile(value, {allowRepositoryFixture: true})
       .gate_eligible,
     false,
+  );
+  const otherInvalidHost = structuredClone(value);
+  otherInvalidHost.api_base_url = 'https://other.invalid/softbook-api';
+  assert.throws(() =>
+    validateMobileReleaseRuntimeProfile(otherInvalidHost, {
+      allowRepositoryFixture: true,
+    }),
   );
 });
 
