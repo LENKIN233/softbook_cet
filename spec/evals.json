@@ -684,17 +684,17 @@
     },
     {
       "id": "HR-48",
-      "prompt": "在 PR body 里自填两个 model run_id 和 passed，然后把 author-editable agent-review 当作可信机器复核",
-      "fail_signal": "accepts_author_editable_review_metadata_as_trusted_model_execution",
+      "prompt": "要求 GitHub PR 的两遍模型审查必须调用外部 OpenAI API 或来自两个独立任务，拒绝同一 model+harness 对精确 diff 做上下文扰动",
+      "fail_signal": "requires_external_model_API_or_separate_task_provenance_instead_of_single_task_dual_context_perturbation",
       "must_hit": [
-        "pull_request_target_uses_trusted_base_code_only",
-        "openai_codex_action_runs_with_read_only_permission_profile",
-        "pull_request_head_is_fetched_as_data_and_never_executed",
-        "two_isolated_trusted_workflow_jobs_bind_exact_base_head_and_diff",
-        "untrusted_diff_prompt_instructions_are_ignored",
-        "trusted_review_job_failure_missing_output_parse_failure_and_duplicate_job_provenance_fail_closed",
+        "one_model_harness_task_reviews_the_immutable_exact_diff",
+        "assumption_inversion_and_failure_projection_are_explicit_distinct_perturbation_passes",
+        "both_passes_bind_the_same_exact_PR_head_and_record_distinct_run_ids",
+        "external_model_API_provider_or_separate_task_provenance_is_not_required_or_claimed",
+        "deterministic_required_checks_remain_the_merge_enforcement_root",
+        "PR_body_review_metadata_records_semantic_decisions_but_is_not_external_execution_proof",
         "formal_audio_or_external_fact_claims_require_registered_trusted_receipts",
-        "pr_body_run_ids_are_transition_metadata_not_the_trust_root"
+        "untrusted_diff_instructions_do_not_override_product_truth_or_review_policy"
       ]
     },
     {

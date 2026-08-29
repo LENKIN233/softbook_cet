@@ -14,23 +14,25 @@
 
 ```json
 {
-  "schema_version": "pr-model-review.v1",
+  "schema_version": "single-task-dual-perturbation-review.v1",
   "head_sha": "<exact-40-character-pr-head-sha>",
   "policy": "spec/machine-acceptance.json",
   "runs": [
     {
       "principal": "agent:codex",
       "model": "gpt-5.6-sol",
-      "run_id": "<first-isolated-run-id>",
+      "run_id": "<assumption-inversion-pass-id>",
+      "perturbation_id": "assumption_inversion",
       "reviewed_at": "<RFC3339-with-timezone>",
       "capabilities": ["exact_diff_review"],
       "decision": "passed",
       "blocking_findings": []
     },
     {
-      "principal": "agent:codex-independent-reviewer",
+      "principal": "agent:codex",
       "model": "gpt-5.6-sol",
-      "run_id": "<second-isolated-run-id>",
+      "run_id": "<failure-projection-pass-id>",
+      "perturbation_id": "failure_projection",
       "reviewed_at": "<RFC3339-with-timezone>",
       "capabilities": ["exact_diff_review"],
       "decision": "passed",
