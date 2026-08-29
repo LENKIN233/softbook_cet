@@ -79,6 +79,10 @@ Rules:
   not accept `phone_number` in a body or query.
 - A missing, expired, or revoked session returns an auth error before any
   account state is read.
+- PC Web sends `x-softbook-client: web`. Its force-fresh path uses the browser
+  Fetch `cache: no-store` request option and does not add `Cache-Control`, so
+  cross-origin preflight remains within the exact server allowlist
+  `Authorization, Content-Type, X-Api-Key, X-Softbook-Client`.
 
 ## Response
 

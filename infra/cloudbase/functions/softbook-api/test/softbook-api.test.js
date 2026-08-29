@@ -63,6 +63,37 @@ function createTestApi(options = {}) {
   });
 }
 
+test('browser preflight allowlist matches Web runtime headers without Cache-Control', async () => {
+  const response = await request(createTestApi(), {
+    headers: {
+      origin: 'https://cet.softbook.example',
+      'access-control-request-headers':
+        'authorization,x-softbook-client',
+      'access-control-request-method': 'GET',
+    },
+    method: 'OPTIONS',
+    path: '/v2/bootstrap',
+  });
+
+  assert.equal(response.statusCode, 204);
+  assert.equal(response.body, null);
+  assert.equal(response.headers['Access-Control-Allow-Origin'], '*');
+  assert.equal(
+    response.headers['Access-Control-Allow-Methods'],
+    'GET,POST,OPTIONS',
+  );
+  assert.equal(
+    response.headers['Access-Control-Allow-Headers'],
+    'Authorization,Content-Type,X-Api-Key,X-Softbook-Client',
+  );
+  assert.equal(
+    response.headers['Access-Control-Allow-Headers']
+      .toLowerCase()
+      .includes('cache-control'),
+    false,
+  );
+});
+
 test('installed CloudBase SDK preserves the required database surface', () => {
   const cloudbase = require('@cloudbase/node-sdk');
   const packageVersion = require('@cloudbase/node-sdk/package.json').version;

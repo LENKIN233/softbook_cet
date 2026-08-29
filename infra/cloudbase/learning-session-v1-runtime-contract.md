@@ -29,8 +29,8 @@ Referenced active specs:
   `softbook-fsrs.v1`, with library defaults and fuzz disabled.
 - Scheduler state is an integrity-checked projection of accepted immutable
   `learning-events.v2` events. It is not accepted from a client.
-- This backend and the mobile binding are repository-local and not deployed.
-  Mobile accepts only a session/card-source pair with matching track, source,
+- This backend plus native and PC Web bindings are repository-local and not deployed.
+  Each client accepts only a session/card-source pair with matching track, source,
   and content version, renders only the returned card, and copies the opaque
   selection ID into the immutable completion event.
 
@@ -248,9 +248,9 @@ controlled-pilot boundary it is the exact `pilot-round-completion.v1` object
 defined by `infra/cloudbase/controlled-pilot-v1-runtime-contract.md`, while
 both `selection` and `next_due_at` are `null`.
 
-## Mobile binding
+## Client binding
 
-Remote mobile learning fetches `learning-session.v1` and the canonical card
+Remote native and PC Web learning fetch `learning-session.v1` and the canonical card
 source under the same authenticated session. It requires exact track,
 `source_id`, and `content_version` agreement, resolves only the returned
 `card_id`, and never reorders cards or reapplies client membership, sleep, or
@@ -258,7 +258,7 @@ review policy. `selection: null` is valid and never triggers bundled-card
 fallback.
 
 If `membership_stage` differs from the bootstrap snapshot because the session
-activated or observed a newer entitlement, mobile refreshes bootstrap and
+activated or observed a newer entitlement, the client refreshes bootstrap and
 requires the canonical stage to match before presenting the session. It never
 constructs entitlement counters or dates from the session response.
 
@@ -266,8 +266,8 @@ Completion persists `selection_id`, selected card, server phase, exact content
 version, event ID, and installation cursor before leaving the result state. A
 pending unseen event blocks a second completion. Only after strict
 acknowledgement, canonical bootstrap reconciliation, and a fresh session read
-may mobile render another server-selected card. A previously validated cached
-selection may be completed once offline; mobile does not choose a second card
+may the client render another server-selected card. A previously validated cached
+selection may be completed once offline; the client does not choose a second card
 offline.
 
 ## Failure behavior

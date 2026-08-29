@@ -133,6 +133,7 @@ export type AccountBootstrapRemoteConfig = {
 export type AccountBootstrapFetch = (
   input: string,
   init?: {
+    cache?: 'no-store';
     headers?: Record<string, string>;
     method?: string;
     signal?: AbortSignal;
@@ -185,6 +186,9 @@ export function createAccountBootstrapRepository(
       }
 
       const fetchImpl = config.fetchImpl ?? fetch;
+      const webForceFresh =
+        options.forceFresh === true &&
+        resolveSoftbookClientKind(config.remoteConfig.clientKind) === 'web';
       const response = await fetchImpl(
         buildAccountBootstrapUrl(config.remoteConfig.endpoint, track, dayKey),
         {
@@ -194,9 +198,12 @@ export function createAccountBootstrapRepository(
               config.remoteConfig.headers,
             ),
             Accept: 'application/json',
-            ...(options.forceFresh ? { 'Cache-Control': 'no-cache' } : {}),
+            ...(options.forceFresh && !webForceFresh
+              ? {'Cache-Control': 'no-cache'}
+              : {}),
           },
           method: 'GET',
+          ...(webForceFresh ? {cache: 'no-store' as const} : {}),
           ...(options.signal ? { signal: options.signal } : {}),
         },
       );
