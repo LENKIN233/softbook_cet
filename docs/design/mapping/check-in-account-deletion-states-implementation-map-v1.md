@@ -55,6 +55,8 @@ Future mobile implementation must bind the request to the active signed session,
 - Keep the daily ledger as the center focal object. Put the current check-in action/state at the bottom of that object; use the context rail only for a short explanation and the route back to Learning.
 - Keyboard order is ledger summary -> check-in/retry action -> Learning continuation. Submitting and completed controls are disabled but still expose their state text.
 - At 1024px and 200% zoom, the action remains inside the ledger and no horizontal scroll is required to reach it.
+- Implemented in `apps/web/src/App.tsx#StatisticsSurface` with `ready`, `submitting`, `queued`, `confirmed`, and recoverable error projection from `WebRemoteSnapshot.checkInSync`; unavailable remains the explicit non-remote state.
+- `apps/web/src/remoteRuntime.ts#checkInToday` writes the account/day command to the durable mutation queue before replay and canonical bootstrap confirmation.
 
 ## PC Web Mine mapping
 
@@ -62,6 +64,8 @@ Future mobile implementation must bind the request to the active signed session,
 - Confirmation, submitting, and recoverable unknown stay attached to the account object in the center workbench. They are not browser-native alerts and do not move the action into an unrelated settings route.
 - Accepted deletion removes the authenticated route rail and renders the existing phone-verification identity-gate silhouette with truthful cleanup-in-progress copy.
 - Keyboard focus enters the confirmation heading, consequence copy, safe secondary action, then destructive action. It never relies on hover or color alone.
+- Implemented in `apps/web/src/App.tsx#MineSurface` and `AccountDeletionStatusSurface`; accepted removes the authenticated route rail, while unknown and cleanup-required remain explicit retry surfaces.
+- `apps/web/src/remoteRuntime.ts` plus `apps/web/src/webAccountDeletionState.ts` bind requesting/accepted marker phases, same-session quarantine, exact 202 acceptance, durable queue cleanup, and marker removal.
 
 ## Accessibility and containment
 
@@ -73,14 +77,15 @@ Future mobile implementation must bind the request to the active signed session,
 
 ## Intentional non-mapping
 
-- This design-only PR does not add repositories, routes, account deletion logic, check-in logic, telemetry, UI code, or tests under `apps/`.
+- The original design-only PR added no runtime code; the later PC Web implementation uses this mapping without changing its authorized silhouettes or truth distinctions.
 - It does not authorize immediate-erasure copy, cancellation after acceptance, a separate deletion status dashboard, or a user-visible operation identifier.
 - It does not prove receiver deployment, worker execution, deletion completion, real-device behavior, or Web hosting.
 
 ## Required future implementation evidence
 
 - Mobile simulator screenshots for all six check-in and four deletion states at 393 x 852, plus 320px containment.
-- Browser screenshots for the same state families at 1440 x 900 and 1024px/200% zoom.
+- Browser screenshots for the same state families at 1440 x 900 and 1024px/200% zoom remain pending real-browser evidence.
+- Repository, controller, persistence, and rendered-state regressions for PC Web check-in/deletion are implemented under `apps/web/src/*.test.ts*`.
 - Keyboard, screen-reader status, reduced-motion, duplicate-submit, ambiguous-retry, stale-session, and post-acceptance shell-removal tests.
 - Exact gap table against this mapping and the rendered artifact.
 - No raw internal language in visible or accessibility copy.
