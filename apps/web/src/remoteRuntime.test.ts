@@ -757,6 +757,162 @@ describe('authenticated Web remote orchestration', () => {
       status: 'confirmed',
     });
   });
+
+  it('preserves unknown deletion state and clears stores only after exact acceptance', async () => {
+    const operations: string[] = [];
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    let persistedDeletionState: {
+      phase: 'accepted' | 'requesting';
+      phoneNumber: string;
+    } | null = null;
+    const requestDeletion = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('lost response'))
+      .mockResolvedValueOnce({
+        id: 'delete_123456789012',
+        requestedAt: '2026-08-29T12:00:00.000Z',
+        status: 'queued',
+      });
+    const setAccountDeletionQuarantine = vi.fn(
+      (_sessionScopeKey: string, active: boolean) => {
+        operations.push(`deletion-quarantine-${String(active)}`);
+      },
+    );
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionRepository: {requestDeletion},
+      accountDeletionStateStore: {
+        async clear() {
+          operations.push('deletion-marker-clear');
+          persistedDeletionState = null;
+        },
+        async load() {
+          return persistedDeletionState;
+        },
+        async mark(phoneNumber, phase) {
+          operations.push(`deletion-marker-${phase}`);
+          persistedDeletionState = {phase, phoneNumber};
+        },
+      },
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: {
+        ...createEmptyEventSyncRepository(),
+        async clearAccount(phoneNumber) {
+          operations.push(`events-clear:${phoneNumber}`);
+        },
+      },
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository(operations),
+      playAudio: async () => 'ready',
+      setAccountDeletionQuarantine,
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    await expect(controller.requestAccountDeletion()).resolves.toEqual({
+      status: 'unknown',
+    });
+    expect(controller.isAuthenticated()).toBe(true);
+    expect(persistedDeletionState).toEqual({
+      phase: 'requesting',
+      phoneNumber: PHONE,
+    });
+    expect(setAccountDeletionQuarantine).toHaveBeenCalledWith(
+      'remote:13800138000:session-simple',
+      true,
+    );
+    expect(operations.indexOf('deletion-quarantine-true')).toBeLessThan(
+      operations.indexOf('deletion-marker-requesting'),
+    );
+    expect(operations).not.toContain(`events-clear:${PHONE}`);
+
+    await expect(controller.requestAccountDeletion()).resolves.toEqual({
+      status: 'accepted',
+    });
+    expect(controller.isAuthenticated()).toBe(false);
+    expect(persistedDeletionState).toBeNull();
+    expect(operations).toContain(`events-clear:${PHONE}`);
+    expect(operations).toContain('mutation-clear');
+    expect(operations.at(-1)).toBe('deletion-marker-clear');
+  });
+
+  it('persists explicit check-in before reporting server confirmation', async () => {
+    let checkedInToday = false;
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const checkIn = vi.fn(async (_context, dayKey: string) => {
+      checkedInToday = true;
+      return {
+        acknowledgedAt: '2026-08-29T12:01:00.000Z',
+        checkedInToday: true as const,
+        dayKey,
+        mode: 'remote' as const,
+      };
+    });
+    const mutationQueueRepository = createMutationQueueRepository({
+      membershipRepository: createMembershipRepository({mode: 'local'}),
+      progressSyncRepository: {checkIn},
+      queueManager: new MutationQueueManager({
+        storage: createInMemoryMutationQueueStorage(),
+      }),
+      spaceStateRepository: createSpaceStateRepository({mode: 'local'}),
+    });
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          const bootstrap = createBootstrapFixture(
+            createInitialMembershipState(),
+          );
+          bootstrap.progress.snapshot.learningCompletedCount = 1;
+          bootstrap.progress.snapshot.totalCompletedCount = 1;
+          bootstrap.progress.snapshot.checkedInToday = checkedInToday;
+          return bootstrap;
+        },
+      },
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository,
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    const initial = await controller.verifySmsCode(PHONE, '123456');
+    expect(initial.checkInSync.status).toBe('ready');
+    const confirmed = await controller.checkInToday();
+
+    expect(checkIn).toHaveBeenCalledTimes(1);
+    expect(confirmed.checkInSync).toEqual({
+      checkedInToday: true,
+      pending: false,
+      status: 'confirmed',
+    });
+  });
 });
 
 function createBootstrapFixture(

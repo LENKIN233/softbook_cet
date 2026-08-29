@@ -1,10 +1,15 @@
 import {createPinnedContentManifestSignatureVerifier} from '../../mobile/src/audio/contentManifestSignature';
 import {
+  createAccountDeletionRepository,
+  type AccountDeletionRepository,
+} from '../../mobile/src/account/accountDeletionRepository';
+import {
   createAuthRepository,
   createSoftbookRemoteAuthConfig,
   type AuthRepository,
 } from '../../mobile/src/auth/authRepository';
 import type {AuthChallenge} from '../../mobile/src/auth/authSession';
+import {getAuthSessionScopeKey} from '../../mobile/src/auth/authSession';
 import {
   createAuthSessionCoordinator,
   type AuthSessionCoordinator,
@@ -35,6 +40,7 @@ import {resolveMembershipAccess} from '../../mobile/src/membership/localMembersh
 import {getChinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {isRemoteAuthorizationError} from '../../mobile/src/runtime/remoteHttpError';
 import {isRemoteRequestCancellationError} from '../../mobile/src/runtime/remoteRequest';
+import {createSoftbookClientHeaders} from '../../mobile/src/runtime/remoteClient';
 import {
   applySpaceActionToMap,
   createSpaceAction,
@@ -62,6 +68,10 @@ import {
   createWebLearningEventStorage,
   createWebMutationQueueStorage,
 } from './webStorage';
+import {
+  createWebAccountDeletionStateStore,
+  type WebAccountDeletionStateStore,
+} from './webAccountDeletionState';
 
 type RemoteWebRuntime = Extract<WebRuntime, {mode: 'remote'}>;
 
@@ -70,6 +80,11 @@ export type WebRemoteSnapshot = {
   favorites: string[];
   learningResults: LearningCardResult[];
   learningSession: LearningSession;
+  checkInSync: {
+    checkedInToday: boolean;
+    pending: boolean;
+    status: 'confirmed' | 'queued' | 'ready' | 'unavailable';
+  };
   learningSync: {
     pendingEventCount: number;
     status: 'confirmed' | 'queued';
@@ -87,9 +102,15 @@ export type WebRemoteSnapshot = {
   };
 };
 
+export type WebAccountDeletionOutcome = {
+  status: 'accepted' | 'cleanup_required' | 'none' | 'unknown';
+};
+
 export type WebLearningCompletionSync = WebRemoteSnapshot['learningSync'];
 
 type RemoteRuntimeDependencies = {
+  accountDeletionRepository?: AccountDeletionRepository;
+  accountDeletionStateStore?: WebAccountDeletionStateStore;
   accountBootstrapRepository: AccountBootstrapRepository;
   authRepository: AuthRepository;
   authSessionCoordinator: AuthSessionCoordinator;
@@ -105,6 +126,10 @@ type RemoteRuntimeDependencies = {
   ) => Promise<'paused' | 'playing' | 'ready'>;
   stopAudio?: () => void;
   runtimeSessionId?: string;
+  setAccountDeletionQuarantine?: (
+    sessionScopeKey: string,
+    active: boolean,
+  ) => void;
   track: LearningTrack;
 };
 
@@ -115,6 +140,7 @@ export type WebRemoteRuntimeController = {
     value: boolean,
   ) => Promise<WebRemoteSnapshot>;
   cleanupInvalidatedSession: () => Promise<void>;
+  checkInToday: () => Promise<WebRemoteSnapshot>;
   completeCurrentCard: (
     result: LearningCardResult,
   ) => Promise<WebLearningCompletionSync>;
@@ -126,6 +152,8 @@ export type WebRemoteRuntimeController = {
     card: LearningCard,
   ) => Promise<'paused' | 'playing' | 'ready'>;
   requestSmsCode: (phoneNumber: string) => Promise<AuthChallenge>;
+  requestAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
+  resumeAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
   verifySmsCode: (
     phoneNumber: string,
     smsCode: string,
@@ -147,6 +175,11 @@ export function createWebRemoteRuntime(
   } = {},
 ): WebRemoteRuntimeController {
   const fetchImpl = options.fetchImpl ?? fetch;
+  const browserStorage = options.storage ?? window.localStorage;
+  const deletionQuarantinedSessionScopes = new Set<string>();
+  const isDeletionQuarantined = (sessionScopeKey: string | null) =>
+    sessionScopeKey !== null &&
+    deletionQuarantinedSessionScopes.has(sessionScopeKey);
   const authRepository = createAuthRepository({
     fetchImpl,
     mode: 'remote',
@@ -158,12 +191,23 @@ export function createWebRemoteRuntime(
   const authSessionCoordinator = createAuthSessionCoordinator({
     authRepository,
     authSessionStore: createMemoryOnlyAuthSessionStore(),
+    shouldPreserveAuthorizationRejection: isDeletionQuarantined,
   });
   const authenticatedFetch = createAuthenticatedFetch({
     authSessionCoordinator,
     fetchImpl,
+    shouldPreserveAuthorizationRejection: isDeletionQuarantined,
+    shouldQuarantineSession: isDeletionQuarantined,
   });
   const sharedRuntimeConfig = createSharedRemoteRuntimeConfig(runtime);
+  const accountDeletionRepository = createAccountDeletionRepository({
+    endpoint: `${runtime.baseUrl}/v2/account/deletion`,
+    fetchImpl,
+    headers: createSoftbookClientHeaders('web'),
+  });
+  const accountDeletionStateStore = createWebAccountDeletionStateStore(
+    browserStorage,
+  );
   const accountBootstrapRepository = createAccountBootstrapRepository({
     fetchImpl: authenticatedFetch,
     mode: 'remote',
@@ -205,7 +249,6 @@ export function createWebRemoteRuntime(
     ...resolveLearningEventsRepositoryConfig(sharedRuntimeConfig),
     fetchImpl: authenticatedFetch,
   });
-  const browserStorage = options.storage ?? window.localStorage;
   const learningEventSyncRepository = createLearningEventSyncRepository({
     eventsRepository: learningEventsRepository,
     outbox: new LearningEventOutbox({
@@ -229,6 +272,8 @@ export function createWebRemoteRuntime(
     stop: () => void;
   } | null = null;
   return createWebRemoteRuntimeController({
+    accountDeletionRepository,
+    accountDeletionStateStore,
     accountBootstrapRepository,
     authRepository,
     authSessionCoordinator,
@@ -263,6 +308,10 @@ export function createWebRemoteRuntime(
       activeAudio?.stop();
       activeAudio = null;
     },
+    setAccountDeletionQuarantine(sessionScopeKey, active) {
+      if (active) deletionQuarantinedSessionScopes.add(sessionScopeKey);
+      else deletionQuarantinedSessionScopes.delete(sessionScopeKey);
+    },
     track: runtime.track,
   });
 }
@@ -276,6 +325,7 @@ export function createWebRemoteRuntimeController(
   let currentLearningSession: LearningSession | null = null;
   let persistedLearningResult: LearningCardResult | null = null;
   let persistedSelectionId: string | null = null;
+  let acceptedDeletionPhoneNumber: string | null = null;
   let bootstrapGeneration = 0;
   const now = dependencies.now ?? (() => new Date());
   const runtimeSessionId =
@@ -311,6 +361,27 @@ export function createWebRemoteRuntimeController(
     currentLearningSession = null;
     persistedLearningResult = null;
     persistedSelectionId = null;
+  };
+
+  const finishAcceptedAccountDeletion = async (
+    phoneNumber: string,
+  ): Promise<WebAccountDeletionOutcome> => {
+    const stateStore = dependencies.accountDeletionStateStore;
+    if (stateStore === undefined) {
+      throw new Error('Web account deletion state store is unavailable.');
+    }
+    activeAccountPhoneNumber = phoneNumber;
+    try {
+      if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
+        await dependencies.authSessionCoordinator.invalidate();
+      }
+      await clearDurableAccountState();
+      await stateStore.clear();
+      acceptedDeletionPhoneNumber = null;
+      return {status: 'accepted'};
+    } catch {
+      return {status: 'cleanup_required'};
+    }
   };
 
   const loadBootstrap = async (forceFresh: boolean) => {
@@ -423,6 +494,11 @@ export function createWebRemoteRuntimeController(
         context.phoneNumber,
         {track: bootstrap.track},
       );
+    const pendingCheckIn =
+      await dependencies.mutationQueueRepository.hasPendingCheckIn(
+        context.phoneNumber,
+        bootstrap.dayKey,
+      );
     const persistedSpaceRejectionCodes = [...new Set([
       ...terminalSpaceRejections,
       ...quarantinedSpaceActions.map(item => item.rejection.code),
@@ -455,6 +531,17 @@ export function createWebRemoteRuntimeController(
     }
     return {
       bootstrap,
+      checkInSync: {
+        checkedInToday: bootstrap.progress.snapshot.checkedInToday,
+        pending: pendingCheckIn,
+        status: bootstrap.progress.snapshot.checkedInToday
+          ? 'confirmed'
+          : pendingCheckIn
+          ? 'queued'
+          : bootstrap.progress.snapshot.totalCompletedCount < 1
+          ? 'unavailable'
+          : 'ready',
+      },
       favorites,
       learningResults: hydrated.learningResults,
       learningSession,
@@ -509,11 +596,46 @@ export function createWebRemoteRuntimeController(
     },
 
     async cleanupInvalidatedSession() {
+      if (dependencies.accountDeletionStateStore !== undefined) {
+        const deletionState =
+          await dependencies.accountDeletionStateStore.load();
+        if (deletionState !== null) {
+          throw new Error(
+            'Web account deletion state must be resolved before generic cleanup.',
+          );
+        }
+      }
       if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
         throw new Error('当前 Web 会话尚未失效，不能跳过远端注销。');
       }
       dependencies.stopAudio?.();
       await clearDurableAccountState();
+    },
+
+    async checkInToday() {
+      let snapshot = await loadAuthenticatedState();
+      const context = await requireAuthenticatedContext();
+      if (snapshot.bootstrap.progress.snapshot.totalCompletedCount < 1) {
+        throw new Error('完成至少一张学习卡后再记录今天。');
+      }
+      const dayKey = snapshot.bootstrap.dayKey;
+      const alreadyPending =
+        await dependencies.mutationQueueRepository.hasPendingCheckIn(
+          context.phoneNumber,
+          dayKey,
+        );
+      if (
+        !snapshot.bootstrap.progress.snapshot.checkedInToday &&
+        !alreadyPending
+      ) {
+        await dependencies.mutationQueueRepository.enqueueMutation(
+          'check_in_daily_progress',
+          {context, dayKey},
+          `check-in:${context.phoneNumber}:${dayKey}`,
+        );
+      }
+      snapshot = await loadAuthenticatedState();
+      return snapshot;
     },
 
     async completeCurrentCard(result) {
@@ -637,6 +759,90 @@ export function createWebRemoteRuntimeController(
       }
       challenge = await dependencies.authRepository.requestSmsCode(phoneNumber);
       return challenge;
+    },
+
+    async requestAccountDeletion() {
+      const repository = dependencies.accountDeletionRepository;
+      const stateStore = dependencies.accountDeletionStateStore;
+      if (repository === undefined || stateStore === undefined) {
+        throw new Error('Web account deletion runtime is unavailable.');
+      }
+      const persisted = await stateStore.load();
+      if (persisted?.phase === 'accepted') {
+        return finishAcceptedAccountDeletion(persisted.phoneNumber);
+      }
+      if (acceptedDeletionPhoneNumber !== null) {
+        try {
+          await stateStore.mark(
+            acceptedDeletionPhoneNumber,
+            'accepted',
+          );
+        } catch {
+          return {status: 'cleanup_required'};
+        }
+        return finishAcceptedAccountDeletion(acceptedDeletionPhoneNumber);
+      }
+
+      const session = dependencies.authSessionCoordinator.getCurrentSession();
+      if (session === null || session.mode !== 'remote') {
+        return {status: persisted === null ? 'none' : 'unknown'};
+      }
+      if (
+        persisted !== null &&
+        persisted.phoneNumber !== session.phoneNumber
+      ) {
+        throw new Error('删除状态属于另一个 Web 账户。');
+      }
+      activeAccountPhoneNumber = session.phoneNumber;
+      const sessionScopeKey = getAuthSessionScopeKey(session);
+      if (sessionScopeKey === null) {
+        throw new Error('Web account deletion session scope is invalid.');
+      }
+      dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+      if (persisted === null) {
+        try {
+          await stateStore.mark(
+            session.phoneNumber,
+            'requesting',
+          );
+        } catch (error) {
+          dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, false);
+          throw error;
+        }
+      }
+      try {
+        await repository.requestDeletion({
+          accessToken: session.accessToken,
+          tokenType: 'Bearer',
+        });
+      } catch {
+        return {status: 'unknown'};
+      }
+      acceptedDeletionPhoneNumber = session.phoneNumber;
+      try {
+        await stateStore.mark(
+          session.phoneNumber,
+          'accepted',
+        );
+      } catch {
+        return {status: 'cleanup_required'};
+      }
+      return finishAcceptedAccountDeletion(session.phoneNumber);
+    },
+
+    async resumeAccountDeletion() {
+      const stateStore = dependencies.accountDeletionStateStore;
+      if (stateStore === undefined) {
+        throw new Error('Web account deletion state store is unavailable.');
+      }
+      const persisted = await stateStore.load();
+      if (persisted === null) {
+        return {status: 'none'};
+      }
+      activeAccountPhoneNumber = persisted.phoneNumber;
+      return persisted.phase === 'accepted'
+        ? finishAcceptedAccountDeletion(persisted.phoneNumber)
+        : {status: 'unknown'};
     },
 
     async verifySmsCode(phoneNumber, smsCode) {

@@ -217,6 +217,88 @@ describe('PC Web remote UI authority', () => {
     expect(controller.applySpaceState).not.toHaveBeenCalled();
   });
 
+  it('moves explicit check-in from ready to server-confirmed', async () => {
+    const ready = createSnapshot('premium');
+    ready.checkInSync.status = 'ready';
+    ready.bootstrap.progress.snapshot.learningCompletedCount = 1;
+    ready.bootstrap.progress.snapshot.totalCompletedCount = 1;
+    const confirmed = structuredClone(ready);
+    confirmed.checkInSync = {
+      checkedInToday: true,
+      pending: false,
+      status: 'confirmed',
+    };
+    confirmed.bootstrap.progress.snapshot.checkedInToday = true;
+    const controller = createController(ready, {
+      checkInToday: vi.fn(async () => confirmed),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+
+    fireEvent.click(screen.getByRole('button', {name: '记录今天'}));
+    expect(
+      await screen.findByRole('button', {name: '今日已记录'}),
+    ).toBeDisabled();
+    expect(screen.getByText('今天已收好')).toBeInTheDocument();
+  });
+
+  it('keeps explicit check-in unavailable before one canonical completion', async () => {
+    await authenticateRemote(createController(createSnapshot('premium')));
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+
+    expect(
+      screen.getByRole('button', {name: '签到暂不可用'}),
+    ).toBeDisabled();
+    expect(screen.getByText('先完成今天的学习')).toBeInTheDocument();
+  });
+
+  it('shows unknown deletion without clearing the authenticated account', async () => {
+    const snapshot = createSnapshot('premium');
+    snapshot.checkInSync.status = 'ready';
+    snapshot.bootstrap.progress.snapshot.learningCompletedCount = 1;
+    snapshot.bootstrap.progress.snapshot.totalCompletedCount = 1;
+    const controller = createController(snapshot, {
+      requestAccountDeletion: vi.fn(async () => ({
+        status: 'unknown' as const,
+      })),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    fireEvent.click(screen.getByRole('button', {name: '删除账户'}));
+    fireEvent.click(screen.getByRole('button', {name: '确认删除账户'}));
+
+    expect(await screen.findByText('删除结果暂时未知')).toBeInTheDocument();
+    expect(controller.logout).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('navigation', {name: '主要导航'}),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '退出登录'})).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    expect(screen.getByRole('button', {name: '记录今天'})).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    fireEvent.click(screen.getByRole('button', {name: '重试确认'}));
+    expect(controller.requestAccountDeletion).toHaveBeenCalledTimes(2);
+  });
+
+  it('removes the authenticated shell only after accepted deletion cleanup', async () => {
+    const snapshot = createSnapshot('premium');
+    const controller = createController(snapshot, {
+      requestAccountDeletion: vi.fn(async () => ({
+        status: 'accepted' as const,
+      })),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    fireEvent.click(screen.getByRole('button', {name: '删除账户'}));
+    fireEvent.click(screen.getByRole('button', {name: '确认删除账户'}));
+
+    expect(await screen.findByText('删除申请已提交')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
+    expect(screen.getByText(/不表示所有数据已在这一刻擦除完成/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '返回手机号验证'}));
+    expect(await screen.findByLabelText('手机号')).toHaveValue('');
+  });
+
   it.each(['premium', 'trial'] as const)(
     'shows the full multi-card Space and enables writes for %s',
     async stage => {
@@ -240,7 +322,7 @@ describe('PC Web remote UI authority', () => {
 
 async function authenticateRemote(controller: WebRemoteRuntimeController) {
   render(<App remoteRuntimeFactory={() => controller} />);
-  fireEvent.change(screen.getByLabelText('手机号'), {
+  fireEvent.change(await screen.findByLabelText('手机号'), {
     target: {value: PHONE},
   });
   fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
@@ -258,6 +340,7 @@ function createController(
 ): WebRemoteRuntimeController {
   return {
     applySpaceState: vi.fn(async () => snapshot),
+    checkInToday: vi.fn(async () => snapshot),
     cleanupInvalidatedSession: vi.fn(async () => undefined),
     completeCurrentCard: vi.fn(async () => ({
       pendingEventCount: 0,
@@ -275,6 +358,8 @@ function createController(
       phoneNumber,
       retryAfterSeconds: 0,
     })),
+    requestAccountDeletion: vi.fn(async () => ({status: 'none' as const})),
+    resumeAccountDeletion: vi.fn(async () => ({status: 'none' as const})),
     verifySmsCode: vi.fn(async () => snapshot),
     ...overrides,
   };
@@ -370,6 +455,11 @@ function createSnapshot(stage: 'free' | 'premium' | 'trial'): WebRemoteSnapshot 
         snapshot: {dayKey: '2026-08-29', states: []},
       },
       track: 'cet4',
+    },
+    checkInSync: {
+      checkedInToday: false,
+      pending: false,
+      status: 'unavailable',
     },
     favorites: [],
     learningResults: [],

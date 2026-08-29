@@ -23,12 +23,21 @@ import {getUserFacingErrorMessage} from '../../mobile/src/runtime/userFacingErro
 import {
   createWebRemoteRuntime,
   WebRemotePostAuthError,
+  type WebAccountDeletionOutcome,
   type WebRemoteSnapshot,
 } from './remoteRuntime';
 import {resolveWebRuntime} from './runtime';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type AuthStage = 'phone' | 'code' | 'authenticated';
+type AccountDeletionStage =
+  | 'accepted'
+  | 'checking'
+  | 'cleanup_required'
+  | 'confirming'
+  | 'none'
+  | 'submitting'
+  | 'unknown';
 
 const ROUTES: {id: RouteKey; label: string}[] = [
   {id: 'learning', label: '学习'},
@@ -99,8 +108,15 @@ export function App({
   const [learningSync, setLearningSync] = useState<
     WebRemoteSnapshot['learningSync'] | null
   >(null);
+  const [checkInSync, setCheckInSync] = useState<
+    WebRemoteSnapshot['checkInSync'] | null
+  >(null);
   const [queuedLearningResult, setQueuedLearningResult] =
     useState<LearningCardResult | null>(null);
+  const [accountDeletionStage, setAccountDeletionStage] =
+    useState<AccountDeletionStage>(
+      runtime.mode === 'remote' ? 'checking' : 'none',
+    );
 
   const activeCards = runtime.mode === 'remote'
     ? session?.cards ?? []
@@ -124,6 +140,7 @@ export function App({
     ? session?.catalogCards ?? []
     : accessibleSpaceCards;
   const remoteSyncFacts = [
+    checkInSync?.status === 'queued' ? '今日签到等待同步' : null,
     learningSync?.status === 'queued'
       ? `${learningSync.pendingEventCount} 项学习结果等待同步`
       : null,
@@ -142,9 +159,14 @@ export function App({
     authStage === 'authenticated' &&
     remoteController !== null &&
     !remoteController.isAuthenticated();
+  const accountDeletionLocksAccount =
+    accountDeletionStage === 'submitting' ||
+    accountDeletionStage === 'unknown' ||
+    accountDeletionStage === 'cleanup_required';
   const productBusy =
     remoteBusy ||
     remoteCleanupPending ||
+    accountDeletionLocksAccount ||
     learningSync?.status === 'queued';
 
   useEffect(() => {
@@ -166,6 +188,34 @@ export function App({
   }, [runtime]);
 
   useEffect(() => {
+    let active = true;
+    if (runtime.mode !== 'remote' || remoteController === null) {
+      setAccountDeletionStage('none');
+      return;
+    }
+    void remoteController
+      .resumeAccountDeletion()
+      .then(outcome => {
+        if (!active) return;
+        setAccountDeletionStage(
+          outcome.status === 'accepted'
+            ? 'accepted'
+            : outcome.status === 'cleanup_required'
+            ? 'cleanup_required'
+            : outcome.status === 'unknown'
+            ? 'unknown'
+            : 'none',
+        );
+      })
+      .catch(() => {
+        if (active) setAccountDeletionStage('cleanup_required');
+      });
+    return () => {
+      active = false;
+    };
+  }, [remoteController, runtime.mode]);
+
+  useEffect(() => {
     window.scrollTo({behavior: 'auto', top: 0});
   }, [currentIndex, route]);
 
@@ -183,6 +233,7 @@ export function App({
     setSleeping(snapshot.sleeping);
     setSpaceSync(snapshot.spaceSync);
     setLearningSync(snapshot.learningSync);
+    setCheckInSync(snapshot.checkInSync);
     setQueuedLearningResult(null);
     setMembership(snapshot.membership);
     setCardState(
@@ -358,7 +409,25 @@ export function App({
     setAudioStatus('idle');
     setSpaceSync(null);
     setLearningSync(null);
+    setCheckInSync(null);
     setQueuedLearningResult(null);
+  }
+
+  function applyAccountDeletionOutcome(outcome: WebAccountDeletionOutcome) {
+    if (outcome.status === 'accepted') {
+      resetAccountState();
+      setAccountDeletionStage('accepted');
+      return;
+    }
+    if (outcome.status === 'cleanup_required') {
+      setAccountDeletionStage('cleanup_required');
+      return;
+    }
+    if (outcome.status === 'unknown') {
+      setAccountDeletionStage('unknown');
+      return;
+    }
+    setAccountDeletionStage('none');
   }
 
   async function signOut() {
@@ -488,6 +557,66 @@ export function App({
     }
   }
 
+  async function submitCheckIn() {
+    if (runtime.mode !== 'remote' || remoteController === null) return;
+    setRemoteBusy(true);
+    setRemoteError('');
+    try {
+      const snapshot = await remoteController.checkInToday();
+      applyRemoteSnapshot(snapshot);
+      setRemoteError(
+        snapshot.checkInSync.status === 'queued'
+          ? '签到已安全保存，正在等待服务端确认。'
+          : '',
+      );
+    } catch (error) {
+      await handleRemoteFailure(error, '今天的签到暂时没有确认。');
+    } finally {
+      setRemoteBusy(false);
+    }
+  }
+
+  async function submitAccountDeletion() {
+    if (runtime.mode !== 'remote' || remoteController === null) return;
+    setAccountDeletionStage('submitting');
+    setRemoteBusy(true);
+    setRemoteError('');
+    try {
+      applyAccountDeletionOutcome(
+        await remoteController.requestAccountDeletion(),
+      );
+    } catch (error) {
+      setAccountDeletionStage('confirming');
+      setRemoteError(
+        getUserFacingErrorMessage(error, '删除申请暂时无法安全提交。'),
+      );
+    } finally {
+      setRemoteBusy(false);
+    }
+  }
+
+  if (
+    runtime.mode === 'remote' &&
+    (['accepted', 'checking', 'cleanup_required'].includes(
+      accountDeletionStage,
+    ) ||
+      (accountDeletionStage === 'unknown' &&
+        authStage !== 'authenticated'))
+  ) {
+    return (
+      <AccountDeletionStatusSurface
+        busy={remoteBusy}
+        stage={accountDeletionStage as
+          | 'accepted'
+          | 'checking'
+          | 'cleanup_required'
+          | 'unknown'}
+        onReturn={() => setAccountDeletionStage('none')}
+        onRetry={() => void submitAccountDeletion()}
+      />
+    );
+  }
+
   if (authStage !== 'authenticated') {
     return (
       <main className="auth-shell">
@@ -541,7 +670,7 @@ export function App({
     <div className="app-shell">
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
-        <button className="text-button" disabled={remoteBusy} onClick={() => void signOut()}>退出</button>
+        <button className="text-button" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => void signOut()}>退出</button>
       </header>
       <nav className="route-rail" aria-label="主要导航">
         <div className="brand-lockup rail-brand"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
@@ -701,6 +830,10 @@ export function App({
       ) : null}
       {route === 'statistics' ? (
         <StatisticsSurface
+          busy={remoteBusy}
+          checkInSync={checkInSync}
+          disabled={productBusy}
+          onCheckIn={() => void submitCheckIn()}
           results={results}
           syncStatus={genericSyncStatus}
           total={runtime.mode === 'remote'
@@ -710,11 +843,24 @@ export function App({
       ) : null}
       {route === 'mine' && membership !== null ? (
         <MineSurface
+          accountLocked={accountDeletionLocksAccount}
+          accountDeletionStage={
+            accountDeletionStage === 'confirming' ||
+            accountDeletionStage === 'submitting' ||
+            accountDeletionStage === 'unknown'
+              ? accountDeletionStage
+              : 'none'
+          }
           phone={phone}
+          canDeleteAccount={runtime.mode === 'remote'}
           membership={membership}
           syncStatus={genericSyncStatus}
           statusMessage={remoteError}
           busy={remoteBusy}
+          onCancelDelete={() => setAccountDeletionStage('none')}
+          onConfirmDelete={() => void submitAccountDeletion()}
+          onRequestDelete={() => setAccountDeletionStage('confirming')}
+          onRetryDelete={() => void submitAccountDeletion()}
           onLogout={() => void signOut()}
         />
       ) : null}
@@ -996,7 +1142,23 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, favorites, sleepin
   );
 }
 
-function StatisticsSurface({results, syncStatus, total}: {results: LearningCardResult[]; syncStatus: string; total: number}) {
+function StatisticsSurface({
+  busy,
+  checkInSync,
+  disabled,
+  onCheckIn,
+  results,
+  syncStatus,
+  total,
+}: {
+  busy: boolean;
+  checkInSync: WebRemoteSnapshot['checkInSync'] | null;
+  disabled: boolean;
+  onCheckIn: () => void;
+  results: LearningCardResult[];
+  syncStatus: string;
+  total: number;
+}) {
   const summary = summarizeLearningResults(results, total);
   const rows = [
     ['已完成', `${summary.completed} / ${summary.total}`],
@@ -1005,10 +1167,100 @@ function StatisticsSurface({results, syncStatus, total}: {results: LearningCardR
     ['使用提示', String(summary.hintUseCount)],
     ['标记喜欢', String(summary.favoriteCount)],
   ];
-  return <main className="ledger-workbench"><section className="ledger" aria-labelledby="statistics-title"><p className="eyebrow">今日记录</p><h1 id="statistics-title">学习账页</h1><p className="lede">只记录已经发生的学习，不用成绩环或连续打卡替代掌握。</p><p className="muted">跨端同步 · {syncStatus}</p><dl>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section></main>;
+  const checkInLabel = busy
+    ? '正在提交'
+    : checkInSync?.status === 'confirmed'
+    ? '今日已记录'
+    : checkInSync?.status === 'queued'
+    ? '重新确认'
+    : checkInSync?.status === 'ready'
+    ? '记录今天'
+    : '签到暂不可用';
+  return (
+    <main className="ledger-workbench">
+      <section className="ledger" aria-labelledby="statistics-title">
+        <p className="eyebrow">今日记录</p>
+        <h1 id="statistics-title">学习账页</h1>
+        <p className="lede">
+          只记录已经发生的学习，不用成绩环或连续打卡替代掌握。
+        </p>
+        <p className="muted">跨端同步 · {syncStatus}</p>
+        <dl>
+          {rows.map(([label, value]) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <section className="account-policy" aria-live="polite">
+          <p className="eyebrow">显式签到</p>
+          <h2>
+            {checkInSync?.status === 'confirmed'
+              ? '今天已收好'
+              : checkInSync?.status === 'queued'
+              ? '签到等待确认'
+              : checkInSync?.status === 'unavailable'
+              ? '先完成今天的学习'
+              : '确认今天的学习进展'}
+          </h2>
+          <p>
+            {checkInSync?.status === 'queued'
+              ? '记录已经安全留在本机，联网后会继续确认。'
+              : checkInSync?.status === 'confirmed'
+              ? '这条记录已由学习账户确认。'
+              : checkInSync?.status === 'unavailable'
+              ? '完成至少一张学习卡后，再确认今天已经发生的学习。'
+              : '签到只确认今天已经发生的学习，不增加额外奖励。'}
+          </p>
+          <button
+            className="primary"
+            disabled={
+              busy ||
+              disabled ||
+              checkInSync === null ||
+              checkInSync.status === 'unavailable' ||
+              checkInSync.status === 'confirmed'
+            }
+            onClick={onCheckIn}
+          >
+            {checkInLabel}
+          </button>
+        </section>
+      </section>
+    </main>
+  );
 }
 
-function MineSurface({busy, phone, membership, onLogout, statusMessage, syncStatus}: {busy: boolean; phone: string; membership: MembershipState; onLogout: () => void; statusMessage: string; syncStatus: string}) {
+function MineSurface({
+  accountDeletionStage,
+  accountLocked,
+  busy,
+  canDeleteAccount,
+  membership,
+  onCancelDelete,
+  onConfirmDelete,
+  onLogout,
+  onRequestDelete,
+  onRetryDelete,
+  phone,
+  statusMessage,
+  syncStatus,
+}: {
+  accountDeletionStage: 'confirming' | 'none' | 'submitting' | 'unknown';
+  accountLocked: boolean;
+  busy: boolean;
+  canDeleteAccount: boolean;
+  membership: MembershipState;
+  onCancelDelete: () => void;
+  onConfirmDelete: () => void;
+  onLogout: () => void;
+  onRequestDelete: () => void;
+  onRetryDelete: () => void;
+  phone: string;
+  statusMessage: string;
+  syncStatus: string;
+}) {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const stageLabel = {trial_available: '体验待自动开启', trial: '5 天体验中', free: '基础版', premium: '会员'}[membership.stage];
   return <main className="account-workbench"><section className="account-object" aria-labelledby="mine-title">
@@ -1021,9 +1273,112 @@ function MineSurface({busy, phone, membership, onLogout, statusMessage, syncStat
     <button className="tool" disabled>暂时无法恢复购买</button>
     <button className="tool" aria-expanded={showPrivacy} onClick={() => setShowPrivacy(value => !value)}>隐私与账户规则</button>
     {showPrivacy ? <section className="account-policy" aria-label="隐私与账户规则说明"><h2>账户与隐私</h2><p>手机号只用于登录、账户归属和学习进度同步。账户操作不可用时会明确停用，不会提交未确认的请求。</p></section> : null}
-    <button className="tool danger" disabled>暂时无法删除账户</button>
-    <button className="tool danger" disabled={busy} onClick={onLogout}>退出登录</button>
+    {accountDeletionStage === 'confirming' ? (
+      <section
+        className="account-policy"
+        aria-labelledby="delete-account-title"
+        role="dialog"
+      >
+        <p className="eyebrow">删除学习账户</p>
+        <h2 id="delete-account-title">确认永久删除这个账户？</h2>
+        <p>
+          申请提交后会退出当前账户，学习进度、空间位置、签到与会员归属会进入异步清理。
+          申请接收不代表所有数据已在这一刻擦除完成。
+        </p>
+        <button className="secondary" disabled={busy} onClick={onCancelDelete}>
+          保留账户
+        </button>
+        <button className="tool danger" disabled={busy} onClick={onConfirmDelete}>
+          确认删除账户
+        </button>
+      </section>
+    ) : accountDeletionStage === 'submitting' ? (
+      <section className="account-policy" aria-live="polite">
+        <p className="eyebrow">删除学习账户</p>
+        <h2>正在提交删除申请</h2>
+        <p>请保持当前页面，不会重复提交，也不会提前显示删除完成。</p>
+        <button className="tool danger" disabled>正在提交</button>
+      </section>
+    ) : accountDeletionStage === 'unknown' ? (
+      <section className="account-policy" aria-live="polite">
+        <p className="eyebrow">结果尚未确认</p>
+        <h2>删除结果暂时未知</h2>
+        <p>
+          没有观察到精确接收结果，因此不会声称已经删除，也不会清掉当前账户和待同步记录。
+        </p>
+        <button className="tool danger" disabled={busy} onClick={onRetryDelete}>
+          {busy ? '正在重试' : '重试确认'}
+        </button>
+      </section>
+    ) : (
+      <button
+        className="tool danger"
+        disabled={busy || !canDeleteAccount}
+        onClick={onRequestDelete}
+      >
+        {canDeleteAccount ? '删除账户' : '暂时无法删除账户'}
+      </button>
+    )}
+    <button className="tool danger" disabled={busy || accountLocked} onClick={onLogout}>退出登录</button>
   </section></main>;
+}
+
+function AccountDeletionStatusSurface({
+  busy,
+  onRetry,
+  onReturn,
+  stage,
+}: {
+  busy: boolean;
+  onRetry: () => void;
+  onReturn: () => void;
+  stage: 'accepted' | 'checking' | 'cleanup_required' | 'unknown';
+}) {
+  const content = {
+    accepted: {
+      eyebrow: '删除学习账户',
+      title: '删除申请已提交',
+      detail:
+        '当前账户已退出，服务端会继续异步清理。这表示申请已接收，不表示所有数据已在这一刻擦除完成。',
+    },
+    checking: {
+      eyebrow: '账户恢复',
+      title: '正在读取删除状态',
+      detail: '正在确认本机是否还有需要完成的账户清理。',
+    },
+    cleanup_required: {
+      eyebrow: '本机清理',
+      title: '删除申请已接收，正在完成本机清理',
+      detail:
+        '登录凭证或待同步记录尚未全部清空；完成前不会重新开放账户入口。',
+    },
+    unknown: {
+      eyebrow: '结果尚未确认',
+      title: '删除结果暂时未知',
+      detail:
+        '没有观察到精确接收结果，因此不会声称已经删除，也不会清掉待同步记录。请在当前页面重试确认。',
+    },
+  }[stage];
+  return (
+    <main className="auth-shell">
+      <section className="auth-object" aria-live="polite">
+        <p className="eyebrow">{content.eyebrow}</p>
+        <h1>{content.title}</h1>
+        <p className="lede">{content.detail}</p>
+        {stage === 'accepted' ? (
+          <button className="primary wide" onClick={onReturn}>
+            返回手机号验证
+          </button>
+        ) : stage === 'checking' ? (
+          <button className="primary wide" disabled>正在确认</button>
+        ) : (
+          <button className="primary wide" disabled={busy} onClick={onRetry}>
+            {busy ? '正在重试' : '重试确认'}
+          </button>
+        )}
+      </section>
+    </main>
+  );
 }
 
 function SessionCompleteSurface({busy, phase, results, total, onOpenSpace, onRestart, onStartReview, reviewCountOverride, serverSequenced, statusMessage, syncStatus}: {busy: boolean; phase: 'learning' | 'review'; results: LearningCardResult[]; total: number; onOpenSpace: () => void; onRestart: () => void; onStartReview: () => void; reviewCountOverride?: number; serverSequenced: boolean; statusMessage: string; syncStatus: string}) {
