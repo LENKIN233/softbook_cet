@@ -4,11 +4,30 @@ import {
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
 import {
-  createMutationQueueRepository,
+  createMutationQueueRepository as createCoreMutationQueueRepository,
   hasCausalSpaceBootstrapAdvance,
 } from '../src/sync/mutationQueueRepository';
 import { RemoteHttpError } from '../src/runtime/remoteHttpError';
 import { RemoteRequestLifecycleError } from '../src/runtime/remoteRequest';
+
+type MutationQueueRepositoryOptions = Parameters<
+  typeof createCoreMutationQueueRepository
+>[0];
+
+function createMutationQueueRepository(
+  options: Omit<MutationQueueRepositoryOptions, 'queueManager'> & {
+    queueManager?: MutationQueueManager;
+  },
+) {
+  return createCoreMutationQueueRepository({
+    ...options,
+    queueManager:
+      options.queueManager ??
+      new MutationQueueManager({
+        storage: createInMemoryMutationQueueStorage(),
+      }),
+  });
+}
 
 const createCheckInPayload = () => ({
   context: {
@@ -726,7 +745,9 @@ describe('MutationQueueRepository', () => {
   });
 
   it('surfaces session cancellation without incrementing generic queue retry state', async () => {
-    const queueManager = new MutationQueueManager();
+    const queueManager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(),
+    });
     const repository = createMutationQueueRepository({
       membershipRepository: mockMembershipRepository as never,
       progressSyncRepository: mockProgressSyncRepository as never,
@@ -891,7 +912,9 @@ describe('MutationQueueRepository', () => {
   });
 
   it('supports injecting a prebuilt queue manager', async () => {
-    const queueManager = new MutationQueueManager();
+    const queueManager = new MutationQueueManager({
+      storage: createInMemoryMutationQueueStorage(),
+    });
     const repository = createMutationQueueRepository({
       membershipRepository: mockMembershipRepository as never,
       progressSyncRepository: mockProgressSyncRepository as never,

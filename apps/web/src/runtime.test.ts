@@ -14,6 +14,8 @@ describe('Web runtime boundary', () => {
 
     expect(resolveWebRuntime()).toEqual({
       baseUrl: 'https://runtime.example.cn/',
+      clientIdentity: {platform: 'web', version: '0.1.0'},
+      clientKind: 'web',
       mode: 'remote',
       track: 'cet6',
     });
@@ -21,6 +23,10 @@ describe('Web runtime boundary', () => {
   });
 
   it('uses development cards only in the development or test build mode', () => {
-    expect(resolveWebRuntime()).toEqual({mode: 'development', track: 'cet4'});
+    expect(resolveWebRuntime()).toEqual({
+      clientKind: 'web',
+      mode: 'development',
+      track: 'cet4',
+    });
   });
 });

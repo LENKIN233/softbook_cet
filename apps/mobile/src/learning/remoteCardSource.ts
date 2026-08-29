@@ -4,6 +4,11 @@ import {
   normalizeLearningCardRecords,
 } from './sourceContract';
 import { RemoteHttpError } from '../runtime/remoteHttpError';
+import {
+  createSoftbookClientHeaders,
+  resolveSoftbookClientKind,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export type LearningCardSourceResponse = {
   contentVersion: string | null;
@@ -43,6 +48,7 @@ export type RemoteLearningCardSourcePayloadParser = (
 ) => LearningCardSourceResponse;
 
 export type RemoteLearningCardSourceConfig = {
+  clientKind?: SoftbookClientKind;
   endpoint: string;
   apiKey?: string;
   apiKeyHeader?: string;
@@ -54,6 +60,7 @@ export type RemoteLearningCardSourceConfig = {
 export type SoftbookRemoteLearningCardSourceRuntimeConfig = {
   apiKey?: string;
   baseUrl: string;
+  clientKind?: SoftbookClientKind;
 };
 
 export type FetchLikeResponse = {
@@ -253,10 +260,11 @@ export function createSoftbookRemoteLearningCardSourceConfig(
   config: SoftbookRemoteLearningCardSourceRuntimeConfig,
 ): RemoteLearningCardSourceConfig {
   return {
+    clientKind: resolveSoftbookClientKind(config.clientKind),
     endpoint: `${trimTrailingSlash(config.baseUrl)}/v2/learning/card-source`,
     apiKey: config.apiKey,
     headers: {
-      'x-softbook-client': 'mobile',
+      ...createSoftbookClientHeaders(config.clientKind),
     },
     parsePayload: parseSoftbookRemoteLearningCardSourcePayload,
     trackQueryParam: 'track',
@@ -286,9 +294,9 @@ function buildRemoteLearningCardSourceHeaders(
   }
 
   return {
+    ...createSoftbookClientHeaders(config.clientKind, config.headers),
     Accept: 'application/json',
     Authorization: `Bearer ${context.authToken}`,
-    ...config.headers,
     ...(config.apiKey ? { [apiKeyHeader]: config.apiKey } : {}),
   };
 }

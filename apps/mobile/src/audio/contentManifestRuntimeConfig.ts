@@ -5,8 +5,12 @@ import {
 } from '../learning/learningRuntimeConfig';
 import {
   readInstalledClientIdentity,
-  type InstalledClientIdentityProvider,
 } from '../runtime/installedClientVersion';
+import type {InstalledClientIdentityProvider} from '../runtime/clientVersion';
+import {
+  resolveSoftbookClientKind,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 import { createPinnedContentManifestSignatureVerifier } from './contentManifestSignature';
 import type { ContentManifestSignatureVerifier } from './contentManifestRepository';
 
@@ -17,6 +21,7 @@ export type ResolvedContentManifestRuntimeConfig =
       remote: {
         apiKey?: string;
         baseUrl: string;
+        clientKind: SoftbookClientKind;
         installedClientIdentityProvider: InstalledClientIdentityProvider;
         verifySignature: ContentManifestSignatureVerifier;
       };
@@ -48,6 +53,7 @@ export function resolveContentManifestRuntimeConfig(
     remote: {
       ...(remote.apiKey ? { apiKey: remote.apiKey } : {}),
       baseUrl: remote.baseUrl,
+      clientKind: resolveSoftbookClientKind(runtimeConfig?.clientKind),
       installedClientIdentityProvider: readInstalledClientIdentity,
       verifySignature: createPinnedContentManifestSignatureVerifier(
         remote.publicKeys,

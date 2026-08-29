@@ -104,10 +104,10 @@ type MutationReplayAttempt =
 export function createMutationQueueRepository(options: {
   membershipRepository: MembershipRepository;
   progressSyncRepository: ProgressSyncRepository;
-  queueManager?: MutationQueueManager;
+  queueManager: MutationQueueManager;
   spaceStateRepository: SpaceStateRepository;
 }): MutationQueueRepository {
-  const queue = options.queueManager ?? new MutationQueueManager();
+  const queue = options.queueManager;
   let replaying = false;
 
   const replayMutation = async (

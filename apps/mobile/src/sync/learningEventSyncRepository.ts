@@ -31,9 +31,9 @@ export type LearningEventSyncRepository = {
 
 export function createLearningEventSyncRepository(config: {
   eventsRepository: LearningEventsRepository;
-  outbox?: LearningEventOutbox;
+  outbox: LearningEventOutbox;
 }): LearningEventSyncRepository {
-  const outbox = config.outbox ?? new LearningEventOutbox();
+  const outbox = config.outbox;
   const replayInFlightByAccount = new Map<
     string,
     Promise<LearningEventReplayResult>

@@ -8,6 +8,11 @@ import type {
   RemoteLearningCardSourceContext,
 } from './remoteCardSource';
 import { RemoteHttpError } from '../runtime/remoteHttpError';
+import {
+  createSoftbookClientHeaders,
+  resolveSoftbookClientKind,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 const LEARNING_SESSION_SCHEMA_VERSION = 'learning-session.v1';
 const CONTENT_VERSION_PATTERN = /^sha256:[a-f0-9]{64}$/;
@@ -49,6 +54,7 @@ export type RemoteLearningSessionResponse = {
 };
 
 export type RemoteLearningSessionConfig = {
+  clientKind?: SoftbookClientKind;
   endpoint: string;
   continueEndpoint?: string;
   apiKey?: string;
@@ -82,10 +88,10 @@ export async function continueRemoteLearningRound(
   const response = await fetchImpl(config.continueEndpoint, {
     method: 'POST',
     headers: {
+      ...createSoftbookClientHeaders(config.clientKind, config.headers),
       Accept: 'application/json',
       Authorization: `Bearer ${context.authToken}`,
       'Content-Type': 'application/json',
-      ...config.headers,
       ...(config.apiKey
         ? { [config.apiKeyHeader ?? 'x-api-key']: config.apiKey }
         : {}),
@@ -114,6 +120,7 @@ export async function continueRemoteLearningRound(
 export type SoftbookRemoteLearningSessionRuntimeConfig = {
   apiKey?: string;
   baseUrl: string;
+  clientKind?: SoftbookClientKind;
 };
 
 export async function loadRemoteLearningSession(
@@ -134,9 +141,9 @@ export async function loadRemoteLearningSession(
     {
       method: 'GET',
       headers: {
+        ...createSoftbookClientHeaders(config.clientKind, config.headers),
         Accept: 'application/json',
         Authorization: `Bearer ${context.authToken}`,
-        ...config.headers,
         ...(config.apiKey
           ? { [config.apiKeyHeader ?? 'x-api-key']: config.apiKey }
           : {}),
@@ -365,13 +372,14 @@ export function createSoftbookRemoteLearningSessionConfig(
   config: SoftbookRemoteLearningSessionRuntimeConfig,
 ): RemoteLearningSessionConfig {
   return {
+    clientKind: resolveSoftbookClientKind(config.clientKind),
     endpoint: `${trimTrailingSlash(config.baseUrl)}/v2/learning/session`,
     continueEndpoint: `${trimTrailingSlash(
       config.baseUrl,
     )}/v2/learning/round/continue`,
     apiKey: config.apiKey,
     headers: {
-      'x-softbook-client': 'mobile',
+      ...createSoftbookClientHeaders(config.clientKind),
     },
     trackQueryParam: 'track',
   };

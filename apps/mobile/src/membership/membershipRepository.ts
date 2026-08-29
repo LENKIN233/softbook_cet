@@ -6,10 +6,16 @@ import {
   startMembershipTrial,
 } from './localMembership';
 import {RemoteHttpError} from '../runtime/remoteHttpError';
+import {
+  createSoftbookClientHeaders,
+  resolveSoftbookClientKind,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export type MembershipRepositoryMode = 'local' | 'remote';
 
 export type MembershipRemoteConfig = {
+  clientKind?: SoftbookClientKind;
   dismissRecoveryEndpoint: string;
   entitlementEndpoint: string;
   headers?: Record<string, string>;
@@ -68,6 +74,7 @@ export type MembershipRepositoryConfig = {
 export type SoftbookRemoteMembershipRuntimeConfig = {
   apiKey?: string;
   baseUrl: string;
+  clientKind?: SoftbookClientKind;
 };
 
 export function createMembershipRepository(
@@ -151,10 +158,11 @@ export function createSoftbookRemoteMembershipConfig(
   const baseUrl = trimTrailingSlash(config.baseUrl);
 
   return {
+    clientKind: resolveSoftbookClientKind(config.clientKind),
     dismissRecoveryEndpoint: `${baseUrl}/v2/membership/dismiss-recovery`,
     entitlementEndpoint: `${baseUrl}/v2/membership/entitlement`,
     headers: {
-      'x-softbook-client': 'mobile',
+      ...createSoftbookClientHeaders(config.clientKind),
       ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
     },
     purchaseEndpoint: `${baseUrl}/v2/membership/purchase`,
@@ -302,9 +310,9 @@ function buildRemoteMembershipHeaders(
   }
 
   return {
+    ...createSoftbookClientHeaders(config.clientKind, config.headers),
     'content-type': 'application/json',
     Authorization: `Bearer ${context.authToken}`,
-    ...config.headers,
   };
 }
 

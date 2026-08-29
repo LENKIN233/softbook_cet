@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import type { MembershipRepositoryContext } from '../membership/membershipRepository';
 import type { LearningTrack } from '../learning/model';
 import type { AccountBootstrapComponentRevisions } from '../bootstrap/accountBootstrapRepository';
@@ -91,13 +89,6 @@ export function createInMemoryMutationQueueStorage(
   };
 }
 
-export function createReactNativeMutationQueueStorage(): MutationQueueStorage {
-  return {
-    getItem: key => AsyncStorage.getItem(key),
-    setItem: (key, value) => AsyncStorage.setItem(key, value),
-  };
-}
-
 export class MutationQueueManager {
   private readonly key: string;
   private readonly now: () => string;
@@ -113,13 +104,13 @@ export class MutationQueueManager {
     options: {
       key?: string;
       now?: () => string;
-      storage?: MutationQueueStorage;
-    } = {},
+      storage: MutationQueueStorage;
+    },
   ) {
     this.key = options.key ?? MUTATION_QUEUE_KEY;
     this.quarantineKey = `${this.key}${MUTATION_QUARANTINE_SUFFIX}`;
     this.now = options.now ?? (() => new Date().toISOString());
-    this.storage = options.storage ?? createReactNativeMutationQueueStorage();
+    this.storage = options.storage;
   }
 
   private async load(): Promise<void> {

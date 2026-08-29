@@ -4,7 +4,8 @@ import {
   type ContentManifestSignatureVerifier,
   type VerifiedContentManifest,
 } from '../audio/contentManifestRepository';
-import type { InstalledClientIdentityProvider } from '../runtime/installedClientVersion';
+import type {InstalledClientIdentityProvider} from '../runtime/clientVersion';
+import type {SoftbookClientKind} from '../runtime/remoteClient';
 import { LearningSession, LearningTrack } from './model';
 import {
   FetchLike,
@@ -48,6 +49,7 @@ export type RemoteLearningContentManifestConfig =
       mode: 'remote';
       apiKey?: string;
       baseUrl: string;
+      clientKind?: SoftbookClientKind;
       installedClientIdentityProvider: InstalledClientIdentityProvider;
       now?: () => Date;
       verifySignature: ContentManifestSignatureVerifier;
@@ -243,6 +245,7 @@ async function loadContentManifestForSession(options: {
     authToken: options.context.authToken,
     baseUrl: options.config.baseUrl,
     contentVersion: options.contentVersion,
+    clientKind: options.config.clientKind,
     fetchImpl: options.fetchImpl,
     installedClientIdentityProvider:
       options.config.installedClientIdentityProvider,

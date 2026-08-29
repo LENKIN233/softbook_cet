@@ -41,9 +41,10 @@ test('remote learning card source loads and normalizes a valid payload', async (
       method: 'GET',
       headers: {
         Accept: 'application/json',
-        Authorization: 'Bearer user-token',
-        'x-api-key': 'test-key',
-      },
+          Authorization: 'Bearer user-token',
+          'x-api-key': 'test-key',
+          'x-softbook-client': 'mobile',
+        },
     },
   );
   expect(result.sourceId).toBe('remote-learning-cards');

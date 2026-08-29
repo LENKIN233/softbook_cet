@@ -32,6 +32,7 @@ test('learning events runtime config resolves the v2 endpoint', () => {
   ).toEqual({
     mode: 'remote',
     remoteConfig: {
+      clientKind: 'mobile',
       endpoint: 'https://api.softbook.example/v2/learning/events',
       headers: {
         'x-api-key': 'event-key',

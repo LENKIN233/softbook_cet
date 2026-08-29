@@ -146,6 +146,7 @@ test('remote content manifest requires auth, exact scope, and signature verifica
       baseUrl: 'https://api.softbook.example',
       contentVersion: CONTENT_VERSION,
       fetchImpl,
+      installedClientIdentityProvider: rejectedIdentityProvider,
       track: 'cet4',
       verifySignature,
     }),
@@ -224,6 +225,37 @@ test('verified controlled-pilot manifest keeps gate false and selects the instal
     gate_eligible: false,
     minimum_client_versions: { android: '9.0.0', ios: '1.0.0' },
     release_class: 'controlled_pilot',
+  });
+});
+
+test('controlled-pilot manifest rejects an explicit web build identity', async () => {
+  const fetchImpl = jest.fn().mockResolvedValue({
+    json: async () => createControlledPilotPayload(),
+    ok: true,
+    status: 200,
+  });
+
+  await expect(
+    loadRemoteContentManifest({
+      authToken: 'access-token',
+      baseUrl: 'https://api.softbook.example',
+      clientKind: 'web',
+      contentVersion: CONTENT_VERSION,
+      fetchImpl,
+      installedClientIdentityProvider: () => ({
+        platform: 'web',
+        version: '9.0.0',
+      }),
+      now: () => NOW,
+      track: 'cet4',
+      verifySignature: () => true,
+    }),
+  ).rejects.toThrow(
+    'Controlled-pilot native minimum client versions do not authorize web builds.',
+  );
+  expect(fetchImpl).toHaveBeenCalledWith(expect.any(String), {
+    headers: expect.objectContaining({'x-softbook-client': 'web'}),
+    method: 'GET',
   });
 });
 

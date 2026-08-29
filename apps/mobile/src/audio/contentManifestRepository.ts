@@ -6,10 +6,13 @@ import type {
 import {
   assertInstalledClientVersionAtLeast,
   isStrictSemanticVersion,
-  readInstalledClientIdentity,
   type InstalledClientIdentityProvider,
-} from '../runtime/installedClientVersion';
+} from '../runtime/clientVersion';
 import { RemoteHttpError } from '../runtime/remoteHttpError';
+import {
+  createSoftbookClientHeaders,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export type ContentManifestAsset = {
   asset_id: string;
@@ -99,8 +102,9 @@ export async function loadRemoteContentManifest(options: {
   authToken: string;
   baseUrl: string;
   contentVersion: string;
+  clientKind?: SoftbookClientKind;
   fetchImpl?: ContentManifestFetch;
-  installedClientIdentityProvider?: InstalledClientIdentityProvider;
+  installedClientIdentityProvider: InstalledClientIdentityProvider;
   now?: () => Date;
   track: LearningTrack;
   verifySignature: ContentManifestSignatureVerifier;
@@ -125,7 +129,7 @@ export async function loadRemoteContentManifest(options: {
       headers: {
         Accept: 'application/json',
         Authorization: `Bearer ${options.authToken}`,
-        'x-softbook-client': 'mobile',
+        ...createSoftbookClientHeaders(options.clientKind),
         ...(options.apiKey ? { 'x-api-key': options.apiKey } : {}),
       },
     },
@@ -156,9 +160,12 @@ export async function loadRemoteContentManifest(options: {
     throw new Error('Content manifest signature verification failed.');
   }
 
-  const installedClientIdentity =
-    options.installedClientIdentityProvider?.() ??
-    readInstalledClientIdentity();
+  if (!options.installedClientIdentityProvider) {
+    throw new Error(
+      'Remote content manifest requires an explicit client identity provider.',
+    );
+  }
+  const installedClientIdentity = options.installedClientIdentityProvider();
   assertInstalledClientVersionAtLeast(
     installedClientIdentity,
     'release_class' in result.manifest

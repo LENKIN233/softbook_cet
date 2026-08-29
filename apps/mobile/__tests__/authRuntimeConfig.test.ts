@@ -20,6 +20,7 @@ test('auth runtime config can switch repository mode to remote', () => {
   ).toEqual({
     mode: 'remote',
     remoteConfig: {
+      clientKind: 'mobile',
       headers: {
         'x-api-key': 'auth-key',
         'x-softbook-client': 'mobile',

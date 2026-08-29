@@ -1,10 +1,16 @@
 import type { SoftbookAppRuntimeConfig } from '../learning/learningRuntimeConfig';
 import { assertRemoteRuntimeUsesRemoteAuth } from '../learning/learningRuntimeConfig';
 import type { SpaceStateRepositoryConfig } from './spaceStateRepository';
+import {
+  createSoftbookClientHeaders,
+  resolveSoftbookClientKind,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export type SoftbookRemoteSpaceStateRuntimeConfig = {
   apiKey?: string;
   baseUrl: string;
+  clientKind?: SoftbookClientKind;
 };
 
 export function resolveSpaceStateRepositoryConfig(
@@ -29,7 +35,10 @@ export function resolveSpaceStateRepositoryConfig(
     }
 
     const remoteConfig = createSoftbookRemoteSpaceStateConfig(
-      spaceState.remote as SoftbookRemoteSpaceStateRuntimeConfig,
+      {
+        ...(spaceState.remote as SoftbookRemoteSpaceStateRuntimeConfig),
+        clientKind: runtimeConfig?.clientKind,
+      },
     );
 
     return {
@@ -45,13 +54,18 @@ export function resolveSpaceStateRepositoryConfig(
 
 export function createSoftbookRemoteSpaceStateConfig(
   config: SoftbookRemoteSpaceStateRuntimeConfig,
-): { endpoint: string; headers: Record<string, string> } {
+): {
+  clientKind: SoftbookClientKind;
+  endpoint: string;
+  headers: Record<string, string>;
+} {
   const baseUrl = trimTrailingSlash(config.baseUrl);
 
   return {
+    clientKind: resolveSoftbookClientKind(config.clientKind),
     endpoint: `${baseUrl}/v2/space/actions`,
     headers: {
-      'x-softbook-client': 'mobile',
+      ...createSoftbookClientHeaders(config.clientKind),
       ...(config.apiKey ? { 'x-api-key': config.apiKey } : {}),
     },
   };

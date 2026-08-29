@@ -3,6 +3,22 @@ import {
   MAX_MUTATION_RETRIES,
   MutationQueueManager,
 } from '../src/sync/mutationQueue';
+import {createReactNativeMutationQueueStorage} from '../src/sync/mutationQueueStorage.native';
+
+type MutationQueueManagerOptions = ConstructorParameters<
+  typeof MutationQueueManager
+>[0];
+
+function createIsolatedMutationQueueManager(
+  options: Omit<MutationQueueManagerOptions, 'storage'> & {
+    storage?: MutationQueueManagerOptions['storage'];
+  } = {},
+) {
+  return new MutationQueueManager({
+    ...options,
+    storage: options.storage ?? createInMemoryMutationQueueStorage(),
+  });
+}
 
 const createCheckInPayload = () => ({
   context: {
@@ -41,7 +57,7 @@ const createLegacyProgressSnapshot = (checkedInToday = true) => ({
 
 describe('MutationQueueManager', () => {
   it('enqueues and dequeues mutations in FIFO order', async () => {
-    const manager = new MutationQueueManager();
+    const manager = createIsolatedMutationQueueManager();
 
     await manager.enqueue('check_in_daily_progress', createCheckInPayload());
     await manager.enqueue('refresh_membership', {
@@ -429,7 +445,7 @@ describe('MutationQueueManager', () => {
   });
 
   it('rejects unknown fields in immutable space actions', async () => {
-    const manager = new MutationQueueManager();
+    const manager = createIsolatedMutationQueueManager();
     const payload = createSpacePayload();
     Object.assign(payload.action, { refreshToken: 'nested-secret' });
 
@@ -440,7 +456,7 @@ describe('MutationQueueManager', () => {
   });
 
   it('rejects impossible immutable space action calendar timestamps', async () => {
-    const manager = new MutationQueueManager();
+    const manager = createIsolatedMutationQueueManager();
     const payload = createSpacePayload();
     payload.action.clientOccurredAt = '2026-02-30T10:00:00.000Z';
 
@@ -486,7 +502,7 @@ describe('MutationQueueManager', () => {
   });
 
   it('rejects invalid check-in calendar dates', async () => {
-    const manager = new MutationQueueManager();
+    const manager = createIsolatedMutationQueueManager();
 
     await expect(
       manager.enqueue('check_in_daily_progress', {
@@ -498,10 +514,11 @@ describe('MutationQueueManager', () => {
   });
 
   it('persists entries through the default AsyncStorage adapter', async () => {
-    const manager = new MutationQueueManager();
+    const storage = createReactNativeMutationQueueStorage();
+    const manager = new MutationQueueManager({storage});
 
     await manager.enqueue('check_in_daily_progress', createCheckInPayload());
-    const restoredManager = new MutationQueueManager();
+    const restoredManager = new MutationQueueManager({storage});
 
     await expect(restoredManager.size()).resolves.toBe(1);
     await expect(restoredManager.peek()).resolves.toMatchObject({
@@ -511,7 +528,7 @@ describe('MutationQueueManager', () => {
   });
 
   it('treats an exact repeated space action as one durable command', async () => {
-    const manager = new MutationQueueManager();
+    const manager = createIsolatedMutationQueueManager();
 
     await manager.enqueue(
       'apply_space_action',
@@ -530,7 +547,7 @@ describe('MutationQueueManager', () => {
   });
 
   it('rejects reuse of a space action id with different content', async () => {
-    const manager = new MutationQueueManager({
+    const manager = createIsolatedMutationQueueManager({
       now: () => '2026-07-21T00:00:00.000Z',
     });
     await manager.enqueue(
@@ -551,7 +568,7 @@ describe('MutationQueueManager', () => {
   });
 
   it('keeps entries after reaching retry threshold', async () => {
-    const manager = new MutationQueueManager();
+    const manager = createIsolatedMutationQueueManager();
 
     await manager.enqueue('apply_space_action', createSpacePayload());
     const entryId = 'space-action:13800138000:space_action_0001';
@@ -596,7 +613,7 @@ describe('MutationQueueManager', () => {
   });
 
   it('returns peek without dequeuing', async () => {
-    const manager = new MutationQueueManager();
+    const manager = createIsolatedMutationQueueManager();
 
     await manager.enqueue('apply_space_action', createSpacePayload());
 
@@ -635,7 +652,7 @@ describe('MutationQueueManager', () => {
   });
 
   it('includes timestamp on enqueue', async () => {
-    const manager = new MutationQueueManager();
+    const manager = createIsolatedMutationQueueManager();
     const before = new Date().getTime();
 
     await manager.enqueue('check_in_daily_progress', createCheckInPayload());

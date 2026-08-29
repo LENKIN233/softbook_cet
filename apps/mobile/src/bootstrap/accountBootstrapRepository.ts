@@ -5,9 +5,13 @@ import { RemoteHttpError } from '../runtime/remoteHttpError';
 import {
   assertInstalledClientVersionAtLeast,
   isStrictSemanticVersion,
-  readInstalledClientIdentity,
   type InstalledClientIdentityProvider,
-} from '../runtime/installedClientVersion';
+} from '../runtime/clientVersion';
+import {
+  createSoftbookClientHeaders,
+  resolveSoftbookClientKind,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 import type { SpaceStateSnapshot } from '../space/spaceStateRepository';
 import { parseRemoteSpaceStateProjection } from '../space/spaceStateRepository';
 import type { DailyProgressSnapshot } from '../sync/progressSyncRepository';
@@ -120,6 +124,7 @@ export type AccountBootstrapSnapshot = {
 };
 
 export type AccountBootstrapRemoteConfig = {
+  clientKind?: SoftbookClientKind;
   endpoint: string;
   headers?: Record<string, string>;
   installedClientIdentityProvider?: InstalledClientIdentityProvider;
@@ -158,6 +163,8 @@ export type AccountBootstrapRepository = {
 export type SoftbookRemoteAccountBootstrapRuntimeConfig = {
   apiKey?: string;
   baseUrl: string;
+  clientKind?: SoftbookClientKind;
+  installedClientIdentityProvider?: InstalledClientIdentityProvider;
 };
 
 const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
@@ -182,9 +189,12 @@ export function createAccountBootstrapRepository(
         buildAccountBootstrapUrl(config.remoteConfig.endpoint, track, dayKey),
         {
           headers: {
+            ...createSoftbookClientHeaders(
+              config.remoteConfig.clientKind,
+              config.remoteConfig.headers,
+            ),
             Accept: 'application/json',
             ...(options.forceFresh ? { 'Cache-Control': 'no-cache' } : {}),
-            ...config.remoteConfig.headers,
           },
           method: 'GET',
           ...(options.signal ? { signal: options.signal } : {}),
@@ -206,8 +216,7 @@ export function createAccountBootstrapRepository(
         );
         assertAccountBootstrapClientVersion(
           snapshot.content,
-          config.remoteConfig.installedClientIdentityProvider ??
-            readInstalledClientIdentity,
+          config.remoteConfig.installedClientIdentityProvider,
         );
         return snapshot;
       } catch (error) {
@@ -227,12 +236,18 @@ export function createSoftbookRemoteAccountBootstrapConfig(
   }
 
   return {
+    clientKind: resolveSoftbookClientKind(config.clientKind),
     endpoint: `${baseUrl}/v2/bootstrap`,
     headers: {
-      'x-softbook-client': 'mobile',
+      ...createSoftbookClientHeaders(config.clientKind),
       ...(config.apiKey ? { 'x-api-key': config.apiKey } : {}),
     },
-    installedClientIdentityProvider: readInstalledClientIdentity,
+    ...(config.installedClientIdentityProvider
+      ? {
+          installedClientIdentityProvider:
+            config.installedClientIdentityProvider,
+        }
+      : {}),
   };
 }
 
@@ -988,10 +1003,16 @@ function readSemanticVersion(value: unknown, label: string) {
 
 function assertAccountBootstrapClientVersion(
   content: AccountBootstrapContent,
-  installedClientIdentityProvider: InstalledClientIdentityProvider,
+  installedClientIdentityProvider: InstalledClientIdentityProvider | undefined,
 ) {
   if (content.releaseClass === 'development') {
     return;
+  }
+
+  if (!installedClientIdentityProvider) {
+    throw new Error(
+      'Published bootstrap content requires an explicit client identity provider.',
+    );
   }
 
   const identity = installedClientIdentityProvider();

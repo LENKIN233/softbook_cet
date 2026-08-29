@@ -1,5 +1,6 @@
 import type { SoftbookAppRuntimeConfig } from '../learning/learningRuntimeConfig';
 import { assertRemoteRuntimeUsesRemoteAuth } from '../learning/learningRuntimeConfig';
+import {readInstalledClientIdentity} from '../runtime/installedClientVersion';
 
 import {
   createSoftbookRemoteAccountBootstrapConfig,
@@ -30,7 +31,11 @@ export function resolveAccountBootstrapRepositoryConfig(
     return {
       mode: 'remote',
       remoteConfig: createSoftbookRemoteAccountBootstrapConfig(
-        accountBootstrap.remote,
+        {
+          ...accountBootstrap.remote,
+          clientKind: runtimeConfig?.clientKind,
+          installedClientIdentityProvider: readInstalledClientIdentity,
+        },
       ),
     };
   }

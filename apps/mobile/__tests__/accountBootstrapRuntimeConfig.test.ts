@@ -28,6 +28,7 @@ test('resolves one authenticated remote bootstrap endpoint', () => {
   ).toEqual({
     mode: 'remote',
     remoteConfig: {
+      clientKind: 'mobile',
       endpoint: 'https://api.softbook.example/v2/bootstrap',
       headers: {
         'x-api-key': 'runtime-key',

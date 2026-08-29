@@ -4,6 +4,11 @@ import {
   runBoundedRemoteRequest,
   type RemoteRequestLifecycleReason,
 } from '../runtime/remoteRequest';
+import {
+  createSoftbookClientHeaders,
+  resolveSoftbookClientKind,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 import type {
   AuthChallenge,
@@ -33,6 +38,7 @@ export type AuthSessionPayloadParser = (
 ) => RemoteAuthSession;
 
 export type AuthRemoteConfig = {
+  clientKind?: SoftbookClientKind;
   headers?: Record<string, string>;
   logoutEndpoint: string;
   parseRequestCodePayload?: AuthRequestCodePayloadParser;
@@ -87,6 +93,7 @@ export type AuthRepositoryConfig = {
 export type SoftbookRemoteAuthRuntimeConfig = {
   apiKey?: string;
   baseUrl: string;
+  clientKind?: SoftbookClientKind;
 };
 
 export function createAuthRepository(
@@ -252,8 +259,9 @@ export function createSoftbookRemoteAuthConfig(
   const baseUrl = trimTrailingSlash(config.baseUrl);
 
   return {
+    clientKind: resolveSoftbookClientKind(config.clientKind),
     headers: {
-      'x-softbook-client': 'mobile',
+      ...createSoftbookClientHeaders(config.clientKind),
       ...(config.apiKey ? {'x-api-key': config.apiKey} : {}),
     },
     logoutEndpoint: `${baseUrl}/v2/auth/logout`,
@@ -358,8 +366,8 @@ function assertRemoteResponse(response: FetchLikeResponse, operation: string) {
 
 function createHeaders(config: AuthRemoteConfig) {
   return {
+    ...createSoftbookClientHeaders(config.clientKind, config.headers),
     'content-type': 'application/json',
-    ...config.headers,
   };
 }
 

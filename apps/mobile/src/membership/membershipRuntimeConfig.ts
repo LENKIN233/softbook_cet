@@ -25,7 +25,10 @@ export function resolveMembershipRepositoryConfig(
 
     return {
       mode: 'remote',
-      remoteConfig: createSoftbookRemoteMembershipConfig(membership.remote),
+      remoteConfig: createSoftbookRemoteMembershipConfig({
+        ...membership.remote,
+        clientKind: runtimeConfig?.clientKind,
+      }),
     };
   }
 
