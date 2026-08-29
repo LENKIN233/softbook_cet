@@ -1870,7 +1870,19 @@ function parseArgs(argv) {
   return result;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+export function isDirectCliInvocation(
+  argvPath = process.argv[1],
+  modulePath = fileURLToPath(import.meta.url),
+) {
+  if (!argvPath) return false;
+  try {
+    return fs.realpathSync(argvPath) === fs.realpathSync(modulePath);
+  } catch {
+    return false;
+  }
+}
+
+if (isDirectCliInvocation()) {
   try {
     const result = verifyTrustedMediaRunReceipt(parseArgs(process.argv.slice(2)));
     process.stdout.write(`${JSON.stringify(result)}\n`);

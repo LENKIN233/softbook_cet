@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -7,12 +7,29 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  isDirectCliInvocation,
   sequenceMatcherRatio,
   validateAudioCoverage,
   verifyTrustedMediaRunReceipt,
 } from './verify_trusted_media_run_receipt.mjs';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
+
+test('CLI entry detection follows the real verifier through a workspace symlink', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'trusted-media-cli-link-'));
+  t.after(() => fs.rmSync(root, {force: true, recursive: true}));
+  const verifier = path.resolve(import.meta.dirname, 'verify_trusted_media_run_receipt.mjs');
+  const linkedVerifier = path.join(root, 'verify-through-sibling-workspace.mjs');
+  fs.symlinkSync(verifier, linkedVerifier);
+
+  assert.equal(isDirectCliInvocation(linkedVerifier, verifier), true);
+  assert.equal(isDirectCliInvocation(path.join(root, 'missing'), verifier), false);
+  const invoked = spawnSync(process.execPath, [linkedVerifier, '--unknown'], {
+    encoding: 'utf8',
+  });
+  assert.equal(invoked.status, 1);
+  assert.match(invoked.stderr, /unknown argument: --unknown/);
+});
 
 test('product verifier preserves phonetic spelling without accepting omitted clauses', () => {
   assert.ok(
