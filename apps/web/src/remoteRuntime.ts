@@ -1,0 +1,712 @@
+import {createPinnedContentManifestSignatureVerifier} from '../../mobile/src/audio/contentManifestSignature';
+import {
+  createAuthRepository,
+  createSoftbookRemoteAuthConfig,
+  type AuthRepository,
+} from '../../mobile/src/auth/authRepository';
+import type {AuthChallenge} from '../../mobile/src/auth/authSession';
+import {
+  createAuthSessionCoordinator,
+  type AuthSessionCoordinator,
+} from '../../mobile/src/auth/authSessionCoordinator';
+import {createAuthenticatedFetch} from '../../mobile/src/auth/authenticatedFetch';
+import {
+  createAccountBootstrapRepository,
+  createSoftbookRemoteAccountBootstrapConfig,
+  type AccountBootstrapRepository,
+  type AccountBootstrapSnapshot,
+} from '../../mobile/src/bootstrap/accountBootstrapRepository';
+import {resolveAccountBootstrapLearningState} from '../../mobile/src/bootstrap/accountBootstrapHydration';
+import type {LearningSessionRepository} from '../../mobile/src/learning/learningRepository';
+import {createRemoteLearningSessionRepository} from '../../mobile/src/learning/remoteLearningRepository';
+import {
+  resolveLearningSessionRepositoryConfig,
+  type SoftbookAppRuntimeConfig,
+} from '../../mobile/src/learning/learningRuntimeConfig';
+import type {
+  LearningCard,
+  LearningCardResult,
+  LearningSession,
+  LearningTrack,
+} from '../../mobile/src/learning/model';
+import {createMembershipRepository} from '../../mobile/src/membership/membershipRepository';
+import {resolveMembershipRepositoryConfig} from '../../mobile/src/membership/membershipRuntimeConfig';
+import {resolveMembershipAccess} from '../../mobile/src/membership/localMembership';
+import {getChinaDayKey} from '../../mobile/src/shared/chinaDay';
+import {isRemoteAuthorizationError} from '../../mobile/src/runtime/remoteHttpError';
+import {isRemoteRequestCancellationError} from '../../mobile/src/runtime/remoteRequest';
+import {
+  applySpaceActionToMap,
+  createSpaceAction,
+  createSpaceStateRepository,
+  spaceStateSnapshotToMap,
+  type SpaceActionDimension,
+} from '../../mobile/src/space/spaceStateRepository';
+import {resolveSpaceStateRepositoryConfig} from '../../mobile/src/space/spaceStateRuntimeConfig';
+import {LearningEventOutbox} from '../../mobile/src/sync/learningEventOutbox';
+import {createLearningEventSyncRepository} from '../../mobile/src/sync/learningEventSyncRepository';
+import {createLearningEventsRepository} from '../../mobile/src/sync/learningEventsRepository';
+import {resolveLearningEventsRepositoryConfig} from '../../mobile/src/sync/learningEventsRuntimeConfig';
+import {MutationQueueManager} from '../../mobile/src/sync/mutationQueue';
+import {
+  createMutationQueueRepository,
+  type MutationQueueRepository,
+} from '../../mobile/src/sync/mutationQueueRepository';
+import {createProgressSyncRepository} from '../../mobile/src/sync/progressSyncRepository';
+import {resolveProgressSyncRepositoryConfig} from '../../mobile/src/sync/progressSyncRuntimeConfig';
+
+import type {WebRuntime} from './runtime';
+import {prepareVerifiedCardAudio} from './webAudio';
+import {
+  createMemoryOnlyAuthSessionStore,
+  createWebLearningEventStorage,
+  createWebMutationQueueStorage,
+} from './webStorage';
+
+type RemoteWebRuntime = Extract<WebRuntime, {mode: 'remote'}>;
+
+export type WebRemoteSnapshot = {
+  bootstrap: AccountBootstrapSnapshot;
+  favorites: string[];
+  learningResults: LearningCardResult[];
+  learningSession: LearningSession;
+  learningSync: {
+    pendingEventCount: number;
+    status: 'confirmed' | 'queued';
+  };
+  membership: AccountBootstrapSnapshot['membership']['state'];
+  reviewResults: LearningCardResult[];
+  sleeping: string[];
+  spaceSync: {
+    pendingActionCount: number;
+    rejectedActionCount: number;
+    rejectionCodes: Array<
+      'space_action_id_conflict' | 'space_card_not_in_content'
+    >;
+    status: 'confirmed' | 'queued' | 'queued_and_rejected' | 'rejected';
+  };
+};
+
+export type WebLearningCompletionSync = WebRemoteSnapshot['learningSync'];
+
+type RemoteRuntimeDependencies = {
+  accountBootstrapRepository: AccountBootstrapRepository;
+  authRepository: AuthRepository;
+  authSessionCoordinator: AuthSessionCoordinator;
+  learningEventSyncRepository: ReturnType<
+    typeof createLearningEventSyncRepository
+  >;
+  learningSessionRepository: LearningSessionRepository;
+  mutationQueueRepository: MutationQueueRepository;
+  now?: () => Date;
+  playAudio: (
+    card: LearningCard,
+    session: LearningSession,
+  ) => Promise<'paused' | 'playing' | 'ready'>;
+  stopAudio?: () => void;
+  runtimeSessionId?: string;
+  track: LearningTrack;
+};
+
+export type WebRemoteRuntimeController = {
+  applySpaceState: (
+    cardId: string,
+    dimension: SpaceActionDimension,
+    value: boolean,
+  ) => Promise<WebRemoteSnapshot>;
+  cleanupInvalidatedSession: () => Promise<void>;
+  completeCurrentCard: (
+    result: LearningCardResult,
+  ) => Promise<WebLearningCompletionSync>;
+  continueServerRound: () => Promise<WebRemoteSnapshot>;
+  isAuthenticated: () => boolean;
+  loadAuthenticatedState: () => Promise<WebRemoteSnapshot>;
+  logout: () => Promise<void>;
+  playCardAudio: (
+    card: LearningCard,
+  ) => Promise<'paused' | 'playing' | 'ready'>;
+  requestSmsCode: (phoneNumber: string) => Promise<AuthChallenge>;
+  verifySmsCode: (
+    phoneNumber: string,
+    smsCode: string,
+  ) => Promise<WebRemoteSnapshot>;
+};
+
+export class WebRemotePostAuthError extends Error {
+  constructor(cause: unknown) {
+    super('Authenticated Web bootstrap failed.', {cause});
+    this.name = 'WebRemotePostAuthError';
+  }
+}
+
+export function createWebRemoteRuntime(
+  runtime: RemoteWebRuntime,
+  options: {
+    fetchImpl?: typeof fetch;
+    storage?: Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
+  } = {},
+): WebRemoteRuntimeController {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const authRepository = createAuthRepository({
+    fetchImpl,
+    mode: 'remote',
+    remoteConfig: createSoftbookRemoteAuthConfig({
+      baseUrl: runtime.baseUrl,
+      clientKind: 'web',
+    }),
+  });
+  const authSessionCoordinator = createAuthSessionCoordinator({
+    authRepository,
+    authSessionStore: createMemoryOnlyAuthSessionStore(),
+  });
+  const authenticatedFetch = createAuthenticatedFetch({
+    authSessionCoordinator,
+    fetchImpl,
+  });
+  const sharedRuntimeConfig = createSharedRemoteRuntimeConfig(runtime);
+  const accountBootstrapRepository = createAccountBootstrapRepository({
+    fetchImpl: authenticatedFetch,
+    mode: 'remote',
+    remoteConfig: createSoftbookRemoteAccountBootstrapConfig({
+      baseUrl: runtime.baseUrl,
+      clientKind: 'web',
+      installedClientIdentityProvider: () => runtime.clientIdentity,
+    }),
+  });
+  const learningConfig = resolveLearningSessionRepositoryConfig(
+    sharedRuntimeConfig,
+  );
+  const learningSessionRepository = createRemoteLearningSessionRepository({
+    ...learningConfig,
+    contentManifestConfig: {
+      baseUrl: runtime.baseUrl,
+      clientKind: 'web',
+      installedClientIdentityProvider: () => runtime.clientIdentity,
+      mode: 'remote',
+      verifySignature: createPinnedContentManifestSignatureVerifier(
+        runtime.contentManifestPublicKeys,
+      ),
+    },
+    fetchImpl: authenticatedFetch,
+  });
+  const membershipRepository = createMembershipRepository({
+    ...resolveMembershipRepositoryConfig(sharedRuntimeConfig),
+    fetchImpl: authenticatedFetch,
+  });
+  const progressSyncRepository = createProgressSyncRepository({
+    ...resolveProgressSyncRepositoryConfig(sharedRuntimeConfig),
+    fetchImpl: authenticatedFetch,
+  });
+  const spaceStateRepository = createSpaceStateRepository({
+    ...resolveSpaceStateRepositoryConfig(sharedRuntimeConfig),
+    fetchImpl: authenticatedFetch,
+  });
+  const learningEventsRepository = createLearningEventsRepository({
+    ...resolveLearningEventsRepositoryConfig(sharedRuntimeConfig),
+    fetchImpl: authenticatedFetch,
+  });
+  const browserStorage = options.storage ?? window.localStorage;
+  const learningEventSyncRepository = createLearningEventSyncRepository({
+    eventsRepository: learningEventsRepository,
+    outbox: new LearningEventOutbox({
+      storage: createWebLearningEventStorage(browserStorage),
+    }),
+  });
+  const mutationQueueRepository = createMutationQueueRepository({
+    membershipRepository,
+    progressSyncRepository,
+    queueManager: new MutationQueueManager({
+      storage: createWebMutationQueueStorage(browserStorage),
+    }),
+    spaceStateRepository,
+  });
+
+  let activeAudio: {
+    cardToken: string;
+    pause: () => void;
+    play: () => Promise<void>;
+    status: 'paused' | 'playing' | 'ready';
+    stop: () => void;
+  } | null = null;
+  return createWebRemoteRuntimeController({
+    accountBootstrapRepository,
+    authRepository,
+    authSessionCoordinator,
+    learningEventSyncRepository,
+    learningSessionRepository,
+    mutationQueueRepository,
+    playAudio: async (card, session) => {
+      if (session.contentManifest === null) {
+        throw new Error('当前学习内容没有经过签名音频清单校验。');
+      }
+      const cardToken = `${card.card_id}:${card.audio?.sha256 ?? 'no-audio'}`;
+      if (activeAudio?.cardToken === cardToken) {
+        if (activeAudio.status === 'playing') {
+          activeAudio.pause();
+          activeAudio.status = 'paused';
+          return 'paused';
+        }
+        await activeAudio.play();
+        activeAudio.status = 'playing';
+        return 'playing';
+      }
+      activeAudio?.stop();
+      const playback = await prepareVerifiedCardAudio({
+        card,
+        contentManifest: session.contentManifest,
+        dependencies: {fetchImpl},
+      });
+      activeAudio = {...playback, cardToken, status: 'ready'};
+      return 'ready';
+    },
+    stopAudio: () => {
+      activeAudio?.stop();
+      activeAudio = null;
+    },
+    track: runtime.track,
+  });
+}
+
+export function createWebRemoteRuntimeController(
+  dependencies: RemoteRuntimeDependencies,
+): WebRemoteRuntimeController {
+  let challenge: AuthChallenge | null = null;
+  let activeAccountPhoneNumber: string | null = null;
+  let currentBootstrap: AccountBootstrapSnapshot | null = null;
+  let currentLearningSession: LearningSession | null = null;
+  let persistedLearningResult: LearningCardResult | null = null;
+  let persistedSelectionId: string | null = null;
+  let bootstrapGeneration = 0;
+  const now = dependencies.now ?? (() => new Date());
+  const runtimeSessionId =
+    dependencies.runtimeSessionId ?? createBootstrapRuntimeSessionId();
+
+  const requireAuthenticatedContext = async () => {
+    const session = dependencies.authSessionCoordinator.getCurrentSession();
+    if (session === null || session.mode !== 'remote') {
+      throw new Error('需要先完成手机号验证。');
+    }
+    activeAccountPhoneNumber = session.phoneNumber;
+    return {
+      authToken: await dependencies.authSessionCoordinator.getAccessToken(),
+      phoneNumber: session.phoneNumber,
+    };
+  };
+
+  const clearDurableAccountState = async () => {
+    const phoneNumber = activeAccountPhoneNumber;
+    if (phoneNumber === null) {
+      throw new Error('没有可安全清理的 Web 账户作用域。');
+    }
+    const cleanupResults = await Promise.allSettled([
+      dependencies.learningEventSyncRepository.clearAccount(phoneNumber),
+      dependencies.mutationQueueRepository.clear(),
+    ]);
+    if (cleanupResults.some(result => result.status === 'rejected')) {
+      throw new Error('退出后的本地待同步状态未能完整清理。');
+    }
+    challenge = null;
+    activeAccountPhoneNumber = null;
+    currentBootstrap = null;
+    currentLearningSession = null;
+    persistedLearningResult = null;
+    persistedSelectionId = null;
+  };
+
+  const loadBootstrap = async (forceFresh: boolean) => {
+    const dayKey = getChinaDayKey(now());
+    const bootstrap = await dependencies.accountBootstrapRepository.load(
+      dependencies.track,
+      dayKey,
+      {forceFresh},
+    );
+    if (bootstrap === null) {
+      throw new Error('远端账户没有返回可验证的当前状态。');
+    }
+    bootstrapGeneration += 1;
+    return {
+      bootstrap,
+      observation: {
+        forceFresh,
+        generation: bootstrapGeneration,
+        runtimeSessionId,
+        schemaVersion: 'account-bootstrap-observation.v1' as const,
+      },
+    };
+  };
+
+  const loadAuthenticatedState = async (): Promise<WebRemoteSnapshot> => {
+    const context = await requireAuthenticatedContext();
+
+    // The retained event ledger is replayed before the first canonical read so
+    // bootstrap can never silently outrun an acknowledged card completion.
+    const eventReplay =
+      await dependencies.learningEventSyncRepository.startReplay(context);
+    if (eventReplay.pendingCount !== 0) {
+      throw new Error('仍有学习结果等待服务端确认。');
+    }
+
+    let {bootstrap, observation} = await loadBootstrap(false);
+    await dependencies.mutationQueueRepository.hydrate();
+    const mutationResults =
+      await dependencies.mutationQueueRepository.startReplay({
+        ...context,
+        bootstrapObservation: observation,
+        componentRevisions: bootstrap.componentRevisions,
+        contentVersion: bootstrap.content.version,
+        dayKey: bootstrap.dayKey,
+        track: bootstrap.track,
+      });
+    const terminalSpaceRejections = mutationResults.flatMap(result =>
+      'terminalRejection' in result
+        ? [result.terminalRejection.code]
+        : [],
+    );
+    if (mutationResults.length > 0) {
+      ({bootstrap, observation} = await loadBootstrap(true));
+      const requiresCausalRetry = mutationResults.some(
+        result => 'canonicalRefreshRequired' in result,
+      );
+      if (requiresCausalRetry) {
+        const retryResults =
+          await dependencies.mutationQueueRepository.startReplay({
+            ...context,
+            bootstrapObservation: observation,
+            componentRevisions: bootstrap.componentRevisions,
+            contentVersion: bootstrap.content.version,
+            dayKey: bootstrap.dayKey,
+            track: bootstrap.track,
+          });
+        terminalSpaceRejections.push(
+          ...retryResults.flatMap(result =>
+            'terminalRejection' in result
+              ? [result.terminalRejection.code]
+              : [],
+          ),
+        );
+        ({bootstrap} = await loadBootstrap(true));
+      }
+    }
+
+    const learningSession =
+      await dependencies.learningSessionRepository.loadSession(
+        context,
+        dependencies.track,
+      );
+    if (
+      learningSession.membershipStage !== null &&
+      learningSession.membershipStage !== bootstrap.membership.state.stage
+    ) {
+      ({bootstrap} = await loadBootstrap(true));
+      if (
+        learningSession.membershipStage !== bootstrap.membership.state.stage
+      ) {
+        throw new Error(
+          '服务端学习权限与当前账户会员状态尚未一致。',
+        );
+      }
+    }
+    const hydrated = resolveAccountBootstrapLearningState(
+      bootstrap,
+      learningSession,
+    );
+    const pendingSpaceActions =
+      await dependencies.mutationQueueRepository.getPendingSpaceActions(
+        context.phoneNumber,
+        {
+          contentVersion: bootstrap.content.version,
+          track: bootstrap.track,
+        },
+      );
+    const quarantinedSpaceActions =
+      await dependencies.mutationQueueRepository.getQuarantinedSpaceActions(
+        context.phoneNumber,
+        {track: bootstrap.track},
+      );
+    const persistedSpaceRejectionCodes = [...new Set([
+      ...terminalSpaceRejections,
+      ...quarantinedSpaceActions.map(item => item.rejection.code),
+    ])];
+    const visibleSpaceState = pendingSpaceActions.reduce(
+      applySpaceActionToMap,
+      spaceStateSnapshotToMap(bootstrap.space.snapshot),
+    );
+    const favorites = Object.entries(visibleSpaceState)
+      .filter(([, state]) => state.isFavorited)
+      .map(([cardId]) => cardId);
+    const sleeping = Object.entries(visibleSpaceState)
+      .filter(([, state]) => state.isSleeping)
+      .map(([cardId]) => cardId);
+
+    const previousCardId = currentLearningSession?.cards[0]?.card_id ?? null;
+    const nextCardId = learningSession.cards[0]?.card_id ?? null;
+    if (previousCardId !== null && previousCardId !== nextCardId) {
+      dependencies.stopAudio?.();
+    }
+    currentBootstrap = bootstrap;
+    currentLearningSession = learningSession;
+    const nextSelectionId = learningSession.serverSelection?.selectionId ?? null;
+    if (
+      persistedSelectionId !== null &&
+      nextSelectionId !== persistedSelectionId
+    ) {
+      persistedLearningResult = null;
+      persistedSelectionId = null;
+    }
+    return {
+      bootstrap,
+      favorites,
+      learningResults: hydrated.learningResults,
+      learningSession,
+      learningSync: {
+        pendingEventCount: eventReplay.pendingCount,
+        status: eventReplay.pendingCount === 0 ? 'confirmed' : 'queued',
+      },
+      membership: bootstrap.membership.state,
+      reviewResults: hydrated.reviewResults,
+      sleeping,
+      spaceSync: {
+        pendingActionCount: pendingSpaceActions.length,
+        rejectedActionCount: quarantinedSpaceActions.length,
+        rejectionCodes: persistedSpaceRejectionCodes,
+        status:
+          persistedSpaceRejectionCodes.length > 0 &&
+          pendingSpaceActions.length > 0
+            ? 'queued_and_rejected'
+            : persistedSpaceRejectionCodes.length > 0
+            ? 'rejected'
+            : pendingSpaceActions.length === 0
+            ? 'confirmed'
+            : 'queued',
+      },
+    };
+  };
+
+  return {
+    async applySpaceState(cardId, dimension, value) {
+      const context = await requireAuthenticatedContext();
+      if (currentBootstrap === null) {
+        throw new Error('需要先读取当前账户状态。');
+      }
+      if (
+        !resolveMembershipAccess(currentBootstrap.membership.state)
+          .completePhysicalSpace
+      ) {
+        throw new Error('当前会员状态不能修改完整物理空间。');
+      }
+      const action = createSpaceAction({cardId, dimension, value});
+      await dependencies.mutationQueueRepository.enqueueMutation(
+        'apply_space_action',
+        {
+          action,
+          contentVersion: currentBootstrap.content.version,
+          context,
+          track: currentBootstrap.track,
+        },
+        action.actionId,
+      );
+      return loadAuthenticatedState();
+    },
+
+    async cleanupInvalidatedSession() {
+      if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
+        throw new Error('当前 Web 会话尚未失效，不能跳过远端注销。');
+      }
+      dependencies.stopAudio?.();
+      await clearDurableAccountState();
+    },
+
+    async completeCurrentCard(result) {
+      const context = await requireAuthenticatedContext();
+      const selection = currentLearningSession?.serverSelection;
+      const contentVersion = currentLearningSession?.contentVersion;
+      if (
+        currentLearningSession === null ||
+        currentLearningSession.schedulingMode !== 'server' ||
+        selection == null ||
+        contentVersion == null ||
+        selection.cardId !== result.cardId
+      ) {
+        throw new Error('当前学习结果没有对应的服务端选择。');
+      }
+      if (
+        persistedSelectionId === selection.selectionId &&
+        persistedLearningResult !== null &&
+        !areLearningResultsEqual(persistedLearningResult, result)
+      ) {
+        throw new Error(
+          'Queued Learning result retry must match the durably persisted answer.',
+        );
+      }
+      if (persistedSelectionId !== selection.selectionId) {
+        await dependencies.learningEventSyncRepository.enqueueCompletion({
+          accountPhoneNumber: context.phoneNumber,
+          contentVersion,
+          phase: selection.phase,
+          result,
+          selectionId: selection.selectionId,
+          track: currentLearningSession.track,
+        });
+        persistedLearningResult = {...result};
+        persistedSelectionId = selection.selectionId;
+      }
+      let replay: Awaited<
+        ReturnType<
+          RemoteRuntimeDependencies['learningEventSyncRepository']['startReplay']
+        >
+      >;
+      try {
+        replay =
+          await dependencies.learningEventSyncRepository.startReplay(context);
+      } catch (error) {
+        if (
+          isRemoteAuthorizationError(error) ||
+          isRemoteRequestCancellationError(error)
+        ) {
+          throw error;
+        }
+        let pendingEventCount = 1;
+        try {
+          pendingEventCount = Math.max(
+            1,
+            await dependencies.learningEventSyncRepository.getPendingCount(
+              context.phoneNumber,
+            ),
+          );
+        } catch {
+          // Durable enqueue succeeded, so an ambiguous replay/read remains
+          // queued until exact acknowledgement can be proven.
+        }
+        return {pendingEventCount, status: 'queued'};
+      }
+      if (replay.pendingCount !== 0) {
+        return {
+          pendingEventCount: replay.pendingCount,
+          status: 'queued',
+        };
+      }
+      return {pendingEventCount: 0, status: 'confirmed'};
+    },
+
+    async continueServerRound() {
+      const context = await requireAuthenticatedContext();
+      if (currentLearningSession === null) {
+        throw new Error('当前没有可继续的服务端学习轮次。');
+      }
+      await dependencies.learningSessionRepository.continueRound(
+        context,
+        currentLearningSession,
+      );
+      return loadAuthenticatedState();
+    },
+
+    isAuthenticated() {
+      return dependencies.authSessionCoordinator.getCurrentSession() !== null;
+    },
+
+    loadAuthenticatedState,
+
+    async logout() {
+      const currentSession =
+        dependencies.authSessionCoordinator.getCurrentSession();
+      if (currentSession !== null) {
+        activeAccountPhoneNumber = currentSession.phoneNumber;
+      }
+      dependencies.stopAudio?.();
+      if (currentSession !== null) {
+        await dependencies.authSessionCoordinator.logout();
+      }
+      await clearDurableAccountState();
+    },
+
+    async playCardAudio(card) {
+      if (currentLearningSession === null) {
+        throw new Error('当前没有经过验证的学习内容。');
+      }
+      return dependencies.playAudio(card, currentLearningSession);
+    },
+
+    async requestSmsCode(phoneNumber) {
+      if (
+        activeAccountPhoneNumber !== null &&
+        dependencies.authSessionCoordinator.getCurrentSession() === null
+      ) {
+        throw new Error(
+          '上一个 Web 会话的本地待同步状态尚未安全清理。',
+        );
+      }
+      challenge = await dependencies.authRepository.requestSmsCode(phoneNumber);
+      return challenge;
+    },
+
+    async verifySmsCode(phoneNumber, smsCode) {
+      if (challenge === null) {
+        throw new Error('请先获取短信验证码。');
+      }
+      const session = await dependencies.authRepository.verifySmsCode({
+        challenge,
+        phoneNumber,
+        smsCode,
+      });
+      if (session.mode !== 'remote') {
+        throw new Error('生产 Web 只接受远端账户会话。');
+      }
+      await dependencies.authSessionCoordinator.establish(session);
+      activeAccountPhoneNumber = session.phoneNumber;
+      challenge = null;
+      try {
+        return await loadAuthenticatedState();
+      } catch (error) {
+        throw new WebRemotePostAuthError(error);
+      }
+    },
+  };
+}
+
+function createSharedRemoteRuntimeConfig(
+  runtime: RemoteWebRuntime,
+): SoftbookAppRuntimeConfig {
+  const remote = {baseUrl: runtime.baseUrl};
+  return {
+    accountBootstrap: {mode: 'remote', remote},
+    auth: {mode: 'remote', remote},
+    clientKind: 'web',
+    contentManifest: {
+      mode: 'remote',
+      remote: {
+        ...remote,
+        publicKeys: runtime.contentManifestPublicKeys,
+      },
+    },
+    learningSource: {mode: 'remote', remote, track: runtime.track},
+    learningState: {mode: 'remote', remote},
+    learningTrack: runtime.track,
+    membership: {mode: 'remote', remote},
+    mutationQueue: {mode: 'local'},
+    progressSync: {mode: 'remote', remote},
+    spaceState: {mode: 'remote', remote},
+  };
+}
+
+function createBootstrapRuntimeSessionId() {
+  const randomPart =
+    typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `bootstrap-runtime:web-${randomPart}`;
+}
+
+function areLearningResultsEqual(
+  left: LearningCardResult,
+  right: LearningCardResult,
+) {
+  return (
+    left.cardId === right.cardId &&
+    left.completedAt === right.completedAt &&
+    left.interactionId === right.interactionId &&
+    left.isFavorited === right.isFavorited &&
+    left.outcome === right.outcome &&
+    left.usedHint === right.usedHint &&
+    left.usedPeek === right.usedPeek
+  );
+}

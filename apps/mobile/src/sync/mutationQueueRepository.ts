@@ -63,6 +63,14 @@ export type MutationReplayContext = {
   track?: 'cet4' | 'cet6';
 };
 
+export type QuarantinedSpaceAction = {
+  action: SpaceAction;
+  contentVersion: string;
+  quarantinedAt: string;
+  rejection: MutationQueueTerminalRejection;
+  track: 'cet4' | 'cet6';
+};
+
 export interface MutationQueueRepository {
   enqueueMutation<Type extends MutationType>(
     type: Type,
@@ -81,6 +89,10 @@ export interface MutationQueueRepository {
     phoneNumber: string,
     scope?: { contentVersion: string; track: 'cet4' | 'cet6' },
   ): Promise<SpaceAction[]>;
+  getQuarantinedSpaceActions(
+    phoneNumber: string,
+    scope?: {track: 'cet4' | 'cet6'},
+  ): Promise<QuarantinedSpaceAction[]>;
   clear(): Promise<void>;
 }
 
@@ -375,6 +387,32 @@ export function createMutationQueueRepository(options: {
         }
 
         return [entry.payload.action];
+      });
+    },
+
+    async getQuarantinedSpaceActions(phoneNumber, scope) {
+      await queue.hydrate();
+      const quarantined = await queue.getQuarantined();
+
+      return quarantined.flatMap(item => {
+        const entry = item.entry;
+        if (
+          entry.type !== 'apply_space_action' ||
+          entry.payload.context.phoneNumber !== phoneNumber ||
+          entry.payload.contentVersion === null ||
+          entry.payload.track === null ||
+          (scope !== undefined && entry.payload.track !== scope.track)
+        ) {
+          return [];
+        }
+
+        return [{
+          action: entry.payload.action,
+          contentVersion: entry.payload.contentVersion,
+          quarantinedAt: item.quarantinedAt,
+          rejection: item.rejection,
+          track: entry.payload.track,
+        }];
       });
     },
 

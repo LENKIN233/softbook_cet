@@ -34,7 +34,7 @@ PC Web is a first-class target with the same core product meaning as iOS and And
 
 ## Implementation Hypothesis
 
-`apps/web` is an independent React + Vite entry that reuses the mobile repository's platform-neutral learning evaluation, local development session, and membership access. Space derives its visible hierarchy directly from each card's validated `space_metadata` rather than display placeholders. The browser shell uses a left route rail, one center focal object, and a bounded context rail. Development mode may exercise repository-local structured cards; production mode fails closed until an HTTPS runtime and remote authentication path are present.
+`apps/web` is an independent React + Vite entry that reuses the mobile repository's platform-neutral auth, bootstrap, learning, event, membership, Space, content-manifest, and evaluation repositories. Space derives its visible hierarchy directly from each card's validated `space_metadata` rather than display placeholders. The browser shell uses a left route rail, one center focal object, and a bounded context rail. Development mode may exercise repository-local structured cards; production requires one all-or-nothing HTTPS remote profile with an explicit Web client kind and public manifest keyring.
 
 This implementation hypothesis does not turn repository-local cards into approved content and does not establish a production Web runtime.
 
@@ -49,22 +49,24 @@ This implementation hypothesis does not turn repository-local cards into approve
 | Elimination | reversible strike choices and explicit submit | browser flow |
 | Swipe | two directional states, discrete buttons, left/right keyboard equivalence | browser flow and tests |
 | Review | answer/analysis/exam-tip slip remains attached; the final card enters an explicit session-complete object and can start a bounded review deck | browser flow and tests |
-| Space | actual library/group/box tree derived from card ownership, selected owning box only, contained cards, inspector, favorite and owned sleep region | browser flow and tests |
+| Space | actual library/group/box tree derived from card ownership; free sees the stable accessible prefix as read-only preview, while trial/premium sees and can mutate the complete Space | browser flow and `App.remote.test.tsx` |
 | Statistics | quiet daily ledger with tabular counts | browser flow |
-| Mine/membership | first authenticated entry starts the full trial; masked identity and membership stage remain visible; unconnected purchase/restore/delete controls are explicitly disabled; privacy boundary expands in place | browser flow and tests |
-| Runtime boundary | external browser-visible config accepts HTTPS base only; missing production config is unavailable; no API key field; production artifact excludes development cards | `runtime.test.ts`, build boundary scan, production preview browser proof |
+| Mine/membership | development first entry exercises the local trial; remote mode renders only canonical server entitlement and never starts a client trial; purchase/restore/delete controls remain explicitly disabled | browser flow and tests |
+| Runtime boundary | exact browser-visible profile requires HTTPS base, `clientKind=web`, track and public keyring; access/refresh credentials are memory-only; production artifact excludes development cards | `runtime.test.ts`, `webStorage.test.ts`, build boundary scan |
+| Remote domain slice | shared request/verify/refresh/logout, event replay before bootstrap, server session/completion/next, durable credential-free queues, cleanup-before-login, frozen exact queued answers, canonical Space/membership, route-stable Learning pending state, and independent persisted Space queued/rejected facts with confirmed only when both are empty | `remoteRuntime.ts`, `remoteRuntime.test.ts`, `App.remote.test.tsx` |
+| Private Web audio | shared signed manifest/keyring parser plus full byte count and SHA-256 verification before explicit Blob playback; expiring URL is never a playback source | `webAudio.ts`, `webAudio.test.ts` |
 | Accessibility | landmarks, labels, pressed/expanded state, focus-visible treatment, reduced-motion-safe discrete operations | axe-core smoke, keyboard browser flow, unit tests |
 
 ## Explicit Gap Table
 
 | Boundary | Current status | Required before production claim |
 |---|---|---|
-| Remote SMS authentication | UI exists; remote mode intentionally stops | connect `/v2` request/verify/refresh/logout and prove production SMS |
-| Canonical bootstrap and scheduler | development session only | hydrate canonical bootstrap and `/v2/learning/session` with authenticated server selection |
-| Learning events/progress | in-memory results only | durable queue, replay, check-in and recovery evidence |
-| Space sync | in-memory favorite/sleep state only | authenticated `/v2/space/actions`, projection and offline recovery |
-| Membership/payment | first authenticated entry starts the local full trial; purchase/restore remain explicitly unavailable | shared remote membership, Web purchase authority, restore and payment evidence |
-| Audio | unavailable state is attached; playback is not implemented | signed manifest, private fetch, hash verification, cache/playback and listening QC |
+| Remote SMS authentication | repository request/verify/refresh/logout and memory-only Web session are connected | prove receiver SMS delivery, revocation and browser runtime results |
+| Canonical bootstrap and scheduler | event replay precedes authenticated bootstrap; shared `/v2/learning/session` and selection-bound completion ack/next are connected | prove receiver content/session execution and recovery in a real browser |
+| Learning events/progress | credential-free event outbox persists in browser storage and blocks canonical read until replay; check-in UI intentionally remains outside this slice | add the accepted check-in UI and prove browser recovery/runtime results |
+| Space sync | credential-free queue and shared `/v2/space/actions` are connected; visible favorite/sleep updates only after durable enqueue, retryable failures remain queued, persisted terminal 409 quarantine remains rejected across reload, and confirmed requires ack plus fresh bootstrap | prove receiver conflict/offline recovery in a real browser |
+| Membership/payment | remote UI state comes only from canonical server entitlement; no client trial start exists in remote mode; purchase/restore remain unavailable | implement Web purchase/restore and prove payment evidence |
+| Audio | signed manifest/keyring, private full-byte download, size/SHA-256 verification and explicit Blob playback are connected | inject the real public keyring and prove private browser playback/listening QC |
 | Formal content | development structured cards only | approved `card make` payload, import/audit/smoke and coverage evidence |
 | Account deletion | visible action remains unavailable | remote deletion/recovery flow and policy evidence |
 | Responsive proof | CSS has 1120px and 760px containment modes | dedicated 1024px and 200% zoom screenshots plus no-horizontal-task-loss audit |
@@ -74,7 +76,7 @@ This implementation hypothesis does not turn repository-local cards into approve
 
 ## Browser Review
 
-- Real in-app browser re-exercised Auth, all five Learning silhouettes, immediate flip resolution, explicit five-card completion, one-card review entry, the real Space hierarchy, and trial/membership context after the acceptance correction.
+- Earlier local-development browser evidence re-exercised Auth, all five Learning silhouettes, immediate flip resolution, explicit five-card completion, one-card review entry, the real Space hierarchy, and local trial/membership context after the acceptance correction. It is not remote-runtime evidence.
 - The corrected Space proof showed `听力 / 逻辑关系 / 转折关系` with exactly its two owned cards while sibling libraries, groups, and boxes remained browsable in the hierarchy.
 - Development styling loaded under a nonce-bound CSP after the earlier meta policy had blocked Vite's injected development style element.
 - Production-build inspection proves the local source identifier and representative development card prompts are absent from emitted HTML/JS/CSS.
@@ -99,4 +101,4 @@ Q6: Flip exposes exactly two self-assess choices; Statistics stays tabular; Lear
 
 ## Status
 
-Repository implementation is suitable for implementation review and CI. It is not deployable production parity and does not change the launch-readiness result.
+Repository implementation is suitable for implementation review and CI. The authenticated remote vertical slice is implemented but has no receiver Web deployment, SMS, payment, account-deletion, private-audio runtime, monitoring, or launch evidence; it does not change the launch-readiness result.

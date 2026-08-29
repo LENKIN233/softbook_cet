@@ -574,6 +574,30 @@ describe('MutationQueueRepository', () => {
           rejection: { code, status: 409 },
         },
       ]);
+      await expect(
+        repository.getQuarantinedSpaceActions(
+          spacePayload.context.phoneNumber,
+          {track: spacePayload.track},
+        ),
+      ).resolves.toMatchObject([
+        {
+          action: spacePayload.action,
+          contentVersion: spacePayload.contentVersion,
+          rejection: {code, status: 409},
+          track: spacePayload.track,
+        },
+      ]);
+      await expect(
+        repository.getQuarantinedSpaceActions('13900139000', {
+          track: spacePayload.track,
+        }),
+      ).resolves.toEqual([]);
+      await expect(
+        repository.getQuarantinedSpaceActions(
+          spacePayload.context.phoneNumber,
+          {track: spacePayload.track === 'cet4' ? 'cet6' : 'cet4'},
+        ),
+      ).resolves.toEqual([]);
       expect(mockProgressSyncRepository.checkIn).toHaveBeenCalledTimes(1);
       expect(JSON.stringify(sharedStore)).not.toContain('token-space');
 
@@ -581,6 +605,20 @@ describe('MutationQueueRepository', () => {
       await expect(restoredQueueManager.getQuarantined()).resolves.toHaveLength(
         1,
       );
+      const restoredRepository = createMutationQueueRepository({
+        membershipRepository: mockMembershipRepository as never,
+        progressSyncRepository: mockProgressSyncRepository as never,
+        queueManager: restoredQueueManager,
+        spaceStateRepository: mockSpaceStateRepository as never,
+      });
+      await expect(
+        restoredRepository.getQuarantinedSpaceActions(
+          spacePayload.context.phoneNumber,
+          {track: spacePayload.track},
+        ),
+      ).resolves.toMatchObject([
+        {rejection: {code, status: 409}, track: spacePayload.track},
+      ]);
     },
   );
 

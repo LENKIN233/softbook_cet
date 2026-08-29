@@ -399,6 +399,39 @@ test('binds a force-fresh bootstrap to the caller cancellation signal', async ()
   });
 });
 
+test('uses browser request cache semantics without a CORS-unsafe force-fresh header', async () => {
+  const fetchImpl = jest.fn(async (_input: string, _init?: unknown) => ({
+    json: async () => createBootstrapPayload(),
+    ok: true,
+    status: 200,
+  }));
+  const repository = createAccountBootstrapRepository({
+    fetchImpl,
+    mode: 'remote',
+    remoteConfig: {
+      clientKind: 'web',
+      endpoint: 'https://api.softbook.example/v2/bootstrap',
+    },
+  });
+
+  await repository.load('cet4', DAY_KEY, {forceFresh: true});
+
+  expect(fetchImpl).toHaveBeenCalledWith(expect.any(String), {
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      'x-softbook-client': 'web',
+    },
+    method: 'GET',
+  });
+  const requestInit = fetchImpl.mock.calls[0][1] as {
+    headers?: Record<string, string>;
+  };
+  expect(requestInit.headers).not.toHaveProperty(
+    'Cache-Control',
+  );
+});
+
 test('accepts a complete published content descriptor', () => {
   const payload = createBootstrapPayload();
   payload.data.content = {

@@ -29,9 +29,9 @@ Referenced active specs:
   transactional ledger, server sequence, daily aggregates, per-card learning
   projection, retained content lookup, transactional FSRS projection, matching
   learning-session cursor clearing, and bootstrap projection read.
-- The implementation has local memory and CloudBase-adapter tests. The React
-  Native client also consumes the authenticated server session, resolves only
-  its selected card, durably binds the selection to an event, replays exactly,
+- The implementation has local memory and CloudBase-adapter tests. React Native
+  and PC Web clients also consume the authenticated server session, resolve only
+  its selected card, durably bind the selection to an event, replay exactly,
   removes only strict acknowledgements, and reconciles bootstrap before reading
   the next session.
 - This repository change deploys neither backend nor mobile release artifacts;
@@ -421,6 +421,21 @@ event. Mine, foreground, and connectivity refreshes may re-read bootstrap to
 validate content identity, but do not map pre-acknowledgement projections over
 optimistic local intent. After strict event acknowledgement, the client
 refreshes and maps bootstrap before replaying those dependent mutations.
+
+PC Web injects browser localStorage behind this same outbox core. The stored
+shape remains credential-free; access and refresh tokens stay in memory. On
+authenticated entry and before every canonical bootstrap read, Web replays the
+signed-in account's retained events and refuses to advance to a new server
+selection while any completion remains unacknowledged. Authorization loss and
+explicit logout clear the signed-out account's event entries plus the generic
+mutation queue before the login surface is shown; a failed clear keeps a bounded
+recovery surface and blocks same-phone reauthentication. A persisted event whose
+acknowledgement fails remains visibly queued across Learning, Space, Statistics,
+and Mine; route navigation cannot relabel it as server-confirmed. The exact first
+durably persisted result and selection are frozen while queued; answer controls
+stay disabled and retries must use byte-equivalent result facts or perform a
+fresh canonical reload. This is repository
+behavior only, not deployed-browser evidence.
 
 Generic mutation queue operations are serialized and use candidate persistence:
 memory changes only after storage succeeds. A late remote result removes or

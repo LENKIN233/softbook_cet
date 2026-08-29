@@ -34,16 +34,20 @@ Referenced active specs:
   `release_class=controlled_pilot`, pilot identity, exact iOS/Android minimum
   versions, pilot expiry, and `gate_eligible=false`. Mixed or unknown fields
   fail closed.
-- The repository-local CloudBase endpoint, exact mobile parser, strict runtime
-  keyring consumer, pinned-key Ed25519 verifier, native content-addressed cache
+- The repository-local CloudBase endpoint, exact shared parser, strict runtime
+  keyring consumers, pinned-key Ed25519 verifier, native content-addressed cache
   with completed-byte hashing, Learning controller, attached control, and
   iOS/Android native playback adapters are implemented locally but not deployed
   or device smoked. The actual native iOS/Android client minimum gate is also
   implemented locally and runs only after signed-manifest verification.
   The public-only release-profile schema/generator, strict pre-registration JS
   parser, iOS/Android Release resource embedding, and IPA/APK byte inspector are
-  implemented. Receiver profile/key values, persistent receiver execution,
-  real-device minimum-version proof, private-object
+  implemented. PC Web
+  now uses the same parser and verifier, requires an exact public keyring,
+  verifies the complete private object's signed byte length and SHA-256, and
+  only then creates a Blob playback source. Receiver profile/key values, signed
+  private artifacts, persistent receiver execution, real-device
+  minimum-version proof, and private-object deployed runtime
   download/playback proof, and cross-platform visual evidence remain pending,
   so the audio launch gate stays pending.
 
@@ -240,6 +244,15 @@ cache misses require an unexpired credential-free HTTPS download, and every
 native redirect target must also remain credential-free HTTPS. Concurrent
 requests for the same digest share one in-process operation only after each
 caller's asset/download identity and declared byte length are validated.
+
+PC Web performs the same acceptance without a native file cache: one explicit
+user action fetches the credential-free HTTPS download with browser credentials
+omitted, consumes the full body, compares exact signed byte length, computes
+SHA-256 over those completed bytes, and creates a Blob URL only after both
+checks pass. The expiring transport URL is never assigned to an audio element.
+Web access and refresh tokens remain in process memory and are not attached to
+the private-object request. This repository implementation is not browser
+runtime evidence and does not prove receiver key injection or playback.
 
 The verified manifest is attached to the in-memory Learning session. The
 attached Learning audio chip now calls the verified cache through a bounded

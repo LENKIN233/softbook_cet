@@ -121,6 +121,24 @@ and component revisions are unchanged, the queue remains blocked without an
 automatic refresh/replay loop.
 Authorization and session cancellation keep their separate session lifecycle
 handling.
+
+PC Web injects browser localStorage behind the same credential-free mutation
+queue and uses the shared `/v2/space/actions` repository. Tokens are added only
+in memory during replay. The visible favorite/sleep state is canonical
+bootstrap plus same-account/track pending intent; remote mode never substitutes
+a local Space authority. A visible mutation advances only after durable enqueue.
+Retryable network or malformed-response failures remain explicitly queued; only
+strict acknowledgement followed by a fresh canonical bootstrap is displayed as
+server-confirmed. Terminal `space_card_not_in_content` or
+`space_action_id_conflict` 409 results enter the bounded quarantine and remain
+visible as rejected/stopped rather than being relabeled confirmed. PC Web reads
+account-and-track quarantine on every snapshot and reload; rejection remains
+visible until logout clears the queue/quarantine or a future explicit safe
+resolution policy is implemented. Persisted rejection count and newer pending
+count are independent facts; if both are nonzero the client renders both and
+cannot report server-confirmed. Free membership receives only the stable accessible card
+prefix as a read-only Space preview; trial and premium alone can mutate complete
+Space. No receiver browser execution is implied.
 An action retained for an inactive track is rotated past without deletion so it
 cannot starve current-track or account-wide mutations; it is retried only after
 that track has its own validated bootstrap/content hydration.
