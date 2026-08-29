@@ -40,8 +40,6 @@ export const FORMAL_TRACK_POLICIES = Object.freeze({
     audio_count: CET6_PRODUCT_AUDIO_COUNT,
   }),
 });
-export const PERSONAL_DEVELOPMENT_ENVIRONMENT = 'test-d2gzcyxr9f7e80972';
-
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const SEMVER_PATTERN =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
@@ -97,12 +95,6 @@ export function validateDeliveryProfile(value) {
     'profile_id',
   );
   const environmentId = requireString(profile.environment_id, 'environment_id');
-
-  if (environmentId === PERSONAL_DEVELOPMENT_ENVIRONMENT) {
-    throw new ReleaseDeliveryError(
-      'delivery profile must target a receiver-owned environment, not the personal development environment.',
-    );
-  }
 
   const region = requirePattern(
     profile.region,

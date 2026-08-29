@@ -17,7 +17,7 @@
     "membership_access": "receiver_operator_beta_entitlement_v1",
     "content_approval": "one_exact_model_owned_content_authorization_v2_with_two_single_task_context_perturbation_passes_bound_to_the_CET4_corpus_audit_and_model_review",
     "audio_approval": "model_owned_audio_qc_v2_with_two_independent_audio_capable_runs_complete_asset_consumption_and_seven_bound_per_card_results_for_every_referenced_audio_asset",
-    "receiver_environment": "independent_receiver_owned_CloudBase_environment_not_the_personal_development_environment"
+    "receiver_environment": "receiver_owned_CloudBase_environment_distinct_or_zero_data_in_place_promoted_with_development_configuration_removed"
   },
   "authority_boundary": {
     "state_record": "docs/release/cet4-closed-beta-readiness.v1.json",
@@ -59,7 +59,7 @@
     "machine_acceptance_record_required": true
   },
   "external_dependencies": {
-    "tencent-cloud-receiver": "independent_environment_IAM_database_function_storage_logging_and_backup_control",
+    "tencent-cloud-receiver": "receiver_owned_environment_IAM_database_function_storage_logging_backup_control_and_zero_data_promotion_proof_when_reused",
     "sms-provider": "approved_sender_template_credentials_quota_and_real_delivery",
     "apple-private-distribution": "developer_team_signing_profile_private_beta_distribution_and_real_device_install",
     "android-private-distribution": "receiver_keystore_private_channel_and_real_device_install",

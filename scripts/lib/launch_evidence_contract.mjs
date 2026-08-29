@@ -208,9 +208,9 @@ const RELEASE_OPERATIONAL_EVIDENCE_SET = new Set(
 
 export const REQUIRED_EVIDENCE_CHECKS = Object.freeze({
   'dev-environment-isolation': [
-    'environment-identities-distinct',
-    'credentials-scoped',
-    'personal-environment-rejected',
+    'receiver-owned-environment-confirmed',
+    'development-configuration-absent',
+    'zero-imported-user-data',
   ],
   'staging-deployment': [
     'clean-deployment',
@@ -2982,7 +2982,9 @@ function validateReleasePolicyEnvironment(value, errors) {
     [
       'allowed_classes',
       'receiver_owned_required',
-      'personal_development_environment_forbidden',
+      'in_place_environment_promotion_allowed',
+      'in_place_promotion_requires_zero_imported_user_data',
+      'development_configuration_forbidden_after_promotion',
       'required_execution_modes',
     ],
     label,
@@ -3001,9 +3003,21 @@ function validateReleasePolicyEnvironment(value, errors) {
     errors,
   );
   assertEqual(
-    value.personal_development_environment_forbidden,
+    value.in_place_environment_promotion_allowed,
     true,
-    `${label}.personal_development_environment_forbidden`,
+    `${label}.in_place_environment_promotion_allowed`,
+    errors,
+  );
+  assertEqual(
+    value.in_place_promotion_requires_zero_imported_user_data,
+    true,
+    `${label}.in_place_promotion_requires_zero_imported_user_data`,
+    errors,
+  );
+  assertEqual(
+    value.development_configuration_forbidden_after_promotion,
+    true,
+    `${label}.development_configuration_forbidden_after_promotion`,
     errors,
   );
   if (!isRecord(value.required_execution_modes)) {
