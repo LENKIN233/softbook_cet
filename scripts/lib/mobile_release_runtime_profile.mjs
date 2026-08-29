@@ -1,5 +1,7 @@
 import {createHash} from 'node:crypto';
 
+import {parseStrictJson} from './strict_json.mjs';
+
 export const MOBILE_RELEASE_RUNTIME_PROFILE_SCHEMA =
   'mobile-release-runtime-profile.v1';
 export const CONTENT_MANIFEST_PUBLIC_KEYRING_SCHEMA =
@@ -163,6 +165,42 @@ export function createMobileReleaseRuntimeProfile({
   publicKeyring,
   publicKeyringBytes,
 }) {
+  const parsedDeliveryProfile = parseStrictJson(
+    deliveryProfileBytes,
+    'delivery profile',
+  );
+  requireRecord(parsedDeliveryProfile, 'delivery profile');
+  requireExactKeys(
+    parsedDeliveryProfile,
+    [
+      'schema_version',
+      'profile_id',
+      'environment_id',
+      'region',
+      'api_base_url',
+      'runtime_mode',
+      'enabled_tracks',
+      'minimum_client_versions',
+      'signing_key_id',
+    ],
+    'delivery profile',
+  );
+  if (canonicalStringify(parsedDeliveryProfile) !== canonicalStringify(deliveryProfile)) {
+    throw new Error('Delivery profile object does not match its exact bytes.');
+  }
+  requireExact(parsedDeliveryProfile.schema_version, 'delivery-profile.v1', 'delivery profile schema');
+  requireExact(parsedDeliveryProfile.runtime_mode, 'closed_beta', 'delivery profile runtime_mode');
+  if (JSON.stringify(parsedDeliveryProfile.enabled_tracks) !== JSON.stringify(['cet4'])) {
+    throw new Error('Delivery profile enabled_tracks must be exactly CET4.');
+  }
+  requirePattern(parsedDeliveryProfile.region, /^[a-z]+-[a-z]+(?:-\d+)?$/, 'delivery profile region');
+  const parsedKeyring = parseStrictJson(
+    publicKeyringBytes,
+    'content manifest public keyring',
+  );
+  if (canonicalStringify(parsedKeyring) !== canonicalStringify(publicKeyring)) {
+    throw new Error('Public keyring object does not match its exact bytes.');
+  }
   const keyring = validateContentManifestPublicKeyring(publicKeyring);
   const profile = {
     schema_version: MOBILE_RELEASE_RUNTIME_PROFILE_SCHEMA,
