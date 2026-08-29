@@ -1129,13 +1129,24 @@ function buildValidatedArtifact(context) {
 
 export function copyValidationSupportFiles(validationWorkspace) {
   const source = join(REPOSITORY_ROOT, "scripts", "lib");
-  const target = join(validationWorkspace, "scripts", "lib");
-  mkdirSync(dirname(target), {recursive: true});
-  cpSync(source, target, {
+  const scriptsTarget = join(validationWorkspace, "scripts");
+  const libraryTarget = join(scriptsTarget, "lib");
+  mkdirSync(scriptsTarget, {recursive: true});
+  cpSync(source, libraryTarget, {
     filter: currentPath => basename(currentPath) !== ".DS_Store",
     recursive: true,
   });
-  return target;
+  for (const filename of [
+    "build_controlled_pilot_bundle.mjs",
+    "run_audio_bundle_candidate_mobile_acceptance.mjs",
+    "run_controlled_pilot_mobile_acceptance.mjs",
+  ]) {
+    cpSync(
+      join(REPOSITORY_ROOT, "scripts", filename),
+      join(scriptsTarget, filename)
+    );
+  }
+  return scriptsTarget;
 }
 
 export function shouldIncludeArtifactPath(

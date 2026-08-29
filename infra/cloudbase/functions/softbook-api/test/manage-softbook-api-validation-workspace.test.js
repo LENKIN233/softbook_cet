@@ -18,17 +18,30 @@ test('deployment validation workspace includes repository support modules', asyn
   );
   const target = module.copyValidationSupportFiles(temporaryRoot);
 
-  assert.equal(target, path.join(temporaryRoot, 'scripts', 'lib'));
+  assert.equal(target, path.join(temporaryRoot, 'scripts'));
   for (const filename of [
     'launch_evidence_contract.mjs',
     'model_acceptance_contract.mjs',
     'strict_json.mjs',
   ]) {
-    const copied = path.join(target, filename);
+    const copied = path.join(target, 'lib', filename);
     assert.equal(fs.statSync(copied).isFile(), true, filename);
     assert.deepEqual(
       fs.readFileSync(copied),
       fs.readFileSync(path.join(repositoryRoot, 'scripts', 'lib', filename)),
+      filename,
+    );
+  }
+  for (const filename of [
+    'build_controlled_pilot_bundle.mjs',
+    'run_audio_bundle_candidate_mobile_acceptance.mjs',
+    'run_controlled_pilot_mobile_acceptance.mjs',
+  ]) {
+    const copied = path.join(target, filename);
+    assert.equal(fs.statSync(copied).isFile(), true, filename);
+    assert.deepEqual(
+      fs.readFileSync(copied),
+      fs.readFileSync(path.join(repositoryRoot, 'scripts', filename)),
       filename,
     );
   }
