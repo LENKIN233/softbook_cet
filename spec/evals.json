@@ -678,6 +678,8 @@
         "consumer_rehashes_all_301_audio_files_recomputes_entry_identity_and_validates_runtime_manifests",
         "consumer_rejects_duplicate_runs_failed_raw_decision_replay_transcript_hash_drift_and_unbound_acceptance_inputs",
         "formal_media_evidence_types_require_the_real_attested_receipt_identity_plus_rehashed_authorization_review_audit_runtime_bundle_content_and_27_QC_records",
+        "unchanged_attested_media_can_cross_a_non_audio_content_version_only_after_301_item_hash_size_duration_transcript_box_and_training_goal_parity",
+        "current_non_audio_content_still_requires_new_review_authorization_audit_runtime_and_bundle_evidence",
         "missing_attestation_or_any_raw_byte_drift_fails_closed",
         "external_playback_device_provider_and_distribution_facts_cannot_be_inferred"
       ]

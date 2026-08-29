@@ -885,6 +885,8 @@ function validateCet4FormalContentMeasurements(
     'audio_qc_index_role',
     'trusted_media_receipt_role',
     'trusted_media_attestation_bundle_role',
+    'trusted_media_audio_manifest_role',
+    'trusted_media_reviewed_worklist_role',
   ];
   assertExactKeys(
     value,
