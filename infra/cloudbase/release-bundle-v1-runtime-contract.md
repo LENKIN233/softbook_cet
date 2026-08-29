@@ -57,6 +57,12 @@ uses a safe relative `asset_path`; the publisher uploads those bytes, obtains
 private CloudBase file IDs, and then revalidates that the hydrated runtime
 source still has the bundle content version.
 
+The repository source path recorded by model-owned QC may differ from the
+bundle delivery path. QC remains bound to its original source path and exact
+bytes; the assembler joins QC to the release asset by card ID, asset ID and
+SHA-256, copies from the QC source path, and writes to the manifest's delivery
+path. The formal QC index never exposes the repository source path.
+
 ## `delivery-profile.v1`
 
 The profile contains `profile_id`, receiver `environment_id`, `region`, HTTPS
@@ -81,7 +87,11 @@ The bundle is track-scoped and requires:
 - a `model-owned-content-authorization.v2` full-track record with two distinct
   accepted runs whose exact input binds card/box scope, corpus fingerprint,
   audit, linked model review, and the recomputed canonical runtime
-  `content_version`;
+  `content_version` plus the source runtime payload/manifest byte SHA-256;
+- the exact authorized source runtime payload retained at the authorization's
+  safe `validation.runtime_payload` path, rehashed by the receiver and required
+  to normalize to the same publish content; a missing path, content-version-only
+  legacy acceptance, or byte drift fails closed;
 - a hash-bound audit with zero unresolved blockers, zero unexplained risks, and
   100% quality metadata coverage;
 - the exact track audio count whose paths, sizes, durations, hashes, and QC
@@ -90,6 +100,8 @@ The bundle is track-scoped and requires:
   contain two distinct audio-capable model runs, prove complete per-card asset
   consumption, and pass all required text, pronunciation, rhythm, noise,
   no-autoplay, subtitle, and provenance checks;
+- every QC index card set to equal the content cards that reference that exact
+  asset ID, even when different assets happen to contain identical bytes;
 - explicit minimum iOS/Android versions, parent release, and release time.
 
 Every referenced file must remain inside the bundle directory and match its
@@ -101,9 +113,19 @@ fails closed.
 `model-acceptance.v2` records bind inputs and decisions but are not standalone
 cryptographic proof that a model execution or media consumption occurred.
 Repository authority additionally depends on the trusted Codex Action PR gate.
-Formal audio launch evidence remains ineligible until a signed trusted
-media-run receipt type is registered; current model-owned QC structures alone
-cannot satisfy launch or closed-beta readiness.
+Formal audio launch evidence remains ineligible until one real
+`trusted-media-run-receipt.v1` is produced by the fixed `card-make` main-branch
+workflow, its exact bytes pass GitHub Artifact Attestation verification, and
+the four CET4 content/media evidence types are registered. The repository now
+contains the receipt schema and structural/attestation verifier. Formal-ready
+verification additionally requires the exact downloaded artifact directory;
+the consumer rehashes all 301 exact audio files, the audio manifest, reviewed worklist, raw-run manifest
+and every referenced JSONL run, recomputes exact 301-card media identity, two
+full perceptual plus two blind-transcript runs, per-card dual acceptances and
+measured untruncated sample coverage. Attestation without those bytes remains
+non-formal. Current
+model-owned QC structures alone still cannot satisfy launch or closed-beta
+readiness.
 
 ## Formal bundle builder
 
@@ -137,12 +159,16 @@ but its failed write-safety observation and null operator cannot be promoted as
 an applied formal raw report.
 
 The four required CET4 content/media evidence types remain deliberately
-unregistered. They cannot pass closed-beta readiness until a signed trusted
-media-run receipt contract binds the exact candidate, authorization, linked
-review, audit, 1,180-card/108-box/301-audio membership, consumed media bytes,
-transcripts and complete per-asset results. The builder report and structural
-`model-acceptance.v2` records remain useful inputs but cannot manufacture a
-real model execution, playback, device or provider fact.
+unregistered. `spec/trusted-media-run-receipt.json` and
+`scripts/verify_trusted_media_run_receipt.mjs` now define and test the exact
+candidate authorization/runtime/card-source join; linked review and audit;
+1,180-card/108-box/301-audio membership; consumer-side `ffprobe` duration replay
+from the exact audio bytes; compact locked Python environment manifest; two full
+perceptual runs; fixed trusted workflow, source commit and GitHub Sigstore
+binding. Registration still waits
+for the producer workflow and one real attested receipt; the builder report and
+structural `model-acceptance.v2` records remain useful inputs but cannot
+manufacture a model execution, playback, device or provider fact.
 
 ## Publish and rollback ordering
 

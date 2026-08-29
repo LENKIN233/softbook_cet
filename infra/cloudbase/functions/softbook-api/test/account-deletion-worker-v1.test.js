@@ -84,6 +84,23 @@ test('a lost lease cannot remove or requeue a task claimed by another worker', a
   assert.equal(repository.task().lease_id, `lease_${'z'.repeat(24)}`);
 });
 
+test('a stale worker cannot erase data written after a newer lease completed', async () => {
+  const repository = createRepository({
+    completeAndReregisterBeforeFirstMutation: true,
+  });
+  const worker = createWorker(repository);
+  const report = await worker.run();
+
+  assert.equal(report.completed_count, 0);
+  assert.equal(report.results[0].status, 'lease_lost');
+  assert.equal(repository.taskExists(), false);
+  assert.equal(repository.hasReregisteredDocument(), true);
+  assert.deepEqual(
+    repository.calls.filter(call => call.startsWith('where:')),
+    ['where:softbook_auth_sessions:account_key'],
+  );
+});
+
 test('an expired processing lease is reclaimed and completed with a new owner', async () => {
   const repository = createRepository({expiredLease: true});
   const worker = createWorker(repository);
@@ -169,6 +186,44 @@ test('CloudBase repository claims, verifies, and erases the current collection s
   );
 });
 
+test('CloudBase guarded mutation rejects a stale lease before deleting new data', async () => {
+  const db = createFakeCloudBaseDb();
+  const tasks = db.collection('softbook_account_deletions');
+  await tasks.doc(ACCOUNT_KEY).set(taskFixture());
+  const repository = createCloudBaseAccountDeletionRepository(db, {
+    accountDeletions: 'softbook_account_deletions',
+  });
+  const leaseA = `lease_${'a'.repeat(24)}`;
+  assert.equal(
+    await repository.claimTask({
+      accountKey: ACCOUNT_KEY,
+      leaseExpiresAt: '2026-08-01T08:05:00.000Z',
+      leaseId: leaseA,
+      now: NOW.toISOString(),
+    }),
+    true,
+  );
+  await tasks.doc(ACCOUNT_KEY).remove();
+  await db.collection('softbook_auth_sessions').doc('re-registered').set({
+    account_key: ACCOUNT_KEY,
+    generation: 'new',
+  });
+
+  assert.equal(
+    await repository.removeWhereIfLease(
+      'softbook_auth_sessions',
+      {account_key: ACCOUNT_KEY},
+      {accountKey: ACCOUNT_KEY, leaseId: leaseA},
+    ),
+    false,
+  );
+  assert.equal(
+    (await db.collection('softbook_auth_sessions').doc('re-registered').get())
+      .data.length,
+    1,
+  );
+});
+
 test('queued CloudBase tasks are not starved by older live processing leases', async () => {
   const db = createFakeCloudBaseDb();
   const tasks = db.collection('softbook_account_deletions');
@@ -225,6 +280,7 @@ function taskFixture({accountKey = ACCOUNT_KEY} = {}) {
 }
 
 function createRepository({
+  completeAndReregisterBeforeFirstMutation = false,
   expiredLease = false,
   failOnceCollection = null,
   invalidTask = false,
@@ -232,6 +288,7 @@ function createRepository({
 } = {}) {
   const calls = [];
   let failed = false;
+  let replacedBeforeMutation = false;
   let attempts = expiredLease ? 1 : 0;
   let task = {
     account_key: invalidTask ? 'invalid' : ACCOUNT_KEY,
@@ -273,6 +330,10 @@ function createRepository({
     task: () => structuredClone(task),
     taskAttemptCount: () => attempts,
     taskExists: () => task !== null,
+    hasReregisteredDocument: () =>
+      (filters.get('softbook_auth_sessions') ?? []).some(
+        row => row.generation === 'new',
+      ),
     remainingAccountDocuments: () =>
       [...filters.values()].reduce(
         (sum, rows) =>
@@ -309,8 +370,23 @@ function createRepository({
       };
       return true;
     },
-    removeWhere: async (collection, filter) => {
+    removeWhereIfLease: async (collection, filter, lease) => {
       calls.push(`where:${collection}:${Object.keys(filter)[0]}`);
+      if (
+        completeAndReregisterBeforeFirstMutation &&
+        !replacedBeforeMutation
+      ) {
+        replacedBeforeMutation = true;
+        for (const key of filters.keys()) filters.set(key, []);
+        for (const rows of documents.values()) rows.clear();
+        task = null;
+        filters.get('softbook_auth_sessions').push({
+          account_key: ACCOUNT_KEY,
+          generation: 'new',
+          id: 're-registered-session',
+        });
+      }
+      if (!task || task.lease_id !== lease.leaseId) return false;
       const rows = filters.get(collection) ?? [];
       filters.set(
         collection,
@@ -318,14 +394,17 @@ function createRepository({
           Object.entries(filter).some(([key, value]) => row[key] !== value),
         ),
       );
+      return true;
     },
-    removeDocument: async (collection, id) => {
+    removeDocumentIfLease: async (collection, id, lease) => {
       calls.push(`document:${collection}:${id}`);
+      if (!task || task.lease_id !== lease.leaseId) return false;
       if (collection === failOnceCollection && !failed) {
         failed = true;
         throw new Error('simulated delete interruption');
       }
       documents.get(collection)?.delete(id);
+      return true;
     },
     completeTask: async input => {
       calls.push(`complete:${input.accountKey}:${input.leaseId}`);
@@ -363,7 +442,7 @@ function createRepository({
 function createFakeCloudBaseDb() {
   const collections = new Map();
 
-  function collection(name) {
+  function collection(name, {transactional = false} = {}) {
     if (!collections.has(name)) collections.set(name, new Map());
     const documents = collections.get(name);
 
@@ -410,19 +489,23 @@ function createFakeCloudBaseDb() {
     }
 
     return {
-      doc: id => ({
-        get: async () => ({
-          data: documents.has(id)
-            ? [{_id: id, ...structuredClone(documents.get(id))}]
-            : [],
-        }),
-        remove: async () => {
+      doc: id => {
+        const erase = async () => {
           documents.delete(id);
-        },
-        set: async value => {
-          documents.set(id, structuredClone(value));
-        },
-      }),
+        };
+        return {
+          delete: erase,
+          get: async () => ({
+            data: documents.has(id)
+              ? [{_id: id, ...structuredClone(documents.get(id))}]
+              : [],
+          }),
+          ...(transactional ? {} : {remove: erase}),
+          set: async value => {
+            documents.set(id, structuredClone(value));
+          },
+        };
+      },
       orderBy(field, direction) {
         let limit = Number.MAX_SAFE_INTEGER;
         const builder = {
@@ -447,16 +530,24 @@ function createFakeCloudBaseDb() {
         };
         return builder;
       },
-      where: query,
+      where: filter => {
+        if (transactional) {
+          throw new Error('CloudBase transactions do not support where().');
+        }
+        return query(filter);
+      },
     };
   }
 
   return {
-    collection,
+    collection: name => collection(name),
     command: {
       lte: value => ({operator: 'lte', value}),
     },
-    runTransaction: callback => callback({collection}),
+    runTransaction: callback =>
+      callback({
+        collection: name => collection(name, {transactional: true}),
+      }),
     snapshot: () => collections,
   };
 }

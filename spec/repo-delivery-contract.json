@@ -1,5 +1,5 @@
 {
-  "version": "vnext-16",
+  "version": "vnext-17",
   "purpose": "Lean repository delivery contract for model-owned changes: topic branch, pull request, exact-diff model review, task-relevant required checks, and automatic merge without human approval.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -143,30 +143,16 @@
     "pull_request_template_path": ".github/pull_request_template.md",
     "machine_acceptance": {
       "owner": "spec/machine-acceptance.json",
-      "required_status_check": "trusted-model-review",
-      "review_schema": "trusted-model-review-gate.v1",
-      "trusted_provider": "openai_codex_action",
-      "trusted_action_commit": "86365089eb2b84e0a8fb0717b304f8bdcb13b20e",
-      "trusted_codex_version": "0.149.0",
-      "trusted_workflow_path": ".github/workflows/trusted-model-review.yml",
-      "author_editable_pr_body_is_authority": false,
-      "bootstrap_cutover": {
-        "new_pull_request_target_workflow_runs_only_after_default_branch_installation": true,
-        "bootstrap_pr_uses_preexisting_required_checks_plus_two_out_of_band_exact_diff_model_runs": true,
-        "post_merge_order": [
-          "verify_trusted_model_review_workflow_is_present_on_origin_main",
-          "configure_OPENAI_API_KEY_as_a_repository_actions_secret_without_exposing_it",
-          "open_a_followup_pr_and_verify_both_codex_review_jobs_and_the_aggregate_check_end_to_end",
-          "replace_agent-review_and_formal-approval_with_trusted-model-review_in_branch_protection",
-          "delete_formal_product_owner_environment"
-        ],
-        "must_not_require_trusted_model_review_before_workflow_reaches_default_branch": true
-      },
+      "required_status_check": "validate-harness",
+      "review_schema": "single-task-dual-perturbation-review.v1",
+      "review_method": "assumption_inversion_then_failure_projection",
+      "external_model_api_required": false,
+      "pr_description_records_review": true,
       "exact_pull_request_head_binding_required": true,
-      "minimum_isolated_review_runs": 2,
+      "minimum_perturbation_passes": 2,
       "human_or_user_environment": null,
       "tracked_run_record_required": false,
-      "sensitive_scope_policy": "exact_diff_model_review_plus_task_relevant_required_checks"
+      "sensitive_scope_policy": "dual_perturbation_exact_diff_review_plus_task_relevant_required_checks"
     },
     "remote_repository_health": {
       "workflow_job": "repo-health",
@@ -213,12 +199,12 @@
         "command": "node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs"
       },
       {
-        "id": "maestro_selector_guard",
-        "command": "python3 scripts/validate_maestro_selectors.py"
+        "id": "trusted_media_run_receipt",
+        "command": "node --test scripts/test_verify_trusted_media_run_receipt.mjs"
       },
       {
-        "id": "agent_review_record",
-        "command": "gh api repos/<repo>/pulls/<pr> --jq .body > <temp> && python3 scripts/validate_agent_review.py --body-file <temp>"
+        "id": "maestro_selector_guard",
+        "command": "python3 scripts/validate_maestro_selectors.py"
       },
       {
         "id": "mobile_lint",
@@ -258,7 +244,7 @@
       },
       {
         "id": "machine_owned_acceptance",
-        "command": "two isolated OpenAI Codex Action exact-diff jobs from trusted base workflow -> trusted-model-review status; no human environment"
+        "command": "one model-harness task performs assumption-inversion and failure-projection reviews over the exact diff, records both decisions in the PR, then relies on deterministic required checks; no external model API or human environment"
       }
     ]
   }

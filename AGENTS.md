@@ -34,6 +34,7 @@ status: active
 - `spec/membership.json`
 - `spec/runtime-boundaries.json`
 - `spec/cet4-closed-beta-readiness.json`（仅在 CET4 正式封闭内测 candidate、gate、receiver evidence、真机验收或 readiness 状态任务中读取；其 `ready` 不替代正式产品 launch readiness）
+- `spec/trusted-media-run-receipt.json`（仅在正式音频/媒体执行收据、GitHub Artifact Attestation 或 CET4 content/media evidence 注册任务中读取；结构校验不得替代真实 attestation）
 - `spec/release-operational-policy.json`（仅在上线证据、外部账号 capability、SLO、备份恢复、渗透或回滚演练任务中读取；定义不得降低的正式证据阈值、外部控制面检查、gate 非替代与模拟非正式边界）
 - `infra/cloudbase/learning-events-v2-runtime-contract.md`（仅在 learning events 合同或实现任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
 - `infra/cloudbase/learning-session-v1-runtime-contract.md`（仅在服务端调度或 learning session 任务中读取；当前为仓库内已实现、移动端未接线且未部署的 runtime 边界）
@@ -65,7 +66,7 @@ status: active
 - 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
 - 会员/试用：`requirement-memory -> product-core -> membership`（涉及封闭内测资格发放、撤销或审计时追加 `account-sync-contract -> runtime-boundaries -> infra/cloudbase/beta-entitlement-v1-runtime-contract.md`）
 - CET4 受控试点：`requirement-memory -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> infra/cloudbase/learning-session-v1-runtime-contract.md -> infra/cloudbase/content-manifest-v1-runtime-contract.md -> infra/cloudbase/controlled-pilot-v1-runtime-contract.md`（正式发布非替代校验追加 `infra/cloudbase/release-bundle-v1-runtime-contract.md`）
-- CET4 正式封闭内测 readiness：`requirement-memory -> machine-acceptance -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> cet4-closed-beta-readiness -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
+- CET4 正式封闭内测 readiness：`requirement-memory -> machine-acceptance -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> cet4-closed-beta-readiness -> trusted-media-run-receipt（涉及正式媒体证据时） -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
 - 交付 / PR / CI：`authority-map -> machine-acceptance -> agent-harness -> repo-delivery-contract -> evals`（涉及接收方环境、正式内容发布或回滚时追加 `runtime-boundaries -> infra/cloudbase/release-bundle-v1-runtime-contract.md`）
 - 上线证据 / 外部账号 capability / SLO / 恢复演练：`authority-map -> machine-acceptance -> account-sync-contract -> runtime-boundaries -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
 - Agent run records / context handoff：`authority-map -> agent-run-record -> workspace-boundary -> harness-architecture -> agent-harness -> repo-delivery-contract -> evals`
@@ -114,9 +115,9 @@ status: active
 - 开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`
 - clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`
 - 若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发
-- 任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR，并在 trusted-model-review 与 required gates 全绿后自动合并；不等待用户或人工批准
-- 新增 `pull_request_target` trusted reviewer 的安装 PR 是一次性 bootstrap：它只能在旧 required checks 与两次独立 out-of-band exact-diff model review 通过后合并；workflow 到达 `main` 后先配置 Actions `OPENAI_API_KEY`、用下一 PR 实测两个 Codex review job 与聚合 check，再把 branch protection 从 `agent-review`/`formal-approval` 切到 `trusted-model-review`并删除旧 environment；不得在安装前要求不存在的 check
-- 未完成 agent review、PR 描述未记录 passed review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`
+- 任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR；同一 model+harness 任务必须对精确 diff 完成两轮不同扰动视角审查并在 PR 描述记录结论，required gates 全绿后自动合并，不等待用户或人工批准
+- 两轮扰动审查分别使用假设反转与失败投影视角；它们不依赖外部模型 API，不声称是不同提供商或不同任务，只证明当前单一任务对同一精确 diff 做了两次明确重审
+- 未完成双扰动 review、PR 描述未记录 passed review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`
 - 如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因
 
 ## 输出要求

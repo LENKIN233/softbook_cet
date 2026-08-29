@@ -42,7 +42,6 @@ HARNESS_LAYERS = (
         "id": "delivery_governance_layer",
         "sections": (
             "governance_contracts",
-            "agent_review_regressions",
             "delivery_runtime",
         ),
     },
@@ -67,7 +66,6 @@ ROOT = Path(__file__).resolve().parents[2]
 SECTION_WORKER = Path(__file__).resolve().parent / "section_worker.py"
 DEFAULT_SECTION_TIMEOUT_SECONDS = 30.0
 SECTION_DEPENDENCIES = {
-    "agent_review_regressions": ("governance_contracts",),
     "delivery_runtime": ("governance_contracts",),
 }
 

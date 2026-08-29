@@ -22,6 +22,7 @@ const DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
 
 export function createCloudBaseCommandRunner({
   cwd = process.cwd(),
+  env = process.env,
   spawn = spawnSync,
   tcb = process.env.CLOUDBASE_CLI || 'tcb',
 } = {}) {
@@ -30,6 +31,7 @@ export function createCloudBaseCommandRunner({
       const result = spawn(tcb, args, {
         cwd: options.cwd ?? cwd,
         encoding: 'utf8',
+        env,
         maxBuffer: 64 * 1024 * 1024,
         timeout: options.timeoutMs ?? COMMAND_TIMEOUT_MS,
       });

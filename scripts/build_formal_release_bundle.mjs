@@ -64,10 +64,8 @@ export function assembleFormalReleaseBundle(
   const profile = validateDeliveryProfile(
     parseJsonBytes(profileBytes, 'delivery profile'),
   );
-  const rawContent = readJson(
-    normalized.contentPayloadPath,
-    'CET4 content payload',
-  );
+  const contentPayloadBytes = readFileSync(normalized.contentPayloadPath);
+  const rawContent = parseJsonBytes(contentPayloadBytes, 'CET4 content payload');
   const authorization = readJson(
     normalized.authorizationPath,
     'full-track model authorization',
@@ -95,13 +93,14 @@ export function assembleFormalReleaseBundle(
     audit,
     auditBytes,
     content,
+    contentHash: sha256Bytes(contentPayloadBytes),
     modelReview,
     modelReviewBytes,
     profile,
   });
   const cards = content.card_records;
   const assets = content.assets;
-  const {bindings, usedRecords} = collectAudioQcBindings({
+  const {bindings, sourcePathsByAssetId, usedRecords} = collectAudioQcBindings({
     assets,
     cards,
     qcDirectory: normalized.audioQcDirectory,
@@ -119,6 +118,29 @@ export function assembleFormalReleaseBundle(
       normalized.authorizationPath,
       join(staging, AUTHORIZATION_PATH),
     );
+    const authorizedRuntimePayloadPath = requireSafeRelativeJsonPath(
+      authorization.validation?.runtime_payload,
+      'authorization runtime payload path',
+    );
+    if ([CONTENT_PATH, AUTHORIZATION_PATH, MODEL_REVIEW_PATH].includes(
+      authorizedRuntimePayloadPath,
+    )) {
+      fail('Authorization runtime payload path collides with a reserved bundle artifact.');
+    }
+    const authorizedRuntimePayloadHash = copyBoundJson(
+      normalized.contentPayloadPath,
+      resolveInside(
+        staging,
+        authorizedRuntimePayloadPath,
+        'authorized runtime payload',
+      ),
+    );
+    if (
+      normalizeSha256(authorization.validation.runtime_payload_sha256) !==
+      authorizedRuntimePayloadHash
+    ) {
+      fail('Copied authorization runtime payload does not match its declared hash.');
+    }
     const modelReviewHash = copyBoundJson(
       normalized.modelReviewPath,
       join(staging, MODEL_REVIEW_PATH),
@@ -135,7 +157,7 @@ export function assembleFormalReleaseBundle(
     for (const asset of assets) {
       const source = resolveInside(
         normalized.assetRoot,
-        asset.asset_path,
+        sourcePathsByAssetId.get(asset.asset_id),
         `source audio ${asset.asset_id}`,
       );
       const target = resolveInside(
@@ -269,6 +291,7 @@ function validateInputs({
   audit,
   auditBytes,
   content,
+  contentHash,
   modelReview,
   modelReviewBytes,
   profile,
@@ -391,8 +414,15 @@ function validateInputs({
     },
     additionalBindings: {
       content_version: content.content_version,
+      runtime_payload_sha256: authorization.validation.runtime_payload_sha256,
     },
   });
+  if (
+    normalizeSha256(authorization.validation.runtime_payload_sha256) !==
+    normalizeSha256(contentHash)
+  ) {
+    fail('Full-track authorization runtime payload hash does not match content bytes.');
+  }
   try {
     requireIndependentModelAcceptances(modelReview.model_acceptances, {
       expectedInputSha256: expectedReviewInput,

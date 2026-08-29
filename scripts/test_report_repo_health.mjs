@@ -72,7 +72,6 @@ if (process.env.FAIL_ON_GH === 'true') {
 const checks = [
   'design-artifact-gate',
   'validate-harness',
-  'trusted-model-review',
   'mobile-quality',
   'web-quality',
   'backend-contract',

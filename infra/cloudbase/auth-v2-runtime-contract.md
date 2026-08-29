@@ -126,6 +126,8 @@ content-type: application/json
 Every successful call rotates the refresh token. A cryptographically valid
 older rotation is treated as replay and revokes the entire session. Random or
 malformed tokens fail without disclosing whether a session exists.
+Receiver drills require each returned refresh payload to advance exactly one
+generation; changed bytes with the same or an older rotation do not prove rotation.
 
 ### Logout
 
@@ -192,7 +194,11 @@ and Space action/lineage/revision/state records; phone-filtered SMS challenges
 plus retained legacy daily-progress, learning-state and Space-state records;
 phone-keyed base membership, membership revision, beta entitlement and pilot
 entitlement; and only the phone rate-limit key. Shared IP rate limits and global
-content releases remain untouched. Every deletion is idempotently re-read or
+content releases remain untouched. Every individual erasure runs in a
+transaction that re-reads the account-deletion task and requires the current
+lease ID before deleting. A stale worker therefore cannot continue after a
+newer worker owns or removes the task and cannot erase data written by a clean
+post-completion re-registration. Every deletion is idempotently re-read or
 re-queried, the task is removed last, partial failure returns the same live
 lease to queued, and a completed task leaves no tombstone so a clean
 re-registration is allowed.
@@ -223,6 +229,53 @@ Expected client-actionable codes include:
 
 Server errors keep a stable code but use the generic public message from the
 existing API error envelope.
+
+## Receiver session revocation drill report
+
+`infra/cloudbase/run-session-revocation-drill.mjs` is dry-run by default. Apply
+requires Node 22.13.0, clean local `main` exactly equal to `origin/main`, a
+tracked regular 100644 receiver closed-beta profile whose bytes equal exact
+`HEAD`, an identified operator, and two fresh access plus
+refresh credential pairs supplied only through process environment. The access
+claims must identify the same phone account and different server session IDs;
+each refresh claim must match its access session. Both access tokens are first
+confirmed against receiver Bootstrap. Token payload decoding is identity
+comparison only and never replaces server validation.
+
+Client A rotates its refresh pair, then exact reuse of the old refresh token
+must return `refresh_token_reused` and revoke that session. The rotated refresh
+and access credentials must both return `revoked_auth_session`. Client B must
+then successfully rotate its refresh pair and confirm the rotated access token
+against Bootstrap; this proves both halves of the sibling session were active
+after client A's replay. Client B logout and exact signed logout replay use the
+rotated access token and must both return 204; the rotated access and refresh
+credentials must then return `revoked_auth_session`. Apply intentionally
+destroys both dedicated test sessions and cannot restore them.
+
+The machine operator is part of the report, so apply rejects an operator value
+that embeds the decoded phone, including separator-obfuscated digit forms, or
+credential-shaped material before any session or data-plane request. This keeps execution attribution without creating a phone/token
+side-channel through an otherwise valid machine principal.
+
+Before the four session credentials are read, apply removes all four credential
+variables from every control-plane subprocess environment, reuses the receiver
+control-plane inspector, and requires the deployed `softbook-api` function identity,
+runtime, handler, timeout, signing key, store/runtime modes and deterministic
+backend deployment ID to match the exact commit and tracked profile. Requests
+then use only that profile's exact HTTPS API base, set `redirect=error`, reject
+any changed response URL and enforces one ten-second deadline through response
+body parsing. A profile outside the
+repository, a dirty or untracked profile, deployment drift, redirect or timeout
+fails before token transmission.
+
+The privacy-safe `session-revocation-drill-report.v1` binds repository commit,
+raw profile SHA-256, expected backend deployment identity, one content/release
+scope, hashes of the two opaque session IDs, exact status sequence, write safety
+and execution. It never contains phone or token values and remains
+`gate_eligible=false`. Repository mocks and raw output do not constitute a real
+receiver `session-revocation-test`; a later formal wrapper must rehash and bind
+the report to the exact candidate and must not substitute expected backend
+identity for the separate production-deployment gate.
 
 ## Explicit remaining work
 

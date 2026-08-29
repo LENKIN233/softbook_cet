@@ -61,8 +61,8 @@ function createAccountDeletionWorkerV1(options) {
     'completeTask',
     'listRunnableTasks',
     'releaseTask',
-    'removeDocument',
-    'removeWhere',
+    'removeDocumentIfLease',
+    'removeWhereIfLease',
   ]) {
     if (typeof repository[method] !== 'function') {
       throw new Error(`Account deletion repository is missing ${method}().`);
@@ -96,7 +96,7 @@ function createAccountDeletionWorkerV1(options) {
         if (!claimed) continue;
 
         try {
-          await eraseAccount(task, repository);
+          await eraseAccount(task, repository, leaseId);
           const completed = await repository.completeTask({
             accountKey: task.account_key,
             leaseId,
@@ -127,27 +127,62 @@ function createAccountDeletionWorkerV1(options) {
   };
 }
 
-async function eraseAccount(task, repository) {
+async function eraseAccount(task, repository, leaseId) {
+  const lease = {accountKey: task.account_key, leaseId};
   for (const collection of ACCOUNT_KEY_COLLECTIONS) {
-    await repository.removeWhere(collection, {
-      account_key: task.account_key,
-    });
+    requireLeaseGuardedMutation(
+      await repository.removeWhereIfLease(
+        collection,
+        {account_key: task.account_key},
+        lease,
+      ),
+    );
   }
   for (const collection of PHONE_FILTER_COLLECTIONS) {
-    await repository.removeWhere(collection, {
-      phone_number: task.phone_number,
-    });
+    requireLeaseGuardedMutation(
+      await repository.removeWhereIfLease(
+        collection,
+        {phone_number: task.phone_number},
+        lease,
+      ),
+    );
   }
-  await repository.removeWhere(RATE_LIMIT_COLLECTION, {
-    key: task.phone_rate_key,
-  });
+  requireLeaseGuardedMutation(
+    await repository.removeWhereIfLease(
+      RATE_LIMIT_COLLECTION,
+      {key: task.phone_rate_key},
+      lease,
+    ),
+  );
   for (const collection of PHONE_DOCUMENT_COLLECTIONS) {
-    await repository.removeDocument(collection, task.phone_number);
+    requireLeaseGuardedMutation(
+      await repository.removeDocumentIfLease(
+        collection,
+        task.phone_number,
+        lease,
+      ),
+    );
+  }
+}
+
+function requireLeaseGuardedMutation(applied) {
+  if (applied !== true) {
+    throw new Error('Account deletion worker lease was lost before mutation.');
   }
 }
 
 function createCloudBaseAccountDeletionRepository(db, collections) {
   const taskCollection = collections.accountDeletions ?? TASK_COLLECTION;
+  const mutateDocumentIfLease = (lease, mutation) =>
+    db.runTransaction(async transaction => {
+      const task = await getDocument(
+        transaction.collection(taskCollection),
+        lease.accountKey,
+      );
+      if (!leaseMatches(task, lease.leaseId)) return false;
+      await mutation(transaction);
+      return true;
+    });
   return {
     listRunnableTasks: async ({limit, now}) => {
       if (typeof db.command?.lte !== 'function') {
@@ -199,16 +234,24 @@ function createCloudBaseAccountDeletionRepository(db, collections) {
         });
         return true;
       }),
-    removeWhere: (collection, filter) =>
-      removeAllMatching(db.collection(collection), filter),
-    removeDocument: (collection, documentId) =>
-      removeDocument(db.collection(collection), documentId),
+    removeWhereIfLease: (collection, filter, lease) =>
+      removeAllMatchingIfLease(
+        db,
+        taskCollection,
+        collection,
+        filter,
+        lease,
+      ),
+    removeDocumentIfLease: (collection, documentId, lease) =>
+      mutateDocumentIfLease(lease, transaction =>
+        removeDocument(transaction.collection(collection), documentId),
+      ),
     completeTask: async input => {
       const removed = await db.runTransaction(async transaction => {
         const collection = transaction.collection(taskCollection);
         const task = await getDocument(collection, input.accountKey);
         if (!leaseMatches(task, input.leaseId)) return false;
-        await collection.doc(input.accountKey).remove();
+        await deleteDocumentReference(collection.doc(input.accountKey));
         return true;
       });
       if (
@@ -294,7 +337,10 @@ function createMemoryAccountDeletionRepository(state) {
       });
       return true;
     },
-    removeWhere: async (collection, filter) => {
+    removeWhereIfLease: async (collection, filter, lease) => {
+      if (!leaseMatches(tasks.get(lease.accountKey), lease.leaseId)) {
+        return false;
+      }
       const map = collectionMaps.get(collection);
       for (const [key, value] of map.entries()) {
         if (
@@ -305,9 +351,14 @@ function createMemoryAccountDeletionRepository(state) {
           map.delete(key);
         }
       }
+      return true;
     },
-    removeDocument: async (collection, documentId) => {
+    removeDocumentIfLease: async (collection, documentId, lease) => {
+      if (!leaseMatches(tasks.get(lease.accountKey), lease.leaseId)) {
+        return false;
+      }
       collectionMaps.get(collection).delete(documentId);
+      return true;
     },
     completeTask: async input => {
       const task = tasks.get(input.accountKey);
@@ -331,26 +382,68 @@ function createMemoryAccountDeletionRepository(state) {
   };
 }
 
-async function removeAllMatching(collection, filter) {
+async function removeAllMatchingIfLease(
+  db,
+  taskCollection,
+  collectionName,
+  filter,
+  lease,
+) {
+  const collection = db.collection(collectionName);
   for (let round = 0; round < 1000; round += 1) {
     const before = normalizeCloudBaseDocuments(
       (await collection.where(filter).limit(1).get()).data,
     );
-    if (before.length === 0) return;
-    await collection.where(filter).remove();
+    if (before.length === 0) return true;
+    const documentId = before[0]?._id;
+    if (typeof documentId !== 'string' || documentId.length === 0) {
+      throw new Error('Account deletion query returned an invalid document ID.');
+    }
+    const removed = await db.runTransaction(async transaction => {
+      const task = await getDocument(
+        transaction.collection(taskCollection),
+        lease.accountKey,
+      );
+      if (!leaseMatches(task, lease.leaseId)) return false;
+      const targetCollection = transaction.collection(collectionName);
+      const document = await getDocument(targetCollection, documentId);
+      if (document === null) return true;
+      if (!documentMatches(document, filter)) return true;
+      await removeDocument(targetCollection, documentId);
+      return true;
+    });
+    if (!removed) return false;
   }
-  throw new Error('Account deletion exceeded the bounded removal loop.');
+  throw new Error('Account deletion exceeded the bounded guarded removal loop.');
+}
+
+function documentMatches(document, filter) {
+  return Object.entries(filter).every(
+    ([field, expected]) => document?.[field] === expected,
+  );
 }
 
 async function removeDocument(collection, documentId) {
   try {
-    await collection.doc(documentId).remove();
+    await deleteDocumentReference(collection.doc(documentId));
   } catch (error) {
     if (!isCloudBaseDocumentMissingError(error)) throw error;
   }
   if ((await getDocument(collection, documentId)) !== null) {
     throw new Error('Account deletion document removal was not verified.');
   }
+}
+
+async function deleteDocumentReference(reference) {
+  if (typeof reference?.delete === 'function') {
+    await reference.delete();
+    return;
+  }
+  if (typeof reference?.remove === 'function') {
+    await reference.remove();
+    return;
+  }
+  throw new Error('Account deletion document reference cannot delete.');
 }
 
 async function getDocument(collection, documentId) {

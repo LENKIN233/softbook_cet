@@ -1,0 +1,99 @@
+{
+  "version": "trusted-media-run-receipt-v1",
+  "status": "active",
+  "classification": "evidence_contract",
+  "owner": "spec/machine-acceptance.json",
+  "purpose": "Bind an exact media-review result to a trusted GitHub Actions workflow, immutable source commit, complete media bytes, model runtime identity, and a cryptographically verified GitHub Artifact Attestation without treating structural model records as execution provenance.",
+  "producer": {
+    "repository": "LENKIN233/card-make",
+    "source_ref": "refs/heads/main",
+    "signer_workflow": "LENKIN233/card-make/.github/workflows/trusted-media-run.yml",
+    "workflow_path": ".github/workflows/trusted-media-run.yml",
+    "predicate_type": "https://slsa.dev/provenance/v1",
+    "oidc_issuer": "https://token.actions.githubusercontent.com",
+    "artifact_attestation_provider": "github_sigstore",
+    "required_runner_class": "self_hosted_macos_arm64"
+  },
+  "receipt": {
+    "schema_version": "trusted-media-run-receipt.v1",
+    "maximum_bytes": 1048576,
+    "exact_cet4_scope": {
+      "track": "cet4",
+      "card_count": 1180,
+      "box_count": 108,
+      "audio_asset_count": 301
+    },
+    "minimum_full_perceptual_runs": 2,
+    "minimum_blind_transcript_runs": 2,
+    "minimum_complete_asset_consumptions": 1204,
+    "artifact_files": {
+      "audio_manifest": "audio-manifest.json",
+      "review_worklist": "reviewed-worklist.json",
+      "raw_run_manifest": "raw-run-manifest.json",
+      "run_package": "run-package.json",
+      "model_weights_manifest": "model-weights-manifest.json",
+      "mlx_audio_package_manifest": "mlx-audio-package-manifest.json",
+      "python_environment_manifest": "python-environment-manifest.json"
+    },
+    "required_audio_coverage": {
+      "decoder": "mlx_audio.stt.utils.load_audio",
+      "sample_rate_hz": 16000,
+      "model_max_sample_count": 480000,
+      "model_feature_frame_count": 3001,
+      "model_audio_token_count": 750,
+      "truncated": false
+    },
+    "required_harness_identity_fields": [
+      "driver_bundle_sha256",
+      "dependency_lock_sha256",
+      "mlx_audio_package_manifest_sha256",
+      "python_environment_manifest_sha256"
+    ],
+    "required_result": {
+      "reviewed_card_count": 301,
+      "passed_card_count": 301,
+      "failed_card_count": 0,
+      "every_card_has_two_independent_acceptances": true,
+      "all_assets_complete_consumed": true,
+      "all_required_checks_passed": true
+    }
+  },
+  "verification": {
+    "command": "gh attestation verify <receipt> --repo LENKIN233/card-make --bundle <bundle> --deny-self-hosted-runners --signer-workflow LENKIN233/card-make/.github/workflows/trusted-media-run.yml --signer-digest <source_commit_sha> --source-digest <source_commit_sha> --source-ref refs/heads/main --cert-oidc-issuer https://token.actions.githubusercontent.com --predicate-type https://slsa.dev/provenance/v1 --format json",
+    "require_local_receipt_sha256_in_verified_statement": true,
+    "require_nonempty_verified_timestamp": true,
+    "author_editable_json_is_trust_root": false,
+    "attestation_alone_proves_result_correctness": false,
+    "type_specific_semantic_validation_required": true,
+    "type_specific_semantics": [
+      "exact_unique_raw_run_ID_name_path_hash_and_card_sets",
+      "all_301_audio_files_are_regular_and_rehashed_from_exact_bytes",
+      "entry_identity_is_recomputed_from_card_context_media_bytes_duration_and_transcript",
+      "raw_run_results_replay_every_final_decision",
+      "final_result_is_reparsed_from_the_last_retained_bounded_JSON_or_Python_literal_model_output",
+      "reviewed_transcript_bytes_rehash_to_declared_digest",
+      "blind_transcript_similarity_is_recomputed",
+      "decoded_sample_count_matches_the_bound_probed_duration_at_the_locked_sample_rate_within_50ms",
+      "consumer_ffprobe_decodes_each_exact_audio_byte_sequence_and_recomputes_duration_within_50ms_of_the_worklist",
+      "content_authorization_full_track_review_quality_audit_and_runtime_payload_bytes_rehash_to_the_receipt_and_bind_exact_1180_card_108_box_scope",
+      "all_301_media_entries_join_to_their_exact_authorized_runtime_and_card_source_records",
+      "model_weights_model_package_and_compact_v2_Python_environment_manifests_each_identify_one_or_more_unique_safe_file_path_hash_size_tuples_are_recomputed_and_bound_to_execution_harness",
+      "model_acceptances_bind_the_recomputed_per_card_media_input_and_source_runs"
+    ],
+    "real_attested_receipt_required_before_formal_media_registration": true
+  },
+  "current_boundary": {
+    "structural_verifier": "scripts/verify_trusted_media_run_receipt.mjs",
+    "raw_output_replayer": "scripts/replay_trusted_media_raw_outputs.py",
+    "representative_eval": "scripts/test_verify_trusted_media_run_receipt.mjs",
+    "producer_workflow_implemented": false,
+    "real_attested_receipt_observed": false,
+    "formal_cet4_media_types_registered": false,
+    "closed_beta_gate_effect": "none_until_real_attestation_and_type_registration"
+  },
+  "official_sources": [
+    "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",
+    "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating",
+    "https://cli.github.com/manual/gh_attestation_verify"
+  ]
+}

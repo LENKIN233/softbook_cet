@@ -1,5 +1,5 @@
 {
-  "version": "vnext-5",
+  "version": "vnext-6",
   "purpose": "Single-source ownership map for active harness facts. If the same concept appears in multiple files, the owner here wins and non-owner copies must stay consistent.",
   "domains": {
     "user_origin_memory": {
@@ -13,9 +13,10 @@
         "spec/repo-delivery-contract.json",
         "spec/release-operational-policy.json",
         "spec/runtime-boundaries.json",
-        "spec/agent-harness.json"
+        "spec/agent-harness.json",
+        "spec/trusted-media-run-receipt.json"
       ],
-      "notes": "Owns standing model-and-harness product authority, the no-human-review rule, machine evidence identity, external fact boundaries, and the model-first harness simplification strategy. The sibling card make workspace mirrors this through its own authority map rather than becoming a default local spec dependency."
+      "notes": "Owns standing model-and-harness product authority, the no-human-review rule, machine evidence identity, external fact boundaries, and the model-first harness simplification strategy. The trusted media receipt mirror defines the GitHub-attested execution identity required before media claims become formal. The sibling card make workspace mirrors this through its own authority map rather than becoming a default local spec dependency."
     },
     "auth_trial_sync_purchase": {
       "owner": "spec/account-sync-contract.json",
@@ -171,7 +172,6 @@
         "spec/agent-harness.json",
         "spec/repo-delivery-contract.json",
         "spec/evals.json",
-        "scripts/validate_agent_review.py",
         ".github/pull_request_template.md"
       ],
       "conflict_policy": "spec/agent-run-record.json owns the frozen archive and confirms that new PRs do not require tracked run records."

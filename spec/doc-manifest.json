@@ -1,5 +1,5 @@
 {
-  "version": "vnext-10",
+  "version": "vnext-11",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -759,6 +759,26 @@
       "status": "active"
     },
     {
+      "path": "spec/trusted-media-run-receipt.json",
+      "authority": "trusted_media_run_receipt_contract",
+      "audience": [
+        "agent",
+        "engineer",
+        "reviewer"
+      ],
+      "load_when": [
+        "formal_media_evidence_task",
+        "trusted_media_runner_task",
+        "cet4_closed_beta_readiness_task"
+      ],
+      "depends_on": [
+        "spec/machine-acceptance.json",
+        "spec/runtime-boundaries.json",
+        "infra/cloudbase/release-bundle-v1-runtime-contract.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "spec/cet4-closed-beta-readiness.json",
       "authority": "cet4_closed_beta_readiness_owner",
       "audience": [
@@ -778,6 +798,7 @@
         "spec/account-sync-contract.json",
         "spec/membership.json",
         "spec/runtime-boundaries.json",
+        "spec/trusted-media-run-receipt.json",
         "spec/release-operational-policy.json",
         "infra/cloudbase/release-bundle-v1-runtime-contract.md"
       ],
@@ -841,6 +862,7 @@
     "spec/box-catalog.json",
     "spec/membership.json",
     "spec/runtime-boundaries.json",
+    "spec/trusted-media-run-receipt.json",
     "spec/cet4-closed-beta-readiness.json",
     "spec/release-operational-policy.json",
     "spec/repo-delivery-contract.json",

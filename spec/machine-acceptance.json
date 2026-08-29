@@ -20,14 +20,16 @@
       "operate_existing_product_accounts_and_release_surfaces_when_credentials_and_provider_capabilities_are_available"
     ],
     "default_execution_rule": "For an in-scope product task, continue through implementation, validation, delivery, merge, deployment, and verification without requesting subjective approval.",
+    "user_operational_participation_required": false,
+    "product_completion_is_reported_separately_from_external_launch_state": true,
     "blocked_rule": "Stop only for a missing external capability or credential, an unrecoverable or destructive action outside the requested scope, a failed required machine gate, or an objective conflict that the harness cannot resolve from product truth and evidence."
   },
   "acceptance": {
     "authority": "model_harness",
-    "ordinary_change": "trusted OpenAI Codex Action exact-diff review over the immutable PR head plus task-relevant deterministic tests",
-    "high_risk_change": "two isolated trusted workflow review jobs over the same immutable diff plus task-relevant deterministic tests and rollback evidence",
-    "trusted_workflow_bootstrap": "A new pull_request_target reviewer cannot review its own installation PR. Merge that one bootstrap under the pre-existing protected checks plus two independent out-of-band exact-diff model runs, configure the external OpenAI API credential, prove both isolated jobs and the aggregate check on a follow-up PR, then cut branch protection to trusted-model-review.",
-    "independence_unit": "trusted_workflow_review_job_for_diff_review_and_run_id_for_domain_evidence",
+    "ordinary_change": "one model-harness task reviews the immutable exact diff with explicit assumption-inversion and failure-projection perturbation passes plus task-relevant deterministic tests",
+    "high_risk_change": "the same task repeats both exact-diff perturbation passes after fixes and adds task-relevant deterministic tests and rollback evidence",
+    "review_method": "single_task_dual_context_perturbation",
+    "independence_unit": "explicit_context_perturbation_pass_with_distinct_run_id_not_external_provider_or_separate_task",
     "required_machine_evidence": [
       "model_or_agent_identity",
       "run_id",
@@ -36,20 +38,20 @@
       "capabilities_used",
       "decision",
       "blocking_findings",
-      "trusted_workflow_job_identity"
+      "perturbation_id"
     ],
     "accepted_decisions": [
       "passed",
       "revise",
       "blocked"
     ],
-    "domain_record_boundary": "model-acceptance.v2 proves exact JSON input binding and decision shape, not cryptographic model execution provenance. Such records gain repository authority only on a head that passes trusted-model-review. Media-consumption claims additionally require a registered trusted media-run receipt; no such receipt type is currently registered, so formal media evidence remains fail closed.",
+    "domain_record_boundary": "model-acceptance.v2 proves exact JSON input binding, perturbation-pass identity, and decision shape, not cryptographic proof of an external provider or separate task. Repository merge authority comes from the recorded dual-perturbation exact-diff decision plus deterministic required checks. Media-consumption claims additionally require a trusted-media-run-receipt.v1 whose exact bytes pass GitHub Artifact Attestation verification against the fixed card-make main workflow and type-specific semantic validation; review simplification never weakens media-consumption evidence.",
     "must_not": [
       "claim_a_model_consumed_audio_images_device_state_or_external_control_plane_data_it_did_not_receive",
       "invent_source_authenticity_credentials_provider_state_deployment_device_or_user_outcomes",
       "turn_green_structure_checks_into_unrecorded_semantic_evidence",
       "represent_agent_or_model_acceptance_as_human_or_user_approval",
-      "treat_author_editable_pr_body_run_ids_as_trusted_model_provenance"
+      "describe_single_task_perturbation_passes_as_external_provider_or_separate_task_provenance"
     ]
   },
   "external_fact_boundary": {
@@ -71,13 +73,14 @@
     "release_evidence_records_external_facts_not_hidden_reasoning": true
   },
   "methodology_refresh": {
-    "last_checked_at": "2026-08-23",
+    "last_checked_at": "2026-08-26",
     "official_sources": [
       "https://developers.openai.com/api/docs/guides/latest-model",
       "https://developers.openai.com/blog/codex-as-a-platform",
-      "https://github.com/openai/codex-action",
-      "https://github.com/openai/codex-action/blob/main/docs/security.md",
-      "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions"
+      "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions",
+      "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",
+      "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating",
+      "https://cli.github.com/manual/gh_attestation_verify"
     ],
     "refresh_rule": "Before a major harness expansion or model migration, recheck current official model, tool, context, eval, and harness guidance; adopt changes only after representative repository evals."
   },

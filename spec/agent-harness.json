@@ -1,5 +1,5 @@
 {
-  "version": "vnext-24",
+  "version": "vnext-25",
   "read_paths": {
     "product_or_scope": [
       "spec/requirement-memory.json",
@@ -49,6 +49,7 @@
       "spec/membership.json",
       "spec/runtime-boundaries.json",
       "spec/cet4-closed-beta-readiness.json",
+      "spec/trusted-media-run-receipt.json",
       "spec/release-operational-policy.json",
       "infra/cloudbase/learning-events-v2-runtime-contract.md",
       "infra/cloudbase/learning-session-v1-runtime-contract.md",
@@ -553,7 +554,6 @@
       "require_pull_request": true,
       "required_approving_review_count": 0,
       "required_status_checks": [
-        "trusted-model-review",
         "backend-contract",
         "design-artifact-gate",
         "validate-harness",
@@ -593,8 +593,8 @@
     },
     "repo_delivery_contract": {
       "owner": "spec/repo-delivery-contract.json",
-      "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> trusted OpenAI Codex Action exact-diff review -> merge unless the user explicitly requests local-only delivery",
-      "merge_policy": "merge to main automatically after trusted-model-review and required gates are green; no human or user approval is requested",
+      "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> single-task dual-perturbation exact-diff review -> merge unless the user explicitly requests local-only delivery",
+      "merge_policy": "merge to main automatically after both recorded perturbation passes and required gates are green; no human, user, or external model API approval is requested",
       "design_gate_policy": "user-facing UI changes require accepted design artifacts, checklist answers, implementation mapping, and capability-specific interaction/motion or physical-space evidence when the change touches those systems"
     }
   },

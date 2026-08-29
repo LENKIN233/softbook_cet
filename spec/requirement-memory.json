@@ -228,6 +228,9 @@
   },
   "launch_and_agent_authority": {
     "target_release": "2026-09",
+    "requested_completion_scope": "product_complete",
+    "user_launch_operations_required": false,
+    "external_launch_state_is_separate_from_product_completion": true,
     "launch_priority": "launch_as_soon_as_machine_evidence_supports_recoverable_operation",
     "internal_decision_authority": "model_harness",
     "human_review_required": false,

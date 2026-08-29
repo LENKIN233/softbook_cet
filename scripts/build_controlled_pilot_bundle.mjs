@@ -64,6 +64,7 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
   const records = readQcRecords(qcDirectory);
   const bindings = [];
   const usedRecords = new Map();
+  const sourcePathsByAssetId = new Map();
   const validatedRecords = new Set();
   const cardsByAsset = new Map();
   const cardsById = new Map(cards.map(card => [card.card_id, card]));
@@ -107,6 +108,19 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
       validateQcRecord(match.record, scopeCardIds, assetByCardId, asset.asset_id);
       validatedRecords.add(match.path);
     }
+    const sourcePaths = [...new Set(
+      cardIds.map(cardId =>
+        match.record.generated_assets?.find(item =>
+          String(item?.card_id ?? '') === cardId)?.path),
+    )];
+    if (
+      sourcePaths.length !== 1 ||
+      typeof sourcePaths[0] !== 'string' ||
+      !sourcePaths[0].trim()
+    ) {
+      fail(`Audio QC record for ${asset.asset_id} must bind one exact source asset path.`);
+    }
+    sourcePathsByAssetId.set(asset.asset_id, sourcePaths[0]);
     const hash = sha256Bytes(match.bytes);
     const recordPath = `audio/qc/${hash.slice('sha256:'.length)}.json`;
     usedRecords.set(recordPath, match);
@@ -123,7 +137,7 @@ export function collectAudioQcBindings({assets, cards, qcDirectory}) {
       formal_audio_ready: true,
     });
   }
-  return {bindings, usedRecords};
+  return {bindings, sourcePathsByAssetId, usedRecords};
 }
 
 export function assembleControlledPilotBundle(
@@ -165,7 +179,7 @@ export function assembleControlledPilotBundle(
     profile,
     reviewHash,
   });
-  const {bindings, usedRecords} = collectAudioQcBindings({
+  const {bindings, sourcePathsByAssetId, usedRecords} = collectAudioQcBindings({
     assets,
     cards,
     qcDirectory: normalized.audioQcDirectory,
@@ -192,9 +206,12 @@ export function assembleControlledPilotBundle(
       fail('Controlled-pilot review changed while the bundle was assembled.');
     }
 
-    const candidateRoot = dirname(normalized.candidatePayloadPath);
     for (const asset of assets) {
-      const source = resolveInside(candidateRoot, asset.asset_path, 'candidate audio asset');
+      const source = resolveInside(
+        normalized.assetRoot,
+        sourcePathsByAssetId.get(asset.asset_id),
+        'candidate audio asset',
+      );
       const target = resolveInside(staging, asset.asset_path, 'bundle audio asset');
       mkdirSync(dirname(target), {recursive: true});
       copyFileSync(source, target);
@@ -613,9 +630,8 @@ function validateQcRecord(record, cardIds, assetByCardId, assetId) {
       !String(transcript?.transcript ?? '').trim() ||
       generatedAsset?.transcript_sha256 !== transcriptSha256 ||
       !asset ||
-      generatedAsset?.path !== asset.asset_path ||
       generatedAsset?.file_sha256 !== asset.sha256.replace(/^sha256:/, '') ||
-      result?.asset_path !== asset.asset_path
+      result?.asset_path !== generatedAsset?.path
     ) {
       fail(`Audio QC record for ${assetId} has unbound bytes or transcript for ${cardId}.`);
     }
@@ -652,7 +668,35 @@ function validateQcRecord(record, cardIds, assetByCardId, assetId) {
   }
   identities.sort((left, right) =>
     left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
-  const expectedInput = sha256Bytes(Buffer.from(JSON.stringify(identities)));
+  const trustedMedia = {
+    receipt_path: record.source_records?.trusted_media_receipt,
+    receipt_sha256: record.source_records?.trusted_media_receipt_sha256,
+    attestation_bundle_path:
+      record.source_records?.trusted_media_attestation_bundle,
+    attestation_bundle_sha256:
+      record.source_records?.trusted_media_attestation_bundle_sha256,
+    source_commit: record.source_records?.trusted_media_source_commit,
+    model_id: record.source_records?.trusted_media_model_id,
+    model_revision: record.source_records?.trusted_media_model_revision,
+  };
+  if (
+    typeof trustedMedia.receipt_path !== 'string' ||
+    !trustedMedia.receipt_path.startsWith('reviews/trusted_media_receipts/') ||
+    !/^[a-f0-9]{64}$/.test(trustedMedia.receipt_sha256 || '') ||
+    typeof trustedMedia.attestation_bundle_path !== 'string' ||
+    !trustedMedia.attestation_bundle_path.startsWith('reviews/trusted_media_receipts/') ||
+    !/^[a-f0-9]{64}$/.test(trustedMedia.attestation_bundle_sha256 || '') ||
+    !/^[a-f0-9]{40}$/.test(trustedMedia.source_commit || '') ||
+    typeof trustedMedia.model_id !== 'string' ||
+    trustedMedia.model_id.length < 3 ||
+    !/^[a-f0-9]{40}$/.test(trustedMedia.model_revision || '')
+  ) {
+    fail(`Audio QC record for ${assetId} has no valid trusted media receipt binding.`);
+  }
+  const expectedInput = sha256Bytes(Buffer.from(JSON.stringify({
+    assets: identities,
+    trusted_media: trustedMedia,
+  })));
   try {
     requireIndependentModelAcceptances(record.model_acceptances, {
       expectedInputSha256: expectedInput,
@@ -668,7 +712,6 @@ function recordCoversAsset(record, cardId, asset) {
   const expectedHash = asset.sha256.replace(/^sha256:/, '');
   return (record.generated_assets ?? []).some(item =>
     String(item?.card_id ?? '') === cardId &&
-    item?.path === asset.asset_path &&
     item?.file_sha256 === expectedHash,
   );
 }
@@ -706,13 +749,15 @@ function normalizeOptions(options) {
     if (!options?.[key]) fail(`${key} is required.`);
   }
   const outputDirectory = resolve(options.outputDirectory);
+  const candidatePayloadPath = resolve(options.candidatePayloadPath);
   return {
     ...options,
     profilePath: resolve(options.profilePath),
     pilotReviewPath: resolve(options.pilotReviewPath),
     approvalPath: resolve(options.approvalPath),
     auditPath: resolve(options.auditPath),
-    candidatePayloadPath: resolve(options.candidatePayloadPath),
+    candidatePayloadPath,
+    assetRoot: resolve(options.assetRoot ?? dirname(candidatePayloadPath)),
     audioQcDirectory: resolve(options.audioQcDirectory),
     outputDirectory,
     outputParent: dirname(outputDirectory),
@@ -732,6 +777,7 @@ function parseArgs(argv) {
     ['--approval', 'approvalPath'],
     ['--audit', 'auditPath'],
     ['--candidate-payload', 'candidatePayloadPath'],
+    ['--asset-root', 'assetRoot'],
     ['--audio-qc-dir', 'audioQcDirectory'],
     ['--output-dir', 'outputDirectory'],
     ['--bundle-id', 'bundleId'],
@@ -756,7 +802,7 @@ function parseArgs(argv) {
 }
 
 function printUsage() {
-  console.log(`Usage: node scripts/build_controlled_pilot_bundle.mjs [options]\n\nRequired: --profile --pilot-review --approval --audit --candidate-payload --audio-qc-dir --output-dir --bundle-id --release-id --created-at --release-at\n\nThe command verifies a complete bundle in temporary storage. It is dry-run by default; pass --apply to keep the verified output directory.`);
+  console.log(`Usage: node scripts/build_controlled_pilot_bundle.mjs [options]\n\nRequired: --profile --pilot-review --approval --audit --candidate-payload --audio-qc-dir --output-dir --bundle-id --release-id --created-at --release-at\nOptional: --asset-root <card-workspace-root> when QC source paths are not relative to the exported candidate payload.\n\nThe command verifies a complete bundle in temporary storage. It is dry-run by default; pass --apply to keep the verified output directory.`);
 }
 
 function libraryKey(card) {

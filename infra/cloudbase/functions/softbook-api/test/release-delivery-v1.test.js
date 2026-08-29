@@ -180,6 +180,29 @@ test('release bundle verifies all cards, boxes, approval, audio hashes, and QC',
   assert.equal(verified.audio_qc_index.assets.length, 301);
 });
 
+test('release bundle binds QC card ownership even when two assets share bytes', () => {
+  const fixture = createValidBundleFixture('cet4', {
+    duplicateFirstTwoAssetBytes: true,
+  });
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  const qcIndexPath = join(fixture.directory, bundle.audio.qc_index_path);
+  const qcIndex = JSON.parse(readFileSync(qcIndexPath, 'utf8'));
+  [qcIndex.assets[0].card_ids, qcIndex.assets[1].card_ids] = [
+    qcIndex.assets[1].card_ids,
+    qcIndex.assets[0].card_ids,
+  ];
+  writeFileSync(qcIndexPath, `${JSON.stringify(qcIndex, null, 2)}\n`);
+  bundle.audio.qc_index_sha256 = hash(readFileSync(qcIndexPath));
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /content card ownership/,
+  );
+});
+
 test('production release bundle verifies the complete CET6 track', () => {
   const fixture = createValidBundleFixture('cet6');
   const verified = delivery.verifyReleaseBundleDirectory({
@@ -296,6 +319,10 @@ test('formal model review acceptance cannot reuse another input', () => {
       path: approval.validation.model_review,
       sha256: reviewHash,
     },
+    additionalBindings: {
+      content_version: bundle.content.content_version,
+      runtime_payload_sha256: approval.validation.runtime_payload_sha256,
+    },
   });
   for (const acceptance of approval.model_acceptances) {
     acceptance.evidence.input_sha256 = authorizationInput;
@@ -369,6 +396,41 @@ test('release bundle fails closed when exported content loses its approved corpu
         profilePath: fixture.profilePath,
       }),
     /content payload corpus fingerprint/,
+  );
+});
+
+test('release bundle requires the exact retained runtime payload authorized by the model', () => {
+  const fixture = createValidBundleFixture();
+  const bundle = JSON.parse(readFileSync(fixture.bundlePath, 'utf8'));
+  const approval = JSON.parse(readFileSync(
+    join(fixture.directory, bundle.approval.record_path),
+    'utf8',
+  ));
+  const runtimePath = join(fixture.directory, approval.validation.runtime_payload);
+  writeFileSync(runtimePath, Buffer.concat([
+    readFileSync(runtimePath),
+    Buffer.from(' '),
+  ]));
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /authorized runtime payload SHA-256 mismatch/,
+  );
+
+  delete approval.validation.runtime_payload;
+  delete approval.validation.runtime_payload_sha256;
+  const approvalPath = join(fixture.directory, bundle.approval.record_path);
+  writeFileSync(approvalPath, `${JSON.stringify(approval, null, 2)}\n`);
+  bundle.approval.record_sha256 = hash(readFileSync(approvalPath));
+  writeFileSync(fixture.bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  assert.throws(
+    () => delivery.verifyReleaseBundleDirectory({
+      bundlePath: fixture.bundlePath,
+      profilePath: fixture.profilePath,
+    }),
+    /authorization runtime payload path/,
   );
 });
 
@@ -477,7 +539,10 @@ test('rollback switches only to a verified retained release', async () => {
   assert.equal(result.deleted_learning_data, false);
 });
 
-function createValidBundleFixture(track = 'cet4') {
+function createValidBundleFixture(
+  track = 'cet4',
+  {duplicateFirstTwoAssetBytes = false} = {},
+) {
   const directory = mkdtempSync(join(tmpdir(), 'softbook-release-bundle-'));
   temporaryDirectories.push(directory);
   const catalog = catalogModule.loadBoxCatalog();
@@ -525,7 +590,9 @@ function createValidBundleFixture(track = 'cet4') {
     if (index < policy.audioCount) {
       const assetId = `${track}.${cardId}.prompt`;
       const assetPath = `audio/${assetId}.mp3`;
-      const bytes = Buffer.from(`contract-audio-${index}`);
+      const bytes = Buffer.from(
+        `contract-audio-${duplicateFirstTwoAssetBytes && index === 1 ? 0 : index}`,
+      );
       writeFixture(directory, assetPath, bytes);
       const sha256 = hash(bytes);
       const asset = {
@@ -569,6 +636,12 @@ function createValidBundleFixture(track = 'cet4') {
     corpus_fingerprint: `sha256:${corpusDigest}`,
   });
   const contentHash = hash(readFileSync(contentPath));
+  const authorizedRuntimePayloadPath = `reviews/runtime_payloads/${track}-formal.json`;
+  writeFixture(
+    directory,
+    authorizedRuntimePayloadPath,
+    readFileSync(contentPath),
+  );
   const audit = {
     report_type: 'card-quality-audit',
     corpus_fingerprint: {algorithm: 'sha256', digest: corpusDigest},
@@ -666,6 +739,7 @@ function createValidBundleFixture(track = 'cet4') {
     },
     additionalBindings: {
       content_version: content.content_version,
+      runtime_payload_sha256: contentHash,
     },
   });
   const approval = {
@@ -701,6 +775,8 @@ function createValidBundleFixture(track = 'cet4') {
     validation: {
       model_review: linkedModelReviewPath,
       model_review_sha256: modelReviewHash,
+      runtime_payload: authorizedRuntimePayloadPath,
+      runtime_payload_sha256: contentHash,
     },
     authorization_limits: [],
   };
@@ -752,7 +828,17 @@ function createValidBundleFixture(track = 'cet4') {
     notes: 'Contract fixture',
   }));
   const perCardById = new Map(perCardQc.map(item => [item.card_id, item]));
-  const audioInput = hash(Buffer.from(JSON.stringify(generatedAssets.map(asset => ({
+  const trustedMedia = {
+    receipt_path: 'reviews/trusted_media_receipts/fixture-receipt.json',
+    receipt_sha256: 'a'.repeat(64),
+    attestation_bundle_path:
+      'reviews/trusted_media_receipts/fixture-attestation.json',
+    attestation_bundle_sha256: 'b'.repeat(64),
+    source_commit: 'c'.repeat(40),
+    model_id: 'Qwen/Qwen2-Audio-7B-Instruct',
+    model_revision: 'd'.repeat(40),
+  };
+  const audioIdentities = generatedAssets.map(asset => ({
     card_id: asset.card_id,
     path: asset.path,
     file_sha256: asset.file_sha256,
@@ -768,7 +854,11 @@ function createValidBundleFixture(track = 'cet4') {
       no_noise: perCardById.get(asset.card_id).no_noise,
     },
   })).sort((left, right) =>
-    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path)))));
+    left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
+  const audioInput = hash(Buffer.from(JSON.stringify({
+    assets: audioIdentities,
+    trusted_media: trustedMedia,
+  })));
   const qcRecord = {
     schema_version: 'model-owned-audio-qc.v2',
     scope: {card_ids: audioCards.map(card => card.card_id)},
@@ -782,6 +872,16 @@ function createValidBundleFixture(track = 'cet4') {
       modelAcceptance('audio-review-second', audioInput, 'audio_perceptual_review'),
     ],
     text_gate: {transcripts},
+    source_records: {
+      trusted_media_receipt: trustedMedia.receipt_path,
+      trusted_media_receipt_sha256: trustedMedia.receipt_sha256,
+      trusted_media_attestation_bundle: trustedMedia.attestation_bundle_path,
+      trusted_media_attestation_bundle_sha256:
+        trustedMedia.attestation_bundle_sha256,
+      trusted_media_source_commit: trustedMedia.source_commit,
+      trusted_media_model_id: trustedMedia.model_id,
+      trusted_media_model_revision: trustedMedia.model_revision,
+    },
     generated_assets: generatedAssets,
     qa_checks: qaChecks,
     per_card_qc: perCardQc,

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-15",
+  "version": "vnext-16",
   "purpose": "Counterfactual perturbation audit used to avoid local optima and catch silent drift away from the user's original requirements.",
   "perturbations": [
     {
@@ -257,7 +257,7 @@
       "id": "P-36",
       "change": "Merge without a concise exact-diff model decision bound to the pull request",
       "expected_failure": "lets a PR merge without machine acceptance even though no human approval is required",
-      "guarded_by": ["spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_agent_review.py"],
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/machine-acceptance.json", "spec/evals.json", "spec/perturbation-audit.json"],
       "status": "rejected"
     },
     {

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-2",
+  "version": "vnext-3",
   "layer": "repo_governance_truth",
   "purpose": "Describe the frozen historical agent-run archive. New pull requests use concise PR summaries, model review, required checks, and domain-specific release evidence instead of adding tracked run records.",
   "authority_note": "This file owns the frozen archive schema and the no-new-record policy. It does not own product truth, current PR review, release evidence, design authority, workspace classification, or validator layer ownership.",
@@ -86,7 +86,7 @@
   },
   "harness_expectations": {
     "historical_markdown_diff_guard": "node scripts/guard_agent_run_archive.mjs --base <base_sha> --head <head_sha>",
-    "validate_agent_review_requires_pr_reference": false,
+    "author_editable_pr_review_gate_active": false,
     "validate_harness_checks_template_and_contract": true,
     "run_record_must_not_replace_tests_or_review": true,
     "run_record_must_separate_product_truth_and_implementation_hypothesis": true,

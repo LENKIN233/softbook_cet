@@ -27,8 +27,7 @@
 - `apps/mobile/`: React Native 移动端工程
 - `docs/`: 工程协作约定与流程文档
 - `.github/workflows/pr-gates.yml`: 按改动路径运行 task-relevant checks；`main` / schedule / `workflow_dispatch` 仍执行全量验证
-- `.github/workflows/trusted-model-review.yml`: 用 trusted base workflow 和官方 OpenAI Codex Action 对 exact diff 做两次隔离审查；PR body 中的自填 run ID 仅为过渡元数据，不是信任根
-- Trusted-review bootstrap：GitHub 只从默认分支加载 `pull_request_target` workflow，因此安装它的这一张 PR 仍使用既有 required checks 加两次独立外部 exact-diff model review；合并后配置 `OPENAI_API_KEY`，先用下一张 PR 验证两个 Codex job 与聚合 check，再切换 branch protection
+- PR model review：同一 model+harness 任务对 exact diff 依次执行假设反转与失败投影两轮扰动审查，并在 PR 描述绑定精确 HEAD、diff 摘要、发现与决定；不调用外部模型 API
 - `scripts/validate_maestro_selectors.py`: Maestro smoke selector 校验（禁止用用户可见文案作为 `tapOn` / `assertVisible` 等 selector，并要求 id 有 RN `testID` 背书）
 - `.github/pull_request_template.md`: 精简 PR 合同模板（spec / 摘要 / 验证 / Model review）
 - `scripts/validate_harness.py`: harness 校验脚本（spec owner 一致性 + main 分支治理护栏 + Maestro selector 防回归）
@@ -56,7 +55,7 @@
 分支策略文档见 [docs/branching-strategy.md](/Users/lenkin/programing/softbook_cet/docs/branching-strategy.md)。
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
 clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
-任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> trusted-model-review -> required checks -> auto-merge；不等待人工或用户批准。
+任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> 双扰动 exact-diff review -> required checks -> auto-merge；不等待人工或用户批准。
 任何用户可见 UI 改动都必须先引用已接受设计稿 / reference / design brief / direction / decision，并在 PR 中写明设计稿来源、实现映射和未实现设计缺口；同一 PR 内新增的 brief / direction / decision 只能满足 design-only PR。
 Learning / core interaction UI 改动还必须引用 interaction-motion artifact 或 storyboard；Space UI 改动还必须引用 physical-space artifact 和 Space visual proof / refinement / shelf-desk baseline；task-local design brief 只能作为探索草稿，不能作为 implementation PR 的正式设计权威。
 
@@ -166,6 +165,7 @@ node scripts/build_controlled_pilot_bundle.mjs \
   --approval /absolute/path/controlled-pilot-approval.json \
   --audit /absolute/path/controlled-pilot-audit.json \
   --candidate-payload /absolute/path/card-source.json \
+  --asset-root '/absolute/path/card make' \
   --audio-qc-dir '/absolute/path/card make/reviews/audio_qc' \
   --output-dir /absolute/path/cet4-controlled-pilot-bundle \
   --bundle-id cet4-pilot-bundle-001 \

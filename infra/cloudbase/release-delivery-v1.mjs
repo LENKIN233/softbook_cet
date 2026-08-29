@@ -309,6 +309,38 @@ export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
     'approval record',
   );
   const approval = readJson(approvalPath, 'approval record');
+  const authorizedRuntimePayloadPath = resolveBundlePath(
+    bundleDirectory,
+    requireRelativePath(
+      approval.validation?.runtime_payload,
+      'authorization runtime payload path',
+      '.json',
+    ),
+  );
+  const authorizedRuntimePayloadSha256 = normalizeSha256(
+    approval.validation?.runtime_payload_sha256,
+  );
+  assertFileHash(
+    authorizedRuntimePayloadPath,
+    authorizedRuntimePayloadSha256,
+    'authorized runtime payload',
+  );
+  const authorizedRuntimePayload = readJson(
+    authorizedRuntimePayloadPath,
+    'authorized runtime payload',
+  );
+  const {
+    corpus_fingerprint: _authorizedCorpusFingerprint,
+    ...authorizedCardSourcePayload
+  } = authorizedRuntimePayload;
+  const authorizedContent = validateCardSourceCatalogMapping(
+    validateCardSourceForReleaseBundle(authorizedCardSourcePayload, bundle.track),
+  );
+  assertJsonEqual(
+    authorizedContent,
+    content,
+    'authorized runtime payload normalized content',
+  );
   const modelReviewPath = resolveBundlePath(
     bundleDirectory,
     bundle.approval.model_review_path,
@@ -352,7 +384,7 @@ export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
     readJson(qcIndexPath, 'audio QC index'),
     bundle.track,
   );
-  verifyAudioQcIndex(qcIndex, audioManifest, bundle, bundleDirectory);
+  verifyAudioQcIndex(qcIndex, audioManifest, bundle, bundleDirectory, content);
 
   return {
     profile,
@@ -910,6 +942,10 @@ function verifyApprovalRecord(approval, modelReview, bundle, content) {
     },
     additionalBindings: {
       content_version: bundle.content.content_version,
+      runtime_payload_sha256: requireString(
+        approval.validation?.runtime_payload_sha256,
+        'authorization runtime payload SHA-256',
+      ),
     },
   });
   requireIndependentModelAcceptances(approval.model_acceptances, {
@@ -1036,7 +1072,34 @@ function modelAudioQcInput(record) {
   });
   identities.sort((left, right) =>
     left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
-  return `sha256:${createHash('sha256').update(JSON.stringify(identities)).digest('hex')}`;
+  const trustedMedia = {
+    receipt_path: record.source_records?.trusted_media_receipt,
+    receipt_sha256: record.source_records?.trusted_media_receipt_sha256,
+    attestation_bundle_path:
+      record.source_records?.trusted_media_attestation_bundle,
+    attestation_bundle_sha256:
+      record.source_records?.trusted_media_attestation_bundle_sha256,
+    source_commit: record.source_records?.trusted_media_source_commit,
+    model_id: record.source_records?.trusted_media_model_id,
+    model_revision: record.source_records?.trusted_media_model_revision,
+  };
+  if (
+    typeof trustedMedia.receipt_path !== 'string' ||
+    !trustedMedia.receipt_path.startsWith('reviews/trusted_media_receipts/') ||
+    !/^[a-f0-9]{64}$/.test(trustedMedia.receipt_sha256 || '') ||
+    typeof trustedMedia.attestation_bundle_path !== 'string' ||
+    !trustedMedia.attestation_bundle_path.startsWith('reviews/trusted_media_receipts/') ||
+    !/^[a-f0-9]{64}$/.test(trustedMedia.attestation_bundle_sha256 || '') ||
+    !/^[a-f0-9]{40}$/.test(trustedMedia.source_commit || '') ||
+    typeof trustedMedia.model_id !== 'string' ||
+    trustedMedia.model_id.length < 3 ||
+    !/^[a-f0-9]{40}$/.test(trustedMedia.model_revision || '')
+  ) {
+    throw new ReleaseDeliveryError('model audio QC trusted media receipt binding is invalid.');
+  }
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify({assets: identities, trusted_media: trustedMedia}))
+    .digest('hex')}`;
 }
 
 function canonicalPerCardAudioQc(value, cardId) {
@@ -1066,7 +1129,7 @@ function indexUniqueAudioRecords(value, label) {
   return result;
 }
 
-function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
+function verifyModelAudioQcRecord(record, indexedAsset, manifestById) {
   requireExact(record.schema_version, MODEL_AUDIO_QC_SCHEMA, 'model audio QC schema');
   const expectedInput = modelAudioQcInput(record);
   requireIndependentModelAcceptances(record.model_acceptances, {
@@ -1095,7 +1158,7 @@ function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
     if (!generated || !result) {
       throw new ReleaseDeliveryError(`${indexedAsset.asset_id} lacks model evidence for ${cardId}.`);
     }
-    const manifestAsset = manifestByPath.get(generated.path);
+    const manifestAsset = manifestById.get(indexedAsset.asset_id);
     if (!manifestAsset) {
       throw new ReleaseDeliveryError(`${cardId} model audio asset is absent from the manifest.`);
     }
@@ -1119,7 +1182,7 @@ function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
   }
 }
 
-function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
+function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory, content) {
   assertEqual(
     index.corpus_fingerprint,
     bundle.content.corpus_fingerprint,
@@ -1145,11 +1208,20 @@ function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
     manifest.assets.map(asset => asset.asset_id),
     'audio QC asset coverage',
   );
-  const manifestByPath = new Map(
-    manifest.assets.map(asset => [asset.asset_path, asset]),
+  const manifestById = new Map(
+    manifest.assets.map(asset => [asset.asset_id, asset]),
   );
+  const cardIdsByAssetId = new Map(manifest.assets.map(asset => [asset.asset_id, []]));
+  for (const card of content.card_records) {
+    if (card.audio) cardIdsByAssetId.get(card.audio.asset_id)?.push(card.card_id);
+  }
 
   for (const asset of index.assets) {
+    assertSameSet(
+      asset.card_ids,
+      cardIdsByAssetId.get(asset.asset_id) ?? [],
+      `audio QC ${asset.asset_id} content card ownership`,
+    );
     const recordPath = resolveBundlePath(bundleDirectory, asset.record_path);
     assertFileHash(
       recordPath,
@@ -1157,7 +1229,7 @@ function verifyAudioQcIndex(index, manifest, bundle, bundleDirectory) {
       `audio QC record ${asset.asset_id}`,
     );
     const record = readJson(recordPath, `audio QC record ${asset.asset_id}`);
-    verifyModelAudioQcRecord(record, asset, manifestByPath);
+    verifyModelAudioQcRecord(record, asset, manifestById);
     requireExact(
       record.verdict?.formal_audio_ready,
       true,
@@ -1512,6 +1584,12 @@ function requireFormalTrack(value, label) {
 
 function assertEqual(actual, expected, label) {
   if (actual !== expected) {
+    throw new ReleaseDeliveryError(`${label} mismatch.`);
+  }
+}
+
+function assertJsonEqual(actual, expected, label) {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new ReleaseDeliveryError(`${label} mismatch.`);
   }
 }

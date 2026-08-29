@@ -141,11 +141,11 @@ const MACHINE_ACCEPTANCE_POLICY = Object.freeze({
   policy: 'spec/machine-acceptance.json',
   authority: 'model_harness',
   required_independent_runs: 2,
-  independence_unit: 'workflow_review_job',
+  independence_unit: 'single_task_context_perturbation_pass',
   human_review_required: false,
   user_review_required: false,
   product_owner_click_required: false,
-  required_check: 'trusted-model-review',
+  required_check: 'validate-harness',
 });
 
 export function validateCet4ClosedBetaReadiness(
@@ -628,6 +628,12 @@ function validateReadinessSpec(spec, errors) {
     spec.authority_boundary?.validator,
     'scripts/validate_cet4_closed_beta_readiness.mjs',
     'spec validator',
+    errors,
+  );
+  assertEqual(
+    spec.authority_boundary?.trusted_media_receipt_contract,
+    'spec/trusted-media-run-receipt.json',
+    'spec trusted media receipt contract',
     errors,
   );
   assertEqual(

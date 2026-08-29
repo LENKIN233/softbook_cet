@@ -271,6 +271,9 @@ all release evidence summaries, copies immutable bytes into a temporary bundle,
 and invokes the production publisher verifier before returning. The command is
 dry-run by default and retains the verified directory only with `--apply`; an
 absent, duplicate, unidentified, failed, or hash-mismatched QC record fails closed.
+When QC records retain card-workspace-relative `ai_tts/...` source paths and the
+exported candidate lives elsewhere, `--asset-root` explicitly names that source
+workspace; the bundle never guesses it from the export directory.
 It creates neither candidate content nor content/audio authorization.
 
 `infra/cloudbase/smoke-controlled-pilot-candidate-runtime.mjs` is the

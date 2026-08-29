@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 import {classifyChangedPaths} from './classify_pr_gate_scope.mjs';
 
@@ -186,5 +189,16 @@ assert.deepEqual(gateState(classifyChangedPaths([], {forceAll: true})), {
   evidence: true,
   all: true,
 });
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const workflow = fs.readFileSync(
+  path.join(root, '.github/workflows/pr-gates.yml'),
+  'utf8',
+);
+assert.match(
+  workflow,
+  /- name: Install pinned Android NDK\n\s+if: env\.RUN_GATE == 'true'/,
+  'Android NDK installation must respect the native path gate',
+);
 
 console.log('PASS: PR gate scope classification is path-aware and fail-safe.');

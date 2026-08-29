@@ -389,8 +389,8 @@ function assertAudioEvidence(
   }
   const qcItems = requireArray(qcIndex.assets, 'audio QC assets');
   const qcIds = new Set();
-  const manifestByPath = new Map(
-    manifestAssets.map(asset => [asset.asset_path, asset]),
+  const manifestById = new Map(
+    manifestAssets.map(asset => [asset.asset_id, asset]),
   );
   for (const item of qcItems) {
     assertExactObjectKeys(
@@ -425,7 +425,7 @@ function assertAudioEvidence(
       `audio QC record ${item.asset_id}`,
     );
     const record = readJson(recordPath, `audio QC record ${item.asset_id}`);
-    verifyModelAudioQcRecord(record, item, manifestByPath);
+    verifyModelAudioQcRecord(record, item, manifestById);
     qcIds.add(item.asset_id);
   }
   if (
@@ -439,7 +439,7 @@ function assertAudioEvidence(
   }
 }
 
-function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
+function verifyModelAudioQcRecord(record, indexedAsset, manifestById) {
   if (
     record.schema_version !== 'model-owned-audio-qc.v2' ||
     record.verdict?.formal_audio_ready !== true ||
@@ -486,7 +486,7 @@ function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
     const transcriptSha256 = createHash('sha256')
       .update(String(transcript?.transcript ?? ''), 'utf8')
       .digest('hex');
-    const manifestAsset = manifestByPath.get(asset?.path);
+    const manifestAsset = manifestById.get(indexedAsset.asset_id);
     if (
       !String(transcript?.transcript ?? '').trim() ||
       asset?.transcript_sha256 !== transcriptSha256 ||
@@ -530,7 +530,35 @@ function verifyModelAudioQcRecord(record, indexedAsset, manifestByPath) {
   }
   identities.sort((left, right) =>
     left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
-  const expectedInput = digestJson(identities);
+  const trustedMedia = {
+    receipt_path: record.source_records?.trusted_media_receipt,
+    receipt_sha256: record.source_records?.trusted_media_receipt_sha256,
+    attestation_bundle_path:
+      record.source_records?.trusted_media_attestation_bundle,
+    attestation_bundle_sha256:
+      record.source_records?.trusted_media_attestation_bundle_sha256,
+    source_commit: record.source_records?.trusted_media_source_commit,
+    model_id: record.source_records?.trusted_media_model_id,
+    model_revision: record.source_records?.trusted_media_model_revision,
+  };
+  if (
+    typeof trustedMedia.receipt_path !== 'string' ||
+    !trustedMedia.receipt_path.startsWith('reviews/trusted_media_receipts/') ||
+    !/^[a-f0-9]{64}$/.test(trustedMedia.receipt_sha256 || '') ||
+    typeof trustedMedia.attestation_bundle_path !== 'string' ||
+    !trustedMedia.attestation_bundle_path.startsWith('reviews/trusted_media_receipts/') ||
+    !/^[a-f0-9]{64}$/.test(trustedMedia.attestation_bundle_sha256 || '') ||
+    !/^[a-f0-9]{40}$/.test(trustedMedia.source_commit || '') ||
+    typeof trustedMedia.model_id !== 'string' ||
+    trustedMedia.model_id.length < 3 ||
+    !/^[a-f0-9]{40}$/.test(trustedMedia.model_revision || '')
+  ) {
+    fail(`audio QC record ${indexedAsset.asset_id} has no valid trusted media receipt binding.`);
+  }
+  const expectedInput = digestJson({
+    assets: identities,
+    trusted_media: trustedMedia,
+  });
   try {
     requireIndependentModelAcceptances(record.model_acceptances, {
       expectedInputSha256: expectedInput,

@@ -248,7 +248,7 @@ test('pilot bundle builder accepts identified model-harness perceptual QC', () =
     sha256: `sha256:${hash}`,
   };
   const record = modelAudioQcFixture({
-    assetPath: asset.asset_path,
+    assetPath: 'ai_tts/cet4/0000/000001.mp3',
     cardIds: ['000001'],
     fileHash: hash,
     runPrefix: 'direct-audio',
@@ -261,6 +261,10 @@ test('pilot bundle builder accepts identified model-harness perceptual QC', () =
   };
   const result = bundleBuilder.collectAudioQcBindings(input);
   assert.equal(result.bindings[0].reviewed_by, 'agent:direct-audio-a');
+  assert.equal(
+    result.sourcePathsByAssetId.get(asset.asset_id),
+    'ai_tts/cet4/0000/000001.mp3',
+  );
 
   record.model_acceptances[1] = structuredClone(record.model_acceptances[0]);
   writeJson(join(directory, 'qc.json'), record);
@@ -285,7 +289,7 @@ test('pilot bundle builder accepts identified model-harness perceptual QC', () =
 async function createFixture() {
   const directory = mkdtempSync(join(tmpdir(), 'controlled-pilot-publisher-'));
   temporaryDirectories.push(directory);
-  for (const child of ['approval', 'audio/qc', 'content', 'audit']) {
+  for (const child of ['approval', 'audio/qc', 'content', 'audit', 'exports']) {
     mkdirSync(join(directory, child), {recursive: true});
   }
   const development = await developmentCardSource();
@@ -386,7 +390,7 @@ async function createFixture() {
     ...content,
     corpus_fingerprint: corpusFingerprint,
   });
-  const candidatePayloadPath = join(directory, 'candidate-payload.json');
+  const candidatePayloadPath = join(directory, 'exports/candidate-payload.json');
   const candidatePayloadHash = writeJson(candidatePayloadPath, content);
   const auditPath = join(directory, 'audit/pilot-audit.json');
   const auditCorpusDigest = digestText('card-make-corpus').slice('sha256:'.length);
@@ -546,6 +550,7 @@ async function createFixture() {
     approvalPath,
     auditPath,
     candidatePayloadPath,
+    assetRoot: directory,
     audioQcDirectory: join(directory, 'audio/qc'),
     outputDirectory: assembledDirectory,
     bundleId: 'cet4-pilot-bundle-assembled',
@@ -662,6 +667,16 @@ function modelAcceptanceFixture(runId, inputSha256, capability) {
 }
 
 function modelAudioQcFixture({assetPath, cardIds, fileHash, runPrefix}) {
+  const trustedMedia = {
+    receipt_path: 'reviews/trusted_media_receipts/fixture-receipt.json',
+    receipt_sha256: 'a'.repeat(64),
+    attestation_bundle_path:
+      'reviews/trusted_media_receipts/fixture-attestation.json',
+    attestation_bundle_sha256: 'b'.repeat(64),
+    source_commit: 'c'.repeat(40),
+    model_id: 'Qwen/Qwen2-Audio-7B-Instruct',
+    model_revision: 'd'.repeat(40),
+  };
   const transcripts = cardIds.map(cardId => ({
     card_id: cardId,
     transcript: `Spoken training prompt for ${cardId}.`,
@@ -717,7 +732,10 @@ function modelAudioQcFixture({assetPath, cardIds, fileHash, runPrefix}) {
     })
     .sort((left, right) =>
       left.card_id.localeCompare(right.card_id) || left.path.localeCompare(right.path));
-  const inputSha256 = digestJson(identities);
+  const inputSha256 = digestJson({
+    assets: identities,
+    trusted_media: trustedMedia,
+  });
   return {
     schema_version: 'model-owned-audio-qc.v2',
     audio_qc_id: `${runPrefix}-audio-qc`,
@@ -737,6 +755,14 @@ function modelAudioQcFixture({assetPath, cardIds, fileHash, runPrefix}) {
       card_files: [],
       linked_agent_self_review: 'reviews/agent_self_review/audio.json',
       linked_approved_batch: 'reviews/approved_batches/cet4.json',
+      trusted_media_receipt: trustedMedia.receipt_path,
+      trusted_media_receipt_sha256: trustedMedia.receipt_sha256,
+      trusted_media_attestation_bundle: trustedMedia.attestation_bundle_path,
+      trusted_media_attestation_bundle_sha256:
+        trustedMedia.attestation_bundle_sha256,
+      trusted_media_source_commit: trustedMedia.source_commit,
+      trusted_media_model_id: trustedMedia.model_id,
+      trusted_media_model_revision: trustedMedia.model_revision,
     },
     text_gate: {
       tts_text_reviewed: true,

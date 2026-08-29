@@ -35,6 +35,7 @@ def validate(context) -> None:
         )
     )
     closed_beta_spec = load("cet4-closed-beta-readiness.json")
+    media_receipt = load("trusted-media-run-receipt.json")
     closed_beta = json.loads(
         (root / "docs/release/cet4-closed-beta-readiness.v1.json").read_text(
             encoding="utf-8"
@@ -67,8 +68,8 @@ def validate(context) -> None:
         launch.get("machine_acceptance", {}).get("policy"),
     )
     check_equal(
-        "launch trusted model check",
-        "trusted-model-review",
+        "launch machine check",
+        "validate-harness",
         launch.get("machine_acceptance", {}).get("required_check"),
     )
     if "formal_approval" in launch:
@@ -104,8 +105,8 @@ def validate(context) -> None:
         closed_beta.get("machine_acceptance", {}).get("policy"),
     )
     check_equal(
-        "closed beta trusted model check",
-        "trusted-model-review",
+        "closed beta machine check",
+        "validate-harness",
         closed_beta.get("machine_acceptance", {}).get("required_check"),
     )
     if "formal_approval" in closed_beta:
@@ -209,6 +210,13 @@ def validate(context) -> None:
         "account-deletion-task.v1",
         deletion_runtime["task_schema"],
     )
+    for token in (
+        "every_erasure_mutation_transactionally_rechecks_current_task_lease",
+        "stale_worker_cannot_delete_post_completion_reregistration_data",
+        "stale_worker_cannot_complete_or_release_newer_claim",
+    ):
+        if token not in deletion_runtime["lease_boundary"]:
+            errors.append(f"account deletion lease boundary missing: {token}")
     if deletion_runtime["deployment_status"] != "not_deployed_by_repository_change":
         errors.append("repository changes must not claim account-deletion deployment")
 
@@ -250,6 +258,7 @@ def validate(context) -> None:
         "HR-50",
         "HR-51",
         "HR-52",
+        "HR-53",
     ):
         if not find_by_id(evals["regressions"], regression_id):
             errors.append(f"missing representative machine-acceptance eval: {regression_id}")
@@ -262,6 +271,7 @@ def validate(context) -> None:
         "GT-40",
         "GT-43",
         "GT-44",
+        "GT-45",
     ):
         if not find_by_id(evals["golden_tasks"], task_id):
             errors.append(f"missing representative delivery eval: {task_id}")
@@ -284,11 +294,42 @@ def validate(context) -> None:
     )
     for token in (
         "unregistered_and_fail_closed",
-        "trusted_media_run_receipt",
+        "trusted_media_run_receipt_v1",
         "exact_1180_108_301_scope",
+        "GitHub_Sigstore",
+        "no_real_attested_receipt",
     ):
         if token not in formal_media_boundary:
             errors.append(f"formal media boundary missing: {token}")
+    check_equal(
+        "trusted media receipt owner",
+        "spec/machine-acceptance.json",
+        media_receipt.get("owner"),
+    )
+    check_equal(
+        "trusted media receipt producer repository",
+        "LENKIN233/card-make",
+        media_receipt.get("producer", {}).get("repository"),
+    )
+    check_equal(
+        "trusted media receipt fixed workflow",
+        "LENKIN233/card-make/.github/workflows/trusted-media-run.yml",
+        media_receipt.get("producer", {}).get("signer_workflow"),
+    )
+    check_equal(
+        "trusted media receipt real observation boundary",
+        False,
+        media_receipt.get("current_boundary", {}).get(
+            "real_attested_receipt_observed"
+        ),
+    )
+    for asset in (
+        "scripts/verify_trusted_media_run_receipt.mjs",
+        "scripts/replay_trusted_media_raw_outputs.py",
+        "scripts/test_verify_trusted_media_run_receipt.mjs",
+    ):
+        if not (root / asset).is_file():
+            errors.append(f"trusted media receipt asset missing: {asset}")
     formal_entitlement_boundary = runtime["cet4_closed_beta_readiness"].get(
         "formal_entitlement_evidence", ""
     )
@@ -334,6 +375,35 @@ def validate(context) -> None:
         if token not in formal_space_boundary:
             errors.append(f"formal space boundary missing: {token}")
 
+    session_drill = account["authentication"].get(
+        "receiver_session_revocation_drill", {}
+    )
+    check_equal(
+        "session revocation drill runner",
+        "infra/cloudbase/run-session-revocation-drill.mjs",
+        session_drill.get("runner"),
+    )
+    session_runtime = runtime.get("session_revocation_drill_runtime", {})
+    session_runtime_text = " ".join(str(item) for item in session_runtime.values())
+    for token in (
+        "session-revocation-drill-report.v1",
+        "fresh_same_phone_distinct_session",
+        "A_refresh_rotation",
+        "single_session_revocation",
+        "B_refresh_rotation",
+        "rotated_access_survival",
+        "logout_idempotency",
+        "operator_cannot_embed_phone_or_credential",
+        "tracked_HEAD_identical",
+        "control_plane_verified_backend_deployment",
+        "redirect_error",
+        "10_second_abort",
+        "without_phone_or_token_values",
+        "gate_eligible_false",
+    ):
+        if token not in session_runtime_text:
+            errors.append(f"session revocation drill boundary missing: {token}")
+
     launch_validator = (root / "scripts/validate_launch_readiness.mjs").read_text(
         encoding="utf-8"
     )
@@ -352,6 +422,8 @@ def validate(context) -> None:
         "scripts/test_beta_entitlement_drill_evidence.mjs",
         "infra/cloudbase/run-space-sync-drill.mjs",
         "scripts/test_space_sync_evidence.mjs",
+        "infra/cloudbase/run-session-revocation-drill.mjs",
+        "infra/cloudbase/functions/softbook-api/test/session-revocation-drill-report.test.js",
     ):
         if not (root / artifact).is_file():
             errors.append(f"missing closed-beta machine artifact: {artifact}")

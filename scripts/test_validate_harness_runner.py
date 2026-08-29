@@ -26,7 +26,6 @@ from harness_validator.runner import (
     run_harness,
 )
 from harness_validator.runtime_policy import ReadOnlyRuntimePolicy, RuntimeCapabilityError
-from validate_agent_review import validate as validate_agent_review
 
 
 TEST_LAYERS = (
@@ -36,7 +35,6 @@ TEST_LAYERS = (
 )
 ROOT = Path(__file__).resolve().parents[1]
 ENTRYPOINT = ROOT / "scripts" / "validate_harness.py"
-REVIEW_HEAD = "a" * 40
 
 
 class HarnessRunnerTests(unittest.TestCase):
@@ -395,7 +393,6 @@ class HarnessRunnerTests(unittest.TestCase):
 
     def test_full_cli_rejects_disabled_repository_auto_merge(self):
         checks = [
-            "agent-review",
             "backend-contract",
             "design-artifact-gate",
             "validate-harness",
@@ -472,25 +469,6 @@ class HarnessRunnerTests(unittest.TestCase):
             ),
             full_result["findings"],
         )
-
-    def test_pr_review_accepts_task_relevant_passed_validation(self):
-        commands = (
-            "python3 scripts/validate_harness.py --skip-remote-guard",
-            "python3 scripts/validate_harness.py --mode local",
-            "python3 scripts/validate_harness.py --section truth_mirrors",
-            "python3 scripts/validate_harness.py",
-            "python3 scripts/validate_harness.py --mode full --format json",
-        )
-        for command in commands:
-            with self.subTest(command=command):
-                self.assertEqual(
-                    validate_agent_review(
-                        self.review_body(command),
-                        expected_head=REVIEW_HEAD,
-                        minimum_runs=2,
-                    ),
-                    [],
-                )
 
     def test_json_result_has_stable_schema_and_structured_findings(self):
         with self.section_directory(
@@ -581,55 +559,6 @@ class HarnessRunnerTests(unittest.TestCase):
                 )
                 (section_dir / f"{section}.py").write_text(module, encoding="utf-8")
             yield section_dir
-
-    @staticmethod
-    def review_body(command: str) -> str:
-        evidence = json.dumps({
-            "schema_version": "pr-model-review.v1",
-            "head_sha": REVIEW_HEAD,
-            "policy": "spec/machine-acceptance.json",
-            "runs": [
-                {
-                    "principal": "agent:codex-primary",
-                    "model": "gpt-5.6-sol",
-                    "run_id": "review:runner-primary",
-                    "reviewed_at": "2026-08-23T17:00:00+08:00",
-                    "capabilities": ["exact_diff_review"],
-                    "decision": "passed",
-                    "blocking_findings": [],
-                },
-                {
-                    "principal": "agent:codex-independent",
-                    "model": "gpt-5.6-sol",
-                    "run_id": "review:runner-independent",
-                    "reviewed_at": "2026-08-23T17:01:00+08:00",
-                    "capabilities": ["exact_diff_review"],
-                    "decision": "passed",
-                    "blocking_findings": [],
-                },
-            ],
-            "status": "passed",
-            "summary": "Two isolated exact-diff reviews passed.",
-        })
-        return f"""
-## 当前任务引用的 spec
-
-- `spec/harness-architecture.json`
-
-## 变更摘要
-
-- Validate structured Harness runner behavior.
-
-## 验证
-
-- `{command}` — Passed
-
-## Model review
-
-```json
-{evidence}
-```
-"""
 
 
 if __name__ == "__main__":
