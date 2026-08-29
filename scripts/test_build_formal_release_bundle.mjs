@@ -73,7 +73,10 @@ test('dry-run assembles exact 1180/108/301 scope, invokes core verifier, and ret
   const fixture = createFixture();
   t.after(() => fs.rmSync(fixture.root, {recursive: true, force: true}));
   let verificationCalls = 0;
+  const dependencies = safeBuildDependencies();
   const report = assembleFormalReleaseBundle(fixture.options, {
+    ...dependencies,
+    repository: {...dependencies.repository, branch: 'fix/test-dry-run'},
     verify: ({bundlePath, profilePath}) => {
       verificationCalls += 1;
       assert.equal(profilePath, fixture.profilePath);
