@@ -294,7 +294,9 @@ def validate(context) -> None:
     )
     for token in (
         "unregistered_and_fail_closed",
-        "trusted_media_run_receipt_v1",
+        "trusted_media_run_receipt_v2",
+        "original_model_execution_commit",
+        "later_attested_finalizer_commit",
         "exact_1180_108_301_scope",
         "GitHub_Sigstore",
         "no_real_attested_receipt",

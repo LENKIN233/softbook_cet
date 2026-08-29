@@ -1323,6 +1323,7 @@ function validateReceipt(receipt, policy, errors) {
       'receipt_id',
       'created_at',
       'source',
+      'finalization',
       'execution',
       'candidate',
       'artifacts',
@@ -1334,6 +1335,62 @@ function validateReceipt(receipt, policy, errors) {
   )) return;
   if (receipt.schema_version !== policy.receipt.schema_version) {
     errors.push('receipt.schema_version does not match policy.');
+  }
+
+  const finalization = receipt.finalization;
+  if (exactKeys(
+    finalization,
+    [
+      'repository',
+      'ref',
+      'commit_sha',
+      'workflow_path',
+      'workflow_sha256',
+      'retained_raw_artifact',
+    ],
+    'receipt.finalization',
+    errors,
+  )) {
+    if (finalization.repository !== policy.producer.repository) {
+      errors.push('receipt.finalization.repository does not match the trusted producer.');
+    }
+    if (finalization.ref !== policy.producer.source_ref) {
+      errors.push('receipt.finalization.ref does not match the trusted source ref.');
+    }
+    if (!COMMIT_PATTERN.test(finalization.commit_sha ?? '')) {
+      errors.push('receipt.finalization.commit_sha must be a 40-character commit SHA.');
+    }
+    if (finalization.workflow_path !== policy.producer.workflow_path) {
+      errors.push('receipt.finalization.workflow_path does not match the trusted workflow.');
+    }
+    nonPlaceholderSha(
+      finalization.workflow_sha256,
+      'receipt.finalization.workflow_sha256',
+      errors,
+    );
+    if (exactKeys(
+      finalization.retained_raw_artifact,
+      ['workflow_run_id', 'workflow_run_attempt', 'artifact_name'],
+      'receipt.finalization.retained_raw_artifact',
+      errors,
+    )) {
+      if (
+        finalization.retained_raw_artifact.workflow_run_id !==
+        receipt.execution?.workflow_run_id
+      ) {
+        errors.push('receipt.finalization retained run ID must match execution.');
+      }
+      if (
+        finalization.retained_raw_artifact.workflow_run_attempt !==
+        receipt.execution?.workflow_run_attempt
+      ) {
+        errors.push('receipt.finalization retained run attempt must match execution.');
+      }
+      const expectedArtifact = `trusted-media-raw-${receipt.execution?.workflow_run_id}-${receipt.execution?.workflow_run_attempt}`;
+      if (finalization.retained_raw_artifact.artifact_name !== expectedArtifact) {
+        errors.push('receipt.finalization retained artifact name is invalid.');
+      }
+    }
   }
   if (typeof receipt.receipt_id !== 'string' || !ID_PATTERN.test(receipt.receipt_id)) {
     errors.push('receipt.receipt_id has an invalid value.');
@@ -1717,9 +1774,9 @@ export function verifyTrustedMediaRunReceipt({
         '--signer-workflow',
         policy.producer.signer_workflow,
         '--signer-digest',
-        receipt.source.commit_sha,
+        receipt.finalization.commit_sha,
         '--source-digest',
-        receipt.source.commit_sha,
+        receipt.finalization.commit_sha,
         '--source-ref',
         policy.producer.source_ref,
         '--cert-oidc-issuer',
@@ -1760,7 +1817,8 @@ export function verifyTrustedMediaRunReceipt({
     attestation_verified: attestationVerified,
     artifacts_verified: artifactsVerified,
     receipt_sha256: receiptSha256,
-    source_commit_sha: receipt?.source?.commit_sha ?? null,
+    source_commit_sha: receipt?.finalization?.commit_sha ?? null,
+    execution_source_commit_sha: receipt?.source?.commit_sha ?? null,
     errors,
   };
 }

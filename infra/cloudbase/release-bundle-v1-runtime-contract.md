@@ -116,10 +116,13 @@ fails closed.
 cryptographic proof that a model execution or media consumption occurred.
 Repository authority additionally depends on the trusted Codex Action PR gate.
 Formal audio launch evidence remains ineligible until one real
-`trusted-media-run-receipt.v1` is produced by the fixed `card-make` main-branch
+`trusted-media-run-receipt.v2` is produced by the fixed `card-make` main-branch
 workflow, its exact bytes pass GitHub Artifact Attestation verification, and
 the four CET4 content/media evidence types are registered. The repository now
 contains the receipt schema and structural/attestation verifier. Formal-ready
+retained-raw finalization keeps `source` bound to the immutable model-execution
+commit and separately binds the later main workflow `finalization` commit that
+replays the retained GitHub artifact and receives OIDC attestation.
 verification additionally requires the exact downloaded artifact directory;
 the consumer rehashes all 301 exact audio files, the audio manifest, reviewed worklist, raw-run manifest
 and every referenced JSONL run, recomputes exact 301-card media identity, two
