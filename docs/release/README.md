@@ -30,7 +30,8 @@ time, and binds a tracked `repo://<path>` artifact to its byte size and SHA-256.
 Each required evidence type must use a distinct artifact. The CLI rejects
 symlinks, re-hashes every artifact, and limits ordinary Git evidence records to
 1 MiB. Formal semantic reports may reference only re-hashable `repo://` raw
-artifacts. Large or restricted remote evidence must be represented by an
+artifacts, each bounded to 16 MiB by the repository loader. Larger or restricted
+remote evidence must be represented by an
 `agent-run-evidence.v1` repository manifest that the required
 `evidence-archive` gate has independently verified.
 
@@ -44,6 +45,14 @@ machine verifier/run, attestation, byte size, and SHA-256. The raw report alone
 cannot satisfy the gate. The wrapper also remains ineligible until a
 pre-existing receiver key registry and deployed IAM attestation are registered;
 the current repository intentionally fails closed on that missing trust root.
+
+The four CET4 formal content evidence types use a two-layer proof. A GitHub
+Artifact Attestation for `trusted-media-run-receipt.v2` binds the fixed Card Make
+main workflow that consumed all 301 audio byte sequences. The closed-beta
+validator separately re-hashes and recomputes the exact authorization, model
+review, zero-blocker audit, three runtime shards, 1180-card content payload,
+release bundle, audio manifest, QC index, and all 27 formal QC records. An
+attestation alone, a count-only report, or a path/hash-only summary cannot pass.
 
 External account capabilities and the accepted box/card coverage reports must be
 verified by the tracked machine authority, `service:softbook-machine-harness`.

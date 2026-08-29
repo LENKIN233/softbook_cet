@@ -677,8 +677,8 @@
         "release_verifier_recomputes_content_card_to_asset_ID_ownership_even_when_hashes_repeat",
         "consumer_rehashes_all_301_audio_files_recomputes_entry_identity_and_validates_runtime_manifests",
         "consumer_rejects_duplicate_runs_failed_raw_decision_replay_transcript_hash_drift_and_unbound_acceptance_inputs",
-        "formal_media_evidence_types_remain_unregistered_until_one_real_attested_receipt_exists",
-        "unregistered_evidence_types_fail_closed",
+        "formal_media_evidence_types_require_the_real_attested_receipt_identity_plus_rehashed_authorization_review_audit_runtime_bundle_content_and_27_QC_records",
+        "missing_attestation_or_any_raw_byte_drift_fails_closed",
         "external_playback_device_provider_and_distribution_facts_cannot_be_inferred"
       ]
     },
@@ -1509,11 +1509,11 @@
         "model_owned_authorization_linked_review_audit_and_complete_asset_QC",
         "exact_1180_card_108_box_301_audio_scope",
         "model_acceptance_v2_is_not_cryptographic_execution_provenance",
-        "formal_media_evidence_types_are_required_but_unregistered",
+        "formal_media_evidence_types_are_registered_with_type_specific_recomputation",
         "trusted_media_run_receipt_v2_structural_and_GitHub_attestation_verifier",
         "fixed_card_make_main_workflow_source_commit_oidc_and_receipt_sha_binding",
-        "real_attested_receipt_and_type_registration_still_required",
-        "unregistered_and_self_declared_evidence_fails_closed",
+        "real_attested_receipt_observed_and_exact_identity_required",
+        "self_declared_or_byte_drifted_evidence_fails_closed",
         "no_human_approval_or_QC_authority"
       ]
     },

@@ -23,6 +23,10 @@ import {
   loadSmsProviderSmokeReport,
   verifyInnerRepositoryArtifact,
 } from './validate_launch_readiness.mjs';
+import {
+  CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
+  loadCet4FormalContentEvidence,
+} from './lib/cet4_formal_content_evidence.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_CONTRACT = path.join(
@@ -61,6 +65,7 @@ export const CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES = Object.freeze([
   ...RELEASE_OPERATIONAL_EVIDENCE_TYPES,
   ...BETA_ENTITLEMENT_EVIDENCE_TYPES,
   ...SPACE_SYNC_EVIDENCE_TYPES,
+  ...CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
 ]);
 const SUPPORTED_EVIDENCE_SET = new Set(
   CET4_CLOSED_BETA_SUPPORTED_EVIDENCE_TYPES,
@@ -294,6 +299,7 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
     semanticContext = null,
     trackedFiles = null,
     trustedCommits = null,
+    trustedMediaVerifier = undefined,
   } = {},
 ) {
   const errors = [];
@@ -433,6 +439,16 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
         })
       : {errors: [], evidence: null, ok: true};
     errors.push(...spaceResult.errors);
+    const contentResult = CET4_FORMAL_CONTENT_EVIDENCE_TYPES.includes(
+      evidence.type,
+    )
+      ? loadCet4FormalContentEvidence(artifact, {
+          root,
+          trackedFiles,
+          ...(trustedMediaVerifier ? {trustedMediaVerifier} : {}),
+        })
+      : {errors: [], evidence: null, ok: true};
+    errors.push(...contentResult.errors);
     const result = validateGateEvidenceArtifact(artifact, {
       evidenceType: evidence.type,
       expectedPolicy,
@@ -443,6 +459,7 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
       productionDeploymentEvidence: deploymentResult.evidence,
       betaEntitlementDrillEvidence: entitlementResult.evidence,
       spaceSyncEvidence: spaceResult.evidence,
+      cet4FormalContentEvidence: contentResult.evidence,
       releaseOperationalPolicy: loadedContext.releaseOperationalPolicy,
       smsProviderSmokeReport: smsResult.report,
       targetRelease: 'cet4-closed-beta',
@@ -453,7 +470,8 @@ export function verifyCet4ClosedBetaRepositoryEvidence(
       smsResult.ok &&
       deploymentResult.ok &&
       entitlementResult.ok &&
-      spaceResult.ok
+      spaceResult.ok &&
+      contentResult.ok
     ) {
       const gateReports = parsedReports.get(gateId) ?? [];
       gateReports.push(artifact);
