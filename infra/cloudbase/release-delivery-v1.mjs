@@ -6,6 +6,7 @@ import {
   buildModelAcceptanceInputSha256,
   requireIndependentModelAcceptances,
 } from '../../scripts/lib/model_acceptance_contract.mjs';
+import {resolveCardMakeRuntimePayload} from '../../scripts/lib/card_make_runtime_payload.mjs';
 import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
 
 const require = createRequire(import.meta.url);
@@ -325,10 +326,21 @@ export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
     authorizedRuntimePayloadSha256,
     'authorized runtime payload',
   );
-  const authorizedRuntimePayload = readJson(
+  const authorizedRuntimeDocument = readJson(
     authorizedRuntimePayloadPath,
     'authorized runtime payload',
   );
+  let authorizedRuntimePayload;
+  try {
+    authorizedRuntimePayload = resolveCardMakeRuntimePayload(
+      authorizedRuntimeDocument,
+      {rootDirectory: bundleDirectory},
+    ).payload;
+  } catch (error) {
+    throw new ReleaseDeliveryError(
+      `authorized runtime payload manifest is invalid: ${error.message}`,
+    );
+  }
   const {
     corpus_fingerprint: _authorizedCorpusFingerprint,
     ...authorizedCardSourcePayload

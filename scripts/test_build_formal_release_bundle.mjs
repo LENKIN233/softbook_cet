@@ -19,6 +19,7 @@ import {
   parseFormalReleaseBundleArguments,
 } from './build_formal_release_bundle.mjs';
 import {buildModelAcceptanceInputSha256} from './lib/model_acceptance_contract.mjs';
+import {resolveCardMakeRuntimePayload} from './lib/card_make_runtime_payload.mjs';
 
 const REQUIRED_QC_CHECKS = [
   'audio_matches_text',
@@ -204,6 +205,50 @@ test('default core verifier accepts the fully assembled formal fixture', t => {
   assert.equal(report.card_count, 1180);
   assert.equal(report.audio_qc_entry_count, 301);
   assert.equal(report.bundle_directory, null);
+});
+
+test('default core verifier accepts the exact authorization-bound sharded runtime manifest', t => {
+  const fixture = convertFixtureToSharded(createFixture());
+  t.after(() => fs.rmSync(fixture.root, {recursive: true, force: true}));
+  const report = assembleFormalReleaseBundle(fixture.options);
+  assert.equal(report.verified, true);
+  assert.equal(
+    report.authorized_runtime_payload_schema,
+    'card-make-runtime-payload-manifest.v1',
+  );
+  assert.equal(report.authorized_runtime_shard_count, 3);
+  assert.equal(report.card_count, 1180);
+});
+
+test('runtime manifest resolver rejects missing, tampered, and reordered shard identity', t => {
+  const fixture = convertFixtureToSharded(createFixture());
+  t.after(() => fs.rmSync(fixture.root, {recursive: true, force: true}));
+  const manifest = readJson(fixture.contentPayloadPath);
+  const root = path.join(fixture.root, 'source');
+  const first = manifest.card_record_shards[0];
+  const firstPath = path.join(root, first.path);
+  const original = fs.readFileSync(firstPath);
+
+  fs.appendFileSync(firstPath, '\n');
+  assert.throws(
+    () => resolveCardMakeRuntimePayload(manifest, {rootDirectory: root}),
+    /SHA-256 does not match/,
+  );
+  fs.writeFileSync(firstPath, original);
+
+  first.first_card_id = '999999';
+  assert.throws(
+    () => resolveCardMakeRuntimePayload(manifest, {rootDirectory: root}),
+    /card range does not match/,
+  );
+  first.first_card_id = '000000';
+
+  const missing = firstPath.replace('.part-001.json', '.missing.json');
+  first.path = path.relative(root, missing).split(path.sep).join('/');
+  assert.throws(
+    () => resolveCardMakeRuntimePayload(manifest, {rootDirectory: root}),
+    /bounded regular file/,
+  );
 });
 
 test('builder rejects stale model authorization, audit drift, missing model QC, and empty verification', t => {
@@ -595,6 +640,81 @@ function createFixture() {
       apply: false,
     },
   };
+}
+
+function convertFixtureToSharded(fixture) {
+  const sourceRoot = path.dirname(fixture.contentPayloadPath);
+  const original = readJson(fixture.contentPayloadPath);
+  const sortedCards = [...original.card_records].sort((left, right) =>
+    left.card_id.localeCompare(right.card_id));
+  const unversioned = {...original};
+  delete unversioned.content_version;
+  const content = validateCardSourceForReleaseBundle(
+    {...unversioned, card_records: sortedCards},
+    'cet4',
+  );
+  const authorization = readJson(fixture.authorizationPath);
+  const runtimePath = authorization.validation.runtime_payload;
+  const manifestPath = path.join(sourceRoot, runtimePath);
+  const groups = [
+    sortedCards.slice(0, 400),
+    sortedCards.slice(400, 800),
+    sortedCards.slice(800),
+  ];
+  const descriptors = groups.map((cardRecords, index) => {
+    const shardPath = runtimePath.replace(
+      /\.json$/,
+      `.part-${String(index + 1).padStart(3, '0')}.json`,
+    );
+    const document = {
+      schema_version: 'card-make-runtime-card-shard.v1',
+      track: 'cet4',
+      card_records: cardRecords,
+    };
+    writeJson(path.join(sourceRoot, shardPath), document);
+    return {
+      path: shardPath,
+      sha256: digest(fs.readFileSync(path.join(sourceRoot, shardPath))),
+      card_count: cardRecords.length,
+      first_card_id: cardRecords[0].card_id,
+      last_card_id: cardRecords.at(-1).card_id,
+    };
+  });
+  writeJson(manifestPath, {
+    schema_version: 'card-make-runtime-payload-manifest.v1',
+    source: content.source,
+    track: content.track,
+    content_version: content.content_version,
+    card_record_shards: descriptors,
+    assets: content.assets,
+    release: content.release,
+  });
+
+  const runtimePayloadSha256 = digest(fs.readFileSync(manifestPath));
+  authorization.content_version = content.content_version;
+  authorization.validation.runtime_payload_sha256 = runtimePayloadSha256;
+  const auditSha256 = authorization.card_quality_audit.report_sha256;
+  const authorizationInput = buildModelAcceptanceInputSha256({
+    decisionType: 'full_track_content_authorization',
+    scope: authorization.scope,
+    corpusFingerprint: `sha256:${authorization.card_quality_audit.corpus_fingerprint}`,
+    auditSha256,
+    linkedReviewIdentity: {
+      path: authorization.validation.model_review,
+      sha256: authorization.validation.model_review_sha256,
+    },
+    additionalBindings: {
+      content_version: content.content_version,
+      runtime_payload_sha256: runtimePayloadSha256,
+    },
+  });
+  for (const acceptance of authorization.model_acceptances) {
+    acceptance.evidence.input_sha256 = authorizationInput;
+  }
+  writeJson(fixture.authorizationPath, authorization);
+  fixture.contentPayloadPath = manifestPath;
+  fixture.options.contentPayloadPath = manifestPath;
+  return fixture;
 }
 
 function modelAcceptance(runId, inputSha256, capabilities) {

@@ -137,6 +137,15 @@ the exact audit bytes named and hashed by both records, complete
 `model-owned-audio-qc.v2`, private audio bytes and a `closed_beta` receiver
 profile. It never produces or authorizes content or QC.
 
+The authorization-bound runtime input may be either one direct payload or the
+card workspace's `card-make-runtime-payload-manifest.v1`. For a manifest, the
+builder and receiver verifier share one resolver: every ordered shard is
+path-, byte-hash-, count- and card-range-checked, the canonical content version
+is recomputed, the normalized 1,180-card payload is written to
+`content/cet4.json`, and the original manifest plus all exact shard bytes remain
+inside the bundle at their authorization-relative paths. The manifest hash,
+not a regenerated monolith hash, remains the model-authorization input.
+
 The command is dry-run by default. It assembles in a temporary directory,
 copies every hash-bound artifact, builds one audio manifest and one QC index
 entry per asset, then calls the full `verifyReleaseBundleDirectory` core
