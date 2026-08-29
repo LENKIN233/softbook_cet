@@ -7,6 +7,7 @@ const RATE_LIMIT_WINDOW_SECONDS = 10 * 60;
 const PHONE_REQUEST_LIMIT = 5;
 const IP_REQUEST_LIMIT = 20;
 const VERIFY_ATTEMPT_LIMIT = 5;
+const EXTERNAL_PROVIDER_VERIFIED_CODE = 'external-provider-verified';
 
 function createAuthV2Service(options) {
   const runtimeMode = options.runtimeMode ?? 'development';
@@ -91,11 +92,42 @@ async function requestCode(config, request) {
     windowStartedAt,
   });
 
-  const challengeId = randomBase64Url(config.randomBytes, 24);
-  const code = normalizeSmsCode(config.codeGenerator());
-  const expiresAt = new Date(
+  const providerOwnsChallenge =
+    typeof config.smsProvider.sendChallenge === 'function';
+  let challengeId = randomBase64Url(config.randomBytes, 24);
+  let code = providerOwnsChallenge
+    ? EXTERNAL_PROVIDER_VERIFIED_CODE
+    : normalizeSmsCode(config.codeGenerator());
+  let expiresAt = new Date(
     requestedAt.getTime() + config.challengeTtlSeconds * 1000,
   );
+  let providerChallenge = null;
+  if (providerOwnsChallenge) {
+    try {
+      providerChallenge = await config.smsProvider.sendChallenge({phoneNumber});
+      challengeId = requireOpaqueId(
+        providerChallenge?.challengeId,
+        'provider challenge_id',
+      );
+      if (
+        !Number.isSafeInteger(providerChallenge?.expiresInSeconds) ||
+        providerChallenge.expiresInSeconds <= 0 ||
+        providerChallenge.expiresInSeconds > 600
+      ) {
+        throw new Error('provider challenge expiry is invalid');
+      }
+      expiresAt = new Date(
+        requestedAt.getTime() +
+          Math.min(
+            config.challengeTtlSeconds,
+            providerChallenge.expiresInSeconds,
+          ) *
+            1000,
+      );
+    } catch {
+      throw authError(503, 'sms_delivery_failed', 'SMS delivery failed.');
+    }
+  }
   const challenge = {
     attempts: 0,
     challenge_id: challengeId,
@@ -115,12 +147,14 @@ async function requestCode(config, request) {
   await config.store.createAuthChallenge(challenge);
 
   try {
-    await config.smsProvider.sendCode({
-      challengeId,
-      code,
-      expiresAt: expiresAt.toISOString(),
-      phoneNumber,
-    });
+    if (!providerOwnsChallenge) {
+      await config.smsProvider.sendCode({
+        challengeId,
+        code,
+        expiresAt: expiresAt.toISOString(),
+        phoneNumber,
+      });
+    }
     await config.store.markAuthChallengeDelivery(
       challengeId,
       'delivered',
@@ -149,13 +183,26 @@ async function verifyCode(config, request) {
   const phoneNumber = requirePhoneNumber(body.phone_number);
   const smsCode = normalizeSmsCode(body.sms_code);
   const verifiedAt = config.now();
+  let codeForStore = smsCode;
+  if (typeof config.smsProvider.verifyChallenge === 'function') {
+    try {
+      await config.smsProvider.verifyChallenge({
+        challengeId,
+        code: smsCode,
+        phoneNumber,
+      });
+      codeForStore = EXTERNAL_PROVIDER_VERIFIED_CODE;
+    } catch {
+      throw authError(401, 'invalid_sms_code', 'SMS code is invalid.');
+    }
+  }
   const verification = await config.store.verifyAuthChallenge({
     challengeId,
     codeDigest: digestSmsCode(
       config.tokenSecret,
       challengeId,
       phoneNumber,
-      smsCode,
+      codeForStore,
     ),
     maxAttempts: config.verifyAttemptLimit,
     now: verifiedAt.toISOString(),
@@ -606,10 +653,15 @@ function validateServiceConfig(config) {
     }
   }
 
-  if (
-    !config.smsProvider ||
-    typeof config.smsProvider.sendCode !== 'function'
-  ) {
+  const hasCodeDelivery =
+    typeof config.smsProvider?.sendCode === 'function' &&
+    config.smsProvider?.sendChallenge === undefined &&
+    config.smsProvider?.verifyChallenge === undefined;
+  const hasProviderChallenge =
+    config.smsProvider?.sendCode === undefined &&
+    typeof config.smsProvider?.sendChallenge === 'function' &&
+    typeof config.smsProvider?.verifyChallenge === 'function';
+  if (!hasCodeDelivery && !hasProviderChallenge) {
     throw new Error('Auth v2 requires an SMS provider.');
   }
 

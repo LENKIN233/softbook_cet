@@ -261,12 +261,53 @@ test('receiver runtime can select Tencent Cloud SMS without carrying webhook cre
   assert.equal(Object.hasOwn(runtime, 'SOFTBOOK_SMS_WEBHOOK_URL'), false);
 });
 
+test('receiver runtime can use the receiver CloudBase default SMS provider without SMS credentials', () => {
+  const env = receiverEnvironment();
+  delete env.SOFTBOOK_SMS_WEBHOOK_SECRET;
+  delete env.SOFTBOOK_SMS_WEBHOOK_URL;
+  Object.assign(env, {
+    SOFTBOOK_CLOUDBASE_AUTH_BASE_URL:
+      'https://receiver-cet4-beta.api.tcloudbasegateway.com',
+    SOFTBOOK_CLOUDBASE_ENV_ID: 'receiver-cet4-beta',
+    SOFTBOOK_SMS_PROVIDER: 'cloudbase-auth',
+  });
+  const profile = profileFixture();
+  const inspection = deliveryCli.inspectReceiverSecrets(profile, env);
+  const runtime = deliveryCli.buildReceiverRuntimeEnvironment(profile, env, {
+    backendDeploymentId: deliveryCli.buildBackendDeploymentId({
+      profile,
+      repositoryCommit: TEST_COMMIT,
+    }),
+  });
+
+  assert.equal(inspection.ok, true, inspection.errors.join('; '));
+  assert.deepEqual(inspection.public.configured_names.sort(), [
+    'SOFTBOOK_AUTH_INDEX_SECRET',
+    'SOFTBOOK_AUTH_TOKEN_SECRET',
+    'SOFTBOOK_CLOUDBASE_AUTH_BASE_URL',
+    'SOFTBOOK_CLOUDBASE_ENV_ID',
+    'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
+    'SOFTBOOK_SMS_PROVIDER',
+  ]);
+  assert.equal(runtime.SOFTBOOK_SMS_PROVIDER, 'cloudbase-auth');
+  assert.equal(
+    runtime.SOFTBOOK_CLOUDBASE_AUTH_BASE_URL,
+    'https://receiver-cet4-beta.api.tcloudbasegateway.com',
+  );
+  assert.equal(runtime.SOFTBOOK_CLOUDBASE_ENV_ID, 'receiver-cet4-beta');
+  assert.equal(Object.keys(runtime).some(name => name.includes('SECRET_ID')), false);
+  assert.equal(Object.keys(runtime).some(name => name.includes('SDK_APP')), false);
+});
+
 test('receiver preflight rejects an unknown provider and unsafe SMS timeout', () => {
   const unknown = receiverEnvironment();
   unknown.SOFTBOOK_SMS_PROVIDER = 'fixed-code';
   const unknownInspection = deliveryCli.inspectReceiverSecrets(profileFixture(), unknown);
   assert.equal(unknownInspection.ok, false);
-  assert.match(unknownInspection.errors.join(';'), /webhook or tencentcloud/);
+  assert.match(
+    unknownInspection.errors.join(';'),
+    /cloudbase-auth, webhook or tencentcloud/,
+  );
 
   const unsafeTimeout = receiverEnvironment();
   unsafeTimeout.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS = '15001';
@@ -304,6 +345,64 @@ test('receiver preflight reads the exact environment and reports missing collect
     runner.calls.some(call => call.includes('CreateTable')),
     false,
   );
+});
+
+test('CloudBase Auth preflight requires enabled phone login and the default SMS provider', async () => {
+  const fixture = createProfileFile();
+  delete fixture.env.SOFTBOOK_SMS_WEBHOOK_SECRET;
+  delete fixture.env.SOFTBOOK_SMS_WEBHOOK_URL;
+  Object.assign(fixture.env, {
+    SOFTBOOK_CLOUDBASE_AUTH_BASE_URL:
+      'https://receiver-cet4-beta.api.tcloudbasegateway.com',
+    SOFTBOOK_CLOUDBASE_ENV_ID: 'receiver-cet4-beta',
+    SOFTBOOK_SMS_PROVIDER: 'cloudbase-auth',
+  });
+  const enabledRunner = createCloudRunner(deploymentSafety.REQUIRED_COLLECTIONS, {
+    loginConfig: {
+      PhoneNumberLogin: true,
+      SmsVerificationConfig: {Type: 'default'},
+    },
+  });
+  const enabled = await deliveryCli.executeDeliveryCommand(
+    {
+      apply: false,
+      bundlePath: null,
+      command: 'preflight',
+      format: 'json',
+      mobileRuntimeProfilePath: fixture.mobileRuntimeProfilePath,
+      profilePath: fixture.path,
+      releaseId: null,
+    },
+    safeDependencies(enabledRunner, fixture.env),
+  );
+  assert.equal(enabled.status, 'passed');
+  assert.deepEqual(enabled.preflight.authentication, {
+    phone_number_login: true,
+    provider: 'cloudbase-auth',
+    ready: true,
+    sms_verification_type: 'default',
+  });
+
+  const disabledRunner = createCloudRunner(deploymentSafety.REQUIRED_COLLECTIONS, {
+    loginConfig: {
+      PhoneNumberLogin: false,
+      SmsVerificationConfig: {Type: 'default'},
+    },
+  });
+  const disabled = await deliveryCli.executeDeliveryCommand(
+    {
+      apply: false,
+      bundlePath: null,
+      command: 'preflight',
+      format: 'json',
+      mobileRuntimeProfilePath: fixture.mobileRuntimeProfilePath,
+      profilePath: fixture.path,
+      releaseId: null,
+    },
+    safeDependencies(disabledRunner, fixture.env),
+  );
+  assert.equal(disabled.status, 'blocked');
+  assert.match(disabled.preflight.errors.join('; '), /PhoneNumberLogin/);
 });
 
 test('receiver preflight rejects delivery-profile byte drift before any receiver request', async () => {
@@ -606,7 +705,7 @@ function safeDependencies(runner, env = receiverEnvironment()) {
 
 function createCloudRunner(
   initialCollections,
-  {existingWorkerTrigger = false} = {},
+  {existingWorkerTrigger = false, loginConfig = null} = {},
 ) {
   const collections = new Set(initialCollections);
   const calls = [];
@@ -619,6 +718,10 @@ function createCloudRunner(
     },
     async run(args, options = {}) {
       calls.push(args);
+      if (args.includes('login') && args.includes('get')) {
+        if (!loginConfig) throw new Error('unexpected login configuration read');
+        return JSON.stringify({data: loginConfig});
+      }
       if (
         args.includes('fn') &&
         args.includes('detail') &&

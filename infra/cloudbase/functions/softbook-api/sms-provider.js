@@ -64,9 +64,105 @@ function createRuntimeSmsProvider(options = {}) {
     });
   }
 
+  if (provider === 'cloudbase-auth') {
+    return createCloudBaseAuthSmsProvider({
+      baseUrl: env.SOFTBOOK_CLOUDBASE_AUTH_BASE_URL,
+      environmentId: env.SOFTBOOK_CLOUDBASE_ENV_ID,
+      fetchImpl: options.fetchImpl ?? globalThis.fetch,
+      timeoutMs: requireTimeout(
+        parseTimeout(
+          env.SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS,
+          'SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS',
+        ),
+        'CloudBase Auth SMS',
+      ),
+    });
+  }
+
   throw new Error(
-    'Production SMS requires SOFTBOOK_SMS_PROVIDER=webhook or tencentcloud.',
+    'Production SMS requires SOFTBOOK_SMS_PROVIDER=cloudbase-auth, webhook or tencentcloud.',
   );
+}
+
+function createCloudBaseAuthSmsProvider({
+  baseUrl,
+  environmentId,
+  fetchImpl,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+}) {
+  const origin = requireCloudBaseAuthOrigin(baseUrl, environmentId);
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('CloudBase Auth SMS requires a fetch implementation.');
+  }
+  requireTimeout(timeoutMs, 'CloudBase Auth SMS');
+
+  const post = async (pathname, body) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetchImpl(new URL(pathname, origin), {
+        body: JSON.stringify(body),
+        headers: {accept: 'application/json', 'content-type': 'application/json'},
+        method: 'POST',
+        redirect: 'error',
+        signal: controller.signal,
+      });
+      if (!response || response.ok !== true) {
+        throw new Error('CloudBase Auth rejected SMS verification.');
+      }
+      const payload = await response.json();
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        throw new Error('CloudBase Auth returned an invalid SMS response.');
+      }
+      return {payload, requestId: response.headers?.get?.('x-request-id') ?? null};
+    } catch {
+      throw new Error('CloudBase Auth SMS request failed.');
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  return {
+    delivery: 'sms_cloudbase_auth_default',
+    kind: 'cloudbase_auth',
+    async sendChallenge({phoneNumber}) {
+      const {payload, requestId} = await post('/auth/v1/verification', {
+        phone_number: requireCloudBasePhoneNumber(phoneNumber),
+        target: 'ANY',
+      });
+      if (
+        typeof payload.verification_id !== 'string' ||
+        !/^[A-Za-z0-9_-]{16,128}$/.test(payload.verification_id) ||
+        !Number.isSafeInteger(payload.expires_in) ||
+        payload.expires_in < 60 ||
+        payload.expires_in > 600
+      ) {
+        throw new Error('CloudBase Auth returned an invalid verification challenge.');
+      }
+      return {
+        challengeId: payload.verification_id,
+        expiresInSeconds: payload.expires_in,
+        providerRequestId: requestId,
+      };
+    },
+    async verifyChallenge({challengeId, code}) {
+      const {payload, requestId} = await post('/auth/v1/verification/verify', {
+        verification_code: requireSmsCode(code),
+        verification_id: challengeId,
+      });
+      if (
+        typeof payload.verification_token !== 'string' ||
+        payload.verification_token.length < 16 ||
+        payload.verification_token.length > 4096 ||
+        !Number.isSafeInteger(payload.expires_in) ||
+        payload.expires_in <= 0 ||
+        payload.expires_in > 600
+      ) {
+        throw new Error('CloudBase Auth did not verify the SMS challenge.');
+      }
+      return {providerRequestId: requestId};
+    },
+  };
 }
 
 function createWebhookSmsProvider({endpoint, fetchImpl, secret, timeoutMs = DEFAULT_TIMEOUT_MS}) {
@@ -256,6 +352,40 @@ function requireWebhookUrl(value) {
   return url.toString();
 }
 
+function requireCloudBaseAuthOrigin(value, environmentId) {
+  if (
+    typeof environmentId !== 'string' ||
+    !/^[a-z][a-z0-9-]{2,63}$/.test(environmentId)
+  ) {
+    throw new Error('SOFTBOOK_CLOUDBASE_ENV_ID must identify the receiver environment.');
+  }
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error('SOFTBOOK_CLOUDBASE_AUTH_BASE_URL must be a valid HTTPS origin.');
+  }
+  if (
+    url.protocol !== 'https:' ||
+    url.username ||
+    url.password ||
+    url.pathname !== '/' ||
+    url.search ||
+    url.hash ||
+    url.hostname !== `${environmentId}.api.tcloudbasegateway.com`
+  ) {
+    throw new Error('SOFTBOOK_CLOUDBASE_AUTH_BASE_URL must match the receiver CloudBase Auth origin.');
+  }
+  return url;
+}
+
+function requireCloudBasePhoneNumber(value) {
+  if (typeof value !== 'string' || !/^1[3-9]\d{9}$/.test(value)) {
+    throw new Error('CloudBase Auth SMS requires a mainland China mobile number.');
+  }
+  return `+86 ${value}`;
+}
+
 function requireSecret(value) {
   return requireStrongSecret(value, 'SOFTBOOK_SMS_WEBHOOK_SECRET');
 }
@@ -365,6 +495,7 @@ function requireTimeout(value, providerName) {
 }
 
 module.exports = {
+  createCloudBaseAuthSmsProvider,
   createRuntimeSmsProvider,
   createTencentCloudSmsProvider,
   createWebhookSmsProvider,

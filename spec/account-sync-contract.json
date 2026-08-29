@@ -13,7 +13,7 @@
     "remote_request_timeout_ms": 15000,
     "remote_auth_request_rule": "request-code, verify-code, refresh, and logout each use one bounded deadline that includes response headers, body parsing, and response validation; timeout and cancellation are transport outcomes rather than authorization rejection",
     "authenticated_request_rule": "access-token acquisition, the first protected fetch, at most one forced refresh, and one retry share one bounded deadline; caller cancellation or a changed originating session cancels the request, and cancellation itself cannot trigger refresh, invalidate, or mutate a replacement session",
-    "production_sms_delivery_rule": "production must use a receiver-configured non-development SMS adapter with credentials injected outside tracked files; a fixed verification code is development-only and is rejected from receiver deployment configuration",
+    "production_sms_delivery_rule": "production must use a receiver-configured non-development SMS adapter; the receiver CloudBase Auth default provider is credential-free only when the exact ap-shanghai environment has PhoneNumberLogin enabled and SmsVerificationConfig.Type=default, while webhook or direct Tencent SMS credentials remain outside tracked files; a fixed verification code is development-only and is rejected from receiver deployment configuration",
     "receiver_session_revocation_drill": {
       "runner": "infra/cloudbase/run-session-revocation-drill.mjs",
       "report_schema": "session-revocation-drill-report.v1",

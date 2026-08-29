@@ -45,6 +45,7 @@ function createV2TestApi(options = {}) {
   const store = options.store ?? createMemoryStore();
   const api = createSoftbookApi({
     authV2CodeGenerator: () => SMS_CODE,
+    authV2IndexSecret: options.indexSecret ?? TOKEN_SECRET,
     authV2IpRequestLimit: options.ipRequestLimit,
     authV2PhoneRequestLimit: options.phoneRequestLimit,
     authV2VerifyAttemptLimit: options.verifyAttemptLimit,
@@ -151,6 +152,87 @@ test('v2 SMS challenge stores only a digest and issues a server-backed session',
     JSON.stringify(persistedSession).includes(verified.body.data.refresh_token),
     false,
   );
+});
+
+test('v2 delegates provider-owned SMS challenges without storing or generating the code', async () => {
+  const calls = [];
+  const sms = {
+    provider: {
+      delivery: 'sms_cloudbase_auth_default',
+      kind: 'cloudbase_auth',
+      async sendChallenge(input) {
+        calls.push({kind: 'send', ...input});
+        return {
+          challengeId: 'cloudbase-verification-123456',
+          expiresInSeconds: 600,
+        };
+      },
+      async verifyChallenge(input) {
+        calls.push({kind: 'verify', ...input});
+        if (input.code !== SMS_CODE) throw new Error('provider rejected code');
+      },
+    },
+  };
+  const productionSecret = 'test-auth-v2-secret-0123456789-abcdef';
+  const persistentStore = createMemoryStore();
+  persistentStore.kind = 'cloudbase-test';
+  const {api, store} = createV2TestApi({
+    indexSecret: `${productionSecret}-index`,
+    runtimeMode: 'production',
+    sms,
+    store: persistentStore,
+    tokenSecret: productionSecret,
+  });
+  const challenge = await issueChallenge(api);
+
+  assert.equal(challenge.statusCode, 200);
+  assert.equal(
+    challenge.body.data.challenge_id,
+    'cloudbase-verification-123456',
+  );
+  assert.equal(challenge.body.data.delivery, 'sms_cloudbase_auth_default');
+  assert.deepEqual(calls, [{kind: 'send', phoneNumber: PHONE_NUMBER}]);
+  const persisted = store
+    .snapshot()
+    .authChallenges.get(challenge.body.data.challenge_id);
+  assert.equal(persisted.code_digest.length, 64);
+  assert.equal(JSON.stringify(persisted).includes(SMS_CODE), false);
+
+  const invalid = await request(api, {
+    body: {
+      challenge_id: challenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: '000000',
+    },
+    path: '/v2/auth/verify-code',
+  });
+  assert.equal(invalid.statusCode, 401);
+  assert.equal(invalid.body.error.code, 'invalid_sms_code');
+
+  const verified = await request(api, {
+    body: {
+      challenge_id: challenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/auth/verify-code',
+  });
+  assert.equal(verified.statusCode, 200);
+  assert.match(verified.body.data.access_token, /^softbook_v2\./);
+  assert.deepEqual(calls.slice(1), [
+    {
+      challengeId: challenge.body.data.challenge_id,
+      code: '000000',
+      kind: 'verify',
+      phoneNumber: PHONE_NUMBER,
+    },
+    {
+      challengeId: challenge.body.data.challenge_id,
+      code: SMS_CODE,
+      kind: 'verify',
+      phoneNumber: PHONE_NUMBER,
+    },
+  ]);
 });
 
 test('development v1 product routes accept only active v2 sessions', async () => {

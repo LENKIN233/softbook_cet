@@ -464,9 +464,9 @@ model-review/audit/audio-manifest/QC-index hashes and execution window without
 exposing the machine-local output path. The builder does not create
 authorization/QC, deploy, publish, or create readiness evidence.
 
-The raw report remains gate-ineligible. Formal media launch evidence also
-remains unregistered and fail-closed until the repository defines a trusted
-media-run receipt with type-specific provenance semantics; structural model
+The raw report remains gate-ineligible. Registered formal CET4 media evidence
+requires the attested trusted-media receipt plus type-specific reconstruction of
+the current authorization, bundle, content and QC inputs; structural model
 acceptance records cannot manufacture playback, device, provider, or other
 external facts.
 
@@ -474,6 +474,24 @@ Add `--apply --operator service:<receiver-operator>` only to `provision`,
 `deploy`, `publish`, or `rollback` after machine preflight passes. Apply requires
 Node 22.13.0 and clean exact `main`.
 Receiver/CI secrets are never stored in `delivery-profile.v1`:
+
+```text
+SOFTBOOK_AUTH_TOKEN_SECRET
+SOFTBOOK_AUTH_INDEX_SECRET
+SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM
+SOFTBOOK_SMS_PROVIDER=cloudbase-auth
+SOFTBOOK_CLOUDBASE_ENV_ID=<receiver-environment-id>
+SOFTBOOK_CLOUDBASE_AUTH_BASE_URL=https://<receiver-environment-id>.api.tcloudbasegateway.com
+```
+
+This credential-free SMS mode requires the exact `ap-shanghai` receiver to have
+CloudBase Authentication `PhoneNumberLogin=true` and
+`SmsVerificationConfig.Type=default`; preflight reads both values from the
+provider control plane. The backend keeps Softbook session, refresh, revocation,
+and deletion authority while CloudBase owns the SMS verification ID and code
+check.
+
+The credentialed webhook remains available:
 
 ```text
 SOFTBOOK_AUTH_TOKEN_SECRET

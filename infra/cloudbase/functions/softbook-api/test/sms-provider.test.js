@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
+  createCloudBaseAuthSmsProvider,
   createRuntimeSmsProvider,
   createTencentCloudSmsProvider,
   createWebhookSmsProvider,
@@ -15,9 +16,102 @@ test('development runtime keeps the in-memory fixed-code adapter boundary', () =
 test('production runtime fails closed without a configured provider', () => {
   assert.throws(
     () => createRuntimeSmsProvider({runtimeMode: 'production', env: {}}),
-    /SOFTBOOK_SMS_PROVIDER=webhook or tencentcloud/,
+    /SOFTBOOK_SMS_PROVIDER=cloudbase-auth, webhook or tencentcloud/,
   );
 });
+
+test('CloudBase Auth default SMS owns the exact send and verify challenge', async () => {
+  const calls = [];
+  const responses = [
+    {verification_id: 'verification-id-1234567890', expires_in: 600},
+    {verification_token: 'verification-token-1234567890', expires_in: 600},
+  ];
+  const provider = createRuntimeSmsProvider({
+    env: {
+      SOFTBOOK_CLOUDBASE_AUTH_BASE_URL:
+        'https://receiver-env.api.tcloudbasegateway.com',
+      SOFTBOOK_CLOUDBASE_ENV_ID: 'receiver-env',
+      SOFTBOOK_SMS_PROVIDER: 'cloudbase-auth',
+    },
+    fetchImpl: async (url, init) => {
+      calls.push({init, url: url.toString()});
+      const payload = responses.shift();
+      return {
+        headers: {get: name => (name === 'x-request-id' ? 'request-id' : null)},
+        json: async () => payload,
+        ok: true,
+      };
+    },
+    runtimeMode: 'production',
+  });
+
+  const challenge = await provider.sendChallenge({phoneNumber: '13800138000'});
+  const verification = await provider.verifyChallenge({
+    challengeId: challenge.challengeId,
+    code: '482913',
+    phoneNumber: '13800138000',
+  });
+
+  assert.equal(provider.kind, 'cloudbase_auth');
+  assert.equal(provider.delivery, 'sms_cloudbase_auth_default');
+  assert.deepEqual(challenge, {
+    challengeId: 'verification-id-1234567890',
+    expiresInSeconds: 600,
+    providerRequestId: 'request-id',
+  });
+  assert.deepEqual(verification, {providerRequestId: 'request-id'});
+  assert.deepEqual(
+    calls.map(call => ({
+      body: JSON.parse(call.init.body),
+      method: call.init.method,
+      redirect: call.init.redirect,
+      url: call.url,
+    })),
+    [
+      {
+        body: {phone_number: '+86 13800138000', target: 'ANY'},
+        method: 'POST',
+        redirect: 'error',
+        url: 'https://receiver-env.api.tcloudbasegateway.com/auth/v1/verification',
+      },
+      {
+        body: {
+          verification_code: '482913',
+          verification_id: 'verification-id-1234567890',
+        },
+        method: 'POST',
+        redirect: 'error',
+        url: 'https://receiver-env.api.tcloudbasegateway.com/auth/v1/verification/verify',
+      },
+    ],
+  );
+});
+
+for (const configuration of [
+  {
+    baseUrl: 'http://receiver-env.api.tcloudbasegateway.com',
+    environmentId: 'receiver-env',
+  },
+  {
+    baseUrl: 'https://other-env.api.tcloudbasegateway.com',
+    environmentId: 'receiver-env',
+  },
+  {
+    baseUrl: 'https://receiver-env.api.tcloudbasegateway.com/path',
+    environmentId: 'receiver-env',
+  },
+]) {
+  test('CloudBase Auth SMS rejects a mismatched or unsafe receiver origin', () => {
+    assert.throws(
+      () =>
+        createCloudBaseAuthSmsProvider({
+          ...configuration,
+          fetchImpl: async () => ({ok: true}),
+        }),
+      /CloudBase Auth origin|HTTPS origin/,
+    );
+  });
+}
 
 test('webhook provider sends the bounded delivery contract and bearer secret', async () => {
   const calls = [];

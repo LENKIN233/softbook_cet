@@ -2301,7 +2301,14 @@ function validateReceiverPreflight(value, subject, label, errors) {
   }
   assertExactKeys(
     value,
-    ['ok', 'errors', 'environment', 'database_instance_id', 'catalog'],
+    [
+      'ok',
+      'errors',
+      'environment',
+      'database_instance_id',
+      'authentication',
+      'catalog',
+    ],
     label,
     errors,
   );
@@ -2336,6 +2343,59 @@ function validateReceiverPreflight(value, subject, label, errors) {
     `${label}.database_instance_id`,
     errors,
   );
+  if (!isRecord(value.authentication)) {
+    errors.push(`${label}.authentication must be an object.`);
+  } else {
+    assertExactKeys(
+      value.authentication,
+      [
+        'phone_number_login',
+        'provider',
+        'ready',
+        'sms_verification_type',
+      ],
+      `${label}.authentication`,
+      errors,
+    );
+    if (!['cloudbase-auth', 'tencentcloud', 'webhook'].includes(
+      value.authentication.provider,
+    )) {
+      errors.push(`${label}.authentication.provider is invalid.`);
+    }
+    assertEqual(
+      value.authentication.ready,
+      true,
+      `${label}.authentication.ready`,
+      errors,
+    );
+    if (value.authentication.provider === 'cloudbase-auth') {
+      assertEqual(
+        value.authentication.phone_number_login,
+        true,
+        `${label}.authentication.phone_number_login`,
+        errors,
+      );
+      assertEqual(
+        value.authentication.sms_verification_type,
+        'default',
+        `${label}.authentication.sms_verification_type`,
+        errors,
+      );
+      assertEqual(
+        value.environment?.region,
+        'ap-shanghai',
+        `${label}.authentication region`,
+        errors,
+      );
+    } else if (
+      value.authentication.phone_number_login !== null ||
+      value.authentication.sms_verification_type !== null
+    ) {
+      errors.push(
+        `${label}.authentication external adapters must not claim CloudBase login configuration.`,
+      );
+    }
+  }
   if (!isRecord(value.catalog)) {
     errors.push(`${label}.catalog must be an object.`);
   } else {
@@ -2389,6 +2449,11 @@ function validateReceiverSecretSummary(value, label, errors) {
     'SOFTBOOK_SMS_PROVIDER',
   ];
   const allowedSets = [
+    [
+      ...common,
+      'SOFTBOOK_CLOUDBASE_AUTH_BASE_URL',
+      'SOFTBOOK_CLOUDBASE_ENV_ID',
+    ].sort(),
     [
       ...common,
       'SOFTBOOK_SMS_WEBHOOK_SECRET',
@@ -2722,6 +2787,9 @@ function expectedReceiverRuntimeVariableNames(configuredNames) {
   if (names.has('SOFTBOOK_SMS_WEBHOOK_URL')) {
     names.add('SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS');
   }
+  if (names.has('SOFTBOOK_CLOUDBASE_AUTH_BASE_URL')) {
+    names.add('SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS');
+  }
   if (names.has('SOFTBOOK_SMS_TENCENT_REGION')) {
     names.add('SOFTBOOK_SMS_TENCENT_TIMEOUT_MS');
   }
@@ -2730,6 +2798,9 @@ function expectedReceiverRuntimeVariableNames(configuredNames) {
 
 function expectedReceiverSmsProvider(configuredNames) {
   if (!Array.isArray(configuredNames)) return null;
+  if (configuredNames.includes('SOFTBOOK_CLOUDBASE_AUTH_BASE_URL')) {
+    return 'cloudbase-auth';
+  }
   if (configuredNames.includes('SOFTBOOK_SMS_WEBHOOK_URL')) return 'webhook';
   if (configuredNames.includes('SOFTBOOK_SMS_TENCENT_REGION')) return 'tencentcloud';
   return null;
