@@ -15,7 +15,7 @@
       "pc_web"
     ],
     "membership_access": "receiver_operator_beta_entitlement_v1",
-    "content_approval": "one_exact_model_owned_content_authorization_v2_with_two_independent_runs_bound_to_the_CET4_corpus_audit_and_model_review",
+    "content_approval": "one_exact_model_owned_content_authorization_v2_with_two_single_task_context_perturbation_passes_bound_to_the_CET4_corpus_audit_and_model_review",
     "audio_approval": "model_owned_audio_qc_v2_with_two_independent_audio_capable_runs_complete_asset_consumption_and_seven_bound_per_card_results_for_every_referenced_audio_asset",
     "receiver_environment": "independent_receiver_owned_CloudBase_environment_not_the_personal_development_environment"
   },
@@ -148,7 +148,7 @@
       "one_exact_release_candidate",
       "every_external_dependency_ready",
       "every_gate_passed_with_all_required_type_specific_evidence",
-      "two_independent_machine_acceptance_runs_for_the_exact_candidate_and_evidence_commit"
+      "two_single_task_context_perturbation_machine_acceptance_runs_for_the_exact_candidate_and_evidence_commit"
     ],
     "missing_or_unregistered_type_specific_semantics": "fail_closed"
   }

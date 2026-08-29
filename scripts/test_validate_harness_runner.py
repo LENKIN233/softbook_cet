@@ -393,7 +393,6 @@ class HarnessRunnerTests(unittest.TestCase):
 
     def test_full_cli_rejects_disabled_repository_auto_merge(self):
         checks = [
-            "trusted-model-review",
             "backend-contract",
             "design-artifact-gate",
             "validate-harness",

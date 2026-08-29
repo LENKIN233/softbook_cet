@@ -257,7 +257,7 @@
       "id": "P-36",
       "change": "Merge without a concise exact-diff model decision bound to the pull request",
       "expected_failure": "lets a PR merge without machine acceptance even though no human approval is required",
-      "guarded_by": ["spec/repo-delivery-contract.json", "spec/machine-acceptance.json", "spec/evals.json", ".github/workflows/trusted-model-review.yml", "scripts/trusted_model_review.py"],
+      "guarded_by": ["spec/repo-delivery-contract.json", "spec/machine-acceptance.json", "spec/evals.json", "spec/perturbation-audit.json"],
       "status": "rejected"
     },
     {

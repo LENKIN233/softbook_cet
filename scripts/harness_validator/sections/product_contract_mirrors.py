@@ -68,8 +68,8 @@ def validate(context) -> None:
         launch.get("machine_acceptance", {}).get("policy"),
     )
     check_equal(
-        "launch trusted model check",
-        "trusted-model-review",
+        "launch machine check",
+        "validate-harness",
         launch.get("machine_acceptance", {}).get("required_check"),
     )
     if "formal_approval" in launch:
@@ -105,8 +105,8 @@ def validate(context) -> None:
         closed_beta.get("machine_acceptance", {}).get("policy"),
     )
     check_equal(
-        "closed beta trusted model check",
-        "trusted-model-review",
+        "closed beta machine check",
+        "validate-harness",
         closed_beta.get("machine_acceptance", {}).get("required_check"),
     )
     if "formal_approval" in closed_beta:

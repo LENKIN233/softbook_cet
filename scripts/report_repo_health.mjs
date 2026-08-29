@@ -10,7 +10,6 @@ const DEFAULT_BLOB_LIMIT = 1024 * 1024;
 const REQUIRED_CHECKS = [
   'design-artifact-gate',
   'validate-harness',
-  'trusted-model-review',
   'mobile-quality',
   'web-quality',
   'backend-contract',

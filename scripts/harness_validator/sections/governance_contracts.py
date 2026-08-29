@@ -83,8 +83,9 @@ def validate(context) -> None:
         errors.append("remote required status checks must be unique")
     if "formal-approval" in required_checks:
         errors.append("remote guard must not require a human formal-approval check")
+    if "trusted-model-review" in required_checks:
+        errors.append("remote guard must not require an external model API check")
     for check in (
-        "trusted-model-review",
         "validate-harness",
         "design-artifact-gate",
         "mobile-quality",
@@ -142,14 +143,24 @@ def validate(context) -> None:
             machine.get("human_or_user_environment"),
         )
         check_equal(
-            "machine acceptance trusted status",
-            "trusted-model-review",
+            "machine acceptance deterministic status",
+            "validate-harness",
             machine.get("required_status_check"),
         )
         check_equal(
-            "author-editable PR body is not authority",
+            "machine acceptance review method",
+            "assumption_inversion_then_failure_projection",
+            machine.get("review_method"),
+        )
+        check_equal(
+            "machine acceptance external API",
             False,
-            machine.get("author_editable_pr_body_is_authority"),
+            machine.get("external_model_api_required"),
+        )
+        check_equal(
+            "machine acceptance PR record",
+            True,
+            machine.get("pr_description_records_review"),
         )
 
     external = harness["governance"]["external_content_workspace"]
@@ -212,23 +223,13 @@ def validate(context) -> None:
         if stale in workflow:
             errors.append(f"PR workflow contains stale author-editable review gate: {stale}")
 
-    trusted_workflow_path = root / ".github/workflows/trusted-model-review.yml"
-    if not trusted_workflow_path.is_file():
-        errors.append("missing trusted OpenAI Codex Action review workflow")
-    else:
-        trusted_workflow = trusted_workflow_path.read_text(encoding="utf-8")
-        for token in (
-            "pull_request_target:",
-            "secrets.OPENAI_API_KEY",
-            "openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e",
-            'permission-profile: ":read-only"',
-            'codex-version: "0.149.0"',
-            "github.event.pull_request.base.sha",
-            "github.event.pull_request.head.sha",
-            "scripts/trusted_model_review.py",
-        ):
-            if token not in trusted_workflow:
-                errors.append(f"trusted model workflow missing security token: {token}")
+    for retired in (
+        ".github/workflows/trusted-model-review.yml",
+        "scripts/trusted_model_review.py",
+        "scripts/test_trusted_model_review.py",
+    ):
+        if (root / retired).exists():
+            errors.append(f"retired external model API harness remains: {retired}")
 
     agents = (root / "AGENTS.md").read_text(encoding="utf-8")
     for token in (

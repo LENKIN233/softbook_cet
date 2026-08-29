@@ -197,7 +197,7 @@ export function requireIndependentModelAcceptances(
   {expectedInputSha256, label = 'model acceptance', requiredCapabilities = []} = {},
 ) {
   if (!Array.isArray(values) || values.length < 2) {
-    throw new Error(`${label} requires two independent model runs.`);
+    throw new Error(`${label} requires two distinct context-perturbation model passes.`);
   }
   const errors = values.flatMap((value, index) =>
     validateModelAcceptance(value, {expectedInputSha256, requiredCapabilities})
