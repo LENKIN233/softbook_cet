@@ -2319,6 +2319,12 @@ function createProductionDeploymentEvidence(artifact) {
       status: 'NORMAL',
     },
     database_instance_id: 'tnt-receiver123',
+    authentication: {
+      phone_number_login: null,
+      provider: 'webhook',
+      ready: true,
+      sms_verification_type: null,
+    },
     catalog,
   };
   const receiverSecrets = {

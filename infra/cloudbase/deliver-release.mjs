@@ -56,6 +56,10 @@ const COMMON_SECRET_ENV_NAMES = Object.freeze([
   'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
 ]);
 const SMS_PROVIDER_ENV_NAMES = Object.freeze({
+  'cloudbase-auth': Object.freeze([
+    'SOFTBOOK_CLOUDBASE_AUTH_BASE_URL',
+    'SOFTBOOK_CLOUDBASE_ENV_ID',
+  ]),
   tencentcloud: Object.freeze([
     'SOFTBOOK_SMS_TENCENT_REGION',
     'SOFTBOOK_SMS_TENCENT_SDK_APP_ID',
@@ -196,9 +200,13 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
     profile,
     repositoryCommit: repository.head,
   });
-  const preflight = await inspectReceiver({profile, runner});
   const secretInspection = inspectReceiverSecrets(profile, env, {
     mobileRuntimeProfile: mobileRuntime.profile,
+  });
+  const preflight = await inspectReceiver({
+    profile,
+    runner,
+    smsProvider: secretInspection.provider,
   });
   const writeSafety = inspectWriteSafety({nodeVersion, repository});
   const base = {
@@ -351,7 +359,7 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
   return completeReport({...base, rollback, status: 'passed', writes_performed: true});
 }
 
-export async function inspectReceiver({profile, runner}) {
+export async function inspectReceiver({profile, runner, smsProvider = null}) {
   const environmentPayload = parseTcbJson(
     await runner.run(['env', 'detail', '-e', profile.environment_id, '--json', '--yes'], {
       label: 'read receiver environment',
@@ -376,6 +384,7 @@ export async function inspectReceiver({profile, runner}) {
         region: data?.region ?? null,
         status: data?.status ?? null,
       },
+      authentication: receiverAuthenticationSummary(smsProvider),
       catalog: emptyCatalog(),
     };
   }
@@ -384,9 +393,14 @@ export async function inspectReceiver({profile, runner}) {
     profile,
     runner,
   });
+  const authentication = await inspectReceiverAuthentication({
+    profile,
+    runner,
+    smsProvider,
+  });
   return {
-    ok: catalog.ok,
-    errors: catalog.errors,
+    ok: catalog.ok && authentication.ok,
+    errors: [...catalog.errors, ...authentication.errors],
     environment: {
       database_status: database.Status,
       env_id: data.envId,
@@ -394,7 +408,63 @@ export async function inspectReceiver({profile, runner}) {
       status: data.status,
     },
     database_instance_id: database.InstanceId,
+    authentication: authentication.public,
     catalog,
+  };
+}
+
+async function inspectReceiverAuthentication({profile, runner, smsProvider}) {
+  if (smsProvider !== 'cloudbase-auth') {
+    return {
+      errors: [],
+      ok: true,
+      public: receiverAuthenticationSummary(smsProvider),
+    };
+  }
+  const payload = parseTcbJson(
+    await runner.run(
+      [
+        'env',
+        'login',
+        'get',
+        '-e',
+        profile.environment_id,
+        '--json',
+      ],
+      {label: 'read receiver authentication configuration'},
+    ),
+  );
+  const data = payload?.data ?? payload;
+  const phoneNumberLogin = data?.PhoneNumberLogin === true;
+  const smsVerificationType = data?.SmsVerificationConfig?.Type ?? null;
+  const errors = [];
+  if (profile.region !== 'ap-shanghai') {
+    errors.push('CloudBase Auth phone login requires ap-shanghai');
+  }
+  if (!phoneNumberLogin) {
+    errors.push('CloudBase Auth PhoneNumberLogin is not enabled');
+  }
+  if (smsVerificationType !== 'default') {
+    errors.push('CloudBase Auth SMS verification type is not default');
+  }
+  return {
+    errors,
+    ok: errors.length === 0,
+    public: {
+      phone_number_login: phoneNumberLogin,
+      provider: smsProvider,
+      ready: errors.length === 0,
+      sms_verification_type: smsVerificationType,
+    },
+  };
+}
+
+function receiverAuthenticationSummary(provider) {
+  return {
+    phone_number_login: null,
+    provider,
+    ready: provider === 'webhook' || provider === 'tencentcloud',
+    sms_verification_type: null,
   };
 }
 
@@ -825,6 +895,16 @@ export function buildReceiverRuntimeEnvironment(
       SOFTBOOK_SMS_WEBHOOK_URL: env.SOFTBOOK_SMS_WEBHOOK_URL,
     };
   }
+  if (inspection.provider === 'cloudbase-auth') {
+    return {
+      ...runtime,
+      SOFTBOOK_CLOUDBASE_AUTH_BASE_URL:
+        env.SOFTBOOK_CLOUDBASE_AUTH_BASE_URL,
+      SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS:
+        env.SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS || '5000',
+      SOFTBOOK_CLOUDBASE_ENV_ID: env.SOFTBOOK_CLOUDBASE_ENV_ID,
+    };
+  }
   return {
     ...runtime,
     SOFTBOOK_SMS_TENCENT_REGION: env.SOFTBOOK_SMS_TENCENT_REGION,
@@ -930,7 +1010,11 @@ export async function inspectApiFunction({
   if (values.get('SOFTBOOK_STORE_MODE') !== 'cloudbase') {
     errors.push('store mode mismatch');
   }
-  if (!['webhook', 'tencentcloud'].includes(values.get('SOFTBOOK_SMS_PROVIDER'))) {
+  if (
+    !['cloudbase-auth', 'webhook', 'tencentcloud'].includes(
+      values.get('SOFTBOOK_SMS_PROVIDER'),
+    )
+  ) {
     errors.push('SMS provider mismatch');
   }
   return {
@@ -970,7 +1054,9 @@ export function inspectReceiverSecrets(
   const errors = [];
   const provider = env.SOFTBOOK_SMS_PROVIDER;
   if (!Object.hasOwn(SMS_PROVIDER_ENV_NAMES, provider)) {
-    errors.push('SOFTBOOK_SMS_PROVIDER must be webhook or tencentcloud');
+    errors.push(
+      'SOFTBOOK_SMS_PROVIDER must be cloudbase-auth, webhook or tencentcloud',
+    );
   }
   const requiredNames = [
     ...COMMON_SECRET_ENV_NAMES,
@@ -1025,6 +1111,39 @@ export function inspectReceiverSecrets(
       }
     } catch {
       errors.push('SOFTBOOK_SMS_WEBHOOK_URL must be credential-free HTTPS with a path');
+    }
+  }
+  if (
+    provider === 'cloudbase-auth' &&
+    env.SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS &&
+    !isTimeoutMilliseconds(env.SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS)
+  ) {
+    errors.push(
+      'SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS must be an integer from 1 to 15000',
+    );
+  }
+  if (provider === 'cloudbase-auth') {
+    if (env.SOFTBOOK_CLOUDBASE_ENV_ID !== profile.environment_id) {
+      errors.push('SOFTBOOK_CLOUDBASE_ENV_ID must match the receiver profile');
+    }
+    try {
+      const url = new URL(env.SOFTBOOK_CLOUDBASE_AUTH_BASE_URL);
+      if (
+        url.protocol !== 'https:' ||
+        url.username ||
+        url.password ||
+        url.pathname !== '/' ||
+        url.search ||
+        url.hash ||
+        url.hostname !==
+          `${profile.environment_id}.api.tcloudbasegateway.com`
+      ) {
+        throw new Error('unsafe');
+      }
+    } catch {
+      errors.push(
+        'SOFTBOOK_CLOUDBASE_AUTH_BASE_URL must match the receiver CloudBase Auth origin',
+      );
     }
   }
   if (

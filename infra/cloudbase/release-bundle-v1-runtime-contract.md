@@ -262,8 +262,12 @@ remote `softbook-api` configuration must also contain the exact deterministic
 backend deployment ID for that clean `main` commit and receiver profile.
 `verify` fails closed when the remote ID or function shape drifts. The
 production runtime excludes `SOFTBOOK_SMS_DEV_CODE` and requires the receiver
-to select either the credentialed HTTPS webhook or direct Tencent Cloud SMS
-adapter, plus separate auth, SMS, and Ed25519 signing secrets. Tencent Cloud
+to select the exact-environment CloudBase Auth default SMS provider, the
+credentialed HTTPS webhook, or the direct Tencent Cloud SMS adapter. CloudBase
+Auth owns the verification ID and code check and requires an enabled
+`PhoneNumberLogin` method with `SmsVerificationConfig.Type=default`; it needs no
+separate SMS secret. The other adapters retain separate auth, SMS, and Ed25519
+signing secrets. Tencent Cloud
 mode additionally requires the receiver's region, SdkAppId, approved sign,
 approved template ID, and explicit template parameter order. `verify` is
 read-only and checks the active release, API route, bundle, catalog, and zero
