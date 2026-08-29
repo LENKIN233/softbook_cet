@@ -4,6 +4,10 @@ import {
 } from '../learning/learningRuntimeConfig';
 
 import type {LearningEventsRepositoryConfig} from './learningEventsRepository';
+import {
+  createSoftbookClientHeaders,
+  resolveSoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export function resolveLearningEventsRepositoryConfig(
   runtimeConfig: SoftbookAppRuntimeConfig | undefined,
@@ -32,12 +36,13 @@ export function resolveLearningEventsRepositoryConfig(
     return {
       mode: 'remote',
       remoteConfig: {
+        clientKind: resolveSoftbookClientKind(runtimeConfig?.clientKind),
         endpoint: `${learningState.remote.baseUrl.replace(
           /\/$/,
           '',
         )}/v2/learning/events`,
         headers: {
-          'x-softbook-client': 'mobile',
+          ...createSoftbookClientHeaders(runtimeConfig?.clientKind),
           ...(learningState.remote.apiKey
             ? {'x-api-key': learningState.remote.apiKey}
             : {}),

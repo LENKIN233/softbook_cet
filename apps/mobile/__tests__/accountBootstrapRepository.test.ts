@@ -392,6 +392,7 @@ test('binds a force-fresh bootstrap to the caller cancellation signal', async ()
     headers: {
       Accept: 'application/json',
       'Cache-Control': 'no-cache',
+      'x-softbook-client': 'mobile',
     },
     method: 'GET',
     signal: abortController.signal,

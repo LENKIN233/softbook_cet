@@ -4,6 +4,10 @@ import type {
   LearningTrack,
 } from '../learning/model';
 import {RemoteHttpError} from '../runtime/remoteHttpError';
+import {
+  createSoftbookClientHeaders,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export const LEARNING_EVENTS_SCHEMA_VERSION = 'learning-events.v2' as const;
 export const LEARNING_EVENTS_ACK_SCHEMA_VERSION =
@@ -47,6 +51,7 @@ export type LearningEventsContext = {
 };
 
 export type LearningEventsRemoteConfig = {
+  clientKind?: SoftbookClientKind;
   endpoint: string;
   headers?: Record<string, string>;
 };
@@ -119,7 +124,10 @@ export function createLearningEventsRepository(
           events,
         }),
         headers: {
-          ...config.remoteConfig.headers,
+          ...createSoftbookClientHeaders(
+            config.remoteConfig.clientKind,
+            config.remoteConfig.headers,
+          ),
           'content-type': 'application/json',
           Authorization: `Bearer ${context.authToken}`,
         },

@@ -5,6 +5,7 @@ import {
   LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY,
   LearningEventOutbox,
 } from '../src/sync/learningEventOutbox';
+import {createReactNativeLearningEventOutboxStorage} from '../src/sync/learningEventOutboxStorage.native';
 
 const CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
 const PHONE = '13800138000';
@@ -37,6 +38,21 @@ function createInput(cardId = '100101') {
 }
 
 describe('LearningEventOutbox', () => {
+  it('preserves mobile durability through the explicit AsyncStorage adapter', async () => {
+    const storage = createReactNativeLearningEventOutboxStorage();
+    const first = new LearningEventOutbox({
+      createDeviceId: () => 'install_native_adapter',
+      storage,
+    });
+    await first.enqueueCompletion(createInput());
+
+    const restored = new LearningEventOutbox({
+      createDeviceId: () => 'install_should_not_replace',
+      storage,
+    });
+    await expect(restored.getPendingCount(PHONE)).resolves.toBe(1);
+  });
+
   it('durably allocates an immutable event and pseudonymous cursor', async () => {
     const seed: Record<string, string> = {};
     const outbox = new LearningEventOutbox({

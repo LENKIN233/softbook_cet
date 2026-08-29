@@ -126,10 +126,14 @@ import {
   createMutationQueueRepository,
   hasCausalSpaceBootstrapAdvance,
 } from './src/sync/mutationQueueRepository';
+import {MutationQueueManager} from './src/sync/mutationQueue';
 import type {
   AccountBootstrapObservationProof,
   SpaceCanonicalRefreshBaseline,
 } from './src/sync/mutationQueue';
+import {createReactNativeMutationQueueStorage} from './src/sync/mutationQueueStorage.native';
+import {LearningEventOutbox} from './src/sync/learningEventOutbox';
+import {createReactNativeLearningEventOutboxStorage} from './src/sync/learningEventOutboxStorage.native';
 import { createLearningEventSyncRepository } from './src/sync/learningEventSyncRepository';
 import { createLearningEventsRepository } from './src/sync/learningEventsRepository';
 import { resolveLearningEventsRepositoryConfig } from './src/sync/learningEventsRuntimeConfig';
@@ -507,6 +511,9 @@ function AppShell({
     () =>
       createLearningEventSyncRepository({
         eventsRepository: learningEventsRepository,
+        outbox: new LearningEventOutbox({
+          storage: createReactNativeLearningEventOutboxStorage(),
+        }),
       }),
     [learningEventsRepository],
   );
@@ -528,6 +535,9 @@ function AppShell({
       createMutationQueueRepository({
         membershipRepository,
         progressSyncRepository,
+        queueManager: new MutationQueueManager({
+          storage: createReactNativeMutationQueueStorage(),
+        }),
         spaceStateRepository,
       }),
     [membershipRepository, progressSyncRepository, spaceStateRepository],

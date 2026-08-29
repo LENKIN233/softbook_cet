@@ -1,5 +1,9 @@
 import { RemoteHttpError } from '../runtime/remoteHttpError';
 import type { LearningTrack } from '../learning/model';
+import {
+  createSoftbookClientHeaders,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export type SpaceStateRepositoryMode = 'local' | 'remote';
 export type SpaceActionDimension = 'favorite' | 'sleep';
@@ -52,6 +56,7 @@ export type SpaceStateContext = {
 };
 
 export type SpaceStateRemoteConfig = {
+  clientKind?: SoftbookClientKind;
   endpoint: string;
   headers?: Record<string, string>;
 };
@@ -485,9 +490,9 @@ function buildRemoteSpaceStateHeaders(
   }
 
   return {
+    ...createSoftbookClientHeaders(config.clientKind, config.headers),
     'content-type': 'application/json',
     Authorization: `Bearer ${context.authToken}`,
-    ...config.headers,
   };
 }
 

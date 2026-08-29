@@ -26,6 +26,7 @@ test('membership runtime config can switch repository mode to remote', () => {
   ).toEqual({
     mode: 'remote',
     remoteConfig: {
+      clientKind: 'mobile',
       dismissRecoveryEndpoint:
         'https://api.softbook.example/v2/membership/dismiss-recovery',
       entitlementEndpoint:

@@ -1,4 +1,8 @@
 import {RemoteHttpError} from '../runtime/remoteHttpError';
+import {
+  createSoftbookClientHeaders,
+  type SoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export type ProgressSyncRepositoryMode = 'local' | 'remote';
 
@@ -26,6 +30,7 @@ export type ProgressSyncContext = {
 };
 
 export type ProgressSyncRemoteConfig = {
+  clientKind?: SoftbookClientKind;
   endpoint: string;
   headers?: Record<string, string>;
 };
@@ -161,9 +166,9 @@ function buildRemoteProgressSyncHeaders(
   }
 
   return {
+    ...createSoftbookClientHeaders(config.clientKind, config.headers),
     'content-type': 'application/json',
     Authorization: `Bearer ${context.authToken}`,
-    ...config.headers,
   };
 }
 

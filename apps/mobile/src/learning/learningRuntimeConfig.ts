@@ -5,6 +5,7 @@ import type {
 } from './learningRepository';
 import { createSoftbookRemoteLearningCardSourceConfig } from './remoteCardSource';
 import { createSoftbookRemoteLearningSessionConfig } from './remoteLearningSession';
+import type {SoftbookClientKind} from '../runtime/remoteClient';
 
 export type LearningRemoteRuntimeConfig = {
   apiKey?: string;
@@ -89,6 +90,7 @@ export type SoftbookAppRuntimeConfig = {
   spaceState?: SpaceStateRuntimeConfig;
   learningState?: LearningStateRuntimeConfig;
   mutationQueue?: MutationQueueRuntimeConfig;
+  clientKind?: SoftbookClientKind;
 };
 
 type RemoteRuntimeFeature =
@@ -174,10 +176,10 @@ export function resolveLearningSessionRepositoryConfig(
     return {
       mode: 'remote',
       remoteConfig: createSoftbookRemoteLearningCardSourceConfig(
-        learningSource.remote,
+        {...learningSource.remote, clientKind: runtimeConfig?.clientKind},
       ),
       remoteSessionConfig: createSoftbookRemoteLearningSessionConfig(
-        learningSource.remote,
+        {...learningSource.remote, clientKind: runtimeConfig?.clientKind},
       ),
     };
   }

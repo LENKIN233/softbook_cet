@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import type { LearningCardResult, LearningTrack } from '../learning/model';
 import type {
   LearningEventPhase,
@@ -62,14 +60,6 @@ export function createInMemoryLearningEventOutboxStorage(
   };
 }
 
-export function createReactNativeLearningEventOutboxStorage(): LearningEventOutboxStorage {
-  return {
-    getItem: key => AsyncStorage.getItem(key),
-    removeItem: key => AsyncStorage.removeItem(key),
-    setItem: (key, value) => AsyncStorage.setItem(key, value),
-  };
-}
-
 export class LearningEventOutbox {
   private readonly createDeviceId: () => string;
   private readonly hydrationPromise: Promise<void>;
@@ -86,8 +76,8 @@ export class LearningEventOutbox {
       key?: string;
       legacyKey?: string | null;
       now?: () => string;
-      storage?: LearningEventOutboxStorage;
-    } = {},
+      storage: LearningEventOutboxStorage;
+    },
   ) {
     this.createDeviceId = options.createDeviceId ?? createDefaultDeviceId;
     this.key = options.key ?? LEARNING_EVENT_OUTBOX_STORAGE_KEY;
@@ -96,8 +86,7 @@ export class LearningEventOutbox {
         ? LEGACY_LEARNING_EVENT_OUTBOX_STORAGE_KEY
         : options.legacyKey;
     this.now = options.now ?? (() => new Date().toISOString());
-    this.storage =
-      options.storage ?? createReactNativeLearningEventOutboxStorage();
+    this.storage = options.storage;
     this.hydrationPromise = this.load();
   }
 

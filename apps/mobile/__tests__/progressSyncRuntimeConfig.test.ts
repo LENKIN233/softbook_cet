@@ -32,6 +32,7 @@ test('progress sync runtime config can switch repository mode to remote', () => 
   expect(config).toEqual({
     mode: 'remote',
     remoteConfig: {
+      clientKind: 'mobile',
       endpoint: 'https://api.softbook.example/v2/progress/check-in',
       headers: {
         'x-api-key': 'progress-key',

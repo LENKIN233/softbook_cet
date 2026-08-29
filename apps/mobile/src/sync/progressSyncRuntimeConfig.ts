@@ -4,6 +4,10 @@ import {
 } from '../learning/learningRuntimeConfig';
 
 import type { ProgressSyncRepositoryConfig } from './progressSyncRepository';
+import {
+  createSoftbookClientHeaders,
+  resolveSoftbookClientKind,
+} from '../runtime/remoteClient';
 
 export type ProgressSyncRemoteRuntimeConfig = {
   apiKey?: string;
@@ -39,9 +43,10 @@ export function resolveProgressSyncRepositoryConfig(
     return {
       mode: 'remote',
       remoteConfig: {
+        clientKind: resolveSoftbookClientKind(runtimeConfig?.clientKind),
         endpoint: `${progressSync.remote.baseUrl.replace(/\/$/, '')}/v2/progress/check-in`,
         headers: {
-          'x-softbook-client': 'mobile',
+          ...createSoftbookClientHeaders(runtimeConfig?.clientKind),
           ...(progressSync.remote.apiKey
             ? {
                 'x-api-key': progressSync.remote.apiKey,

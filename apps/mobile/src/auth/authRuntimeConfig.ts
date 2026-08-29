@@ -18,7 +18,10 @@ export function resolveAuthRepositoryConfig(
 
     return {
       mode: 'remote',
-      remoteConfig: createSoftbookRemoteAuthConfig(auth.remote),
+      remoteConfig: createSoftbookRemoteAuthConfig({
+        ...auth.remote,
+        clientKind: runtimeConfig?.clientKind,
+      }),
     };
   }
 

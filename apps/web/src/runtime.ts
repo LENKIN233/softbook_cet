@@ -1,17 +1,30 @@
 import type {LearningTrack} from '../../mobile/src/learning/model';
+import {
+  createWebBuildClientIdentity,
+  type WebBuildClientIdentity,
+} from '../../mobile/src/runtime/clientVersion';
+import type {SoftbookClientKind} from '../../mobile/src/runtime/remoteClient';
+import webPackage from '../package.json';
+
+const WEB_CLIENT_KIND = 'web' satisfies SoftbookClientKind;
+const WEB_CLIENT_IDENTITY = createWebBuildClientIdentity(webPackage.version);
 
 export type WebRuntime =
   | {
       mode: 'development';
+      clientKind: 'web';
       track: LearningTrack;
     }
   | {
       mode: 'remote';
       baseUrl: string;
+      clientIdentity: WebBuildClientIdentity;
+      clientKind: 'web';
       track: LearningTrack;
     }
   | {
       mode: 'unavailable';
+      clientKind: 'web';
       reason: string;
       track: LearningTrack;
     };
@@ -31,14 +44,21 @@ export function resolveWebRuntime(): WebRuntime {
   const track = configured?.track ?? 'cet4';
 
   if (configured?.mode === 'remote' && isHttpsUrl(configured.baseUrl)) {
-    return {baseUrl: configured.baseUrl as string, mode: 'remote', track};
+    return {
+      baseUrl: configured.baseUrl as string,
+      clientIdentity: WEB_CLIENT_IDENTITY,
+      clientKind: WEB_CLIENT_KIND,
+      mode: 'remote',
+      track,
+    };
   }
 
   if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
-    return {mode: 'development', track};
+    return {clientKind: WEB_CLIENT_KIND, mode: 'development', track};
   }
 
   return {
+    clientKind: WEB_CLIENT_KIND,
     mode: 'unavailable',
     reason: '服务正在完成上线配置，请稍后再试。',
     track,
