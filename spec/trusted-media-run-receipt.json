@@ -65,6 +65,7 @@
     "require_nonempty_verified_timestamp": true,
     "author_editable_json_is_trust_root": false,
     "attestation_alone_proves_result_correctness": false,
+    "reuse_boundary": "a_previous_attested_receipt_may_be_reused_only_when_its_exact_audio_manifest_and_reviewed_worklist_bytes_are_rehashed_and_all_301_card_asset_hash_size_duration_transcript_box_and_training_goal_identities_match_the_current_release;_current_non_audio_content_still_requires_new_full_track_review_authorization_audit_runtime_and_bundle_evidence",
     "type_specific_semantic_validation_required": true,
     "type_specific_semantics": [
       "exact_unique_raw_run_ID_name_path_hash_and_card_sets",
@@ -96,7 +97,7 @@
     "observed_workflow_run_id": "33261431967",
     "observed_workflow_run_attempt": 1,
     "formal_cet4_media_types_registered": true,
-    "closed_beta_gate_effect": "registered_types_require_the_attested_receipt_identity_plus_independent_rehash_and_type_specific_recomputation_of_authorization_review_audit_runtime_bundle_content_and_QC_inputs"
+    "closed_beta_gate_effect": "registered_types_require_the_attested_receipt_identity_and_attested_audio_manifest_worklist_plus_independent_rehash_and_type_specific_recomputation_of_current_authorization_review_audit_runtime_bundle_content_and_QC_inputs;unchanged_exact_media_does_not_rerun_301_model_consumptions_for_unrelated_non_audio_content_changes"
   },
   "official_sources": [
     "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",

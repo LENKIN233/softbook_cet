@@ -53,6 +53,12 @@ validator separately re-hashes and recomputes the exact authorization, model
 review, zero-blocker audit, three runtime shards, 1180-card content payload,
 release bundle, audio manifest, QC index, and all 27 formal QC records. An
 attestation alone, a count-only report, or a path/hash-only summary cannot pass.
+When a later candidate changes only non-audio content, the existing receipt may
+be reused only if its attested audio manifest and reviewed worklist are imported
+and every one of the 301 card, hash, size, duration, transcript, box, and
+training-goal identities still matches the current release. The changed content
+still requires a new full-track model review, authorization, audit, runtime
+payload, and release bundle.
 
 External account capabilities and the accepted box/card coverage reports must be
 verified by the tracked machine authority, `service:softbook-machine-harness`.

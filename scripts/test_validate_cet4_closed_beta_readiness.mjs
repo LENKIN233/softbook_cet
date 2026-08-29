@@ -279,6 +279,7 @@ test('formal CET4 content semantics recompute the exact corpus and reject attest
     trustedMediaVerifier: () => ({errors: [], identity_ready: true, ok: true}),
   });
   assert.equal(accepted.ok, true, accepted.errors.join('\n'));
+  assert.notEqual(fixture.receiptContentVersion, fixture.contentVersion);
   assert.deepEqual(accepted.evidence, {
     audio_asset_count: 301,
     audio_qc_record_count: 27,
@@ -524,7 +525,7 @@ function formalContentFixture(t) {
       track: 'cet4',
       knowledge_ref: box,
       interaction_id: 'reveal',
-      front: {prompt: `Prompt ${cardId}`},
+      front: {prompt: `Prompt ${cardId}`, support: `Goal ${cardId}`},
       analysis: {summary: `Analysis ${cardId}`},
       space_metadata: {box_ref: box},
     };
@@ -646,21 +647,82 @@ function formalContentFixture(t) {
     model_acceptances: perturbationAcceptances(['content_authorization']),
     authorization_limits: ['Exact fixture only.'],
   }, 'content-authorization');
+  const trustedAudioManifest = writeEvidence(
+    root,
+    trackedFiles,
+    `${base}/trusted-audio-manifest.json`,
+    {
+      schema_version: 'trusted-media-audio-manifest.v1',
+      track: 'cet4',
+      asset_count: 301,
+      assets: assets.map(asset => {
+        const cardId = asset.asset_id.slice(5, 11);
+        const transcript = cards.find(card => card.card_id === cardId).audio.transcript;
+        return {
+          card_id: cardId,
+          asset_path: `ai_tts/cet4/${cardId.slice(0, 4)}/${cardId}.mp3`,
+          file_sha256: asset.sha256.slice(7),
+          size_bytes: asset.size_bytes,
+          transcript_sha256: hash(transcript),
+        };
+      }),
+    },
+    'trusted-media-audio-manifest',
+  );
+  const trustedReviewedWorklist = writeEvidence(
+    root,
+    trackedFiles,
+    `${base}/trusted-reviewed-worklist.json`,
+    {
+      schema_version: 'audio-perceptual-worklist.v3',
+      track: 'cet4',
+      progress: {complete: true, passed: 301},
+      entries: assets.map(asset => {
+        const cardId = asset.asset_id.slice(5, 11);
+        const card = cards.find(candidate => candidate.card_id === cardId);
+        return {
+          card_id: cardId,
+          knowledge_ref: {box_prefix: card.knowledge_ref},
+          training_context: {main_training_goal: card.front.support},
+          audio: {
+            asset_path: `ai_tts/cet4/${cardId.slice(0, 4)}/${cardId}.mp3`,
+            file_sha256: asset.sha256.slice(7),
+            size_bytes: asset.size_bytes,
+            transcript: card.audio.transcript,
+            transcript_sha256: hash(card.audio.transcript),
+            declared_duration_ms: asset.duration_ms,
+          },
+          review: {status: 'passed', complete_asset_consumed: true},
+        };
+      }),
+    },
+    'trusted-media-reviewed-worklist',
+  );
   const sourceCommit = hash('card-make-finalizer').slice(0, 40);
   const receipt = writeEvidence(root, trackedFiles, `${base}/receipt.json`, {
     schema_version: 'trusted-media-run-receipt.v2',
     receipt_id: 'fixture-trusted-media-receipt',
     source: {repository: 'LENKIN233/card-make', commit_sha: hash('execution').slice(0, 40)},
     finalization: {repository: 'LENKIN233/card-make', commit_sha: sourceCommit},
+    artifacts: {
+      audio_manifest: {
+        sha256: trustedAudioManifest.sha256,
+        size_bytes: trustedAudioManifest.artifact.size_bytes,
+      },
+      review_worklist: {
+        sha256: trustedReviewedWorklist.sha256,
+        size_bytes: trustedReviewedWorklist.artifact.size_bytes,
+      },
+    },
     candidate: {
       track: 'cet4',
       card_count: 1180,
       box_count: 108,
       audio_asset_count: 301,
-      content_version: contentVersion,
-      content_authorization_sha256: authorization.sha256,
-      full_track_review_sha256: review.sha256,
-      quality_audit_sha256: audit.sha256,
+      content_version: `sha256:${hash('prior-content-version')}`,
+      content_authorization_sha256: hash('prior-authorization'),
+      full_track_review_sha256: hash('prior-review'),
+      quality_audit_sha256: hash('prior-audit'),
     },
   }, 'trusted-media-receipt');
   const attestation = writeRawEvidence(
@@ -674,8 +736,42 @@ function formalContentFixture(t) {
     const assigned = assets.filter((_, assetIndex) => assetIndex % 27 === index);
     return writeEvidence(root, trackedFiles, `${base}/qc-${index + 1}.json`, {
       schema_version: 'model-owned-audio-qc.v2',
+      audio_qc_id: `fixture-audio-qc-${index + 1}`,
       scope: {card_ids: assigned.map(asset => asset.asset_id.slice(5, 11))},
       verdict: {formal_audio_ready: true, requires_regeneration: false},
+      model_acceptances: perturbationAcceptances(['audio_perceptual_review']),
+      qa_checks: {
+        audio_matches_text: true,
+        target_signal_audible: true,
+        accurate_pronunciation: true,
+        suitable_speed: true,
+        natural_rhythm: true,
+        stress_and_pauses_do_not_mislead: true,
+        no_unwanted_noise_or_clipping: true,
+      },
+      generated_assets: assigned.map(asset => {
+        const cardId = asset.asset_id.slice(5, 11);
+        return {
+          card_id: cardId,
+          path: `ai_tts/cet4/${cardId.slice(0, 4)}/${cardId}.mp3`,
+          file_sha256: asset.sha256.slice(7),
+        };
+      }),
+      per_card_qc: assigned.map(asset => {
+        const cardId = asset.asset_id.slice(5, 11);
+        return {
+          card_id: cardId,
+          asset_path: `ai_tts/cet4/${cardId.slice(0, 4)}/${cardId}.mp3`,
+          complete_asset_consumed: true,
+          matches_text: true,
+          target_signal: true,
+          pronunciation: true,
+          speed: true,
+          rhythm: true,
+          stress_pauses: true,
+          no_noise: true,
+        };
+      }),
       source_records: {
         trusted_media_receipt_sha256: receipt.sha256,
         trusted_media_attestation_bundle_sha256: attestation.sha256,
@@ -737,6 +833,8 @@ function formalContentFixture(t) {
     ...qcFiles,
     receipt,
     attestation,
+    trustedAudioManifest,
+    trustedReviewedWorklist,
   ];
   const artifact = {
     subject: {release: {content_version: contentVersion, bundle_sha256: bundle.sha256}},
@@ -754,6 +852,8 @@ function formalContentFixture(t) {
       audio_qc_record_roles: qcFiles.map(file => file.role),
       trusted_media_receipt_role: receipt.role,
       trusted_media_attestation_bundle_role: attestation.role,
+      trusted_media_audio_manifest_role: trustedAudioManifest.role,
+      trusted_media_reviewed_worklist_role: trustedReviewedWorklist.role,
       source_repository: 'LENKIN233/card-make',
       source_commit_sha: sourceCommit,
       card_count: 1180,
@@ -775,6 +875,7 @@ function formalContentFixture(t) {
   return {
     artifact,
     contentVersion,
+    receiptContentVersion: receipt.json.candidate.content_version,
     root,
     runtimeShardPath: shardFiles[0].path,
     trackedFiles,

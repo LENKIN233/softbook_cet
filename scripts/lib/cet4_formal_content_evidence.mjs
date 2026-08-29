@@ -52,6 +52,8 @@ const REQUIRED_SINGLE_ROLES = Object.freeze([
   'audio-qc-index',
   'trusted-media-receipt',
   'trusted-media-attestation-bundle',
+  'trusted-media-audio-manifest',
+  'trusted-media-reviewed-worklist',
 ]);
 
 export function loadCet4FormalContentEvidence(
@@ -82,6 +84,8 @@ export function loadCet4FormalContentEvidence(
     'audio-qc-index': measurements.audio_qc_index_role,
     'trusted-media-receipt': measurements.trusted_media_receipt_role,
     'trusted-media-attestation-bundle': measurements.trusted_media_attestation_bundle_role,
+    'trusted-media-audio-manifest': measurements.trusted_media_audio_manifest_role,
+    'trusted-media-reviewed-worklist': measurements.trusted_media_reviewed_worklist_role,
   };
   for (const name of REQUIRED_SINGLE_ROLES) {
     if (typeof roleNames[name] !== 'string' || !byRole.has(roleNames[name])) {
@@ -122,6 +126,8 @@ export function loadCet4FormalContentEvidence(
   const audioQcIndex = loadRole('audio-qc-index');
   const receiptFile = loadRole('trusted-media-receipt');
   const attestationFile = loadRole('trusted-media-attestation-bundle', {json: false});
+  const trustedAudioManifest = loadRole('trusted-media-audio-manifest');
+  const trustedReviewedWorklist = loadRole('trusted-media-reviewed-worklist');
   const runtimeShards = runtimeShardRoles.map(role =>
     loadRawArtifact(byRole.get(role), {
       json: true,
@@ -152,6 +158,8 @@ export function loadCet4FormalContentEvidence(
       audioQcIndex,
       receiptFile,
       attestationFile,
+      trustedAudioManifest,
+      trustedReviewedWorklist,
       ...runtimeShards,
       ...audioQcRecords,
     ].some(value => value === null)
@@ -179,7 +187,12 @@ export function loadCet4FormalContentEvidence(
   validateReceiptBindings(
     receiptFile,
     attestationFile,
-    {authorization, review, audit, runtime, audio},
+    {
+      audio,
+      content: content.json,
+      trustedAudioManifest,
+      trustedReviewedWorklist,
+    },
     measurements,
     trustedMediaVerifier,
     errors,
@@ -420,6 +433,9 @@ function validateAudio(manifest, index, records, content, errors) {
   const assets = new Map(manifest.assets.map(asset => [asset.asset_id, asset]));
   const contentAssets = new Map((content.assets ?? []).map(asset => [asset.asset_id, asset]));
   const recordBySha = new Map(records.map(record => [record.sha256, record.json]));
+  for (const record of records) {
+    validateFormalAudioQcRecord(record.json, assets, errors);
+  }
   const coveredCards = new Set();
   const usedRecordHashes = new Set();
   for (const entry of index.assets) {
@@ -454,7 +470,59 @@ function validateAudio(manifest, index, records, content, errors) {
   ) {
     errors.push('CET4 audio evidence must cover 301 unique cards with 27 distinct formal QC records.');
   }
-  return {assetIds: new Set(assets.keys()), records};
+  return {assetIds: new Set(assets.keys()), assets: manifest.assets, records};
+}
+
+function validateFormalAudioQcRecord(record, releaseAssets, errors) {
+  const cardIds = uniqueIds(
+    record?.scope?.card_ids ?? [],
+    CARD_ID_RE,
+    'audio QC card',
+    errors,
+  );
+  const generatedByCard = new Map(
+    (record?.generated_assets ?? []).map(asset => [String(asset?.card_id), asset]),
+  );
+  const qcByCard = new Map(
+    (record?.per_card_qc ?? []).map(entry => [String(entry?.card_id), entry]),
+  );
+  const qaChecks = record?.qa_checks;
+  if (
+    record?.schema_version !== 'model-owned-audio-qc.v2' ||
+    record.verdict?.formal_audio_ready !== true ||
+    record.verdict?.requires_regeneration !== false ||
+    !twoAcceptedPerturbations(record.model_acceptances, ['audio_perceptual_review']) ||
+    cardIds.size === 0 ||
+    generatedByCard.size !== cardIds.size ||
+    qcByCard.size !== cardIds.size ||
+    !isObject(qaChecks) ||
+    Object.values(qaChecks).some(value => value !== true)
+  ) {
+    errors.push(`CET4 audio QC record ${String(record?.audio_qc_id)} is not formally ready.`);
+    return;
+  }
+  for (const cardId of cardIds) {
+    const generated = generatedByCard.get(cardId);
+    const qc = qcByCard.get(cardId);
+    const releaseAsset = releaseAssets.get(`cet4-${cardId}-audio`);
+    if (
+      generated?.path !== `ai_tts/cet4/${cardId.slice(0, 4)}/${cardId}.mp3` ||
+      generated?.file_sha256 !== stripSha(releaseAsset?.sha256) ||
+      qc?.asset_path !== generated.path ||
+      qc?.complete_asset_consumed !== true ||
+      [
+        'matches_text',
+        'target_signal',
+        'pronunciation',
+        'speed',
+        'rhythm',
+        'stress_pauses',
+        'no_noise',
+      ].some(field => qc?.[field] !== true)
+    ) {
+      errors.push(`CET4 audio QC record does not bind the current asset for card ${cardId}.`);
+    }
+  }
 }
 
 function validateReceiptBindings(
@@ -472,15 +540,26 @@ function validateReceiptBindings(
     receipt.candidate?.card_count !== 1180 ||
     receipt.candidate?.box_count !== 108 ||
     receipt.candidate?.audio_asset_count !== 301 ||
-    receipt.candidate?.content_version !== files.runtime.contentVersion ||
-    receipt.candidate?.content_authorization_sha256 !== files.authorization.sha256 ||
-    receipt.candidate?.full_track_review_sha256 !== files.review.sha256 ||
-    receipt.candidate?.quality_audit_sha256 !== files.audit.sha256 ||
     receipt.finalization?.repository !== measurements.source_repository ||
     receipt.finalization?.commit_sha !== measurements.source_commit_sha
   ) {
-    errors.push('CET4 trusted media receipt does not bind the imported content candidate and producer commit.');
+    errors.push('CET4 trusted media receipt does not bind the exact media scope and producer commit.');
   }
+  if (
+    receipt.artifacts?.audio_manifest?.sha256 !== files.trustedAudioManifest.sha256 ||
+    receipt.artifacts?.audio_manifest?.size_bytes !== files.trustedAudioManifest.bytes.length ||
+    receipt.artifacts?.review_worklist?.sha256 !== files.trustedReviewedWorklist.sha256 ||
+    receipt.artifacts?.review_worklist?.size_bytes !== files.trustedReviewedWorklist.bytes.length
+  ) {
+    errors.push('CET4 trusted media receipt does not bind the imported audio manifest and reviewed worklist bytes.');
+  }
+  validateTrustedAudioParity(
+    files.trustedAudioManifest.json,
+    files.trustedReviewedWorklist.json,
+    files.audio,
+    files.content,
+    errors,
+  );
   const receiptHashes = new Set(
     files.audio.records.map(record => record.json?.source_records?.trusted_media_receipt_sha256),
   );
@@ -515,6 +594,82 @@ function validateReceiptBindings(
         verification?.errors ?? []
       ).join('; ')}`,
     );
+  }
+}
+
+function validateTrustedAudioParity(
+  trustedManifest,
+  trustedWorklist,
+  releaseAudio,
+  content,
+  errors,
+) {
+  if (
+    trustedManifest?.schema_version !== 'trusted-media-audio-manifest.v1' ||
+    trustedManifest.track !== 'cet4' ||
+    trustedManifest.asset_count !== 301 ||
+    !Array.isArray(trustedManifest.assets) ||
+    trustedManifest.assets.length !== 301 ||
+    trustedWorklist?.schema_version !== 'audio-perceptual-worklist.v3' ||
+    trustedWorklist.track !== 'cet4' ||
+    trustedWorklist.progress?.complete !== true ||
+    trustedWorklist.progress?.passed !== 301 ||
+    !Array.isArray(trustedWorklist.entries) ||
+    trustedWorklist.entries.length !== 301
+  ) {
+    errors.push('CET4 trusted media inputs must contain the complete 301-asset manifest and reviewed worklist.');
+    return;
+  }
+  const releaseById = new Map(
+    (releaseAudio?.assets ?? []).map(asset => [asset.asset_id, asset]),
+  );
+  const contentByCard = new Map(
+    (content?.card_records ?? []).map(card => [String(card?.card_id), card]),
+  );
+  const worklistByCard = new Map(
+    trustedWorklist.entries.map(entry => [String(entry?.card_id), entry]),
+  );
+  const seenCards = new Set();
+  for (const trustedAsset of trustedManifest.assets) {
+    const cardId = String(trustedAsset?.card_id ?? '');
+    const assetId = `cet4-${cardId}-audio`;
+    const releaseAsset = releaseById.get(assetId);
+    const card = contentByCard.get(cardId);
+    const worklist = worklistByCard.get(cardId);
+    const transcript = String(card?.audio?.transcript ?? '');
+    const transcriptSha256 = createHash('sha256').update(transcript).digest('hex');
+    if (
+      !CARD_ID_RE.test(cardId) ||
+      seenCards.has(cardId) ||
+      trustedAsset.asset_path !== `ai_tts/cet4/${cardId.slice(0, 4)}/${cardId}.mp3` ||
+      releaseAsset?.asset_path !== `audio/cet4/${cardId.slice(0, 4)}/${cardId}.mp3` ||
+      releaseAsset?.sha256 !== `sha256:${trustedAsset.file_sha256}` ||
+      releaseAsset?.size_bytes !== trustedAsset.size_bytes ||
+      worklist?.audio?.file_sha256 !== trustedAsset.file_sha256 ||
+      worklist?.audio?.size_bytes !== trustedAsset.size_bytes ||
+      worklist?.audio?.asset_path !== trustedAsset.asset_path ||
+      worklist?.audio?.transcript !== transcript ||
+      worklist?.audio?.transcript_sha256 !== trustedAsset.transcript_sha256 ||
+      createHash('sha256').update(String(worklist?.audio?.transcript ?? '')).digest('hex') !==
+        trustedAsset.transcript_sha256 ||
+      worklist?.audio?.declared_duration_ms !== releaseAsset?.duration_ms ||
+      transcriptSha256 !== trustedAsset.transcript_sha256 ||
+      card?.knowledge_ref !== worklist?.knowledge_ref?.box_prefix ||
+      card?.front?.support !== worklist?.training_context?.main_training_goal ||
+      worklist?.review?.status !== 'passed' ||
+      worklist?.review?.complete_asset_consumed !== true
+    ) {
+      errors.push(`CET4 trusted media identity for card ${cardId} does not match the current content release.`);
+      continue;
+    }
+    seenCards.add(cardId);
+  }
+  if (
+    seenCards.size !== 301 ||
+    releaseById.size !== 301 ||
+    worklistByCard.size !== 301
+  ) {
+    errors.push('CET4 trusted media parity must cover 301 unique current release assets.');
   }
 }
 
