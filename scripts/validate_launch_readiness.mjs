@@ -517,6 +517,8 @@ export function verifyRepositoryEvidenceFiles(
     );
   }
   const parsedGateEvidence = new Map();
+  let androidSignedRuntimeProfile = null;
+  let receiverDeliveryRuntimeProfile = null;
   for (const record of evidenceRecords) {
     const {evidence, label} = record;
     if (!isRecord(evidence) || !evidence.artifact_uri?.startsWith('repo://')) {
@@ -608,6 +610,7 @@ export function verifyRepositoryEvidenceFiles(
             })
           : {errors: [], ok: true, report: null};
       errors.push(...androidSignedReleaseResult.errors);
+      const androidValidationErrorCount = errors.length;
       const result = validateExternalCapabilityEvidenceArtifact(artifact, {
         accountId: record.accountId,
         capabilityId: record.capabilityId,
@@ -630,7 +633,16 @@ export function verifyRepositoryEvidenceFiles(
           evidence,
           label,
           errors,
+          expectedReleaseCandidate?.environment ?? null,
         );
+      }
+      if (
+        androidSignedReleaseResult.ok &&
+        result.ok &&
+        errors.length === androidValidationErrorCount
+      ) {
+        androidSignedRuntimeProfile =
+          androidSignedReleaseResult.report.mobile_runtime_profile;
       }
       continue;
     }
@@ -678,6 +690,11 @@ export function verifyRepositoryEvidenceFiles(
       smsProviderResult.ok &&
       productionDeploymentResult.ok
     ) {
+      if (record.evidenceType === 'production-deployment') {
+        receiverDeliveryRuntimeProfile =
+          productionDeploymentResult.evidence?.deployReport
+            ?.mobile_runtime_profile ?? null;
+      }
       const reports = parsedGateEvidence.get(record.gateId) ?? [];
       reports.push(artifact);
       parsedGateEvidence.set(record.gateId, reports);
@@ -695,7 +712,39 @@ export function verifyRepositoryEvidenceFiles(
     });
     errors.push(...coherence.errors);
   }
+  if (
+    androidSignedRuntimeProfile &&
+    receiverDeliveryRuntimeProfile &&
+    !mobileRuntimeProfileBindingsEqual(
+      androidSignedRuntimeProfile,
+      receiverDeliveryRuntimeProfile,
+    )
+  ) {
+    errors.push(
+      'Android signed-release and receiver delivery evidence must bind the same exact mobile_runtime_profile cohort.',
+    );
+  }
   return { errors, ok: errors.length === 0 };
+}
+
+function mobileRuntimeProfileBindingsEqual(left, right) {
+  if (!isRecord(left) || !isRecord(right)) return false;
+  for (const field of [
+    'profile_sha256',
+    'delivery_profile_sha256',
+    'public_keyring_sha256',
+    'profile_id',
+    'environment_id',
+    'signing_key_id',
+  ]) {
+    if (left[field] !== right[field]) return false;
+  }
+  return (
+    Array.isArray(left.key_ids) &&
+    Array.isArray(right.key_ids) &&
+    left.key_ids.length === right.key_ids.length &&
+    left.key_ids.every((keyId, index) => keyId === right.key_ids[index])
+  );
 }
 
 export function verifyInnerRepositoryArtifact(
@@ -813,6 +862,7 @@ function validateAndroidSignedReleaseBindings(
   outerEvidence,
   label,
   errors,
+  expectedEnvironment,
 ) {
   const role = 'android-signed-release-report';
   if (report.repository_commit !== artifact?.subject?.commit_sha) {
@@ -846,6 +896,32 @@ function validateAndroidSignedReleaseBindings(
     artifact?.observation?.provider_subject_sha256 !== expectedTargetHash
   ) {
     errors.push(`${label} signed-release receiver target does not match.`);
+  }
+  if (isRecord(expectedEnvironment)) {
+    if (
+      report.mobile_runtime_profile?.profile_id !==
+      expectedEnvironment.profile_id
+    ) {
+      errors.push(
+        `${label} signed-release runtime profile_id does not match the launch candidate environment.`,
+      );
+    }
+    if (
+      report.mobile_runtime_profile?.environment_id !==
+      expectedEnvironment.environment_id
+    ) {
+      errors.push(
+        `${label} signed-release runtime environment_id does not match the launch candidate environment.`,
+      );
+    }
+    if (
+      report.mobile_runtime_profile?.delivery_profile_sha256 !==
+      `sha256:${expectedEnvironment.profile_sha256}`
+    ) {
+      errors.push(
+        `${label} signed-release delivery profile does not match the launch candidate environment.`,
+      );
+    }
   }
   const checks = new Map(
     asArray(artifact?.checks).map(check => [check?.id, check]),

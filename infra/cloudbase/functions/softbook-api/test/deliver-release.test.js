@@ -8,13 +8,17 @@ const {after, before, test} = require('node:test');
 
 let deliveryCli;
 let deploymentSafety;
+let mobileRuntimeProfileContract;
 const temporaryDirectories = [];
-const TEST_COMMIT = 'a'.repeat(40);
+const TEST_COMMIT = 'd34ebec618d89fd92d55dcbd3ae5b924a085b6d5';
 
 before(async () => {
   deliveryCli = await import(pathToFileURL(resolve(__dirname, '../../../deliver-release.mjs')));
   deploymentSafety = await import(
     pathToFileURL(resolve(__dirname, '../../../deployment-safety.mjs'))
+  );
+  mobileRuntimeProfileContract = await import(
+    pathToFileURL(resolve(__dirname, '../../../../../scripts/lib/mobile_release_runtime_profile.mjs'))
   );
 });
 
@@ -33,6 +37,16 @@ test('unified delivery arguments keep every mutating command dry-run by default'
     deliveryCli.parseArguments(['publish', '--profile', 'profile.json', '--bundle', 'bundle.json'])
       .apply,
     false,
+  );
+  assert.equal(
+    deliveryCli.parseArguments([
+      'preflight',
+      '--profile',
+      'profile.json',
+      '--mobile-runtime-profile',
+      'mobile-profile.json',
+    ]).mobileRuntimeProfilePath,
+    'mobile-profile.json',
   );
   assert.equal(
     deliveryCli.parseArguments([
@@ -270,10 +284,11 @@ test('receiver preflight reads the exact environment and reports missing collect
       bundlePath: null,
       command: 'preflight',
       format: 'json',
+      mobileRuntimeProfilePath: fixture.mobileRuntimeProfilePath,
       profilePath: fixture.path,
       releaseId: null,
     },
-    safeDependencies(runner),
+    safeDependencies(runner, fixture.env),
   );
 
   assert.equal(report.status, 'passed');
@@ -284,10 +299,38 @@ test('receiver preflight reads the exact environment and reports missing collect
   assert.equal(report.execution.operator, null);
   assert.equal(report.preflight.environment.env_id, 'receiver-cet4-beta');
   assert.equal(report.preflight.catalog.missing_required_collections.length, 2);
+  assert.deepEqual(report.mobile_runtime_profile, fixture.publicBinding);
   assert.equal(
     runner.calls.some(call => call.includes('CreateTable')),
     false,
   );
+});
+
+test('receiver preflight rejects delivery-profile byte drift before any receiver request', async () => {
+  const fixture = createProfileFile();
+  const runner = createCloudRunner(deploymentSafety.REQUIRED_COLLECTIONS);
+  writeFileSync(
+    fixture.path,
+    Buffer.concat([readFileSync(fixture.path), Buffer.from('\n')]),
+  );
+
+  await assert.rejects(
+    () =>
+      deliveryCli.executeDeliveryCommand(
+        {
+          apply: false,
+          bundlePath: null,
+          command: 'preflight',
+          format: 'json',
+          mobileRuntimeProfilePath: fixture.mobileRuntimeProfilePath,
+          profilePath: fixture.path,
+          releaseId: null,
+        },
+        safeDependencies(runner, fixture.env),
+      ),
+    /delivery_profile_sha256/,
+  );
+  assert.equal(runner.calls.length, 0);
 });
 
 test('receiver provision apply creates only missing allowlisted collections and verifies', async () => {
@@ -300,11 +343,12 @@ test('receiver provision apply creates only missing allowlisted collections and 
       bundlePath: null,
       command: 'provision',
       format: 'json',
+      mobileRuntimeProfilePath: fixture.mobileRuntimeProfilePath,
       operator: 'service:receiver-release-operator',
       profilePath: fixture.path,
       releaseId: null,
     },
-    safeDependencies(runner),
+    safeDependencies(runner, fixture.env),
   );
 
   assert.equal(report.status, 'passed');
@@ -317,13 +361,14 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
   const fixture = createProfileFile();
   const runner = createCloudRunner(deploymentSafety.REQUIRED_COLLECTIONS);
   const processCalls = [];
-  const env = receiverEnvironment();
+  const env = fixture.env;
   const report = await deliveryCli.executeDeliveryCommand(
     {
       apply: true,
       bundlePath: null,
       command: 'deploy',
       format: 'json',
+      mobileRuntimeProfilePath: fixture.mobileRuntimeProfilePath,
       operator: 'service:receiver-release-operator',
       profilePath: fixture.path,
       releaseId: null,
@@ -413,6 +458,42 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
   }
 });
 
+test('receiver deploy rejects a same-ID different Ed25519 private key before any deployment work', async () => {
+  const fixture = createProfileFile();
+  const runner = createCloudRunner(deploymentSafety.REQUIRED_COLLECTIONS);
+  const processCalls = [];
+  const mismatchedEnv = receiverEnvironment();
+
+  await assert.rejects(
+    () =>
+      deliveryCli.executeDeliveryCommand(
+        {
+          apply: true,
+          bundlePath: null,
+          command: 'deploy',
+          format: 'json',
+          mobileRuntimeProfilePath: fixture.mobileRuntimeProfilePath,
+          operator: 'service:receiver-release-operator',
+          profilePath: fixture.path,
+          releaseId: null,
+        },
+        {
+          ...safeDependencies(runner, mismatchedEnv),
+          processRunner: {
+            async run(...args) {
+              processCalls.push(args);
+              return '';
+            },
+          },
+        },
+      ),
+    /private key does not match the active mobile runtime public key/,
+  );
+
+  assert.equal(processCalls.length, 0);
+  assert.equal(runner.calls.some(call => call.includes('deploy')), false);
+});
+
 test('account deletion worker inspection fails closed on handler or timer drift', async () => {
   const inspect = payload =>
     deliveryCli.inspectAccountDeletionWorker({
@@ -490,12 +571,13 @@ test('receiver write safety blocks topic branches even when remote preflight pas
           bundlePath: null,
           command: 'provision',
           format: 'json',
+          mobileRuntimeProfilePath: fixture.mobileRuntimeProfilePath,
           operator: 'service:receiver-release-operator',
           profilePath: fixture.path,
           releaseId: null,
         },
         {
-          ...safeDependencies(runner),
+          ...safeDependencies(runner, fixture.env),
           repository: {
             branch: 'infra/unsafe-topic',
             dirty: false,
@@ -508,9 +590,9 @@ test('receiver write safety blocks topic branches even when remote preflight pas
   );
 });
 
-function safeDependencies(runner) {
+function safeDependencies(runner, env = receiverEnvironment()) {
   return {
-    env: receiverEnvironment(),
+    env,
     nodeVersion: '22.13.0',
     repository: {
       branch: 'main',
@@ -622,8 +704,47 @@ function createProfileFile() {
   const directory = mkdtempSync(join(tmpdir(), 'receiver-profile-test-'));
   temporaryDirectories.push(directory);
   const path = join(directory, 'delivery-profile.json');
-  writeFileSync(path, `${JSON.stringify(profileFixture(), null, 2)}\n`);
-  return {directory, path};
+  const profile = profileFixture();
+  const deliveryProfileBytes = Buffer.from(`${JSON.stringify(profile, null, 2)}\n`);
+  writeFileSync(path, deliveryProfileBytes);
+  const {privateKey} = generateKeyPairSync('ed25519');
+  const publicKeyHex = deliveryCli.deriveEd25519PublicKeyHex(privateKey);
+  const publicKeyring = {
+    schema_version: 'content-manifest-public-keyring.v1',
+    keys: [
+      {
+        algorithm: 'ed25519',
+        key_id: profile.signing_key_id,
+        public_key_hex: publicKeyHex,
+      },
+    ],
+  };
+  const publicKeyringBytes = mobileRuntimeProfileContract.canonicalJsonBytes(publicKeyring);
+  const runtimeProfile = mobileRuntimeProfileContract.createMobileReleaseRuntimeProfile({
+    commitSha: TEST_COMMIT,
+    deliveryProfile: profile,
+    deliveryProfileBytes,
+    publicKeyring,
+    publicKeyringBytes,
+  });
+  const runtimeProfileBytes = mobileRuntimeProfileContract.canonicalJsonBytes(runtimeProfile);
+  const mobileRuntimeProfilePath = join(directory, 'mobile-runtime-profile.json');
+  writeFileSync(mobileRuntimeProfilePath, runtimeProfileBytes);
+  return {
+    directory,
+    env: receiverEnvironment(privateKey),
+    mobileRuntimeProfilePath,
+    path,
+    publicBinding: {
+      profile_sha256: mobileRuntimeProfileContract.sha256(runtimeProfileBytes),
+      delivery_profile_sha256: runtimeProfile.delivery_profile_sha256,
+      public_keyring_sha256: runtimeProfile.public_keyring_sha256,
+      profile_id: runtimeProfile.profile_id,
+      environment_id: runtimeProfile.environment_id,
+      signing_key_id: runtimeProfile.signing_key_id,
+      key_ids: runtimeProfile.content_manifest_public_keys.map(item => item.key_id),
+    },
+  };
 }
 
 function profileFixture() {
@@ -640,8 +761,7 @@ function profileFixture() {
   };
 }
 
-function receiverEnvironment() {
-  const {privateKey} = generateKeyPairSync('ed25519');
+function receiverEnvironment(privateKey = generateKeyPairSync('ed25519').privateKey) {
   return {
     SOFTBOOK_AUTH_INDEX_SECRET: 'index-secret-0123456789-ABCDEFGHIJK',
     SOFTBOOK_AUTH_TOKEN_SECRET: 'token-secret-9876543210-ZYXWVUTSRQP',

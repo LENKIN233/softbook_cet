@@ -1000,6 +1000,16 @@ function validateProductionDeploymentMeasurements(
     errors,
   );
   if (
+    !receiverMobileRuntimeProfilesEqual(
+      loaded.deployReport?.mobile_runtime_profile,
+      loaded.verifyReport?.mobile_runtime_profile,
+    )
+  ) {
+    errors.push(
+      `${label} deploy and verify reports must bind the same mobile_runtime_profile.`,
+    );
+  }
+  if (
     deployTimes.completedAt &&
     verifyTimes.startedAt &&
     verifyTimes.startedAt < deployTimes.completedAt
@@ -1947,6 +1957,7 @@ function validateReceiverDeliveryReport(
           'operation',
           'applied',
           'backend_deployment_id',
+          'mobile_runtime_profile',
           'profile',
           'preflight',
           'receiver_secrets',
@@ -1961,6 +1972,7 @@ function validateReceiverDeliveryReport(
           'operation',
           'applied',
           'backend_deployment_id',
+          'mobile_runtime_profile',
           'profile',
           'preflight',
           'receiver_secrets',
@@ -1997,8 +2009,20 @@ function validateReceiverDeliveryReport(
     errors,
   );
   validateReceiverReportProfile(report.profile, artifact.subject, `${label}.profile`, errors);
+  validateReceiverMobileRuntimeProfile(
+    report.mobile_runtime_profile,
+    artifact.subject,
+    `${label}.mobile_runtime_profile`,
+    errors,
+  );
   validateReceiverPreflight(report.preflight, artifact.subject, `${label}.preflight`, errors);
   validateReceiverSecretSummary(report.receiver_secrets, `${label}.receiver_secrets`, errors);
+  assertEqual(
+    report.mobile_runtime_profile?.signing_key_id,
+    report.receiver_secrets?.signing_key_id,
+    `${label}.mobile_runtime_profile.signing_key_id receiver secret binding`,
+    errors,
+  );
   validateReceiverWriteSafety(report.write_safety, artifact.subject, `${label}.write_safety`, errors);
   const times = validateReceiverReportExecution(
     report.execution,
@@ -2008,6 +2032,106 @@ function validateReceiverDeliveryReport(
     errors,
   );
   return times;
+}
+
+function validateReceiverMobileRuntimeProfile(value, subject, label, errors) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  assertExactKeys(
+    value,
+    [
+      'profile_sha256',
+      'delivery_profile_sha256',
+      'public_keyring_sha256',
+      'profile_id',
+      'environment_id',
+      'signing_key_id',
+      'key_ids',
+    ],
+    label,
+    errors,
+  );
+  for (const field of [
+    'profile_sha256',
+    'delivery_profile_sha256',
+    'public_keyring_sha256',
+  ]) {
+    requirePattern(
+      value[field],
+      /^sha256:[0-9a-f]{64}$/,
+      `${label}.${field}`,
+      errors,
+    );
+    requireSha256(stripSha(value[field]), `${label}.${field}`, errors);
+  }
+  assertEqual(
+    stripSha(value.delivery_profile_sha256),
+    subject?.environment?.profile_sha256,
+    `${label}.delivery_profile_sha256`,
+    errors,
+  );
+  assertEqual(
+    value.profile_id,
+    subject?.environment?.profile_id,
+    `${label}.profile_id`,
+    errors,
+  );
+  assertEqual(
+    value.environment_id,
+    subject?.environment?.environment_id,
+    `${label}.environment_id`,
+    errors,
+  );
+  requirePattern(
+    value.signing_key_id,
+    ID_PATTERN,
+    `${label}.signing_key_id`,
+    errors,
+  );
+  if (
+    !Array.isArray(value.key_ids) ||
+    value.key_ids.length < 1 ||
+    value.key_ids.length > 8
+  ) {
+    errors.push(`${label}.key_ids must contain 1 to 8 entries.`);
+    return;
+  }
+  for (const [index, keyId] of value.key_ids.entries()) {
+    requirePattern(keyId, ID_PATTERN, `${label}.key_ids[${index}]`, errors);
+  }
+  if (
+    new Set(value.key_ids).size !== value.key_ids.length ||
+    JSON.stringify(value.key_ids) !== JSON.stringify([...value.key_ids].sort())
+  ) {
+    errors.push(`${label}.key_ids must be unique and sorted.`);
+  }
+  if (
+    value.key_ids.filter(keyId => keyId === value.signing_key_id).length !== 1
+  ) {
+    errors.push(`${label}.signing_key_id must identify exactly one key_id.`);
+  }
+}
+
+function receiverMobileRuntimeProfilesEqual(left, right) {
+  if (!isRecord(left) || !isRecord(right)) return false;
+  for (const field of [
+    'profile_sha256',
+    'delivery_profile_sha256',
+    'public_keyring_sha256',
+    'profile_id',
+    'environment_id',
+    'signing_key_id',
+  ]) {
+    if (left[field] !== right[field]) return false;
+  }
+  return (
+    Array.isArray(left.key_ids) &&
+    Array.isArray(right.key_ids) &&
+    left.key_ids.length === right.key_ids.length &&
+    left.key_ids.every((keyId, index) => keyId === right.key_ids[index])
+  );
 }
 
 function validateReceiverReportProfile(value, subject, label, errors) {

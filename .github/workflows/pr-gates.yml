@@ -120,6 +120,9 @@ jobs:
       - name: Test Android release boundary
         run: node --test scripts/test_android_release_boundary.mjs
 
+      - name: Test mobile release runtime profile
+        run: node --test scripts/test_mobile_release_runtime_profile.mjs
+
       - name: Test signed Android release evidence tooling
         run: node --test scripts/test_build_android_signed_release.mjs
 
@@ -496,6 +499,20 @@ jobs:
           CODE_SIGNING_REQUIRED=NO
           archive
 
+      - name: Verify embedded iOS Release runtime profile
+        if: env.RUN_GATE == 'true'
+        run: |
+          node ../../scripts/inspect_mobile_release_runtime_artifact.mjs \
+            --artifact "$RUNNER_TEMP/softbook-simulator-derived/Build/Products/Release-iphonesimulator/SoftbookCET.app" \
+            --profile e2e/fixtures/mobile-release-runtime-profile.repository-fixture.json \
+            --format app \
+            --allow-repository-fixture
+          node ../../scripts/inspect_mobile_release_runtime_artifact.mjs \
+            --artifact "$RUNNER_TEMP/SoftbookCET.xcarchive" \
+            --profile e2e/fixtures/mobile-release-runtime-profile.repository-fixture.json \
+            --format xcarchive \
+            --allow-repository-fixture
+
   android-release:
     needs: changes
     if: always()
@@ -569,7 +586,13 @@ jobs:
 
       - name: Verify unsigned Release artifact
         if: env.RUN_GATE == 'true'
-        run: test -f android/app/build/outputs/apk/release/app-release-unsigned.apk
+        run: |
+          test -f android/app/build/outputs/apk/release/app-release-unsigned.apk
+          node ../../scripts/inspect_mobile_release_runtime_artifact.mjs \
+            --artifact android/app/build/outputs/apk/release/app-release-unsigned.apk \
+            --profile e2e/fixtures/mobile-release-runtime-profile.repository-fixture.json \
+            --format apk \
+            --allow-repository-fixture
 
   repo-health:
     runs-on: ubuntu-latest

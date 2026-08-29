@@ -115,6 +115,7 @@
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
+				B7A0020136C44F12A7510B02 /* [Softbook] Embed Release Runtime Profile */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
 				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
@@ -173,6 +174,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		B7A0020136C44F12A7510B02 /* [Softbook] Embed Release Runtime Profile */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[Softbook] Embed Release Runtime Profile";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\n\nif [ \"$CONFIGURATION\" != \"Release\" ]; then\n  exit 0\nfi\n\nPROFILE_PATH=\"${SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE:-}\"\nALLOW_FIXTURE=\"\"\nif [ -z \"$PROFILE_PATH\" ]; then\n  if [ \"${CODE_SIGNING_ALLOWED:-YES}\" = \"NO\" ]; then\n    PROFILE_PATH=\"$SRCROOT/../e2e/fixtures/mobile-release-runtime-profile.repository-fixture.json\"\n    ALLOW_FIXTURE=\"--allow-repository-fixture\"\n  else\n    echo \"error: signed iOS Release requires SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE\" >&2\n    exit 1\n  fi\nfi\n\nOUTPUT_PATH=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/softbook-release-runtime-profile.json\"\nmkdir -p \"$(dirname \"$OUTPUT_PATH\")\"\nNODE_BINARY=\"${NODE_BINARY:-$(command -v node)}\"\n\"$NODE_BINARY\" \"$SRCROOT/../../../scripts/stage_mobile_release_runtime_profile.mjs\" --input \"$PROFILE_PATH\" --output \"$OUTPUT_PATH\" $ALLOW_FIXTURE\n";
+			showEnvVarsInLog = 0;
+		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;

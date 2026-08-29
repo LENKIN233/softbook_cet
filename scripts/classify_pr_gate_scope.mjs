@@ -21,10 +21,15 @@ const FORCE_ALL_FILES = new Set([
 ]);
 const MOBILE_SUPPORT_FILES = new Set([
   'scripts/build_android_signed_release.mjs',
+  'scripts/build_mobile_release_runtime_profile.mjs',
+  'scripts/inspect_mobile_release_runtime_artifact.mjs',
+  'scripts/lib/mobile_release_runtime_profile.mjs',
   'scripts/normalize_minimatch_brace_expansion.mjs',
   'scripts/normalize_react_native_podspecs.mjs',
   'scripts/test_normalize_react_native_podspecs.mjs',
   'scripts/test_build_android_signed_release.mjs',
+  'scripts/test_mobile_release_runtime_profile.mjs',
+  'scripts/stage_mobile_release_runtime_profile.mjs',
   'scripts/verify_minimatch_brace_expansion.mjs',
 ]);
 const SHARED_PRODUCT_CONTRACT_FILES = new Set([

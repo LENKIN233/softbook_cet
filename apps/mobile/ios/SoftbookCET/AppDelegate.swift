@@ -34,6 +34,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 
   private func softbookInitialProperties() -> [String: Any]? {
+#if DEBUG
     let environment = ProcessInfo.processInfo.environment
 
     guard
@@ -86,6 +87,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     return ["softbookRemoteRuntimeProfile": remoteProfile]
+#else
+    return nil
+#endif
   }
 }
 

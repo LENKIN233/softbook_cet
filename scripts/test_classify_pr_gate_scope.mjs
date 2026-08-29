@@ -115,6 +115,18 @@ assert.deepEqual(
   },
 );
 
+for (const file of [
+  'scripts/build_mobile_release_runtime_profile.mjs',
+  'scripts/inspect_mobile_release_runtime_artifact.mjs',
+  'scripts/lib/mobile_release_runtime_profile.mjs',
+  'scripts/stage_mobile_release_runtime_profile.mjs',
+  'scripts/test_mobile_release_runtime_profile.mjs',
+]) {
+  const classified = classifyChangedPaths([file]);
+  assert.equal(classified.mobile, true, `${file} must route to mobile-quality`);
+  assert.equal(classified.native, true, `${file} must route to native release builds`);
+}
+
 assert.deepEqual(
   gateState(classifyChangedPaths([
     'docs/agent-runs/evidence/release-smoke.json',

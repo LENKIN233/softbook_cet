@@ -330,8 +330,16 @@ fails closed when it cannot be observed.
 The required-check catalog is not an evidence-semantics registry. At present,
 only `android-distribution/release-signing` is registered: it must include one
 `android-signed-release.v1` raw report and pass its APK-signature, authenticated
-archive-digest, receiver-target, commit, verifier, run, and observation-time
-bindings. Every other account/capability pair remains capability-ineligible,
+archive-digest, exact archived APK byte re-download, embedded receiver-release
+mobile runtime profile reinspection, receiver-target, commit, verifier, run,
+observation-time, and launch-candidate profile/environment/delivery-profile
+bindings. The receiver deploy and verify reports must also carry the same exact
+mobile runtime profile digest, delivery profile digest, public keyring digest,
+profile/environment identity, signing key, and sorted key IDs. The Android
+signed-release report and receiver deploy/verify reports must be exactly equal
+across all seven of those public fields when both evidence cohorts exist;
+changing only the runtime-profile or keyring digest fails the single-cohort
+check. Every other account/capability pair remains capability-ineligible,
 even if a generic report contains valid hashes and self-declared `passed`
 checks. Registering another pair requires a type-specific validator and a
 negative bypass eval in the same change; absent either, readiness fails closed.

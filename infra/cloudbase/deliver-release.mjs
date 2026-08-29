@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
-import {createHash, createPrivateKey} from 'node:crypto';
+import {createHash, createPrivateKey, createPublicKey} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {
   chmodSync,
   cpSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -31,6 +32,12 @@ import {
   createCloudBaseReceiverAdapter,
 } from './cloudbase-receiver-adapter.mjs';
 import {validateControlledPilotProfile} from './controlled-pilot-v1.mjs';
+import {
+  canonicalJsonBytes,
+  sha256,
+  validateMobileReleaseRuntimeProfile,
+} from '../../scripts/lib/mobile_release_runtime_profile.mjs';
+import {parseStrictJson} from '../../scripts/lib/strict_json.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
@@ -83,6 +90,7 @@ export function parseArguments(argv) {
     bundlePath: null,
     command,
     format: 'text',
+    mobileRuntimeProfilePath: null,
     operator: null,
     profilePath: null,
     releaseId: null,
@@ -104,6 +112,10 @@ export function parseArguments(argv) {
         break;
       case '--operator':
         options.operator = requireValue(rest, index, argument);
+        index += 1;
+        break;
+      case '--mobile-runtime-profile':
+        options.mobileRuntimeProfilePath = requireValue(rest, index, argument);
         index += 1;
         break;
       case '--profile':
@@ -162,23 +174,39 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
     },
   });
   const env = dependencies.env ?? process.env;
-  const profile = validateDeliveryProfile(readJson(options.profilePath));
+  const deliveryProfileBytes = readBoundedRegularFile(
+    options.profilePath,
+    'receiver delivery profile',
+  );
+  const profile = validateDeliveryProfile(
+    parseStrictJson(deliveryProfileBytes, 'receiver delivery profile'),
+  );
   const runner = dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
   const processRunner = dependencies.processRunner ?? createProcessRunner();
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
   const repository = dependencies.repository ?? readRepositoryState();
+  const mobileRuntimeProfilePath = resolveMobileRuntimeProfilePath(options, env);
+  const mobileRuntime = readMobileRuntimeProfileBinding({
+    deliveryProfileBytes,
+    mobileRuntimeProfilePath,
+    profile,
+    repositoryCommit: repository.head,
+  });
   const backendDeploymentId = buildBackendDeploymentId({
     profile,
     repositoryCommit: repository.head,
   });
   const preflight = await inspectReceiver({profile, runner});
-  const secretInspection = inspectReceiverSecrets(profile, env);
+  const secretInspection = inspectReceiverSecrets(profile, env, {
+    mobileRuntimeProfile: mobileRuntime.profile,
+  });
   const writeSafety = inspectWriteSafety({nodeVersion, repository});
   const base = {
     schema_version: 'receiver-delivery-report.v2',
     operation: options.command,
     applied: options.apply,
     backend_deployment_id: backendDeploymentId,
+    mobile_runtime_profile: mobileRuntime.public,
     profile: publicProfile(profile),
     preflight,
     receiver_secrets: secretInspection.public,
@@ -221,6 +249,7 @@ export async function executeDeliveryCommand(options, dependencies = {}) {
           runtime: FUNCTION_RUNTIME,
           api_path: new URL(profile.api_base_url).pathname,
           fixed_sms_code_present: false,
+          mobile_runtime_profile: mobileRuntime.public,
         },
         status: 'planned',
         writes_performed: false,
@@ -933,7 +962,11 @@ function requireBackendDeploymentId(value) {
   return value;
 }
 
-export function inspectReceiverSecrets(profile, env) {
+export function inspectReceiverSecrets(
+  profile,
+  env,
+  {mobileRuntimeProfile = null} = {},
+) {
   const errors = [];
   const provider = env.SOFTBOOK_SMS_PROVIDER;
   if (!Object.hasOwn(SMS_PROVIDER_ENV_NAMES, provider)) {
@@ -1031,6 +1064,19 @@ export function inspectReceiverSecrets(profile, env) {
     try {
       const key = createPrivateKey(env.SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM);
       if (key.asymmetricKeyType !== 'ed25519') throw new Error('wrong key type');
+      if (mobileRuntimeProfile) {
+        const activeKey = mobileRuntimeProfile.content_manifest_public_keys.find(
+          candidate => candidate.key_id === mobileRuntimeProfile.signing_key_id,
+        );
+        if (
+          !activeKey ||
+          deriveEd25519PublicKeyHex(key) !== activeKey.public_key_hex
+        ) {
+          errors.push(
+            'content manifest private key does not match the active mobile runtime public key',
+          );
+        }
+      }
     } catch {
       errors.push('content manifest private key must be valid Ed25519');
     }
@@ -1048,6 +1094,39 @@ export function inspectReceiverSecrets(profile, env) {
       signing_key_id: profile.signing_key_id,
     },
   };
+}
+
+export function deriveEd25519PublicKeyHex(privateKeyInput) {
+  let publicJwk;
+  try {
+    const privateKey =
+      privateKeyInput?.type === 'private'
+        ? privateKeyInput
+        : createPrivateKey(privateKeyInput);
+    if (privateKey.asymmetricKeyType !== 'ed25519') {
+      throw new Error('wrong key type');
+    }
+    publicJwk = createPublicKey(privateKey).export({format: 'jwk'});
+  } catch {
+    throw new ReleaseDeliveryError('content manifest private key must be valid Ed25519.');
+  }
+  if (
+    publicJwk?.kty !== 'OKP' ||
+    publicJwk?.crv !== 'Ed25519' ||
+    typeof publicJwk.x !== 'string'
+  ) {
+    throw new ReleaseDeliveryError('content manifest public key export is invalid.');
+  }
+  let rawPublicKey;
+  try {
+    rawPublicKey = Buffer.from(publicJwk.x, 'base64url');
+  } catch {
+    throw new ReleaseDeliveryError('content manifest public key export is invalid.');
+  }
+  if (rawPublicKey.length !== 32) {
+    throw new ReleaseDeliveryError('content manifest public key export is invalid.');
+  }
+  return rawPublicKey.toString('hex');
 }
 
 function isVisibleText(value, maximumLength) {
@@ -1304,24 +1383,149 @@ function requireValue(argv, index, name) {
   return value;
 }
 
-function readJson(path) {
-  try {
-    return JSON.parse(readFileSync(resolve(path), 'utf8'));
-  } catch {
-    throw new ReleaseDeliveryError(`cannot read JSON: ${basename(path)}`);
+function resolveMobileRuntimeProfilePath(options, env) {
+  const optionPath = options.mobileRuntimeProfilePath;
+  const environmentPath = env.SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE;
+  for (const [label, value] of [
+    ['--mobile-runtime-profile', optionPath],
+    ['SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE', environmentPath],
+  ]) {
+    if (
+      value !== null &&
+      value !== undefined &&
+      (typeof value !== 'string' || value.length === 0)
+    ) {
+      throw new ReleaseDeliveryError(`${label} must name a profile file.`);
+    }
   }
+  if (
+    optionPath &&
+    environmentPath &&
+    resolve(optionPath) !== resolve(environmentPath)
+  ) {
+    throw new ReleaseDeliveryError(
+      '--mobile-runtime-profile conflicts with SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE.',
+    );
+  }
+  const selected = optionPath || environmentPath;
+  if (!selected) {
+    throw new ReleaseDeliveryError(
+      'receiver delivery requires --mobile-runtime-profile or SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE.',
+    );
+  }
+  return resolve(selected);
+}
+
+function readBoundedRegularFile(path, label) {
+  const resolvedPath = typeof path === 'string' ? resolve(path) : null;
+  const stat = resolvedPath
+    ? lstatSync(resolvedPath, {throwIfNoEntry: false})
+    : null;
+  if (
+    !stat?.isFile() ||
+    stat.isSymbolicLink() ||
+    stat.size < 1 ||
+    stat.size > 64 * 1024
+  ) {
+    throw new ReleaseDeliveryError(`${label} must be a regular file up to 64 KiB.`);
+  }
+  try {
+    return readFileSync(resolvedPath);
+  } catch {
+    throw new ReleaseDeliveryError(`cannot read ${label}: ${basename(resolvedPath)}`);
+  }
+}
+
+function readMobileRuntimeProfileBinding({
+  deliveryProfileBytes,
+  mobileRuntimeProfilePath,
+  profile,
+  repositoryCommit,
+}) {
+  const bytes = readBoundedRegularFile(
+    mobileRuntimeProfilePath,
+    'mobile release runtime profile',
+  );
+  let mobileRuntimeProfile;
+  try {
+    mobileRuntimeProfile = validateMobileReleaseRuntimeProfile(
+      parseStrictJson(bytes, 'mobile release runtime profile'),
+      {expectedCommit: repositoryCommit},
+    );
+  } catch (error) {
+    throw new ReleaseDeliveryError(
+      `mobile release runtime profile is invalid: ${
+        error instanceof Error ? error.message : 'unknown validation failure'
+      }`,
+    );
+  }
+  if (!bytes.equals(canonicalJsonBytes(mobileRuntimeProfile))) {
+    throw new ReleaseDeliveryError(
+      'mobile release runtime profile bytes must be canonical.',
+    );
+  }
+  const expectedDeliveryProfileSha256 = sha256(deliveryProfileBytes);
+  const mismatches = [];
+  for (const [field, actual, expected] of [
+    [
+      'delivery_profile_sha256',
+      mobileRuntimeProfile.delivery_profile_sha256,
+      expectedDeliveryProfileSha256,
+    ],
+    ['profile_id', mobileRuntimeProfile.profile_id, profile.profile_id],
+    ['environment_id', mobileRuntimeProfile.environment_id, profile.environment_id],
+    ['api_base_url', mobileRuntimeProfile.api_base_url, profile.api_base_url],
+    ['runtime_mode', mobileRuntimeProfile.runtime_mode, profile.runtime_mode],
+    ['signing_key_id', mobileRuntimeProfile.signing_key_id, profile.signing_key_id],
+  ]) {
+    if (actual !== expected) mismatches.push(field);
+  }
+  if (
+    mobileRuntimeProfile.minimum_client_versions.android !==
+      profile.minimum_client_versions.android ||
+    mobileRuntimeProfile.minimum_client_versions.ios !==
+      profile.minimum_client_versions.ios
+  ) {
+    mismatches.push('minimum_client_versions');
+  }
+  if (
+    profile.runtime_mode !== 'closed_beta' ||
+    JSON.stringify(profile.enabled_tracks) !== JSON.stringify(['cet4'])
+  ) {
+    mismatches.push('CET4 closed-beta delivery scope');
+  }
+  if (mismatches.length > 0) {
+    throw new ReleaseDeliveryError(
+      `mobile release runtime profile does not match the exact delivery profile: ${mismatches.join(', ')}.`,
+    );
+  }
+  const keyIds = mobileRuntimeProfile.content_manifest_public_keys.map(
+    item => item.key_id,
+  );
+  return {
+    profile: mobileRuntimeProfile,
+    public: {
+      profile_sha256: sha256(bytes),
+      delivery_profile_sha256: mobileRuntimeProfile.delivery_profile_sha256,
+      public_keyring_sha256: mobileRuntimeProfile.public_keyring_sha256,
+      profile_id: mobileRuntimeProfile.profile_id,
+      environment_id: mobileRuntimeProfile.environment_id,
+      signing_key_id: mobileRuntimeProfile.signing_key_id,
+      key_ids: keyIds,
+    },
+  };
 }
 
 function printUsage() {
   console.log(`Usage:
-  node infra/cloudbase/deliver-release.mjs preflight --profile <delivery-profile.json>
-  node infra/cloudbase/deliver-release.mjs provision --profile <profile> [--apply --operator <id>]
-  node infra/cloudbase/deliver-release.mjs deploy --profile <profile> [--apply --operator <id>]
-  node infra/cloudbase/deliver-release.mjs publish --profile <profile> --bundle <bundle> [--apply --operator <id>]
-  node infra/cloudbase/deliver-release.mjs verify --profile <profile> --bundle <bundle> --operator <id>
-  node infra/cloudbase/deliver-release.mjs rollback --profile <profile> --release <release-id> [--apply --operator <id>]
+  node infra/cloudbase/deliver-release.mjs preflight --profile <delivery-profile.json> --mobile-runtime-profile <mobile-runtime-profile.json>
+  node infra/cloudbase/deliver-release.mjs provision --profile <profile> --mobile-runtime-profile <mobile-profile> [--apply --operator <id>]
+  node infra/cloudbase/deliver-release.mjs deploy --profile <profile> --mobile-runtime-profile <mobile-profile> [--apply --operator <id>]
+  node infra/cloudbase/deliver-release.mjs publish --profile <profile> --mobile-runtime-profile <mobile-profile> --bundle <bundle> [--apply --operator <id>]
+  node infra/cloudbase/deliver-release.mjs verify --profile <profile> --mobile-runtime-profile <mobile-profile> --bundle <bundle> --operator <id>
+  node infra/cloudbase/deliver-release.mjs rollback --profile <profile> --mobile-runtime-profile <mobile-profile> --release <release-id> [--apply --operator <id>]
 
-All mutating commands are dry-run unless --apply is explicit. Apply requires clean exact main, Node ${REQUIRED_DEPLOYMENT_NODE_VERSION}, receiver secrets, and successful remote preflight.`);
+SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE may supply the same exact path when the CLI option is omitted. All mutating commands are dry-run unless --apply is explicit. Apply requires clean exact main, Node ${REQUIRED_DEPLOYMENT_NODE_VERSION}, receiver secrets, and successful remote preflight.`);
 }
 
 async function main() {

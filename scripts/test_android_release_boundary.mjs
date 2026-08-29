@@ -25,6 +25,11 @@ test('Android Release never falls back to the repository debug keystore', () => 
   assert.match(gradle, /verifyReleaseSigningBoundary/);
   assert.match(gradle, /softbookRequireSignedRelease/);
   assert.match(gradle, /softbookRequireUnsignedRelease/);
+  assert.match(gradle, /stageReleaseRuntimeProfile/);
+  assert.match(gradle, /softbookReleaseRuntimeProfile/);
+  assert.match(gradle, /SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE/);
+  assert.match(gradle, /mobile-release-runtime-profile\.repository-fixture\.json/);
+  assert.match(gradle, /outputs\.upToDateWhen \{ false \}/);
   assert.match(gradle, /cannot require signed and unsigned modes together/);
   for (const name of [
     'SOFTBOOK_ANDROID_RELEASE_STORE_FILE',
@@ -72,6 +77,8 @@ test('Android Release CI uses JDK 17 and verifies an unsigned artifact', () => {
   assert.match(ndkStep, /if: env\.RUN_GATE == 'true'/);
   assert.match(job, /npm run android:release:unsigned/);
   assert.match(job, /app-release-unsigned\.apk/);
+  assert.match(job, /inspect_mobile_release_runtime_artifact\.mjs/);
+  assert.match(job, /--allow-repository-fixture/);
   const packageJson = JSON.parse(read('apps/mobile/package.json'));
   assert.match(
     packageJson.scripts['android:release:unsigned'],

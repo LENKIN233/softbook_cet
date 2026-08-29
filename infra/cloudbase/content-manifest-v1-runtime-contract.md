@@ -40,8 +40,10 @@ Referenced active specs:
   iOS/Android native playback adapters are implemented locally but not deployed
   or device smoked. The actual native iOS/Android client minimum gate is also
   implemented locally and runs only after signed-manifest verification.
-  Production key values and native release injection, persistent receiver
-  execution, real-device minimum-version proof, private-object
+  The public-only release-profile schema/generator, strict pre-registration JS
+  parser, iOS/Android Release resource embedding, and IPA/APK byte inspector are
+  implemented. Receiver profile/key values, persistent receiver execution,
+  real-device minimum-version proof, private-object
   download/playback proof, and cross-platform visual evidence remain pending,
   so the audio launch gate stays pending.
 
@@ -220,8 +222,11 @@ card source and server selection first, then loads this manifest for that exact
 track/content version. It rejects any card catalog, membership access mode, or
 access-count drift before returning a selected card. Remote runtime
 configuration consumes a non-empty release-owned public-key map and fails
-closed when it is absent or invalid, but production key values and
-cross-platform release injection remain external pending work. A deliberately
+closed when it is absent or invalid. Release builds consume one deterministic,
+public-only `mobile-release-runtime-profile.v1` resource; missing, fixture,
+noncanonical, stale-commit, local-feature, secret-shaped or keyring-drifted
+receiver profiles fail before registration or artifact acceptance. Production
+profile/key values remain external pending facts. A deliberately
 local content-manifest feature is allowed only as an explicit development smoke
 configuration; it returns no manifest.
 

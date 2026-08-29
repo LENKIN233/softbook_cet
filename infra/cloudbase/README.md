@@ -383,18 +383,27 @@ node infra/cloudbase/verify-release-bundle.mjs \
 Unified receiver delivery is dry-run by default:
 
 ```bash
-node infra/cloudbase/deliver-release.mjs preflight --profile path/to/delivery-profile.json
-node infra/cloudbase/deliver-release.mjs provision --profile path/to/delivery-profile.json
-node infra/cloudbase/deliver-release.mjs deploy --profile path/to/delivery-profile.json
+node infra/cloudbase/deliver-release.mjs preflight \
+  --profile path/to/delivery-profile.json \
+  --mobile-runtime-profile path/to/mobile-runtime-profile.json
+node infra/cloudbase/deliver-release.mjs provision \
+  --profile path/to/delivery-profile.json \
+  --mobile-runtime-profile path/to/mobile-runtime-profile.json
+node infra/cloudbase/deliver-release.mjs deploy \
+  --profile path/to/delivery-profile.json \
+  --mobile-runtime-profile path/to/mobile-runtime-profile.json
 node infra/cloudbase/deliver-release.mjs publish \
   --profile path/to/delivery-profile.json \
+  --mobile-runtime-profile path/to/mobile-runtime-profile.json \
   --bundle path/to/release-bundle.json
 node infra/cloudbase/deliver-release.mjs verify \
   --profile path/to/delivery-profile.json \
+  --mobile-runtime-profile path/to/mobile-runtime-profile.json \
   --bundle path/to/release-bundle.json \
   --operator service:<receiver-operator>
 node infra/cloudbase/deliver-release.mjs rollback \
   --profile path/to/delivery-profile.json \
+  --mobile-runtime-profile path/to/mobile-runtime-profile.json \
   --release cet4-beta-previous
 ```
 
@@ -403,9 +412,14 @@ Every command reports `receiver-delivery-report.v2`. Its
 receiver profile/environment and fixed API/worker topology. Deploy injects this
 non-secret ID into `softbook-api`; deploy and verify both reread the remote
 function configuration and fail on ID, handler, runtime, timeout or fixed-code
-drift. The reread also binds the non-secret signing key ID, runtime/store modes
-and SMS provider. Public reports expose only those values plus variable names,
-never secret values. Every report
+drift. The exact canonical `receiver_release` mobile runtime profile must bind
+the same commit, delivery-profile bytes, receiver identity, API path, client
+minimums and active signing-key ID. Before any deploy write, the command derives
+the Ed25519 public key from the configured content-manifest private key and
+requires a byte-exact match with that active embedded public key. The reread
+also binds the non-secret signing key ID, runtime/store modes and SMS provider.
+Public reports expose only profile/keyring hashes, public IDs and variable
+names, never private-key bytes, PEM text or other secret values. Every report
 has canonical execution start/completion timestamps; apply and verify require
 `--operator service:<machine-principal>` (or `model:`, `agent:`, `oidc:`) for
 auditable raw execution identity.
