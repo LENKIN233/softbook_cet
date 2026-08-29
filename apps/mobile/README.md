@@ -105,10 +105,10 @@ SOFTBOOK_ANDROID_RELEASE_TARGET_ID=receiver-beta
 
 ```bash
 npm run android:release:signed -- build \
-  --state ../../docs/agent-runs/artifacts/android-signed-release-state.json
+  --state docs/agent-runs/artifacts/android-signed-release-state.json
 
 npm run android:release:signed -- build \
-  --state ../../docs/agent-runs/artifacts/android-signed-release-state.json \
+  --state docs/agent-runs/artifacts/android-signed-release-state.json \
   --apply
 ```
 
@@ -124,20 +124,20 @@ digest 和字节数，且两者与本地验证结果完全一致。
 SOFTBOOK_ANDROID_RELEASE_VERIFIER=service:<machine-principal> \
 SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID=<machine-run-id> \
 npm run android:release:signed -- finalize \
-  --state ../../docs/agent-runs/artifacts/android-signed-release-state.json \
-  --report ../../docs/release/evidence/android-signed-release.json \
+  --state docs/agent-runs/artifacts/android-signed-release-state.json \
+  --report docs/release/evidence/android-signed-release.json \
   --archive-url https://github.com/<owner>/<repo>/releases/download/<tag>/app-release.apk
 
 SOFTBOOK_ANDROID_RELEASE_VERIFIER=service:<machine-principal> \
 SOFTBOOK_ANDROID_RELEASE_VERIFIER_RUN_ID=<machine-run-id> \
 npm run android:release:signed -- finalize \
-  --state ../../docs/agent-runs/artifacts/android-signed-release-state.json \
-  --report ../../docs/release/evidence/android-signed-release.json \
+  --state docs/agent-runs/artifacts/android-signed-release-state.json \
+  --report docs/release/evidence/android-signed-release.json \
   --archive-url https://github.com/<owner>/<repo>/releases/download/<tag>/app-release.apk \
   --apply
 
 npm run android:release:signed -- verify \
-  --report ../../docs/release/evidence/android-signed-release.json
+  --report docs/release/evidence/android-signed-release.json
 ```
 
 `finalize --apply` 会先完成远端 digest 校验，再删除私有状态并发布
