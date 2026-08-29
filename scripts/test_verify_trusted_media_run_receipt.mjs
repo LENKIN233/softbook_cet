@@ -52,7 +52,7 @@ function cet4RuntimeCatalog() {
 
 function validReceipt() {
   return {
-    schema_version: 'trusted-media-run-receipt.v1',
+    schema_version: 'trusted-media-run-receipt.v2',
     receipt_id: 'cet4-audio-20260826-run-001',
     created_at: '2026-08-26T13:00:00.000Z',
     source: {
@@ -61,6 +61,18 @@ function validReceipt() {
       commit_sha: hash('card-make-main').slice(0, 40),
       workflow_path: '.github/workflows/trusted-media-run.yml',
       workflow_sha256: hash('trusted workflow'),
+    },
+    finalization: {
+      repository: 'LENKIN233/card-make',
+      ref: 'refs/heads/main',
+      commit_sha: hash('card-make-finalizer').slice(0, 40),
+      workflow_path: '.github/workflows/trusted-media-run.yml',
+      workflow_sha256: hash('trusted finalizer workflow'),
+      retained_raw_artifact: {
+        workflow_run_id: '32939841276',
+        workflow_run_attempt: 1,
+        artifact_name: 'trusted-media-raw-32939841276-1',
+      },
     },
     execution: {
       workflow_run_id: '32939841276',
@@ -703,7 +715,7 @@ test('verified exact workflow and receipt digest make the receipt formally ready
   assert.ok(observedArgs.includes('--signer-digest'));
   assert.ok(observedArgs.includes('--source-digest'));
   assert.equal(
-    observedArgs.filter(value => value === validReceipt().source.commit_sha).length,
+    observedArgs.filter(value => value === validReceipt().finalization.commit_sha).length,
     2,
   );
   assert.ok(observedArgs.includes('--source-ref'));

@@ -1,5 +1,5 @@
 {
-  "version": "trusted-media-run-receipt-v1",
+  "version": "trusted-media-run-receipt-v2",
   "status": "active",
   "classification": "evidence_contract",
   "owner": "spec/machine-acceptance.json",
@@ -15,7 +15,7 @@
     "required_runner_class": "self_hosted_macos_arm64"
   },
   "receipt": {
-    "schema_version": "trusted-media-run-receipt.v1",
+    "schema_version": "trusted-media-run-receipt.v2",
     "maximum_bytes": 1048576,
     "exact_cet4_scope": {
       "track": "cet4",
@@ -59,7 +59,8 @@
     }
   },
   "verification": {
-    "command": "gh attestation verify <receipt> --repo LENKIN233/card-make --bundle <bundle> --deny-self-hosted-runners --signer-workflow LENKIN233/card-make/.github/workflows/trusted-media-run.yml --signer-digest <source_commit_sha> --source-digest <source_commit_sha> --source-ref refs/heads/main --cert-oidc-issuer https://token.actions.githubusercontent.com --predicate-type https://slsa.dev/provenance/v1 --format json",
+    "command": "gh attestation verify <receipt> --repo LENKIN233/card-make --bundle <bundle> --deny-self-hosted-runners --signer-workflow LENKIN233/card-make/.github/workflows/trusted-media-run.yml --signer-digest <finalization_commit_sha> --source-digest <finalization_commit_sha> --source-ref refs/heads/main --cert-oidc-issuer https://token.actions.githubusercontent.com --predicate-type https://slsa.dev/provenance/v1 --format json",
+    "retained_raw_finalization_rule": "receipt.source binds the immutable commit that executed the complete model runs; receipt.finalization binds the later main workflow commit that revalidated the retained GitHub raw artifact, rebuilt the receipt and received OIDC attestation. Both commits and workflow hashes are required even when they are equal for a normal one-pass workflow.",
     "require_local_receipt_sha256_in_verified_statement": true,
     "require_nonempty_verified_timestamp": true,
     "author_editable_json_is_trust_root": false,

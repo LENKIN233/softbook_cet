@@ -45,7 +45,7 @@
       "revise",
       "blocked"
     ],
-    "domain_record_boundary": "model-acceptance.v2 proves exact JSON input binding, perturbation-pass identity, and decision shape, not cryptographic proof of an external provider or separate task. Repository merge authority comes from the recorded dual-perturbation exact-diff decision plus deterministic required checks. Media-consumption claims additionally require a trusted-media-run-receipt.v1 whose exact bytes pass GitHub Artifact Attestation verification against the fixed card-make main workflow and type-specific semantic validation; review simplification never weakens media-consumption evidence.",
+    "domain_record_boundary": "model-acceptance.v2 proves exact JSON input binding, perturbation-pass identity, and decision shape, not cryptographic proof of an external provider or separate task. Repository merge authority comes from the recorded dual-perturbation exact-diff decision plus deterministic required checks. Media-consumption claims additionally require a trusted-media-run-receipt.v2 whose exact bytes pass GitHub Artifact Attestation verification against the fixed card-make main workflow and type-specific semantic validation; retained-raw recovery separately binds the original model-execution commit and later attested finalizer commit, and review simplification never weakens media-consumption evidence.",
     "must_not": [
       "claim_a_model_consumed_audio_images_device_state_or_external_control_plane_data_it_did_not_receive",
       "invent_source_authenticity_credentials_provider_state_deployment_device_or_user_outcomes",
