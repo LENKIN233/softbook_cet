@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 
 import {parseStrictJson} from './lib/strict_json.mjs';
 import {validateModelAcceptance} from './lib/model_acceptance_contract.mjs';
+import {resolveCardMakeRuntimePayload} from './lib/card_make_runtime_payload.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_POLICY_PATH = path.join(
@@ -1177,43 +1178,12 @@ function normalizeSha(value) {
 }
 
 function resolveCandidateRuntimePayload(document, root, errors) {
-  if (document?.schema_version !== 'card-make-runtime-payload-manifest.v1') return document;
-  if (!Array.isArray(document.card_record_shards) || document.card_record_shards.length === 0) {
-    errors.push('authorized runtime payload manifest has no card shards.');
+  try {
+    return resolveCardMakeRuntimePayload(document, {rootDirectory: root}).payload;
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
     return null;
   }
-  const cardRecords = [];
-  const paths = new Set();
-  for (const descriptor of document.card_record_shards) {
-    if (paths.has(descriptor?.path)) {
-      errors.push('authorized runtime payload repeats a card shard.');
-      return null;
-    }
-    paths.add(descriptor?.path);
-    const file = loadCandidateFile(root, descriptor?.path, 1024 * 1024, 'runtime card shard', errors);
-    const shard = parseArtifactJson(file, 'runtime card shard', errors);
-    if (
-      !file ||
-      !shard ||
-      createHash('sha256').update(file.bytes).digest('hex') !== normalizeSha(descriptor?.sha256) ||
-      shard.schema_version !== 'card-make-runtime-card-shard.v1' ||
-      shard.track !== document.track ||
-      !Array.isArray(shard.card_records) ||
-      shard.card_records.length !== descriptor.card_count
-    ) {
-      errors.push('authorized runtime payload shard identity is invalid.');
-      return null;
-    }
-    cardRecords.push(...shard.card_records);
-  }
-  return {
-    source: document.source,
-    track: document.track,
-    card_records: cardRecords,
-    assets: document.assets ?? [],
-    release: document.release ?? null,
-    content_version: document.content_version,
-  };
 }
 
 function deriveCandidateContentVersion(payload) {

@@ -28,6 +28,7 @@ import {
   buildModelAcceptanceInputSha256,
   requireIndependentModelAcceptances,
 } from './lib/model_acceptance_contract.mjs';
+import {resolveCardMakeRuntimePayload} from './lib/card_make_runtime_payload.mjs';
 import {parseStrictJson} from './lib/strict_json.mjs';
 import {REQUIRED_DEPLOYMENT_NODE_VERSION} from '../infra/cloudbase/deployment-safety.mjs';
 
@@ -70,6 +71,24 @@ export function assembleFormalReleaseBundle(
     normalized.authorizationPath,
     'full-track model authorization',
   );
+  const authorizedRuntimePayloadPath = requireSafeRelativeJsonPath(
+    authorization.validation?.runtime_payload,
+    'authorization runtime payload path',
+  );
+  let runtimeResolution;
+  try {
+    runtimeResolution = resolveCardMakeRuntimePayload(rawContent, {
+      rootDirectory:
+        rawContent.schema_version === 'card-make-runtime-payload-manifest.v1'
+          ? deriveRuntimePayloadRoot(
+              normalized.contentPayloadPath,
+              authorizedRuntimePayloadPath,
+            )
+          : undefined,
+    });
+  } catch (error) {
+    fail(`Cannot resolve authorized runtime payload: ${error.message}`);
+  }
   const modelReviewBytes = readFileSync(normalized.modelReviewPath);
   const modelReview = parseJsonBytes(modelReviewBytes, 'full-track model review');
   const auditBytes = readFileSync(normalized.auditPath);
@@ -85,7 +104,7 @@ export function assembleFormalReleaseBundle(
     fail('Content payload corpus fingerprint does not match the quality audit.');
   }
   const content = {
-    ...rawContent,
+    ...runtimeResolution.payload,
     corpus_fingerprint: auditCorpusFingerprint,
   };
   validateInputs({
@@ -118,10 +137,6 @@ export function assembleFormalReleaseBundle(
       normalized.authorizationPath,
       join(staging, AUTHORIZATION_PATH),
     );
-    const authorizedRuntimePayloadPath = requireSafeRelativeJsonPath(
-      authorization.validation?.runtime_payload,
-      'authorization runtime payload path',
-    );
     if ([CONTENT_PATH, AUTHORIZATION_PATH, MODEL_REVIEW_PATH].includes(
       authorizedRuntimePayloadPath,
     )) {
@@ -140,6 +155,26 @@ export function assembleFormalReleaseBundle(
       authorizedRuntimePayloadHash
     ) {
       fail('Copied authorization runtime payload does not match its declared hash.');
+    }
+    for (const artifact of runtimeResolution.referencedArtifacts) {
+      if (
+        [
+          CONTENT_PATH,
+          AUTHORIZATION_PATH,
+          MODEL_REVIEW_PATH,
+          AUDIO_MANIFEST_PATH,
+          AUDIO_QC_INDEX_PATH,
+          authorizedRuntimePayloadPath,
+        ].includes(artifact.path)
+      ) {
+        fail(`Authorization runtime shard collides with reserved bundle artifact: ${artifact.path}`);
+      }
+      const target = resolveInside(staging, artifact.path, 'authorized runtime shard');
+      mkdirSync(dirname(target), {recursive: true});
+      writeFileSync(target, artifact.bytes);
+      if (sha256Bytes(readFileSync(target)) !== artifact.sha256) {
+        fail(`Copied authorization runtime shard does not match its declared hash: ${artifact.path}`);
+      }
     }
     const modelReviewHash = copyBoundJson(
       normalized.modelReviewPath,
@@ -260,6 +295,10 @@ export function assembleFormalReleaseBundle(
       release_id: bundle.release_id,
       parent_release_id: bundle.parent_release_id,
       content_version: content.content_version,
+      authorized_runtime_payload_schema:
+        rawContent.schema_version ?? 'direct-card-source-payload',
+      authorized_runtime_shard_count:
+        runtimeResolution.referencedArtifacts.length,
       card_count: cards.length,
       box_count: uniqueBoxes(cards).length,
       audio_asset_count: assets.length,
@@ -554,6 +593,17 @@ function requireSafeRelativeJsonPath(value, label) {
     fail(`${label} must be a safe relative JSON path.`);
   }
   return value;
+}
+
+function deriveRuntimePayloadRoot(contentPayloadPath, authorizedRuntimePayloadPath) {
+  const absolutePayload = resolve(contentPayloadPath);
+  const parts = authorizedRuntimePayloadPath.split('/');
+  let root = dirname(absolutePayload);
+  for (let index = 1; index < parts.length; index += 1) root = dirname(root);
+  if (resolve(root, authorizedRuntimePayloadPath) !== absolutePayload) {
+    fail('Manifest content payload path must match authorization.validation.runtime_payload.');
+  }
+  return root;
 }
 
 function resolveInside(root, candidate, label) {
