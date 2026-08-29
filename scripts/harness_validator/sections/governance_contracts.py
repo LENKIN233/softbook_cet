@@ -188,6 +188,20 @@ def validate(context) -> None:
     for stale in ("## Agent run record", "formal-product-owner-approval"):
         if stale in pr_template:
             errors.append(f"PR template contains stale gate: {stale}")
+    for token in (
+        '"schema_version": "single-task-dual-perturbation-review.v1"',
+        '"perturbation_id": "assumption_inversion"',
+        '"perturbation_id": "failure_projection"',
+    ):
+        if token not in pr_template:
+            errors.append(f"PR template missing single-task perturbation token: {token}")
+    for stale in (
+        "pr-model-review.v1",
+        "agent:codex-independent-reviewer",
+        "isolated-run-id",
+    ):
+        if stale in pr_template:
+            errors.append(f"PR template claims stale external review provenance: {stale}")
 
     workflow = (root / ".github/workflows/pr-gates.yml").read_text(encoding="utf-8")
     for token in (

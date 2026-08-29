@@ -275,6 +275,10 @@ test("deployment and iOS acceptance keep lifecycle ownership around remote write
   assert.ok(deploymentWrite > deploymentStart);
   assert.ok(deploymentCleanup > deploymentWrite);
   assert.match(ios, /prepare_smoke_lifecycle\n\necho "==> Verifying CloudBase REST contract/);
+  assert.match(
+    ios,
+    /export SOFTBOOK_CET_SMOKE_LIFECYCLE_MANIFEST="\$\{SMOKE_LIFECYCLE_MANIFEST\}"/,
+  );
   assert.match(maestro, /SOFTBOOK_CET_SMOKE_LIFECYCLE_OWNER=external/);
   assert.match(maestro, /SOFTBOOK_CET_MAESTRO_PHONE/);
   assert.doesNotMatch(maestro, /SOFTBOOK_CET_MANUAL_TEST_PHONE/);
