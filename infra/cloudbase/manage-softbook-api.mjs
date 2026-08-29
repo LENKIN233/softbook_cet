@@ -1084,6 +1084,7 @@ function buildValidatedArtifact(context) {
     join(REPOSITORY_ROOT, "spec", "box-catalog.json"),
     join(validationWorkspace, "spec", "box-catalog.json")
   );
+  copyValidationSupportFiles(validationWorkspace);
   runProcess(context, "npm", ["ci", "--ignore-scripts"], {
     cwd: validationDirectory,
     label: "clean-install",
@@ -1124,6 +1125,17 @@ function buildValidatedArtifact(context) {
     packageManifest,
     packageManifestPath,
   };
+}
+
+export function copyValidationSupportFiles(validationWorkspace) {
+  const source = join(REPOSITORY_ROOT, "scripts", "lib");
+  const target = join(validationWorkspace, "scripts", "lib");
+  mkdirSync(dirname(target), {recursive: true});
+  cpSync(source, target, {
+    filter: currentPath => basename(currentPath) !== ".DS_Store",
+    recursive: true,
+  });
+  return target;
 }
 
 export function shouldIncludeArtifactPath(
