@@ -1,5 +1,5 @@
 {
-  "version": "vnext-11",
+  "version": "vnext-12",
   "active_documents": [
     {
       "path": "AGENTS.md",
@@ -405,6 +405,31 @@
       "status": "active"
     },
     {
+      "path": "docs/design/decisions/check-in-account-deletion-states-v1.md",
+      "authority": "accepted_design_decision",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "statistics_check_in_ui_implementation",
+        "account_deletion_ui_implementation",
+        "supporting_surface_design_review"
+      ],
+      "depends_on": [
+        "spec/requirement-memory.json",
+        "spec/product-core.json",
+        "spec/account-sync-contract.json",
+        "spec/platform-contract.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/decisions/mobile-daylight-studio-v1.md",
+        "docs/design/decisions/pc-web-core-surface-decision-v1.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/mapping/learning-space-implementation-map-v1.md",
       "authority": "implementation_mapping",
       "audience": [
@@ -435,6 +460,25 @@
         "docs/design/mocks/pc-web-core-surfaces-v1.md",
         "spec/platform-contract.json",
         "spec/runtime-boundaries.json"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mapping/check-in-account-deletion-states-implementation-map-v1.md",
+      "authority": "implementation_mapping",
+      "audience": [
+        "agent",
+        "engineer"
+      ],
+      "load_when": [
+        "statistics_check_in_ui_implementation",
+        "account_deletion_ui_implementation"
+      ],
+      "depends_on": [
+        "docs/design/decisions/check-in-account-deletion-states-v1.md",
+        "docs/design/mocks/check-in-account-deletion-states-v1.md",
+        "spec/account-sync-contract.json",
+        "spec/platform-contract.json"
       ],
       "status": "active"
     },
@@ -509,6 +553,47 @@
         "docs/design/decisions/pc-web-core-surface-decision-v1.md",
         "docs/design/interaction-motion/learning-core-interactions-v1.md",
         "docs/design/physical-space/space-model-v1.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/check-in-account-deletion-states-v1.md",
+      "authority": "accepted_rendered_mock_artifact",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "statistics_check_in_ui_implementation",
+        "account_deletion_ui_implementation",
+        "core_surface_visual_artifact_task"
+      ],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/account-sync-contract.json",
+        "spec/platform-contract.json",
+        "spec/visual-language.json",
+        "docs/design/design-harness.md",
+        "docs/design/decisions/check-in-account-deletion-states-v1.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/check-in-account-deletion-states-v1.html",
+      "authority": "rendered_mock_html",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "statistics_check_in_ui_implementation",
+        "account_deletion_ui_implementation",
+        "core_surface_visual_artifact_task"
+      ],
+      "depends_on": [
+        "docs/design/mocks/check-in-account-deletion-states-v1.md"
       ],
       "status": "active"
     },

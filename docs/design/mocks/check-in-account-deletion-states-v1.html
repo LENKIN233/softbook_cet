@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>软书四六级 · 今日记录与账户删除</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f6f5ff;
+      --board: #e9e6f3;
+      --surface: rgba(255, 255, 255, .94);
+      --surface-soft: rgba(255, 255, 255, .72);
+      --surface-muted: #f0edf7;
+      --ink: #1c1630;
+      --ink-2: #443a59;
+      --muted: #665d78;
+      --line: rgba(57, 39, 77, .12);
+      --brand: #6047c6;
+      --brand-deep: #46309f;
+      --brand-soft: #e9e4ff;
+      --success: #167956;
+      --success-soft: #e6f5ef;
+      --warning: #8a6200;
+      --warning-soft: #fff4d7;
+      --danger: #a7394d;
+      --danger-soft: #fff0f2;
+      --shadow: 0 26px 70px rgba(50, 35, 89, .15), 0 3px 14px rgba(50, 35, 89, .08);
+      --shadow-soft: 0 12px 30px rgba(50, 35, 89, .10);
+      font-family: Inter, "Noto Sans SC", "PingFang SC", system-ui;
+      color: var(--ink);
+      background: var(--board);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 1340px; background: var(--board); }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+      z-index: 100;
+    }
+    button { font: inherit; }
+    button:focus-visible { outline: 3px solid rgba(96, 71, 198, .38); outline-offset: 3px; }
+    .board { width: 1280px; margin: 0 auto; padding: 76px 0 120px; }
+    .board-head { margin-bottom: 54px; }
+    .board-head .kicker, .section-head .kicker { color: var(--brand-deep); font-size: 12px; font-weight: 800; letter-spacing: .16em; }
+    .board-head h1 { margin: 12px 0; font-size: 54px; line-height: 1.08; letter-spacing: -.045em; }
+    .board-head p { max-width: 780px; margin: 0; color: var(--ink-2); line-height: 1.75; }
+    .section { margin-top: 86px; }
+    .section-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 24px; }
+    .section-head h2 { margin: 8px 0 0; font-size: 30px; letter-spacing: -.035em; }
+    .section-head p { margin: 0; color: var(--muted); font-size: 13px; }
+    .mobile-grid { display: grid; grid-template-columns: repeat(3, 393px); gap: 34px 48px; }
+    .frame-label { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 10px; font-size: 12px; color: var(--muted); }
+    .frame-label strong { color: var(--ink-2); }
+    .phone {
+      width: 393px;
+      height: 852px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 46px;
+      border: 1px solid rgba(255,255,255,.88);
+      background:
+        radial-gradient(circle at 92% -4%, rgba(96,71,198,.18), transparent 31%),
+        radial-gradient(circle at 2% 94%, rgba(145,124,204,.12), transparent 34%),
+        var(--page);
+      box-shadow: 0 32px 72px rgba(33, 24, 57, .20), inset 0 1px rgba(255,255,255,.94);
+      padding: 22px 16px 102px;
+      overflow-x: hidden;
+    }
+    .phone::after, .desktop::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+      z-index: 30;
+    }
+    .statusbar { display: flex; justify-content: space-between; align-items: center; min-height: 24px; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; padding: 0 7px; }
+    .mobile-title { margin: 22px 3px 16px; }
+    .eyebrow { color: var(--brand-deep); font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+    .mobile-title h2 { margin: 6px 0 7px; font-size: 31px; line-height: 1.1; letter-spacing: -.045em; }
+    .mobile-title p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .ledger, .account, .identity-gate {
+      background: var(--surface);
+      border: 1px solid rgba(96,71,198,.10);
+      border-radius: 28px;
+      box-shadow: var(--shadow), inset 0 1px rgba(255,255,255,.96);
+    }
+    .ledger { padding: 20px; }
+    .ledger-top { padding-bottom: 17px; border-bottom: 1px solid var(--line); }
+    .ledger-top span { color: var(--muted); font-size: 12px; }
+    .ledger-top strong { display: block; margin-top: 5px; font-size: 36px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+    .ledger-top p { margin: 7px 0 0; color: var(--muted); font-size: 12px; }
+    .ledger-row { display: flex; justify-content: space-between; align-items: center; min-height: 49px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .ledger-row b { font-size: 17px; font-variant-numeric: tabular-nums; }
+    .checkin-box { margin-top: 16px; padding: 15px; border-radius: 18px; background: var(--brand-soft); border: 1px solid rgba(96,71,198,.10); }
+    .checkin-box.success { background: var(--success-soft); border-color: rgba(22,121,86,.16); }
+    .checkin-box.warning { background: var(--warning-soft); border-color: rgba(138,98,0,.16); }
+    .checkin-box.error { background: var(--danger-soft); border-color: rgba(167,57,77,.16); }
+    .checkin-head { display: flex; align-items: flex-start; gap: 11px; }
+    .state-mark { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 12px; display: grid; place-items: center; background: white; color: var(--brand); font-weight: 900; }
+    .success .state-mark { color: var(--success); }
+    .warning .state-mark { color: var(--warning); }
+    .error .state-mark { color: var(--danger); }
+    .checkin-copy { min-width: 0; }
+    .checkin-copy strong { display: block; font-size: 14px; }
+    .checkin-copy span { display: block; margin-top: 4px; color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+    .action { width: 100%; min-height: 48px; margin-top: 13px; border: 0; border-radius: 15px; background: var(--brand); color: #fffaf6; font-weight: 750; }
+    .action[disabled] { background: rgba(96,71,198,.12); color: var(--brand-deep); opacity: 1; }
+    .action.success { background: rgba(22,121,86,.10); color: var(--success); }
+    .action.danger { background: var(--danger); color: #fffaf6; }
+    .action.secondary { background: white; color: var(--ink-2); border: 1px solid var(--line); }
+    .spinner { width: 16px; height: 16px; display: inline-block; vertical-align: -3px; margin-right: 7px; border: 2px solid rgba(70,48,159,.20); border-top-color: var(--brand-deep); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: var(--brand-deep); } }
+    @media (max-width: 700px) {
+      body { min-width: 0; overflow-x: hidden; }
+      .board { max-width: 100%; width: 100%; padding: 42px 12px 80px; }
+      .board-head, .section, .section-head { max-width: 100%; min-width: 0; }
+      .board-head h1 { font-size: 30px; }
+      .board-head h1, .board-head p { max-width: 100%; overflow-wrap: anywhere; word-break: break-all; }
+      .section { margin-top: 62px; }
+      .section-head { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .mobile-grid, .desktop-grid { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+      .mobile-grid article, .desktop-grid article { min-width: 0; width: 100%; }
+      .phone { max-width: 393px; width: 100%; }
+      .desktop-slot { max-width: 640px; width: 100%; }
+    }
+    .mobile-nav { position: absolute; left: 24px; right: 24px; bottom: 20px; height: 64px; z-index: 12; border-radius: 25px; border: 1px solid rgba(255,255,255,.92); background: rgba(255,255,255,.88); box-shadow: var(--shadow-soft), inset 0 1px rgba(255,255,255,.96); backdrop-filter: blur(30px); display: grid; grid-template-columns: repeat(4,1fr); padding: 7px; }
+    .mobile-nav span { display: grid; place-items: center; border-radius: 18px; color: var(--muted); font-size: 11px; }
+    .mobile-nav .active { color: var(--brand-deep); background: var(--brand-soft); font-weight: 800; }
+    .account { padding: 19px; }
+    .identity { display: flex; align-items: center; gap: 12px; padding-bottom: 17px; }
+    .avatar { width: 46px; height: 46px; border-radius: 17px; display: grid; place-items: center; background: var(--brand); color: #fffaf6; font-weight: 850; }
+    .identity h3 { margin: 0 0 4px; font-size: 17px; }
+    .identity p { margin: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .account-row { display: flex; justify-content: space-between; align-items: center; min-height: 51px; border-top: 1px solid var(--line); font-size: 13px; }
+    .account-row span { color: var(--muted); }
+    .account-row.danger { color: var(--danger); font-weight: 750; }
+    .dimmed > :not(.sheet):not(.statusbar) { filter: saturate(.55); opacity: .34; }
+    .shade { position: absolute; inset: 0; z-index: 16; background: rgba(28,22,48,.28); backdrop-filter: blur(3px); }
+    .sheet { position: absolute; z-index: 18; left: 12px; right: 12px; bottom: 12px; padding: 22px; border-radius: 30px; background: rgba(255,255,255,.98); border: 1px solid rgba(255,255,255,.92); box-shadow: 0 -18px 70px rgba(28,22,48,.22), inset 0 1px rgba(255,255,255,.96); }
+    .sheet-handle { width: 42px; height: 4px; margin: -8px auto 18px; border-radius: 999px; background: rgba(28,22,48,.14); }
+    .sheet .sheet-kicker { color: var(--danger); font-size: 11px; font-weight: 850; letter-spacing: .08em; }
+    .sheet h3 { margin: 9px 0 9px; font-size: 24px; line-height: 1.18; letter-spacing: -.035em; }
+    .sheet p { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.58; }
+    .consequence { margin: 16px 0; padding: 14px 15px; border-radius: 17px; background: var(--danger-soft); color: var(--ink-2); font-size: 12px; line-height: 1.65; }
+    .consequence div + div { margin-top: 6px; }
+    .sheet-actions { display: grid; gap: 8px; }
+    .sheet-state { display: flex; gap: 12px; margin: 16px 0; padding: 15px; border-radius: 17px; background: var(--brand-soft); }
+    .sheet-state.error { background: var(--danger-soft); }
+    .sheet-state strong { display: block; font-size: 13px; }
+    .sheet-state span { display: block; margin-top: 4px; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+    .signedout { padding: 22px 18px; display: grid; place-items: center; }
+    .signedout .statusbar { position: absolute; left: 22px; right: 22px; top: 22px; }
+    .identity-gate { width: 100%; padding: 28px 24px; text-align: left; }
+    .result-mark { width: 54px; height: 54px; border-radius: 19px; display: grid; place-items: center; background: var(--success-soft); color: var(--success); font-size: 24px; font-weight: 900; }
+    .identity-gate h2 { margin: 18px 0 10px; font-size: 29px; line-height: 1.15; letter-spacing: -.04em; }
+    .identity-gate p { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.7; }
+    .boundary-note { margin-top: 16px; padding: 14px; border-radius: 16px; background: var(--surface-muted); color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+    .desktop-grid { display: grid; grid-template-columns: repeat(2, 640px); gap: 34px 28px; }
+    .desktop-slot { width: 640px; height: 400px; overflow: hidden; border-radius: 18px; box-shadow: 0 20px 50px rgba(33,24,57,.16); background: var(--page); }
+    .desktop { width: 1440px; height: 900px; position: relative; transform: scale(.444444); transform-origin: 0 0; overflow: hidden; display: grid; grid-template-columns: 140px minmax(0,1fr) 290px; background: radial-gradient(circle at 20% 0%, rgba(96,71,198,.14), transparent 34%), var(--page); }
+    .route-rail { padding: 30px 18px; border-right: 1px solid var(--line); background: rgba(255,255,255,.54); backdrop-filter: blur(48px); display: flex; flex-direction: column; gap: 10px; }
+    .logo { width: 48px; height: 48px; border-radius: 17px; margin: 0 auto 28px; display: grid; place-items: center; background: var(--ink); color: #fffaf6; font-size: 18px; font-weight: 900; }
+    .route { min-height: 50px; padding: 0 13px; border-radius: 16px; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+    .route b { width: 22px; text-align: center; font-variant-numeric: tabular-nums; }
+    .route.active { color: var(--brand-deep); background: var(--brand-soft); box-shadow: inset 3px 0 var(--brand); font-weight: 750; }
+    .rail-spacer { flex: 1; }
+    .desktop-main { padding: 32px 46px 38px; min-width: 0; display: flex; flex-direction: column; }
+    .topbar { min-height: 54px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .topbar strong { color: var(--ink); }
+    .desktop-stage { flex: 1; min-height: 0; display: grid; place-items: center; position: relative; }
+    .desktop-context { padding: 34px 26px; border-left: 1px solid var(--line); background: rgba(255,255,255,.48); backdrop-filter: blur(48px); }
+    .desktop-context h3 { margin: 0 0 8px; font-size: 19px; letter-spacing: -.025em; }
+    .desktop-context p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .context-block { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .context-block strong { display: block; font-size: 13px; }
+    .context-block span { display: block; margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .desktop-ledger { width: 760px; padding: 38px 40px; border-radius: 32px; background: var(--surface-soft); border: 1px solid rgba(255,255,255,.88); box-shadow: var(--shadow), inset 0 1px rgba(255,255,255,.96); }
+    .desktop-ledger .ledger-top { display: flex; align-items: end; justify-content: space-between; }
+    .desktop-ledger .ledger-top strong { font-size: 54px; }
+    .desktop-ledger .ledger-row { min-height: 60px; font-size: 14px; }
+    .desktop-ledger .checkin-box { display: grid; grid-template-columns: 1fr 220px; align-items: center; gap: 22px; padding: 17px 18px; }
+    .desktop-ledger .action { margin: 0; }
+    .desktop-account { width: 760px; padding: 34px 38px; border-radius: 32px; background: var(--surface-soft); border: 1px solid rgba(255,255,255,.88); box-shadow: var(--shadow); }
+    .desktop-account .identity { padding-bottom: 24px; }
+    .desktop-account .avatar { width: 58px; height: 58px; border-radius: 20px; }
+    .desktop-account .identity h3 { font-size: 24px; }
+    .desktop-account .account-row { min-height: 62px; font-size: 14px; }
+    .desktop-panel { width: 690px; padding: 38px 42px; border-radius: 32px; background: rgba(255,255,255,.97); border: 1px solid rgba(255,255,255,.92); box-shadow: 0 34px 100px rgba(28,22,48,.24); }
+    .desktop-panel .sheet-kicker { color: var(--danger); font-size: 11px; font-weight: 850; letter-spacing: .08em; }
+    .account-anchor { display: flex; align-items: center; gap: 11px; margin: 16px 0 4px; padding: 12px 14px; border-radius: 17px; background: var(--surface-muted); }
+    .account-anchor .avatar { width: 38px; height: 38px; border-radius: 13px; }
+    .account-anchor strong { display: block; font-size: 13px; }
+    .account-anchor span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .desktop-panel h2 { margin: 12px 0 12px; font-size: 35px; letter-spacing: -.04em; }
+    .desktop-panel > p { margin: 0; color: var(--ink-2); line-height: 1.7; }
+    .desktop-panel .sheet-actions { grid-template-columns: 1fr 1fr; margin-top: 18px; }
+    .desktop-panel .action { margin: 0; }
+    .desktop.accepted { display: block; background: radial-gradient(circle at 14% 0%, rgba(96,71,198,.16), transparent 34%), var(--page); }
+    .desktop-signedout { width: 100%; height: 100%; display: grid; grid-template-columns: 1fr 660px 1fr; align-items: center; }
+    .desktop-signedout .identity-gate { grid-column: 2; padding: 50px; }
+    .desktop-signedout .identity-gate h2 { font-size: 42px; }
+    .desktop-signedout .action { width: 240px; }
+  </style>
+</head>
+<body>
+  <main class="board">
+    <header class="board-head">
+      <div class="kicker">软书四六级 · 支持界面</div>
+      <h1>今日记录与账户删除</h1>
+      <p>今日记录保持安静、明确、可重试；账户删除保持克制、不可误解。手机与电脑都沿用同一事实边界，但使用各自已经接受的界面骨架。</p>
+    </header>
+
+    <section class="section" id="phone-statistics">
+      <header class="section-head"><div><div class="kicker">手机 · 统计</div><h2>签到的六种明确状态</h2></div><p>393 × 852 · tabular numerals</p></header>
+      <div class="mobile-grid">
+        <article><div class="frame-label"><strong>完成学习前</strong><span>01</span></div><div class="phone"><div class="statusbar"><span>9:41</span><span>●●●</span></div><div class="mobile-title"><div class="eyebrow">今日记录</div><h2>进度被轻轻记住</h2><p>这里记录连续性，不替你安排学习。</p></div><section class="ledger"><div class="ledger-top"><span>今天完成</span><strong>00</strong><p>先完成一张，再记录今天</p></div><div class="ledger-row"><span>今日首次完成</span><b>0</b></div><div class="ledger-row"><span>今日回看</span><b>0</b></div><div class="checkin-box"><div class="checkin-head"><span class="state-mark">○</span><div class="checkin-copy"><strong>完成一张后可记录</strong><span>签到不会代替学习，也不会自动发生。</span></div></div><button class="action" disabled>暂不可记录</button></div></section><nav class="mobile-nav" aria-label="主要导航"><span>学习</span><span>空间</span><span class="active">统计</span><span>我的</span></nav></div></article>
+        <article><div class="frame-label"><strong>可以记录</strong><span>02</span></div><div class="phone"><div class="statusbar"><span>9:42</span><span>●●●</span></div><div class="mobile-title"><div class="eyebrow">今日记录</div><h2>学习在推进</h2><p>今天已经有了真实进展。</p></div><section class="ledger"><div class="ledger-top"><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box"><div class="checkin-head"><span class="state-mark">＋</span><div class="checkin-copy"><strong>收好今天</strong><span>由你主动记录一次，今天不会重复增加。</span></div></div><button class="action">记录今天</button></div></section><nav class="mobile-nav" aria-label="主要导航"><span>学习</span><span>空间</span><span class="active">统计</span><span>我的</span></nav></div></article>
+        <article><div class="frame-label"><strong>正在确认</strong><span>03</span></div><div class="phone"><div class="statusbar"><span>9:42</span><span>●●●</span></div><div class="mobile-title"><div class="eyebrow">今日记录</div><h2>学习在推进</h2><p>账页留在原处，不打断下一步。</p></div><section class="ledger"><div class="ledger-top"><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box"><div class="checkin-head"><span class="state-mark"><span class="spinner" aria-hidden="true"></span></span><div class="checkin-copy" role="status"><strong>正在确认今天</strong><span>请稍候，这次记录不会重复提交。</span></div></div><button class="action" disabled>正在记录</button></div></section><nav class="mobile-nav" aria-label="主要导航"><span>学习</span><span>空间</span><span class="active">统计</span><span>我的</span></nav></div></article>
+        <article><div class="frame-label"><strong>等待联网确认</strong><span>04</span></div><div class="phone"><div class="statusbar"><span>9:43</span><span>●◌◌</span></div><div class="mobile-title"><div class="eyebrow">今日记录</div><h2>学习在推进</h2><p>今天的动作已经留在这台设备上。</p></div><section class="ledger"><div class="ledger-top"><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box warning"><div class="checkin-head"><span class="state-mark">↻</span><div class="checkin-copy" role="status"><strong>已保存，联网后确认</strong><span>现在还不是账号已确认的记录。</span></div></div><button class="action" disabled>等待确认</button></div></section><nav class="mobile-nav" aria-label="主要导航"><span>学习</span><span>空间</span><span class="active">统计</span><span>我的</span></nav></div></article>
+        <article><div class="frame-label"><strong>今日已确认</strong><span>05</span></div><div class="phone"><div class="statusbar"><span>9:43</span><span>●●●</span></div><div class="mobile-title"><div class="eyebrow">今日记录</div><h2>今天已收好</h2><p>继续学习后，进度仍会安静补充。</p></div><section class="ledger"><div class="ledger-top"><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box success"><div class="checkin-head"><span class="state-mark">✓</span><div class="checkin-copy" role="status"><strong>今天已记录</strong><span>这条记录已跟随学习账户保存。</span></div></div><button class="action success" disabled>今日已记录</button></div></section><nav class="mobile-nav" aria-label="主要导航"><span>学习</span><span>空间</span><span class="active">统计</span><span>我的</span></nav></div></article>
+        <article><div class="frame-label"><strong>结果尚未确认</strong><span>06</span></div><div class="phone"><div class="statusbar"><span>9:44</span><span>●●●</span></div><div class="mobile-title"><div class="eyebrow">今日记录</div><h2>学习在推进</h2><p>当前账页和学习进度都保持不变。</p></div><section class="ledger"><div class="ledger-top"><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box error"><div class="checkin-head"><span class="state-mark">!</span><div class="checkin-copy" role="alert"><strong>还没有确认成功</strong><span>重试会继续确认今天，不会增加第二次记录。</span></div></div><button class="action">重新确认</button></div></section><nav class="mobile-nav" aria-label="主要导航"><span>学习</span><span>空间</span><span class="active">统计</span><span>我的</span></nav></div></article>
+      </div>
+    </section>
+
+    <section class="section" id="phone-deletion">
+      <header class="section-head"><div><div class="kicker">手机 · 我的</div><h2>账户删除的四种明确状态</h2></div><p>393 × 852 · account-attached sheet</p></header>
+      <div class="mobile-grid">
+        <article><div class="frame-label"><strong>确认删除</strong><span>01</span></div><div class="phone dimmed"><div class="statusbar"><span>9:45</span><span>●●●</span></div><div class="mobile-title"><div class="eyebrow">我的</div><h2>账户与学习权益</h2><p>登录、会员与隐私集中在这里。</p></div><section class="account"><div class="identity"><div class="avatar">林</div><div><h3>学习账户</h3><p>138 **** 2618 · 已验证</p></div></div><div class="account-row"><strong>会员状态</strong><span>体验中</span></div><div class="account-row"><strong>隐私与账户</strong><span>查看</span></div><div class="account-row danger"><strong>删除账户</strong><span>›</span></div></section><nav class="mobile-nav"><span>学习</span><span>空间</span><span>统计</span><span class="active">我的</span></nav><div class="shade"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-delete-confirm"><div class="sheet-handle"></div><div class="sheet-kicker">删除学习账户</div><h3 id="mobile-delete-confirm">确认永久删除这个账户？</h3><p>删除申请提交后会退出当前账号，学习进度、空间位置、签到与会员归属都会进入清理。</p><div class="consequence"><div>• 无法撤销这次申请</div><div>• 清理完成前不能再次登录</div><div>• 完成后可以重新注册一个空账户</div></div><div class="sheet-actions"><button class="action secondary">保留账户</button><button class="action danger">确认删除账户</button></div></section></div></article>
+        <article><div class="frame-label"><strong>正在提交</strong><span>02</span></div><div class="phone dimmed"><div class="statusbar"><span>9:45</span><span>●●●</span></div><div class="mobile-title"><div class="eyebrow">我的</div><h2>账户与学习权益</h2><p>当前账户保持在原处，直到结果明确。</p></div><section class="account"><div class="identity"><div class="avatar">林</div><div><h3>学习账户</h3><p>138 **** 2618 · 已验证</p></div></div><div class="account-row"><strong>会员状态</strong><span>体验中</span></div><div class="account-row"><strong>隐私与账户</strong><span>查看</span></div><div class="account-row danger"><strong>删除账户</strong><span>›</span></div></section><nav class="mobile-nav"><span>学习</span><span>空间</span><span>统计</span><span class="active">我的</span></nav><div class="shade"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-delete-sending"><div class="sheet-handle"></div><div class="sheet-kicker">删除学习账户</div><h3 id="mobile-delete-sending">正在提交删除申请</h3><p>请保持当前画面，等待这次申请得到确认。</p><div class="sheet-state"><span class="state-mark"><span class="spinner" aria-hidden="true"></span></span><div role="status"><strong>正在确认</strong><span>不会重复提交，也不会提前显示删除完成。</span></div></div><button class="action" disabled>正在提交</button></section></div></article>
+        <article><div class="frame-label"><strong>申请已被接收</strong><span>03</span></div><div class="phone signedout"><div class="statusbar"><span>9:46</span><span>●●●</span></div><section class="identity-gate"><div class="result-mark">✓</div><h2>删除申请已提交</h2><p>当前账户已退出，学习记录和账户数据会继续清理。清理完成前，这个手机号暂时不能再次登录。</p><div class="boundary-note">这表示申请已经被接收，不表示所有数据已经在这一刻清理完成。</div><button class="action">返回手机号验证</button></section></div></article>
+        <article><div class="frame-label"><strong>结果尚未确认</strong><span>04</span></div><div class="phone dimmed"><div class="statusbar"><span>9:46</span><span>●●●</span></div><div class="mobile-title"><div class="eyebrow">我的</div><h2>账户与学习权益</h2><p>账户画面保留，直到申请结果明确。</p></div><section class="account"><div class="identity"><div class="avatar">林</div><div><h3>学习账户</h3><p>138 **** 2618 · 已验证</p></div></div><div class="account-row"><strong>会员状态</strong><span>体验中</span></div><div class="account-row"><strong>隐私与账户</strong><span>查看</span></div><div class="account-row danger"><strong>删除账户</strong><span>›</span></div></section><nav class="mobile-nav"><span>学习</span><span>空间</span><span>统计</span><span class="active">我的</span></nav><div class="shade"></div><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-delete-unknown"><div class="sheet-handle"></div><div class="sheet-kicker">删除学习账户</div><h3 id="mobile-delete-unknown">还没有收到确认</h3><p>现在无法判断申请是否已经被接收。重试会继续确认同一次删除，不会新建另一份申请。</p><div class="sheet-state error"><span class="state-mark">!</span><div role="alert"><strong>结果尚未确认</strong><span>账户数据是否开始清理，当前都不作结论。</span></div></div><div class="sheet-actions"><button class="action secondary">返回我的</button><button class="action danger">重新确认</button></div></section></div></article>
+      </div>
+    </section>
+
+    <section class="section" id="desktop-statistics">
+      <header class="section-head"><div><div class="kicker">电脑网页 · 统计</div><h2>账页始终是唯一焦点</h2></div><p>logical 1440 × 900 · shown at 44.4%</p></header>
+      <div class="desktop-grid">
+        <article><div class="frame-label"><strong>完成学习前</strong><span>01</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route active"><b>03</b>统计</div><div class="route"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>今日记录</strong><span>中国标准时间</span></div><div class="desktop-stage"><section class="desktop-ledger"><div class="ledger-top"><div><span>今天完成</span><strong>00</strong><p>先完成一张，再记录今天</p></div></div><div class="ledger-row"><span>今日首次完成</span><b>0</b></div><div class="ledger-row"><span>今日回看</span><b>0</b></div><div class="checkin-box"><div class="checkin-head"><span class="state-mark">○</span><div class="checkin-copy"><strong>完成一张后可记录</strong><span>签到不会自动发生。</span></div></div><button class="action" disabled>暂不可记录</button></div></section></div></main><aside class="desktop-context"><h3>回到学习</h3><p>统计只记录已经发生的学习。</p><div class="context-block"><strong>下一步</strong><span>由学习继续给出当前知识卡。</span></div></aside></div></div></article>
+        <article><div class="frame-label"><strong>可以记录</strong><span>02</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route active"><b>03</b>统计</div><div class="route"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>今日记录</strong><span>中国标准时间</span></div><div class="desktop-stage"><section class="desktop-ledger"><div class="ledger-top"><div><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box"><div class="checkin-head"><span class="state-mark">＋</span><div class="checkin-copy"><strong>收好今天</strong><span>由你主动记录一次。</span></div></div><button class="action">记录今天</button></div></section></div></main><aside class="desktop-context"><h3>继续学习</h3><p>记录不会成为新的任务中心。</p><div class="context-block"><strong>当前连续性</strong><span>今天已经完成一轮，下一步仍由学习给出。</span></div></aside></div></div></article>
+        <article><div class="frame-label"><strong>正在确认</strong><span>03</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route active"><b>03</b>统计</div><div class="route"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>今日记录</strong><span>中国标准时间</span></div><div class="desktop-stage"><section class="desktop-ledger"><div class="ledger-top"><div><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box"><div class="checkin-head"><span class="state-mark"><span class="spinner"></span></span><div class="checkin-copy" role="status"><strong>正在确认今天</strong><span>账页保持可读，不重复提交。</span></div></div><button class="action" disabled>正在记录</button></div></section></div></main><aside class="desktop-context"><h3>当前动作</h3><p>只确认这一次今日记录。</p></aside></div></div></article>
+        <article><div class="frame-label"><strong>等待联网确认</strong><span>04</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route active"><b>03</b>统计</div><div class="route"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>今日记录</strong><span>等待连接</span></div><div class="desktop-stage"><section class="desktop-ledger"><div class="ledger-top"><div><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box warning"><div class="checkin-head"><span class="state-mark">↻</span><div class="checkin-copy" role="status"><strong>已保存，联网后确认</strong><span>现在还不是账号已确认的记录。</span></div></div><button class="action" disabled>等待确认</button></div></section></div></main><aside class="desktop-context"><h3>可以离开此页</h3><p>连接恢复后会继续确认今天。</p></aside></div></div></article>
+        <article><div class="frame-label"><strong>今日已确认</strong><span>05</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route active"><b>03</b>统计</div><div class="route"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>今日记录</strong><span>中国标准时间</span></div><div class="desktop-stage"><section class="desktop-ledger"><div class="ledger-top"><div><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box success"><div class="checkin-head"><span class="state-mark">✓</span><div class="checkin-copy" role="status"><strong>今天已记录</strong><span>这条记录已跟随学习账户保存。</span></div></div><button class="action success" disabled>今日已记录</button></div></section></div></main><aside class="desktop-context"><h3>继续学习</h3><p>今天的进度仍会继续补充。</p></aside></div></div></article>
+        <article><div class="frame-label"><strong>结果尚未确认</strong><span>06</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route active"><b>03</b>统计</div><div class="route"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>今日记录</strong><span>中国标准时间</span></div><div class="desktop-stage"><section class="desktop-ledger"><div class="ledger-top"><div><span>今天完成</span><strong>07</strong><p>张知识卡 · 还有 3 张待回看</p></div></div><div class="ledger-row"><span>今日首次完成</span><b>5</b></div><div class="ledger-row"><span>今日回看</span><b>2</b></div><div class="checkin-box error"><div class="checkin-head"><span class="state-mark">!</span><div class="checkin-copy" role="alert"><strong>还没有确认成功</strong><span>重试会继续确认今天。</span></div></div><button class="action">重新确认</button></div></section></div></main><aside class="desktop-context"><h3>重试不会重复记录</h3><p>账页和学习进度保持不变。</p></aside></div></div></article>
+      </div>
+    </section>
+
+    <section class="section" id="desktop-deletion">
+      <header class="section-head"><div><div class="kicker">电脑网页 · 我的</div><h2>删除动作始终附着于账户对象</h2></div><p>logical 1440 × 900 · shown at 44.4%</p></header>
+      <div class="desktop-grid">
+        <article><div class="frame-label"><strong>确认删除</strong><span>01</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route"><b>03</b>统计</div><div class="route active"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>账户与会员</strong></div><div class="desktop-stage"><section class="desktop-panel" role="dialog" aria-modal="true" aria-labelledby="desktop-delete-confirm"><div class="sheet-kicker">删除学习账户</div><div class="account-anchor"><div class="avatar">林</div><div><strong>学习账户</strong><span>138 **** 2618 · 已验证</span></div></div><h2 id="desktop-delete-confirm">确认永久删除这个账户？</h2><p>删除申请提交后会退出当前账号，学习进度、空间位置、签到与会员归属都会进入清理。</p><div class="consequence"><div>• 无法撤销这次申请</div><div>• 清理完成前不能再次登录</div><div>• 完成后可以重新注册一个空账户</div></div><div class="sheet-actions"><button class="action secondary">保留账户</button><button class="action danger">确认删除账户</button></div></section></div></main><aside class="desktop-context"><h3>账户操作</h3><p>删除只影响当前学习账户，不会变成学习流程的一部分。</p></aside></div></div></article>
+        <article><div class="frame-label"><strong>正在提交</strong><span>02</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route"><b>03</b>统计</div><div class="route active"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>账户与会员</strong></div><div class="desktop-stage"><section class="desktop-panel" role="dialog" aria-modal="true" aria-labelledby="desktop-delete-sending"><div class="sheet-kicker">删除学习账户</div><div class="account-anchor"><div class="avatar">林</div><div><strong>学习账户</strong><span>138 **** 2618 · 已验证</span></div></div><h2 id="desktop-delete-sending">正在提交删除申请</h2><p>请保持当前画面，等待这次申请得到确认。</p><div class="sheet-state"><span class="state-mark"><span class="spinner"></span></span><div role="status"><strong>正在确认</strong><span>不会重复提交，也不会提前显示删除完成。</span></div></div><button class="action" disabled>正在提交</button></section></div></main><aside class="desktop-context"><h3>当前动作</h3><p>只有申请结果得到确认后，登录界面才会替换当前账户。</p></aside></div></div></article>
+        <article><div class="frame-label"><strong>申请已被接收</strong><span>03</span></div><div class="desktop-slot"><div class="desktop accepted"><main class="desktop-signedout"><section class="identity-gate"><div class="result-mark">✓</div><h2>删除申请已提交</h2><p>当前账户已退出，学习记录和账户数据会继续清理。清理完成前，这个手机号暂时不能再次登录。</p><div class="boundary-note">这表示申请已经被接收，不表示所有数据已经在这一刻清理完成。</div><button class="action">返回手机号验证</button></section></main></div></div></article>
+        <article><div class="frame-label"><strong>结果尚未确认</strong><span>04</span></div><div class="desktop-slot"><div class="desktop"><nav class="route-rail"><div class="logo">软</div><div class="route"><b>01</b>学习</div><div class="route"><b>02</b>空间</div><div class="route"><b>03</b>统计</div><div class="route active"><b>04</b>我的</div><div class="rail-spacer"></div></nav><main class="desktop-main"><div class="topbar"><strong>账户与会员</strong></div><div class="desktop-stage"><section class="desktop-panel" role="dialog" aria-modal="true" aria-labelledby="desktop-delete-unknown"><div class="sheet-kicker">删除学习账户</div><div class="account-anchor"><div class="avatar">林</div><div><strong>学习账户</strong><span>138 **** 2618 · 已验证</span></div></div><h2 id="desktop-delete-unknown">还没有收到确认</h2><p>现在无法判断申请是否已经被接收。重试会继续确认同一次删除，不会新建另一份申请。</p><div class="sheet-state error"><span class="state-mark">!</span><div role="alert"><strong>结果尚未确认</strong><span>账户数据是否开始清理，当前都不作结论。</span></div></div><div class="sheet-actions"><button class="action secondary">返回我的</button><button class="action danger">重新确认</button></div></section></div></main><aside class="desktop-context"><h3>安全恢复</h3><p>保留账户对象，直到申请结果明确。</p></aside></div></div></article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

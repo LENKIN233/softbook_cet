@@ -34,6 +34,8 @@ For core Learning or Space implementation work, prose direction alone is not eno
 - `space-state-baseline-v1.html`: rendered `393 x 852` phone proof for Space non-ideal states.
 - `pc-web-core-surfaces-v1.md`: accepted PC Web core-surface specification promoted from the 2026-08-01 eight-candidate search run.
 - `pc-web-core-surfaces-v1.html`: rendered `1440 x 900` PC Web proof for authentication, Learning interaction families, review/audio, Space, Statistics, Mine, and membership gating.
+- `check-in-account-deletion-states-v1.md`: accepted state truth, platform adaptation, and review record for Statistics check-in and Mine account deletion.
+- `check-in-account-deletion-states-v1.html`: rendered logical `393 x 852` phone and `1440 x 900` PC Web frames for explicit check-in and account-deletion confirmation, progress, accepted, and recoverable states.
 
 ## Required Contents
 
