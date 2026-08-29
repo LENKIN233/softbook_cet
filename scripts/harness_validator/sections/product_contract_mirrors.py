@@ -293,13 +293,13 @@ def validate(context) -> None:
         "formal_content_evidence", ""
     )
     for token in (
-        "unregistered_and_fail_closed",
+        "registered_and_fail_closed",
         "trusted_media_run_receipt_v2",
         "original_model_execution_commit",
         "later_attested_finalizer_commit",
         "exact_1180_108_301_scope",
         "GitHub_Sigstore",
-        "no_real_attested_receipt",
+        "all_27_QC_records",
     ):
         if token not in formal_media_boundary:
             errors.append(f"formal media boundary missing: {token}")
@@ -320,7 +320,7 @@ def validate(context) -> None:
     )
     check_equal(
         "trusted media receipt real observation boundary",
-        False,
+        True,
         media_receipt.get("current_boundary", {}).get(
             "real_attested_receipt_observed"
         ),

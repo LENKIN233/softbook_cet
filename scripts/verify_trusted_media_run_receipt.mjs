@@ -1699,6 +1699,7 @@ export function verifyTrustedMediaRunReceipt({
   candidateRoot = null,
   authorizationPath = null,
   verifyAttestation = false,
+  requireArtifactEvidence = true,
   execFile = execFileSync,
   probeMediaDuration = probeMediaDurationMs,
 } = {}) {
@@ -1750,7 +1751,12 @@ export function verifyTrustedMediaRunReceipt({
       probeMediaDuration,
       errors,
     );
-  } else if (verifyAttestation && receipt && !artifactDirectory) {
+  } else if (
+    verifyAttestation &&
+    requireArtifactEvidence &&
+    receipt &&
+    !artifactDirectory
+  ) {
     errors.push('formal media verification requires --artifact-dir.');
   }
   let attestationVerified = false;
@@ -1813,6 +1819,7 @@ export function verifyTrustedMediaRunReceipt({
   }
   return {
     ok: errors.length === 0,
+    identity_ready: errors.length === 0 && attestationVerified,
     formal_ready: errors.length === 0 && attestationVerified && artifactsVerified,
     attestation_verified: attestationVerified,
     artifacts_verified: artifactsVerified,

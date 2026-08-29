@@ -728,6 +728,31 @@ test('verified exact workflow and receipt digest make the receipt formally ready
   assert.ok(observedArgs.includes('https://token.actions.githubusercontent.com'));
 });
 
+test('verified receipt identity can be reused by a separate type-specific evidence validator', t => {
+  const {bundlePath, receiptPath} = fixture(t);
+  const receiptSha256 = hash(fs.readFileSync(receiptPath));
+  const result = verifyTrustedMediaRunReceipt({
+    bundlePath,
+    execFile: () => JSON.stringify([
+      {
+        verificationResult: {
+          statement: {subject: [{digest: {sha256: receiptSha256}}]},
+          verifiedTimestamps: [{timestamp: '2026-08-29T18:11:00.000Z'}],
+        },
+      },
+    ]),
+    receiptPath,
+    requireArtifactEvidence: false,
+    verifyAttestation: true,
+  });
+
+  assert.equal(result.ok, true, result.errors.join('\n'));
+  assert.equal(result.identity_ready, true);
+  assert.equal(result.attestation_verified, true);
+  assert.equal(result.artifacts_verified, false);
+  assert.equal(result.formal_ready, false);
+});
+
 test('attestation for different receipt bytes fails closed', t => {
   const {artifactDirectory, authorizationPath, bundlePath, candidateRoot, receiptPath} = fixture(t);
   const result = verifyTrustedMediaRunReceipt({

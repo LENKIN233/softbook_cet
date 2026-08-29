@@ -88,9 +88,15 @@
     "raw_output_replayer": "scripts/replay_trusted_media_raw_outputs.py",
     "representative_eval": "scripts/test_verify_trusted_media_run_receipt.mjs",
     "producer_workflow_implemented": true,
-    "real_attested_receipt_observed": false,
-    "formal_cet4_media_types_registered": false,
-    "closed_beta_gate_effect": "none_until_real_attestation_and_type_registration"
+    "real_attested_receipt_observed": true,
+    "observed_receipt_id": "cet4-audio-33261431967-1",
+    "observed_receipt_sha256": "9a7833df857fa6b351a4fa96261ff58d4dd28aca7b7be9138243756d4094825a",
+    "observed_execution_commit_sha": "0a47d1f44ddb6e55b0c78e4c7b7260564575319c",
+    "observed_finalization_commit_sha": "a63d3c9b39371787b2e9f9f28842e172ec3ff357",
+    "observed_workflow_run_id": "33261431967",
+    "observed_workflow_run_attempt": 1,
+    "formal_cet4_media_types_registered": true,
+    "closed_beta_gate_effect": "registered_types_require_the_attested_receipt_identity_plus_independent_rehash_and_type_specific_recomputation_of_authorization_review_audit_runtime_bundle_content_and_QC_inputs"
   },
   "official_sources": [
     "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",

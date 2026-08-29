@@ -2,6 +2,10 @@ import {createHash} from 'node:crypto';
 
 import {validateSmsProviderSmokeReport} from '../../infra/cloudbase/smoke-sms-provider.mjs';
 import {REQUIRED_COLLECTIONS as RECEIVER_REQUIRED_COLLECTIONS} from '../../infra/cloudbase/deployment-safety.mjs';
+import {
+  CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
+  CET4_FORMAL_CONTENT_REQUIRED_CHECKS,
+} from './cet4_formal_content_evidence.mjs';
 
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const CONTENT_VERSION_PATTERN = /^sha256:[0-9a-f]{64}$/;
@@ -205,8 +209,12 @@ const LEARNING_RUNTIME_EVIDENCE_SET = new Set(
 const RELEASE_OPERATIONAL_EVIDENCE_SET = new Set(
   RELEASE_OPERATIONAL_EVIDENCE_TYPES,
 );
+const CET4_FORMAL_CONTENT_EVIDENCE_SET = new Set(
+  CET4_FORMAL_CONTENT_EVIDENCE_TYPES,
+);
 
 export const REQUIRED_EVIDENCE_CHECKS = Object.freeze({
+  ...CET4_FORMAL_CONTENT_REQUIRED_CHECKS,
   'dev-environment-isolation': [
     'receiver-owned-environment-confirmed',
     'development-configuration-absent',
@@ -678,6 +686,7 @@ export function validateGateEvidenceArtifact(
     productionDeploymentEvidence = null,
     betaEntitlementDrillEvidence = null,
     spaceSyncEvidence = null,
+    cet4FormalContentEvidence = null,
     smsProviderSmokeReport = null,
     targetRelease = '2026-09',
   } = {},
@@ -831,6 +840,16 @@ export function validateGateEvidenceArtifact(
       `${label} measurements`,
       errors,
     );
+  } else if (CET4_FORMAL_CONTENT_EVIDENCE_SET.has(evidenceType)) {
+    validateCet4FormalContentMeasurements(
+      artifact.measurements,
+      artifactRoles,
+      cet4FormalContentEvidence,
+      artifact,
+      expectedSubject,
+      `${label} measurements`,
+      errors,
+    );
   } else {
     validateGenericMeasurements(
       artifact.measurements,
@@ -840,6 +859,134 @@ export function validateGateEvidenceArtifact(
     );
   }
   return {errors, ok: errors.length === 0};
+}
+
+function validateCet4FormalContentMeasurements(
+  value,
+  artifactRoles,
+  loaded,
+  artifact,
+  expectedSubject,
+  label,
+  errors,
+) {
+  if (!isRecord(value)) {
+    errors.push(`${label} must be an object.`);
+    return;
+  }
+  const scalarRoleFields = [
+    'release_bundle_role',
+    'content_payload_role',
+    'authorization_role',
+    'model_review_role',
+    'quality_audit_role',
+    'runtime_manifest_role',
+    'audio_manifest_role',
+    'audio_qc_index_role',
+    'trusted_media_receipt_role',
+    'trusted_media_attestation_bundle_role',
+  ];
+  assertExactKeys(
+    value,
+    [
+      ...scalarRoleFields,
+      'runtime_shard_roles',
+      'audio_qc_record_roles',
+      'source_repository',
+      'source_commit_sha',
+      'card_count',
+      'box_count',
+      'audio_asset_count',
+      'audio_qc_record_count',
+      'assertions',
+    ],
+    label,
+    errors,
+  );
+  const roleValues = [];
+  for (const field of scalarRoleFields) {
+    requirePattern(value[field], ID_PATTERN, `${label}.${field}`, errors);
+    if (!artifactRoles.has(value[field])) {
+      errors.push(`${label}.${field} must reference a declared raw artifact role.`);
+    }
+    roleValues.push(value[field]);
+  }
+  for (const [field, expectedLength] of [
+    ['runtime_shard_roles', 3],
+    ['audio_qc_record_roles', 27],
+  ]) {
+    if (!Array.isArray(value[field]) || value[field].length !== expectedLength) {
+      errors.push(`${label}.${field} must contain exactly ${expectedLength} roles.`);
+      continue;
+    }
+    for (const role of value[field]) {
+      requirePattern(role, ID_PATTERN, `${label}.${field} role`, errors);
+      if (!artifactRoles.has(role)) {
+        errors.push(`${label}.${field} references unknown raw artifact role ${String(role)}.`);
+      }
+      roleValues.push(role);
+    }
+  }
+  if (new Set(roleValues).size !== roleValues.length) {
+    errors.push(`${label} raw artifact roles must all be distinct.`);
+  }
+  assertEqual(value.source_repository, 'LENKIN233/card-make', `${label}.source_repository`, errors);
+  requirePattern(value.source_commit_sha, COMMIT_PATTERN, `${label}.source_commit_sha`, errors);
+  assertEqual(value.card_count, 1180, `${label}.card_count`, errors);
+  assertEqual(value.box_count, 108, `${label}.box_count`, errors);
+  assertEqual(value.audio_asset_count, 301, `${label}.audio_asset_count`, errors);
+  assertEqual(value.audio_qc_record_count, 27, `${label}.audio_qc_record_count`, errors);
+  validateTrueAssertions(
+    value.assertions,
+    [
+      'exact_card_scope',
+      'exact_box_scope',
+      'exact_audio_scope',
+      'dual_perturbation_authorization',
+      'trusted_media_attestation',
+      'qc_records_formally_ready',
+      'content_version_recomputed',
+      'bundle_inputs_rehashed',
+    ],
+    `${label}.assertions`,
+    errors,
+  );
+  if (!isRecord(loaded)) {
+    errors.push(`${label} raw roles must resolve to strict CET4 formal content evidence.`);
+    return;
+  }
+  assertEqual(loaded.card_count, value.card_count, `${label}.card_count raw binding`, errors);
+  assertEqual(loaded.box_count, value.box_count, `${label}.box_count raw binding`, errors);
+  assertEqual(
+    loaded.audio_asset_count,
+    value.audio_asset_count,
+    `${label}.audio_asset_count raw binding`,
+    errors,
+  );
+  assertEqual(
+    loaded.audio_qc_record_count,
+    value.audio_qc_record_count,
+    `${label}.audio_qc_record_count raw binding`,
+    errors,
+  );
+  assertEqual(
+    loaded.content_version,
+    artifact.subject?.release?.content_version,
+    `${label}.content_version subject binding`,
+    errors,
+  );
+  assertEqual(
+    loaded.content_version,
+    expectedSubject?.release?.content_version,
+    `${label}.content_version candidate binding`,
+    errors,
+  );
+  assertEqual(
+    loaded.source_commit_sha,
+    value.source_commit_sha,
+    `${label}.source_commit_sha raw binding`,
+    errors,
+  );
 }
 
 function validateProductionDeploymentMeasurements(

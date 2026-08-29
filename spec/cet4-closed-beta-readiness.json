@@ -127,7 +127,11 @@
       "penetration-test-report",
       "rollback-drill",
       "beta-entitlement-drill",
-      "space-sync-test"
+      "space-sync-test",
+      "cet4-approved-box-coverage-report",
+      "cet4-approved-card-coverage-report",
+      "cet4-audio-qc-coverage-report",
+      "cet4-content-pack-integrity-report"
     ],
     "statuses": [
       "not_ready",
