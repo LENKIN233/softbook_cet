@@ -45,6 +45,9 @@ export function createAuthSessionCoordinator(options: {
   authSessionStore: AuthSessionStore;
   now?: () => Date;
   refreshLeewayMs?: number;
+  shouldPreserveAuthorizationRejection?: (
+    sessionScopeKey: string,
+  ) => boolean;
 }): AuthSessionCoordinator {
   const now = options.now ?? (() => new Date());
   const refreshLeewayMs = options.refreshLeewayMs ?? DEFAULT_REFRESH_LEEWAY_MS;
@@ -157,7 +160,13 @@ export function createAuthSessionCoordinator(options: {
           signal: refreshAbortController.signal,
         });
       } catch (error) {
-        if (isRemoteAuthorizationError(error) && isCurrentRefresh()) {
+        if (
+          isRemoteAuthorizationError(error) &&
+          isCurrentRefresh() &&
+          options.shouldPreserveAuthorizationRejection?.(
+            getAuthSessionScopeKey(session)!,
+          ) !== true
+        ) {
           await invalidateWithoutMasking(error, 'authorization_invalidated');
         }
 

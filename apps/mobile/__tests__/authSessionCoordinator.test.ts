@@ -23,10 +23,18 @@ function createSession(
   };
 }
 
-function createHarness(restoredSession: RemoteAuthSession | null = null) {
+function createHarness(
+  restoredSession: RemoteAuthSession | null = null,
+  shouldPreserveAuthorizationRejection?: (
+    sessionScopeKey: string,
+  ) => boolean,
+) {
   let persistedSession = restoredSession;
   const authSessionStore: AuthSessionStore = {
     clear: jest.fn(async () => {
+      persistedSession = null;
+    }),
+    clearExactly: jest.fn(async () => {
       persistedSession = null;
     }),
     load: jest.fn(async () => persistedSession),
@@ -44,6 +52,7 @@ function createHarness(restoredSession: RemoteAuthSession | null = null) {
     authRepository,
     authSessionStore,
     now: () => NOW,
+    shouldPreserveAuthorizationRejection,
   });
 
   return {authRepository, authSessionStore, coordinator};
@@ -237,6 +246,27 @@ test('temporary refresh failure keeps a still-valid access token', async () => {
   });
   await expect(coordinator.getAccessToken()).resolves.toBe('access-0');
   expect(coordinator.getCurrentSession()).not.toBeNull();
+});
+
+test('quarantined refresh authorization rejection keeps its exact session and credentials', async () => {
+  const session = createSession({
+    accessTokenExpiresAt: '2026-07-20T00:00:30.000Z',
+  });
+  const {authRepository, authSessionStore, coordinator} = createHarness(
+    null,
+    sessionScopeKey =>
+      sessionScopeKey === 'remote:13800138000:session-123',
+  );
+  await coordinator.establish(session);
+  jest
+    .mocked(authRepository.refreshSession)
+    .mockRejectedValue(new RemoteHttpError('revoked', 401));
+
+  await expect(coordinator.getAccessToken()).rejects.toMatchObject({
+    status: 401,
+  });
+  expect(authSessionStore.clear).not.toHaveBeenCalled();
+  expect(coordinator.getCurrentSession()).toEqual(session);
 });
 
 test('logout clears local state even when server revocation is unavailable', async () => {

@@ -4,9 +4,10 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { AccessibilityInfo, ScrollView, StyleSheet, Text } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
+import {ACCOUNT_DELETION_CLEANUP_STORAGE_KEY} from '../src/account/accountDeletionCleanupStore';
 import {USER_STATE_STORAGE_KEY} from '../src/persistence/userStateStore';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
@@ -17,7 +18,13 @@ import {
 } from '../src/runtime/appRuntimeConfig';
 import { getChinaDayKey } from '../src/shared/chinaDay';
 import * as ChinaDay from '../src/shared/chinaDay';
-import { LEARNING_EVENT_OUTBOX_STORAGE_KEY } from '../src/sync/learningEventOutbox';
+import {
+  LEARNING_EVENT_OUTBOX_STORAGE_KEY,
+  LearningEventOutbox,
+} from '../src/sync/learningEventOutbox';
+import {createReactNativeLearningEventOutboxStorage} from '../src/sync/learningEventOutboxStorage.native';
+import {MutationQueueManager} from '../src/sync/mutationQueue';
+import {createReactNativeMutationQueueStorage} from '../src/sync/mutationQueueStorage.native';
 import App, { isCompactMineViewport, isPhoneMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
@@ -607,6 +614,54 @@ function normalizeMockHeaders(
   return Object.fromEntries(new Headers(headers).entries());
 }
 
+type AccountDeletionCleanupFailureTarget =
+  | 'auth'
+  | 'learning_outbox'
+  | 'mutation_queue'
+  | 'user_state';
+
+function installAccountDeletionCleanupFailure(
+  target: AccountDeletionCleanupFailureTarget,
+) {
+  if (target === 'auth') {
+    const reset = jest.mocked(Keychain.resetGenericPassword);
+    const original = reset.getMockImplementation();
+    reset.mockImplementation(options => {
+      if (options?.service === 'com.softbook.cet.auth-session.v2') {
+        return Promise.reject(new Error('Keychain unavailable'));
+      }
+
+      return original!(options);
+    });
+    return () => reset.mockImplementation(original!);
+  }
+
+  if (target === 'user_state') {
+    const removeItem = jest.mocked(AsyncStorage.removeItem);
+    const original = removeItem.getMockImplementation();
+    removeItem.mockImplementation(key =>
+      key === USER_STATE_STORAGE_KEY
+        ? Promise.reject(new Error('User state storage unavailable'))
+        : original!(key),
+    );
+    return () => removeItem.mockImplementation(original!);
+  }
+
+  const setItem = jest.mocked(AsyncStorage.setItem);
+  const original = setItem.getMockImplementation();
+  setItem.mockImplementation((key, value, ...rest) => {
+    const shouldFail =
+      target === 'learning_outbox'
+        ? key === LEARNING_EVENT_OUTBOX_STORAGE_KEY
+        : key.startsWith('__softbook_mutation_queue');
+
+    return shouldFail
+      ? Promise.reject(new Error('Account cleanup storage unavailable'))
+      : original!(key, value, ...rest);
+  });
+  return () => setItem.mockImplementation(original!);
+}
+
 function createRemoteAuthChallengeResponse() {
   return createJsonResponse({
     data: {
@@ -635,6 +690,61 @@ function createRemoteAuthSessionResponse(
       session_id: sessionSuffix ? `session-${sessionSuffix}` : 'session-123',
       token_type: 'Bearer',
     },
+  });
+}
+
+function createAccountDeletionResponse(
+  status: 'processing' | 'queued' = 'queued',
+) {
+  return createJsonResponse(
+    {
+      data: {
+        deletion_request: {
+          id: 'delete_abcdefghijklmnopqrstuvwx',
+          requested_at: '2026-08-29T08:00:00.000Z',
+          status,
+        },
+      },
+    },
+    202,
+  );
+}
+
+async function seedDeletionAccountStores(deviceId: string) {
+  await AsyncStorage.setItem(
+    USER_STATE_STORAGE_KEY,
+    JSON.stringify({
+      checked_in_day_key: null,
+      learning_cursor: null,
+      owner_phone_number: '13800138000',
+      schema_version: 'user-state.v2',
+      space_card_state_by_id: {},
+    }),
+  );
+  await new LearningEventOutbox({
+    createDeviceId: () => deviceId,
+    storage: createReactNativeLearningEventOutboxStorage(),
+  }).enqueueCompletion({
+    accountPhoneNumber: '13800138000',
+    contentVersion: TEST_CONTENT_VERSION,
+    phase: 'learning',
+    result: {
+      cardId: '100101',
+      completedAt: '2026-08-29T07:59:00.000Z',
+      interactionId: 'flip',
+      isFavorited: false,
+      outcome: 'confident',
+      usedHint: false,
+      usedPeek: false,
+    },
+    selectionId: `sel_${deviceId}_0001`,
+    track: 'cet4',
+  });
+  await new MutationQueueManager({
+    storage: createReactNativeMutationQueueStorage(),
+  }).enqueue('check_in_daily_progress', {
+    context: {phoneNumber: '13800138000'},
+    dayKey: getChinaDayKey(),
   });
 }
 
@@ -1502,6 +1612,9 @@ test('clears app and durable account state when resource and refresh both return
   expect(output).toContain('登录已失效，请重新验证手机号。');
   expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBeNull();
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+  expect(
+    await AsyncStorage.getItem('__softbook_mutation_queue:quarantine'),
+  ).toBe('[]');
   expect(
     await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
   ).not.toContain('13800138000');
@@ -2723,6 +2836,9 @@ test('supersedes an ordinary pre-enqueue refresh before replaying retained conte
       String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
     ).entries,
   ).toEqual([]);
+  expect(
+    await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+  ).toBeNull();
 
   await openRoute(root, 'statistics');
   expect(
@@ -5939,6 +6055,1089 @@ test('keeps completed progress when first gated space entry starts trial', async
   await openRoute(root, 'statistics');
 
   expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1');
+});
+
+test('keeps the account shell and local data after a lost deletion response, then clears them only after exact 202 retry', async () => {
+  const announce = jest
+    .spyOn(AccessibilityInfo, 'announceForAccessibility')
+    .mockImplementation(() => undefined);
+  const deletionCalls: MockFetchCall[] = [];
+  let deletionRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      return createJsonResponse(createAccountBootstrapPayload());
+    }
+    if (input === 'https://api.softbook.example/v2/account/deletion') {
+      deletionCalls.push({init, input});
+      deletionRequestCount += 1;
+      if (deletionRequestCount === 1) {
+        throw new Error('connection lost after send');
+      }
+
+      if (deletionRequestCount === 2) {
+        return createJsonResponse(
+          {error: {code: 'revoked_auth_session', message: 'Revoked.'}},
+          401,
+        );
+      }
+
+      return createAccountDeletionResponse('processing');
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await AsyncStorage.setItem(
+    USER_STATE_STORAGE_KEY,
+    JSON.stringify({
+      checked_in_day_key: null,
+      learning_cursor: null,
+      owner_phone_number: '13800138000',
+      schema_version: 'user-state.v2',
+      space_card_state_by_id: {},
+    }),
+  );
+  await AsyncStorage.setItem('__softbook_mutation_queue', '[{"pending":true}]');
+  const retainedOutbox = new LearningEventOutbox({
+    createDeviceId: () => 'install_deletion_test',
+    storage: createReactNativeLearningEventOutboxStorage(),
+  });
+  await retainedOutbox.enqueueCompletion({
+    accountPhoneNumber: '13800138000',
+    contentVersion: TEST_CONTENT_VERSION,
+    phase: 'learning',
+    result: {
+      cardId: '100101',
+      completedAt: '2026-08-29T07:59:00.000Z',
+      interactionId: 'flip',
+      isFavorited: false,
+      outcome: 'confident',
+      usedHint: false,
+      usedPeek: false,
+    },
+    selectionId: 'sel_deletion_test_0001',
+    track: 'cet4',
+  });
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+  });
+  expect(
+    root.findByProps({testID: 'account-deletion-confirmation'}),
+  ).toBeTruthy();
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '确认永久删除这个账户？',
+  );
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-cancel-button').props.onPress();
+  });
+  expect(deletionRequestCount).toBe(0);
+  expect(root.findAllByProps({testID: 'account-deletion-modal'})).toHaveLength(0);
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+  });
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-submit-button').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  expect(deletionRequestCount).toBe(1);
+  expect(
+    root.findByProps({testID: 'account-deletion-recoverable_unknown'}),
+  ).toBeTruthy();
+  expect(root.findByProps({testID: 'mine-profile-card'})).toBeTruthy();
+  expect(root.findByProps({testID: 'route-tab-learning'})).toBeTruthy();
+  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).not.toBeNull();
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toContain(
+    'pending',
+  );
+  expect(
+    await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+  ).toContain('13800138000');
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-submit-button').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  expect(deletionRequestCount).toBe(2);
+  expect(
+    root.findByProps({testID: 'account-deletion-recoverable_unknown'}),
+  ).toBeTruthy();
+  expect(root.findByProps({testID: 'mine-profile-card'})).toBeTruthy();
+  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).not.toBeNull();
+  expect(
+    mockFetch.mock.calls.filter(
+      ([input]) => input === 'https://api.softbook.example/v2/auth/refresh',
+    ),
+  ).toHaveLength(0);
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-submit-button').props.onPress();
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await flushAsyncEffects();
+    }
+  });
+
+  expect(deletionRequestCount).toBe(3);
+  expect(deletionCalls).toHaveLength(3);
+  deletionCalls.forEach(call => {
+    expect(call.init?.body).toBe('{}');
+    expect(normalizeMockHeaders(call.init?.headers)).toMatchObject({
+      authorization: 'Bearer remote-auth-token',
+      'content-type': 'application/json',
+      'x-softbook-client': 'mobile',
+    });
+  });
+  expect(
+    root.findByProps({testID: 'account-deletion-accepted-screen'}),
+  ).toBeTruthy();
+  expect(root.findAllByProps({testID: 'route-tab-learning'})).toHaveLength(0);
+  expect(root.findAllByProps({testID: 'mine-profile-card'})).toHaveLength(0);
+  expect(
+    await Keychain.getGenericPassword({
+      service: 'com.softbook.cet.auth-session.v2',
+    }),
+  ).toBe(false);
+  expect(
+    await AsyncStorage.getItem('softbook-cet/auth-session/revoked.v1'),
+  ).toBe('revoked');
+  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBeNull();
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+  expect(
+    JSON.parse(
+      String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
+    ).entries,
+  ).toEqual([]);
+  const acceptedOutput = JSON.stringify(tree!.toJSON());
+  expect(acceptedOutput).toContain('删除申请已提交');
+  expect(acceptedOutput).toContain(
+    '不表示所有数据已经在这一刻清理完成',
+  );
+  expect(acceptedOutput).not.toContain('所有数据已删除');
+  expect(acceptedOutput).not.toContain('delete_abcdefghijklmnopqrstuvwx');
+  expect(announce).toHaveBeenCalledWith(
+    '删除申请已提交。当前账户已退出，账户数据仍在继续清理。',
+  );
+  expectNoUserVisibleMetadataLeakage(tree!);
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(
+      root,
+      'account-deletion-return-to-verification',
+    ).props.onPress();
+  });
+  expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  announce.mockRestore();
+});
+
+test('keeps an exact deletion 202 when a concurrent bootstrap invalidates the same local session', async () => {
+  const backgroundBootstrap =
+    createDeferred<ReturnType<typeof createJsonResponse>>();
+  const pendingDeletion = createDeferred<ReturnType<typeof createJsonResponse>>();
+  let bootstrapRequestCount = 0;
+  let deletionSignal: AbortSignal | undefined;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      if (input === 'https://api.softbook.example/v2/auth/request-code') {
+        return createRemoteAuthChallengeResponse();
+      }
+      if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+        return createRemoteAuthSessionResponse();
+      }
+      if (input === 'https://api.softbook.example/v2/auth/refresh') {
+        return createJsonResponse(
+          {error: {code: 'revoked_auth_session', message: 'Revoked.'}},
+          401,
+        );
+      }
+      if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+        bootstrapRequestCount += 1;
+        return bootstrapRequestCount === 1
+          ? createJsonResponse(createAccountBootstrapPayload())
+          : backgroundBootstrap.promise;
+      }
+      if (input === 'https://api.softbook.example/v2/account/deletion') {
+        deletionSignal = init?.signal;
+        return pendingDeletion.promise;
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 6 && bootstrapRequestCount < 2; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(bootstrapRequestCount).toBe(2);
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-submit-button').props.onPress();
+  });
+
+  backgroundBootstrap.resolve(
+    createJsonResponse(
+      {error: {code: 'revoked_auth_session', message: 'Revoked.'}},
+      401,
+    ),
+  );
+  await ReactTestRenderer.act(async () => {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await flushAsyncEffects();
+    }
+  });
+  expect(deletionSignal?.aborted).toBe(false);
+  expect(
+    root.findByProps({testID: 'account-deletion-submitting'}),
+  ).toBeTruthy();
+
+  pendingDeletion.resolve(createAccountDeletionResponse());
+  await ReactTestRenderer.act(async () => {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      await flushAsyncEffects();
+    }
+  });
+
+  expect(
+    root.findByProps({testID: 'account-deletion-accepted-screen'}),
+  ).toBeTruthy();
+  expect(root.findAllByProps({testID: 'route-tab-learning'})).toHaveLength(0);
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '不表示所有数据已经在这一刻清理完成',
+  );
+});
+
+test('preserves origin credentials and every local store when background 401 and malformed deletion never prove 202', async () => {
+  const backgroundBootstrap =
+    createDeferred<ReturnType<typeof createJsonResponse>>();
+  const firstDeletion = createDeferred<ReturnType<typeof createJsonResponse>>();
+  const deletionCalls: MockFetchCall[] = [];
+  let bootstrapRequestCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      if (input === 'https://api.softbook.example/v2/auth/request-code') {
+        return createRemoteAuthChallengeResponse();
+      }
+      if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+        return createRemoteAuthSessionResponse();
+      }
+      if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+        bootstrapRequestCount += 1;
+        return bootstrapRequestCount === 1
+          ? createJsonResponse(createAccountBootstrapPayload())
+          : backgroundBootstrap.promise;
+      }
+      if (input === 'https://api.softbook.example/v2/account/deletion') {
+        deletionCalls.push({init, input});
+        return deletionCalls.length === 1
+          ? firstDeletion.promise
+          : createJsonResponse(
+              {error: {code: 'revoked_auth_session', message: 'Revoked.'}},
+              401,
+            );
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await AsyncStorage.setItem(
+    USER_STATE_STORAGE_KEY,
+    JSON.stringify({
+      checked_in_day_key: null,
+      learning_cursor: null,
+      owner_phone_number: '13800138000',
+      schema_version: 'user-state.v2',
+      space_card_state_by_id: {},
+    }),
+  );
+  await new LearningEventOutbox({
+    createDeviceId: () => 'install_unknown_deletion',
+    storage: createReactNativeLearningEventOutboxStorage(),
+  }).enqueueCompletion({
+    accountPhoneNumber: '13800138000',
+    contentVersion: TEST_CONTENT_VERSION,
+    phase: 'learning',
+    result: {
+      cardId: '100101',
+      completedAt: '2026-08-29T07:59:00.000Z',
+      interactionId: 'flip',
+      isFavorited: false,
+      outcome: 'confident',
+      usedHint: false,
+      usedPeek: false,
+    },
+    selectionId: 'sel_unknown_delete_0001',
+    track: 'cet4',
+  });
+  await new MutationQueueManager({
+    storage: createReactNativeMutationQueueStorage(),
+  }).enqueue('check_in_daily_progress', {
+    context: {phoneNumber: '13800138000'},
+    dayKey: getChinaDayKey(),
+  });
+  await openRoute(root, 'mine');
+  for (let attempt = 0; attempt < 6 && bootstrapRequestCount < 2; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+  expect(bootstrapRequestCount).toBe(2);
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-submit-button').props.onPress();
+  });
+  backgroundBootstrap.resolve(
+    createJsonResponse(
+      {error: {code: 'revoked_auth_session', message: 'Revoked.'}},
+      401,
+    ),
+  );
+  await ReactTestRenderer.act(async () => {
+    await flushAsyncEffects();
+  });
+  firstDeletion.resolve(
+    createJsonResponse(
+      {
+        data: {
+          deletion_request: {
+            requested_at: '2026-08-29T08:00:00.000Z',
+            status: 'queued',
+          },
+        },
+      },
+      202,
+    ),
+  );
+  await ReactTestRenderer.act(async () => {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      await flushAsyncEffects();
+    }
+  });
+
+  expect(
+    root.findByProps({testID: 'account-deletion-recoverable_unknown'}),
+  ).toBeTruthy();
+  expect(
+    await Keychain.getGenericPassword({
+      service: 'com.softbook.cet.auth-session.v2',
+    }),
+  ).not.toBe(false);
+  expect(
+    await AsyncStorage.getItem('softbook-cet/auth-session/revoked.v1'),
+  ).toBeNull();
+  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).not.toBeNull();
+  expect(
+    await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+  ).toContain('13800138000');
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toContain(
+    'check_in_daily_progress',
+  );
+  expect(
+    await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+  ).toBeNull();
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-submit-button').props.onPress();
+    await flushAsyncEffects();
+  });
+  expect(deletionCalls).toHaveLength(2);
+  deletionCalls.forEach(call => {
+    expect(normalizeMockHeaders(call.init?.headers).authorization).toBe(
+      'Bearer remote-auth-token',
+    );
+  });
+  expect(
+    root.findByProps({testID: 'account-deletion-recoverable_unknown'}),
+  ).toBeTruthy();
+  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).not.toBeNull();
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-cancel-button').props.onPress();
+  });
+});
+
+test.each<AccountDeletionCleanupFailureTarget>([
+  'auth',
+  'user_state',
+  'learning_outbox',
+  'mutation_queue',
+])(
+  'does not enter accepted until failed %s cleanup is retried and verified',
+  async failureTarget => {
+    let deletionRequestCount = 0;
+    global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+      accountBootstrap: {mode: 'local'},
+      auth: {
+        mode: 'remote',
+        remote: {baseUrl: 'https://api.softbook.example'},
+      },
+      learningSource: {mode: 'local', track: 'cet4'},
+      learningState: {mode: 'local'},
+      membership: {mode: 'local'},
+      progressSync: {mode: 'local'},
+      spaceState: {mode: 'local'},
+    };
+    mockFetch.mockImplementation(async (input: string) => {
+      if (input === 'https://api.softbook.example/v2/auth/request-code') {
+        return createRemoteAuthChallengeResponse();
+      }
+      if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+        return createRemoteAuthSessionResponse();
+      }
+      if (input === 'https://api.softbook.example/v2/account/deletion') {
+        deletionRequestCount += 1;
+        return createAccountDeletionResponse();
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    });
+
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(<App />);
+    });
+    const root = tree!.root;
+    await loginIntoLearningFlow(root);
+    await openRoute(root, 'mine');
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    const restoreFailure = installAccountDeletionCleanupFailure(failureTarget);
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const announce = jest
+      .spyOn(AccessibilityInfo, 'announceForAccessibility')
+      .mockImplementation(() => undefined);
+
+    try {
+      await ReactTestRenderer.act(() => {
+        findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+      });
+      await ReactTestRenderer.act(async () => {
+        findPressableByTestId(
+          root,
+          'account-deletion-submit-button',
+        ).props.onPress();
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          await flushAsyncEffects();
+        }
+      });
+
+      expect(deletionRequestCount).toBe(1);
+      expect(
+        root.findByProps({testID: 'account-deletion-cleanup-screen'}),
+      ).toBeTruthy();
+      expect(
+        root.findAllByProps({testID: 'account-deletion-accepted-screen'}),
+      ).toHaveLength(0);
+      expect(root.findAllByProps({testID: 'route-tab-learning'})).toHaveLength(
+        0,
+      );
+      expect(JSON.stringify(tree!.toJSON())).toContain(
+        '这台设备上的账户数据还没有全部清理完成',
+      );
+      expect(announce).toHaveBeenCalledWith(
+        '删除申请已接收。本机账户数据尚未清理完成，请重试。',
+      );
+      expect(
+        root.findByProps({
+          accessibilityRole: 'header',
+          children: '删除申请已接收',
+        }),
+      ).toBeTruthy();
+      expect(
+        await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+      ).toContain('13800138000');
+
+      restoreFailure();
+      await ReactTestRenderer.act(async () => {
+        findPressableByTestId(
+          root,
+          'account-deletion-cleanup-retry-button',
+        ).props.onPress();
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          await flushAsyncEffects();
+        }
+      });
+
+      expect(deletionRequestCount).toBe(1);
+      expect(
+        root.findByProps({testID: 'account-deletion-accepted-screen'}),
+      ).toBeTruthy();
+      expect(
+        root.findAllByProps({testID: 'account-deletion-cleanup-screen'}),
+      ).toHaveLength(0);
+      expect(
+        await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+      ).toBeNull();
+    } finally {
+      restoreFailure();
+      warn.mockRestore();
+      announce.mockRestore();
+    }
+  },
+);
+
+test('marker write failure performs zero durable account cleanup before retry', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    accountBootstrap: {mode: 'local'},
+    auth: {
+      mode: 'remote',
+      remote: {baseUrl: 'https://api.softbook.example'},
+    },
+    learningSource: {mode: 'local', track: 'cet4'},
+    learningState: {mode: 'local'},
+    membership: {mode: 'local'},
+    progressSync: {mode: 'local'},
+    spaceState: {mode: 'local'},
+  };
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/account/deletion') {
+      return createAccountDeletionResponse();
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await seedDeletionAccountStores('install_marker_write');
+  await openRoute(root, 'mine');
+  const setItem = jest.mocked(AsyncStorage.setItem);
+  const originalSetItem = setItem.getMockImplementation();
+  setItem.mockImplementation((key, value, ...rest) =>
+    key === ACCOUNT_DELETION_CLEANUP_STORAGE_KEY
+      ? Promise.reject(new Error('Marker write unavailable'))
+      : originalSetItem!(key, value, ...rest),
+  );
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+  try {
+    await ReactTestRenderer.act(() => {
+      findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+    });
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(
+        root,
+        'account-deletion-submit-button',
+      ).props.onPress();
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+
+    expect(
+      root.findByProps({testID: 'account-deletion-cleanup-screen'}),
+    ).toBeTruthy();
+    expect(
+      await Keychain.getGenericPassword({
+        service: 'com.softbook.cet.auth-session.v2',
+      }),
+    ).not.toBe(false);
+    expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).not.toBeNull();
+    expect(
+      await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+    ).toContain('13800138000');
+    expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toContain(
+      'check_in_daily_progress',
+    );
+    expect(
+      await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+    ).toBeNull();
+
+    setItem.mockImplementation(originalSetItem!);
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(
+        root,
+        'account-deletion-cleanup-retry-button',
+      ).props.onPress();
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+    expect(
+      root.findByProps({testID: 'account-deletion-accepted-screen'}),
+    ).toBeTruthy();
+  } finally {
+    setItem.mockImplementation(originalSetItem!);
+    warn.mockRestore();
+  }
+});
+
+test('marker readback failure performs zero cleanup and a restart resumes from the written marker', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    accountBootstrap: {mode: 'local'},
+    auth: {
+      mode: 'remote',
+      remote: {baseUrl: 'https://api.softbook.example'},
+    },
+    learningSource: {mode: 'local', track: 'cet4'},
+    learningState: {mode: 'local'},
+    membership: {mode: 'local'},
+    progressSync: {mode: 'local'},
+    spaceState: {mode: 'local'},
+  };
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/account/deletion') {
+      return createAccountDeletionResponse();
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  let root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await seedDeletionAccountStores('install_marker_read');
+  await openRoute(root, 'mine');
+  const getItem = jest.mocked(AsyncStorage.getItem);
+  const originalGetItem = getItem.getMockImplementation();
+  let rejectMarkerRead = true;
+  getItem.mockImplementation(key =>
+    key === ACCOUNT_DELETION_CLEANUP_STORAGE_KEY && rejectMarkerRead
+      ? Promise.reject(new Error('Marker read unavailable'))
+      : originalGetItem!(key),
+  );
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+  try {
+    await ReactTestRenderer.act(() => {
+      findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+    });
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(
+        root,
+        'account-deletion-submit-button',
+      ).props.onPress();
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+
+    expect(
+      root.findByProps({testID: 'account-deletion-cleanup-screen'}),
+    ).toBeTruthy();
+    expect(
+      await Keychain.getGenericPassword({
+        service: 'com.softbook.cet.auth-session.v2',
+      }),
+    ).not.toBe(false);
+    expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).not.toBeNull();
+    expect(
+      await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+    ).toContain('13800138000');
+    expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toContain(
+      'check_in_daily_progress',
+    );
+
+    rejectMarkerRead = false;
+    expect(
+      await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+    ).toContain('13800138000');
+    await ReactTestRenderer.act(() => {
+      tree!.unmount();
+    });
+    await ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(<App />);
+    });
+    root = tree!.root;
+    await ReactTestRenderer.act(async () => {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+
+    expect(
+      root.findByProps({testID: 'account-deletion-accepted-screen'}),
+    ).toBeTruthy();
+    expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBeNull();
+    expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+    expect(
+      await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+    ).toBeNull();
+  } finally {
+    rejectMarkerRead = false;
+    getItem.mockImplementation(originalGetItem!);
+    warn.mockRestore();
+  }
+});
+
+test('resumes exact local deletion cleanup from its durable marker after restart', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    accountBootstrap: {mode: 'local'},
+    auth: {
+      mode: 'remote',
+      remote: {baseUrl: 'https://api.softbook.example'},
+    },
+    learningSource: {mode: 'local', track: 'cet4'},
+    learningState: {mode: 'local'},
+    membership: {mode: 'local'},
+    progressSync: {mode: 'local'},
+    spaceState: {mode: 'local'},
+  };
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/account/deletion') {
+      return createAccountDeletionResponse();
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  let root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+  const restoreFailure =
+    installAccountDeletionCleanupFailure('mutation_queue');
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+  try {
+    await ReactTestRenderer.act(() => {
+      findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+    });
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(
+        root,
+        'account-deletion-submit-button',
+      ).props.onPress();
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+    expect(
+      await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+    ).toContain('13800138000');
+    expect(
+      root.findByProps({testID: 'account-deletion-cleanup-screen'}),
+    ).toBeTruthy();
+
+    restoreFailure();
+    await ReactTestRenderer.act(() => {
+      tree!.unmount();
+    });
+    await ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(<App />);
+    });
+    root = tree!.root;
+    await ReactTestRenderer.act(async () => {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        await flushAsyncEffects();
+      }
+    });
+
+    expect(
+      root.findByProps({testID: 'account-deletion-accepted-screen'}),
+    ).toBeTruthy();
+    expect(
+      await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
+    ).toBeNull();
+    expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+  } finally {
+    restoreFailure();
+    warn.mockRestore();
+  }
+});
+
+test('does not replay deleted account outbox or mutation data after clean re-registration', async () => {
+  let checkInRequestCount = 0;
+  let learningEventRequestCount = 0;
+  let verifiedSessionCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      membership: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      if (input === 'https://api.softbook.example/v2/auth/request-code') {
+        return createRemoteAuthChallengeResponse();
+      }
+      if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+        verifiedSessionCount += 1;
+        return createRemoteAuthSessionResponse(
+          '13800138000',
+          verifiedSessionCount === 1 ? 'before-deletion' : 'after-deletion',
+        );
+      }
+      if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+        return createJsonResponse(createAccountBootstrapPayload());
+      }
+      if (input === 'https://api.softbook.example/v2/account/deletion') {
+        return createAccountDeletionResponse();
+      }
+      if (input === 'https://api.softbook.example/v2/learning/events') {
+        learningEventRequestCount += 1;
+        return createLearningEventsAckResponse(init);
+      }
+      if (input === 'https://api.softbook.example/v2/progress/check-in') {
+        checkInRequestCount += 1;
+        return createDailyCheckInResponse(init);
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  let root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await new LearningEventOutbox({
+    createDeviceId: () => 'install_deleted_account',
+    storage: createReactNativeLearningEventOutboxStorage(),
+  }).enqueueCompletion({
+    accountPhoneNumber: '13800138000',
+    contentVersion: TEST_CONTENT_VERSION,
+    phase: 'learning',
+    result: {
+      cardId: '100101',
+      completedAt: '2026-08-29T07:59:00.000Z',
+      interactionId: 'flip',
+      isFavorited: false,
+      outcome: 'confident',
+      usedHint: false,
+      usedPeek: false,
+    },
+    selectionId: 'sel_deleted_account_0001',
+    track: 'cet4',
+  });
+  await new MutationQueueManager({
+    storage: createReactNativeMutationQueueStorage(),
+  }).enqueue(
+    'check_in_daily_progress',
+    {
+      context: {phoneNumber: '13800138000'},
+      dayKey: getChinaDayKey(),
+    },
+  );
+
+  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+  });
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-submit-button').props.onPress();
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      await flushAsyncEffects();
+    }
+  });
+  expect(
+    root.findByProps({testID: 'account-deletion-accepted-screen'}),
+  ).toBeTruthy();
+  expect(
+    JSON.parse(
+      String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)),
+    ).entries,
+  ).toEqual([]);
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+
+  await ReactTestRenderer.act(() => {
+    tree!.unmount();
+  });
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await waitForLearningSurface(root);
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+  }
+
+  expect(verifiedSessionCount).toBe(2);
+  expect(learningEventRequestCount).toBe(0);
+  expect(checkInRequestCount).toBe(0);
+  expect(
+    await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+  ).not.toContain('13800138000');
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
+});
+
+test('ignores a stale deletion response after the originating session is replaced', async () => {
+  const pendingDeletion = createDeferred<ReturnType<typeof createJsonResponse>>();
+  let deletionSignal: AbortSignal | undefined;
+  let verifiedSessionCount = 0;
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(
+    async (input: string, init?: MockFetchInit) => {
+      if (input === 'https://api.softbook.example/v2/auth/request-code') {
+        return createRemoteAuthChallengeResponse();
+      }
+      if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+        verifiedSessionCount += 1;
+        return createRemoteAuthSessionResponse(
+          verifiedSessionCount === 1 ? '13800138000' : '13900139000',
+          verifiedSessionCount === 1 ? 'deletion-a' : 'deletion-b',
+        );
+      }
+      if (input === 'https://api.softbook.example/v2/auth/logout') {
+        return createJsonResponse(null, 204);
+      }
+      if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+        return createJsonResponse(createAccountBootstrapPayload());
+      }
+      if (input === 'https://api.softbook.example/v2/account/deletion') {
+        deletionSignal = init?.signal;
+        return pendingDeletion.promise;
+      }
+
+      throw new Error(`Unexpected remote fetch: ${input}`);
+    },
+  );
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'mine-account-delete-button').props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'account-deletion-submit-button').props.onPress();
+  });
+
+  const mineSurface = root.find(
+    node => typeof node.type === 'function' && node.type.name === 'MineSurface',
+  );
+  await ReactTestRenderer.act(async () => {
+    await mineSurface.props.handlers.onLogout();
+    await flushAsyncEffects();
+  });
+  expect(deletionSignal?.aborted).toBe(false);
+
+  await authenticateIntoLearningBootstrap(root, '13900139000');
+  await openRoute(root, 'mine');
+  await AsyncStorage.setItem(USER_STATE_STORAGE_KEY, 'replacement-state');
+
+  pendingDeletion.resolve(createAccountDeletionResponse());
+  await ReactTestRenderer.act(async () => {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await flushAsyncEffects();
+    }
+  });
+
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('139****9000');
+  expect(root.findAllByProps({testID: 'account-deletion-accepted-screen'})).toHaveLength(0);
+  expect(root.findAllByProps({testID: 'account-deletion-modal'})).toHaveLength(0);
+  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBe(
+    'replacement-state',
+  );
+  expect(root.findByProps({testID: 'route-tab-learning'})).toBeTruthy();
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('mine page keeps profile status and route actions in one screen after login', async () => {

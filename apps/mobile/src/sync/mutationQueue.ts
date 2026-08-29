@@ -368,6 +368,17 @@ export class MutationQueueManager {
       await this.storage.setItem(this.quarantineKey, '[]');
       this.quarantined = [];
       await this.persistCandidate([]);
+      const [persistedEntries, persistedQuarantine] = await Promise.all([
+        this.storage.getItem(this.key),
+        this.storage.getItem(this.quarantineKey),
+      ]);
+
+      if (
+        !isExactEmptyPersistedArray(persistedEntries) ||
+        !isExactEmptyPersistedArray(persistedQuarantine)
+      ) {
+        throw new Error('Mutation queue cleanup verification failed.');
+      }
     });
   }
 
@@ -423,6 +434,19 @@ export class MutationQueueManager {
   private async persistCandidate(candidate: MutationQueueEntry[]) {
     await this.storage.setItem(this.key, JSON.stringify(candidate));
     this.entries = candidate;
+  }
+}
+
+function isExactEmptyPersistedArray(value: string | null): boolean {
+  if (value === null) {
+    return false;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) && parsed.length === 0;
+  } catch {
+    return false;
   }
 }
 

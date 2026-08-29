@@ -8,9 +8,12 @@ import React, {
 } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import {
+  AccessibilityInfo,
   AppState,
+  findNodeHandle,
   InputAccessoryView,
   Keyboard,
+  Modal,
   Pressable,
   Platform,
   ScrollView,
@@ -25,6 +28,9 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import { createAccountDeletionRepository } from './src/account/accountDeletionRepository';
+import { resolveAccountDeletionRepositoryConfig } from './src/account/accountDeletionRuntimeConfig';
+import { createAccountDeletionCleanupStore } from './src/account/accountDeletionCleanupStore';
 import { createAuthRepository } from './src/auth/authRepository';
 import { createAuthenticatedFetch } from './src/auth/authenticatedFetch';
 import { resolveAuthRepositoryConfig } from './src/auth/authRuntimeConfig';
@@ -32,8 +38,10 @@ import { createAuthSessionCoordinator } from './src/auth/authSessionCoordinator'
 import {
   getAuthAccessToken,
   getAuthSessionScopeKey,
+  isRemoteAuthSession,
   type AuthChallenge,
   type AuthSession,
+  type RemoteAuthSession,
 } from './src/auth/authSession';
 import {
   reconcileAccountBootstrap,
@@ -259,6 +267,24 @@ type SpaceStateSyncState = SyncStatusState;
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 type LearningPhase = 'learning' | 'review';
 type AccountBootstrapStatus = 'not_required' | 'pending' | 'ready' | 'deferred';
+type AccountDeletionPresentationState =
+  | 'closed'
+  | 'confirmation'
+  | 'submitting'
+  | 'cleanup_required'
+  | 'cleanup_retrying'
+  | 'accepted'
+  | 'recoverable_unknown';
+
+type AccountDeletionOrigin = {
+  session: RemoteAuthSession;
+  sessionScopeKey: string;
+};
+
+type AcceptedAccountDeletionCleanup = {
+  phoneNumber: string;
+  sessionScopeKey: string | null;
+};
 
 type AuthenticatedRuntimeHydration = {
   accountBootstrap: AccountBootstrapSnapshot | null;
@@ -420,17 +446,55 @@ function AppShell({
     [authRepositoryConfig],
   );
   const authSessionStore = useMemo(() => createAuthSessionStore(), []);
+  const accountDeletionOriginRef = useRef<AccountDeletionOrigin | null>(null);
+  const acceptedAccountDeletionCleanupRef =
+    useRef<AcceptedAccountDeletionCleanup | null>(null);
+  const isAccountDeletionSessionQuarantined = useCallback(
+    (sessionScopeKey: string | null) =>
+      sessionScopeKey !== null &&
+      (accountDeletionOriginRef.current?.sessionScopeKey === sessionScopeKey ||
+        acceptedAccountDeletionCleanupRef.current?.sessionScopeKey ===
+          sessionScopeKey),
+    [],
+  );
   const authSessionCoordinator = useMemo(
     () =>
       createAuthSessionCoordinator({
         authRepository,
         authSessionStore,
+        shouldPreserveAuthorizationRejection:
+          isAccountDeletionSessionQuarantined,
       }),
-    [authRepository, authSessionStore],
+    [
+      authRepository,
+      authSessionStore,
+      isAccountDeletionSessionQuarantined,
+    ],
   );
   const authenticatedFetch = useMemo(
-    () => createAuthenticatedFetch({ authSessionCoordinator }),
-    [authSessionCoordinator],
+    () =>
+      createAuthenticatedFetch({
+        authSessionCoordinator,
+        shouldPreserveAuthorizationRejection:
+          isAccountDeletionSessionQuarantined,
+        shouldQuarantineSession: isAccountDeletionSessionQuarantined,
+      }),
+    [authSessionCoordinator, isAccountDeletionSessionQuarantined],
+  );
+  const accountDeletionRepositoryConfig = useMemo(
+    () => resolveAccountDeletionRepositoryConfig(runtimeConfig),
+    [runtimeConfig],
+  );
+  const accountDeletionRepository = useMemo(
+    () =>
+      accountDeletionRepositoryConfig
+        ? createAccountDeletionRepository(accountDeletionRepositoryConfig)
+        : null,
+    [accountDeletionRepositoryConfig],
+  );
+  const accountDeletionCleanupStore = useMemo(
+    () => createAccountDeletionCleanupStore(),
+    [],
   );
   const runtimeAuthRepositoryMode = authRepositoryConfig.mode;
   const accountBootstrapRepositoryConfig = useMemo(() => {
@@ -550,6 +614,8 @@ function AppShell({
     useState<SpaceSurfaceScreen>('overview');
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
+  const [accountDeletionState, setAccountDeletionState] =
+    useState<AccountDeletionPresentationState>('closed');
   const [accountBootstrapStatus, setAccountBootstrapStatus] =
     useState<AccountBootstrapStatus>(
       runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required',
@@ -664,6 +730,8 @@ function AppShell({
   ).current;
   const accountBootstrapRefreshRequired = useRef(false);
   const logoutInFlight = useRef<Promise<void> | null>(null);
+  const accountDeletionInFlight = useRef<Promise<void> | null>(null);
+  const accountDeletionCleanupInFlight = useRef<Promise<void> | null>(null);
   const learningEventEnqueueInFlight = useRef<{
     sessionScopeKey: string;
   } | null>(null);
@@ -826,6 +894,10 @@ function AppShell({
         return false;
       }
 
+      if (isAccountDeletionSessionQuarantined(originSessionScopeKey)) {
+        return true;
+      }
+
       const currentSessionScopeKey = getAuthSessionScopeKey(
         authSessionCoordinator.getCurrentSession(),
       );
@@ -844,8 +916,262 @@ function AppShell({
       );
       return true;
     },
-    [authSessionCoordinator, clearAuthenticatedSession],
+    [
+      authSessionCoordinator,
+      clearAuthenticatedSession,
+      isAccountDeletionSessionQuarantined,
+    ],
   );
+  const openAccountDeletionConfirmation = useCallback(() => {
+    if (
+      accountDeletionRepository === null ||
+      authState.stage !== 'authenticated' ||
+      accountDeletionInFlight.current !== null ||
+      accountDeletionState === 'accepted'
+    ) {
+      return;
+    }
+
+    setAccountDeletionState('confirmation');
+  }, [accountDeletionRepository, accountDeletionState, authState.stage]);
+  const closeAccountDeletionSheet = useCallback(() => {
+    if (
+      accountDeletionState !== 'confirmation' &&
+      accountDeletionState !== 'recoverable_unknown'
+    ) {
+      return;
+    }
+
+    accountDeletionOriginRef.current = null;
+    setAccountDeletionState('closed');
+  }, [accountDeletionState]);
+  const completeAcceptedAccountDeletionCleanup = useCallback(() => {
+    if (accountDeletionCleanupInFlight.current) {
+      return accountDeletionCleanupInFlight.current;
+    }
+
+    const cleanup = acceptedAccountDeletionCleanupRef.current;
+
+    if (cleanup === null) {
+      return Promise.resolve();
+    }
+
+    const cleanupTask = (async () => {
+      const currentSessionScopeKey = getAuthSessionScopeKey(
+        authSessionCoordinator.getCurrentSession(),
+      );
+
+      if (
+        currentSessionScopeKey !== null &&
+        currentSessionScopeKey !== cleanup.sessionScopeKey
+      ) {
+        acceptedAccountDeletionCleanupRef.current = null;
+        setAccountDeletionState('closed');
+        return;
+      }
+
+      setAccountDeletionState('cleanup_retrying');
+
+      try {
+        await accountDeletionCleanupStore.markPending(cleanup.phoneNumber);
+      } catch {
+        console.warn(
+          '[AccountDeletion] Exact local cleanup remains pending.',
+        );
+        setAccountDeletionState('cleanup_required');
+        return;
+      }
+
+      let priorLogoutFailed = false;
+      try {
+        if (logoutInFlight.current) {
+          await logoutInFlight.current;
+        }
+      } catch {
+        priorLogoutFailed = true;
+      }
+
+      const refreshedSessionScopeKey = getAuthSessionScopeKey(
+        authSessionCoordinator.getCurrentSession(),
+      );
+      if (
+        refreshedSessionScopeKey !== null &&
+        refreshedSessionScopeKey !== cleanup.sessionScopeKey
+      ) {
+        acceptedAccountDeletionCleanupRef.current = null;
+        setAccountDeletionState('closed');
+        return;
+      }
+
+      let invalidationFailed = false;
+      try {
+        await authSessionCoordinator.invalidate();
+      } catch {
+        invalidationFailed = true;
+      }
+
+      const cleanupResults = await Promise.allSettled([
+        authSessionStore.clearExactly(),
+        userStateStore.clear(),
+        learningEventSyncRepository.clearAccount(cleanup.phoneNumber),
+        mutationQueueRepository.clear(),
+      ]);
+      const cleanupFailed = cleanupResults.some(
+        result => result.status === 'rejected',
+      );
+
+      resetRuntimeAfterLogout(null);
+
+      if (
+        priorLogoutFailed ||
+        invalidationFailed ||
+        cleanupFailed
+      ) {
+        console.warn(
+          '[AccountDeletion] Exact local cleanup remains pending.',
+        );
+        setAccountDeletionState('cleanup_required');
+        return;
+      }
+
+      try {
+        await accountDeletionCleanupStore.clear();
+      } catch {
+        console.warn(
+          '[AccountDeletion] Exact local cleanup remains pending.',
+        );
+        setAccountDeletionState('cleanup_required');
+        return;
+      }
+
+      acceptedAccountDeletionCleanupRef.current = null;
+      setAccountDeletionState('accepted');
+    })();
+
+    accountDeletionCleanupInFlight.current = cleanupTask;
+    cleanupTask.finally(() => {
+      if (accountDeletionCleanupInFlight.current === cleanupTask) {
+        accountDeletionCleanupInFlight.current = null;
+      }
+    });
+    return cleanupTask;
+  }, [
+    accountDeletionCleanupStore,
+    authSessionCoordinator,
+    authSessionStore,
+    learningEventSyncRepository,
+    mutationQueueRepository,
+    resetRuntimeAfterLogout,
+    userStateStore,
+  ]);
+  const submitAccountDeletion = useCallback(() => {
+    if (
+      accountDeletionRepository === null ||
+      accountDeletionInFlight.current !== null ||
+      (accountDeletionState !== 'confirmation' &&
+        accountDeletionState !== 'recoverable_unknown')
+    ) {
+      return accountDeletionInFlight.current ?? Promise.resolve();
+    }
+
+    let origin = accountDeletionOriginRef.current;
+
+    if (accountDeletionState === 'confirmation') {
+      const originSession = authSessionCoordinator.getCurrentSession();
+      const originSessionScopeKey = getAuthSessionScopeKey(originSession);
+
+      if (
+        originSession === null ||
+        originSessionScopeKey === null ||
+        !isRemoteAuthSession(originSession)
+      ) {
+        accountDeletionOriginRef.current = null;
+        setAccountDeletionState('closed');
+        return Promise.resolve();
+      }
+
+      origin = {
+        session: originSession,
+        sessionScopeKey: originSessionScopeKey,
+      };
+      accountDeletionOriginRef.current = origin;
+    }
+
+    if (origin === null) {
+      setAccountDeletionState('closed');
+      return Promise.resolve();
+    }
+
+    const currentSessionScopeKey = getAuthSessionScopeKey(
+      authSessionCoordinator.getCurrentSession(),
+    );
+    if (
+      currentSessionScopeKey !== null &&
+      currentSessionScopeKey !== origin.sessionScopeKey
+    ) {
+      accountDeletionOriginRef.current = null;
+      setAccountDeletionState('closed');
+      return Promise.resolve();
+    }
+
+    setAccountDeletionState('submitting');
+
+    const task = (async () => {
+      try {
+        await accountDeletionRepository.requestDeletion({
+          accessToken: origin.session.accessToken,
+          tokenType: origin.session.tokenType,
+        });
+
+        const responseSessionScopeKey = getAuthSessionScopeKey(
+          authSessionCoordinator.getCurrentSession(),
+        );
+        if (
+          responseSessionScopeKey !== null &&
+          responseSessionScopeKey !== origin.sessionScopeKey
+        ) {
+          accountDeletionOriginRef.current = null;
+          setAccountDeletionState('closed');
+          return;
+        }
+
+        accountDeletionOriginRef.current = null;
+        acceptedAccountDeletionCleanupRef.current = {
+          phoneNumber: origin.session.phoneNumber,
+          sessionScopeKey: origin.sessionScopeKey,
+        };
+        await completeAcceptedAccountDeletionCleanup();
+      } catch {
+        const failureSessionScopeKey = getAuthSessionScopeKey(
+          authSessionCoordinator.getCurrentSession(),
+        );
+
+        if (
+          failureSessionScopeKey !== null &&
+          failureSessionScopeKey !== origin.sessionScopeKey
+        ) {
+          accountDeletionOriginRef.current = null;
+          setAccountDeletionState('closed');
+          return;
+        }
+
+        setAccountDeletionState('recoverable_unknown');
+      }
+    })();
+
+    accountDeletionInFlight.current = task;
+    task.finally(() => {
+      if (accountDeletionInFlight.current === task) {
+        accountDeletionInFlight.current = null;
+      }
+    });
+    return task;
+  }, [
+    accountDeletionRepository,
+    accountDeletionState,
+    authSessionCoordinator,
+    completeAcceptedAccountDeletionCleanup,
+  ]);
   const { width, height, fontScale } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const usesAccessibilityLayout = fontScale >= 1.3;
@@ -853,6 +1179,15 @@ function AppShell({
   const isAuthenticated = authState.stage === 'authenticated';
   const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
   const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
+  useEffect(() => {
+    if (authState.stage === 'authenticated') {
+      return;
+    }
+
+    setAccountDeletionState(current =>
+      current === 'confirmation' ? 'closed' : current,
+    );
+  }, [authState.stage]);
   const membershipAccess = resolveMembershipAccess(membershipState);
   const readSpaceCardState = useCallback(
     (
@@ -2511,6 +2846,18 @@ function AppShell({
     let restoringAccountPhoneNumber: string | null = null;
 
     const hydratePersistence = async () => {
+      const pendingAccountDeletionCleanup =
+        await accountDeletionCleanupStore.load();
+
+      if (pendingAccountDeletionCleanup !== null) {
+        acceptedAccountDeletionCleanupRef.current = {
+          phoneNumber: pendingAccountDeletionCleanup.phoneNumber,
+          sessionScopeKey: null,
+        };
+        await completeAcceptedAccountDeletionCleanup();
+        return;
+      }
+
       const session = await authSessionCoordinator.restore(restoredSession => {
         restoringSessionScopeKey = getAuthSessionScopeKey(restoredSession);
         restoringAccountPhoneNumber = restoredSession.phoneNumber;
@@ -2587,7 +2934,11 @@ function AppShell({
     return () => {
       isCancelled = true;
     };
-  }, [authSessionCoordinator]);
+  }, [
+    accountDeletionCleanupStore,
+    authSessionCoordinator,
+    completeAcceptedAccountDeletionCleanup,
+  ]);
 
   useEffect(() => {
     if (!persistenceHydrated || !isAuthenticated || !canWriteAccountState) {
@@ -2776,6 +3127,18 @@ function AppShell({
     }
 
     let isCancelled = false;
+    const membershipRefreshSession =
+      authSessionCoordinator.getCurrentSession();
+    const membershipRefreshSessionScopeKey = getAuthSessionScopeKey(
+      membershipRefreshSession,
+    );
+    if (
+      membershipRefreshSessionScopeKey === null ||
+      membershipRefreshSession?.phoneNumber !==
+        authenticatedRuntimeContext.phoneNumber
+    ) {
+      return;
+    }
     pendingMembershipRefreshKey.current = activeMembershipRefreshKey;
 
     membershipRepository
@@ -2805,9 +3168,11 @@ function AppShell({
         }
 
         if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-            () => undefined,
-          );
+          clearOriginSessionAfterAuthorizationError(
+            error,
+            membershipRefreshSessionScopeKey,
+            authenticatedRuntimeContext.phoneNumber,
+          ).catch(() => undefined);
           return;
         }
 
@@ -2839,8 +3204,9 @@ function AppShell({
   }, [
     activeMembershipRefreshKey,
     authenticatedRuntimeContext,
-    clearAuthenticatedSession,
+    authSessionCoordinator,
     canWriteAccountState,
+    clearOriginSessionAfterAuthorizationError,
     isAuthenticated,
     membershipPendingAction,
     membershipRepository,
@@ -2978,6 +3344,22 @@ function AppShell({
     let isCancelled = false;
 
     if (authenticatedRuntimeContext === null) {
+      setLearningSession(null);
+      setLearningCardState(null);
+      setLearningBootstrapStatus('error');
+      setLearningBootstrapError('当前登录状态不可用，本轮卡片无法加载。');
+      return;
+    }
+
+    const learningLoadSession = authSessionCoordinator.getCurrentSession();
+    const learningLoadSessionScopeKey = getAuthSessionScopeKey(
+      learningLoadSession,
+    );
+    if (
+      learningLoadSessionScopeKey === null ||
+      learningLoadSession?.phoneNumber !==
+        authenticatedRuntimeContext.phoneNumber
+    ) {
       setLearningSession(null);
       setLearningCardState(null);
       setLearningBootstrapStatus('error');
@@ -3125,9 +3507,11 @@ function AppShell({
         }
 
         if (isRemoteAuthorizationError(error)) {
-          clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-            () => undefined,
-          );
+          clearOriginSessionAfterAuthorizationError(
+            error,
+            learningLoadSessionScopeKey,
+            authenticatedRuntimeContext.phoneNumber,
+          ).catch(() => undefined);
           return;
         }
 
@@ -3151,9 +3535,10 @@ function AppShell({
     };
   }, [
     accountBootstrapSnapshot,
+    authSessionCoordinator,
     createTrackedLearningCardState,
     authenticatedRuntimeContext,
-    clearAuthenticatedSession,
+    clearOriginSessionAfterAuthorizationError,
     isAuthenticated,
     learningBootstrapStatus,
     learningTrack,
@@ -3531,6 +3916,18 @@ function AppShell({
       let establishedSessionScopeKey: string | null = null;
 
       (async () => {
+        const pendingAccountDeletionCleanup =
+          await accountDeletionCleanupStore.load();
+        if (pendingAccountDeletionCleanup !== null) {
+          acceptedAccountDeletionCleanupRef.current = {
+            phoneNumber: pendingAccountDeletionCleanup.phoneNumber,
+            sessionScopeKey: null,
+          };
+          await completeAcceptedAccountDeletionCleanup();
+          throw new Error(
+            'Account deletion cleanup must finish before authentication.',
+          );
+        }
         const session = await authRepository.verifySmsCode({
           challenge,
           phoneNumber,
@@ -3654,6 +4051,16 @@ function AppShell({
         return;
       }
 
+      const purchaseSession = authSessionCoordinator.getCurrentSession();
+      const purchaseSessionScopeKey = getAuthSessionScopeKey(purchaseSession);
+      if (
+        purchaseSessionScopeKey === null ||
+        purchaseSession?.phoneNumber !== authenticatedRuntimeContext.phoneNumber
+      ) {
+        setMembershipError('登录状态已失效，请重新登录后再继续。');
+        return;
+      }
+
       setMembershipPendingAction('purchase');
       membershipRepository
         .purchase(authenticatedRuntimeContext, membershipState)
@@ -3663,9 +4070,12 @@ function AppShell({
         })
         .catch((error: unknown) => {
           if (isRemoteAuthorizationError(error)) {
-            clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-              () => undefined,
-            );
+            setMembershipPendingAction(null);
+            clearOriginSessionAfterAuthorizationError(
+              error,
+              purchaseSessionScopeKey,
+              authenticatedRuntimeContext.phoneNumber,
+            ).catch(() => undefined);
             return;
           }
 
@@ -3714,6 +4124,16 @@ function AppShell({
         return;
       }
 
+      const dismissSession = authSessionCoordinator.getCurrentSession();
+      const dismissSessionScopeKey = getAuthSessionScopeKey(dismissSession);
+      if (
+        dismissSessionScopeKey === null ||
+        dismissSession?.phoneNumber !== authenticatedRuntimeContext.phoneNumber
+      ) {
+        setMembershipError('登录状态已失效，请重新登录后再继续。');
+        return;
+      }
+
       setMembershipPendingAction('dismiss_recovery');
       membershipRepository
         .dismissRecovery(authenticatedRuntimeContext, membershipState)
@@ -3724,9 +4144,12 @@ function AppShell({
         })
         .catch((error: unknown) => {
           if (isRemoteAuthorizationError(error)) {
-            clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-              () => undefined,
-            );
+            setMembershipPendingAction(null);
+            clearOriginSessionAfterAuthorizationError(
+              error,
+              dismissSessionScopeKey,
+              authenticatedRuntimeContext.phoneNumber,
+            ).catch(() => undefined);
             return;
           }
 
@@ -4225,9 +4648,11 @@ function AppShell({
             return;
           }
           if (isRemoteAuthorizationError(error)) {
-            clearAuthenticatedSession('登录已失效，请重新验证手机号。').catch(
-              () => undefined,
-            );
+            clearOriginSessionAfterAuthorizationError(
+              error,
+              continuationScopeKey,
+              continuationSession.phoneNumber,
+            ).catch(() => undefined);
             return;
           }
           setLearningRoundContinuePending(false);
@@ -4587,6 +5012,7 @@ function AppShell({
     />
   ) : route.key === 'mine' ? (
     <MineSurface
+      accountDeletionAvailable={accountDeletionRepository !== null}
       authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       checkedInDayKey={checkedInDayKey}
@@ -4600,6 +5026,7 @@ function AppShell({
       membershipPendingAction={membershipPendingAction}
       membershipRepositoryMode={runtimeMembershipRepositoryMode}
       membershipState={membershipState}
+      onOpenAccountDeletion={openAccountDeletionConfirmation}
       onGoToLearning={() => {
         startTransition(() => {
           setActiveRoute('learning');
@@ -4758,6 +5185,10 @@ function AppShell({
       syncStatusLabel={progressSyncState.label}
     />
   ) : null;
+  const isAccountDeletionSheetVisible =
+    accountDeletionState === 'confirmation' ||
+    accountDeletionState === 'submitting' ||
+    accountDeletionState === 'recoverable_unknown';
 
   return (
     <SafeAreaView
@@ -4769,8 +5200,37 @@ function AppShell({
         translucent={false}
       />
       <AppCanvasBackdrop palette={palette} />
-      <View style={styles.safeAreaBody}>
-        {deviceClass === 'tablet' ? (
+      <View
+        accessibilityElementsHidden={isAccountDeletionSheetVisible}
+        importantForAccessibility={
+          isAccountDeletionSheetVisible ? 'no-hide-descendants' : 'auto'
+        }
+        style={styles.safeAreaBody}
+      >
+        {accountDeletionState === 'accepted' ? (
+          <AccountDeletionAcceptedSurface
+            onReturnToVerification={() => {
+              setAccountDeletionState('closed');
+              startTransition(() => {
+                setActiveRoute('mine');
+                setLearningScreen('practice');
+                setSpaceScreen('overview');
+              });
+            }}
+            palette={palette}
+          />
+        ) : accountDeletionState === 'cleanup_required' ||
+          accountDeletionState === 'cleanup_retrying' ? (
+          <AccountDeletionCleanupSurface
+            onRetry={() => {
+              completeAcceptedAccountDeletionCleanup().catch(
+                () => undefined,
+              );
+            }}
+            palette={palette}
+            pending={accountDeletionState === 'cleanup_retrying'}
+          />
+        ) : deviceClass === 'tablet' ? (
           <TabletShell
             activeRoute={activeRoute}
             authState={authState}
@@ -4790,6 +5250,12 @@ function AppShell({
           />
         )}
       </View>
+      <AccountDeletionSheet
+        onCancel={closeAccountDeletionSheet}
+        onSubmit={submitAccountDeletion}
+        palette={palette}
+        state={accountDeletionState}
+      />
     </SafeAreaView>
   );
 }
@@ -4965,6 +5431,462 @@ function LearningSleepSurface({
         </Pressable>
       )}
     </View>
+  );
+}
+
+function AccountDeletionCleanupSurface({
+  onRetry,
+  palette,
+  pending,
+}: {
+  onRetry: () => void;
+  palette: Palette;
+  pending: boolean;
+}) {
+  const headingRef = useRef<React.ElementRef<typeof Text>>(null);
+
+  useEffect(() => {
+    AccessibilityInfo.announceForAccessibility(
+      pending
+        ? '删除申请已接收。正在清理这台设备上的账户数据。'
+        : '删除申请已接收。本机账户数据尚未清理完成，请重试。',
+    );
+    const headingHandle = findNodeHandle(headingRef.current);
+    if (headingHandle !== null) {
+      AccessibilityInfo.setAccessibilityFocus(headingHandle);
+    }
+  }, [pending]);
+
+  return (
+    <ScrollView
+      accessibilityLiveRegion="assertive"
+      contentContainerStyle={styles.accountDeletionAcceptedScreen}
+      showsVerticalScrollIndicator={false}
+      style={styles.accountDeletionAcceptedScroll}
+      testID="account-deletion-cleanup-screen"
+    >
+      <View
+        style={[
+          styles.accountDeletionAcceptedCard,
+          { backgroundColor: palette.panel, borderColor: palette.border },
+        ]}
+      >
+        <View
+          style={[
+            styles.accountDeletionAcceptedMark,
+            { backgroundColor: hexToRgba(palette.warning, 0.12) },
+          ]}
+        >
+          <Text
+            style={[
+              styles.accountDeletionAcceptedMarkLabel,
+              { color: palette.warning },
+            ]}
+          >
+            !
+          </Text>
+        </View>
+        <Text
+          accessibilityRole="header"
+          ref={headingRef}
+          style={[styles.accountDeletionAcceptedTitle, { color: palette.text }]}
+        >
+          删除申请已接收
+        </Text>
+        <Text
+          style={[
+            styles.accountDeletionAcceptedSummary,
+            { color: palette.textMuted },
+          ]}
+        >
+          当前账户已不能继续使用，但这台设备上的账户数据还没有全部清理完成。请重新完成本机退出。
+        </Text>
+        <View
+          style={[
+            styles.accountDeletionBoundaryNote,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.accountDeletionBoundaryText,
+              { color: palette.textMuted },
+            ]}
+          >
+            这里仍不表示服务端账户数据已经全部清理完成。
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          disabled={pending}
+          onPress={onRetry}
+          style={[
+            styles.accountDeletionPrimaryButton,
+            {
+              backgroundColor: pending
+                ? hexToRgba(palette.accent, 0.1)
+                : palette.accent,
+            },
+          ]}
+          testID="account-deletion-cleanup-retry-button"
+        >
+          <Text
+            style={[
+              styles.accountDeletionPrimaryButtonLabel,
+              {
+                color: pending
+                  ? palette.accent
+                  : palette.primaryActionText,
+              },
+            ]}
+          >
+            {pending ? '正在清理本机数据' : '重新完成本机退出'}
+          </Text>
+        </Pressable>
+      </View>
+    </ScrollView>
+  );
+}
+
+function AccountDeletionAcceptedSurface({
+  onReturnToVerification,
+  palette,
+}: {
+  onReturnToVerification: () => void;
+  palette: Palette;
+}) {
+  const headingRef = useRef<React.ElementRef<typeof Text>>(null);
+
+  useEffect(() => {
+    AccessibilityInfo.announceForAccessibility(
+      '删除申请已提交。当前账户已退出，账户数据仍在继续清理。',
+    );
+    const headingHandle = findNodeHandle(headingRef.current);
+    if (headingHandle !== null) {
+      AccessibilityInfo.setAccessibilityFocus(headingHandle);
+    }
+  }, []);
+
+  return (
+    <ScrollView
+      accessibilityLiveRegion="polite"
+      contentContainerStyle={styles.accountDeletionAcceptedScreen}
+      showsVerticalScrollIndicator={false}
+      style={styles.accountDeletionAcceptedScroll}
+      testID="account-deletion-accepted-screen"
+    >
+      <View
+        style={[
+          styles.accountDeletionAcceptedCard,
+          { backgroundColor: palette.panel, borderColor: palette.border },
+        ]}
+      >
+        <View
+          style={[
+            styles.accountDeletionAcceptedMark,
+            { backgroundColor: hexToRgba(palette.success, 0.12) },
+          ]}
+        >
+          <Text
+            style={[
+              styles.accountDeletionAcceptedMarkLabel,
+              { color: palette.success },
+            ]}
+          >
+            ✓
+          </Text>
+        </View>
+        <Text
+          accessibilityRole="header"
+          ref={headingRef}
+          style={[styles.accountDeletionAcceptedTitle, { color: palette.text }]}
+        >
+          删除申请已提交
+        </Text>
+        <Text
+          style={[
+            styles.accountDeletionAcceptedSummary,
+            { color: palette.textMuted },
+          ]}
+        >
+          当前账户已退出，学习记录和账户数据会继续清理。清理完成前，这个手机号暂时不能再次登录。
+        </Text>
+        <View
+          style={[
+            styles.accountDeletionBoundaryNote,
+            {
+              backgroundColor: palette.panelStrong,
+              borderColor: palette.border,
+            },
+          ]}
+          testID="account-deletion-boundary-note"
+        >
+          <Text
+            style={[
+              styles.accountDeletionBoundaryText,
+              { color: palette.textMuted },
+            ]}
+          >
+            这表示申请已经被接收，不表示所有数据已经在这一刻清理完成。
+          </Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onReturnToVerification}
+          style={[
+            styles.accountDeletionPrimaryButton,
+            { backgroundColor: palette.accent },
+          ]}
+          testID="account-deletion-return-to-verification"
+        >
+          <Text
+            style={[
+              styles.accountDeletionPrimaryButtonLabel,
+              { color: palette.primaryActionText },
+            ]}
+          >
+            返回手机号验证
+          </Text>
+        </Pressable>
+      </View>
+    </ScrollView>
+  );
+}
+
+function AccountDeletionSheet({
+  onCancel,
+  onSubmit,
+  palette,
+  state,
+}: {
+  onCancel: () => void;
+  onSubmit: () => Promise<void>;
+  palette: Palette;
+  state: AccountDeletionPresentationState;
+}) {
+  const visible =
+    state === 'confirmation' ||
+    state === 'submitting' ||
+    state === 'recoverable_unknown';
+
+  if (!visible) {
+    return null;
+  }
+
+  const isConfirmation = state === 'confirmation';
+  const isSubmitting = state === 'submitting';
+
+  return (
+    <Modal
+      animationType="fade"
+      onRequestClose={isSubmitting ? () => undefined : onCancel}
+      statusBarTranslucent
+      transparent
+      visible
+    >
+      <View
+        accessibilityViewIsModal
+        importantForAccessibility="yes"
+        style={styles.accountDeletionModal}
+        testID="account-deletion-modal"
+      >
+        <ScrollView
+          contentContainerStyle={styles.accountDeletionModalScrollContent}
+          showsVerticalScrollIndicator={false}
+          style={styles.accountDeletionModalScroll}
+        >
+          <View
+            style={[
+              styles.accountDeletionSheet,
+              { backgroundColor: palette.panel, borderColor: palette.border },
+            ]}
+            testID={`account-deletion-${state}`}
+          >
+            <View
+              style={[
+                styles.accountDeletionSheetHandle,
+                { backgroundColor: palette.border },
+              ]}
+            />
+            <Text
+              style={[
+                styles.accountDeletionSheetKicker,
+                { color: palette.danger },
+              ]}
+            >
+              删除学习账户
+            </Text>
+            <Text
+              accessibilityRole="header"
+              style={[
+                styles.accountDeletionSheetTitle,
+                { color: palette.text },
+              ]}
+            >
+              {isConfirmation
+                ? '确认永久删除这个账户？'
+                : isSubmitting
+                ? '正在提交删除申请'
+                : '还没有收到确认'}
+            </Text>
+            <Text
+              style={[
+                styles.accountDeletionSheetSummary,
+                { color: palette.textMuted },
+              ]}
+            >
+              {isConfirmation
+                ? '删除申请提交后会退出当前账号，学习进度、空间位置、签到与会员归属都会进入清理。'
+                : isSubmitting
+                ? '请保持当前画面，等待这次申请得到确认。'
+                : '现在无法判断申请是否已经被接收。重试会继续确认同一次删除，不会新建另一份申请。'}
+            </Text>
+
+            {isConfirmation ? (
+            <View
+              style={[
+                styles.accountDeletionConsequence,
+                {
+                  backgroundColor: hexToRgba(palette.danger, 0.06),
+                  borderColor: hexToRgba(palette.danger, 0.14),
+                },
+              ]}
+              testID="account-deletion-consequences"
+            >
+              {[
+                '无法撤销这次申请',
+                '清理完成前不能再次登录',
+                '完成后可以重新注册一个空账户',
+              ].map(item => (
+                <Text
+                  key={item}
+                  style={[
+                    styles.accountDeletionConsequenceText,
+                    { color: palette.text },
+                  ]}
+                >
+                  • {item}
+                </Text>
+              ))}
+            </View>
+            ) : (
+            <View
+              accessibilityLiveRegion={isSubmitting ? 'polite' : 'assertive'}
+              style={[
+                styles.accountDeletionStateCard,
+                {
+                  backgroundColor: isSubmitting
+                    ? palette.panelStrong
+                    : hexToRgba(palette.warning, 0.1),
+                  borderColor: isSubmitting
+                    ? palette.border
+                    : hexToRgba(palette.warning, 0.24),
+                },
+              ]}
+              testID="account-deletion-state-card"
+            >
+              <Text
+                style={[
+                  styles.accountDeletionStateMark,
+                  { color: isSubmitting ? palette.accent : palette.warning },
+                ]}
+              >
+                {isSubmitting ? '…' : '!'}
+              </Text>
+              <View style={styles.accountDeletionStateCopy}>
+                <Text
+                  style={[
+                    styles.accountDeletionStateTitle,
+                    { color: palette.text },
+                  ]}
+                >
+                  {isSubmitting ? '正在确认' : '结果尚未确认'}
+                </Text>
+                <Text
+                  style={[
+                    styles.accountDeletionStateDetail,
+                    { color: palette.textMuted },
+                  ]}
+                >
+                  {isSubmitting
+                    ? '不会重复提交，也不会提前显示删除完成。'
+                    : '账户数据是否开始清理，当前都不作结论。'}
+                </Text>
+              </View>
+            </View>
+            )}
+
+            {isSubmitting ? (
+            <Pressable
+              accessibilityState={{disabled: true}}
+              disabled
+              style={[
+                styles.accountDeletionPrimaryButton,
+                { backgroundColor: hexToRgba(palette.accent, 0.1) },
+              ]}
+              testID="account-deletion-submitting-button"
+            >
+              <Text
+                style={[
+                  styles.accountDeletionPrimaryButtonLabel,
+                  { color: palette.accent },
+                ]}
+              >
+                正在提交
+              </Text>
+            </Pressable>
+            ) : (
+            <View style={styles.accountDeletionSheetActions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onCancel}
+                style={[
+                  styles.accountDeletionSecondaryButton,
+                  {
+                    backgroundColor: palette.panelStrong,
+                    borderColor: palette.border,
+                  },
+                ]}
+                testID="account-deletion-cancel-button"
+              >
+                <Text
+                  style={[
+                    styles.accountDeletionSecondaryButtonLabel,
+                    { color: palette.text },
+                  ]}
+                >
+                  {isConfirmation ? '保留账户' : '返回我的'}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  onSubmit().catch(() => undefined);
+                }}
+                style={[
+                  styles.accountDeletionDangerButton,
+                  { backgroundColor: palette.danger },
+                ]}
+                testID="account-deletion-submit-button"
+              >
+                <Text
+                  style={[
+                    styles.accountDeletionDangerButtonLabel,
+                    { color: palette.panel },
+                  ]}
+                >
+                  {isConfirmation ? '确认删除账户' : '重新确认'}
+                </Text>
+              </Pressable>
+            </View>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
 
@@ -5871,6 +6793,7 @@ function AuthGate({
 }
 
 function MineSurface({
+  accountDeletionAvailable,
   authRepositoryMode,
   authState,
   checkedInDayKey,
@@ -5885,6 +6808,7 @@ function MineSurface({
   membershipPendingAction,
   membershipRepositoryMode,
   membershipState,
+  onOpenAccountDeletion,
   onGoToLearning,
   onGoToSpace,
   onGoToStatistics,
@@ -5894,6 +6818,7 @@ function MineSurface({
   sleepingCount,
   todayKey,
 }: {
+  accountDeletionAvailable: boolean;
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
@@ -5912,6 +6837,7 @@ function MineSurface({
     | null;
   membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
+  onOpenAccountDeletion: () => void;
   onGoToLearning: () => void;
   onGoToSpace: () => void;
   onGoToStatistics: () => void;
@@ -6285,6 +7211,63 @@ function MineSurface({
             membershipState={membershipState}
             palette={palette}
           />
+          {accountDeletionAvailable ? (
+            <View
+              style={[
+                styles.mineAccountPrivacyCard,
+                isCompactPhone ? styles.mineAccountPrivacyCardCompact : null,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: hexToRgba(palette.danger, 0.14),
+                },
+              ]}
+              testID="mine-account-privacy-card"
+            >
+              <View style={styles.mineAccountPrivacyCopy}>
+                <Text
+                  style={[
+                    styles.mineAccountPrivacyLabel,
+                    { color: palette.text },
+                  ]}
+                >
+                  隐私与账户
+                </Text>
+                {isCompactPhone ? null : (
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.mineAccountPrivacyDetail,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    永久删除需要再次确认
+                  </Text>
+                )}
+              </View>
+              <Pressable
+                accessibilityHint="打开账户删除后果确认"
+                accessibilityRole="button"
+                onPress={onOpenAccountDeletion}
+                style={[
+                  styles.mineAccountDeleteButton,
+                  {
+                    backgroundColor: hexToRgba(palette.danger, 0.08),
+                    borderColor: hexToRgba(palette.danger, 0.18),
+                  },
+                ]}
+                testID="mine-account-delete-button"
+              >
+                <Text
+                  style={[
+                    styles.mineAccountDeleteButtonLabel,
+                    { color: palette.danger },
+                  ]}
+                >
+                  删除账户
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
         </View>
       </View>
     </View>
@@ -8846,6 +9829,198 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
+  accountDeletionAcceptedScreen: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+  },
+  accountDeletionAcceptedScroll: {
+    flex: 1,
+  },
+  accountDeletionAcceptedCard: {
+    alignItems: 'stretch',
+    borderRadius: 28,
+    borderWidth: 0,
+    gap: 14,
+    maxWidth: 560,
+    paddingHorizontal: 22,
+    paddingVertical: 28,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.1,
+    shadowRadius: 34,
+    width: '100%',
+    elevation: 5,
+  },
+  accountDeletionAcceptedMark: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    borderRadius: 999,
+    height: 56,
+    justifyContent: 'center',
+    width: 56,
+  },
+  accountDeletionAcceptedMarkLabel: {
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  accountDeletionAcceptedTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    lineHeight: 33,
+    textAlign: 'center',
+  },
+  accountDeletionAcceptedSummary: {
+    fontSize: 15,
+    lineHeight: 23,
+    textAlign: 'center',
+  },
+  accountDeletionBoundaryNote: {
+    borderRadius: 18,
+    borderWidth: 0,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  accountDeletionBoundaryText: {
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  accountDeletionModal: {
+    backgroundColor: 'rgba(28, 22, 48, 0.48)',
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 56,
+  },
+  accountDeletionModalScroll: {
+    flex: 1,
+    width: '100%',
+  },
+  accountDeletionModalScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+  },
+  accountDeletionSheet: {
+    alignSelf: 'center',
+    borderRadius: 28,
+    borderWidth: 0,
+    gap: 13,
+    maxWidth: 560,
+    paddingHorizontal: 18,
+    paddingBottom: 20,
+    paddingTop: 10,
+    shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 30,
+    width: '100%',
+    elevation: 12,
+  },
+  accountDeletionSheetHandle: {
+    alignSelf: 'center',
+    borderRadius: 999,
+    height: 4,
+    marginBottom: 2,
+    width: 46,
+  },
+  accountDeletionSheetKicker: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  accountDeletionSheetTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    lineHeight: 30,
+  },
+  accountDeletionSheetSummary: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  accountDeletionConsequence: {
+    borderRadius: 18,
+    borderWidth: 0,
+    gap: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  accountDeletionConsequenceText: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  accountDeletionStateCard: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 0,
+    flexDirection: 'row',
+    gap: 11,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+  },
+  accountDeletionStateMark: {
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    width: 30,
+  },
+  accountDeletionStateCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  accountDeletionStateTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  accountDeletionStateDetail: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  accountDeletionSheetActions: {
+    flexDirection: 'row',
+    gap: 9,
+  },
+  accountDeletionPrimaryButton: {
+    alignItems: 'center',
+    borderRadius: 18,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  accountDeletionPrimaryButtonLabel: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  accountDeletionSecondaryButton: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  accountDeletionSecondaryButtonLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  accountDeletionDangerButton: {
+    alignItems: 'center',
+    borderRadius: 18,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
+  accountDeletionDangerButtonLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
   mineScreen: {
     flex: 1,
     gap: 8,
@@ -9042,6 +10217,48 @@ const styles = StyleSheet.create({
     flex: 0,
     gap: 5,
     justifyContent: 'flex-start',
+  },
+  mineAccountPrivacyCard: {
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: 0,
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 48,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  mineAccountPrivacyCardCompact: {
+    minHeight: 44,
+    paddingVertical: 4,
+  },
+  mineAccountPrivacyCopy: {
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
+  },
+  mineAccountPrivacyLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  mineAccountPrivacyDetail: {
+    fontSize: 10,
+    fontWeight: '600',
+    lineHeight: 14,
+  },
+  mineAccountDeleteButton: {
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 0,
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: 92,
+    paddingHorizontal: 12,
+  },
+  mineAccountDeleteButtonLabel: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   mineActionRail: {
     flex: 1,

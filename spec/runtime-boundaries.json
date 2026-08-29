@@ -370,7 +370,7 @@
     "completion_boundary": "verify_idempotent_erasure_then_remove_task_last_no_tombstone_clean_re_registration_after_completion",
     "deployment_shape": "receiver_delivery_deploys_softbook_api_and_secret_free_softbook_account_deletion_worker_with_one_minute_timer_then_rereads_exact_worker_handler_runtime_timeout_empty_variable_set_and_trigger_configuration",
     "repository_validation_gate_eligible": false,
-    "implementation_status": "worker_repository_handler_retry_lease_collection_coverage_re_registration_and_receiver_deploy_plan_implemented_locally",
+    "implementation_status": "worker_repository_handler_retry_lease_collection_coverage_re_registration_receiver_deploy_plan_and_mobile_captured_session_exact_202_unknown_retry_verified_restart_safe_cleanup_implemented_locally",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending_receiver_execution_monitoring_provider_cleanup_and_completed_deletion_drill"
   },
@@ -454,6 +454,7 @@
     "membership_state": "reload_from_server_authority_after_auth_session_restore",
     "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state; persisted mutation payloads and identifiers contain no credentials, context contains phone_number only, legacy credential-bearing membership identifiers are normalized during hydration, legacy sync_learning_state entries are discarded, only complete consistent checked-in sync_daily_progress entries migrate to counter-free check_in_daily_progress commands, valid sync_space_state cards migrate to deterministic favorite and sleep actions, every original snapshot is discarded, serialized candidate persistence changes memory only after storage succeeds, replay results remove or retry only the exact unchanged head entry, and the current access token is injected in memory during replay",
     "learning_event_outbox": "learning-event-outbox.v2 is persisted under an independent AsyncStorage key; it stores immutable credential-free selection-bound events, account ownership for local isolation, a pseudonymous installation ID, and the next monotonic device sequence; the unbound v1 key is removed without replay, and acknowledgements remove only matching accepted-or-duplicate events",
+    "account_deletion_cleanup": "after an exact deletion 202, account-deletion-local-cleanup.v1 with only the owner phone must be written and read back exactly before any account store is destroyed; marker write or read failure performs zero auth, user, outbox, or mutation cleanup; after marker proof, exact auth, user state, account outbox, active queue, and quarantine clearing is reread and verified, the marker survives later failure or restart and blocks ordinary auth hydration, and it is removed and reread as absent only before accepted presentation",
     "logout": "attempt server session revocation first, then write the local auth revocation marker and clear secure auth, user state, the generic account-bound mutation queue, and the signed-out account's learning event outbox entries before presenting logged-out runtime state; preserve the installation ID and next event sequence, and complete local cleanup when the server is unavailable"
   },
   "decision_rule": {

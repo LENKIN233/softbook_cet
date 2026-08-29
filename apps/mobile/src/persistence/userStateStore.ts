@@ -74,7 +74,13 @@ export function createUserStateStore(
 
   return {
     clear() {
-      return enqueueWrite(() => storage.removeItem(USER_STATE_STORAGE_KEY));
+      return enqueueWrite(async () => {
+        await storage.removeItem(USER_STATE_STORAGE_KEY);
+
+        if ((await storage.getItem(USER_STATE_STORAGE_KEY)) !== null) {
+          throw new Error('User state cleanup verification failed.');
+        }
+      });
     },
 
     async load(phoneNumber) {

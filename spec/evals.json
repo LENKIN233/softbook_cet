@@ -996,6 +996,7 @@
         "local_only_must_be_explicit",
         "pull_request_body_contains_specs_summary_validation",
         "exact_diff_model_review_before_merge",
+        "design_gate_rerun_fetches_current_pr_body_instead_of_stale_event_snapshot",
         "no_human_or_user_approval_gate",
         "no_tracked_agent_run_record_for_ordinary_pr",
         "merge_only_blocks_on_review_gate_or_permission_failure",

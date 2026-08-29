@@ -3,6 +3,7 @@ export const DEFAULT_REMOTE_REQUEST_TIMEOUT_MS = 15_000;
 export type RemoteRequestLifecycleReason =
   | 'authorization_invalidated'
   | 'caller_cancelled'
+  | 'session_quarantined'
   | 'session_superseded'
   | 'timeout';
 
@@ -168,6 +169,8 @@ function getRemoteRequestLifecycleMessage(
       return 'Remote request was cancelled.';
     case 'session_superseded':
       return 'Remote request was superseded by a newer session.';
+    case 'session_quarantined':
+      return 'Remote request is paused for account cleanup.';
     case 'timeout':
       return 'Remote request timed out.';
   }
