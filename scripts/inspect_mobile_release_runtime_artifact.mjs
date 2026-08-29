@@ -20,6 +20,15 @@ export function inspectMobileReleaseRuntimeArtifact({
   expectedProfilePath,
   format,
 }) {
+  const expectedStat = lstatSync(expectedProfilePath, {throwIfNoEntry: false});
+  if (
+    !expectedStat?.isFile() ||
+    expectedStat.isSymbolicLink() ||
+    expectedStat.size < 1 ||
+    expectedStat.size > 64 * 1024
+  ) {
+    throw new Error('Expected mobile release runtime profile must be a bounded regular file.');
+  }
   const expectedBytes = readFileSync(expectedProfilePath);
   const expectedProfile = validateCanonicalProfile(expectedBytes, {
     allowRepositoryFixture,

@@ -35,6 +35,10 @@ export function stageMobileReleaseRuntimeProfile({
   if (!bytes.equals(canonicalJsonBytes(profile))) {
     throw new Error('Mobile release runtime profile bytes are not canonical.');
   }
+  const outputStat = lstatSync(outputPath, {throwIfNoEntry: false});
+  if (outputStat && (!outputStat.isFile() || outputStat.isSymbolicLink())) {
+    throw new Error('Mobile release runtime output must be a regular file path.');
+  }
   writeFileSync(outputPath, bytes, {flag: 'w', mode: 0o644});
   return {
     schema_version: 'mobile-release-runtime-profile-stage-report.v1',
