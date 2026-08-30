@@ -61,6 +61,7 @@ const EXPORT_ROOT = join(REPOSITORY_ROOT, "exports", "cloudbase-deployments");
 const TCB = process.env.CLOUDBASE_CLI || "tcb";
 const COMMAND_TIMEOUT_MS = 120_000;
 const DEPLOY_TIMEOUT_MS = 10 * 60_000;
+const HTTP_ROUTE_PROPAGATION_DELAY_MS = 20_000;
 const REPORT_SCHEMA = "cloudbase-dev-deployment-report.v1";
 
 export function parseArguments(argv) {
@@ -600,6 +601,7 @@ function commandDeploy(context) {
       "deployed-verification",
       {fullPackage: true}
     );
+    waitForHttpRoutePropagation(context);
     smokeLifecycleManifest = join(
       context.runDirectory,
       "smoke-lifecycle.json"
@@ -725,6 +727,18 @@ function commandDeploy(context) {
           : "failed",
     });
   }
+}
+
+function waitForHttpRoutePropagation(context) {
+  const startedAt = Date.now();
+  sleep(HTTP_ROUTE_PROPAGATION_DELAY_MS);
+  context.steps.push({
+    command: `bounded HTTP route propagation wait ${HTTP_ROUTE_PROPAGATION_DELAY_MS}ms`,
+    duration_ms: Date.now() - startedAt,
+    label: "http-route-propagation",
+    log: null,
+    status: "passed",
+  });
 }
 
 function commandRollback(context) {
