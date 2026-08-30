@@ -1,17 +1,24 @@
 #!/usr/bin/env node
 
 import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
-import {readFileSync} from 'node:fs';
-import {dirname, resolve} from 'node:path';
+import {createHash, createHmac} from 'node:crypto';
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {
   BetaEntitlementError,
   betaEntitlementInternals,
   planBetaEntitlementMutation,
   publicBetaEntitlementPlan,
+  publicBetaEntitlementState,
   validateBetaEntitlementCommand,
-  verifyAppliedBetaEntitlement,
 } from './beta-entitlement-v1.mjs';
 import {createCloudBaseCommandRunner} from './cloudbase-receiver-adapter.mjs';
 import {
@@ -20,6 +27,8 @@ import {
   redactText,
 } from './deployment-safety.mjs';
 import {
+  buildBackendDeploymentId,
+  inspectApiFunction,
   inspectReceiver,
   receiverDeliveryInternals,
 } from './deliver-release.mjs';
@@ -28,11 +37,13 @@ import {
   validateDeliveryProfile,
 } from './release-delivery-v1.mjs';
 import {parseStrictJson} from '../../scripts/lib/strict_json.mjs';
+import {readPrivateOperatorCommandBytes} from './operator-command-input.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const MEMBERSHIP_COLLECTION = 'softbook_memberships';
 const BETA_ENTITLEMENT_COLLECTION = 'softbook_beta_entitlements';
+const FUNCTION_NAME = 'softbook-api';
 const OPERATOR_PATTERN = /^(model|agent|service|oidc):[A-Za-z0-9_.-]+$/;
 const COMMIT_PATTERN = /^[0-9a-f]{40}$/;
 
@@ -91,7 +102,21 @@ export async function executeBetaEntitlementCommand(
       'beta entitlement commands require a closed_beta delivery profile.',
     );
   }
-  const command = validateBetaEntitlementCommand(readJson(options.commandPath));
+  const commandRead = options.apply
+    ? readPrivateOperatorCommandBytes(options.commandPath, {
+        beforeRead: dependencies.beforeOperatorCommandRead ?? null,
+        createError: message => new BetaEntitlementError(message),
+        git: dependencies.operatorCommandGit ?? execFileSync,
+        headMaterialProbe: dependencies.operatorHeadMaterialProbe ?? null,
+        repositoryRoot: REPOSITORY_ROOT,
+      })
+    : {
+        bytes: readFileSync(resolve(options.commandPath)),
+        checkedHead: null,
+      };
+  const command = validateBetaEntitlementCommand(
+    parseJsonBytes(commandRead.bytes, 'operator JSON input'),
+  );
   const completeReport = report => ({
     ...report,
     execution: {
@@ -101,10 +126,33 @@ export async function executeBetaEntitlementCommand(
     },
   });
   const runner =
-    dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
-  const repository = dependencies.repository ?? readRepositoryState();
+    dependencies.runner ??
+    createCloudBaseCommandRunner({
+      cwd: REPOSITORY_ROOT,
+      env: operatorCredentialFreeEnvironment(process.env),
+    });
+  const repositoryStateReader =
+    dependencies.repositoryStateReader ??
+    (() => dependencies.repository ?? readRepositoryState());
+  const repository = repositoryStateReader();
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
+  if (options.apply) {
+    assertCheckedRepositoryHead(repository, commandRead.checkedHead);
+    requireApplyIdentity({command, repository});
+  }
   const preflight = await inspectReceiver({profile, runner});
+  const backendDeploymentId = buildBackendDeploymentId({
+    profile,
+    repositoryCommit: repository.head,
+  });
+  const backendInspection = options.apply
+    ? await inspectApiFunction({
+        envId: profile.environment_id,
+        expectedDeploymentId: backendDeploymentId,
+        profile,
+        runner,
+      })
+    : null;
   const writeSafety = {
     ...receiverDeliveryInternals.inspectWriteSafety({
       nodeVersion,
@@ -113,8 +161,9 @@ export async function executeBetaEntitlementCommand(
     node_version: nodeVersion,
   };
   const base = {
-    schema_version: 'beta-entitlement-report.v2',
+    schema_version: 'beta-entitlement-report.v3',
     applied: options.apply,
+    backend_deployment_id: backendDeploymentId,
     gate_eligible: false,
     repository_commit: repository.head,
     profile: {
@@ -124,24 +173,85 @@ export async function executeBetaEntitlementCommand(
       runtime_mode: profile.runtime_mode,
     },
     command: {
-      account_fingerprint:
-        betaEntitlementInternals.accountFingerprint(command.phone_number),
       action: command.action,
       actor_id: command.actor_id,
       campaign_id: command.campaign_id,
-      command_sha256: betaEntitlementInternals.hashCanonical(command),
+      command_hmac_sha256: null,
       event_id: command.event_id,
       grant_id: command.grant_id,
     },
     preflight: {
-      errors: preflight.errors,
+      backend_deployment: backendInspection?.public ?? null,
+      backend_deployment_verified: backendInspection?.ok ?? false,
+      errors: [
+        ...preflight.errors,
+        ...(backendInspection?.errors ?? []),
+      ],
       required_collections_present:
         preflight.catalog.required_collections_present,
     },
     write_safety: writeSafety,
   };
-  if (!preflight.ok || !preflight.catalog.required_collections_present) {
+  if (
+    !preflight.ok ||
+    !preflight.catalog.required_collections_present ||
+    (options.apply && !backendInspection?.ok)
+  ) {
     return completeReport({...base, status: 'blocked', writes_performed: false});
+  }
+
+  if (options.apply) {
+    if (!writeSafety.ok) {
+      throw new BetaEntitlementError(writeSafety.errors.join('; '));
+    }
+    const operatorSecret =
+      dependencies.operatorSecret ?? process.env.SOFTBOOK_BETA_OPERATOR_SECRET;
+    if (!isStrongOperatorSecret(operatorSecret)) {
+      throw new BetaEntitlementError(
+        'SOFTBOOK_BETA_OPERATOR_SECRET must be a strong receiver-only secret.',
+      );
+    }
+    const finalRepository = repositoryStateReader();
+    assertCheckedRepositoryHead(finalRepository, commandRead.checkedHead);
+    const finalWriteSafety = receiverDeliveryInternals.inspectWriteSafety({
+      nodeVersion,
+      repository: finalRepository,
+    });
+    if (!finalWriteSafety.ok) {
+      throw new BetaEntitlementError(finalWriteSafety.errors.join('; '));
+    }
+    const applied = await invokeBetaEntitlement({
+      backendDeploymentId,
+      command,
+      operatorSecret,
+      profile,
+      runner,
+    });
+    const stored = await readDocument({
+      collection: BETA_ENTITLEMENT_COLLECTION,
+      command,
+      label: 'verify beta entitlement audit',
+      profile,
+      runner,
+    });
+    verifyInvokedBetaEntitlement(command, applied, stored);
+    return completeReport({
+      ...base,
+      base_membership: {
+        after_sha256: applied.base_membership_sha256,
+        before_sha256: applied.base_membership_sha256,
+        unchanged: true,
+      },
+      beta_state_before: applied.beta_state_before,
+      beta_state: applied.beta_state,
+      command: {
+        ...base.command,
+        command_hmac_sha256: applied.report_command_hmac_sha256,
+      },
+      result: applied.result,
+      status: 'passed',
+      writes_performed: applied.writes_performed,
+    });
   }
 
   const [current, membership] = await Promise.all([
@@ -166,72 +276,20 @@ export async function executeBetaEntitlementCommand(
     membership?.entitlement ?? membership,
   );
   const publicPlan = publicBetaEntitlementPlan(plan);
-  const baseBeforeHash = betaEntitlementInternals.hashCanonical(membership);
-  if (!options.apply) {
-    return completeReport({
-      ...base,
-      base_membership: {
-        after_sha256: baseBeforeHash,
-        before_sha256: baseBeforeHash,
-        unchanged: true,
-      },
-      beta_state: publicBetaState(plan.document),
-      plan: publicPlan,
-      status: 'planned',
-      writes_performed: false,
-    });
-  }
-  if (!writeSafety.ok) {
-    throw new BetaEntitlementError(writeSafety.errors.join('; '));
-  }
-  requireApplyIdentity({command, repository});
-  if (plan.changed) {
-    await writeBetaEntitlement({current, plan, profile, runner});
-  }
-  const stored = await readDocument({
-    collection: BETA_ENTITLEMENT_COLLECTION,
-    command,
-    label: 'verify beta entitlement',
-    profile,
-    runner,
-  });
-  const verified = verifyAppliedBetaEntitlement(plan, stored);
-  const membershipAfter = await readDocument({
-    collection: MEMBERSHIP_COLLECTION,
-    command,
-    label: 'verify base membership unchanged',
-    profile,
-    runner,
-  });
-  const baseAfterHash = betaEntitlementInternals.hashCanonical(membershipAfter);
-  if (baseAfterHash !== baseBeforeHash) {
-    throw new BetaEntitlementError(
-      'base membership changed during beta entitlement mutation.',
-    );
-  }
+  const baseBeforeHash = privacySafeBaseMembershipDigest(membership);
   return completeReport({
     ...base,
     base_membership: {
-      after_sha256: baseAfterHash,
+      after_sha256: baseBeforeHash,
       before_sha256: baseBeforeHash,
       unchanged: true,
     },
-    beta_state: publicBetaState(plan.document),
-    result: verified,
-    status: 'passed',
-    writes_performed: plan.changed,
+    beta_state_before: publicBetaEntitlementState(current),
+    beta_state: publicBetaEntitlementState(plan.document),
+    plan: publicPlan,
+    status: 'planned',
+    writes_performed: false,
   });
-}
-
-function publicBetaState(document) {
-  return {
-    active: document.active_grant !== null,
-    active_campaign_id: document.active_grant?.campaign_id ?? null,
-    active_grant_id: document.active_grant?.grant_id ?? null,
-    audit_event_count: document.audit.length,
-    revision: document.revision,
-    state_sha256: betaEntitlementInternals.hashCanonical(document),
-  };
 }
 
 function requireApplyIdentity({command, repository}) {
@@ -243,6 +301,18 @@ function requireApplyIdentity({command, repository}) {
   if (!COMMIT_PATTERN.test(repository.head ?? '')) {
     throw new BetaEntitlementError(
       'apply requires a full lowercase repository commit SHA-1.',
+    );
+  }
+}
+
+function assertCheckedRepositoryHead(repository, checkedHead) {
+  if (
+    !/^[0-9a-f]{40}$/.test(checkedHead ?? '') ||
+    repository?.head !== checkedHead ||
+    repository?.originMain !== checkedHead
+  ) {
+    throw new BetaEntitlementError(
+      'operator command checked HEAD must equal repository HEAD and origin/main.',
     );
   }
 }
@@ -271,38 +341,270 @@ async function readDocument({collection, command, label, profile, runner}) {
   return results[0] ?? null;
 }
 
-async function writeBetaEntitlement({current, plan, profile, runner}) {
-  const currentRevision = plan.document.revision - 1;
-  const filter = current
-    ? {_id: plan.command.phone_number, revision: currentRevision}
-    : {_id: plan.command.phone_number, revision: {$exists: false}};
-  const output = await runner.run(
-    [
-      'db',
-      'nosql',
-      'execute',
-      '-e',
-      profile.environment_id,
-      '--command',
-      JSON.stringify([
-        updateCommand(
-          BETA_ENTITLEMENT_COLLECTION,
-          filter,
-          plan.document,
-          current === null,
-        ),
-      ]),
-      '--json',
-    ],
-    {label: 'write beta entitlement membership'},
+async function invokeBetaEntitlement({
+  backendDeploymentId,
+  command,
+  operatorSecret,
+  profile,
+  runner,
+}) {
+  const canonicalCommand = validateBetaEntitlementCommand(command);
+  const signature = `hmac-sha256:${createHmac('sha256', operatorSecret)
+    .update(
+      betaEntitlementInternals.stableStringify({
+        schema_version: 'beta-entitlement-operator-signature.v1',
+        backend_deployment_id: backendDeploymentId,
+        command: canonicalCommand,
+      }),
+    )
+    .digest('hex')}`;
+  const invocationDirectory = mkdtempSync(
+    join(tmpdir(), 'softbook-beta-entitlement-'),
   );
+  const invocationPath = join(invocationDirectory, 'invocation.json');
+  try {
+    writeFileSync(
+      invocationPath,
+      JSON.stringify({
+        schema_version: 'beta-entitlement-operator-invoke.v1',
+        backend_deployment_id: backendDeploymentId,
+        command: canonicalCommand,
+        signature,
+      }),
+    );
+    chmodSync(invocationPath, 0o600);
+    const output = await runner.run(
+      [
+        'fn',
+        'invoke',
+        FUNCTION_NAME,
+        '-e',
+        profile.environment_id,
+        '-d',
+        `@${invocationPath}`,
+        '--json',
+      ],
+      {label: 'invoke beta entitlement transaction'},
+    );
+    const parsed = parseBetaEntitlementInvocation(
+      output,
+      command,
+      backendDeploymentId,
+    );
+    return {
+      ...parsed,
+      report_command_hmac_sha256: `hmac-sha256:${createHmac(
+        'sha256',
+        operatorSecret,
+      )
+        .update(
+          betaEntitlementInternals.stableStringify({
+            schema_version: 'beta-entitlement-report-command-binding.v1',
+            backend_deployment_id: backendDeploymentId,
+            command: canonicalCommand,
+          }),
+        )
+        .digest('hex')}`,
+    };
+  } finally {
+    rmSync(invocationDirectory, {force: true, recursive: true});
+  }
+}
+
+function parseBetaEntitlementInvocation(
+  output,
+  command,
+  expectedBackendDeploymentId,
+) {
   const payload = parseTcbJson(output);
+  if (payload?.InvokeResult !== 0 || typeof payload.RetMsg !== 'string') {
+    throw new BetaEntitlementError('beta entitlement invocation failed.');
+  }
+  let result;
+  try {
+    result = JSON.parse(payload.RetMsg);
+  } catch {
+    throw new BetaEntitlementError(
+      'beta entitlement invocation returned invalid JSON.',
+    );
+  }
+  const expectedKeys = [
+    'backend_deployment_id',
+    'base_membership_sha256',
+    'beta_state',
+    'beta_state_before',
+    'gate_eligible',
+    'result',
+    'schema_version',
+    'status',
+    'writes_performed',
+  ];
+  const actualKeys =
+    result && typeof result === 'object' && !Array.isArray(result)
+      ? Object.keys(result).sort()
+      : [];
+  const expectedResultKeys = [
+    'action',
+    'actor_id',
+    'campaign_id',
+    'changed',
+    'event_id',
+    'grant_id',
+    'idempotent',
+    'previous_stage',
+    'resulting_stage',
+    'schema_version',
+  ];
+  const resultKeys =
+    result?.result &&
+    typeof result.result === 'object' &&
+    !Array.isArray(result.result)
+      ? Object.keys(result.result).sort()
+      : [];
+  const expectedStateKeys = [
+    'active',
+    'active_campaign_id',
+    'active_grant_id',
+    'audit_event_count',
+    'revision',
+    'state_sha256',
+  ];
+  const stateKeys =
+    result?.beta_state &&
+    typeof result.beta_state === 'object' &&
+    !Array.isArray(result.beta_state)
+      ? Object.keys(result.beta_state).sort()
+      : [];
+  const beforeStateKeys =
+    result?.beta_state_before &&
+    typeof result.beta_state_before === 'object' &&
+    !Array.isArray(result.beta_state_before)
+      ? Object.keys(result.beta_state_before).sort()
+      : [];
   if (
-    !Array.isArray(payload?.data?.results) ||
-    payload.data.results.length !== 1
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== expectedKeys[index]) ||
+    resultKeys.length !== expectedResultKeys.length ||
+    resultKeys.some((key, index) => key !== expectedResultKeys[index]) ||
+    stateKeys.length !== expectedStateKeys.length ||
+    stateKeys.some((key, index) => key !== expectedStateKeys[index]) ||
+    beforeStateKeys.length !== expectedStateKeys.length ||
+    beforeStateKeys.some(
+      (key, index) => key !== expectedStateKeys[index],
+    ) ||
+    result.schema_version !== 'beta-entitlement-operator-result.v1' ||
+    result.backend_deployment_id !== expectedBackendDeploymentId ||
+    result.status !== 'passed' ||
+    result.gate_eligible !== false ||
+    typeof result.writes_performed !== 'boolean' ||
+    result.writes_performed !== result.result?.changed ||
+    !/^sha256:[a-f0-9]{64}$/.test(result.base_membership_sha256 ?? '') ||
+    result.result?.schema_version !== 'beta-entitlement-plan.v2' ||
+    result.result?.action !== command.action ||
+    result.result?.event_id !== command.event_id ||
+    result.result?.campaign_id !== command.campaign_id ||
+    result.result?.grant_id !== command.grant_id ||
+    result.result?.actor_id !== command.actor_id ||
+    JSON.stringify(result).includes(command.phone_number)
   ) {
     throw new BetaEntitlementError(
-      'membership update returned an invalid result.',
+      'beta entitlement invocation result is invalid.',
+    );
+  }
+  validateBetaEntitlementInvocationSemantics(result, command);
+  return result;
+}
+
+function validateBetaEntitlementInvocationSemantics(result, command) {
+  const before = result.beta_state_before;
+  const after = result.beta_state;
+  const plan = result.result;
+  const statesAreValid = [before, after].every(state => {
+    const activeIdsAreValid = state.active
+      ? /^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$/.test(
+          state.active_campaign_id ?? '',
+        ) &&
+        /^[A-Za-z0-9][A-Za-z0-9._:-]{11,95}$/.test(
+          state.active_grant_id ?? '',
+        ) &&
+        !betaEntitlementInternals.containsPhoneMaterial(
+          state.active_campaign_id,
+        ) &&
+        !betaEntitlementInternals.containsPhoneMaterial(
+          state.active_grant_id,
+        )
+      : state.active_campaign_id === null && state.active_grant_id === null;
+    return (
+      typeof state.active === 'boolean' &&
+      Number.isSafeInteger(state.audit_event_count) &&
+      state.audit_event_count >= 0 &&
+      Number.isSafeInteger(state.revision) &&
+      state.revision >= 0 &&
+      state.audit_event_count === state.revision &&
+      /^sha256:[a-f0-9]{64}$/.test(state.state_sha256 ?? '') &&
+      activeIdsAreValid
+    );
+  });
+  const replayIsStable =
+    plan.changed === false &&
+    plan.idempotent === true &&
+    betaEntitlementInternals.stableStringify(before) ===
+      betaEntitlementInternals.stableStringify(after);
+  const mutationAdvances =
+    plan.changed === true &&
+    plan.idempotent === false &&
+    after.revision === before.revision + 1 &&
+    after.audit_event_count === before.audit_event_count + 1;
+  const actionTransitionIsValid =
+    command.action === 'grant'
+      ? before.active === false &&
+        after.active === true &&
+        after.active_campaign_id === command.campaign_id &&
+        after.active_grant_id === command.grant_id &&
+        plan.resulting_stage === 'premium'
+      : before.active === true &&
+        before.active_campaign_id === command.campaign_id &&
+        before.active_grant_id === command.grant_id &&
+        after.active === false &&
+        plan.previous_stage === 'premium';
+  if (
+    !statesAreValid ||
+    typeof plan.changed !== 'boolean' ||
+    typeof plan.idempotent !== 'boolean' ||
+    !(replayIsStable || (mutationAdvances && actionTransitionIsValid))
+  ) {
+    throw new BetaEntitlementError(
+      'beta entitlement invocation result is semantically invalid.',
+    );
+  }
+}
+
+function verifyInvokedBetaEntitlement(command, applied, storedDocument) {
+  const stored = betaEntitlementInternals.normalizeBetaEntitlementDocument(
+    storedDocument,
+  );
+  const commandHash = betaEntitlementInternals.hashCanonical(
+    validateBetaEntitlementCommand(command),
+  );
+  const event = stored.audit.find(
+    candidate => candidate.event_id === command.event_id,
+  );
+  const storedState = publicBetaEntitlementState(stored);
+  if (
+    stored.phone_number !== command.phone_number ||
+    event?.command_sha256 !== commandHash ||
+    applied.result.action !== command.action ||
+    event.action !== applied.result.action ||
+    event.actor_id !== applied.result.actor_id ||
+    event.campaign_id !== applied.result.campaign_id ||
+    event.grant_id !== applied.result.grant_id ||
+    event.previous_stage !== applied.result.previous_stage ||
+    event.resulting_stage !== applied.result.resulting_stage ||
+    betaEntitlementInternals.stableStringify(storedState) !==
+      betaEntitlementInternals.stableStringify(applied.beta_state)
+  ) {
+    throw new BetaEntitlementError(
+      'beta entitlement transaction could not be independently verified.',
     );
   }
 }
@@ -319,15 +621,20 @@ function queryCommand(collection, phoneNumber) {
   };
 }
 
-function updateCommand(collection, filter, document, upsert) {
-  return {
-    TableName: collection,
-    CommandType: 'UPDATE',
-    Command: JSON.stringify({
-      update: collection,
-      updates: [{q: filter, u: {$set: document}, upsert}],
-    }),
-  };
+function isStrongOperatorSecret(value) {
+  return (
+    typeof value === 'string' &&
+    value.length >= 32 &&
+    new Set(value).size >= 12
+  );
+}
+
+function operatorCredentialFreeEnvironment(environment) {
+  const sanitized = {...environment};
+  for (const name of Object.keys(sanitized)) {
+    if (name.startsWith('SOFTBOOK_')) delete sanitized[name];
+  }
+  return sanitized;
 }
 
 function readRepositoryState() {
@@ -346,22 +653,28 @@ function git(args) {
   }).trim();
 }
 
-function readJson(path) {
-  try {
-    return parseJsonBytes(readFileSync(resolve(path)), 'operator JSON input');
-  } catch (error) {
-    throw new BetaEntitlementError(
-      `unable to read JSON input: ${error.message}`,
-    );
-  }
-}
-
 function parseJsonBytes(bytes, label) {
   return parseStrictJson(bytes, label);
 }
 
 function sha256Bytes(bytes) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+}
+
+function privacySafeBaseMembershipDigest(documentInput) {
+  if (documentInput === null || documentInput === undefined) {
+    return betaEntitlementInternals.hashCanonical(null);
+  }
+  const document = structuredClone(documentInput);
+  delete document._id;
+  delete document.phone_number;
+  const entitlement = structuredClone(document.entitlement ?? document);
+  delete entitlement._id;
+  delete entitlement.phone_number;
+  return betaEntitlementInternals.hashCanonical({
+    entitlement,
+    updated_at: document.updated_at ?? null,
+  });
 }
 
 function readExecutionTimestamp(clock, label) {
@@ -405,9 +718,9 @@ async function main() {
       console.log(
         `[beta-entitlement] ${report.status}; action=${
           plan?.action ?? 'none'
-        }; account=${plan?.account_fingerprint ?? 'none'}; writes=${
-          report.writes_performed
-        }`,
+        }; campaign=${plan?.campaign_id ?? 'none'}; grant=${
+          plan?.grant_id ?? 'none'
+        }; writes=${report.writes_performed}`,
       );
     }
     if (report.status === 'blocked') process.exitCode = 1;
@@ -428,6 +741,9 @@ const isDirectExecution =
 if (isDirectExecution) main();
 
 export const betaEntitlementCliInternals = {
+  invokeBetaEntitlement,
+  operatorCredentialFreeEnvironment,
+  parseBetaEntitlementInvocation,
   queryCommand,
-  updateCommand,
+  verifyInvokedBetaEntitlement,
 };

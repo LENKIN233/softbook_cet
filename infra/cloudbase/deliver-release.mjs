@@ -877,10 +877,20 @@ export function buildReceiverRuntimeEnvironment(
     SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT: '9',
     SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS: '300',
     SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS: '90',
+    SOFTBOOK_RELEASE_CLASS:
+      profile.schema_version === 'controlled-pilot-profile.v1'
+        ? 'controlled_pilot'
+        : profile.runtime_mode,
     SOFTBOOK_RUNTIME_MODE: runtimeMode,
     SOFTBOOK_SMS_PROVIDER: inspection.provider,
     SOFTBOOK_STORE_MODE: 'cloudbase',
   };
+  if (
+    profile.schema_version === 'delivery-profile.v1' &&
+    profile.runtime_mode === 'closed_beta'
+  ) {
+    runtime.SOFTBOOK_BETA_OPERATOR_SECRET = env.SOFTBOOK_BETA_OPERATOR_SECRET;
+  }
   if (runtimeMode === 'controlled_pilot') {
     runtime.SOFTBOOK_PILOT_ID = profile.pilot_id;
     runtime.SOFTBOOK_PILOT_EXPIRES_AT = new Date(
@@ -1002,11 +1012,18 @@ export async function inspectApiFunction({
     profile?.schema_version === 'controlled-pilot-profile.v1'
       ? 'controlled_pilot'
       : 'production';
+  const expectedReleaseClass =
+    profile?.schema_version === 'controlled-pilot-profile.v1'
+      ? 'controlled_pilot'
+      : profile?.runtime_mode;
   if (values.get('SOFTBOOK_CONTENT_MANIFEST_KEY_ID') !== profile?.signing_key_id) {
     errors.push('content manifest signing key ID mismatch');
   }
   if (values.get('SOFTBOOK_RUNTIME_MODE') !== expectedRuntimeMode) {
     errors.push('runtime mode mismatch');
+  }
+  if (values.get('SOFTBOOK_RELEASE_CLASS') !== expectedReleaseClass) {
+    errors.push('release class mismatch');
   }
   if (values.get('SOFTBOOK_STORE_MODE') !== 'cloudbase') {
     errors.push('store mode mismatch');
@@ -1027,6 +1044,12 @@ export async function inspectApiFunction({
       error => `receiver runtime secret validation failed: ${error}`,
     ),
   );
+  if (
+    expectedReleaseClass !== 'closed_beta' &&
+    values.has('SOFTBOOK_BETA_OPERATOR_SECRET')
+  ) {
+    errors.push('beta operator secret is forbidden outside closed beta');
+  }
   return {
     errors,
     ok: errors.length === 0,
@@ -1035,6 +1058,7 @@ export async function inspectApiFunction({
         deploymentValues.length === 1 ? deploymentValues[0] : null,
       function_name: data?.FunctionName ?? null,
       handler: data?.Handler ?? null,
+      release_class: values.get('SOFTBOOK_RELEASE_CLASS') ?? null,
       runtime: data?.Runtime ?? null,
       runtime_mode: values.get('SOFTBOOK_RUNTIME_MODE') ?? null,
       signing_key_id:
@@ -1076,6 +1100,12 @@ export function inspectReceiverSecrets(
   if (profile.schema_version === 'controlled-pilot-profile.v1') {
     requiredNames.push('SOFTBOOK_PILOT_OPERATOR_SECRET');
   }
+  if (
+    profile.schema_version === 'delivery-profile.v1' &&
+    profile.runtime_mode === 'closed_beta'
+  ) {
+    requiredNames.push('SOFTBOOK_BETA_OPERATOR_SECRET');
+  }
   for (const name of requiredNames) {
     if (typeof env[name] !== 'string' || env[name].length === 0) {
       errors.push(`${name} is missing`);
@@ -1084,6 +1114,12 @@ export function inspectReceiverSecrets(
   const strongSecretNames = ['SOFTBOOK_AUTH_INDEX_SECRET', 'SOFTBOOK_AUTH_TOKEN_SECRET'];
   if (profile.schema_version === 'controlled-pilot-profile.v1') {
     strongSecretNames.push('SOFTBOOK_PILOT_OPERATOR_SECRET');
+  }
+  if (
+    profile.schema_version === 'delivery-profile.v1' &&
+    profile.runtime_mode === 'closed_beta'
+  ) {
+    strongSecretNames.push('SOFTBOOK_BETA_OPERATOR_SECRET');
   }
   if (provider === 'webhook') strongSecretNames.push('SOFTBOOK_SMS_WEBHOOK_SECRET');
   if (provider === 'tencentcloud') strongSecretNames.push('SOFTBOOK_SMS_TENCENT_SECRET_KEY');
@@ -1105,6 +1141,15 @@ export function inspectReceiverSecrets(
     )
   ) {
     errors.push('pilot operator secret must be distinct from auth secrets');
+  }
+  if (
+    profile.schema_version === 'delivery-profile.v1' &&
+    profile.runtime_mode === 'closed_beta' &&
+    [env.SOFTBOOK_AUTH_INDEX_SECRET, env.SOFTBOOK_AUTH_TOKEN_SECRET].includes(
+      env.SOFTBOOK_BETA_OPERATOR_SECRET,
+    )
+  ) {
+    errors.push('beta operator secret must be distinct from auth secrets');
   }
   if (provider === 'webhook' && env.SOFTBOOK_SMS_WEBHOOK_URL) {
     try {

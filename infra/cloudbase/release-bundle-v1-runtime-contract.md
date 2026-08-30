@@ -209,8 +209,10 @@ profile/environment and fixed function topology. Deployment injects that
 non-secret ID into `softbook-api`; after deploy and again during formal verify,
 the command rereads the remote function configuration and requires the exact
 ID, handler, runtime, timeout, signing key ID, runtime/store modes and SMS
-provider while publishing only non-secret values plus variable names, never
-secret values. A dry-run or local report cannot satisfy this remote reread.
+provider. It also requires the exact `SOFTBOOK_RELEASE_CLASS`; closed beta must
+contain one strong beta-operator secret distinct from auth secrets, while every
+other release class must exclude it. Reports publish only non-secret values plus
+variable names, never secret values. A dry-run or local report cannot satisfy this remote reread.
 Each report also carries canonical start/completion timestamps. Every apply or
 verify invocation requires `--operator` with a `model:`, `agent:`, `service:`
 or `oidc:` machine principal so later formal evidence can bind the raw execution

@@ -8,6 +8,7 @@ const {
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,
+  handleBetaEntitlementOperatorInvoke,
   handlePilotEntitlementOperatorInvoke,
   validateCardSourceForImport,
 } = require('../index');
@@ -20,8 +21,15 @@ const {
   prepareSpaceActionCommit,
 } = require('../space-actions-v2');
 const {stableJsonStringify} = require('../content-manifest-v1');
+const {
+  betaEntitlementInternals,
+  planBetaEntitlementMutation,
+} = require('../beta-entitlement-v1');
+const {pilotEntitlementInternals} = require('../pilot-entitlement-v1');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
+const BETA_BACKEND_DEPLOYMENT_ID =
+  `backend-deployment:sha256:${'b'.repeat(64)}`;
 const CORE_INTERACTIONS = [
   'elimination',
   'flip',
@@ -2747,7 +2755,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     action: 'grant',
     actor_id: 'receiver-operator',
     campaign_id: 'cet4-beta-campaign-001',
-    command_sha256: `sha256:${'a'.repeat(64)}`,
+    command_sha256: null,
     event_id: 'beta-event-grant-0001',
     grant_id: 'cet4-beta-grant-0001',
     occurred_at: fixedNow.toISOString(),
@@ -2755,6 +2763,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     reason: 'closed_beta_access',
     resulting_stage: 'premium',
   };
+  grantEvent.command_sha256 = betaCommandHash(grantEvent, phoneNumber);
   db.snapshot().get('softbook_beta_entitlements').set(phoneNumber, {
     active_grant: {
       schema_version: 'beta-entitlement.v1',
@@ -2801,14 +2810,17 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     .get('softbook_beta_entitlements')
     .get(phoneNumber);
   betaDocument.active_grant = null;
-  betaDocument.audit.push({
+  const revokeEvent = {
     ...grantEvent,
     action: 'revoke',
+    command_sha256: null,
     event_id: 'beta-event-revoke-0001',
     occurred_at: '2026-05-02T12:00:00.000Z',
     previous_stage: 'premium',
     resulting_stage: 'premium',
-  });
+  };
+  revokeEvent.command_sha256 = betaCommandHash(revokeEvent, phoneNumber);
+  betaDocument.audit.push(revokeEvent);
   betaDocument.revision = 2;
   betaDocument.updated_at = '2026-05-02T12:00:00.000Z';
   const revoked = await store.getMembership(phoneNumber);
@@ -2854,7 +2866,7 @@ test('learning-session Trial activation rejects a beta grant that races the sele
     action: 'grant',
     actor_id: 'receiver-operator',
     campaign_id: 'cet4-beta-campaign-001',
-    command_sha256: `sha256:${'b'.repeat(64)}`,
+    command_sha256: null,
     event_id: 'beta-event-race-grant-0001',
     grant_id: 'cet4-beta-race-grant-0001',
     occurred_at: selectedAt,
@@ -2862,6 +2874,7 @@ test('learning-session Trial activation rejects a beta grant that races the sele
     reason: 'closed_beta_access',
     resulting_stage: 'premium',
   };
+  grantEvent.command_sha256 = betaCommandHash(grantEvent, phoneNumber);
   db.snapshot().get('softbook_beta_entitlements').set(phoneNumber, {
     active_grant: {
       schema_version: 'beta-entitlement.v1',
@@ -2924,6 +2937,32 @@ test('CloudBase membership fails closed on malformed active beta evidence', asyn
   );
 });
 
+test('CloudBase membership rejects a beta audit transplanted to another phone', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const command = createBetaOperatorCommand();
+  const grant = planBetaEntitlementMutation(command, null, {
+    counted_entry_count: 0,
+    last_experience_ended_by: null,
+    recovery_prompt_visible: false,
+    stage: 'trial_available',
+    trial_duration_days: 5,
+    trial_expires_at: null,
+    trial_started_at: null,
+    trial_started_at_entry_count: null,
+  });
+  const otherPhone = '13900139000';
+  db.snapshot().get('softbook_beta_entitlements').set(otherPhone, {
+    ...structuredClone(grant.document),
+    phone_number: otherPhone,
+  });
+
+  await assert.rejects(
+    () => store.getMembership(otherPhone, fixedNow.toISOString()),
+    error => error.code === 'invalid_beta_entitlement',
+  );
+});
+
 test('controlled-pilot membership overlays only an exact active pilot grant', async () => {
   const db = createFakeCloudBaseDb();
   const pilotId = 'cet4-pilot-2026';
@@ -2939,7 +2978,7 @@ test('controlled-pilot membership overlays only an exact active pilot grant', as
     schema_version: 'pilot-entitlement-audit.v1',
     action: 'grant',
     actor: 'receiver-operator',
-    command_sha256: `sha256:${'b'.repeat(64)}`,
+    command_sha256: null,
     event_id: 'pilot-event-grant-0001',
     occurred_at: occurredAt,
     pilot_id: pilotId,
@@ -2947,6 +2986,7 @@ test('controlled-pilot membership overlays only an exact active pilot grant', as
     reason: 'controlled_pilot_continued_access',
     resulting_stage: 'pilot_premium',
   };
+  event.command_sha256 = pilotCommandHash(event, phoneNumber);
   db.snapshot().get('softbook_pilot_entitlements').set(phoneNumber, {
     active_grant: {
       schema_version: 'pilot-entitlement.v1',
@@ -2986,6 +3026,186 @@ test('controlled-pilot membership overlays only an exact active pilot grant', as
   }).getMembership(phoneNumber, '2026-05-01T00:00:00.000Z');
   assert.equal(afterExpiry.stage, 'trial_available');
   assert.equal(afterExpiry.component_revision.pilot_entitlement_revision, 3);
+});
+
+test('beta entitlement operator invocation reads base revision and commits one transaction', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db, runtimeMode: 'production'});
+  const command = createBetaOperatorCommand();
+  db.snapshot().get('softbook_memberships').set(command.phone_number, {
+    entitlement: {
+      counted_entry_count: 0,
+      last_experience_ended_by: null,
+      recovery_prompt_visible: false,
+      stage: 'trial_available',
+      trial_duration_days: 5,
+      trial_expires_at: null,
+      trial_started_at: null,
+      trial_started_at_entry_count: null,
+    },
+    phone_number: command.phone_number,
+    updated_at: '2026-04-29T12:00:00.000Z',
+  });
+  const invocation = {
+    schema_version: 'beta-entitlement-operator-invoke.v1',
+    backend_deployment_id: BETA_BACKEND_DEPLOYMENT_ID,
+    command,
+    signature: createBetaOperatorSignature(
+      command,
+      BETA_BACKEND_DEPLOYMENT_ID,
+    ),
+  };
+
+  const first = await handleBetaEntitlementOperatorInvoke(invocation, {
+    operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+    backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+    releaseClass: 'closed_beta',
+    runtimeMode: 'production',
+    store,
+  });
+  const replay = await handleBetaEntitlementOperatorInvoke(invocation, {
+    operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+    backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+    releaseClass: 'closed_beta',
+    runtimeMode: 'production',
+    store,
+  });
+
+  assert.equal(first.writes_performed, true);
+  assert.equal(first.backend_deployment_id, BETA_BACKEND_DEPLOYMENT_ID);
+  assert.equal(first.beta_state_before.revision, 0);
+  assert.equal(first.result.resulting_stage, 'premium');
+  assert.equal(replay.writes_performed, false);
+  assert.equal(replay.result.idempotent, true);
+  assert.equal(first.base_membership_sha256, replay.base_membership_sha256);
+  assert.match(first.base_membership_sha256, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(JSON.stringify(first).includes(command.phone_number), false);
+  assert.equal(JSON.stringify(first).includes('account_fingerprint'), false);
+  assert.equal(db.transactionCount(), 2);
+  assert.equal(
+    db.snapshot().get('softbook_beta_entitlements').get(command.phone_number)
+      .audit.length,
+    1,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_memberships').get(command.phone_number)
+      .entitlement.stage,
+    'trial_available',
+  );
+  assert.equal(
+    db.snapshot().get('softbook_membership_revisions').get(command.phone_number)
+      .revision,
+    1,
+  );
+});
+
+test('beta entitlement operator invocation rejects unauthenticated input and rolls back transaction failure', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db, runtimeMode: 'production'});
+  const command = createBetaOperatorCommand();
+  const invocation = {
+    schema_version: 'beta-entitlement-operator-invoke.v1',
+    backend_deployment_id: BETA_BACKEND_DEPLOYMENT_ID,
+    command,
+    signature: createBetaOperatorSignature(
+      command,
+      BETA_BACKEND_DEPLOYMENT_ID,
+    ),
+  };
+  let storeCalled = false;
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(
+        {...invocation, extra: true},
+        {
+          operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+          releaseClass: 'closed_beta',
+          runtimeMode: 'production',
+          store: {
+            applyBetaEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /invocation is invalid/,
+  );
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(
+        {...invocation, schema_version: 'beta-entitlement-operator-invoke.v2'},
+        {
+          operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+          releaseClass: 'closed_beta',
+          runtimeMode: 'production',
+          store: {
+            applyBetaEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /invocation is invalid/,
+  );
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(
+        {...invocation, signature: `hmac-sha256:${'0'.repeat(64)}`},
+        {
+          operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+          releaseClass: 'closed_beta',
+          runtimeMode: 'production',
+          store: {
+            applyBetaEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /authentication failed/,
+  );
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(invocation, {
+        operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+        backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+        releaseClass: 'production',
+        runtimeMode: 'production',
+        store: {
+          applyBetaEntitlementCommand: async () => {
+            storeCalled = true;
+          },
+        },
+      }),
+    /outside the receiver closed beta runtime/,
+  );
+  assert.equal(storeCalled, false);
+
+  db.failNextTransactionSet('softbook_beta_entitlements');
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(invocation, {
+        operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+        backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+        releaseClass: 'closed_beta',
+        runtimeMode: 'production',
+        store,
+      }),
+    /injected transaction set failure/,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_beta_entitlements')?.has(command.phone_number) ??
+      false,
+    false,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_membership_revisions')?.has(command.phone_number) ??
+      false,
+    false,
+  );
 });
 
 test('pilot entitlement operator invocation rederives and commits grant atomically', async () => {
@@ -3141,28 +3361,30 @@ test('controlled-pilot membership rejects active entitlement from another pilot'
     pilotId: 'cet4-pilot-2026',
     runtimeMode: 'controlled_pilot',
   });
+  const event = {
+    schema_version: 'pilot-entitlement-audit.v1',
+    action: 'grant',
+    actor: 'receiver-operator',
+    command_sha256: null,
+    event_id: 'pilot-event-grant-0001',
+    occurred_at: occurredAt,
+    pilot_id: 'another-pilot',
+    previous_stage: 'trial_available',
+    reason: 'controlled_pilot_continued_access',
+    resulting_stage: 'pilot_premium',
+  };
+  event.command_sha256 = pilotCommandHash(event, phoneNumber);
   db.snapshot().get('softbook_pilot_entitlements').set(phoneNumber, {
     active_grant: {
       schema_version: 'pilot-entitlement.v1',
-      actor: 'receiver-operator',
-      command_sha256: `sha256:${'c'.repeat(64)}`,
-      grant_event_id: 'pilot-event-grant-0001',
+      actor: event.actor,
+      command_sha256: event.command_sha256,
+      grant_event_id: event.event_id,
       granted_at: occurredAt,
-      pilot_id: 'another-pilot',
-      reason: 'controlled_pilot_continued_access',
+      pilot_id: event.pilot_id,
+      reason: event.reason,
     },
-    audit: [{
-      schema_version: 'pilot-entitlement-audit.v1',
-      action: 'grant',
-      actor: 'receiver-operator',
-      command_sha256: `sha256:${'c'.repeat(64)}`,
-      event_id: 'pilot-event-grant-0001',
-      occurred_at: occurredAt,
-      pilot_id: 'another-pilot',
-      previous_stage: 'trial_available',
-      reason: 'controlled_pilot_continued_access',
-      resulting_stage: 'pilot_premium',
-    }],
+    audit: [event],
     phone_number: phoneNumber,
     pilot_id: 'another-pilot',
     revision: 1,
@@ -3533,10 +3755,65 @@ function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function betaCommandHash(event, phoneNumber) {
+  return betaEntitlementInternals.hashCanonical({
+    schema_version: 'beta-entitlement-command.v1',
+    event_id: event.event_id,
+    action: event.action,
+    phone_number: phoneNumber,
+    campaign_id: event.campaign_id,
+    grant_id: event.grant_id,
+    actor_id: event.actor_id,
+    reason: event.reason,
+    occurred_at: event.occurred_at,
+  });
+}
+
+function pilotCommandHash(event, phoneNumber) {
+  return pilotEntitlementInternals.hashCanonical({
+    schema_version: 'pilot-entitlement-command.v1',
+    event_id: event.event_id,
+    pilot_id: event.pilot_id,
+    phone_number: phoneNumber,
+    action: event.action,
+    actor: event.actor,
+    reason: event.reason,
+    occurred_at: event.occurred_at,
+    previous_stage: event.previous_stage,
+    resulting_stage: event.resulting_stage,
+  });
+}
+
 function createPilotOperatorSignature(command) {
   const canonical = JSON.stringify(command, Object.keys(command).sort());
   return `hmac-sha256:${crypto
     .createHmac('sha256', 'pilot-operator-secret-0123456789-ABCDEFG')
+    .update(canonical)
+    .digest('hex')}`;
+}
+
+function createBetaOperatorCommand() {
+  return {
+    schema_version: 'beta-entitlement-command.v1',
+    event_id: 'beta-event-grant-0001',
+    action: 'grant',
+    phone_number: '13800138000',
+    campaign_id: 'cet4-beta-campaign-001',
+    grant_id: 'cet4-beta-grant-0001',
+    actor_id: 'service:receiver-operator',
+    reason: 'closed_beta_access',
+    occurred_at: '2026-04-30T12:00:00.000Z',
+  };
+}
+
+function createBetaOperatorSignature(command, backendDeploymentId) {
+  const canonical = betaEntitlementInternals.stableStringify({
+    schema_version: 'beta-entitlement-operator-signature.v1',
+    backend_deployment_id: backendDeploymentId,
+    command,
+  });
+  return `hmac-sha256:${crypto
+    .createHmac('sha256', 'beta-operator-secret-0123456789-ABCDEFG')
     .update(canonical)
     .digest('hex')}`;
 }

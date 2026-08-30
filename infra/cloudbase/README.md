@@ -579,17 +579,35 @@ closed-beta `campaign_id`, and apply requires an identified `model:`, `agent:`,
 `service:` or `oidc:` `actor_id`. Apply also requires Node 22.13.0 plus clean exact
 `main`. The active grant and its audit history are stored together in
 `softbook_beta_entitlements`; the base membership document is not modified.
-The privacy-safe `beta-entitlement-report.v2` binds commit/profile/campaign,
-command hash, operator, execution, receiver/write safety, unchanged base digest
+Closed-beta receiver deployment requires a dedicated strong
+`SOFTBOOK_BETA_OPERATOR_SECRET` distinct from auth secrets. Apply signs the
+exact command together with the profile-and-commit-derived backend deployment
+ID and invokes the non-HTTP receiver handler. Apply first re-observes that exact
+remote deployment, its closed-beta release class and beta-secret configuration;
+the receiver reads the base membership revision, plans, and writes beta state
+in one transaction.
+The CLI does not issue a direct database update.
+The privacy-safe `beta-entitlement-report.v3` binds commit/profile/campaign,
+a report-domain keyed command HMAC, operator, execution, receiver/write safety, unchanged base digest
 and verified beta state without exposing the phone or command bytes. Command
 reports remain `gate_eligible=false` until a registered formal drill wrapper
 revalidates the exact grant/replay/revoke sequence. Command files contain phone
 numbers and must not be committed or included in a release bundle.
+Apply additionally opens the command once and parses only those same stable
+regular-file bytes. Every path component must be non-symlink and outside this
+repository; hardlinks, exact-HEAD tracked blobs, byte-identical outside copies
+and untracked in-repository paths fail before any receiver request. All blob
+modes, LFS target SHA-256/size and gitlinks are inspected fail-closed. Actor,
+campaign, grant and event IDs apply NFKC then remove all non-digits before phone detection.
+Every stored audit hash is recomputed from
+its event plus the document phone owner, so a cross-phone transplant is invalid.
 
 Formal `beta-entitlement-drill` evidence uses one tracked profile and four
-tracked applied report v2 files in exact order: grant, idempotent grant replay,
+tracked applied report v3 files in exact order: grant, idempotent grant replay,
 revoke and idempotent revoke replay. The wrapper revalidates one candidate
-campaign/account/grant/operator/commit and one unchanged base-membership digest;
+campaign, exact backend deployment, grant, distinct event identities, operator,
+commit, one unchanged base-membership digest and one continuous before/after
+beta-state transition chain;
 it never ingests the phone-bearing command files.
 
 ### Receiver Space sync drill
@@ -656,7 +674,12 @@ credential-shaped material before the first remote request.
 Controlled-pilot continued access uses a separate receiver-only overlay and
 never reuses the formal closed-beta grant. Create an untracked
 `pilot-entitlement-command.v1`, verify its phone-free dry-run plan, then apply
-the exact same command only from clean `main`:
+the exact same command only from clean `main`. Apply reads and parses one stable
+opened regular file: every path component must be non-symlink and outside the
+repository, while hardlinks, exact-HEAD blobs, byte-identical outside copies and
+in-repository paths fail before receiver access. LFS pointer targets are bound
+by SHA-256/size and any gitlink fails closed; the checked HEAD is matched again
+immediately before invoke:
 
 ```bash
 node infra/cloudbase/manage-pilot-entitlement.mjs \
@@ -678,6 +701,9 @@ also requires a command-bound HMAC from the receiver-only
 `SOFTBOOK_PILOT_OPERATOR_SECRET`, reads base membership plus beta and pilot overlays, rederives the claimed
 stages, and commits the audit and active overlay in one database transaction.
 The CLI then independently rereads the audit event before reporting success.
+Pilot, event and actor IDs apply NFKC and remove every non-digit before phone-number detection.
+Stored audit hashes are recomputed with the owning document phone, so
+a cross-phone transplant cannot become canonical access.
 
 ### Real-provider SMS smoke
 

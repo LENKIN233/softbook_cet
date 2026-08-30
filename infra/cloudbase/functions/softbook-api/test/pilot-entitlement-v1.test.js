@@ -24,7 +24,20 @@ test('grant creates pilot-premium audit evidence while clients receive premium',
     'premium',
   );
   assert.equal(base.stage, 'free');
-  assert.equal(JSON.stringify(pilot.publicPilotEntitlementPlan(plan)).includes('13800138000'), false);
+  const publicPlan = pilot.publicPilotEntitlementPlan(plan);
+  assert.equal(publicPlan.schema_version, 'pilot-entitlement-plan.v2');
+  assert.equal(JSON.stringify(publicPlan).includes('13800138000'), false);
+  assert.deepEqual(Object.keys(publicPlan).sort(), [
+    'action',
+    'actor',
+    'changed',
+    'event_id',
+    'idempotent',
+    'pilot_id',
+    'previous_stage',
+    'resulting_stage',
+    'schema_version',
+  ]);
 });
 
 test('exact replay is idempotent while event collisions fail closed', () => {
@@ -133,6 +146,50 @@ test('expired trial is rederived as free at command occurrence time', () => {
   );
 
   assert.equal(plan.previousStage, 'free');
+});
+
+test('pilot audit hashes reject phone-owner transplants', () => {
+  const grant = pilot.planPilotEntitlementMutation(
+    command('grant', 'free'),
+    null,
+    membership('free'),
+  );
+  const transplanted = {
+    ...grant.document,
+    phone_number: '13900139000',
+  };
+
+  assert.throws(
+    () => pilot.pilotEntitlementInternals.normalizePilotEntitlementDocument(transplanted),
+    /audit sequence is invalid/,
+  );
+});
+
+test('public pilot identifiers reject phones after removing every non-digit', () => {
+  for (const value of [
+    'scope-13800138000',
+    'scope-138-0013-8000',
+    'scope-138a0013b8000',
+  ]) {
+    for (const field of ['actor', 'event_id', 'pilot_id']) {
+      assert.throws(
+        () =>
+          pilot.validatePilotEntitlementCommand({
+            ...command('grant', 'free'),
+            [field]: value,
+          }),
+        /invalid/,
+      );
+    }
+  }
+  assert.throws(
+    () =>
+      pilot.validatePilotEntitlementCommand({
+        ...command('grant', 'free'),
+        actor: 'service:１３８００１３８０００',
+      }),
+    /invalid/,
+  );
 });
 
 function command(action, baseStage) {

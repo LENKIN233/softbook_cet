@@ -1,5 +1,17 @@
 const assert = require('node:assert/strict');
-const {mkdtempSync, readFileSync, rmSync, writeFileSync} = require('node:fs');
+const {execFileSync} = require('node:child_process');
+const crypto = require('node:crypto');
+const {
+  copyFileSync,
+  linkSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} = require('node:fs');
 const {tmpdir} = require('node:os');
 const {join, resolve} = require('node:path');
 const {pathToFileURL} = require('node:url');
@@ -9,6 +21,12 @@ const pilotRuntime = require('../pilot-entitlement-v1');
 let cli;
 let deploymentSafety;
 const temporaryDirectories = [];
+const REPOSITORY_ROOT = resolve(__dirname, '../../../../..');
+const CANONICAL_TMPDIR = realpathSync(tmpdir());
+const TEST_HEAD = execFileSync('git', ['rev-parse', 'HEAD'], {
+  cwd: REPOSITORY_ROOT,
+  encoding: 'utf8',
+}).trim();
 
 before(async () => {
   cli = await import(
@@ -39,9 +57,12 @@ test('pilot entitlement CLI is dry-run by default and redacts the phone', async 
   const report = await cli.executePilotEntitlementCommand(options, dependencies(runner));
 
   assert.equal(report.status, 'planned');
+  assert.equal(report.schema_version, 'pilot-entitlement-report.v2');
   assert.equal(report.gate_eligible, false);
+  assert.equal(report.plan.schema_version, 'pilot-entitlement-plan.v2');
   assert.equal(report.plan.resulting_stage, 'pilot_premium');
   assert.equal(JSON.stringify(report).includes('13800138000'), false);
+  assert.equal(Object.hasOwn(report.plan, 'account_fingerprint'), false);
   assert.equal(runner.updateCount(), 0);
 });
 
@@ -96,8 +117,8 @@ test('profile pilot mismatch and topic-branch apply fail before mutation', async
         repository: {
           branch: 'module/pilot-entitlement',
           dirty: false,
-          head: 'same',
-          originMain: 'same',
+          head: TEST_HEAD,
+          originMain: TEST_HEAD,
         },
       }),
     /writes require branch main/,
@@ -135,12 +156,275 @@ test('future commands and expired pilot profiles fail before remote reads', asyn
   assert.equal(expiredRunner.callCount(), 0);
 });
 
+test('pilot CLI result parser rejects letter-separated phone IDs', async () => {
+  const fixture = createFixture();
+  const runner = createRunner({
+    responseActorOverride: 'service:１３８００１３８０００',
+  });
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(options, dependencies(runner)),
+    /invocation result is invalid/,
+  );
+});
+
+test('pilot apply rejects tracked, in-repository, and symlink command inputs', async () => {
+  const fixture = createFixture();
+  const assertRejectedPath = async (commandPath, pattern) => {
+    const runner = createRunner();
+    const options = cli.parsePilotEntitlementArguments([
+      '--profile',
+      fixture.profilePath,
+      '--command',
+      commandPath,
+      '--apply',
+    ]);
+    await assert.rejects(
+      () => cli.executePilotEntitlementCommand(options, dependencies(runner)),
+      pattern,
+    );
+    assert.equal(runner.callCount(), 0);
+  };
+
+  await assertRejectedPath(
+    resolve(REPOSITORY_ROOT, 'spec/membership.json'),
+    /outside the repository and cannot be tracked at HEAD/,
+  );
+
+  const inRepositoryDirectory = mkdtempSync(
+    join(REPOSITORY_ROOT, '.pilot-command-test-'),
+  );
+  temporaryDirectories.push(inRepositoryDirectory);
+  const inRepositoryPath = join(inRepositoryDirectory, 'command.json');
+  writeFileSync(inRepositoryPath, readFileSync(fixture.commandPath));
+  await assertRejectedPath(
+    inRepositoryPath,
+    /outside the repository and cannot be tracked at HEAD/,
+  );
+
+  const symlinkDirectory = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'pilot-command-symlink-test-'),
+  );
+  temporaryDirectories.push(symlinkDirectory);
+  const symlinkPath = join(symlinkDirectory, 'command.json');
+  symlinkSync(fixture.commandPath, symlinkPath);
+  await assertRejectedPath(symlinkPath, /path components must not be symbolic links/);
+});
+
+test('pilot apply rejects HEAD hardlinks, byte copies, parent symlinks, and path replacement', async () => {
+  const fixture = createFixture();
+  const trackedPath = resolve(REPOSITORY_ROOT, 'spec/membership.json');
+  const outsideDirectory = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'pilot-command-outside-test-'),
+  );
+  temporaryDirectories.push(outsideDirectory);
+
+  const assertRejected = async (commandPath, pattern, dependencyOverrides = {}) => {
+    const runner = createRunner();
+    const options = cli.parsePilotEntitlementArguments([
+      '--profile',
+      fixture.profilePath,
+      '--command',
+      commandPath,
+      '--apply',
+    ]);
+    await assert.rejects(
+      () =>
+        cli.executePilotEntitlementCommand(options, {
+          ...dependencies(runner),
+          ...dependencyOverrides,
+        }),
+      pattern,
+    );
+    assert.equal(runner.callCount(), 0);
+  };
+
+  const hardlinkPath = join(outsideDirectory, 'tracked-hardlink.json');
+  linkSync(trackedPath, hardlinkPath);
+  await assertRejected(hardlinkPath, /must not be a hard link/);
+
+  const copiedPath = join(outsideDirectory, 'tracked-copy.json');
+  copyFileSync(trackedPath, copiedPath);
+  await assertRejected(copiedPath, /must not equal any exact HEAD tracked blob/);
+
+  const realParent = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'pilot-command-real-parent-'),
+  );
+  temporaryDirectories.push(realParent);
+  const parentCommandPath = join(realParent, 'command.json');
+  copyFileSync(fixture.commandPath, parentCommandPath);
+  const linkedParent = join(outsideDirectory, 'linked-parent');
+  symlinkSync(realParent, linkedParent, 'dir');
+  await assertRejected(
+    join(linkedParent, 'command.json'),
+    /path components must not be symbolic links/,
+  );
+
+  const raceFixture = createFixture();
+  await assertRejected(
+    raceFixture.commandPath,
+    /(path|bytes) changed while (it was being validated|they were being read)/,
+    {
+      beforeOperatorCommandRead(path) {
+        const openedPath = `${path}.opened`;
+        renameSync(path, openedPath);
+        copyFileSync(openedPath, path);
+      },
+    },
+  );
+});
+
+test('pilot apply rejects symlink blobs, matching LFS material, and gitlinks before remote access', async () => {
+  const fixture = createFixture();
+  const commandBytes = readFileSync(fixture.commandPath);
+  const commandBlobId = execFileSync('git', ['hash-object', '--stdin'], {
+    cwd: REPOSITORY_ROOT,
+    encoding: 'utf8',
+    input: commandBytes,
+  }).trim();
+  const commandSha256 = crypto
+    .createHash('sha256')
+    .update(commandBytes)
+    .digest('hex');
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+  const cases = [
+    {
+      pattern: /must not equal any exact HEAD tracked blob/,
+      snapshot: {
+        entries: [{mode: '120000', oid: commandBlobId, type: 'blob'}],
+        lfsPointers: [],
+      },
+    },
+    {
+      pattern: /must not match exact HEAD LFS material/,
+      snapshot: {
+        entries: [],
+        lfsPointers: [
+          {oid_sha256: commandSha256, size: commandBytes.length},
+        ],
+      },
+    },
+    {
+      pattern: /contains a gitlink/,
+      snapshot: {
+        entries: [{mode: '160000', oid: 'a'.repeat(40), type: 'commit'}],
+        lfsPointers: [],
+      },
+    },
+  ];
+  for (const {pattern, snapshot} of cases) {
+    const runner = createRunner();
+    await assert.rejects(
+      () =>
+        cli.executePilotEntitlementCommand(options, {
+          ...dependencies(runner),
+          operatorHeadMaterialProbe: () => snapshot,
+        }),
+      pattern,
+    );
+    assert.equal(runner.callCount(), 0);
+  }
+
+  const pointerOid = 'b'.repeat(40);
+  const pointerBytes = Buffer.from(
+    `version https://git-lfs.github.com/spec/v1\noid sha256:${commandSha256}\nsize ${commandBytes.length}\n`,
+  );
+  const lfsGit = (_file, args) => {
+    if (args[0] === 'rev-parse') return `${TEST_HEAD}\n`;
+    if (args[0] === 'ls-tree') {
+      return `100644 blob ${pointerOid}\tcommand.lfs\0`;
+    }
+    if (args[0] === 'hash-object') return `${commandBlobId}\n`;
+    if (args[0] === 'cat-file' && args[1].startsWith('--batch-check')) {
+      return `${pointerOid} blob ${pointerBytes.length}\n`;
+    }
+    if (args[0] === 'cat-file' && args[1] === '--batch') {
+      return Buffer.concat([
+        Buffer.from(`${pointerOid} blob ${pointerBytes.length}\n`),
+        pointerBytes,
+        Buffer.from('\n'),
+      ]);
+    }
+    throw new Error(`unexpected git command ${args.join(' ')}`);
+  };
+  const lfsRunner = createRunner();
+  await assert.rejects(
+    () =>
+      cli.executePilotEntitlementCommand(options, {
+        ...dependencies(lfsRunner),
+        operatorCommandGit: lfsGit,
+      }),
+    /must not match exact HEAD LFS material/,
+  );
+  assert.equal(lfsRunner.callCount(), 0);
+});
+
+test('pilot apply binds helper HEAD to repository snapshots and rechecks before invoke', async () => {
+  const fixture = createFixture();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+  const safeRepository = {
+    branch: 'main',
+    dirty: false,
+    head: TEST_HEAD,
+    originMain: TEST_HEAD,
+  };
+  const driftedRepository = {
+    ...safeRepository,
+    head: 'd'.repeat(40),
+    originMain: 'd'.repeat(40),
+  };
+
+  const initialDriftRunner = createRunner();
+  await assert.rejects(
+    () =>
+      cli.executePilotEntitlementCommand(options, {
+        ...dependencies(initialDriftRunner),
+        repositoryStateReader: () => driftedRepository,
+      }),
+    /checked HEAD must equal repository HEAD and origin\/main/,
+  );
+  assert.equal(initialDriftRunner.callCount(), 0);
+
+  let reads = 0;
+  const finalDriftRunner = createRunner();
+  await assert.rejects(
+    () =>
+      cli.executePilotEntitlementCommand(options, {
+        ...dependencies(finalDriftRunner),
+        repositoryStateReader: () =>
+          reads++ === 0 ? safeRepository : driftedRepository,
+      }),
+    /checked HEAD must equal repository HEAD and origin\/main/,
+  );
+  assert.equal(finalDriftRunner.invokeCount(), 0);
+});
+
 function createFixture({
   commandPilotId = 'cet4-pilot-2026',
   occurredAt = '2026-08-10T10:00:00.000Z',
   pilotExpiresAt = '2026-09-01T00:00:00.000Z',
 } = {}) {
-  const directory = mkdtempSync(join(tmpdir(), 'pilot-entitlement-test-'));
+  const directory = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'pilot-entitlement-test-'),
+  );
   temporaryDirectories.push(directory);
   const profilePath = join(directory, 'controlled-pilot-profile.json');
   const commandPath = join(directory, 'pilot-command.json');
@@ -185,12 +469,17 @@ function dependencies(runner) {
     now: new Date('2026-08-10T10:00:01.000Z'),
     nodeVersion: deploymentSafety.REQUIRED_DEPLOYMENT_NODE_VERSION,
     operatorSecret: 'pilot-operator-secret-0123456789-ABCDEFG',
-    repository: {branch: 'main', dirty: false, head: 'same', originMain: 'same'},
+    repository: {
+      branch: 'main',
+      dirty: false,
+      head: TEST_HEAD,
+      originMain: TEST_HEAD,
+    },
     runner,
   };
 }
 
-function createRunner() {
+function createRunner({responseActorOverride = null} = {}) {
   const collections = new Map([
     ['softbook_beta_entitlements', new Map()],
     ['softbook_pilot_entitlements', new Map()],
@@ -201,6 +490,7 @@ function createRunner() {
   let invocations = 0;
   return {
     callCount: () => calls,
+    invokeCount: () => invocations,
     updateCount: () => updates,
     async run(args) {
       calls += 1;
@@ -278,6 +568,9 @@ function createRunner() {
           writes_performed: plan.changed,
           result: pilotRuntime.publicPilotEntitlementPlan(plan),
         };
+        if (responseActorOverride !== null) {
+          result.result.actor = responseActorOverride;
+        }
         return JSON.stringify({
           functionType: 'Event',
           InvokeResult: 0,

@@ -15,6 +15,7 @@ import {
 } from './controlled-pilot-v1.mjs';
 import {REQUIRED_DEPLOYMENT_NODE_VERSION, parseTcbJson, redactText} from './deployment-safety.mjs';
 import {inspectReceiver, inspectWriteSafety} from './deliver-release.mjs';
+import {readPrivateOperatorCommandBytes} from './operator-command-input.mjs';
 import {
   PilotEntitlementError,
   pilotEntitlementInternals,
@@ -64,7 +65,21 @@ export function parsePilotEntitlementArguments(argv) {
 
 export async function executePilotEntitlementCommand(options, dependencies = {}) {
   const profile = validateControlledPilotProfile(readJson(options.profilePath));
-  const command = validatePilotEntitlementCommand(readJson(options.commandPath));
+  const commandRead = options.apply
+    ? readPrivateOperatorCommandBytes(options.commandPath, {
+        beforeRead: dependencies.beforeOperatorCommandRead ?? null,
+        createError: message => new PilotEntitlementError(message),
+        git: dependencies.operatorCommandGit ?? execFileSync,
+        headMaterialProbe: dependencies.operatorHeadMaterialProbe ?? null,
+        repositoryRoot: REPOSITORY_ROOT,
+      })
+    : {
+        bytes: readFileSync(resolve(options.commandPath)),
+        checkedHead: null,
+      };
+  const command = validatePilotEntitlementCommand(
+    parseCommandBytes(commandRead.bytes),
+  );
   const now = dependencies.now ?? new Date();
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
     throw new PilotEntitlementError('operator clock is invalid.');
@@ -84,12 +99,18 @@ export async function executePilotEntitlementCommand(options, dependencies = {})
     );
   }
   const runner = dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
-  const repository = dependencies.repository ?? readRepositoryState();
+  const repositoryStateReader =
+    dependencies.repositoryStateReader ??
+    (() => dependencies.repository ?? readRepositoryState());
+  const repository = repositoryStateReader();
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
+  if (options.apply) {
+    assertCheckedRepositoryHead(repository, commandRead.checkedHead);
+  }
   const preflight = await inspectReceiver({profile, runner});
   const writeSafety = inspectWriteSafety({nodeVersion, repository});
   const base = {
-    schema_version: 'pilot-entitlement-report.v1',
+    schema_version: 'pilot-entitlement-report.v2',
     applied: options.apply,
     environment_id: profile.environment_id,
     gate_eligible: false,
@@ -114,6 +135,15 @@ export async function executePilotEntitlementCommand(options, dependencies = {})
       throw new PilotEntitlementError(
         'SOFTBOOK_PILOT_OPERATOR_SECRET must be a strong receiver-only secret.',
       );
+    }
+    const finalRepository = repositoryStateReader();
+    assertCheckedRepositoryHead(finalRepository, commandRead.checkedHead);
+    const finalWriteSafety = inspectWriteSafety({
+      nodeVersion,
+      repository: finalRepository,
+    });
+    if (!finalWriteSafety.ok) {
+      throw new PilotEntitlementError(finalWriteSafety.errors.join('; '));
     }
     const applied = await invokePilotEntitlement({
       command,
@@ -267,13 +297,55 @@ function parsePilotEntitlementInvocation(output, command) {
   } catch {
     throw new PilotEntitlementError('pilot entitlement invocation returned invalid JSON.');
   }
+  const expectedKeys = [
+    'gate_eligible',
+    'result',
+    'schema_version',
+    'status',
+    'writes_performed',
+  ];
+  const actualKeys =
+    result && typeof result === 'object' && !Array.isArray(result)
+      ? Object.keys(result).sort()
+      : [];
+  const expectedResultKeys = [
+    'action',
+    'actor',
+    'changed',
+    'event_id',
+    'idempotent',
+    'pilot_id',
+    'previous_stage',
+    'resulting_stage',
+    'schema_version',
+  ];
+  const resultKeys =
+    result?.result &&
+    typeof result.result === 'object' &&
+    !Array.isArray(result.result)
+      ? Object.keys(result.result).sort()
+      : [];
   if (
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== expectedKeys[index]) ||
+    resultKeys.length !== expectedResultKeys.length ||
+    resultKeys.some((key, index) => key !== expectedResultKeys[index]) ||
     result?.schema_version !== 'pilot-entitlement-operator-result.v1' ||
     result.status !== 'passed' ||
     result.gate_eligible !== false ||
     typeof result.writes_performed !== 'boolean' ||
+    result.writes_performed !== result.result?.changed ||
+    result.result?.schema_version !== 'pilot-entitlement-plan.v2' ||
+    result.result?.action !== command.action ||
+    result.result?.actor !== command.actor ||
     result.result?.event_id !== command.event_id ||
-    result.result?.pilot_id !== command.pilot_id
+    result.result?.pilot_id !== command.pilot_id ||
+    result.result?.previous_stage !== command.previous_stage ||
+    result.result?.resulting_stage !== command.resulting_stage ||
+    typeof result.result?.idempotent !== 'boolean' ||
+    pilotEntitlementInternals.containsPhoneMaterial(result.result?.actor) ||
+    pilotEntitlementInternals.containsPhoneMaterial(result.result?.event_id) ||
+    pilotEntitlementInternals.containsPhoneMaterial(result.result?.pilot_id)
   ) {
     throw new PilotEntitlementError('pilot entitlement invocation result is invalid.');
   }
@@ -310,6 +382,18 @@ function readRepositoryState() {
   };
 }
 
+function assertCheckedRepositoryHead(repository, checkedHead) {
+  if (
+    !/^[0-9a-f]{40}$/.test(checkedHead ?? '') ||
+    repository?.head !== checkedHead ||
+    repository?.originMain !== checkedHead
+  ) {
+    throw new PilotEntitlementError(
+      'operator command checked HEAD must equal repository HEAD and origin/main.',
+    );
+  }
+}
+
 function git(args) {
   return execFileSync('git', args, {cwd: REPOSITORY_ROOT, encoding: 'utf8'}).trim();
 }
@@ -319,6 +403,16 @@ function readJson(path) {
     return JSON.parse(readFileSync(resolve(path), 'utf8'));
   } catch (error) {
     throw new PilotEntitlementError(`unable to read JSON input: ${error.message}`);
+  }
+}
+
+function parseCommandBytes(bytes) {
+  try {
+    return JSON.parse(bytes.toString('utf8'));
+  } catch (error) {
+    throw new PilotEntitlementError(
+      `unable to read JSON input: ${error.message}`,
+    );
   }
 }
 
@@ -351,7 +445,7 @@ async function main() {
       console.log(
         `[pilot-entitlement] ${report.status}; action=${plan?.action ?? 'none'}; pilot=${
           report.pilot_id
-        }; account=${plan?.account_fingerprint ?? 'none'}; writes=${report.writes_performed}`,
+        }; event=${plan?.event_id ?? 'none'}; writes=${report.writes_performed}`,
       );
     }
     if (report.status === 'blocked') process.exitCode = 1;
@@ -371,6 +465,7 @@ if (isDirectExecution) main();
 
 export const pilotEntitlementCliInternals = {
   invokePilotEntitlement,
+  parsePilotEntitlementInvocation,
   queryCommand,
   verifyInvokedPilotEntitlement,
 };

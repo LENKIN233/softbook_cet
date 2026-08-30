@@ -204,6 +204,60 @@ test('pilot entitlement command accepts only auditable grant and revoke inputs',
   );
 });
 
+test('controlled-pilot public identifiers reject phone-number material', () => {
+  const command = {
+    schema_version: 'pilot-entitlement-command.v1',
+    event_id: 'pilot-grant-001',
+    pilot_id: 'cet4-pilot-2026',
+    phone_number: '13800138000',
+    action: 'grant',
+    actor: 'receiver-operator',
+    reason: 'continue controlled pilot after trial',
+    occurred_at: '2026-08-15T00:00:00.000Z',
+    previous_stage: 'free',
+    resulting_stage: 'pilot_premium',
+  };
+  for (const phoneMaterial of [
+    'scope-138-0013-8000',
+    'scope-138a0013b8000',
+  ]) {
+    assert.throws(
+      () =>
+        pilot.validateControlledPilotProfile({
+          ...profileFixture(),
+          pilot_id: phoneMaterial,
+        }),
+      /phone-number material/,
+    );
+    assert.throws(
+      () =>
+        pilot.validateControlledPilotBundle({
+          ...bundleFixture(),
+          pilot_id: phoneMaterial,
+        }),
+      /phone-number material/,
+    );
+    for (const field of ['actor', 'event_id', 'pilot_id']) {
+      assert.throws(
+        () =>
+          pilot.validatePilotEntitlementCommand({
+            ...command,
+            [field]: phoneMaterial,
+          }),
+        /phone-number material/,
+      );
+    }
+  }
+  assert.throws(
+    () =>
+      pilot.validatePilotEntitlementCommand({
+        ...command,
+        actor: 'service:１３８００１３８０００',
+      }),
+    /phone-number material/,
+  );
+});
+
 test('pilot outcome report derives thresholds and rejects an unsupported advance decision', () => {
   const passing = pilot.validatePilotOutcomeReport({
     schema_version: 'pilot-outcome-report.v1',

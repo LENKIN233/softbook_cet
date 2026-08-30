@@ -24,7 +24,21 @@ test('grant creates premium access evidence without changing base membership', (
   assert.equal(beta.applyBetaEntitlementToMembership(base, plan.document).stage, 'premium');
   assert.equal(base.stage, 'trial');
   assert.equal(JSON.stringify(plan.document).includes('13800138000'), true);
-  assert.equal(JSON.stringify(beta.publicBetaEntitlementPlan(plan)).includes('13800138000'), false);
+  const publicPlan = beta.publicBetaEntitlementPlan(plan);
+  assert.equal(publicPlan.schema_version, 'beta-entitlement-plan.v2');
+  assert.equal(JSON.stringify(publicPlan).includes('13800138000'), false);
+  assert.deepEqual(Object.keys(publicPlan).sort(), [
+    'action',
+    'actor_id',
+    'campaign_id',
+    'changed',
+    'event_id',
+    'grant_id',
+    'idempotent',
+    'previous_stage',
+    'resulting_stage',
+    'schema_version',
+  ]);
 });
 
 test('exact event replay is idempotent while event collisions fail closed', () => {
@@ -83,6 +97,19 @@ test('revoke removes only the matching grant and resolves current base membershi
   );
 });
 
+test('grant records an expired canonical trial as free without rewriting base input', () => {
+  const base = {
+    ...membership('trial'),
+    trial_started_at: '2026-07-20T10:00:00.000Z',
+    trial_expires_at: '2026-07-25T10:00:00.000Z',
+  };
+  const grant = beta.planBetaEntitlementMutation(command('grant'), null, base);
+
+  assert.equal(grant.previousStage, 'free');
+  assert.equal(grant.document.audit[0].previous_stage, 'free');
+  assert.equal(base.stage, 'trial');
+});
+
 test('command schema rejects extra fields, invalid phones, and noncanonical time', () => {
   assert.throws(
     () => beta.validateBetaEntitlementCommand({...command('grant'), secret: 'no'}),
@@ -102,6 +129,78 @@ test('command schema rejects extra fields, invalid phones, and noncanonical time
   );
 });
 
+test('stored beta entitlement rejects unknown fields and active campaign drift', () => {
+  const grant = beta.planBetaEntitlementMutation(
+    command('grant'),
+    null,
+    membership('free'),
+  );
+  const malformedDocuments = [
+    {...grant.document, unregistered_authority: true},
+    {
+      ...grant.document,
+      audit: [{...grant.document.audit[0], unregistered_authority: true}],
+    },
+    {
+      ...grant.document,
+      active_grant: {
+        ...grant.document.active_grant,
+        unregistered_authority: true,
+      },
+    },
+    {
+      ...grant.document,
+      active_grant: {
+        ...grant.document.active_grant,
+        campaign_id: 'cet4-beta-campaign-other',
+      },
+    },
+  ];
+
+  for (const document of malformedDocuments) {
+    assert.throws(
+      () => beta.betaEntitlementInternals.normalizeBetaEntitlementDocument(document),
+      /(fields are invalid|audit is invalid|active beta grant)/,
+    );
+  }
+});
+
+test('stored beta audit command hashes reject phone-owner transplants', () => {
+  const grant = beta.planBetaEntitlementMutation(
+    command('grant'),
+    null,
+    membership('free'),
+  );
+  const transplanted = {
+    ...grant.document,
+    phone_number: '13900139000',
+  };
+
+  assert.throws(
+    () => beta.betaEntitlementInternals.normalizeBetaEntitlementDocument(transplanted),
+    /audit sequence is invalid/,
+  );
+});
+
+test('public beta identifiers reject phones after removing every non-digit', () => {
+  for (const value of [
+    'scope-13800138000',
+    'scope-138-0013-8000',
+    'scope-138a0013b8000',
+  ]) {
+    for (const field of ['actor_id', 'campaign_id', 'event_id', 'grant_id']) {
+      assert.throws(
+        () =>
+          beta.validateBetaEntitlementCommand({
+            ...command('grant'),
+            [field]: value,
+          }),
+        /invalid/,
+      );
+    }
+  }
+});
+
 function command(action) {
   return {
     schema_version: 'beta-entitlement-command.v1',
@@ -117,12 +216,15 @@ function command(action) {
 }
 
 function membership(stage) {
+  const hasTrialClock = stage === 'trial';
   return {
     counted_entry_count: stage === 'trial_available' ? 0 : 1,
     last_experience_ended_by: null,
     recovery_prompt_visible: false,
     stage,
     trial_duration_days: 5,
+    trial_expires_at: hasTrialClock ? '2026-08-02T10:00:00.000Z' : null,
+    trial_started_at: hasTrialClock ? '2026-07-28T10:00:00.000Z' : null,
     trial_started_at_entry_count: stage === 'trial_available' ? null : 1,
   };
 }

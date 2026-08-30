@@ -375,7 +375,7 @@ export const REQUIRED_EVIDENCE_CHECKS = Object.freeze({
     'grant-replay-idempotent',
     'revoke-applied-and-verified',
     'revoke-replay-idempotent',
-    'campaign-account-and-base-membership-bound',
+    'campaign-grant-event-and-base-membership-bound',
   ],
   'space-sync-test': [
     'two-client-canonical-convergence',
@@ -1134,6 +1134,7 @@ function validateProductionDeploymentMeasurements(
       artifact,
       executionTimes,
       operation: 'deploy',
+      receiverProfile: loaded.profile,
     },
     `${label} deploy report`,
     errors,
@@ -1144,6 +1145,7 @@ function validateProductionDeploymentMeasurements(
       artifact,
       executionTimes,
       operation: 'verify',
+      receiverProfile: loaded.profile,
     },
     `${label} verify report`,
     errors,
@@ -1226,8 +1228,9 @@ function validateBetaEntitlementDrillMeasurements(
     [
       ...roleFields,
       'campaign_id',
-      'account_fingerprint',
       'grant_id',
+      'grant_event_id',
+      'revoke_event_id',
       'assertions',
     ],
     label,
@@ -1244,13 +1247,34 @@ function validateBetaEntitlementDrillMeasurements(
     errors.push(`${label} raw artifact roles must be distinct.`);
   }
   requirePattern(value.campaign_id, ID_PATTERN, `${label}.campaign_id`, errors);
+  requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
+  rejectPhoneMaterial(value.campaign_id, `${label}.campaign_id`, errors);
+  rejectPhoneMaterial(value.grant_id, `${label}.grant_id`, errors);
   requirePattern(
-    value.account_fingerprint,
-    /^sha256:[0-9a-f]{16}$/,
-    `${label}.account_fingerprint`,
+    value.grant_event_id,
+    ID_PATTERN,
+    `${label}.grant_event_id`,
     errors,
   );
-  requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
+  rejectPhoneMaterial(
+    value.grant_event_id,
+    `${label}.grant_event_id`,
+    errors,
+  );
+  requirePattern(
+    value.revoke_event_id,
+    ID_PATTERN,
+    `${label}.revoke_event_id`,
+    errors,
+  );
+  rejectPhoneMaterial(
+    value.revoke_event_id,
+    `${label}.revoke_event_id`,
+    errors,
+  );
+  if (value.grant_event_id === value.revoke_event_id) {
+    errors.push(`${label} grant and revoke event IDs must be distinct.`);
+  }
   assertEqual(
     value.campaign_id,
     expectedSubject?.entitlement?.campaign_id,
@@ -1265,7 +1289,7 @@ function validateBetaEntitlementDrillMeasurements(
       'revoke_applied_and_verified',
       'revoke_replay_idempotent',
       'base_membership_unchanged',
-      'same_campaign_account_and_candidate',
+      'same_campaign_grant_and_candidate',
     ],
     `${label}.assertions`,
     errors,
@@ -1385,6 +1409,7 @@ function validateBetaEntitlementPhaseReport(
 ) {
   const phase = {
     baseHash: null,
+    beforeState: null,
     command: null,
     completedAt: null,
     result: null,
@@ -1400,6 +1425,7 @@ function validateBetaEntitlementPhaseReport(
     [
       'schema_version',
       'applied',
+      'backend_deployment_id',
       'gate_eligible',
       'repository_commit',
       'profile',
@@ -1407,6 +1433,7 @@ function validateBetaEntitlementPhaseReport(
       'preflight',
       'write_safety',
       'base_membership',
+      'beta_state_before',
       'beta_state',
       'result',
       'status',
@@ -1416,10 +1443,16 @@ function validateBetaEntitlementPhaseReport(
     label,
     errors,
   );
-  assertEqual(report.schema_version, 'beta-entitlement-report.v2', `${label}.schema_version`, errors);
+  assertEqual(report.schema_version, 'beta-entitlement-report.v3', `${label}.schema_version`, errors);
   assertEqual(report.applied, true, `${label}.applied`, errors);
   assertEqual(report.gate_eligible, false, `${label}.gate_eligible`, errors);
   assertEqual(report.repository_commit, artifact.subject?.commit_sha, `${label}.repository_commit`, errors);
+  assertEqual(
+    report.backend_deployment_id,
+    artifact.subject?.release?.backend_deployment_id,
+    `${label}.backend_deployment_id`,
+    errors,
+  );
   validateBetaEntitlementReportProfile(
     report.profile,
     artifact.subject,
@@ -1433,7 +1466,12 @@ function validateBetaEntitlementPhaseReport(
     `${label}.command`,
     errors,
   );
-  validateBetaEntitlementPreflight(report.preflight, `${label}.preflight`, errors);
+  validateBetaEntitlementPreflight(
+    report.preflight,
+    report.backend_deployment_id,
+    `${label}.preflight`,
+    errors,
+  );
   validateBetaEntitlementWriteSafety(
     report.write_safety,
     artifact.subject,
@@ -1443,6 +1481,12 @@ function validateBetaEntitlementPhaseReport(
   phase.baseHash = validateBetaEntitlementBaseMembership(
     report.base_membership,
     `${label}.base_membership`,
+    errors,
+  );
+  phase.beforeState = validateBetaEntitlementState(
+    report.beta_state_before,
+    null,
+    `${label}.beta_state_before`,
     errors,
   );
   phase.state = validateBetaEntitlementState(
@@ -1497,18 +1541,16 @@ function validateBetaEntitlementReportCommand(value, action, label, errors) {
   assertExactKeys(
     value,
     [
-      'account_fingerprint',
       'action',
       'actor_id',
       'campaign_id',
-      'command_sha256',
+      'command_hmac_sha256',
       'event_id',
       'grant_id',
     ],
     label,
     errors,
   );
-  requirePattern(value.account_fingerprint, /^sha256:[0-9a-f]{16}$/, `${label}.account_fingerprint`, errors);
   assertEqual(value.action, action, `${label}.action`, errors);
   requirePattern(
     value.actor_id,
@@ -1517,18 +1559,128 @@ function validateBetaEntitlementReportCommand(value, action, label, errors) {
     errors,
   );
   requirePattern(value.campaign_id, ID_PATTERN, `${label}.campaign_id`, errors);
-  requireSha256(stripSha(value.command_sha256), `${label}.command_sha256`, errors);
+  requirePattern(
+    value.command_hmac_sha256,
+    /^hmac-sha256:[0-9a-f]{64}$/,
+    `${label}.command_hmac_sha256`,
+    errors,
+  );
   requirePattern(value.event_id, ID_PATTERN, `${label}.event_id`, errors);
   requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
+  for (const field of ['actor_id', 'campaign_id', 'event_id', 'grant_id']) {
+    rejectPhoneMaterial(value[field], `${label}.${field}`, errors);
+  }
   return value;
 }
 
-function validateBetaEntitlementPreflight(value, label, errors) {
+function validateBetaEntitlementPreflight(
+  value,
+  expectedBackendDeploymentId,
+  label,
+  errors,
+) {
   if (!isRecord(value)) {
     errors.push(`${label} must be an object.`);
     return;
   }
-  assertExactKeys(value, ['errors', 'required_collections_present'], label, errors);
+  assertExactKeys(
+    value,
+    [
+      'backend_deployment',
+      'backend_deployment_verified',
+      'errors',
+      'required_collections_present',
+    ],
+    label,
+    errors,
+  );
+  assertEqual(
+    value.backend_deployment_verified,
+    true,
+    `${label}.backend_deployment_verified`,
+    errors,
+  );
+  const deployment = value.backend_deployment;
+  if (!isRecord(deployment)) {
+    errors.push(`${label}.backend_deployment must be an object.`);
+  } else {
+    assertExactKeys(
+      deployment,
+      [
+        'backend_deployment_id',
+        'function_name',
+        'handler',
+        'release_class',
+        'runtime',
+        'runtime_mode',
+        'signing_key_id',
+        'sms_provider',
+        'store_mode',
+        'timeout',
+        'variable_names',
+      ],
+      `${label}.backend_deployment`,
+      errors,
+    );
+    assertEqual(
+      deployment.backend_deployment_id,
+      expectedBackendDeploymentId,
+      `${label}.backend_deployment.backend_deployment_id`,
+      errors,
+    );
+    assertEqual(
+      deployment.function_name,
+      'softbook-api',
+      `${label}.backend_deployment.function_name`,
+      errors,
+    );
+    assertEqual(
+      deployment.handler,
+      'index.main',
+      `${label}.backend_deployment.handler`,
+      errors,
+    );
+    assertEqual(
+      deployment.release_class,
+      'closed_beta',
+      `${label}.backend_deployment.release_class`,
+      errors,
+    );
+    assertEqual(
+      deployment.runtime,
+      'Nodejs20.19',
+      `${label}.backend_deployment.runtime`,
+      errors,
+    );
+    assertEqual(
+      deployment.runtime_mode,
+      'production',
+      `${label}.backend_deployment.runtime_mode`,
+      errors,
+    );
+    assertEqual(
+      deployment.store_mode,
+      'cloudbase',
+      `${label}.backend_deployment.store_mode`,
+      errors,
+    );
+    assertEqual(
+      deployment.timeout,
+      10,
+      `${label}.backend_deployment.timeout`,
+      errors,
+    );
+    if (
+      !Array.isArray(deployment.variable_names) ||
+      !deployment.variable_names.includes('SOFTBOOK_BETA_OPERATOR_SECRET') ||
+      !deployment.variable_names.includes('SOFTBOOK_RELEASE_CLASS') ||
+      deployment.variable_names.includes('SOFTBOOK_SMS_DEV_CODE')
+    ) {
+      errors.push(
+        `${label}.backend_deployment.variable_names must bind the beta secret and release class without a fixed SMS code.`,
+      );
+    }
+  }
   requireExactArray(value.errors, [], `${label}.errors`, errors);
   assertEqual(value.required_collections_present, true, `${label}.required_collections_present`, errors);
 }
@@ -1584,15 +1736,35 @@ function validateBetaEntitlementState(value, active, label, errors) {
     label,
     errors,
   );
-  assertEqual(value.active, active, `${label}.active`, errors);
-  if (!Number.isSafeInteger(value.revision) || value.revision <= 0) {
-    errors.push(`${label}.revision must be a positive integer.`);
+  if (active !== null) {
+    assertEqual(value.active, active, `${label}.active`, errors);
+  } else if (typeof value.active !== 'boolean') {
+    errors.push(`${label}.active must be boolean.`);
+  }
+  const minimumRevision = active === null ? 0 : 1;
+  if (
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < minimumRevision
+  ) {
+    errors.push(
+      `${label}.revision must be an integer of at least ${minimumRevision}.`,
+    );
   }
   assertEqual(value.audit_event_count, value.revision, `${label}.audit_event_count`, errors);
   requireSha256(stripSha(value.state_sha256), `${label}.state_sha256`, errors);
-  if (active) {
+  if (value.active === true) {
     requirePattern(value.active_campaign_id, ID_PATTERN, `${label}.active_campaign_id`, errors);
     requirePattern(value.active_grant_id, ID_PATTERN, `${label}.active_grant_id`, errors);
+    rejectPhoneMaterial(
+      value.active_campaign_id,
+      `${label}.active_campaign_id`,
+      errors,
+    );
+    rejectPhoneMaterial(
+      value.active_grant_id,
+      `${label}.active_grant_id`,
+      errors,
+    );
   } else {
     assertEqual(value.active_campaign_id, null, `${label}.active_campaign_id`, errors);
     assertEqual(value.active_grant_id, null, `${label}.active_grant_id`, errors);
@@ -1616,7 +1788,6 @@ function validateBetaEntitlementResult(
     [
       'schema_version',
       'action',
-      'account_fingerprint',
       'actor_id',
       'campaign_id',
       'changed',
@@ -1629,10 +1800,9 @@ function validateBetaEntitlementResult(
     label,
     errors,
   );
-  assertEqual(value.schema_version, 'beta-entitlement-plan.v1', `${label}.schema_version`, errors);
+  assertEqual(value.schema_version, 'beta-entitlement-plan.v2', `${label}.schema_version`, errors);
   for (const field of [
     'action',
-    'account_fingerprint',
     'actor_id',
     'campaign_id',
     'event_id',
@@ -1657,28 +1827,51 @@ function validateBetaEntitlementPhaseRelationships(phases, measurements, label, 
   const commands = phases.map(phase => phase.command ?? {});
   for (const [field, expected] of [
     ['campaign_id', measurements.campaign_id],
-    ['account_fingerprint', measurements.account_fingerprint],
     ['grant_id', measurements.grant_id],
   ]) {
     for (const [index, command] of commands.entries()) {
       assertEqual(command[field], expected, `${label}.phase_${index + 1}.${field}`, errors);
     }
   }
-  for (const field of ['actor_id', 'campaign_id', 'account_fingerprint', 'grant_id']) {
+  for (const field of ['actor_id', 'campaign_id', 'grant_id']) {
     for (const command of commands.slice(1)) {
       assertEqual(command[field], commands[0]?.[field], `${label}.${field} parity`, errors);
     }
   }
-  for (const field of ['event_id', 'command_sha256']) {
+  for (const field of ['event_id', 'command_hmac_sha256']) {
     assertEqual(grantReplay.command?.[field], grant.command?.[field], `${label}.grant ${field} replay`, errors);
     assertEqual(revokeReplay.command?.[field], revoke.command?.[field], `${label}.revoke ${field} replay`, errors);
     if (grant.command?.[field] === revoke.command?.[field]) {
       errors.push(`${label} grant and revoke ${field} must be distinct.`);
     }
   }
+  assertEqual(
+    grant.command?.event_id,
+    measurements.grant_event_id,
+    `${label}.grant event measurement`,
+    errors,
+  );
+  assertEqual(
+    revoke.command?.event_id,
+    measurements.revoke_event_id,
+    `${label}.revoke event measurement`,
+    errors,
+  );
   for (const phase of phases.slice(1)) {
     assertEqual(phase.baseHash, phases[0].baseHash, `${label}.base membership campaign parity`, errors);
   }
+  assertEqual(
+    grant.beforeState?.active,
+    false,
+    `${label}.grant before state active`,
+    errors,
+  );
+  assertEqual(
+    revoke.beforeState?.active,
+    true,
+    `${label}.revoke before state active`,
+    errors,
+  );
   if (!['trial_available', 'trial', 'free'].includes(grant.result?.previous_stage)) {
     errors.push(`${label} grant must begin from a non-premium base stage.`);
   }
@@ -1700,6 +1893,36 @@ function validateBetaEntitlementPhaseRelationships(phases, measurements, label, 
     assertEqual(grantReplay.state?.[field], grant.state?.[field], `${label}.grant state ${field}`, errors);
     assertEqual(revokeReplay.state?.[field], revoke.state?.[field], `${label}.revoke state ${field}`, errors);
   }
+  requireBetaStateParity(
+    grantReplay.beforeState,
+    grant.state,
+    `${label}.grant replay input chain`,
+    errors,
+  );
+  requireBetaStateParity(
+    revoke.beforeState,
+    grant.state,
+    `${label}.revoke input chain`,
+    errors,
+  );
+  requireBetaStateParity(
+    revokeReplay.beforeState,
+    revoke.state,
+    `${label}.revoke replay input chain`,
+    errors,
+  );
+  assertEqual(
+    grant.state?.revision,
+    (grant.beforeState?.revision ?? -1) + 1,
+    `${label}.grant revision transition`,
+    errors,
+  );
+  assertEqual(
+    grant.state?.audit_event_count,
+    (grant.beforeState?.audit_event_count ?? -1) + 1,
+    `${label}.grant audit transition`,
+    errors,
+  );
   assertEqual(grant.state?.active_campaign_id, measurements.campaign_id, `${label}.active campaign`, errors);
   assertEqual(grant.state?.active_grant_id, measurements.grant_id, `${label}.active grant`, errors);
   assertEqual(revoke.state?.revision, (grant.state?.revision ?? 0) + 1, `${label}.revoke revision`, errors);
@@ -1717,6 +1940,19 @@ function validateBetaEntitlementPhaseRelationships(phases, measurements, label, 
     ) {
       errors.push(`${label} phases must execute in grant/replay/revoke/replay order.`);
     }
+  }
+}
+
+function requireBetaStateParity(actual, expected, label, errors) {
+  for (const field of [
+    'active',
+    'active_campaign_id',
+    'active_grant_id',
+    'audit_event_count',
+    'revision',
+    'state_sha256',
+  ]) {
+    assertEqual(actual?.[field], expected?.[field], `${label}.${field}`, errors);
   }
 }
 
@@ -2095,7 +2331,7 @@ function validateSpaceSyncState(value, label, errors) {
 
 function validateReceiverDeliveryReport(
   report,
-  {artifact, executionTimes, operation},
+  {artifact, executionTimes, operation, receiverProfile},
   label,
   errors,
 ) {
@@ -2165,7 +2401,12 @@ function validateReceiverDeliveryReport(
     errors,
   );
   validateReceiverPreflight(report.preflight, artifact.subject, `${label}.preflight`, errors);
-  validateReceiverSecretSummary(report.receiver_secrets, `${label}.receiver_secrets`, errors);
+  validateReceiverSecretSummary(
+    report.receiver_secrets,
+    receiverProfile,
+    `${label}.receiver_secrets`,
+    errors,
+  );
   assertEqual(
     report.mobile_runtime_profile?.signing_key_id,
     report.receiver_secrets?.signing_key_id,
@@ -2434,7 +2675,7 @@ function validateReceiverPreflight(value, subject, label, errors) {
   }
 }
 
-function validateReceiverSecretSummary(value, label, errors) {
+function validateReceiverSecretSummary(value, profile, label, errors) {
   if (!isRecord(value)) {
     errors.push(`${label} must be an object.`);
     return;
@@ -2448,6 +2689,9 @@ function validateReceiverSecretSummary(value, label, errors) {
     'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
     'SOFTBOOK_SMS_PROVIDER',
   ];
+  if (profile?.runtime_mode === 'closed_beta') {
+    common.push('SOFTBOOK_BETA_OPERATOR_SECRET');
+  }
   const allowedSets = [
     [
       ...common,
@@ -2731,6 +2975,7 @@ function validateReceiverApiFunction(
       'backend_deployment_id',
       'function_name',
       'handler',
+      'release_class',
       'runtime',
       'runtime_mode',
       'signing_key_id',
@@ -2750,6 +2995,12 @@ function validateReceiverApiFunction(
   );
   assertEqual(value.function_name, 'softbook-api', `${label}.function_name`, errors);
   assertEqual(value.handler, 'index.main', `${label}.handler`, errors);
+  assertEqual(
+    value.release_class,
+    expectedProfile?.runtime_mode,
+    `${label}.release_class`,
+    errors,
+  );
   assertEqual(value.runtime, 'Nodejs20.19', `${label}.runtime`, errors);
   assertEqual(value.runtime_mode, 'production', `${label}.runtime_mode`, errors);
   assertEqual(
@@ -2779,6 +3030,7 @@ function expectedReceiverRuntimeVariableNames(configuredNames) {
     'SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT',
     'SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS',
     'SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS',
+    'SOFTBOOK_RELEASE_CLASS',
     'SOFTBOOK_RUNTIME_MODE',
     'SOFTBOOK_STORE_MODE',
   ]) {
@@ -5669,6 +5921,15 @@ function requireNonNegativeInteger(value, label, errors) {
 function requirePattern(value, pattern, label, errors) {
   if (typeof value !== 'string' || !pattern.test(value)) {
     errors.push(`${label} has an invalid value.`);
+  }
+}
+
+function rejectPhoneMaterial(value, label, errors) {
+  if (
+    typeof value === 'string' &&
+    /1\d{10}/.test(value.normalize('NFKC').replace(/\D/g, ''))
+  ) {
+    errors.push(`${label} must not contain phone-number material.`);
   }
 }
 
