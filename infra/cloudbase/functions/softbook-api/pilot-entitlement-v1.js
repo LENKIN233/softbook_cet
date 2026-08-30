@@ -364,7 +364,9 @@ function assertPlainObject(value, label) {
 
 function isIdentifier(value) {
   return typeof value === 'string' && value.length >= 3 && value.length <= 128 &&
-    /^[a-z0-9][a-z0-9._-]+$/.test(value) && !containsPhoneMaterial(value);
+    /^[a-z0-9][a-z0-9._-]+$/.test(value) &&
+    !containsPhoneMaterial(value) &&
+    !containsAccountInstanceMaterial(value);
 }
 
 function isCanonicalIsoTimestamp(value) {
@@ -384,12 +386,23 @@ function isTrimmedNonEmptyString(value) {
 }
 
 function isPrivacySafePublicText(value) {
-  return isTrimmedNonEmptyString(value) && !containsPhoneMaterial(value);
+  return (
+    isTrimmedNonEmptyString(value) &&
+    !containsPhoneMaterial(value) &&
+    !containsAccountInstanceMaterial(value)
+  );
 }
 
 function containsPhoneMaterial(value) {
   return typeof value === 'string' &&
     /1\d{10}/.test(value.normalize('NFKC').replace(/\D/g, ''));
+}
+
+function containsAccountInstanceMaterial(value) {
+  return (
+    typeof value === 'string' &&
+    /account_[A-Za-z0-9_-]{24,128}/.test(value)
+  );
 }
 
 module.exports = {
@@ -404,6 +417,7 @@ module.exports = {
   verifyAppliedPilotEntitlement,
   pilotEntitlementInternals: {
     containsPhoneMaterial,
+    containsAccountInstanceMaterial,
     hashCanonical,
     normalizePilotEntitlementDocument,
     stableStringify,

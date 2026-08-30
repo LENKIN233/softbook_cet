@@ -38,8 +38,9 @@ command also requires `expected_account_instance_id`. The private command,
 stored audit and receiver HMAC bind that raw opaque generation, while public
 plans and reports omit it. The canonical command receives a SHA-256 binding; replaying the same event is
 idempotent, while reusing an event ID for different bytes is rejected. Public
-actor, campaign, grant and event identifiers reject a literal phone number or
-one revealed after NFKC normalization and removing every non-digit character.
+actor, campaign, grant and event identifiers reject a literal phone number,
+one revealed after NFKC normalization, and raw account-instance material; the
+CLI result parser applies the same private-material boundary.
 
 Command files contain personal data. They are operational inputs, not release
 artifacts, and must not be committed, copied into `release-bundle.v1`, or
@@ -91,8 +92,9 @@ The helper returns its checked HEAD, the first repository snapshot must match
 it exactly, and the same HEAD is rechecked immediately before function invoke.
 
 `--apply` additionally requires Node 22.13.0 and a clean `main` exactly equal to
-`origin/main`, plus a dedicated strong `SOFTBOOK_BETA_OPERATOR_SECRET` distinct
-from auth secrets. Before invocation it re-observes the receiver function and
+`origin/main`, plus a dedicated `SOFTBOOK_BETA_OPERATOR_SECRET` with at least
+32 characters and 12 unique characters, distinct from auth secrets; CLI and
+receiver both enforce it. Before invocation it re-observes the receiver function and
 requires the exact profile-and-commit-derived backend deployment ID, explicit
 `closed_beta` release class and deployed beta-secret configuration. Apply sends
 one strict `beta-entitlement-operator-invoke.v1` HMAC invocation bound to both
@@ -102,9 +104,10 @@ plans the mutation, and writes the beta entitlement in one database
 transaction. Before dry-run or apply the CLI queries `softbook_accounts` and
 requires exactly the command's existing instance; an absent instance is an
 explicit refusal that tells the user to sign in first. It also requires at
-least one strict current active session whose phone, account key and instance
-match the command and whose refresh lifetime is still valid; an active-shaped
-malformed or expired record fails closed. The receiver transaction
+least one strict current active session whose phone, 64-hex account key and
+instance match the command, whose account/session timestamps are canonical and
+ordered, and whose refresh lifetime is still valid; an active-shaped malformed
+or expired record fails closed. The receiver transaction
 rederives the account key from the private phone and requires that exact current
 instance plus deletion-task absence, so an A1 command cannot grant A2 after
 deletion and re-registration. The CLI never performs the beta write directly; afterward it

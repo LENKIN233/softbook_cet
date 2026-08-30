@@ -400,7 +400,7 @@ test('receiver preflight rejects an unknown provider and unsafe SMS timeout', ()
   unsafeTimeout.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS = '15001';
   const timeoutInspection = deliveryCli.inspectReceiverSecrets(profileFixture(), unsafeTimeout);
   assert.equal(timeoutInspection.ok, false);
-  assert.match(timeoutInspection.errors.join(';'), /1 to 15000/);
+  assert.match(timeoutInspection.errors.join(';'), /1 to 10000/);
 });
 
 test('receiver preflight reads the exact environment and reports missing collections', async () => {

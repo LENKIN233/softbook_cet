@@ -39,6 +39,7 @@ function createTestApi(options = {}) {
 
   return {
     api: createSoftbookApi({
+      authV2AcknowledgementSleeper: async () => undefined,
       authV2IndexSecret: 'softbook-cloudbase-dev-secret',
       now: clock.now,
       runtimeMode: 'development',

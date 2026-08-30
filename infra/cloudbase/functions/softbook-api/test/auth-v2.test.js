@@ -7,11 +7,18 @@ const {
   createMemoryStore,
   createSoftbookApi,
 } = require('../index');
-const {createAuthV2Service} = require('../auth-v2');
+const {createAuthV2Service: createAuthV2ServiceRuntime} = require('../auth-v2');
 
 const PHONE_NUMBER = '13800138000';
 const SMS_CODE = '654321';
 const TOKEN_SECRET = 'test-auth-v2-secret';
+
+function createAuthV2Service(options) {
+  return createAuthV2ServiceRuntime({
+    acknowledgementSleeper: async () => undefined,
+    ...options,
+  });
+}
 
 function createClock(initial = '2026-07-20T08:00:00.000Z') {
   let current = new Date(initial);
@@ -64,6 +71,10 @@ function createV2TestApi(options = {}) {
   const sms = options.sms ?? createSmsProvider();
   const store = options.store ?? createMemoryStore();
   const api = createSoftbookApi({
+    authV2AcknowledgementSleeper:
+      options.useRealAcknowledgementSleeper
+        ? undefined
+        : options.acknowledgementSleeper ?? (async () => undefined),
     authV2CodeGenerator: () => SMS_CODE,
     authV2IndexSecret:
       options.indexSecret ?? 'softbook-cloudbase-dev-secret',
@@ -577,6 +588,7 @@ test('v2 request-code enforces independent phone and client-IP limits', async ()
 test('v2 records failed SMS delivery and does not activate that challenge', async () => {
   const store = createMemoryStore();
   const api = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
     authV2CodeGenerator: () => SMS_CODE,
     now: createClock().now,
     runtimeMode: 'development',
@@ -612,6 +624,7 @@ test('provider completion cannot recreate a deleted local challenge intent', asy
   });
   const store = createMemoryStore();
   const service = createAuthV2Service({
+    acknowledgementSleeper: async () => undefined,
     indexSecret: TOKEN_SECRET,
     now: createClock().now,
     providerDeliveryDeadlineMs: 1000,
@@ -675,6 +688,7 @@ test('provider failure and timeout acknowledgements cannot enumerate deletion st
 
   async function verifyMatrixCase(providerStyle, deliveryMode, endpoint, state) {
     const providerCalls = [];
+    const sleeperCalls = [];
     const outbound = async input => {
       providerCalls.push(input);
       if (deliveryMode === 'failure') {
@@ -693,6 +707,9 @@ test('provider failure and timeout acknowledgements cannot enumerate deletion st
           }),
     };
     const {api, store} = createV2TestApi({
+      acknowledgementSleeper: async milliseconds => {
+        sleeperCalls.push(milliseconds);
+      },
       ipRequestLimit: 100,
       phoneRequestLimit: 100,
       providerDeliveryDeadlineMs: 5,
@@ -734,6 +751,7 @@ test('provider failure and timeout acknowledgements cannot enumerate deletion st
     });
     const caseName = `${providerStyle}/${deliveryMode}/${endpoint.name}/${state}`;
     assert.equal(response.statusCode, 200, caseName);
+    assert.deepEqual(sleeperCalls, [5], caseName);
     const acknowledgement = {...response.body.data};
     const challengeId = acknowledgement.challenge_id;
     delete acknowledgement.challenge_id;
@@ -790,6 +808,69 @@ test('provider failure and timeout acknowledgements cannot enumerate deletion st
         }
       }
     }
+  }
+});
+
+test('real 50ms acknowledgement envelope prevents absent and task suppression early returns', async () => {
+  for (const testCase of [
+    {name: 'ordinary/absent', path: '/v2/auth/request-code', status: null},
+    {name: 'ordinary/queued', path: '/v2/auth/request-code', status: 'queued'},
+    {
+      name: 'recovery/absent',
+      path: '/v2/account/deletion/recovery/request-code',
+      status: null,
+    },
+    {
+      name: 'recovery/finalizing',
+      path: '/v2/account/deletion/recovery/request-code',
+      status: 'finalizing',
+    },
+  ]) {
+    const indexSecret = 'timing-index-secret-0123456789-ABCDEFG';
+    const store = createMemoryStore({authIndexSecret: indexSecret});
+    store.kind = 'cloudbase-timing-test';
+    const {api, sms} = createV2TestApi({
+      indexSecret,
+      providerDeliveryDeadlineMs: 50,
+      runtimeMode: 'production',
+      store,
+      tokenSecret: 'timing-token-secret-0123456789-HIJKLMN',
+      useRealAcknowledgementSleeper: true,
+    });
+    if (testCase.status !== null) {
+      const accountKey = crypto
+        .createHmac('sha256', indexSecret)
+        .update(`account:${PHONE_NUMBER}`)
+        .digest('hex');
+      const overrides = {status: testCase.status};
+      if (testCase.status === 'finalizing') {
+        Object.assign(overrides, {
+          attempt_count: 1,
+          last_attempt_at: '2026-07-20T07:59:30.000Z',
+          lease_expires_at: '2026-07-20T08:05:00.000Z',
+          lease_id: `lease_${'f'.repeat(24)}`,
+        });
+      }
+      store.snapshot().accountDeletions.set(
+        accountKey,
+        deletionTaskFixture(accountKey, overrides),
+      );
+    }
+    const startedAt = performance.now();
+    const response = await request(api, {
+      body: {phone_number: PHONE_NUMBER},
+      clientIp: '203.0.113.143',
+      path: testCase.path,
+    });
+    const elapsedMs = performance.now() - startedAt;
+    assert.equal(response.statusCode, 200, testCase.name);
+    assert.ok(elapsedMs >= 45, `${testCase.name}: ${elapsedMs}ms`);
+    assert.ok(elapsedMs < 1000, `${testCase.name}: ${elapsedMs}ms`);
+    assert.equal(
+      sms.deliveries.length,
+      testCase.status === null ? 1 : 0,
+      testCase.name,
+    );
   }
 });
 
@@ -1401,6 +1482,86 @@ test('lost deletion acknowledgement retries survive erased origin session until 
   assert.equal(store.snapshot().authSessions.size, 0);
 });
 
+test('Memory and CloudBase converge an empty-read deletion race after origin erasure', async () => {
+  for (const kind of ['memory', 'cloudbase']) {
+    const db = kind === 'cloudbase' ? createFakeCloudBaseDb() : null;
+    const store = kind === 'memory'
+      ? createMemoryStore()
+      : createCloudBaseStore({db});
+    const {api} = createV2TestApi({store});
+    const session = await issueSession(api, {
+      clientIp: kind === 'memory' ? '203.0.113.121' : '203.0.113.122',
+    });
+    const original = store.getOrCreateAccountDeletionTask;
+    let captured;
+    let release;
+    let markEntered;
+    const entered = new Promise(resolve => {
+      markEntered = resolve;
+    });
+    const released = new Promise(resolve => {
+      release = resolve;
+    });
+    store.getOrCreateAccountDeletionTask = async input => {
+      captured = structuredClone(input);
+      markEntered();
+      await released;
+      return original(input);
+    };
+    const pending = request(api, {
+      headers: {authorization: `Bearer ${session.access_token}`},
+      path: '/v2/account/deletion',
+    });
+    await entered;
+    const competing = {
+      ...captured,
+      attempt_count: 1,
+      deletion_id: `delete_competing_${kind}_0001`,
+      last_attempt_at: '2026-07-20T08:00:00.000Z',
+      lease_expires_at: '2026-07-20T08:05:00.000Z',
+      lease_id: `lease_${kind[0].repeat(24)}`,
+      status: 'processing',
+    };
+    if (kind === 'memory') {
+      store.snapshot().accountDeletions.set(captured.account_key, competing);
+      store.snapshot().accounts.delete(captured.account_key);
+      store.snapshot().authSessions.delete(captured.origin_session_id);
+    } else {
+      db.snapshot().get('softbook_account_deletions')
+        .set(captured.account_key, competing);
+      db.snapshot().get('softbook_accounts').delete(captured.account_key);
+      db.snapshot().get('softbook_auth_sessions')
+        .delete(captured.origin_session_id);
+    }
+    release();
+    const response = await pending;
+    assert.equal(response.statusCode, 202, kind);
+    assert.equal(
+      response.body.data.deletion_request.id,
+      competing.deletion_id,
+      kind,
+    );
+
+    const taskMap = kind === 'memory'
+      ? store.snapshot().accountDeletions
+      : db.snapshot().get('softbook_account_deletions');
+    taskMap.set(captured.account_key, {
+      ...competing,
+      origin_session_id: 'different_origin_session_0001',
+    });
+    await assert.rejects(
+      () => original(captured),
+      error => error.code === 'account_instance_mismatch',
+      kind,
+    );
+    taskMap.set(captured.account_key, {
+      ...competing,
+      lease_expires_at: null,
+    });
+    await assert.rejects(() => original(captured), /task is invalid/, kind);
+  }
+});
+
 test('missing finalizing lease TTL remains a material-creation fence', async () => {
   const {api, sms, store} = createV2TestApi({
     ipRequestLimit: 100,
@@ -1706,6 +1867,14 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
   );
 });
 
+test('CloudBase challenge reservation uses exactly four transaction operations', async () => {
+  const db = createFakeCloudBaseDb();
+  const {api} = createV2TestApi({store: createCloudBaseStore({db})});
+  const response = await issueChallenge(api);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(db.transactionOperationCounts(), [2, 3, 4, 2]);
+});
+
 test('CloudBase account revocation rechecks the exact queued task and current session query-set', async () => {
   let mutateAfterQuery = false;
   let db;
@@ -1832,6 +2001,7 @@ test('CloudBase account revocation rechecks the exact queued task and current se
       .get('session-current').status,
     'revoked',
   );
+  assert.equal(db.transactionOperationCounts().at(-1), 3);
 });
 
 test('CloudBase finalizing fence rejects request-code before any durable material write', async () => {
@@ -1955,6 +2125,10 @@ test('v2 request-code keeps CloudBase collection failures fatal', async () => {
 });
 
 test('production auth fails closed on weak configuration and missing trusted client IP', async () => {
+  assert.throws(
+    () => createV2TestApi({providerDeliveryDeadlineMs: 10001}),
+    /must not exceed 10000ms/,
+  );
   assert.throws(
     () =>
       createSoftbookApi({
@@ -2087,6 +2261,8 @@ function createFakeCloudBaseDb({
 } = {}) {
   const collections = new Map();
   let transactionTail = Promise.resolve();
+  let transactionOperations = 0;
+  const transactionOperationCounts = [];
 
   const collection = (name, transactional = false) => {
     if (!collections.has(name)) {
@@ -2098,6 +2274,7 @@ function createFakeCloudBaseDb({
     return {
       doc: documentId => ({
         get: async () => {
+          if (transactional) transactionOperations += 1;
           if (missingDocumentErrorCode && !documents.has(documentId)) {
             const error = new Error('CloudBase document lookup failed.');
             error.code = missingDocumentErrorCode;
@@ -2127,6 +2304,7 @@ function createFakeCloudBaseDb({
           };
         },
         set: async data => {
+          if (transactional) transactionOperations += 1;
           documents.set(documentId, cloneJson(data));
           return {id: documentId};
         },
@@ -2153,9 +2331,15 @@ function createFakeCloudBaseDb({
   return {
     collection,
     runTransaction: callback => {
-      const run = transactionTail.then(() =>
-        callback({collection: name => collection(name, true)}),
-      );
+      const run = transactionTail.then(async () => {
+        transactionOperations = 0;
+        try {
+          return await callback({collection: name => collection(name, true)});
+        } finally {
+          transactionOperationCounts.push(transactionOperations);
+          transactionOperations = 0;
+        }
+      });
       transactionTail = run.then(
         () => undefined,
         () => undefined,
@@ -2163,6 +2347,7 @@ function createFakeCloudBaseDb({
       return run;
     },
     snapshot: () => collections,
+    transactionOperationCounts: () => [...transactionOperationCounts],
   };
 }
 

@@ -187,6 +187,7 @@ test('public beta identifiers reject phones after removing every non-digit', () 
     'scope-13800138000',
     'scope-138-0013-8000',
     'scope-138a0013b8000',
+    `account_${'a'.repeat(24)}`,
   ]) {
     for (const field of ['actor_id', 'campaign_id', 'event_id', 'grant_id']) {
       assert.throws(

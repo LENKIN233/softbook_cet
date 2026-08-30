@@ -14,7 +14,7 @@ const RATE_LIMIT_WINDOW_SECONDS = 10 * 60;
 const PHONE_REQUEST_LIMIT = 5;
 const IP_REQUEST_LIMIT = 20;
 const PROVIDER_COMPLETION_GRACE_MS = 1000;
-const PROVIDER_DELIVERY_DEADLINE_MS = 15 * 1000;
+const PROVIDER_DELIVERY_DEADLINE_MS = 10 * 1000;
 const PROVIDER_OWNED_PUBLIC_TTL_SECONDS = 60;
 const VERIFY_ATTEMPT_LIMIT = 5;
 const EXTERNAL_PROVIDER_VERIFIED_CODE = 'external-provider-verified';
@@ -37,6 +37,8 @@ function createAuthV2Service(options) {
       ? generateSixDigitCode
       : () => String(options.developmentSmsCode ?? '2468'));
   const config = {
+    acknowledgementSleeper:
+      options.acknowledgementSleeper ?? fixedDelay,
     accessTokenTtlSeconds:
       options.accessTokenTtlSeconds ?? ACCESS_TOKEN_TTL_SECONDS,
     challengeTtlSeconds: options.challengeTtlSeconds ?? CHALLENGE_TTL_SECONDS,
@@ -143,11 +145,17 @@ async function requestCode(config, request, purpose) {
       ) *
         1000,
   );
+  const providerTerminalWriteReserveMs = Math.min(
+    PROVIDER_COMPLETION_GRACE_MS,
+    Math.max(1, Math.floor(config.providerDeliveryDeadlineMs / 5)),
+  );
   const providerCallDeadlineAt = new Date(
-    requestedAt.getTime() + config.providerDeliveryDeadlineMs,
+    requestedAt.getTime() +
+      config.providerDeliveryDeadlineMs -
+      providerTerminalWriteReserveMs,
   );
   const deliveryDeadlineAt = new Date(
-    providerCallDeadlineAt.getTime() + PROVIDER_COMPLETION_GRACE_MS,
+    requestedAt.getTime() + config.providerDeliveryDeadlineMs,
   );
   const publicChallenge = () => ({
     challenge_id: challengeId,
@@ -155,6 +163,13 @@ async function requestCode(config, request, purpose) {
     expires_at: expiresAt.toISOString(),
     retry_after_seconds: config.rateLimitWindowSeconds,
   });
+  const acknowledgementReady = Promise.resolve(
+    config.acknowledgementSleeper(config.providerDeliveryDeadlineMs),
+  );
+  const acknowledgedChallenge = async () => {
+    await acknowledgementReady;
+    return publicChallenge();
+  };
 
   const phoneRateStatus = await consumeRateLimit(config, {
     accountKey,
@@ -166,7 +181,7 @@ async function requestCode(config, request, purpose) {
     windowStartedAt,
   });
   if (isSuppressedChallengeStatus(phoneRateStatus)) {
-    return publicChallenge();
+    return acknowledgedChallenge();
   }
   assertChallengeMaterialAllowed(phoneRateStatus);
 
@@ -200,7 +215,7 @@ async function requestCode(config, request, purpose) {
   });
 
   if (isSuppressedChallengeStatus(challengeCreated)) {
-    return publicChallenge();
+    return acknowledgedChallenge();
   }
   assertChallengeMaterialAllowed(challengeCreated);
 
@@ -269,10 +284,10 @@ async function requestCode(config, request, purpose) {
           : 'delivery_failed',
       updatedAt: config.now().toISOString(),
     });
-    return publicChallenge();
+    return acknowledgedChallenge();
   }
 
-  return publicChallenge();
+  return acknowledgedChallenge();
 }
 
 async function verifyCode(config, request, purpose) {
@@ -1018,8 +1033,11 @@ function validateServiceConfig(config) {
   }
   if (config.providerDeliveryDeadlineMs > PROVIDER_DELIVERY_DEADLINE_MS) {
     throw new Error(
-      'Auth v2 providerDeliveryDeadlineMs must not exceed 15000ms.',
+      'Auth v2 providerDeliveryDeadlineMs must not exceed 10000ms.',
     );
+  }
+  if (typeof config.acknowledgementSleeper !== 'function') {
+    throw new Error('Auth v2 acknowledgementSleeper must be a function.');
   }
 
   if (config.runtimeMode === 'development') {
@@ -1087,6 +1105,10 @@ async function runProviderDelivery(config, deliveryDeadlineAt, operation) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+function fixedDelay(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
 function providerDeliveryDeadlineError() {

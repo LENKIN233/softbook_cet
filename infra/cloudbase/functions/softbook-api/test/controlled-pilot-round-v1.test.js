@@ -125,6 +125,7 @@ test('formal runtime never applies or exposes the controlled-pilot round gate', 
 
 test('HTTP route is absent outside controlled pilot', async () => {
   const production = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
     authV2IndexSecret: 'round-route-development-index-secret',
     runtimeMode: 'development',
     store: createMemoryStore(),

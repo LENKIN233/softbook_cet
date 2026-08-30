@@ -144,6 +144,24 @@ test('apply writes and verifies once while exact replay is idempotent', async ()
   assert.equal(runner.updateCount(), 1);
 });
 
+test('pilot apply rejects a low-entropy operator secret before invocation', async () => {
+  const fixture = createFixture();
+  const runner = createRunner();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath,
+    '--command', fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(options, {
+      ...dependencies(runner),
+      operatorSecret: 'x'.repeat(64),
+    }),
+    /strong receiver-only secret/,
+  );
+  assert.equal(runner.invokeCount(), 0);
+});
+
 test('profile pilot mismatch and topic-branch apply fail before mutation', async () => {
   const fixture = createFixture({commandPilotId: 'another-pilot'});
   const runner = createRunner();
@@ -224,6 +242,22 @@ test('pilot CLI result parser rejects letter-separated phone IDs', async () => {
     fixture.profilePath,
     '--command',
     fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(options, dependencies(runner)),
+    /invocation result is invalid/,
+  );
+});
+
+test('pilot CLI result parser rejects account-instance material', async () => {
+  const fixture = createFixture();
+  const runner = createRunner({
+    responseActorOverride: `account_${'a'.repeat(24)}`,
+  });
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath,
+    '--command', fixture.commandPath,
     '--apply',
   ]);
   await assert.rejects(

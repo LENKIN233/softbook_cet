@@ -363,6 +363,7 @@ function assertPilotOperatorSignature(command, signature, secret) {
   if (
     typeof secret !== 'string' ||
     secret.length < 32 ||
+    new Set(secret).size < 12 ||
     typeof signature !== 'string' ||
     !/^hmac-sha256:[a-f0-9]{64}$/.test(signature)
   ) {
@@ -424,6 +425,7 @@ function createSoftbookApi(options = {}) {
     tokenTtlSeconds: resolveTokenTtlSeconds(options.tokenTtlSeconds),
   };
   config.authV2 = createAuthV2Service({
+    acknowledgementSleeper: options.authV2AcknowledgementSleeper,
     accessTokenTtlSeconds: options.authV2AccessTokenTtlSeconds,
     challengeTtlSeconds: options.authV2ChallengeTtlSeconds,
     codeGenerator: options.authV2CodeGenerator,

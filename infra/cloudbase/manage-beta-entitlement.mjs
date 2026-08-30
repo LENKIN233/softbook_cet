@@ -432,13 +432,20 @@ function isExactActiveSession(document, account, command, observedAt) {
     Number.isSafeInteger(value.refresh_rotation) &&
     value.refresh_rotation >= 0 &&
     /^[a-f0-9]{64}$/.test(value.refresh_token_hash ?? '') &&
-    [value.access_expires_at, value.created_at, value.updated_at]
-      .every(timestamp => Number.isFinite(Date.parse(timestamp))) &&
+    [
+      value.access_expires_at,
+      value.created_at,
+      value.refresh_expires_at,
+      value.updated_at,
+    ].every(isCanonicalIsoTimestamp) &&
     (value.device_id === null ||
       (typeof value.device_id === 'string' && value.device_id.length <= 128)) &&
     (value.device_name === null ||
       (typeof value.device_name === 'string' && value.device_name.length <= 128)) &&
-    Number.isFinite(Date.parse(value.refresh_expires_at)) &&
+    Date.parse(account.created_at) <= Date.parse(value.created_at) &&
+    Date.parse(value.created_at) <= Date.parse(value.updated_at) &&
+    Date.parse(value.updated_at) <= Date.parse(observedAt) &&
+    Date.parse(value.access_expires_at) > Date.parse(value.created_at) &&
     Date.parse(value.refresh_expires_at) > Date.parse(observedAt)
   );
 }
@@ -452,13 +459,20 @@ function assertCurrentAccountInstance(document, expectedId) {
       'account_instance_id,account_key,created_at,schema_version' ||
     value.schema_version !== 'account-instance.v1' ||
     value.account_instance_id !== expectedId ||
+    !/^[a-f0-9]{64}$/.test(value.account_key ?? '') ||
     value.account_key !== documentId ||
-    !Number.isFinite(Date.parse(value.created_at)) ||
+    !isCanonicalIsoTimestamp(value.created_at) ||
     Object.hasOwn(value, 'phone_number')
   ) {
     throw new BetaEntitlementError('The expected account instance is invalid.');
   }
   return value;
+}
+
+function isCanonicalIsoTimestamp(value) {
+  if (typeof value !== 'string') return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString() === value;
 }
 
 async function invokeBetaEntitlement({
@@ -625,6 +639,12 @@ function parseBetaEntitlementInvocation(
     result.result?.campaign_id !== command.campaign_id ||
     result.result?.grant_id !== command.grant_id ||
     result.result?.actor_id !== command.actor_id ||
+    [
+      result.result?.actor_id,
+      result.result?.campaign_id,
+      result.result?.event_id,
+      result.result?.grant_id,
+    ].some(betaEntitlementInternals.containsAccountInstanceMaterial) ||
     JSON.stringify(result).includes(command.phone_number)
   ) {
     throw new BetaEntitlementError(
@@ -651,6 +671,12 @@ function validateBetaEntitlementInvocationSemantics(result, command) {
           state.active_campaign_id,
         ) &&
         !betaEntitlementInternals.containsPhoneMaterial(
+          state.active_grant_id,
+        ) &&
+        !betaEntitlementInternals.containsAccountInstanceMaterial(
+          state.active_campaign_id,
+        ) &&
+        !betaEntitlementInternals.containsAccountInstanceMaterial(
           state.active_grant_id,
         )
       : state.active_campaign_id === null && state.active_grant_id === null;

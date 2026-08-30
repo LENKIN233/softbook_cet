@@ -217,9 +217,10 @@ resulting stage and `expected_account_instance_id`. The private command, stored
 audit and HMAC bind the raw instance generation; public plan/report projections
 do not expose it. An instance must already exist, so the user signs in before
 any grant; the CLI requires a strict non-expired active session matching phone,
-account key and instance, and pre-registration or malformed active-shaped
-grants are rejected. Public pilot, event and actor identifiers apply NFKC, then
-remove every non-digit character before rejecting phone-number material. Grant must result in
+64-hex account key, instance, canonical timestamps and valid time ordering, and
+pre-registration or malformed active-shaped grants are rejected. Public pilot,
+event and actor identifiers reject phone and raw account-instance material, and
+the CLI result parser applies the same boundary. Grant must result in
 `pilot_premium`; revoke must restore the canonical base stage. Future mutation
 implementation rederives and atomically verifies those stages while storing
 the event and active overlay, leave base membership unchanged, reject client
@@ -242,7 +243,8 @@ independent audited revision in controlled-pilot Bootstrap. The overlay stops
 granting access at the profile's exact pilot expiry. The operator command is receiver
 only, dry-run first, and has no HTTP client route. Apply uses the receiver's
 IAM-authenticated non-HTTP function invocation with a command-bound HMAC from
-an independent receiver-only operator secret; the receiver function reads
+an independent receiver-only operator secret of at least 32 characters and 12
+unique characters; both CLI and receiver enforce that entropy. The receiver function reads
 base, beta and pilot records and commits audit plus overlay in one database
 transaction, after which the CLI independently rereads the audit event. These
 public plan and report projections bind pilot, event, actor, action and stage

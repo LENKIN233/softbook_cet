@@ -402,6 +402,22 @@ test('beta CLI result parser rejects letter-separated phone IDs', async () => {
   );
 });
 
+test('beta CLI result parser rejects account-instance material', async () => {
+  const fixture = createFixture();
+  const runner = createRunner({
+    responseActiveCampaignOverride: `account_${'a'.repeat(24)}`,
+  });
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile', fixture.profilePath,
+    '--command', fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executeBetaEntitlementCommand(options, dependencies(runner)),
+    /semantically invalid/,
+  );
+});
+
 test('apply rejects tracked, in-repository, and symlink command inputs', async () => {
   const fixture = createFixture();
   const assertRejectedPath = async (commandPath, pattern) => {
@@ -750,10 +766,10 @@ function createRunner({
     ['softbook_auth_sessions', new Map(includeAccount ? [[
       'session-test-beta-instance',
       {
-        access_expires_at: '2026-08-30T12:15:00.000Z',
+        access_expires_at: '2026-08-30T08:15:00.000Z',
         account_instance_id: `account_${'a'.repeat(24)}`,
         account_key: 'a'.repeat(64),
-        created_at: '2026-08-30T12:00:00.000Z',
+        created_at: '2026-08-30T08:00:00.000Z',
         device_id: null,
         device_name: null,
         phone_number: sessionPhone,
@@ -764,7 +780,7 @@ function createRunner({
         revoked_reason: null,
         session_id: 'session-test-beta-instance',
         status: 'active',
-        updated_at: '2026-08-30T12:00:00.000Z',
+        updated_at: '2026-08-30T08:00:00.000Z',
         ...(malformedSession ? {unexpected: true} : {}),
       },
     ]] : [])],

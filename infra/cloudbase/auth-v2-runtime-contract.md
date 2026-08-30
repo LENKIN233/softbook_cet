@@ -91,14 +91,25 @@ branches all keep the same success-shaped acknowledgement. A branch refused by
 the phone/task fence creates no phone counter, challenge, or provider request,
 so request-code cannot be used as a `200`/`403`/`409` account-state oracle.
 
+Before the phone/task/provider branch diverges, every success-shaped ordinary
+or recovery request starts one fixed acknowledgement envelope equal to the
+configured provider delivery deadline. Real provider success, rejection,
+timeout, phone suppression, and every task suppression branch await that same
+envelope. Provider work is bounded inside it. The configurable deadline is
+1..10000 ms, leaving at least five seconds inside the clients' 15000 ms request
+deadline for parsing, database work, transport, and response delivery. Tests
+may inject the sleeper but production uses the real fixed timer; a real 50 ms
+regression proves absent and suppressed branches cannot return early.
+
 Every actual outbound challenge first persists a collision-safe local
 `challenge_id`, delivery reservation ID, and bounded delivery deadline with
 `delivery_status: pending`. This happens before either `sendCode` or a
 provider-owned `sendChallenge`. A provider-owned verification ID is private
 server state and conditionally attaches only to the same still-existing local
 pending reservation; completion never upserts a missing intent. Provider calls
-abort no later than their configured 1..15000 ms deadline, and the durable
-quiescence deadline includes a one-second terminal-write grace period.
+abort before the configured 1..10000 ms envelope, reserving up to its final
+one second (or 20% for shorter envelopes) for the conditional terminal write;
+the durable quiescence deadline equals the end of that envelope.
 If an injected test provider ignores abort, service timeout leaves the durable
 reservation pending through that grace instead of declaring delivery terminal.
 After the deadline the worker may sweep it; resolution of the abandoned

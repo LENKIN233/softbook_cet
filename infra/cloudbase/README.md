@@ -706,7 +706,10 @@ node infra/cloudbase/manage-pilot-entitlement.mjs \
 
 The command must bind the exact profile pilot ID and current
 `expected_account_instance_id`; the user must sign in first, pre-registration
-grants are rejected, and public output omits the raw instance ID. Its active overlay and audit
+grants are rejected, and public output/identifiers reject the raw instance ID.
+The CLI requires a strict non-expired current session with canonical timestamps,
+and both CLI and receiver require at least 32 characters and 12 unique
+characters in the pilot operator secret. Its active overlay and audit
 history share one `softbook_pilot_entitlements` document; Bootstrap exposes an
 independent `pilot_entitlement_revision`, clients continue to receive the
 existing `premium` stage, and no client grant or revoke route exists. Apply uses

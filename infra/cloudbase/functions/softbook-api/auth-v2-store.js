@@ -258,12 +258,6 @@ function createMemoryAuthStateStore(options = {}) {
         ) {
           throw accountInstanceMismatchError();
         }
-        assertDeletionRetryCurrent(
-          normalizedExisting,
-          accounts,
-          authSessions,
-          indexSecret,
-        );
         return clone(normalizedExisting);
       }
 
@@ -650,20 +644,6 @@ function createCloudBaseAuthStateStore(db, collections, options = {}) {
           ) {
             throw accountInstanceMismatchError();
           }
-          const retrySession = await getDocument(
-            transaction.collection(names.authSessions),
-            normalizedExisting.origin_session_id,
-          );
-          const retryAccount = await getDocument(
-            transaction.collection(names.accounts),
-            normalizedExisting.account_key,
-          );
-          assertDeletionRetryDocuments(
-            normalizedExisting,
-            retryAccount,
-            retrySession,
-            indexSecret,
-          );
           return normalizedExisting;
         }
 
@@ -776,38 +756,6 @@ function assertDeletionOriginCurrent(
     authSessions.get(task.origin_session_id) ?? null,
     indexSecret,
   );
-}
-
-function assertDeletionRetryCurrent(task, accounts, authSessions, indexSecret) {
-  assertDeletionRetryDocuments(
-    task,
-    accounts.get(task.account_key) ?? null,
-    authSessions.get(task.origin_session_id) ?? null,
-    indexSecret,
-  );
-}
-
-function assertDeletionRetryDocuments(task, accountInput, session, indexSecret) {
-  let account;
-  try {
-    account = normalizeAccountInstance(accountInput, task.account_key);
-  } catch {
-    throw accountInstanceMismatchError();
-  }
-  if (
-    !session ||
-    !['active', 'revoked'].includes(session.status) ||
-    (session.status === 'revoked' &&
-      session.revoked_reason !== 'account_deletion_requested') ||
-    session.session_id !== task.origin_session_id ||
-    session.account_key !== task.account_key ||
-    session.account_instance_id !== task.account_instance_id ||
-    session.phone_number !== task.phone_number ||
-    account.account_instance_id !== task.account_instance_id ||
-    deriveAccountKey(indexSecret, task.phone_number) !== task.account_key
-  ) {
-    throw accountInstanceMismatchError();
-  }
 }
 
 function assertDeletionOriginDocuments(

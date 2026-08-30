@@ -850,6 +850,9 @@ function requirePublicIdentifier(value, label) {
   if (containsPhoneMaterial(candidate)) {
     fail(`${label} must not contain phone-number material.`);
   }
+  if (containsAccountInstanceMaterial(candidate)) {
+    fail(`${label} must not contain account-instance material.`);
+  }
   return candidate;
 }
 
@@ -858,11 +861,18 @@ function requirePrivacySafePublicText(value, label) {
   if (containsPhoneMaterial(candidate)) {
     fail(`${label} must not contain phone-number material.`);
   }
+  if (containsAccountInstanceMaterial(candidate)) {
+    fail(`${label} must not contain account-instance material.`);
+  }
   return candidate;
 }
 
 function containsPhoneMaterial(value) {
   return /1\d{10}/.test(value.normalize('NFKC').replace(/\D/g, ''));
+}
+
+function containsAccountInstanceMaterial(value) {
+  return /account_[A-Za-z0-9_-]{24,128}/.test(value);
 }
 
 function requireString(value, label) {

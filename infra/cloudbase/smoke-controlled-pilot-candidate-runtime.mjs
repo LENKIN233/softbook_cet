@@ -116,6 +116,7 @@ export async function smokeControlledPilotCandidateRuntime(options) {
   const {privateKey, publicKey} = crypto.generateKeyPairSync('ed25519');
   let selectionCounter = 0;
   const api = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
     authV2CodeGenerator: () => SMS_CODE,
     authV2IndexSecret: 'candidate-runtime-smoke-index-secret-00000001',
     contentAssetUrlResolver: async ({asset}) =>

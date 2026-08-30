@@ -13,12 +13,19 @@ const {
   createMemoryAccountDeletionRepository,
 } = require('../account-deletion-worker-v1');
 const {createMemoryAuthStateStore} = require('../auth-v2-store');
-const {createAuthV2Service} = require('../auth-v2');
+const {createAuthV2Service: createAuthV2ServiceRuntime} = require('../auth-v2');
 
 const ACCOUNT_KEY = 'a'.repeat(64);
 const PHONE = '13800138000';
 const PHONE_RATE_KEY = `phone:${'b'.repeat(64)}`;
 const NOW = new Date('2026-08-01T08:00:00.000Z');
+
+function createAuthV2Service(options) {
+  return createAuthV2ServiceRuntime({
+    acknowledgementSleeper: async () => undefined,
+    ...options,
+  });
+}
 
 test('worker clears every current account collection and removes the login lock last', async () => {
   const repository = createRepository();
@@ -762,6 +769,42 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
   );
 });
 
+test('CloudBase guarded single-document removal uses exactly four transaction operations', async () => {
+  const db = createFakeCloudBaseDb();
+  const leaseId = `lease_${'o'.repeat(24)}`;
+  const task = {
+    ...taskFixture(),
+    attempt_count: 1,
+    last_attempt_at: NOW.toISOString(),
+    lease_expires_at: '2026-08-01T08:05:00.000Z',
+    lease_id: leaseId,
+    status: 'processing',
+  };
+  await db.collection('softbook_account_deletions').doc(ACCOUNT_KEY).set(task);
+  await db.collection('softbook_auth_sessions').doc('owned-session').set({
+    account_key: ACCOUNT_KEY,
+  });
+  const repository = createCloudBaseAccountDeletionRepository(db, {
+    accountDeletions: 'softbook_account_deletions',
+  });
+
+  assert.equal(
+    await repository.removeWhereIfLease(
+      'softbook_auth_sessions',
+      {account_key: ACCOUNT_KEY},
+      {
+        accountInstanceId: task.account_instance_id,
+        accountKey: ACCOUNT_KEY,
+        deletionId: task.deletion_id,
+        leaseId,
+        status: 'processing',
+      },
+    ),
+    true,
+  );
+  assert.equal(db.transactionOperationCounts().at(-1), 4);
+});
+
 test('queued CloudBase tasks are not starved by older live processing leases', async () => {
   const db = createFakeCloudBaseDb();
   const tasks = db.collection('softbook_account_deletions');
@@ -1124,6 +1167,8 @@ function createRepository({
 
 function createFakeCloudBaseDb() {
   const collections = new Map();
+  let transactionOperations = 0;
+  const transactionOperationCounts = [];
 
   function collection(name, {transactional = false} = {}) {
     if (!collections.has(name)) collections.set(name, new Map());
@@ -1174,17 +1219,22 @@ function createFakeCloudBaseDb() {
     return {
       doc: id => {
         const erase = async () => {
+          if (transactional) transactionOperations += 1;
           documents.delete(id);
         };
         return {
           delete: erase,
-          get: async () => ({
-            data: documents.has(id)
-              ? [{_id: id, ...structuredClone(documents.get(id))}]
-              : [],
-          }),
+          get: async () => {
+            if (transactional) transactionOperations += 1;
+            return {
+              data: documents.has(id)
+                ? [{_id: id, ...structuredClone(documents.get(id))}]
+                : [],
+            };
+          },
           ...(transactional ? {} : {remove: erase}),
           set: async value => {
+            if (transactional) transactionOperations += 1;
             documents.set(id, structuredClone(value));
           },
         };
@@ -1227,10 +1277,18 @@ function createFakeCloudBaseDb() {
     command: {
       lte: value => ({operator: 'lte', value}),
     },
-    runTransaction: callback =>
-      callback({
-        collection: name => collection(name, {transactional: true}),
-      }),
+    runTransaction: async callback => {
+      transactionOperations = 0;
+      try {
+        return await callback({
+          collection: name => collection(name, {transactional: true}),
+        });
+      } finally {
+        transactionOperationCounts.push(transactionOperations);
+        transactionOperations = 0;
+      }
+    },
     snapshot: () => collections,
+    transactionOperationCounts: () => [...transactionOperationCounts],
   };
 }

@@ -258,6 +258,16 @@ test('controlled-pilot public identifiers reject phone-number material', () => {
       }),
     /phone-number material/,
   );
+  for (const field of ['actor', 'event_id', 'pilot_id']) {
+    assert.throws(
+      () =>
+        pilot.validatePilotEntitlementCommand({
+          ...command,
+          [field]: `account_${'a'.repeat(24)}`,
+        }),
+      /account-instance material/,
+    );
+  }
 });
 
 test('pilot outcome report derives thresholds and rejects an unsupported advance decision', () => {

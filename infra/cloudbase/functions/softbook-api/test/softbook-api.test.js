@@ -65,6 +65,7 @@ function catalogEntriesByRef(track) {
 
 function createTestApi(options = {}) {
   return createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
     authV2IndexSecret: 'softbook-cloudbase-dev-secret',
     now: () => fixedNow,
     runtimeMode: 'development',
@@ -1974,6 +1975,7 @@ test('v2 check-in is monotonic and idempotent in memory and CloudBase', async ()
   for (const [name, store] of variants) {
     let now = new Date('2026-04-30T12:00:00.000Z');
     const api = createSoftbookApi({
+      authV2AcknowledgementSleeper: async () => undefined,
       authV2IndexSecret: 'softbook-cloudbase-dev-secret',
       now: () => new Date(now),
       runtimeMode: 'development',
@@ -3807,6 +3809,30 @@ test('pilot entitlement operator invocation rejects a client-callable unsigned r
       ),
     /operator authentication failed/,
   );
+  const weakSecret = 'x'.repeat(64);
+  await assert.rejects(
+    () =>
+      handlePilotEntitlementOperatorInvoke(
+        {
+          schema_version: 'pilot-entitlement-operator-invoke.v1',
+          command,
+          signature: createPilotOperatorSignature(command, weakSecret),
+        },
+        {
+          now: () => new Date('2026-04-30T12:00:01.000Z'),
+          operatorSecret: weakSecret,
+          pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+          pilotId,
+          runtimeMode: 'controlled_pilot',
+          store: {
+            applyPilotEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /operator authentication failed/,
+  );
   assert.equal(storeCalled, false);
 });
 
@@ -4291,10 +4317,13 @@ function pilotCommandHash(event, phoneNumber) {
   });
 }
 
-function createPilotOperatorSignature(command) {
+function createPilotOperatorSignature(
+  command,
+  secret = 'pilot-operator-secret-0123456789-ABCDEFG',
+) {
   const canonical = JSON.stringify(command, Object.keys(command).sort());
   return `hmac-sha256:${crypto
-    .createHmac('sha256', 'pilot-operator-secret-0123456789-ABCDEFG')
+    .createHmac('sha256', secret)
     .update(canonical)
     .digest('hex')}`;
 }
