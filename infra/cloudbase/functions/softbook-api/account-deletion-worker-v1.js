@@ -32,6 +32,7 @@ const PHONE_DOCUMENT_COLLECTIONS = Object.freeze([
   'softbook_pilot_entitlements',
 ]);
 const RATE_LIMIT_COLLECTION = 'softbook_auth_rate_limits';
+const FINAL_CHALLENGE_COLLECTION = 'softbook_auth_challenges';
 const TASK_COLLECTION = 'softbook_account_deletions';
 const LEASE_DURATION_MS = 5 * 60 * 1000;
 const TASK_KEYS = Object.freeze([
@@ -139,6 +140,7 @@ async function eraseAccount(task, repository, leaseId) {
     );
   }
   for (const collection of PHONE_FILTER_COLLECTIONS) {
+    if (collection === FINAL_CHALLENGE_COLLECTION) continue;
     requireLeaseGuardedMutation(
       await repository.removeWhereIfLease(
         collection,
@@ -163,6 +165,13 @@ async function eraseAccount(task, repository, leaseId) {
       ),
     );
   }
+  requireLeaseGuardedMutation(
+    await repository.removeWhereIfLease(
+      FINAL_CHALLENGE_COLLECTION,
+      {phone_number: task.phone_number},
+      lease,
+    ),
+  );
 }
 
 function requireLeaseGuardedMutation(applied) {
@@ -569,4 +578,5 @@ module.exports = {
   createAccountDeletionWorkerV1,
   createCloudBaseAccountDeletionRepository,
   createMemoryAccountDeletionRepository,
+  normalizeAccountDeletionTask: normalizeTask,
 };

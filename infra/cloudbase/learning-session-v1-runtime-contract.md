@@ -144,11 +144,15 @@ selection without deleting its learning or FSRS history. Favorite state does
 not change order.
 
 The first authenticated learning-session entry starts an available trial
-exactly once through the existing membership authority. Trial and premium
-schedule all cards. Free schedules the stable release-scoped prefix of
-`ceil(card_count * 0.5)` cards in canonical source order. This is close to
-half, never a tiny demo, and never the full library when the source has more
-than one card.
+exactly once through the existing membership authority. Before activation,
+trial-available schedules only from the same stable release-scoped prefix
+already returned by card-source; it cannot select a suffix card the client has
+not received. After that selection is persisted and Trial activates, the
+successful response reports full Trial access and the next canonical
+card-source read may return all cards. Active Trial and premium schedule all
+cards. Free schedules the stable prefix of `ceil(card_count * 0.5)` cards in
+canonical source order. This is close to half, never a tiny demo, and never the
+full library when the source has more than one card.
 
 Canonical context validation, non-null selection generation, selection ID
 generation, and required cursor persistence complete before trial activation.

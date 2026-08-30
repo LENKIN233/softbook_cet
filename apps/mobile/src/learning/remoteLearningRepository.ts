@@ -53,7 +53,7 @@ export function createRemoteLearningSessionRepository(
         );
       }
       const fetchImpl = config.fetchImpl ?? fetch;
-      const source = await loadRemoteLearningCardSource(
+      let source = await loadRemoteLearningCardSource(
         context,
         track,
         config.remoteConfig,
@@ -65,19 +65,29 @@ export function createRemoteLearningSessionRepository(
         config.remoteSessionConfig,
         fetchImpl,
       );
-      assertRoundCompletionMatchesSource(source.cards, scheduled);
+      if (
+        requiresPostActivationCardSourceReload(source.cards.length, scheduled)
+      ) {
+        source = await loadRemoteLearningCardSource(
+          context,
+          track,
+          config.remoteConfig,
+          fetchImpl,
+        );
+      }
 
       if (
         source.track !== scheduled.track ||
         source.sourceId !== scheduled.sourceId ||
         source.contentVersion === null ||
         source.contentVersion !== scheduled.contentVersion ||
-        source.cards.length !== scheduled.access.totalCardCount
+        source.cards.length !== scheduled.access.accessibleCardCount
       ) {
         throw new Error(
           'Remote learning session does not match canonical card-source content.',
         );
       }
+      assertRoundCompletionMatchesSource(source.cards, scheduled);
 
       const contentManifest = await loadContentManifestForSession({
         cards: source.cards,
@@ -125,6 +135,19 @@ export function createRemoteLearningSessionRepository(
       };
     },
   };
+}
+
+function requiresPostActivationCardSourceReload(
+  sourceCardCount: number,
+  scheduled: Awaited<ReturnType<typeof loadRemoteLearningSession>>,
+) {
+  return (
+    scheduled.membershipStage === 'trial' &&
+    scheduled.access.mode === 'full' &&
+    scheduled.access.accessibleCardCount === scheduled.access.totalCardCount &&
+    sourceCardCount < scheduled.access.accessibleCardCount &&
+    sourceCardCount === Math.ceil(scheduled.access.totalCardCount / 2)
+  );
 }
 
 function assertRoundCompletionMatchesSource(
@@ -191,8 +214,6 @@ async function loadContentManifestForSession(options: {
     track: options.track,
     verifySignature: options.config.verifySignature,
   });
-  assertContentManifestMatchesCards(manifest, options.cards);
-
   const expectedMode = options.scheduled.access.mode;
   if (
     manifest.access.mode !== expectedMode ||
@@ -205,6 +226,10 @@ async function loadContentManifestForSession(options: {
       'Content manifest access does not match the canonical learning session.',
     );
   }
+  assertContentManifestMatchesCards(manifest, options.cards, {
+    cardsAreAccessiblePrefix: true,
+    totalCardCount: options.scheduled.access.totalCardCount,
+  });
 
   return manifest;
 }

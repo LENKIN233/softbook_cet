@@ -76,6 +76,12 @@ const {
 } = require('./space-actions-v2');
 
 const DEFAULT_SMS_CODE = '2468';
+const FREE_CARD_ACCESS_RATIO = 0.5;
+const RUNTIME_MODES = new Set([
+  'controlled_pilot',
+  'development',
+  'production',
+]);
 const DEFAULT_TRIAL_DURATION_DAYS = 5;
 const DEFAULT_TRIAL_DURATION_HOURS = 120;
 const TRIAL_DURATION_MILLISECONDS =
@@ -163,8 +169,7 @@ async function handlePilotEntitlementOperatorInvoke(event, options = {}) {
   ) {
     throw new PilotEntitlementError('pilot entitlement operator invocation is invalid.');
   }
-  const runtimeMode =
-    options.runtimeMode ?? process.env.SOFTBOOK_RUNTIME_MODE ?? 'development';
+  const runtimeMode = resolveRuntimeMode(options.runtimeMode);
   const pilotId = options.pilotId ?? process.env.SOFTBOOK_PILOT_ID ?? null;
   const pilotExpiresAt =
     options.pilotExpiresAt ?? process.env.SOFTBOOK_PILOT_EXPIRES_AT ?? null;
@@ -232,8 +237,7 @@ function getDefaultApi() {
 }
 
 function createSoftbookApi(options = {}) {
-  const runtimeMode =
-    options.runtimeMode ?? process.env.SOFTBOOK_RUNTIME_MODE ?? 'development';
+  const runtimeMode = resolveRuntimeMode(options.runtimeMode);
   const pilotId = options.pilotId ?? process.env.SOFTBOOK_PILOT_ID ?? null;
   const pilotExpiresAt =
     options.pilotExpiresAt ?? process.env.SOFTBOOK_PILOT_EXPIRES_AT ?? null;
@@ -425,9 +429,27 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (
+      method === 'POST' &&
+      path === '/v2/account/deletion/recovery/request-code'
+    ) {
+      return jsonResponse(200, {
+        data: await config.authV2.requestDeletionRecoveryCode(request),
+      });
+    }
+
     if (method === 'POST' && path === '/v2/auth/verify-code') {
       return jsonResponse(200, {
         data: await config.authV2.verifyCode(request),
+      });
+    }
+
+    if (
+      method === 'POST' &&
+      path === '/v2/account/deletion/recovery/verify-code'
+    ) {
+      return jsonResponse(200, {
+        data: await config.authV2.verifyDeletionRecoveryCode(request),
       });
     }
 
@@ -449,9 +471,13 @@ async function handleHttpRequest(config, request) {
     }
 
     if (method === 'GET' && path === '/v2/learning/card-source') {
-      await config.authV2.requireActiveSession(request);
+      const session = await config.authV2.requireActiveSession(request);
       assertLearningCardSourceRequest(request);
-      return await handleLearningCardSource(config, request);
+      return await handleLearningCardSource(
+        config,
+        request,
+        session.phoneNumber,
+      );
     }
 
     if (method === 'GET' && path === '/v2/membership/entitlement') {
@@ -475,11 +501,11 @@ async function handleHttpRequest(config, request) {
     }
 
     if (method === 'POST' && path === '/v2/membership/purchase') {
-      if (config.runtimeMode === 'controlled_pilot') {
+      if (config.runtimeMode !== 'development') {
         throw httpError(
           404,
           'route_not_found',
-          'Controlled-pilot payment is unavailable.',
+          'Client-owned membership purchase is unavailable.',
         );
       }
       const session = await config.authV2.requireActiveSession(request);
@@ -613,7 +639,11 @@ async function handleHttpRequest(config, request) {
     const session = await requireCompatibleV1Session(config, request);
 
     if (method === 'GET' && path === '/v1/learning/card-source') {
-      return await handleLearningCardSource(config, request);
+      return await handleLearningCardSource(
+        config,
+        request,
+        session.phoneNumber,
+      );
     }
 
     if (method === 'GET' && path === '/v1/membership/entitlement') {
@@ -715,7 +745,7 @@ function handleVerifyCode(config, request) {
   });
 }
 
-async function handleLearningCardSource(config, request) {
+async function handleLearningCardSource(config, request, phoneNumber) {
   const track = request.query.track ?? 'cet4';
 
   if (track !== 'cet4' && track !== 'cet6') {
@@ -738,9 +768,31 @@ async function handleLearningCardSource(config, request) {
     );
   }
 
+  const membership = await readCanonicalMembership(config, phoneNumber);
+
   return jsonResponse(200, {
-    data: serializeCardSourceResponse(cardSource, track),
+    data: serializeCardSourceResponse(
+      cardSource,
+      track,
+      membership.stage,
+    ),
   });
+}
+
+function resolveRuntimeMode(overrideValue) {
+  const runtimeMode = overrideValue ?? process.env.SOFTBOOK_RUNTIME_MODE;
+
+  if (typeof runtimeMode !== 'string' || runtimeMode.trim() === '') {
+    throw new Error(
+      'SOFTBOOK_RUNTIME_MODE must be explicitly configured as development, production, or controlled_pilot.',
+    );
+  }
+
+  if (!RUNTIME_MODES.has(runtimeMode)) {
+    throw new Error(`Unsupported SOFTBOOK_RUNTIME_MODE: ${runtimeMode}`);
+  }
+
+  return runtimeMode;
 }
 
 function acknowledgedResponse(acknowledgedAt) {
@@ -3818,11 +3870,21 @@ function cloneCardSource(cardSource) {
   };
 }
 
-function serializeCardSourceResponse(cardSource, expectedTrack) {
+function serializeCardSourceResponse(
+  cardSource,
+  expectedTrack,
+  membershipStage,
+) {
   const normalized = normalizeCardSource(cardSource, expectedTrack);
+  const accessibleCardCount = resolveAccessibleCardCount(
+    membershipStage,
+    normalized.card_records.length,
+  );
 
   return {
-    card_records: cloneJson(normalized.card_records),
+    card_records: cloneJson(
+      normalized.card_records.slice(0, accessibleCardCount),
+    ),
     content_version: normalized.content_version,
     source: {
       id: normalized.source.id,
@@ -3830,6 +3892,23 @@ function serializeCardSourceResponse(cardSource, expectedTrack) {
     },
     track: normalized.track,
   };
+}
+
+function resolveAccessibleCardCount(membershipStage, totalCardCount) {
+  switch (membershipStage) {
+    case 'trial':
+    case 'premium':
+      return totalCardCount;
+    case 'trial_available':
+    case 'free':
+      return Math.ceil(totalCardCount * FREE_CARD_ACCESS_RATIO);
+    default:
+      throw httpError(
+        500,
+        'content_access_invalid',
+        'Canonical membership stage is invalid.',
+      );
+  }
 }
 
 function validateCardSourceForImport(cardSource, expectedTrack) {

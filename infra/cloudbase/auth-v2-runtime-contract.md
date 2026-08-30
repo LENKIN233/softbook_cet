@@ -38,6 +38,8 @@ Referenced active specs:
 
 The function accepts
 `SOFTBOOK_RUNTIME_MODE=development|production|controlled_pilot`.
+The deployed default entry requires that value explicitly; missing or blank
+configuration fails before a store, fixed code, or HTTP route becomes usable.
 
 Development mode keeps `/v1` available and supplies the existing fixed-code
 adapter when no SMS provider is injected. Production mode fails closed unless:
@@ -61,6 +63,11 @@ and membership paths have moved to `/v2`; their development `/v1` aliases are
 evaluated after the non-development v1 rejection, so none can expose v1 in
 production or controlled pilot.
 
+The unaudited `/v2/membership/purchase` placeholder is development-only.
+Production and controlled pilot return `404 route_not_found`; closed-beta
+premium access remains available only through the audited receiver-operator
+entitlement operation.
+
 ## Endpoints
 
 ### Request a challenge
@@ -77,6 +84,12 @@ Success returns `challenge_id`, `delivery`, `expires_at`, and
 applies independent, persistent ten-minute counters per HMAC-keyed phone number
 and trusted client IP. Defaults are five requests per phone and twenty per IP;
 the raw values and enumerable bare hashes are not used as counter keys.
+Sign-in challenge persistence derives the canonical account key and
+transactionally checks the account-deletion task in the same store operation.
+While the task exists, `/v2/auth/request-code` returns
+`account_deletion_pending` and cannot leave a sign-in challenge that survives
+worker completion. The separately purpose-bound deletion-recovery route below
+is the only challenge-creation exception to that login fence.
 
 ### Verify a challenge
 
@@ -113,6 +126,20 @@ failed attempts. Verification returns:
 The access token is HMAC-signed and expires after 15 minutes. The refresh token
 expires after 30 days. Database records contain only the SMS-code HMAC digest
 and current refresh-token SHA-256 hash, never either raw secret.
+For provider-owned challenges, every active provider rejection is also
+committed as one local failed attempt; reaching the configured limit locks the
+local challenge even if a later provider verification would succeed.
+
+### Read the authorized card source
+
+`GET /v2/learning/card-source?track=cet4|cet6` derives canonical membership
+from the active session before serialization. Trial and premium receive the
+full ordered source; free and trial-available receive only the stable prefix
+`ceil(card_count * 0.5)`. The first Learning Session also selects only from
+that already-delivered prefix, atomically activates Trial, and permits the next
+canonical card-source read to return the full source. The response keeps the
+full release content identity but never serializes inaccessible suffix card
+bodies, answer keys, or analysis.
 
 ### Rotate a refresh token
 
@@ -155,6 +182,60 @@ session guard independently check the same task. Every future protected `/v2`
 route must use that guard, so an interrupted account-wide revocation cannot
 restore either token rotation or API access.
 
+### Recover an unknown deletion request
+
+PC Web may recover a durable credential-free `requesting` marker without
+recreating a general login session:
+
+```http
+POST /v2/account/deletion/recovery/request-code
+content-type: application/json
+
+{"phone_number":"13800138000"}
+```
+
+The response contains only `challenge_id`, `delivery`, `expires_at`,
+`retry_after_seconds`, and `purpose: account_deletion_recovery`. The challenge
+uses the ordinary phone/IP rate limits and verification-attempt limit, but its
+persisted purpose is cryptographically included in the code digest and checked
+transactionally on verify. Neither a sign-in challenge nor a recovery
+challenge can be verified through the other purpose's endpoint.
+
+```http
+POST /v2/account/deletion/recovery/verify-code
+content-type: application/json
+
+{
+  "challenge_id":"opaque-id",
+  "phone_number":"13800138000",
+  "sms_code":"123456"
+}
+```
+
+When the exact account task exists, verification returns:
+
+```json
+{
+  "data": {
+    "schema_version": "account-deletion-recovery.v1",
+    "state": "pending",
+    "safe_to_register": false,
+    "deletion_request": {
+      "id": "delete_opaque",
+      "requested_at": "2026-08-30T00:00:00.000Z",
+      "status": "queued"
+    }
+  }
+}
+```
+
+`status` is `queued` or `processing`. If no task currently exists, the exact
+projection is `state: none`, `safe_to_register: true`, and
+`deletion_request: null`. Because the worker intentionally retains no
+tombstone, `none` never claims that a prior request was accepted or completed.
+Recovery verification returns no access token, refresh token, or session ID
+and cannot authorize any protected route.
+
 ## Persistent records
 
 CloudBase currently uses:
@@ -166,6 +247,9 @@ CloudBase currently uses:
 
 Challenge verification, rate-counter increments, active-session reads, refresh
 rotation, and single-session revocation run inside CloudBase transactions.
+Every newly created challenge also stores its exact `sign_in` or
+`account_deletion_recovery` purpose; a missing or mismatched purpose fails
+verification.
 Account-wide revocation enumerates the phone's sessions after the deletion task
 is durable.
 
@@ -193,15 +277,16 @@ Learning Event/cursor/sequence/migration/session/state, pilot-round continuation
 and Space action/lineage/revision/state records; phone-filtered SMS challenges
 plus retained legacy daily-progress, learning-state and Space-state records;
 phone-keyed base membership, membership revision, beta entitlement and pilot
-entitlement; and only the phone rate-limit key. Shared IP rate limits and global
-content releases remain untouched. Every individual erasure runs in a
-transaction that re-reads the account-deletion task and requires the current
-lease ID before deleting. A stale worker therefore cannot continue after a
-newer worker owns or removes the task and cannot erase data written by a clean
-post-completion re-registration. Every deletion is idempotently re-read or
-re-queried, the task is removed last, partial failure returns the same live
-lease to queued, and a completed task leaves no tombstone so a clean
-re-registration is allowed.
+entitlement; and only the phone rate-limit key. It repeats the phone challenge
+sweep as the final guarded data mutation immediately before task completion.
+Shared IP rate limits and global content releases remain untouched. Every
+individual erasure runs in a transaction that re-reads the account-deletion
+task and requires the current lease ID before deleting. A stale worker therefore
+cannot continue after a newer worker owns or removes the task and cannot erase
+data written by a clean post-completion re-registration. Every deletion is
+idempotently re-read or re-queried, the task is removed last, partial failure
+returns the same live lease to queued, and a completed task leaves no tombstone
+so a clean re-registration is allowed.
 
 Before production deployment, infrastructure work must add collection TTL
 policies for expired rate-limit and challenge records, least-privilege access,

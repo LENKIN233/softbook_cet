@@ -2,14 +2,10 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const {
-  createMemoryStore,
-  createSoftbookApi,
   advanceSchedulerEntry,
   createLearningSchedulerV1Service,
-} = (() => ({
-  ...require('../learning-scheduler-v1'),
-  ...require('../index'),
-}))();
+} = require('../learning-scheduler-v1');
+const {createMemoryStore, createSoftbookApi} = require('../index');
 
 const NOW = new Date('2026-08-12T06:00:00.000Z');
 const ACCOUNT_KEY = 'account-key-round-test';

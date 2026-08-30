@@ -252,6 +252,7 @@ async function createFixture() {
 
 async function candidatePayload() {
   const api = createSoftbookApi({
+    runtimeMode: 'development',
     smsCode: '2468',
     tokenSecret: 'candidate-smoke-fixture-secret',
   });
@@ -272,6 +273,13 @@ async function candidatePayload() {
     method: 'POST',
     path: '/v2/auth/verify-code',
   });
+  const purchased = await request({
+    body: {phone_number: '13800138000'},
+    headers: {authorization: `Bearer ${verified.body.data.access_token}`},
+    method: 'POST',
+    path: '/v1/membership/purchase',
+  });
+  assert.equal(purchased.statusCode, 200);
   const response = await request({
     headers: {authorization: `Bearer ${verified.body.data.access_token}`},
     method: 'GET',

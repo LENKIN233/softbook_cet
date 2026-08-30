@@ -127,7 +127,9 @@ export function App({
   const membershipAccess = membership
     ? resolveMembershipAccess(membership)
     : null;
-  const accessibleSpaceCards = membership && session
+  const accessibleSpaceCards = runtime.mode === 'remote'
+    ? session?.catalogCards ?? []
+    : membership && session
     ? session.catalogCards.slice(
         0,
         resolveAccessibleLearningCardCount(

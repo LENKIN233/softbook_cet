@@ -199,15 +199,17 @@ describe('PC Web remote UI authority', () => {
     expect(submittedResults).toEqual(['confident', 'confident']);
   });
 
-  it('limits free Space to the stable accessible prefix and blocks writes', async () => {
+  it('uses the server canonical free prefix without slicing it a second time', async () => {
     const snapshot = createSnapshot('free');
+    snapshot.learningSession.catalogCards =
+      snapshot.learningSession.catalogCards.slice(0, 3);
     const controller = createController(snapshot);
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '空间'}));
 
     expect(screen.getByRole('button', {name: 'Box 1 1 张'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Box 2 1 张'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Box 3 1 张'})).toBeNull();
+    expect(screen.getByRole('button', {name: 'Box 3 1 张'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Box 4 1 张'})).toBeNull();
     expect(screen.getByRole('button', {name: '标记喜欢'})).toBeDisabled();
     expect(

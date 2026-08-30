@@ -50,7 +50,7 @@ function createV2TestApi(options = {}) {
     authV2PhoneRequestLimit: options.phoneRequestLimit,
     authV2VerifyAttemptLimit: options.verifyAttemptLimit,
     now: clock.now,
-    runtimeMode: options.runtimeMode,
+    runtimeMode: options.runtimeMode ?? 'development',
     smsProvider: sms.provider,
     store,
     tokenSecret: options.tokenSecret ?? TOKEN_SECRET,
@@ -196,6 +196,7 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
     .snapshot()
     .authChallenges.get(challenge.body.data.challenge_id);
   assert.equal(persisted.code_digest.length, 64);
+  assert.equal(persisted.purpose, 'sign_in');
   assert.equal(JSON.stringify(persisted).includes(SMS_CODE), false);
 
   const invalid = await request(api, {
@@ -208,6 +209,12 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
   });
   assert.equal(invalid.statusCode, 401);
   assert.equal(invalid.body.error.code, 'invalid_sms_code');
+  assert.equal(
+    store
+      .snapshot()
+      .authChallenges.get(challenge.body.data.challenge_id).attempts,
+    1,
+  );
 
   const verified = await request(api, {
     body: {
@@ -233,6 +240,63 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
       phoneNumber: PHONE_NUMBER,
     },
   ]);
+});
+
+test('provider-owned SMS failures consume the local attempt limit and lock the challenge', async () => {
+  const sms = {
+    provider: {
+      delivery: 'sms_cloudbase_auth_default',
+      kind: 'cloudbase_auth',
+      async sendChallenge() {
+        return {
+          challengeId: 'cloudbase-verification-attempts',
+          expiresInSeconds: 300,
+        };
+      },
+      async verifyChallenge(input) {
+        if (input.code !== SMS_CODE) throw new Error('provider rejected code');
+      },
+    },
+  };
+  const productionSecret = 'provider-attempt-secret-0123456789-abcdef';
+  const persistentStore = createMemoryStore();
+  persistentStore.kind = 'cloudbase-test';
+  const {api, store} = createV2TestApi({
+    indexSecret: `${productionSecret}-index`,
+    runtimeMode: 'production',
+    sms,
+    store: persistentStore,
+    tokenSecret: productionSecret,
+    verifyAttemptLimit: 2,
+  });
+  const challenge = await issueChallenge(api);
+  const verify = smsCode =>
+    request(api, {
+      body: {
+        challenge_id: challenge.body.data.challenge_id,
+        phone_number: PHONE_NUMBER,
+        sms_code: smsCode,
+      },
+      path: '/v2/auth/verify-code',
+    });
+
+  const first = await verify('000000');
+  assert.equal(first.statusCode, 401);
+  assert.equal(first.body.error.code, 'invalid_sms_code');
+  const second = await verify('111111');
+  assert.equal(second.statusCode, 429);
+  assert.equal(second.body.error.code, 'sms_challenge_locked');
+  assert.equal(
+    store
+      .snapshot()
+      .authChallenges.get(challenge.body.data.challenge_id).attempts,
+    2,
+  );
+
+  const correctAfterLock = await verify(SMS_CODE);
+  assert.equal(correctAfterLock.statusCode, 429);
+  assert.equal(correctAfterLock.body.error.code, 'sms_challenge_locked');
+  assert.equal(store.snapshot().authSessions.size, 0);
 });
 
 test('development v1 product routes accept only active v2 sessions', async () => {
@@ -336,6 +400,7 @@ test('v2 records failed SMS delivery and does not activate that challenge', asyn
   const api = createSoftbookApi({
     authV2CodeGenerator: () => SMS_CODE,
     now: createClock().now,
+    runtimeMode: 'development',
     smsProvider: {
       delivery: 'test_sms',
       kind: 'test',
@@ -459,21 +524,22 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
     'revoked',
   );
 
+  const challengeCountBeforeBlockedRequest =
+    store.snapshot().authChallenges.size;
   const challengeAfterDeletion = await issueChallenge(
     api,
     PHONE_NUMBER,
     '203.0.113.23',
   );
-  const loginAfterDeletion = await request(api, {
-    body: {
-      challenge_id: challengeAfterDeletion.body.data.challenge_id,
-      phone_number: PHONE_NUMBER,
-      sms_code: SMS_CODE,
-    },
-    path: '/v2/auth/verify-code',
-  });
-  assert.equal(loginAfterDeletion.statusCode, 403);
-  assert.equal(loginAfterDeletion.body.error.code, 'account_deletion_pending');
+  assert.equal(challengeAfterDeletion.statusCode, 403);
+  assert.equal(
+    challengeAfterDeletion.body.error.code,
+    'account_deletion_pending',
+  );
+  assert.equal(
+    store.snapshot().authChallenges.size,
+    challengeCountBeforeBlockedRequest,
+  );
   assert.equal(
     [...store.snapshot().authSessions.values()].some(
       session => session.status === 'active',
@@ -532,6 +598,140 @@ test('deletion worker clears current account data and permits clean re-registrat
     store.snapshot().authSessions.get(registeredAgain.session_id).status,
     'active',
   );
+});
+
+test('deletion recovery challenges report strict task state without creating an auth session', async () => {
+  const {api, store} = createV2TestApi({
+    ipRequestLimit: 10,
+    phoneRequestLimit: 10,
+  });
+  const signInOnlyChallenge = await issueChallenge(
+    api,
+    PHONE_NUMBER,
+    '203.0.113.90',
+  );
+  const session = await issueSession(api, {
+    clientIp: '203.0.113.91',
+    deviceId: 'deletion-recovery-origin',
+  });
+  const deletion = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  assert.equal(deletion.statusCode, 202);
+  const sessionCountAfterDeletion = store.snapshot().authSessions.size;
+
+  const signInChallengeOnRecoveryRoute = await request(api, {
+    body: {
+      challenge_id: signInOnlyChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+  assert.equal(signInChallengeOnRecoveryRoute.statusCode, 401);
+  assert.equal(
+    signInChallengeOnRecoveryRoute.body.error.code,
+    'invalid_sms_code',
+  );
+
+  const recoveryChallenge = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.92',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  assert.equal(recoveryChallenge.statusCode, 200);
+  assert.deepEqual(
+    Object.keys(recoveryChallenge.body.data).sort(),
+    [
+      'challenge_id',
+      'delivery',
+      'expires_at',
+      'purpose',
+      'retry_after_seconds',
+    ],
+  );
+  assert.equal(
+    recoveryChallenge.body.data.purpose,
+    'account_deletion_recovery',
+  );
+  assert.equal(
+    store
+      .snapshot()
+      .authChallenges.get(recoveryChallenge.body.data.challenge_id).purpose,
+    'account_deletion_recovery',
+  );
+
+  const recoveryChallengeOnSignInRoute = await request(api, {
+    body: {
+      challenge_id: recoveryChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/auth/verify-code',
+  });
+  assert.equal(recoveryChallengeOnSignInRoute.statusCode, 401);
+  assert.equal(
+    recoveryChallengeOnSignInRoute.body.error.code,
+    'invalid_sms_code',
+  );
+  assert.equal(store.snapshot().authSessions.size, sessionCountAfterDeletion);
+
+  const pending = await request(api, {
+    body: {
+      challenge_id: recoveryChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+  assert.equal(pending.statusCode, 200, JSON.stringify(pending.body));
+  assert.deepEqual(pending.body.data, {
+    deletion_request: deletion.body.data.deletion_request,
+    safe_to_register: false,
+    schema_version: 'account-deletion-recovery.v1',
+    state: 'pending',
+  });
+  assert.equal(store.snapshot().authSessions.size, sessionCountAfterDeletion);
+  assert.equal(Object.hasOwn(pending.body.data, 'access_token'), false);
+  assert.equal(Object.hasOwn(pending.body.data, 'refresh_token'), false);
+
+  const protectedResponse = await request(api, {
+    headers: {
+      authorization: `Bearer ${pending.body.data.access_token ?? ''}`,
+    },
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-07-20', track: 'cet4'},
+  });
+  assert.equal(protectedResponse.statusCode, 401);
+
+  const report = await store.runAccountDeletionWorkerForTest();
+  assert.equal(report.completed_count, 1);
+  const completedChallenge = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.93',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  assert.equal(completedChallenge.statusCode, 200);
+  const none = await request(api, {
+    body: {
+      challenge_id: completedChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+  assert.equal(none.statusCode, 200, JSON.stringify(none.body));
+  assert.deepEqual(none.body.data, {
+    deletion_request: null,
+    safe_to_register: true,
+    schema_version: 'account-deletion-recovery.v1',
+    state: 'none',
+  });
+  assert.equal(JSON.stringify(none.body).includes('accepted'), false);
+  assert.equal(JSON.stringify(none.body).includes('completed'), false);
+  assert.equal(store.snapshot().authSessions.size, 0);
 });
 
 test('v2 deletion task blocks refresh even when account-wide revocation is interrupted', async () => {
@@ -718,6 +918,54 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
       .get(siblingSession.session_id).revoked_reason,
     'account_deletion_requested',
   );
+  const challengeCountBeforeBlockedRequest = db
+    .snapshot()
+    .get('softbook_auth_challenges').size;
+  const blockedChallenge = await issueChallenge(
+    second.api,
+    PHONE_NUMBER,
+    '203.0.113.32',
+  );
+  assert.equal(blockedChallenge.statusCode, 403);
+  assert.equal(blockedChallenge.body.error.code, 'account_deletion_pending');
+  assert.equal(
+    db.snapshot().get('softbook_auth_challenges').size,
+    challengeCountBeforeBlockedRequest,
+  );
+});
+
+test('non-development runtimes do not expose an unaudited client purchase grant', async () => {
+  for (const runtimeMode of ['production', 'controlled_pilot']) {
+    const store = createMemoryStore();
+    store.kind = 'test-persistent';
+    const tokenSecret = `${runtimeMode}-purchase-token-secret-0123456789`;
+    const {api} = createV2TestApi({
+      indexSecret: `${runtimeMode}-purchase-index-secret-0123456789`,
+      runtimeMode,
+      sms: createSmsProvider(),
+      store,
+      tokenSecret,
+    });
+    const session = await issueSession(api, {
+      clientIp: runtimeMode === 'production' ? '203.0.113.80' : '203.0.113.81',
+    });
+    const response = await request(api, {
+      body: {},
+      headers: {authorization: `Bearer ${session.access_token}`},
+      path: '/v2/membership/purchase',
+    });
+
+    assert.equal(response.statusCode, 404);
+    assert.equal(response.body.error.code, 'route_not_found');
+    const membership = await store.getMembership(
+      PHONE_NUMBER,
+      createClock().now().toISOString(),
+    );
+    assert.equal(
+      membership.stage,
+      'trial_available',
+    );
+  }
 });
 
 test('v2 request-code treats the CloudBase DOCUMENT_NOT_FOUND code as an empty document', async () => {

@@ -39,7 +39,7 @@ Referenced active sources:
 
 ## Trial authority (repository implementation; not yet deployed)
 
-Authentication alone never starts the trial. The Learning Session authority may start an available trial only after it has validated canonical content and access, selected an eligible card, persisted and confirmed the selection cursor, and is ready to return a successful session. It stores server-authoritative `trial_started_at` and `trial_expires_at` exactly 120 hours apart in the same membership transaction that changes `trial_available -> trial`.
+Authentication alone never starts the trial. Trial-available card-source exposes only the stable 60-card prefix, and the Learning Session authority may start an available trial only after it has validated canonical content and access, selected an eligible card from that same already-delivered prefix, persisted and confirmed the selection cursor, and is ready to return a successful session. It stores server-authoritative `trial_started_at` and `trial_expires_at` exactly 120 hours apart in the same membership transaction that changes `trial_available -> trial`; a later canonical card-source read may then expose all 120 cards.
 
 Invalid content, a missing selection, cursor write failure, failed cursor confirmation or an unsuccessful session response cannot consume the trial. Repeated or concurrent session reads are idempotent. Membership, Bootstrap and Learning Session responses expose the canonical timestamps plus server-derived `trial_remaining_seconds`, calculated against that response's server time and set to zero outside an active trial; clients display them and never manufacture entitlement time or remaining duration.
 
