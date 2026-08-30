@@ -23,8 +23,8 @@ const {
 const LEARNING_EVENTS_ERROR = Symbol('learning-events-error');
 const LEGACY_MIGRATION_RETRY = Symbol('legacy-migration-retry');
 const RETENTION_STATUSES = ['active', 'retained', 'expired'];
-const LEGACY_QUERY_PAGE_SIZE = 100;
-const LEGACY_QUERY_MAX_DOCUMENTS = 5000;
+const LEGACY_QUERY_FETCH_LIMIT = 1000;
+const LEGACY_QUERY_MAX_DOCUMENTS = 999;
 const LEGACY_MIGRATION_SNAPSHOT_ATTEMPTS = 3;
 const CHINA_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
 const TRACKS = ['cet4', 'cet6'];
@@ -184,7 +184,6 @@ async function readCloudBaseLegacyMigrationSnapshot(options, input) {
   const states = await listDocumentsByQuery(
     learningStates,
     {phone_number: input.phoneNumber},
-    LEGACY_QUERY_PAGE_SIZE,
     LEGACY_QUERY_MAX_DOCUMENTS,
   );
   const after = normalizeLearningMigrationRevision(
@@ -1616,34 +1615,27 @@ async function getDocument(collection, documentId) {
   return stripInternalId(documents[0]);
 }
 
-async function listDocumentsByQuery(collection, query, pageSize, maximumCount) {
-  const documents = [];
+async function listDocumentsByQuery(collection, query, maximumCount) {
+  const result = await collection
+    .where(query)
+    .limit(LEGACY_QUERY_FETCH_LIMIT)
+    .get();
 
-  for (let offset = 0; ; offset += pageSize) {
-    const result = await collection
-      .where(query)
-      .orderBy('_id', 'asc')
-      .skip(offset)
-      .limit(pageSize)
-      .get();
-
-    if (!result || !Object.hasOwn(result, 'data')) {
-      throw invalidStoredState('A transactional collection query is invalid.');
-    }
-
-    const page = normalizeCloudBaseDocuments(result.data);
-    documents.push(...page.map(stripInternalId));
-
-    if (documents.length > maximumCount) {
-      throw invalidStoredState(
-        'Legacy learning-state migration exceeds the supported bound.',
-      );
-    }
-
-    if (page.length < pageSize) {
-      return documents;
-    }
+  if (!result || !Object.hasOwn(result, 'data')) {
+    throw invalidStoredState('A transactional collection query is invalid.');
   }
+
+  const documents = normalizeCloudBaseDocuments(result.data).map(
+    stripInternalId,
+  );
+
+  if (documents.length > maximumCount) {
+    throw invalidStoredState(
+      'Legacy learning-state migration exceeds the supported bound.',
+    );
+  }
+
+  return documents;
 }
 
 async function setDocument(collection, documentId, value) {

@@ -48,8 +48,10 @@ Referenced active specs:
   bootstrap returns them. Corrupt sequence authority, missing accepted-event
   fields, stale scheduler state, an invalid cursor scope or projection
   watermark, or inconsistent totals fail closed.
-- CloudBase legacy physical-space discovery is paged outside the transaction;
-  the deterministic account document is re-read and merged with that snapshot
+- CloudBase legacy physical-space discovery reads one at-most-999-document
+  snapshot outside the transaction without the FlexDB-rejected `orderBy` wire
+  shape or unordered pagination; a full 1000-result query fails closed. The
+  deterministic account document is re-read and merged with that snapshot
   using doc-only transaction operations.
 - Content metadata is an exact runtime-discriminated projection. Development
   and production retain the original seven-field shape; `controlled_pilot`
@@ -323,6 +325,11 @@ Learning, Progress, and Space may be observed at different valid generations.
 Per-component stored revision fences prevent a revision from describing
 different bytes inside its owner; they do not turn the complete response into
 one cross-collection snapshot.
+The deployed FlexDB may return `Transaction is busy` when several canonical
+transaction-backed reads start as one `Promise.all` burst. Bootstrap therefore
+reads Membership, Learning, Space, and then Progress in that explicit order;
+it does not parallelize those owner reads. This preserves the deliberately
+composed revision model while avoiding a transaction storm.
 
 ## Content release boundary
 

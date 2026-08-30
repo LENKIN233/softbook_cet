@@ -54,26 +54,32 @@ async function readBootstrap(config, input) {
     );
   }
 
-  const [membership, learning, space] = await Promise.all([
-    config.store.getMembership(input.phoneNumber, generatedAt, {
+  const membership = await config.store.getMembership(
+    input.phoneNumber,
+    generatedAt,
+    {
       accountKey: input.accountKey,
       sessionAuthority: input.sessionAuthority,
-    }),
-    config.store.getLearningState(
-      input.phoneNumber,
-      input.dayKey,
-      input.track,
-      {
-        accountKey: input.accountKey,
-        sessionAuthority: input.sessionAuthority,
-      },
-    ),
-    config.store.getSpaceState(input.phoneNumber, input.dayKey, {
+    },
+  );
+  const learning = await config.store.getLearningState(
+    input.phoneNumber,
+    input.dayKey,
+    input.track,
+    {
+      accountKey: input.accountKey,
+      sessionAuthority: input.sessionAuthority,
+    },
+  );
+  const space = await config.store.getSpaceState(
+    input.phoneNumber,
+    input.dayKey,
+    {
       accountKey: input.accountKey,
       acknowledgedAt: generatedAt,
       sessionAuthority: input.sessionAuthority,
-    }),
-  ]);
+    },
+  );
   // Progress owns the account-wide accepted-event sequence. Read it after the
   // requested-track Learning projection so a concurrently committed event can
   // only make Progress newer, never causally older than Learning.

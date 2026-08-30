@@ -144,6 +144,45 @@ async function learningSession(api, session, extra = {}) {
   });
 }
 
+test('learning session serializes transaction-backed canonical reads', async () => {
+  const baseStore = createMemoryStore();
+  const store = {...baseStore};
+  const observed = [];
+  let activeReads = 0;
+  let maximumActiveReads = 0;
+
+  for (const method of [
+    'getLearningState',
+    'getMembership',
+    'getSpaceState',
+    'getLearningSessionCursor',
+  ]) {
+    store[method] = async (...args) => {
+      activeReads += 1;
+      maximumActiveReads = Math.max(maximumActiveReads, activeReads);
+      observed.push(method);
+      await Promise.resolve();
+      try {
+        return await baseStore[method](...args);
+      } finally {
+        activeReads -= 1;
+      }
+    };
+  }
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api);
+
+  const response = await learningSession(api, session);
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(maximumActiveReads, 1);
+  assert.deepEqual(observed.slice(0, 4), [
+    'getLearningState',
+    'getMembership',
+    'getSpaceState',
+    'getLearningSessionCursor',
+  ]);
+});
+
 async function submit(api, session, source, events) {
   if (events.some(event => event.selection_id === CURRENT_SELECTION_ID)) {
     const selected = await learningSession(api, session);

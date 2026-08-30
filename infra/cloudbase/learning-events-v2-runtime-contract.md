@@ -315,8 +315,11 @@ inputs: `POST /v1/progress/daily-sync` and
 broader v1 guard returns `410 legacy_api_disabled`. No account state, active
 session, or runtime option can re-enable either snapshot write.
 
-CloudBase obtains the bounded legacy page snapshot outside the transaction
-because that runtime does not support `where` inside a transaction. First-event
+CloudBase obtains one bounded legacy snapshot outside the transaction because
+that runtime does not support `where` inside a transaction and the deployed
+FlexDB rejects the Node SDK's `orderBy` wire shape. Migration accepts at most
+999 retained documents from one 1000-document query; a full 1000-result query
+fails closed instead of relying on unordered `skip` pagination. First-event
 migration validates the deterministic account revision fence and marks it
 migrated in the event transaction. A retained snapshot that changes after
 preflight therefore forces a complete retry rather than entering the v2
@@ -526,7 +529,9 @@ The repository-local backend tests currently prove:
 - stored v2 learning/daily projections and migrated v1 events are fully
   revalidated before another acceptance;
 - device cursor gaps and out-of-order replay preserve account server order;
-- legacy learning-state migration reads every bounded query page;
+- legacy learning-state migration reads one at-most-999-document snapshot
+  without unsupported `orderBy` or unordered pagination and fails closed at
+  1000;
 - a changed migration revision forces a complete preflight retry;
 - first-event migration preserves valid sequence-zero baselines for both
   tracks, including the track not present in the event request;

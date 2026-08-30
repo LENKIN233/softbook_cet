@@ -80,40 +80,42 @@ async function readLearningSession(config, input) {
   const dayKey = chinaActivityDay(generatedAt.getTime());
 
   for (let attempt = 1; attempt <= SESSION_SELECTION_ATTEMPTS; attempt += 1) {
-    const [
-      cardSource,
-      learningState,
-      membership,
-      spaceState,
-      sessionStateValue,
-    ] =
-      await Promise.all([
-        config.store.getCardSource(track, {
-          allowDevelopmentDefault: config.runtimeMode === 'development',
-        }),
-        config.store.getLearningState(
-          input.phoneNumber,
-          dayKey,
-          track,
-          {
-            accountKey: input.accountKey,
-            includeSchedulerState: true,
-            sessionAuthority: input.sessionAuthority,
-          },
-        ),
-        config.store.getMembership(input.phoneNumber, generatedAtIso, {
-          accountKey: input.accountKey,
-          sessionAuthority: input.sessionAuthority,
-        }),
-        config.store.getSpaceState(input.phoneNumber, dayKey, {
-          accountKey: input.accountKey,
-          acknowledgedAt: generatedAtIso,
-          sessionAuthority: input.sessionAuthority,
-        }),
-        config.store.getLearningSessionCursor(input.accountKey, track, {
-          sessionAuthority: input.sessionAuthority,
-        }),
-      ]);
+    const cardSourcePromise = config.store.getCardSource(track, {
+      allowDevelopmentDefault: config.runtimeMode === 'development',
+    });
+    const learningState = await config.store.getLearningState(
+      input.phoneNumber,
+      dayKey,
+      track,
+      {
+        accountKey: input.accountKey,
+        includeSchedulerState: true,
+        sessionAuthority: input.sessionAuthority,
+      },
+    );
+    const membership = await config.store.getMembership(
+      input.phoneNumber,
+      generatedAtIso,
+      {
+        accountKey: input.accountKey,
+        sessionAuthority: input.sessionAuthority,
+      },
+    );
+    const spaceState = await config.store.getSpaceState(
+      input.phoneNumber,
+      dayKey,
+      {
+        accountKey: input.accountKey,
+        acknowledgedAt: generatedAtIso,
+        sessionAuthority: input.sessionAuthority,
+      },
+    );
+    const sessionStateValue = await config.store.getLearningSessionCursor(
+      input.accountKey,
+      track,
+      {sessionAuthority: input.sessionAuthority},
+    );
+    const cardSource = await cardSourcePromise;
 
     assertPublishedContentAvailable(
       cardSource,
@@ -354,23 +356,37 @@ async function continuePilotRound(config, input) {
   const generatedAt = requireValidDate(config.now(), 'scheduler clock');
   const generatedAtIso = generatedAt.toISOString();
   const dayKey = chinaActivityDay(generatedAt.getTime());
-  const [cardSource, learningState, membership, spaceState] = await Promise.all([
-    config.store.getCardSource(command.track, {allowDevelopmentDefault: false}),
-    config.store.getLearningState(input.phoneNumber, dayKey, command.track, {
+  const cardSourcePromise = config.store.getCardSource(command.track, {
+    allowDevelopmentDefault: false,
+  });
+  const learningState = await config.store.getLearningState(
+    input.phoneNumber,
+    dayKey,
+    command.track,
+    {
       accountKey: input.accountKey,
       includeSchedulerState: true,
       sessionAuthority: input.sessionAuthority,
-    }),
-    config.store.getMembership(input.phoneNumber, generatedAtIso, {
+    },
+  );
+  const membership = await config.store.getMembership(
+    input.phoneNumber,
+    generatedAtIso,
+    {
       accountKey: input.accountKey,
       sessionAuthority: input.sessionAuthority,
-    }),
-    config.store.getSpaceState(input.phoneNumber, dayKey, {
+    },
+  );
+  const spaceState = await config.store.getSpaceState(
+    input.phoneNumber,
+    dayKey,
+    {
       accountKey: input.accountKey,
       acknowledgedAt: generatedAtIso,
       sessionAuthority: input.sessionAuthority,
-    }),
-  ]);
+    },
+  );
+  const cardSource = await cardSourcePromise;
   assertPublishedContentAvailable(
     cardSource,
     config.runtimeMode,

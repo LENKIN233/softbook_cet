@@ -1919,6 +1919,77 @@ test('CloudBase challenge reservation uses exactly four transaction operations',
   assert.deepEqual(db.transactionOperationCounts(), [2, 3, 4, 2]);
 });
 
+test('CloudBase retries only the exact transient busy transaction response', async () => {
+  const db = createFakeCloudBaseDb();
+  const nativeRunTransaction = db.runTransaction.bind(db);
+  const delays = [];
+  let attempts = 0;
+  db.runTransaction = async callback => {
+    attempts += 1;
+    if (attempts <= 4) {
+      const error = new Error(
+        'Transaction is busy. Please check your request, but if the problem persists, contact us.',
+      );
+      error.code = 'DATABASE_TRANSACTION_FAIL';
+      throw error;
+    }
+    return nativeRunTransaction(callback);
+  };
+  const store = createCloudBaseStore({
+    cloudBaseTransactionRetrySleeper: async milliseconds => {
+      delays.push(milliseconds);
+    },
+    db,
+  });
+  const {api} = createV2TestApi({store});
+
+  const response = await issueChallenge(api);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(delays, [50, 150, 300, 600]);
+  assert.equal(attempts >= 7, true);
+});
+
+test('CloudBase does not retry a different transaction failure', async () => {
+  const db = createFakeCloudBaseDb();
+  const delays = [];
+  let attempts = 0;
+  db.runTransaction = async () => {
+    attempts += 1;
+    const error = new Error('Transaction failed for a different reason.');
+    error.code = 'DATABASE_TRANSACTION_FAIL';
+    throw error;
+  };
+  const store = createCloudBaseStore({
+    cloudBaseTransactionRetrySleeper: async milliseconds => {
+      delays.push(milliseconds);
+    },
+    db,
+  });
+  const {api} = createV2TestApi({store});
+
+  const response = await issueChallenge(api);
+  assert.equal(response.statusCode, 500);
+  assert.equal(response.body.error.code, 'DATABASE_TRANSACTION_FAIL');
+  assert.equal(attempts, 1);
+  assert.deepEqual(delays, []);
+});
+
+test('CloudBase serial transaction runner keeps a bounded post-commit cooldown', async () => {
+  const db = createFakeCloudBaseDb();
+  const cooldowns = [];
+  const store = createCloudBaseStore({
+    cloudBaseTransactionCooldownSleeper: async milliseconds => {
+      cooldowns.push(milliseconds);
+    },
+    db,
+  });
+  const {api} = createV2TestApi({store});
+
+  const response = await issueChallenge(api);
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(cooldowns, [25, 25, 25, 25]);
+});
+
 test('CloudBase account revocation rechecks the exact queued task and current session query-set', async () => {
   let mutateAfterQuery = false;
   let db;

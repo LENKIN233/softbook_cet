@@ -120,10 +120,13 @@ const DAILY_CHECK_IN_DOCUMENT_KEYS = [
   'day_key',
   'schema_version',
 ];
-const LEGACY_SPACE_QUERY_PAGE_SIZE = 100;
-const LEGACY_SPACE_QUERY_MAX_DOCUMENTS = 5000;
-const LEGACY_LEARNING_QUERY_PAGE_SIZE = 100;
-const LEGACY_LEARNING_QUERY_MAX_DOCUMENTS = 5000;
+const LEGACY_SPACE_QUERY_MAX_DOCUMENTS = 999;
+const LEGACY_LEARNING_QUERY_MAX_DOCUMENTS = 999;
+const CLOUDBASE_QUERY_FETCH_LIMIT = 1000;
+const CLOUDBASE_BUSY_TRANSACTION_RETRY_DELAYS_MS = [50, 150, 300, 600];
+const CLOUDBASE_TRANSACTION_COOLDOWN_MS = 25;
+const CLOUDBASE_BUSY_TRANSACTION_MESSAGE =
+  'Transaction is busy. Please check your request, but if the problem persists, contact us.';
 const MEMBERSHIP_REVISION_SCHEMA_VERSION = 'membership-revision.v1';
 const MEMBERSHIP_REVISION_KEYS = [
   'phone_number',
@@ -1993,7 +1996,12 @@ function createMemoryStore(options = {}) {
 }
 
 function createCloudBaseStore(options = {}) {
-  const db = options.db ?? createCloudBaseDatabase();
+  const db = createCloudBaseBusyRetryDatabase(
+    options.db ?? createCloudBaseDatabase(),
+    options.cloudBaseTransactionRetrySleeper,
+    options.cloudBaseTransactionCooldownSleeper ??
+      (options.db ? noDelay : delay),
+  );
   const runtimeMode = options.runtimeMode ?? 'development';
   const authIndexSecret =
     options.authIndexSecret ??
@@ -2157,13 +2165,11 @@ function createCloudBaseStore(options = {}) {
           listCloudBaseDocumentsByQuery(
             dailyProgress,
             {phone_number: phoneNumber},
-            LEGACY_LEARNING_QUERY_PAGE_SIZE,
             LEGACY_LEARNING_QUERY_MAX_DOCUMENTS,
           ),
           listCloudBaseDocumentsByQuery(
             learningStates,
             {phone_number: phoneNumber},
-            LEGACY_LEARNING_QUERY_PAGE_SIZE,
             LEGACY_LEARNING_QUERY_MAX_DOCUMENTS,
           ),
         ]);
@@ -2898,7 +2904,6 @@ function createCloudBaseStore(options = {}) {
         : await listCloudBaseDocumentsByQuery(
             spaceStates,
             {phone_number: phoneNumber},
-            LEGACY_SPACE_QUERY_PAGE_SIZE,
             LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
           );
       return db.runTransaction(async transaction => {
@@ -2987,7 +2992,6 @@ function createCloudBaseStore(options = {}) {
         : await listCloudBaseDocumentsByQuery(
             spaceStates,
             {phone_number: input.phoneNumber},
-            LEGACY_SPACE_QUERY_PAGE_SIZE,
             LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
           );
 
@@ -3633,33 +3637,94 @@ function createEmptyLearningState(dayKey, track) {
 async function listCloudBaseDocumentsByQuery(
   collection,
   query,
-  pageSize,
   maximumCount,
 ) {
-  const documents = [];
+  const result = await collection
+    .where(query)
+    .limit(CLOUDBASE_QUERY_FETCH_LIMIT)
+    .get();
+  const documents = normalizeCloudBaseDocuments(result.data);
 
-  for (let offset = 0; ; offset += pageSize) {
-    const result = await collection
-      .where(query)
-      .orderBy('_id', 'asc')
-      .skip(offset)
-      .limit(pageSize)
-      .get();
-    const page = normalizeCloudBaseDocuments(result.data);
-    documents.push(...page);
+  if (documents.length > maximumCount) {
+    throw httpError(
+      500,
+      'invalid_canonical_state',
+      'Legacy migration exceeds the supported bound.',
+    );
+  }
 
-    if (documents.length > maximumCount) {
-      throw httpError(
-        500,
-        'invalid_canonical_state',
-        'Legacy migration exceeds the supported bound.',
-      );
-    }
+  return documents;
+}
 
-    if (page.length < pageSize) {
-      return documents;
+function createCloudBaseBusyRetryDatabase(
+  database,
+  sleeper = delay,
+  cooldownSleeper = delay,
+) {
+  const nativeRunTransaction = database.runTransaction.bind(database);
+  let transactionTail = Promise.resolve();
+  const runTransaction = callback => {
+    const run = transactionTail.then(() =>
+      runCloudBaseBusyTransactionWithRetry(
+        nativeRunTransaction,
+        callback,
+        sleeper,
+      ),
+    );
+    transactionTail = run.then(
+      () => cooldownSleeper(CLOUDBASE_TRANSACTION_COOLDOWN_MS),
+      () => cooldownSleeper(CLOUDBASE_TRANSACTION_COOLDOWN_MS),
+    );
+    return run;
+  };
+
+  return new Proxy(database, {
+    get(target, property) {
+      if (property === 'runTransaction') return runTransaction;
+      const value = Reflect.get(target, property, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
+
+async function runCloudBaseBusyTransactionWithRetry(
+  runTransaction,
+  callback,
+  sleeper,
+) {
+  for (
+    let attempt = 0;
+    attempt <= CLOUDBASE_BUSY_TRANSACTION_RETRY_DELAYS_MS.length;
+    attempt += 1
+  ) {
+    try {
+      return await runTransaction(callback);
+    } catch (error) {
+      if (
+        !isCloudBaseBusyTransactionError(error) ||
+        attempt === CLOUDBASE_BUSY_TRANSACTION_RETRY_DELAYS_MS.length
+      ) {
+        throw error;
+      }
+      await sleeper(CLOUDBASE_BUSY_TRANSACTION_RETRY_DELAYS_MS[attempt]);
     }
   }
+  throw new Error('CloudBase busy transaction retry is unreachable.');
+}
+
+function isCloudBaseBusyTransactionError(error) {
+  return (
+    error?.code === 'DATABASE_TRANSACTION_FAIL' &&
+    error?.message === CLOUDBASE_BUSY_TRANSACTION_MESSAGE
+  );
+}
+
+function delay(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function noDelay() {
+  return Promise.resolve();
 }
 
 function createCloudBaseDatabase() {
