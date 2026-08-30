@@ -157,7 +157,7 @@ while `/v2` owns authentication and the canonical bootstrap read:
 - The CloudBase adapter hard-caps an atomic event request at 9 and accepts at
   most one unseen selection-bound event in a request. The tested first-event
   all-track migration and the maximum replay batch of 8 exact duplicates plus
-  one current-selection event each use at most 29 of the platform's 100 allowed
+  one current-selection event each use at most 30 of the platform's 100 allowed
   transaction operations. Its
   transactions use deterministic document operations only. Bounded legacy
   learning and space queries run before the transaction: learning uses an
