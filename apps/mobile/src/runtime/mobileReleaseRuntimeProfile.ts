@@ -221,6 +221,7 @@ export function mobileReleaseRuntimeProfileToRemoteProfile(
       ]),
     ),
     learningTrack: 'cet4',
+    purchaseMode: 'operator_entitlement_only',
   };
 }
 

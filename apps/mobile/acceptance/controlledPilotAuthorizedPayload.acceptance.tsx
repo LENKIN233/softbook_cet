@@ -487,28 +487,45 @@ function completeInteraction(
       press(tree, 'learning-flip-confident-button');
       return;
     case 'multiple_choice':
-      press(tree, `learning-option-${card.answer_key.correct_option}`);
+      press(
+        tree,
+        `learning-option-${
+          card.options.findIndex(option => option.id === card.answer_key.correct_option) + 1
+        }`,
+      );
       press(tree, 'learning-submit-button');
       return;
     case 'lock':
       card.lock_slots.forEach((slot, index) =>
         press(
           tree,
-          `learning-lock-${slot.id}-${toTestIdSegment(
-            card.answer_key.lock_pattern[index],
-          )}`,
+          `learning-lock-${index + 1}-${
+            slot.options.indexOf(card.answer_key.lock_pattern[index]) + 1
+          }`,
         ),
       );
       press(tree, 'learning-submit-button');
       return;
     case 'elimination':
       card.answer_key.correct_items.forEach(itemId =>
-        press(tree, `learning-elimination-${itemId}`),
+        press(
+          tree,
+          `learning-elimination-${
+            card.elimination_items.findIndex(item => item.id === itemId) + 1
+          }`,
+        ),
       );
       press(tree, 'learning-submit-button');
       return;
     case 'swipe':
-      press(tree, `learning-swipe-${card.answer_key.correct_state}`);
+      press(
+        tree,
+        `learning-swipe-${
+          card.swipe_states.findIndex(
+            state => state.id === card.answer_key.correct_state,
+          ) + 1
+        }`,
+      );
       return;
   }
 }
@@ -625,10 +642,6 @@ function requireEnvironmentPath(name: string) {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is required.`);
   return value;
-}
-
-function toTestIdSegment(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
 function collectRenderedText(node: unknown): string {

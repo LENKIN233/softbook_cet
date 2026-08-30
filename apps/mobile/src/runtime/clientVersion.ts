@@ -20,6 +20,52 @@ export type NativeMinimumClientVersions = Readonly<
   Record<NativeInstalledClientPlatform, string>
 >;
 
+export class ClientUpdateRequiredError extends Error {
+  readonly installedVersion: string;
+  readonly platform: InstalledClientPlatform;
+  readonly requiredVersion: string;
+
+  constructor(
+    platform: InstalledClientPlatform,
+    installedVersion: string,
+    requiredVersion: string,
+  ) {
+    super(
+      `Installed ${platform} client version ${installedVersion} is below required minimum ${requiredVersion}.`,
+    );
+    this.name = 'ClientUpdateRequiredError';
+    this.platform = platform;
+    this.installedVersion = installedVersion;
+    this.requiredVersion = requiredVersion;
+  }
+}
+
+export function findClientUpdateRequiredError(
+  error: unknown,
+): ClientUpdateRequiredError | null {
+  const pending: unknown[] = [error];
+  const visited = new Set<unknown>();
+
+  while (pending.length > 0 && visited.size < 12) {
+    const current = pending.shift();
+    if (current instanceof ClientUpdateRequiredError) {
+      return current;
+    }
+    if (
+      current === null ||
+      (typeof current !== 'object' && typeof current !== 'function') ||
+      visited.has(current)
+    ) {
+      continue;
+    }
+    visited.add(current);
+    const nested = current as {cause?: unknown; integrityCause?: unknown};
+    if (nested.cause !== undefined) pending.push(nested.cause);
+    if (nested.integrityCause !== undefined) pending.push(nested.integrityCause);
+  }
+  return null;
+}
+
 type ParsedSemanticVersion = {
   major: string;
   minor: string;
@@ -103,8 +149,10 @@ export function assertInstalledClientVersionAtLeast(
   );
 
   if (compareSemanticVersions(installedVersion, requiredVersion) < 0) {
-    throw new Error(
-      `Installed ${identity.platform} client version ${installedVersion} is below required minimum ${requiredVersion}.`,
+    throw new ClientUpdateRequiredError(
+      identity.platform,
+      installedVersion,
+      requiredVersion,
     );
   }
 }

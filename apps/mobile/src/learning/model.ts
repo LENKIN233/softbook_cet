@@ -130,6 +130,8 @@ export type LearningCard =
   | SwipeCard;
 
 export type LearningCardState = {
+  hasUsedHint?: boolean;
+  hasUsedPeek?: boolean;
   isPeeked: boolean;
   isFavorited: boolean;
   isHintVisible: boolean;

@@ -12,6 +12,25 @@ test('all local learning card records satisfy the source contract', () => {
   });
 });
 
+test('client card parser rejects prompt and harness fields instead of carrying them', () => {
+  const source = localLearningCardRecords[0];
+  const promptInjected = {
+    ...source,
+    front: {...source.front, system_prompt: 'sentinel-prompt'},
+  } as unknown as typeof source;
+  const harnessInjected = {
+    ...source,
+    harness: {run_id: 'sentinel-run'},
+  } as unknown as typeof source;
+
+  expect(() => normalizeLearningCardRecord(promptInjected)).toThrow(
+    'front has unsupported or missing fields',
+  );
+  expect(() => normalizeLearningCardRecord(harnessInjected)).toThrow(
+    'card has unsupported fields',
+  );
+});
+
 test('card_id must inherit the knowledge_ref prefix', () => {
   const invalidRecord = {
     ...localLearningCardRecords[0],

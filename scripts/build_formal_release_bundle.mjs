@@ -17,6 +17,7 @@ import {basename, dirname, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {
+  compareSemanticVersions,
   validateDeliveryProfile,
   verifyReleaseBundleDirectory,
 } from '../infra/cloudbase/release-delivery-v1.mjs';
@@ -43,6 +44,7 @@ const AUDIO_QC_INDEX_PATH = 'audio/qc-index.json';
 const SHA256_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const OPERATOR_PATTERN = /^(model|agent|service|oidc):[A-Za-z0-9_.-]+$/;
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const WEB_PACKAGE_PATH = join(ROOT, 'apps', 'web', 'package.json');
 
 export class FormalReleaseBundleBuildError extends Error {}
 
@@ -65,6 +67,7 @@ export function assembleFormalReleaseBundle(
   const profile = validateDeliveryProfile(
     parseJsonBytes(profileBytes, 'delivery profile'),
   );
+  assertWebBuildSupportsFormalRelease(profile);
   const contentPayloadBytes = readFileSync(normalized.contentPayloadPath);
   const rawContent = parseJsonBytes(contentPayloadBytes, 'CET4 content payload');
   const authorization = readJson(
@@ -322,6 +325,29 @@ export function assembleFormalReleaseBundle(
     };
   } finally {
     if (pathExists(staging)) rmSync(staging, {recursive: true, force: true});
+  }
+}
+
+function assertWebBuildSupportsFormalRelease(profile) {
+  const webPackage = parseJsonBytes(
+    readFileSync(WEB_PACKAGE_PATH),
+    'tracked Web package',
+  );
+  const webVersion = webPackage.version;
+  const requiredVersion =
+    compareSemanticVersions(
+      profile.minimum_client_versions.ios,
+      profile.minimum_client_versions.android,
+    ) >= 0
+      ? profile.minimum_client_versions.ios
+      : profile.minimum_client_versions.android;
+  if (
+    typeof webVersion !== 'string' ||
+    compareSemanticVersions(webVersion, requiredVersion) < 0
+  ) {
+    fail(
+      `Tracked Web build version must be at least the formal release minimum ${requiredVersion}.`,
+    );
   }
 }
 

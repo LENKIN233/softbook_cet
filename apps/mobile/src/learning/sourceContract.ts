@@ -89,6 +89,45 @@ export function normalizeLearningCardRecords(
 
 export function assertValidLearningCardRecord(record: LearningCardRecord) {
   const prefix = `Invalid learning card record ${record.card_id}:`;
+  const interactionFields: Record<LearningInteractionId, string[]> = {
+    flip: ['back_text'],
+    multiple_choice: ['answer_key', 'auto_scoring', 'options'],
+    lock: ['answer_key', 'auto_scoring', 'lock_slots'],
+    elimination: ['answer_key', 'auto_scoring', 'elimination_items'],
+    swipe: ['answer_key', 'auto_scoring', 'swipe_states'],
+  };
+  assertAllowedObjectKeys(
+    record,
+    [
+      'analysis',
+      'audio',
+      'card_id',
+      'front',
+      'hint_layer',
+      'interaction_id',
+      'knowledge_ref',
+      'space_metadata',
+      'track',
+      ...(interactionFields[record.interaction_id] ?? []),
+      ...(record.interaction_id === 'flip' ? ['auto_scoring'] : []),
+    ],
+    `${prefix} card has unsupported fields.`,
+  );
+  assertExactObjectKeys(
+    record.front,
+    ['context', 'eyebrow', 'prompt', 'support'],
+    `${prefix} front has unsupported or missing fields.`,
+  );
+  assertExactObjectKeys(
+    record.analysis,
+    ['exam_tip', 'summary', 'title'],
+    `${prefix} analysis has unsupported or missing fields.`,
+  );
+  assertExactObjectKeys(
+    record.space_metadata,
+    ['box', 'box_ref', 'group', 'library'],
+    `${prefix} space_metadata has unsupported or missing fields.`,
+  );
 
   if (!/^\d{6}$/.test(record.card_id)) {
     throw new Error(`${prefix} card_id must use TLGBNN digits.`);
@@ -150,6 +189,11 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
   );
 
   if (record.hint_layer) {
+    assertExactObjectKeys(
+      record.hint_layer,
+      ['content', 'label', 'reveal_gesture'],
+      `${prefix} hint_layer has unsupported or missing fields.`,
+    );
     assertNonEmptyString(
       record.hint_layer.content,
       `${prefix} hint_layer.content is required when hint_layer exists.`,
@@ -184,6 +228,18 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
       }
 
       const optionIds = new Set(record.options.map(option => option.id));
+      record.options.forEach(option =>
+        assertExactObjectKeys(
+          option,
+          ['id', 'label', 'text'],
+          `${prefix} option has unsupported or missing fields.`,
+        ),
+      );
+      assertExactObjectKeys(
+        record.answer_key,
+        ['correct_option'],
+        `${prefix} answer_key has unsupported or missing fields.`,
+      );
 
       if (!optionIds.has(record.answer_key.correct_option)) {
         throw new Error(
@@ -194,6 +250,18 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
       return;
     }
     case 'lock': {
+      record.lock_slots.forEach(slot =>
+        assertExactObjectKeys(
+          slot,
+          ['id', 'label', 'options'],
+          `${prefix} lock slot has unsupported or missing fields.`,
+        ),
+      );
+      assertExactObjectKeys(
+        record.answer_key,
+        ['lock_pattern'],
+        `${prefix} answer_key has unsupported or missing fields.`,
+      );
       if (record.lock_slots.length === 0) {
         throw new Error(`${prefix} lock must contain at least one slot.`);
       }
@@ -215,6 +283,18 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
       return;
     }
     case 'elimination': {
+      record.elimination_items.forEach(item =>
+        assertExactObjectKeys(
+          item,
+          ['id', 'text'],
+          `${prefix} elimination item has unsupported or missing fields.`,
+        ),
+      );
+      assertExactObjectKeys(
+        record.answer_key,
+        ['correct_items'],
+        `${prefix} answer_key has unsupported or missing fields.`,
+      );
       const itemIds = new Set(record.elimination_items.map(item => item.id));
 
       if (record.answer_key.correct_items.length === 0) {
@@ -232,6 +312,18 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
       return;
     }
     case 'swipe': {
+      record.swipe_states.forEach(state =>
+        assertExactObjectKeys(
+          state,
+          ['description', 'id', 'label'],
+          `${prefix} swipe state has unsupported or missing fields.`,
+        ),
+      );
+      assertExactObjectKeys(
+        record.answer_key,
+        ['correct_state'],
+        `${prefix} answer_key has unsupported or missing fields.`,
+      );
       if (record.swipe_states.length !== 2) {
         throw new Error(`${prefix} swipe must stay a dual-state judgment.`);
       }
@@ -252,6 +344,30 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
       const exhaustiveCheck: never = record;
       return exhaustiveCheck;
     }
+  }
+}
+
+function assertAllowedObjectKeys(
+  value: object,
+  allowedKeys: readonly string[],
+  message: string,
+) {
+  const allowed = new Set(allowedKeys);
+  if (Object.keys(value).some(key => !allowed.has(key))) {
+    throw new Error(message);
+  }
+}
+
+function assertExactObjectKeys(
+  value: object,
+  expectedKeys: readonly string[],
+  message: string,
+) {
+  if (
+    JSON.stringify(Object.keys(value).sort()) !==
+    JSON.stringify([...expectedKeys].sort())
+  ) {
+    throw new Error(message);
   }
 }
 

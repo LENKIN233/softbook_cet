@@ -5,6 +5,7 @@ import {
   Animated,
   PanResponder,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -54,6 +55,7 @@ export type LearningSurfacePalette = {
 };
 
 type LearningSurfaceProps = {
+  advanceState?: LearningAdvanceState;
   audioAttemptId: string | null;
   palette: LearningSurfacePalette;
   contentManifest?: VerifiedContentManifest | null;
@@ -88,6 +90,18 @@ type LearningSurfaceProps = {
   onRestartDeck: () => void;
   onContinueRound?: () => void;
   onStartReview?: () => void;
+};
+
+export type LearningAdvanceState = {
+  busy: boolean;
+  detail: string | null;
+  needsRetry: boolean;
+};
+
+const DEFAULT_LEARNING_ADVANCE_STATE: LearningAdvanceState = {
+  busy: false,
+  detail: null,
+  needsRetry: false,
 };
 
 function formatLearningActionCue(
@@ -220,6 +234,7 @@ export function isCompactLearningViewport(width: number, height: number) {
 }
 
 export function LearningSurface({
+  advanceState = DEFAULT_LEARNING_ADVANCE_STATE,
   audioAttemptId,
   palette,
   contentManifest = null,
@@ -780,6 +795,7 @@ export function LearningSurface({
         {currentResult ? (
           onOpenResultDetail ? (
             <ResultSummaryPanel
+              advanceState={advanceState}
               card={currentCard}
               compact={isCompactPhone}
               palette={palette}
@@ -790,6 +806,7 @@ export function LearningSurface({
             />
           ) : (
             <ResultPanel
+              advanceState={advanceState}
               card={currentCard}
               palette={palette}
               result={currentResult}
@@ -847,6 +864,25 @@ export function LearningSurface({
               onSelectSwipeState={onSelectSwipeState}
               compact={isCompactPhone}
             />
+            {isDenseInteraction && supportLayer ? (
+              <View
+                style={[
+                  styles.denseSupportLayer,
+                  {
+                    backgroundColor: palette.panelStrong,
+                    borderColor: palette.border,
+                  },
+                ]}
+                testID="learning-support-layer"
+              >
+                <Text style={[styles.denseSupportTitle, {color: supportLayer.tone}]}>
+                  {supportLayer.title}
+                </Text>
+                <Text style={[styles.denseSupportBody, {color: palette.textMuted}]}>
+                  {supportLayer.body}
+                </Text>
+              </View>
+            ) : null}
           </View>
         )}
 
@@ -1194,7 +1230,7 @@ function InteractionBody({
             style={[styles.optionGrid, styles.optionGridWorkArea]}
             testID="learning-option-grid"
           >
-            {card.options.map(option => {
+            {card.options.map((option, optionIndex) => {
               const isSelected = cardState.selectedOptionId === option.id;
               const isCorrect =
                 currentResult !== null &&
@@ -1242,7 +1278,7 @@ function InteractionBody({
                       borderColor: optionStateBorder,
                     },
                   ]}
-                  testID={`learning-option-${option.id}`}
+                  testID={`learning-option-${optionIndex + 1}`}
                 >
                   <View style={styles.optionHeaderRow}>
                     <View
@@ -1410,7 +1446,7 @@ function InteractionBody({
                         compact ? styles.lockChoiceWrapCompact : null,
                       ]}
                     >
-                      {slot.options.map(option => {
+                      {slot.options.map((option, optionIndex) => {
                         const isSelected = selectedValue === option;
 
                         return (
@@ -1448,9 +1484,9 @@ function InteractionBody({
                                   : palette.border,
                               },
                             ]}
-                            testID={`learning-lock-${slot.id}-${toTestIdSegment(
-                              option,
-                            )}`}
+                            testID={`learning-lock-${index + 1}-${
+                              optionIndex + 1
+                            }`}
                           >
                             <Text
                               numberOfLines={
@@ -1493,7 +1529,7 @@ function InteractionBody({
               compact ? styles.eliminationGridCompact : null,
             ]}
           >
-            {card.elimination_items.map(item => {
+            {card.elimination_items.map((item, itemIndex) => {
               const isSelected = cardState.eliminatedItemIds.includes(item.id);
               const isCorrect =
                 currentResult !== null &&
@@ -1528,7 +1564,7 @@ function InteractionBody({
                         : palette.border,
                     },
                   ]}
-                  testID={`learning-elimination-${item.id}`}
+                  testID={`learning-elimination-${itemIndex + 1}`}
                 >
                   {isSelected ? (
                     <View
@@ -1846,7 +1882,7 @@ function SwipeInteraction({
                 borderColor: palette.border,
               },
             ]}
-            testID={`learning-swipe-${state.id}`}
+            testID={`learning-swipe-${index + 1}`}
           >
             <View style={styles.swipeTrailHeading}>
               <Text
@@ -2026,6 +2062,7 @@ function getResolvedAnswerRows(
 }
 
 export function LearningResultDetailSurface({
+  advanceState = DEFAULT_LEARNING_ADVANCE_STATE,
   card,
   cardState,
   currentIndex,
@@ -2037,6 +2074,7 @@ export function LearningResultDetailSurface({
   result,
   sessionCardCount,
 }: {
+  advanceState?: LearningAdvanceState;
   card: LearningCard;
   cardState: LearningCardState;
   currentIndex: number;
@@ -2101,10 +2139,14 @@ export function LearningResultDetailSurface({
       ]}
       testID="learning-result-detail-screen"
     >
-      <View
+      <ScrollView
+        contentContainerStyle={[
+          styles.detailResolvedCardContent,
+          isCompactPhone ? styles.detailResolvedCardContentCompact : null,
+        ]}
+        showsVerticalScrollIndicator={false}
         style={[
           styles.detailResolvedCard,
-          isCompactPhone ? styles.detailResolvedCardCompact : null,
           styles.glassCard,
           {
             backgroundColor: palette.panel,
@@ -2383,32 +2425,28 @@ export function LearningResultDetailSurface({
             ]}
           >
             <Text
-              numberOfLines={isAccessibilityText ? undefined : 1}
               style={[styles.resultExplanationTitle, { color: palette.text }]}
+              testID="learning-detail-analysis-title"
             >
               {card.analysis.title}
             </Text>
             <Text
-              numberOfLines={
-                isAccessibilityText ? undefined : isCompactPhone ? 2 : 3
-              }
               style={[
                 styles.resultExplanationBody,
                 isCompactPhone ? styles.resultExplanationBodyCompact : null,
                 { color: palette.textMuted },
               ]}
+              testID="learning-detail-analysis-body"
             >
               {card.analysis.summary}
             </Text>
             <Text
-              numberOfLines={
-                isAccessibilityText ? undefined : isCompactPhone ? 1 : 2
-              }
               style={[
                 styles.detailTip,
                 isCompactPhone ? styles.detailTipCompact : null,
                 { color: palette.textMuted },
               ]}
+              testID="learning-detail-analysis-tip"
             >
               过级提醒：{card.analysis.exam_tip}
             </Text>
@@ -2416,6 +2454,7 @@ export function LearningResultDetailSurface({
         </View>
 
         <Pressable
+          disabled={advanceState.busy}
           onPress={onAdvanceCard}
           style={[
             styles.primaryButton,
@@ -2428,15 +2467,38 @@ export function LearningResultDetailSurface({
           <Text
             style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
           >
-            {isLastCard ? '完成本轮学习' : '继续下一张'}
+            {advanceState.busy
+              ? '正在保存…'
+              : advanceState.needsRetry
+              ? '重试保存'
+              : isLastCard
+              ? '完成本轮学习'
+              : '继续下一张'}
           </Text>
         </Pressable>
-      </View>
+        {advanceState.detail ? (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[
+              styles.resultAdvanceStatus,
+              {
+                color: advanceState.needsRetry
+                  ? palette.danger
+                  : palette.textMuted,
+              },
+            ]}
+            testID="learning-advance-status"
+          >
+            {advanceState.detail}
+          </Text>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }
 
 function ResultSummaryPanel({
+  advanceState,
   card,
   compact,
   palette,
@@ -2445,6 +2507,7 @@ function ResultSummaryPanel({
   onOpenResultDetail,
   isLastCard,
 }: {
+  advanceState: LearningAdvanceState;
   card: LearningCard;
   compact: boolean;
   palette: LearningSurfacePalette;
@@ -2482,7 +2545,7 @@ function ResultSummaryPanel({
         <ResultBadge outcome={result.outcome} palette={palette} />
       </View>
       <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
-        已记录本次结果
+        本次判断已完成
       </Text>
       <Text
         style={[styles.resultExplanationBody, { color: palette.textMuted }]}
@@ -2506,6 +2569,7 @@ function ResultSummaryPanel({
           </Text>
         </Pressable>
         <Pressable
+          disabled={advanceState.busy}
           onPress={onAdvanceCard}
           style={[
             styles.primaryButton,
@@ -2517,21 +2581,45 @@ function ResultSummaryPanel({
           <Text
             style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
           >
-            {isLastCard ? '完成本轮学习' : '继续下一张'}
+            {advanceState.busy
+              ? '正在保存…'
+              : advanceState.needsRetry
+              ? '重试保存'
+              : isLastCard
+              ? '完成本轮学习'
+              : '继续下一张'}
           </Text>
         </Pressable>
       </View>
+      {advanceState.detail ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[
+            styles.resultAdvanceStatus,
+            {
+              color: advanceState.needsRetry
+                ? palette.danger
+                : palette.textMuted,
+            },
+          ]}
+          testID="learning-advance-status"
+        >
+          {advanceState.detail}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 function ResultPanel({
+  advanceState,
   card,
   palette,
   result,
   onAdvanceCard,
   isLastCard,
 }: {
+  advanceState: LearningAdvanceState;
   card: LearningCard;
   palette: LearningSurfacePalette;
   result: LearningCardResult;
@@ -2586,13 +2674,14 @@ function ResultPanel({
         testID="learning-settle-panel"
       >
         <Text style={[styles.settleTitle, { color: palette.success }]}>
-          已记录本次结果
+          本次判断已完成
         </Text>
         <Text style={[styles.settleText, { color: palette.textMuted }]}>
-          你可以继续下一张；学习位置会跟着本轮节奏安静更新。
+          查看解析后继续；进入下一张前会先安全保存本次答题记录。
         </Text>
       </View>
       <Pressable
+        disabled={advanceState.busy}
         onPress={onAdvanceCard}
         style={[
           styles.primaryButton,
@@ -2603,9 +2692,31 @@ function ResultPanel({
         <Text
           style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
         >
-          {isLastCard ? '完成本轮学习' : '下一张'}
+          {advanceState.busy
+            ? '正在保存…'
+            : advanceState.needsRetry
+            ? '重试保存'
+            : isLastCard
+            ? '完成本轮学习'
+            : '下一张'}
         </Text>
       </Pressable>
+      {advanceState.detail ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[
+            styles.resultAdvanceStatus,
+            {
+              color: advanceState.needsRetry
+                ? palette.danger
+                : palette.textMuted,
+            },
+          ]}
+          testID="learning-advance-status"
+        >
+          {advanceState.detail}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -2714,10 +2825,6 @@ function LightActionButton({
       </Text>
     </Pressable>
   );
-}
-
-function toTestIdSegment(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
 const styles = StyleSheet.create({
@@ -2836,15 +2943,18 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 1,
     flex: 1,
-    gap: 6,
-    justifyContent: 'space-between',
     minHeight: 0,
     overflow: 'hidden',
+  },
+  detailResolvedCardContent: {
+    flexGrow: 1,
+    gap: 6,
+    justifyContent: 'space-between',
     paddingHorizontal: 17,
     paddingVertical: 12,
     position: 'relative',
   },
-  detailResolvedCardCompact: {
+  detailResolvedCardContentCompact: {
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -3209,6 +3319,23 @@ const styles = StyleSheet.create({
   },
   contextCardSupportActive: {
     borderLeftWidth: 0,
+  },
+  denseSupportLayer: {
+    borderRadius: 14,
+    borderWidth: 1,
+    flexShrink: 0,
+    gap: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  denseSupportTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  denseSupportBody: {
+    fontSize: 12,
+    lineHeight: 17,
   },
   cardSupport: {
     fontSize: 16,
@@ -3803,7 +3930,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 17,
     justifyContent: 'center',
-    minHeight: 42,
+    minHeight: 44,
     minWidth: 118,
     paddingHorizontal: 16,
   },
@@ -3854,6 +3981,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+  },
+  resultAdvanceStatus: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18,
+    textAlign: 'center',
   },
   resultNextButton: {
     flex: 1,

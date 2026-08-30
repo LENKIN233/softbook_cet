@@ -211,6 +211,13 @@ actual platform. Installed identity comes from synchronous
 `Platform.OS`. Missing, malformed, mismatched, unsupported, or below-minimum
 native identity fails closed.
 
+PC Web uses the same formal scalar with an explicit build-time Web semantic
+version. The tracked Web package must meet the formal minimum before a bundle
+can be assembled, and the browser independently rechecks the signed manifest
+against that build identity. Controlled-pilot native version tables do not
+authorize Web. A below-minimum browser keeps the authenticated account fact and
+shows an explicit refresh/update path rather than reporting SMS failure.
+
 Both the installed version and applicable minimum use strict semantic versions
 with a required `x.y.z` core and only valid optional prerelease/build
 identifiers. Numeric prerelease identifiers compare numerically, alphanumeric

@@ -69,6 +69,9 @@ class SoftbookAudioPlayerModule(
               preparePromise = null
             } else if (playbackState == Player.STATE_ENDED) {
               sendEvent("ended")
+              if (player === newPlayer) {
+                releasePlayer("audio_ended", "Audio playback ended.")
+              }
             }
           }
 

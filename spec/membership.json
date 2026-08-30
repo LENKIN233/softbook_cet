@@ -1,5 +1,5 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "policy": {
     "trial_goal": "让用户在 3-7 天内完整感受到内容、算法和物理空间的价值",
     "free_after_trial_goal": "保留入口和基础学习，但不再等于完整体验",
@@ -22,6 +22,8 @@
       "access_state": "premium",
       "delivery_rule": "receiver_operator_grant_only",
       "payment_required": false,
+      "client_purchase_capability": "operator_entitlement_only",
+      "client_surface_rule": "hide purchase and restore commands that the closed-beta backend guarantees to reject; explain that invitation access syncs to the current account",
       "audit_required": true,
       "client_self_grant_forbidden": true,
       "campaign_binding_required": true,

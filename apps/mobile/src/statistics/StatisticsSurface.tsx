@@ -872,6 +872,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
   primaryButtonLabel: {
     fontSize: 14,

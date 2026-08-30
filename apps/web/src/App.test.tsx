@@ -55,6 +55,25 @@ describe('PC Web core flow', () => {
     expect(within(screen.getByRole('group', {name: '四选一选项'})).getAllByRole('button')).toHaveLength(4);
   });
 
+  it('keeps Peek available and remembers a collapsed hint for learning statistics', async () => {
+    await authenticate();
+
+    fireEvent.click(screen.getByRole('button', {name: '查看线索'}));
+    expect(
+      screen.getByText('先抓题干里的关键信号，再完成当前判断。'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '收起线索'}));
+    fireEvent.click(screen.getByRole('button', {name: '查看提示'}));
+    expect(screen.getByText(/先问自己/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '收起提示'}));
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+
+    const hintRow = screen.getByText('使用提示').closest('div');
+    expect(hintRow).toHaveTextContent('1');
+  });
+
   it('keeps favorite and sleep as card states inside the owning box', async () => {
     await authenticate();
     fireEvent.click(screen.getByRole('button', {name: '空间'}));
@@ -127,8 +146,12 @@ describe('PC Web core flow', () => {
 
     expect(screen.getByText('5 天体验中')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /开启 5 天体验/})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: '会员服务暂不可用'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: '暂时无法恢复购买'})).toBeDisabled();
+    expect(
+      screen.getByRole('button', {name: '封闭内测权益由邀请开通'}),
+    ).toBeDisabled();
+    expect(
+      screen.getByText('获得资格后会随当前账号自动同步，不需要在产品内购买。'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '暂时无法删除账户'})).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', {name: '隐私与账户规则'}));

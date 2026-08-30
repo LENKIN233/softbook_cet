@@ -4465,6 +4465,38 @@ function assertUniqueNonEmptyCardRecords(cardRecords) {
 
 function normalizeCardRecord(record, expectedTrack, label) {
   const card = requireCardSourceObject(record, label);
+  const interactionId = requireCardSourceString(
+    card.interaction_id,
+    `${label}.interaction_id`,
+  );
+  const interactionFields = {
+    flip: ['back_text'],
+    multiple_choice: ['answer_key', 'auto_scoring', 'options'],
+    lock: ['answer_key', 'auto_scoring', 'lock_slots'],
+    elimination: ['answer_key', 'auto_scoring', 'elimination_items'],
+    swipe: ['answer_key', 'auto_scoring', 'swipe_states'],
+  }[interactionId];
+
+  if (!interactionFields) {
+    throw cardSourceError(`${label}.interaction_id is unsupported.`);
+  }
+  assertAllowedCardSourceKeys(
+    card,
+    [
+      'analysis',
+      'audio',
+      'card_id',
+      'front',
+      'hint_layer',
+      'interaction_id',
+      'knowledge_ref',
+      'space_metadata',
+      'track',
+      ...interactionFields,
+      ...(interactionId === 'flip' ? ['auto_scoring'] : []),
+    ],
+    label,
+  );
   const cardId = requireCardSourcePattern(
     card.card_id,
     /^\d{6}$/,
@@ -4486,18 +4518,40 @@ function normalizeCardRecord(record, expectedTrack, label) {
   }
 
   const front = requireCardSourceObject(card.front, `${label}.front`);
-  requireCardSourceString(front.eyebrow, `${label}.front.eyebrow`);
-  requireCardSourceString(front.prompt, `${label}.front.prompt`);
-  requireCardSourceString(front.support, `${label}.front.support`);
-  requireCardSourceString(front.context, `${label}.front.context`);
+  assertExactCardSourceKeys(
+    front,
+    ['context', 'eyebrow', 'prompt', 'support'],
+    `${label}.front`,
+  );
+  const normalizedFront = {
+    eyebrow: requireCardSourceString(front.eyebrow, `${label}.front.eyebrow`),
+    prompt: requireCardSourceString(front.prompt, `${label}.front.prompt`),
+    support: requireCardSourceString(front.support, `${label}.front.support`),
+    context: requireCardSourceString(front.context, `${label}.front.context`),
+  };
 
   const analysis = requireCardSourceObject(card.analysis, `${label}.analysis`);
-  requireCardSourceString(analysis.title, `${label}.analysis.title`);
-  requireCardSourceString(analysis.summary, `${label}.analysis.summary`);
-  requireCardSourceString(analysis.exam_tip, `${label}.analysis.exam_tip`);
+  assertExactCardSourceKeys(
+    analysis,
+    ['exam_tip', 'summary', 'title'],
+    `${label}.analysis`,
+  );
+  const normalizedAnalysis = {
+    title: requireCardSourceString(analysis.title, `${label}.analysis.title`),
+    summary: requireCardSourceString(analysis.summary, `${label}.analysis.summary`),
+    exam_tip: requireCardSourceString(
+      analysis.exam_tip,
+      `${label}.analysis.exam_tip`,
+    ),
+  };
 
   const spaceMetadata = requireCardSourceObject(
     card.space_metadata,
+    `${label}.space_metadata`,
+  );
+  assertExactCardSourceKeys(
+    spaceMetadata,
+    ['box', 'box_ref', 'group', 'library'],
     `${label}.space_metadata`,
   );
   const boxRef = requireCardSourcePattern(
@@ -4505,12 +4559,21 @@ function normalizeCardRecord(record, expectedTrack, label) {
     /^\d{4}$/,
     `${label}.space_metadata.box_ref`,
   );
-  requireCardSourceString(
-    spaceMetadata.library,
-    `${label}.space_metadata.library`,
-  );
-  requireCardSourceString(spaceMetadata.group, `${label}.space_metadata.group`);
-  requireCardSourceString(spaceMetadata.box, `${label}.space_metadata.box`);
+  const normalizedSpaceMetadata = {
+    box_ref: boxRef,
+    library: requireCardSourceString(
+      spaceMetadata.library,
+      `${label}.space_metadata.library`,
+    ),
+    group: requireCardSourceString(
+      spaceMetadata.group,
+      `${label}.space_metadata.group`,
+    ),
+    box: requireCardSourceString(
+      spaceMetadata.box,
+      `${label}.space_metadata.box`,
+    ),
+  };
 
   if (boxRef !== knowledgeRef) {
     throw cardSourceError(
@@ -4518,32 +4581,68 @@ function normalizeCardRecord(record, expectedTrack, label) {
     );
   }
 
+  let normalizedHintLayer;
   if (card.hint_layer !== undefined) {
     const hintLayer = requireCardSourceObject(
       card.hint_layer,
       `${label}.hint_layer`,
     );
-    requireCardSourceString(hintLayer.content, `${label}.hint_layer.content`);
+    assertExactCardSourceKeys(
+      hintLayer,
+      ['content', 'label', 'reveal_gesture'],
+      `${label}.hint_layer`,
+    );
+    const hintLabel = requireCardSourceString(
+      hintLayer.label,
+      `${label}.hint_layer.label`,
+    );
+    const hintContent = requireCardSourceString(
+      hintLayer.content,
+      `${label}.hint_layer.content`,
+    );
 
     if (hintLayer.reveal_gesture !== '下滑') {
       throw cardSourceError(`${label}.hint_layer.reveal_gesture must be 下滑.`);
     }
+    normalizedHintLayer = {
+      label: hintLabel,
+      content: hintContent,
+      reveal_gesture: '下滑',
+    };
   }
 
-  const normalizedCard = cloneJson(card);
+  const normalizedCard = {
+    card_id: cardId,
+    track,
+    knowledge_ref: knowledgeRef,
+    interaction_id: interactionId,
+    front: normalizedFront,
+    analysis: normalizedAnalysis,
+    ...(normalizedHintLayer ? {hint_layer: normalizedHintLayer} : {}),
+    space_metadata: normalizedSpaceMetadata,
+  };
 
   if (card.audio !== undefined) {
     normalizedCard.audio = normalizeCardAudio(card.audio, `${label}.audio`);
   }
 
-  switch (card.interaction_id) {
+  switch (interactionId) {
     case 'flip':
-      requireCardSourceString(card.back_text, `${label}.back_text`);
+      normalizedCard.back_text = requireCardSourceString(
+        card.back_text,
+        `${label}.back_text`,
+      );
 
       if (card.auto_scoring === true) {
         throw cardSourceError(
           `${label}.flip must not claim auto_scoring true.`,
         );
+      }
+      if (card.auto_scoring !== undefined) {
+        if (card.auto_scoring !== false) {
+          throw cardSourceError(`${label}.auto_scoring must be false.`);
+        }
+        normalizedCard.auto_scoring = false;
       }
 
       return normalizedCard;
@@ -4554,21 +4653,57 @@ function normalizeCardRecord(record, expectedTrack, label) {
         throw cardSourceError(`${label}.options must contain exactly 4 items.`);
       }
 
+      const normalizedOptions = options.map((option, index) => {
+        const optionRecord = requireCardSourceObject(
+          option,
+          `${label}.options[${index}]`,
+        );
+        assertExactCardSourceKeys(
+          optionRecord,
+          ['id', 'label', 'text'],
+          `${label}.options[${index}]`,
+        );
+        return {
+          id: requireCardSourceString(
+            optionRecord.id,
+            `${label}.options[${index}].id`,
+          ),
+          label: requireCardSourceString(
+            optionRecord.label,
+            `${label}.options[${index}].label`,
+          ),
+          text: requireCardSourceString(
+            optionRecord.text,
+            `${label}.options[${index}].text`,
+          ),
+        };
+      });
+      const answerKey = requireCardSourceObject(
+        card.answer_key,
+        `${label}.answer_key`,
+      );
+      assertExactCardSourceKeys(
+        answerKey,
+        ['correct_option'],
+        `${label}.answer_key`,
+      );
       const correctOption = requireCardSourceString(
-        card.answer_key?.correct_option,
+        answerKey.correct_option,
         `${label}.answer_key.correct_option`,
       );
-      const optionIds = new Set(
-        options.map((option, index) =>
-          requireCardSourceString(option?.id, `${label}.options[${index}].id`),
-        ),
-      );
+      const optionIds = new Set(normalizedOptions.map(option => option.id));
 
       if (!optionIds.has(correctOption)) {
         throw cardSourceError(
           `${label}.answer_key.correct_option must exist in options.`,
         );
       }
+      if (card.auto_scoring !== true) {
+        throw cardSourceError(`${label}.auto_scoring must be true.`);
+      }
+      normalizedCard.options = normalizedOptions;
+      normalizedCard.answer_key = {correct_option: correctOption};
+      normalizedCard.auto_scoring = true;
 
       return normalizedCard;
     }
@@ -4583,8 +4718,14 @@ function normalizeCardRecord(record, expectedTrack, label) {
       }
 
       const lockPattern = requireCardSourceArray(
-        card.answer_key?.lock_pattern,
+        requireCardSourceObject(card.answer_key, `${label}.answer_key`)
+          .lock_pattern,
         `${label}.answer_key.lock_pattern`,
+      );
+      assertExactCardSourceKeys(
+        card.answer_key,
+        ['lock_pattern'],
+        `${label}.answer_key`,
       );
 
       if (lockPattern.length !== lockSlots.length) {
@@ -4593,10 +4734,24 @@ function normalizeCardRecord(record, expectedTrack, label) {
         );
       }
 
-      lockSlots.forEach((slot, index) => {
+      const normalizedLockSlots = lockSlots.map((slot, index) => {
+        const slotRecord = requireCardSourceObject(
+          slot,
+          `${label}.lock_slots[${index}]`,
+        );
+        assertExactCardSourceKeys(
+          slotRecord,
+          ['id', 'label', 'options'],
+          `${label}.lock_slots[${index}]`,
+        );
         const options = requireCardSourceArray(
-          slot?.options,
+          slotRecord.options,
           `${label}.lock_slots[${index}].options`,
+        ).map((option, optionIndex) =>
+          requireCardSourceString(
+            option,
+            `${label}.lock_slots[${index}].options[${optionIndex}]`,
+          ),
         );
 
         if (!options.includes(lockPattern[index])) {
@@ -4604,7 +4759,31 @@ function normalizeCardRecord(record, expectedTrack, label) {
             `${label}.lock_pattern must select values from each slot.`,
           );
         }
+        return {
+          id: requireCardSourceString(
+            slotRecord.id,
+            `${label}.lock_slots[${index}].id`,
+          ),
+          label: requireCardSourceString(
+            slotRecord.label,
+            `${label}.lock_slots[${index}].label`,
+          ),
+          options,
+        };
       });
+      if (card.auto_scoring !== true) {
+        throw cardSourceError(`${label}.auto_scoring must be true.`);
+      }
+      normalizedCard.lock_slots = normalizedLockSlots;
+      normalizedCard.answer_key = {
+        lock_pattern: lockPattern.map((value, index) =>
+          requireCardSourceString(
+            value,
+            `${label}.answer_key.lock_pattern[${index}]`,
+          ),
+        ),
+      };
+      normalizedCard.auto_scoring = true;
 
       return normalizedCard;
     }
@@ -4613,9 +4792,23 @@ function normalizeCardRecord(record, expectedTrack, label) {
         card.elimination_items,
         `${label}.elimination_items`,
       );
+      const answerKey = requireCardSourceObject(
+        card.answer_key,
+        `${label}.answer_key`,
+      );
+      assertExactCardSourceKeys(
+        answerKey,
+        ['correct_items'],
+        `${label}.answer_key`,
+      );
       const correctItems = requireCardSourceArray(
-        card.answer_key?.correct_items,
+        answerKey.correct_items,
         `${label}.answer_key.correct_items`,
+      ).map((item, index) =>
+        requireCardSourceString(
+          item,
+          `${label}.answer_key.correct_items[${index}]`,
+        ),
       );
 
       if (correctItems.length === 0) {
@@ -4624,20 +4817,40 @@ function normalizeCardRecord(record, expectedTrack, label) {
         );
       }
 
-      const itemIds = new Set(
-        eliminationItems.map((item, index) =>
-          requireCardSourceString(
-            item?.id,
+      const normalizedItems = eliminationItems.map((item, index) => {
+        const itemRecord = requireCardSourceObject(
+          item,
+          `${label}.elimination_items[${index}]`,
+        );
+        assertExactCardSourceKeys(
+          itemRecord,
+          ['id', 'text'],
+          `${label}.elimination_items[${index}]`,
+        );
+        return {
+          id: requireCardSourceString(
+            itemRecord.id,
             `${label}.elimination_items[${index}].id`,
           ),
-        ),
-      );
+          text: requireCardSourceString(
+            itemRecord.text,
+            `${label}.elimination_items[${index}].text`,
+          ),
+        };
+      });
+      const itemIds = new Set(normalizedItems.map(item => item.id));
 
       if (!correctItems.every(itemId => itemIds.has(itemId))) {
         throw cardSourceError(
           `${label}.answer_key.correct_items must exist in elimination_items.`,
         );
       }
+      if (card.auto_scoring !== true) {
+        throw cardSourceError(`${label}.auto_scoring must be true.`);
+      }
+      normalizedCard.elimination_items = normalizedItems;
+      normalizedCard.answer_key = {correct_items: correctItems};
+      normalizedCard.auto_scoring = true;
 
       return normalizedCard;
     }
@@ -4653,21 +4866,69 @@ function normalizeCardRecord(record, expectedTrack, label) {
         );
       }
 
+      const normalizedStates = swipeStates.map((state, index) => {
+        const stateRecord = requireCardSourceObject(
+          state,
+          `${label}.swipe_states[${index}]`,
+        );
+        assertExactCardSourceKeys(
+          stateRecord,
+          ['description', 'id', 'label'],
+          `${label}.swipe_states[${index}]`,
+        );
+        return {
+          id: requireCardSourceString(
+            stateRecord.id,
+            `${label}.swipe_states[${index}].id`,
+          ),
+          label: requireCardSourceString(
+            stateRecord.label,
+            `${label}.swipe_states[${index}].label`,
+          ),
+          description: requireCardSourceString(
+            stateRecord.description,
+            `${label}.swipe_states[${index}].description`,
+          ),
+        };
+      });
+      const answerKey = requireCardSourceObject(
+        card.answer_key,
+        `${label}.answer_key`,
+      );
+      assertExactCardSourceKeys(
+        answerKey,
+        ['correct_state'],
+        `${label}.answer_key`,
+      );
       const correctState = requireCardSourceString(
-        card.answer_key?.correct_state,
+        answerKey.correct_state,
         `${label}.answer_key.correct_state`,
       );
 
-      if (!swipeStates.some(state => state?.id === correctState)) {
+      if (!normalizedStates.some(state => state.id === correctState)) {
         throw cardSourceError(
           `${label}.answer_key.correct_state must exist in swipe_states.`,
         );
       }
+      if (card.auto_scoring !== true) {
+        throw cardSourceError(`${label}.auto_scoring must be true.`);
+      }
+      normalizedCard.swipe_states = normalizedStates;
+      normalizedCard.answer_key = {correct_state: correctState};
+      normalizedCard.auto_scoring = true;
 
       return normalizedCard;
     }
     default:
       throw cardSourceError(`${label}.interaction_id is unsupported.`);
+  }
+}
+
+function assertAllowedCardSourceKeys(value, allowedKeys, label) {
+  const allowed = new Set(allowedKeys);
+  const unsupported = Object.keys(value).filter(key => !allowed.has(key));
+  if (unsupported.length > 0) {
+    throw cardSourceError(`${label} has unsupported fields.`);
   }
 }
 

@@ -48,6 +48,62 @@ test('learning compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactLearningViewport(744, 1133)).toBe(false);
 });
 
+test.each(['lock', 'elimination', 'swipe'] as const)(
+  'dense %s interaction renders its opened hint layer',
+  interactionId => {
+    const session = createLocalLearningSession('cet4');
+    const card = session.cards.find(
+      candidate => candidate.interaction_id === interactionId,
+    )!;
+    const cardState = createLearningCardState(card);
+    cardState.hasUsedHint = true;
+    cardState.hasUsedPeek = true;
+    cardState.isHintVisible = true;
+    cardState.isPeeked = true;
+    let tree: ReactTestRenderer.ReactTestRenderer;
+
+    ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(
+        <LearningSurface
+          audioAttemptId={null}
+          completedResults={[]}
+          currentCard={card}
+          currentCardState={cardState}
+          currentIndex={0}
+          currentResult={null}
+          onAdvanceCard={jest.fn()}
+          onFlip={jest.fn()}
+          onRestartDeck={jest.fn()}
+          onSelectOption={jest.fn()}
+          onSelectSwipeState={jest.fn()}
+          onSetFlipConfidence={jest.fn()}
+          onSetLockSelection={jest.fn()}
+          onSubmitCurrentCard={jest.fn()}
+          onToggleEliminationItem={jest.fn()}
+          onToggleFavorite={jest.fn()}
+          onToggleHint={jest.fn()}
+          onTogglePeek={jest.fn()}
+          palette={palette}
+          phase="learning"
+          reviewCandidateCount={0}
+          sessionCards={[card]}
+          sessionLabel={session.sourceLabel}
+        />,
+      );
+    });
+
+    expect(
+      tree!.root.findByProps({testID: 'learning-support-layer'}),
+    ).toBeTruthy();
+    expect(JSON.stringify(tree!.toJSON())).toContain(
+      '先把题干里的信号抓出来',
+    );
+    if (card.hint_layer) {
+      expect(JSON.stringify(tree!.toJSON())).toContain(card.hint_layer.content);
+    }
+  },
+);
+
 test('swipe gesture commits at 25% distance or the velocity threshold', () => {
   expect(SWIPE_DISTANCE_THRESHOLD_RATIO).toBe(0.25);
   expect(SWIPE_VELOCITY_THRESHOLD).toBe(0.65);
@@ -350,6 +406,11 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   expect(
     tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
   ).toBe(true);
+  expect(
+    StyleSheet.flatten(
+      tree!.root.findByProps({testID: 'learning-submit-button'}).props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
   expect(output).toContain('先选答案');
   expect(output).toContain('选定后再提交');
   expect(output).not.toContain('先选一个答案');
@@ -573,7 +634,7 @@ test('lock and elimination pressables keep 44x44 targets in standard and compact
       );
       const eliminationTargetStyle = StyleSheet.flatten(
         eliminationTree!.root.findByProps({
-          testID: `learning-elimination-${eliminationCard.elimination_items[0].id}`,
+          testID: 'learning-elimination-1',
         }).props.style,
       );
       expect(lockTargetStyle).toMatchObject({minHeight: 44, minWidth: 44});
@@ -639,7 +700,7 @@ test('swipe choices stay compact enough for the one-screen phone action plane', 
     );
   });
 
-  const safeChoice = tree!.root.findByProps({ testID: 'learning-swipe-safe' });
+  const safeChoice = tree!.root.findByProps({ testID: 'learning-swipe-1' });
   const draggableCard = tree!.root.findByProps({
     testID: 'learning-swipe-draggable-card',
   });
@@ -844,8 +905,12 @@ test('result detail reads as a resolved card without raw metadata', () => {
     tree!.root.findByProps({ testID: 'learning-detail-resolved-card' }).props
       .style,
   );
+  const detailResolvedCardContentStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'learning-detail-resolved-card' }).props
+      .contentContainerStyle,
+  );
   expect(detailResolvedCardStyle.flex).toBe(1);
-  expect(detailResolvedCardStyle.justifyContent).toBe('space-between');
+  expect(detailResolvedCardContentStyle.justifyContent).toBe('space-between');
   expect(detailResolvedCardStyle.minHeight).toBe(0);
   const detailAnswerSlipStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'learning-detail-answer-slip' }).props
@@ -853,6 +918,18 @@ test('result detail reads as a resolved card without raw metadata', () => {
   );
   expect(detailAnswerSlipStyle.flexGrow).toBe(1);
   expect(detailAnswerSlipStyle.justifyContent).toBe('space-between');
+  expect(
+    tree!.root.findByProps({testID: 'learning-detail-analysis-title'}).props
+      .numberOfLines,
+  ).toBeUndefined();
+  expect(
+    tree!.root.findByProps({testID: 'learning-detail-analysis-body'}).props
+      .numberOfLines,
+  ).toBeUndefined();
+  expect(
+    tree!.root.findByProps({testID: 'learning-detail-analysis-tip'}).props
+      .numberOfLines,
+  ).toBeUndefined();
   expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
   expect(output).toContain(card.space_metadata.box);

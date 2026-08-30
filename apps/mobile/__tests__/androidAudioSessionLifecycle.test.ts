@@ -59,6 +59,21 @@ test('host pause cancels pending or ready-before-play authority', () => {
   expect(hostPause).toContain('cancelPendingOrReadyPlaybackForInterruption()');
 });
 
+test('natural completion emits the exact ended event before releasing native resources', () => {
+  const playbackState = sourceBetween(
+    'override fun onPlaybackStateChanged(playbackState: Int)',
+    'override fun onPlayerError(error: PlaybackException)',
+  );
+  const emitIndex = playbackState.indexOf('sendEvent("ended")');
+  const releaseIndex = playbackState.indexOf(
+    'releasePlayer("audio_ended", "Audio playback ended.")',
+  );
+
+  expect(playbackState).toContain('if (player === newPlayer)');
+  expect(emitIndex).toBeGreaterThan(0);
+  expect(releaseIndex).toBeGreaterThan(emitIndex);
+});
+
 test('pending or ready cancellation emits the exact stop-required token before rejecting prepare', () => {
   const cancellation = sourceBetween(
     'private fun cancelPendingOrReadyPlaybackForInterruption()',

@@ -411,28 +411,45 @@ function completeInteraction(
       press(tree, 'learning-flip-confident-button');
       return;
     case 'multiple_choice':
-      press(tree, `learning-option-${card.answer_key.correct_option}`);
+      press(
+        tree,
+        `learning-option-${
+          card.options.findIndex(option => option.id === card.answer_key.correct_option) + 1
+        }`,
+      );
       press(tree, 'learning-submit-button');
       return;
     case 'lock':
       card.lock_slots.forEach((slot, index) =>
         press(
           tree,
-          `learning-lock-${slot.id}-${toTestIdSegment(
-            card.answer_key.lock_pattern[index],
-          )}`,
+          `learning-lock-${index + 1}-${
+            slot.options.indexOf(card.answer_key.lock_pattern[index]) + 1
+          }`,
         ),
       );
       press(tree, 'learning-submit-button');
       return;
     case 'elimination':
       card.answer_key.correct_items.forEach(itemId =>
-        press(tree, `learning-elimination-${itemId}`),
+        press(
+          tree,
+          `learning-elimination-${
+            card.elimination_items.findIndex(item => item.id === itemId) + 1
+          }`,
+        ),
       );
       press(tree, 'learning-submit-button');
       return;
     case 'swipe':
-      press(tree, `learning-swipe-${card.answer_key.correct_state}`);
+      press(
+        tree,
+        `learning-swipe-${
+          card.swipe_states.findIndex(
+            state => state.id === card.answer_key.correct_state,
+          ) + 1
+        }`,
+      );
   }
 }
 
@@ -506,10 +523,6 @@ function collectRenderedText(value: unknown): string {
     );
   }
   return '';
-}
-
-function toTestIdSegment(value: string) {
-  return value.replace(/[^a-zA-Z0-9_-]+/g, '-');
 }
 
 function requireEnvironmentPath(name: string) {

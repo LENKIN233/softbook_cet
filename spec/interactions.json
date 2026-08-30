@@ -1,5 +1,5 @@
 {
-  "version": "vnext-5",
+  "version": "vnext-6",
   "audio_is_interaction_family": false,
   "interaction_contract_status": "core_content_contract",
   "source_anchors": {
@@ -29,7 +29,12 @@
     "playback_trigger": "explicit_user_action_only",
     "playback_authority": "the_mobile_player_binds_each_audio_selection_to_the_exact_server_selection_id_or_an_explicit_local_attempt_identity_and_each_new_prepare_to_a_controller_instance_scoped_playback_nonce",
     "native_event_rule": "ended_error_and_interruption_events_change_visible_state_only_when_their_exact_playback_nonce_is_still_current_while_pause_and_resume_within_one_selection_retain_that_nonce",
-    "lifecycle_interruption_rule": "iOS_background_or_audio_session_interruption_binds_and_invalidates_the_exact_current_pending_ready_or_playing_native_generation_stops_it_and_emits_one_exact_tokened_requires_prepare_event_so_delayed_JS_AppState_delivery_cannot_autoplay; Android_host_pause_does_the_same_for_pending_or_ready_before_first_play_while_any_exact_token_with_play_requested_is_paused_and_emits_interruption_without_relying_on_isPlaying_so_buffering_or_focus_wait_cannot_activate_in_background"
+    "lifecycle_interruption_rule": "iOS_background_or_audio_session_interruption_binds_and_invalidates_the_exact_current_pending_ready_or_playing_native_generation_stops it and emits one exact tokened requires_prepare event so delayed JS AppState delivery cannot autoplay; Android host pause does the same for pending or ready before first play while any exact token with play requested is paused and emits interruption without relying on isPlaying so buffering or focus wait cannot activate in background; natural playback completion emits the exact ended event and releases the native player on both platforms"
+  },
+  "support_usage_policy": {
+    "peek_and_hint_remain_available_on_all_five_core_interactions": true,
+    "opened_content_must_be_visible_even_on_dense_interaction_layouts": true,
+    "attempt_usage_is_sticky": "once peek or hint is opened during an attempt, collapsing its presentation must not erase used_peek or used_hint for scheduling"
   },
   "expansion_rule": "new interactions may exist, but must be specified here before content production depends on them",
   "interactions": [

@@ -218,6 +218,14 @@ to `1.0.0` is allowed. Missing,
 malformed, mismatched, unsupported, or below-minimum native identity fails
 closed.
 
+PC Web applies the formal scalar to its explicit build semantic version. The
+formal bundle builder rejects a native release minimum above the tracked Web
+build, and the browser independently checks Bootstrap before hydrating product
+state. Controlled-pilot native tables never authorize Web. A below-minimum Web
+or native client preserves the authenticated session and presents an explicit
+update-required state instead of mislabeling a valid SMS code or looping a
+generic reload.
+
 The remote Bootstrap repository performs this check after exact payload
 parsing but before returning the snapshot to its caller. Development content
 skips the check only because its release metadata has no minimum version;

@@ -229,6 +229,20 @@ Implemented mapping:
   Stage or trial-clock drift forces a fresh revisioned Bootstrap read; the
   session never writes an unrevisioned trial projection into global membership
   state and a stale session cannot extend the canonical trial.
+- `peek` and `hint` remain reachable on every interaction silhouette. Dense
+  lock, elimination, and swipe cards render the opened support layer inside the
+  current interaction object instead of accepting a tap with no visible result.
+- Once the user opens `peek` or `hint`, the attempt keeps a sticky usage fact
+  even if the layer is collapsed before submission; scheduling therefore does
+  not change because of a presentation toggle.
+- The resolved-card detail owns vertical scrolling while keeping the continue
+  action inside the same object. Analysis title, summary, and exam tip are no
+  longer line-clamped on the reference phone or accessibility text sizes.
+- Result continuation now distinguishes completed judgment from durable save.
+  Saving, retained-sync, and failed-save states are visible on the resolved
+  card, and a failed save exposes an explicit retry action.
+- Interaction test selectors use stable ordinal positions rather than card
+  content IDs or answer-derived values.
 
 Implementation-only gaps and evidence boundary:
 

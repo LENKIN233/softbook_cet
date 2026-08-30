@@ -63,6 +63,7 @@ test('receiver profile maps to one all-remote public runtime profile', () => {
     baseUrl: 'https://receiver.example.cn/softbook-api',
     contentManifestPublicKeys: {'release-key-a': '01'.repeat(32)},
     learningTrack: 'cet4',
+    purchaseMode: 'operator_entitlement_only',
   });
 });
 
@@ -127,6 +128,7 @@ test('native receiver profile is accepted while fixture and secret drift fail', 
     baseUrl: 'https://receiver.example.cn/softbook-api',
     contentManifestPublicKeys: {'release-key-a': '01'.repeat(32)},
     learningTrack: 'cet4',
+    purchaseMode: 'operator_entitlement_only',
   });
 
   const fixture = {

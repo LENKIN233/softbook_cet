@@ -4,7 +4,14 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { AccessibilityInfo, ScrollView, StyleSheet, Text } from 'react-native';
+import {
+  AccessibilityInfo,
+  NativeModules,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import {ACCOUNT_DELETION_CLEANUP_STORAGE_KEY} from '../src/account/accountDeletionCleanupStore';
@@ -2622,6 +2629,12 @@ test('locks writes after canonical owner drift until a valid revision advance', 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
   await openRoute(root, 'mine');
+
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'mine-account-logout-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
   });
@@ -3930,6 +3943,14 @@ test('does not advance the card when durable learning event storage fails', asyn
 
     expect(findPressableByTestId(root, 'learning-next-button')).toBeTruthy();
     expect(
+      root.findByProps({testID: 'learning-advance-status'}).findByType(Text)
+        .props.children,
+    ).toBe('本次答题记录无法安全保存，请重试。');
+    expect(
+      findPressableByTestId(root, 'learning-next-button').findByType(Text).props
+        .children,
+    ).toBe('重试保存');
+    expect(
       mockFetch.mock.calls.some(
         ([input]) =>
           input === 'https://api.softbook.example/v2/learning/events',
@@ -4618,7 +4639,7 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
   expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
@@ -5116,6 +5137,7 @@ test('can unlock gated space after remote purchase', async () => {
     },
     membership: {
       mode: 'remote',
+      purchaseMode: 'client',
       remote: {
         baseUrl: 'https://api.softbook.example',
       },
@@ -5233,6 +5255,7 @@ test('keeps remote purchase failure copy user-facing', async () => {
     },
     membership: {
       mode: 'remote',
+      purchaseMode: 'client',
       remote: {
         baseUrl: 'https://api.softbook.example',
       },
@@ -5842,7 +5865,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已记录本次结果');
+  expect(output).toContain('本次判断已完成');
   expect(output).toContain('继续下一张');
   expectNoUserVisibleMetadataLeakage(tree!);
 
@@ -5851,7 +5874,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -5873,8 +5896,12 @@ test('can complete the local single-card deck and restart it', async () => {
   const detailResolvedCardStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'learning-detail-resolved-card' }).props.style,
   );
+  const detailResolvedCardContentStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'learning-detail-resolved-card' }).props
+      .contentContainerStyle,
+  );
   expect(detailResolvedCardStyle.flex).toBe(1);
-  expect(detailResolvedCardStyle.justifyContent).toBe('space-between');
+  expect(detailResolvedCardContentStyle.justifyContent).toBe('space-between');
   const detailAnswerSlipStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'learning-detail-answer-slip' }).props.style,
   );
@@ -5898,15 +5925,15 @@ test('can complete the local single-card deck and restart it', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .findByProps({ testID: 'learning-lock-1-1' })
       .props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+    root.findByProps({ testID: 'learning-lock-2-3' }).props.onPress();
   });
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
 
@@ -5920,11 +5947,11 @@ test('can complete the local single-card deck and restart it', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .findByProps({ testID: 'learning-elimination-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
+    root.findByProps({ testID: 'learning-elimination-2' }).props.onPress();
     root
-      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .findByProps({ testID: 'learning-elimination-4' })
       .props.onPress();
   });
 
@@ -5937,7 +5964,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
+    root.findByProps({ testID: 'learning-swipe-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -5986,7 +6013,7 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -5999,15 +6026,15 @@ test('can start a review round from cards that need revisiting', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .findByProps({ testID: 'learning-lock-1-1' })
       .props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+    root.findByProps({ testID: 'learning-lock-2-3' }).props.onPress();
   });
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
 
@@ -6021,11 +6048,11 @@ test('can start a review round from cards that need revisiting', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .findByProps({ testID: 'learning-elimination-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
+    root.findByProps({ testID: 'learning-elimination-2' }).props.onPress();
     root
-      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .findByProps({ testID: 'learning-elimination-4' })
       .props.onPress();
   });
 
@@ -6038,7 +6065,7 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
+    root.findByProps({ testID: 'learning-swipe-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -6181,6 +6208,16 @@ test('can check in from statistics after making learning progress', async () => 
   expect(
     actionDock.findAllByProps({ testID: 'statistics-checkin-button' }).length,
   ).toBeGreaterThan(0);
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'statistics-go-learning-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'statistics-checkin-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
@@ -7756,7 +7793,7 @@ test('keeps the full five-card session after automatic trial entry', async () =>
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -7769,15 +7806,15 @@ test('keeps the full five-card session after automatic trial entry', async () =>
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .findByProps({ testID: 'learning-lock-1-1' })
       .props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+    root.findByProps({ testID: 'learning-lock-2-3' }).props.onPress();
   });
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
 
@@ -7822,7 +7859,7 @@ test('starts review after membership is already unlocked', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -7835,15 +7872,15 @@ test('starts review after membership is already unlocked', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .findByProps({ testID: 'learning-lock-1-1' })
       .props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+    root.findByProps({ testID: 'learning-lock-2-3' }).props.onPress();
   });
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
 
@@ -7857,11 +7894,11 @@ test('starts review after membership is already unlocked', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .findByProps({ testID: 'learning-elimination-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
+    root.findByProps({ testID: 'learning-elimination-2' }).props.onPress();
     root
-      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .findByProps({ testID: 'learning-elimination-4' })
       .props.onPress();
   });
 
@@ -7874,7 +7911,7 @@ test('starts review after membership is already unlocked', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
+    root.findByProps({ testID: 'learning-swipe-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -7975,4 +8012,131 @@ test('keeps basic learning usable when current box cards enter sleep zone', asyn
   expect(output).not.toContain('当前免费态还不能进入完整空间');
   expect(output).not.toContain('恢复一张可学习卡');
   expect(output).not.toContain('当前学习卡都已进入休眠区');
+});
+
+test('authenticated Mine exposes a real logout path', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'mine-account-logout-button').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'mine-account-logout-button'})).toHaveLength(0);
+});
+
+test('code entry can return to an empty phone field without restarting the app', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'auth-phone-input'}).props.onChangeText('13800138000');
+  });
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'auth-request-code-button').props.onPress();
+    await flushAsyncEffects();
+  });
+  expect(root.findByProps({testID: 'auth-code-input'})).toBeTruthy();
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'auth-request-code-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'auth-change-phone-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'auth-change-phone-button').props.onPress();
+  });
+
+  expect(root.findByProps({testID: 'auth-phone-input'}).props.value).toBe('');
+  expect(root.findAllByProps({testID: 'auth-code-input'})).toHaveLength(0);
+});
+
+test('operator-entitlement runtime removes purchase dead ends', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    membership: {mode: 'local', purchaseMode: 'operator_entitlement_only'},
+  };
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  expect(root.findAllByProps({testID: 'membership-purchase-button'})).toHaveLength(0);
+  expect(
+    root.findAllByProps({testID: 'membership-operator-entitlement-copy'}).length,
+  ).toBeGreaterThan(0);
+  expect(JSON.stringify(tree!.toJSON())).toContain('封闭内测权益由邀请开通');
+});
+
+test('below-minimum login preserves the session and shows an explicit update path', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  const previousAppInfo = NativeModules.SoftbookAppInfo;
+  NativeModules.SoftbookAppInfo = {
+    platform: Platform.OS,
+    version: '1.0.0',
+  };
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      const payload = createAccountBootstrapPayload();
+      const content = payload.data.content as {
+        release_id: string | null;
+        minimum_client_version: string | null;
+        published_at: string | null;
+      };
+      content.release_id = 'release-update-required';
+      content.minimum_client_version = '2.0.0';
+      content.published_at = '2026-08-31T00:00:00.000Z';
+      return createJsonResponse(payload);
+    }
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  try {
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(<App />);
+    });
+    const root = tree!.root;
+    await authenticateIntoLearningBootstrap(root);
+
+    expect(JSON.stringify(tree!.toJSON())).toContain('当前版本需要更新');
+    expect(root.findAllByProps({testID: 'auth-code-input'})).toHaveLength(0);
+    await openRoute(root, 'mine');
+    expect(
+      findPressableByTestId(root, 'mine-account-logout-button'),
+    ).toBeTruthy();
+  } finally {
+    NativeModules.SoftbookAppInfo = previousAppInfo;
+  }
 });

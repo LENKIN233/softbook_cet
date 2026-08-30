@@ -68,6 +68,26 @@ test('flip card supports both confident and review outcomes', () => {
   expect(evaluateLearningCard(card, reviewState)?.outcome).toBe('review');
 });
 
+test('hint and peek usage stay sticky after their visible layers are collapsed', () => {
+  const card = createLocalLearningSession('cet4').cards.find(
+    item => item.interaction_id === 'multiple_choice',
+  )!;
+  const state = createLearningCardState(card);
+  state.selectedOptionId =
+    card.interaction_id === 'multiple_choice'
+      ? card.answer_key.correct_option
+      : null;
+  state.hasUsedHint = true;
+  state.hasUsedPeek = true;
+  state.isHintVisible = false;
+  state.isPeeked = false;
+
+  expect(evaluateLearningCard(card, state)).toMatchObject({
+    usedHint: true,
+    usedPeek: true,
+  });
+});
+
 test('multiple choice, lock, elimination and swipe cards can all be auto-scored', () => {
   const session = createLocalLearningSession('cet4');
   const cardsByInteraction = session.cards.reduce<

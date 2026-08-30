@@ -86,6 +86,8 @@ export function createLearningCardState(card: LearningCard): LearningCardState {
       : {};
 
   return {
+    hasUsedHint: false,
+    hasUsedPeek: false,
     isPeeked: false,
     isFavorited: false,
     isHintVisible: false,
@@ -124,8 +126,8 @@ export function evaluateLearningCard(
     cardId: card.card_id,
     completedAt: new Date().toISOString(),
     interactionId: card.interaction_id,
-    usedHint: state.isHintVisible,
-    usedPeek: state.isPeeked,
+    usedHint: state.hasUsedHint === true || state.isHintVisible,
+    usedPeek: state.hasUsedPeek === true || state.isPeeked,
     isFavorited: state.isFavorited,
   };
 

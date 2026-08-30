@@ -27,6 +27,8 @@ import {
   type MembershipState,
 } from '../../mobile/src/membership/localMembership';
 import {getUserFacingErrorMessage} from '../../mobile/src/runtime/userFacingError';
+import {findClientUpdateRequiredError} from '../../mobile/src/runtime/clientVersion';
+import {formatSpaceDisplayName} from '../../mobile/src/shared/uiMetadata/displayMetadata';
 import {
   createWebRemoteRuntime,
   WebRemotePostAuthError,
@@ -455,7 +457,13 @@ export function App({
         if (accountAuthorityGeneration.current !== generation) {
           return;
         }
-        if (error instanceof WebRemotePostAuthError) {
+        if (findClientUpdateRequiredError(error)) {
+          setCode('');
+          setAuthStage('authenticated');
+          setRemoteError(
+            '当前版本需要更新；请刷新到最新版本后继续，登录状态会保留。',
+          );
+        } else if (error instanceof WebRemotePostAuthError) {
           if (!remoteController.isAuthenticated()) {
             try {
               await remoteController.cleanupInvalidatedSession();
@@ -1018,7 +1026,9 @@ export function App({
     <div className="app-shell">
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
-        <button className="text-button" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => void signOut()}>退出</button>
+        {route !== 'mine' ? (
+          <button className="text-button" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => void signOut()}>退出</button>
+        ) : null}
       </header>
       <nav className="route-rail" aria-label="主要导航">
         <div className="brand-lockup rail-brand"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
@@ -1028,10 +1038,16 @@ export function App({
               key={item.id}
               className={route === item.id ? 'route active' : 'route'}
               aria-current={route === item.id ? 'page' : undefined}
-              disabled={runtime.mode === 'remote' && session === null}
+              disabled={
+                runtime.mode === 'remote' &&
+                session === null &&
+                item.id !== 'mine'
+              }
               onClick={() => {
                 setRoute(item.id);
-                setRemoteError('');
+                if (session !== null) {
+                  setRemoteError('');
+                }
               }}
             >
               <span className="route-icon"><RouteIcon route={item.id}/></span>
@@ -1051,7 +1067,7 @@ export function App({
             <section className="learning-card" aria-live="polite">
               <p className="eyebrow">账户已确认</p>
               <h1>当前学习状态暂时不可用</h1>
-              <p className="notice error">{remoteError || '请重新读取当前学习状态。'}</p>
+              <p className="notice error" role="alert">{remoteError || '请重新读取当前学习状态。'}</p>
               <button className="primary" disabled={remoteBusy} onClick={() => void reloadRemoteState()}>重新读取</button>
             </section>
           </main>
@@ -1189,7 +1205,31 @@ export function App({
             : session?.cards.length ?? 0}
         />
       ) : null}
-      {route === 'mine' && membership !== null ? (
+      {route === 'mine' && membership === null ? (
+        <main className="account-workbench">
+          <section className="account-object" aria-labelledby="mine-recovery-title">
+            <p className="eyebrow">账户已确认</p>
+            <h1 id="mine-recovery-title">当前账户状态暂时无法读取</h1>
+            <p className="notice error" role="alert">
+              {remoteError || '可以重新读取，或安全退出后改用其他手机号。'}
+            </p>
+            <button
+              className="primary"
+              disabled={remoteBusy}
+              onClick={() => void reloadRemoteState()}
+            >
+              {remoteBusy ? '正在重新读取…' : '重新读取账户状态'}
+            </button>
+            <button
+              className="secondary"
+              disabled={remoteBusy || accountDeletionLocksAccount}
+              onClick={() => void signOut()}
+            >
+              退出登录
+            </button>
+          </section>
+        </main>
+      ) : route === 'mine' && membership !== null ? (
         <MineSurface
           accountLocked={accountDeletionLocksAccount}
           accountDeletionStage={
@@ -1302,6 +1342,18 @@ function LearningSurface(props: LearningSurfaceProps) {
 
   const patchState = (patch: Partial<LearningCardState>) =>
     props.onState(previous => previous ? {...previous, ...patch} : previous);
+  const visibleLibrary = formatSpaceDisplayName(
+    card.space_metadata.library,
+    '当前书架',
+  );
+  const visibleGroup = formatSpaceDisplayName(
+    card.space_metadata.group,
+    '当前分区',
+  );
+  const visibleBox = formatSpaceDisplayName(
+    card.space_metadata.box,
+    '当前卡盒',
+  );
 
   return (
     <>
@@ -1374,8 +1426,8 @@ function LearningSurface(props: LearningSurfaceProps) {
       <aside className="context-rail" aria-label="当前卡片工具与位置">
         <section>
           <p className="eyebrow">所在位置</p>
-          <h2>{card.space_metadata.box}</h2>
-          <p>{card.space_metadata.library} / {card.space_metadata.group} / {card.space_metadata.box}</p>
+          <h2>{visibleBox}</h2>
+          <p>{visibleLibrary} / {visibleGroup} / {visibleBox}</p>
           <button className="secondary" onClick={props.onOpenSpace}>在空间中查看</button>
         </section>
         <section>
@@ -1387,11 +1439,19 @@ function LearningSurface(props: LearningSurfaceProps) {
             onClick={() => props.onFavorite(card.card_id)}
           >{cardState.isFavorited ? '已标记喜欢' : '标记喜欢'}</button>
           {card.hint_layer ? (
-            <button className="tool" aria-expanded={cardState.isHintVisible} onClick={() => patchState({isHintVisible: !cardState.isHintVisible})}>
+            <button className="tool" aria-expanded={cardState.isHintVisible} onClick={() => patchState({hasUsedHint: true, isHintVisible: !cardState.isHintVisible})}>
               {cardState.isHintVisible ? '收起提示' : '查看提示'}
             </button>
           ) : null}
           {cardState.isHintVisible && card.hint_layer ? <p className="attached-note">{card.hint_layer.content}</p> : null}
+          <button
+            className="tool"
+            aria-expanded={cardState.isPeeked}
+            onClick={() => patchState({hasUsedPeek: true, isPeeked: !cardState.isPeeked})}
+          >{cardState.isPeeked ? '收起线索' : '查看线索'}</button>
+          {cardState.isPeeked ? (
+            <p className="attached-note">先抓题干里的关键信号，再完成当前判断。</p>
+          ) : null}
           {card.audio ? (
             <button
               className="tool"
@@ -1723,7 +1783,7 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, favorites, sleepin
         </section>
       </main>
       <aside className="context-rail inspector" aria-label="所选对象检查器">
-        {selected ? <><section><p className="eyebrow">所选卡片</p><h2>{selected.front.prompt}</h2><p>{selected.space_metadata.library} · {selected.space_metadata.group} · {selected.space_metadata.box}</p></section><section><button className="tool" disabled={busy || !canMutate} onClick={() => onFavorite(selected.card_id)}>{favorites.includes(selected.card_id) ? '取消喜欢' : '标记喜欢'}</button><button className="tool" disabled={busy || !canMutate} onClick={() => onSleep(selected.card_id)}>{sleeping.includes(selected.card_id) ? '唤醒到学习流' : '移入盒内休眠区'}</button><button className="secondary" onClick={onReturn}>回到学习</button></section></> : <p>当前卡盒为空。</p>}
+        {selected ? <><section><p className="eyebrow">所选卡片</p><h2>{selected.front.prompt}</h2><p>{selectedBox?.library ?? '当前书架'} · {selectedBox?.group ?? '当前分区'} · {selectedBox?.box ?? '当前卡盒'}</p></section><section><button className="tool" disabled={busy || !canMutate} onClick={() => onFavorite(selected.card_id)}>{favorites.includes(selected.card_id) ? '取消喜欢' : '标记喜欢'}</button><button className="tool" disabled={busy || !canMutate} onClick={() => onSleep(selected.card_id)}>{sleeping.includes(selected.card_id) ? '唤醒到学习流' : '移入盒内休眠区'}</button><button className="secondary" onClick={onReturn}>回到学习</button></section></> : <p>当前卡盒为空。</p>}
         {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
         <p className="muted">跨端同步 · {syncStatus}</p>
         {!access.completePhysicalSpace ? <section className="membership-note"><p className="eyebrow">当前可见范围</p><h2>当前卡盒保持可用</h2><p>体验结束后保留基础空间；完整书架、卡片库与算法属于会员能力。</p></section> : null}
@@ -1859,8 +1919,8 @@ function MineSurface({
     <div className="account-row"><span>跨端同步</span><strong>{syncStatus}</strong></div>
     {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
     {membership.stage === 'premium' ? <p className="notice">完整卡片库、算法与空间访问已开启。</p> : null}
-    <button className="secondary" disabled>会员服务暂不可用</button>
-    <button className="tool" disabled>暂时无法恢复购买</button>
+    <button className="secondary" disabled>封闭内测权益由邀请开通</button>
+    <p className="muted">获得资格后会随当前账号自动同步，不需要在产品内购买。</p>
     <button className="tool" aria-expanded={showPrivacy} onClick={() => setShowPrivacy(value => !value)}>隐私与账户规则</button>
     {showPrivacy ? <section className="account-policy" aria-label="隐私与账户规则说明"><h2>账户与隐私</h2><p>手机号只用于登录、账户归属和学习进度同步。账户操作不可用时会明确停用，不会提交未确认的请求。</p></section> : null}
     {accountDeletionStage === 'confirming' ? (
@@ -2134,11 +2194,11 @@ function buildSpaceBoxes(cards: LearningCard[]): SpaceBox[] {
       return;
     }
     boxes.set(metadata.box_ref, {
-      box: metadata.box,
+      box: formatSpaceDisplayName(metadata.box, '当前卡盒'),
       boxRef: metadata.box_ref,
       cards: [card],
-      group: metadata.group,
-      library: metadata.library,
+      group: formatSpaceDisplayName(metadata.group, '当前分区'),
+      library: formatSpaceDisplayName(metadata.library, '当前书架'),
     });
   });
   return [...boxes.values()];
