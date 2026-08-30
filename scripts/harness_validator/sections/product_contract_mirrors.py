@@ -234,6 +234,8 @@ def validate(context) -> None:
         "db.transactionOperationCounts().at(-1), 3",
         "real 50ms acknowledgement envelope prevents absent and task suppression early returns",
         "Memory and CloudBase converge an empty-read deletion race after origin erasure",
+        "createV2TestApi({providerDeliveryDeadlineMs: 10000})",
+        "createV2TestApi({providerDeliveryDeadlineMs: 8000})",
     ):
         if token not in auth_runtime_tests:
             errors.append(f"auth transaction budget assertion missing: {token}")
@@ -246,9 +248,27 @@ def validate(context) -> None:
     acknowledgement_envelope = deletion_runtime.get(
         "request_code_acknowledgement_envelope", ""
     )
-    for token in ("1_to_10000ms", "real_50ms", "providerDeliveryDeadlineMs"):
+    for token in (
+        "1_to_8000ms",
+        "strictly_below_10000ms_Cloud_Function_timeout",
+        "8000_accepted_10000_rejected",
+        "real_50ms",
+        "providerDeliveryDeadlineMs",
+    ):
         if token not in acknowledgement_envelope:
             errors.append(f"request-code acknowledgement envelope missing: {token}")
+    deployment_safety_tests = (
+        root
+        / "infra/cloudbase/functions/softbook-api/test/deployment-safety.test.js"
+    ).read_text(encoding="utf-8")
+    if (
+        "MAX_PROVIDER_DELIVERY_DEADLINE_MS <"
+        not in deployment_safety_tests
+        or "EXPECTED_FUNCTION_CONFIG.timeout * 1000" not in deployment_safety_tests
+    ):
+        errors.append(
+            "auth acknowledgement envelope must be executable-proven below function timeout"
+        )
 
     required_external_ids = set(release["external_capability"]["required_checks"])
     account_ids = {entry["id"] for entry in external["accounts"]}

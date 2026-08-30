@@ -148,6 +148,22 @@ test('beta entitlement CLI rejects a malformed active-shaped instance session', 
   );
 });
 
+test('beta entitlement CLI rejects impossible active-session chronology', async () => {
+  const fixture = createFixture();
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executeBetaEntitlementCommand(
+      options,
+      dependencies(createRunner({
+        accessExpiresAt: '2026-08-30T07:59:59.000Z',
+      })),
+    ),
+    /not bound to this signed-in user/,
+  );
+});
+
 test('CloudBase preflight subprocess receives no Softbook runtime secrets', () => {
   const sanitized =
     cli.betaEntitlementCliInternals.operatorCredentialFreeEnvironment({
@@ -743,6 +759,7 @@ function dependencies(runner) {
 }
 
 function createRunner({
+  accessExpiresAt = '2026-08-30T08:15:00.000Z',
   includeBetaSecret = true,
   includeAccount = true,
   malformedSession = false,
@@ -766,7 +783,7 @@ function createRunner({
     ['softbook_auth_sessions', new Map(includeAccount ? [[
       'session-test-beta-instance',
       {
-        access_expires_at: '2026-08-30T08:15:00.000Z',
+        access_expires_at: accessExpiresAt,
         account_instance_id: `account_${'a'.repeat(24)}`,
         account_key: 'a'.repeat(64),
         created_at: '2026-08-30T08:00:00.000Z',

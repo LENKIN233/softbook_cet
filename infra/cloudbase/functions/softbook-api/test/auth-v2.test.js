@@ -2126,9 +2126,11 @@ test('v2 request-code keeps CloudBase collection failures fatal', async () => {
 
 test('production auth fails closed on weak configuration and missing trusted client IP', async () => {
   assert.throws(
-    () => createV2TestApi({providerDeliveryDeadlineMs: 10001}),
-    /must not exceed 10000ms/,
+    () => createV2TestApi({providerDeliveryDeadlineMs: 10000}),
+    /must not exceed 8000ms/,
   );
+  assert.doesNotThrow(() =>
+    createV2TestApi({providerDeliveryDeadlineMs: 8000}));
   assert.throws(
     () =>
       createSoftbookApi({

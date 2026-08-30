@@ -524,8 +524,8 @@ function parseTimeout(value, name = 'SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS') {
 }
 
 function requireTimeout(value, providerName) {
-  if (!Number.isSafeInteger(value) || value <= 0 || value > 10000) {
-    throw new Error(`${providerName} timeout must be an integer from 1 to 10000ms.`);
+  if (!Number.isSafeInteger(value) || value <= 0 || value > 8000) {
+    throw new Error(`${providerName} timeout must be an integer from 1 to 8000ms.`);
   }
   return value;
 }

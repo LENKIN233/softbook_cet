@@ -124,6 +124,22 @@ test('pilot entitlement CLI rejects a malformed active-shaped instance session',
   );
 });
 
+test('pilot entitlement CLI rejects impossible active-session chronology', async () => {
+  const fixture = createFixture();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(
+      options,
+      dependencies(createRunner({
+        accessExpiresAt: '2026-08-10T09:59:59.000Z',
+      })),
+    ),
+    /not bound to this signed-in user/,
+  );
+});
+
 test('apply writes and verifies once while exact replay is idempotent', async () => {
   const fixture = createFixture();
   const runner = createRunner();
@@ -573,6 +589,7 @@ function dependencies(runner) {
 }
 
 function createRunner({
+  accessExpiresAt = '2026-08-10T10:15:00.000Z',
   includeAccount = true,
   malformedSession = false,
   refreshExpiresAt = '2026-09-30T12:00:00.000Z',
@@ -592,7 +609,7 @@ function createRunner({
     ['softbook_auth_sessions', new Map(includeAccount ? [[
       'session-test-pilot-instance',
       {
-        access_expires_at: '2026-08-10T10:15:00.000Z',
+        access_expires_at: accessExpiresAt,
         account_instance_id: `account_${'a'.repeat(24)}`,
         account_key: 'a'.repeat(64),
         created_at: '2026-08-10T10:00:00.000Z',

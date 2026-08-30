@@ -446,6 +446,7 @@ function isExactActiveSession(document, account, command, observedAt) {
     Date.parse(value.created_at) <= Date.parse(value.updated_at) &&
     Date.parse(value.updated_at) <= Date.parse(observedAt) &&
     Date.parse(value.access_expires_at) > Date.parse(value.created_at) &&
+    Date.parse(value.updated_at) < Date.parse(value.access_expires_at) &&
     Date.parse(value.refresh_expires_at) > Date.parse(observedAt)
   );
 }

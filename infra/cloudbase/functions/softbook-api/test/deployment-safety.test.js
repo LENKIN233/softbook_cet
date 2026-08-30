@@ -12,6 +12,9 @@ const {tmpdir} = require("node:os");
 const {join, resolve} = require("node:path");
 const {pathToFileURL} = require("node:url");
 const {after, before, test} = require("node:test");
+const {
+  MAX_PROVIDER_DELIVERY_DEADLINE_MS,
+} = require("../auth-v2");
 
 let safety;
 let manager;
@@ -34,6 +37,15 @@ after(() => {
   for (const directory of temporaryDirectories) {
     rmSync(directory, {force: true, recursive: true});
   }
+});
+
+test("maximum auth acknowledgement envelope retains Cloud Function timeout headroom", () => {
+  assert.equal(MAX_PROVIDER_DELIVERY_DEADLINE_MS, 8000);
+  assert.equal(safety.EXPECTED_FUNCTION_CONFIG.timeout * 1000, 10000);
+  assert.ok(
+    MAX_PROVIDER_DELIVERY_DEADLINE_MS <
+      safety.EXPECTED_FUNCTION_CONFIG.timeout * 1000
+  );
 });
 
 test("CloudBase JSON parsing tolerates CLI progress lines", () => {

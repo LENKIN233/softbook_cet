@@ -14,7 +14,7 @@ const RATE_LIMIT_WINDOW_SECONDS = 10 * 60;
 const PHONE_REQUEST_LIMIT = 5;
 const IP_REQUEST_LIMIT = 20;
 const PROVIDER_COMPLETION_GRACE_MS = 1000;
-const PROVIDER_DELIVERY_DEADLINE_MS = 10 * 1000;
+const PROVIDER_DELIVERY_DEADLINE_MS = 8 * 1000;
 const PROVIDER_OWNED_PUBLIC_TTL_SECONDS = 60;
 const VERIFY_ATTEMPT_LIMIT = 5;
 const EXTERNAL_PROVIDER_VERIFIED_CODE = 'external-provider-verified';
@@ -1033,7 +1033,7 @@ function validateServiceConfig(config) {
   }
   if (config.providerDeliveryDeadlineMs > PROVIDER_DELIVERY_DEADLINE_MS) {
     throw new Error(
-      'Auth v2 providerDeliveryDeadlineMs must not exceed 10000ms.',
+      'Auth v2 providerDeliveryDeadlineMs must not exceed 8000ms.',
     );
   }
   if (typeof config.acknowledgementSleeper !== 'function') {
@@ -1303,6 +1303,7 @@ function authError(statusCode, code, message) {
 }
 
 module.exports = {
+  MAX_PROVIDER_DELIVERY_DEADLINE_MS: PROVIDER_DELIVERY_DEADLINE_MS,
   createAuthV2Service,
   createDevelopmentSmsProvider,
 };
