@@ -269,11 +269,23 @@ test("deployment and iOS acceptance keep lifecycle ownership around remote write
   const deploymentWrite = manager.indexOf(
     'runLiveSmoke(context, "cet4", true, preparedSmoke.phones[0])'
   );
+  const deployedVerification = manager.indexOf(
+    'deployedVerification = verifyRemoteManifest('
+  );
+  const propagationWait = manager.indexOf(
+    'waitForHttpRoutePropagation(context)'
+  );
+  const smokePreparation = manager.indexOf(
+    'const preparedSmoke = prepareSmokeLifecycle'
+  );
   const deploymentCleanup = manager.indexOf("cleanupSmokeLifecycle({", deploymentWrite);
 
   assert.ok(deploymentStart > 0);
   assert.ok(deploymentWrite > deploymentStart);
+  assert.ok(propagationWait > deployedVerification);
+  assert.ok(smokePreparation > propagationWait);
   assert.ok(deploymentCleanup > deploymentWrite);
+  assert.match(manager, /HTTP_ROUTE_PROPAGATION_DELAY_MS = 20_000/);
   assert.match(ios, /prepare_smoke_lifecycle\n\necho "==> Verifying CloudBase REST contract/);
   assert.match(
     ios,
