@@ -1122,6 +1122,102 @@ describe('authenticated Web remote orchestration', () => {
     });
   });
 
+  it('lets a later-started force-fresh bootstrap supersede an older pending read', async () => {
+    let releaseOlderBootstrap: (() => void) | undefined;
+    let markOlderBootstrapStarted: (() => void) | undefined;
+    const olderBootstrapGate = new Promise<void>(resolve => {
+      releaseOlderBootstrap = resolve;
+    });
+    const olderBootstrapStarted = new Promise<void>(resolve => {
+      markOlderBootstrapStarted = resolve;
+    });
+    const bootstrapForceFresh: boolean[] = [];
+    const replayObservationGenerations: number[] = [];
+    let bootstrapLoads = 0;
+    let mutationReplays = 0;
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const mutationQueueRepository = {
+      ...createMutationRepository([]),
+      async startReplay(context?: {
+        bootstrapObservation?: {generation: number};
+      }) {
+        mutationReplays += 1;
+        if (context?.bootstrapObservation !== undefined) {
+          replayObservationGenerations.push(
+            context.bootstrapObservation.generation,
+          );
+        }
+        if (mutationReplays !== 2) {
+          return [];
+        }
+        return [
+          {
+            entry: {
+              id: 'check-in:later-bootstrap',
+              payload: {
+                context: {phoneNumber: PHONE},
+                dayKey: '2026-08-29',
+              },
+              retryCount: 0,
+              timestamp: '2026-08-29T12:01:00.000Z',
+              type: 'check_in_daily_progress' as const,
+            },
+          },
+        ];
+      },
+    };
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load(_track, _dayKey, options) {
+          bootstrapLoads += 1;
+          bootstrapForceFresh.push(options?.forceFresh === true);
+          if (bootstrapLoads === 2) {
+            markOlderBootstrapStarted?.();
+            await olderBootstrapGate;
+          }
+          const bootstrap = createBootstrapFixture(
+            createInitialMembershipState(),
+          );
+          bootstrap.generatedAt = `2026-08-29T12:00:0${bootstrapLoads}.000Z`;
+          return bootstrap;
+        },
+      },
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository,
+      playAudio: async () => 'ready',
+      runtimeSessionId: 'bootstrap-runtime:web-start-order-test',
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    const older = controller.loadAuthenticatedState();
+    await olderBootstrapStarted;
+    const later = controller.loadAuthenticatedState();
+
+    await expect(later).resolves.toMatchObject({
+      bootstrap: {generatedAt: '2026-08-29T12:00:04.000Z'},
+    });
+    releaseOlderBootstrap?.();
+    await expect(older).rejects.toMatchObject({
+      name: 'WebAccountEpochError',
+    });
+    expect(bootstrapForceFresh).toEqual([false, false, false, true]);
+    expect(replayObservationGenerations).toEqual([1, 3, 2]);
+  });
+
   it('preserves unknown deletion state and clears stores only after exact acceptance', async () => {
     const operations: string[] = [];
     const authRepository = createSimpleAuthRepository();
@@ -1559,7 +1655,7 @@ describe('authenticated Web remote orchestration', () => {
     expect(logout).toHaveBeenCalledTimes(1);
   });
 
-  it('revokes a newly established session when deletion wins before the first snapshot commits', async () => {
+  it('exactly revokes a newly established session when cleanup advances to a new null epoch', async () => {
     localStorage.clear();
     let releaseBootstrap: (() => void) | undefined;
     let markBootstrapStarted: (() => void) | undefined;
@@ -1571,9 +1667,13 @@ describe('authenticated Web remote orchestration', () => {
     });
     const authRepository = createSimpleAuthRepository();
     const logout = vi.spyOn(authRepository, 'logout');
+    const beforeSessionInvalidation = vi.fn(async () => {
+      throw new Error('stale hook cannot persist cleanup authority');
+    });
     const authSessionCoordinator = createAuthSessionCoordinator({
       authRepository,
       authSessionStore: createMemoryOnlyAuthSessionStore(),
+      beforeSessionInvalidation,
     });
     const controllerDeletionStore =
       createWebAccountDeletionStateStore(localStorage);
@@ -1606,6 +1706,8 @@ describe('authenticated Web remote orchestration', () => {
     const verification = controller.verifySmsCode(PHONE, '123456');
     await bootstrapStarted;
     await competingDeletionStore.mark(PHONE, 'requesting');
+    await competingDeletionStore.mark(PHONE, 'accepted');
+    await competingDeletionStore.clear();
     releaseBootstrap?.();
 
     const error = await verification.catch(value => value as Error);
@@ -1613,6 +1715,7 @@ describe('authenticated Web remote orchestration', () => {
     expect(error).not.toBeInstanceOf(WebRemotePostAuthError);
     expect(controller.isAuthenticated()).toBe(false);
     expect(logout).toHaveBeenCalledTimes(1);
+    expect(beforeSessionInvalidation).not.toHaveBeenCalled();
   });
 
   it('rejects a late authenticated snapshot after deletion starts in another tab', async () => {

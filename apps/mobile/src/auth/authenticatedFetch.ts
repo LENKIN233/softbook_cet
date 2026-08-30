@@ -7,8 +7,17 @@ import {
   type RemoteRequestCancellationSource,
 } from '../runtime/remoteRequest';
 
+export type AuthenticatedTransportRequestAuthority = {
+  isCurrent: () => boolean;
+  runBeforeDispatch: <Result>(
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
+  subscribeCancellation: (listener: () => void) => () => void;
+};
+
 export function createAuthenticatedFetch(options: {
   authSessionCoordinator: AuthSessionCoordinator;
+  captureRequestAuthority?: () => AuthenticatedTransportRequestAuthority;
   fetchImpl?: typeof fetch;
   shouldPreserveAuthorizationRejection?: (
     sessionScopeKey: string | null,
@@ -26,6 +35,10 @@ export function createAuthenticatedFetch(options: {
     const requestSessionScopeKey = getAuthSessionScopeKey(
       options.authSessionCoordinator.getCurrentSession(),
     );
+    if (options.shouldQuarantineSession?.(requestSessionScopeKey)) {
+      throw new RemoteRequestLifecycleError('session_quarantined');
+    }
+    const requestAuthority = options.captureRequestAuthority?.();
     const isRequestSessionCurrent = () =>
       getAuthSessionScopeKey(
         options.authSessionCoordinator.getCurrentSession(),
@@ -38,8 +51,9 @@ export function createAuthenticatedFetch(options: {
           'timeout'
         >,
       ) => void,
-    ) =>
-      options.authSessionCoordinator.subscribeSessionScope(
+    ) => {
+      const unsubscribeSession =
+        options.authSessionCoordinator.subscribeSessionScope(
         (nextSessionScopeKey, reason) => {
           if (nextSessionScopeKey !== requestSessionScopeKey) {
             cancel(
@@ -50,10 +64,14 @@ export function createAuthenticatedFetch(options: {
           }
         },
       );
-
-    if (options.shouldQuarantineSession?.(requestSessionScopeKey)) {
-      throw new RemoteRequestLifecycleError('session_quarantined');
-    }
+      const unsubscribeAuthority = requestAuthority?.subscribeCancellation(
+        () => cancel('session_quarantined'),
+      );
+      return () => {
+        unsubscribeAuthority?.();
+        unsubscribeSession();
+      };
+    };
 
     const shouldPreserveAuthorizationRejection = () =>
       options.shouldPreserveAuthorizationRejection?.(
@@ -71,11 +89,12 @@ export function createAuthenticatedFetch(options: {
           options.authSessionCoordinator,
           fetchImpl,
           requestSessionScopeKey,
+          requestAuthority,
           signal,
           requestLifetimeController,
         );
 
-        assertRequestSessionCurrent(isRequestSessionCurrent());
+        assertRequestCurrent(isRequestSessionCurrent(), requestAuthority);
 
         if (
           (firstResponse.status === 401 || firstResponse.status === 403) &&
@@ -94,7 +113,7 @@ export function createAuthenticatedFetch(options: {
 
         await options.authSessionCoordinator.forceRefresh();
 
-        assertRequestSessionCurrent(isRequestSessionCurrent());
+        assertRequestCurrent(isRequestSessionCurrent(), requestAuthority);
 
         const retryResponse = await fetchWithCurrentAccessToken(
           input,
@@ -102,11 +121,12 @@ export function createAuthenticatedFetch(options: {
           options.authSessionCoordinator,
           fetchImpl,
           requestSessionScopeKey,
+          requestAuthority,
           signal,
           requestLifetimeController,
         );
 
-        assertRequestSessionCurrent(isRequestSessionCurrent());
+        assertRequestCurrent(isRequestSessionCurrent(), requestAuthority);
 
         return retryResponse;
       },
@@ -116,7 +136,7 @@ export function createAuthenticatedFetch(options: {
       (response.status === 401 || response.status === 403) &&
       !shouldPreserveAuthorizationRejection()
     ) {
-      assertRequestSessionCurrent(isRequestSessionCurrent());
+      assertRequestCurrent(isRequestSessionCurrent(), requestAuthority);
       await options.authSessionCoordinator.invalidate();
     }
 
@@ -124,6 +144,7 @@ export function createAuthenticatedFetch(options: {
       cancellationSources,
       deadlineAt,
       isRequestSessionCurrent,
+      requestAuthority,
       requestLifetimeController,
       subscribeCancellation,
     });
@@ -143,6 +164,7 @@ function wrapResponseBodyWithRequestDeadline(
     cancellationSources: RemoteRequestCancellationSource[];
     deadlineAt: number;
     isRequestSessionCurrent: () => boolean;
+    requestAuthority?: AuthenticatedTransportRequestAuthority;
     requestLifetimeController: AbortController;
     subscribeCancellation: (
       cancel: (
@@ -180,6 +202,7 @@ function readResponseBodyWithinDeadline(
     cancellationSources: RemoteRequestCancellationSource[];
     deadlineAt: number;
     isRequestSessionCurrent: () => boolean;
+    requestAuthority?: AuthenticatedTransportRequestAuthority;
     requestLifetimeController: AbortController;
     subscribeCancellation: (
       cancel: (
@@ -208,6 +231,13 @@ function readResponseBodyWithinDeadline(
       new RemoteRequestLifecycleError('session_superseded'),
     );
   }
+  if (options.requestAuthority?.isCurrent() === false) {
+    options.requestLifetimeController.abort();
+    void cancelResponseBody(response);
+    return Promise.reject(
+      new RemoteRequestLifecycleError('session_quarantined'),
+    );
+  }
   const remainingMs = options.deadlineAt - Date.now();
   if (remainingMs <= 0) {
     options.requestLifetimeController.abort();
@@ -227,7 +257,10 @@ function readResponseBodyWithinDeadline(
       signal.addEventListener('abort', cancelBody, {once: true});
       try {
         const result = await response[reader]();
-        assertRequestSessionCurrent(options.isRequestSessionCurrent());
+        assertRequestCurrent(
+          options.isRequestSessionCurrent(),
+          options.requestAuthority,
+        );
         return result;
       } finally {
         signal.removeEventListener('abort', cancelBody);
@@ -260,6 +293,7 @@ async function fetchWithCurrentAccessToken(
   authSessionCoordinator: AuthSessionCoordinator,
   fetchImpl: typeof fetch,
   expectedSessionScopeKey: string | null,
+  requestAuthority: AuthenticatedTransportRequestAuthority | undefined,
   signal: AbortSignal,
   requestLifetimeController: AbortController,
 ) {
@@ -276,12 +310,11 @@ async function fetchWithCurrentAccessToken(
       throw new RemoteRequestLifecycleError('caller_cancelled');
     }
 
-    if (
-      getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
-      expectedSessionScopeKey
-    ) {
-      throw new RemoteRequestLifecycleError('session_superseded');
-    }
+    assertRequestCurrent(
+      getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) ===
+        expectedSessionScopeKey,
+      requestAuthority,
+    );
 
     const headers = new Headers(init?.headers);
 
@@ -289,11 +322,16 @@ async function fetchWithCurrentAccessToken(
       headers.set('Authorization', `Bearer ${accessToken}`);
     }
 
-    return await fetchImpl(input, {
-      ...init,
-      headers,
-      signal: requestLifetimeController.signal,
-    });
+    const dispatch = () =>
+      fetchImpl(input, {
+        ...init,
+        headers,
+        signal: requestLifetimeController.signal,
+      });
+    return await (requestAuthority !== undefined &&
+    isAuthenticatedWriteRequest(input, init)
+      ? requestAuthority.runBeforeDispatch(dispatch)
+      : dispatch());
   } finally {
     signal.removeEventListener('abort', abortRequestLifetime);
   }
@@ -303,6 +341,28 @@ function assertRequestSessionCurrent(isCurrent: boolean) {
   if (!isCurrent) {
     throw new RemoteRequestLifecycleError('session_superseded');
   }
+}
+
+function assertRequestCurrent(
+  isSessionCurrent: boolean,
+  requestAuthority: AuthenticatedTransportRequestAuthority | undefined,
+) {
+  assertRequestSessionCurrent(isSessionCurrent);
+  if (requestAuthority?.isCurrent() === false) {
+    throw new RemoteRequestLifecycleError('session_quarantined');
+  }
+}
+
+function isAuthenticatedWriteRequest(
+  input: Parameters<typeof fetch>[0],
+  init: Parameters<typeof fetch>[1],
+) {
+  const requestMethod =
+    typeof Request !== 'undefined' && input instanceof Request
+      ? input.method
+      : undefined;
+  const method = (init?.method ?? requestMethod ?? 'GET').toUpperCase();
+  return method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS';
 }
 
 function getRequestCancellationSources(

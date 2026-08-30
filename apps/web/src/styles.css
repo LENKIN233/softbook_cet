@@ -213,7 +213,10 @@ input + label { margin-top: .75rem; }
 }
 
 @media (max-width: 760px) {
-  .app-shell { display: block; padding: env(safe-area-inset-top) 0 calc(100px + env(safe-area-inset-bottom)); }
+  :root { --mobile-navigation-clearance: calc(116px + env(safe-area-inset-bottom)); }
+  html, body { scroll-padding-bottom: var(--mobile-navigation-clearance); }
+  .app-shell { display: block; padding: env(safe-area-inset-top) 0 var(--mobile-navigation-clearance); }
+  .app-shell :where(button, input, select, [tabindex]):focus-visible { scroll-margin-block: 1rem var(--mobile-navigation-clearance); }
   .auth-shell { padding: 1rem; }
   .auth-object { border-radius: 26px; }
   .auth-object h1 { margin-top: 2rem; font-size: clamp(2rem, 10vw, 2.75rem); line-height: 1.04; }

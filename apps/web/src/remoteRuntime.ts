@@ -8,7 +8,10 @@ import {
   createSoftbookRemoteAuthConfig,
   type AuthRepository,
 } from '../../mobile/src/auth/authRepository';
-import type {AuthChallenge} from '../../mobile/src/auth/authSession';
+import type {
+  AuthChallenge,
+  AuthSession,
+} from '../../mobile/src/auth/authSession';
 import {getAuthSessionScopeKey} from '../../mobile/src/auth/authSession';
 import {
   createAuthSessionCoordinator,
@@ -71,6 +74,7 @@ import {
   createMemoryOnlyAuthSessionStore,
   createWebLearningEventStorage,
   createWebMutationQueueStorage,
+  WebAccountTransportEpochError,
 } from './webStorage';
 import {
   createWebAccountDeletionStateStore,
@@ -148,6 +152,7 @@ type RemoteRuntimeDependencies = {
     typeof createLearningEventSyncRepository
   >;
   learningSessionRepository: LearningSessionRepository;
+  isAccountWriteQuarantined?: () => boolean;
   mutationQueueRepository: MutationQueueRepository;
   now?: () => Date;
   playAudio: (
@@ -237,9 +242,62 @@ export function createWebRemoteRuntime(
   const fetchImpl = options.fetchImpl ?? fetch;
   const browserStorage = options.storage ?? window.localStorage;
   const deletionQuarantinedSessionScopes = new Set<string>();
+  const accountEpochListeners = new Set<() => void>();
+  let storageEpochListenerInstalled = false;
   const isDeletionQuarantined = (sessionScopeKey: string | null) =>
     sessionScopeKey !== null &&
     deletionQuarantinedSessionScopes.has(sessionScopeKey);
+  const notifyAccountEpochChange = () => {
+    for (const listener of accountEpochListeners) {
+      try {
+        listener();
+      } catch {
+        // One consumer cannot prevent transport quarantine for the others.
+      }
+    }
+  };
+  const handleStorageEpochChange = (event: StorageEvent) => {
+    if (
+      event.key !== WEB_ACCOUNT_DELETION_STORAGE_KEY ||
+      (event.storageArea !== null && event.storageArea !== browserStorage)
+    ) {
+      return;
+    }
+    const sessionScopeKey = getAuthSessionScopeKey(
+      authSessionCoordinator.getCurrentSession(),
+    );
+    if (sessionScopeKey !== null) {
+      deletionQuarantinedSessionScopes.add(sessionScopeKey);
+    }
+    notifyAccountEpochChange();
+    const session = authSessionCoordinator.getCurrentSession();
+    if (session !== null) {
+      const sessionScopeKey = getAuthSessionScopeKey(session);
+      if (sessionScopeKey === null) {
+        return;
+      }
+      void authSessionCoordinator
+        .discardUnboundSessionExactly(sessionScopeKey)
+        .catch(() => {
+          // Memory authority is removed synchronously; the page remains
+          // quarantined if its exact memory-store verification also fails.
+        });
+    }
+  };
+  const subscribeAccountEpochChanges = (listener: () => void) => {
+    accountEpochListeners.add(listener);
+    if (!storageEpochListenerInstalled) {
+      window.addEventListener('storage', handleStorageEpochChange);
+      storageEpochListenerInstalled = true;
+    }
+    return () => {
+      accountEpochListeners.delete(listener);
+      if (storageEpochListenerInstalled && accountEpochListeners.size === 0) {
+        window.removeEventListener('storage', handleStorageEpochChange);
+        storageEpochListenerInstalled = false;
+      }
+    };
+  };
   const accountDeletionStateStore = createWebAccountDeletionStateStore(
     browserStorage,
   );
@@ -271,11 +329,75 @@ export function createWebRemoteRuntime(
         session.phoneNumber,
         currentAccountWriteRevision,
       );
+      const sessionScopeKey = getAuthSessionScopeKey(session);
+      if (sessionScopeKey !== null) {
+        const wasAlreadyQuarantined =
+          deletionQuarantinedSessionScopes.has(sessionScopeKey);
+        deletionQuarantinedSessionScopes.add(sessionScopeKey);
+        if (!wasAlreadyQuarantined) {
+          notifyAccountEpochChange();
+        }
+      }
     },
     shouldPreserveAuthorizationRejection: isDeletionQuarantined,
   });
   const authenticatedFetch = createAuthenticatedFetch({
     authSessionCoordinator,
+    captureRequestAuthority() {
+      let revision: number;
+      const sessionScopeKey = getAuthSessionScopeKey(
+        authSessionCoordinator.getCurrentSession(),
+      );
+      if (sessionScopeKey === null) {
+        throw new RemoteRequestLifecycleError('session_superseded');
+      }
+      try {
+        revision = accountWriteFence.captureAuthenticatedRevision();
+      } catch (error) {
+        if (error instanceof WebAccountTransportEpochError) {
+          throw new RemoteRequestLifecycleError('session_quarantined');
+        }
+        throw error;
+      }
+      return {
+        isCurrent: () =>
+          getAuthSessionScopeKey(
+            authSessionCoordinator.getCurrentSession(),
+          ) === sessionScopeKey &&
+          !isDeletionQuarantined(sessionScopeKey) &&
+          accountWriteFence.isAuthenticatedRevisionCurrent(revision),
+        async runBeforeDispatch(operation) {
+          try {
+            return await accountWriteFence.runAuthenticatedDispatch(
+              revision,
+              () => {
+                if (
+                  getAuthSessionScopeKey(
+                    authSessionCoordinator.getCurrentSession(),
+                  ) !== sessionScopeKey
+                ) {
+                  throw new RemoteRequestLifecycleError(
+                    'session_superseded',
+                  );
+                }
+                if (isDeletionQuarantined(sessionScopeKey)) {
+                  throw new RemoteRequestLifecycleError(
+                    'session_quarantined',
+                  );
+                }
+                return operation();
+              },
+            );
+          } catch (error) {
+            if (error instanceof WebAccountTransportEpochError) {
+              throw new RemoteRequestLifecycleError('session_quarantined');
+            }
+            throw error;
+          }
+        },
+        subscribeCancellation: subscribeAccountEpochChanges,
+      };
+    },
     fetchImpl,
     shouldPreserveAuthorizationRejection: isDeletionQuarantined,
     shouldQuarantineSession: isDeletionQuarantined,
@@ -391,6 +513,7 @@ export function createWebRemoteRuntime(
     authSessionCoordinator,
     learningEventSyncRepository,
     learningSessionRepository,
+    isAccountWriteQuarantined: () => accountWriteFence.isWriteQuarantined(),
     mutationQueueRepository,
     runAccountCleanup: (scope, operation) =>
       accountWriteFence.runAccountCleanup(scope, operation),
@@ -473,24 +596,31 @@ export function createWebRemoteRuntime(
     },
     stopAudio: stopActiveAudio,
     setAccountDeletionQuarantine(sessionScopeKey, active) {
-      if (active) deletionQuarantinedSessionScopes.add(sessionScopeKey);
-      else deletionQuarantinedSessionScopes.delete(sessionScopeKey);
+      if (active) {
+        const wasAlreadyQuarantined =
+          deletionQuarantinedSessionScopes.has(sessionScopeKey);
+        deletionQuarantinedSessionScopes.add(sessionScopeKey);
+        if (!wasAlreadyQuarantined) {
+          notifyAccountEpochChange();
+        }
+      } else {
+        deletionQuarantinedSessionScopes.delete(sessionScopeKey);
+      }
     },
     setAccountWriteRevision(revision) {
       currentAccountWriteRevision = revision;
       accountWriteFence.bindSessionRevision(revision);
+      if (revision !== null) {
+        const sessionScopeKey = getAuthSessionScopeKey(
+          authSessionCoordinator.getCurrentSession(),
+        );
+        if (sessionScopeKey !== null) {
+          deletionQuarantinedSessionScopes.delete(sessionScopeKey);
+        }
+      }
     },
     subscribeAccountEpochChanges(listener) {
-      const handleStorage = (event: StorageEvent) => {
-        if (
-          event.key === WEB_ACCOUNT_DELETION_STORAGE_KEY &&
-          (event.storageArea === null || event.storageArea === browserStorage)
-        ) {
-          listener();
-        }
-      };
-      window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
+      return subscribeAccountEpochChanges(listener);
     },
     subscribeSessionScopeChanges(listener) {
       return authSessionCoordinator.subscribeSessionScope(() => listener());
@@ -519,7 +649,8 @@ export function createWebRemoteRuntimeController(
   let sessionDeletionRevision: number | null = null;
   let acceptedDeletionPhoneNumber: string | null = null;
   let registrationReadyPhoneNumber: string | null = null;
-  let bootstrapGeneration = 0;
+  let nextBootstrapGeneration = 0;
+  let latestStartedBootstrapGeneration = 0;
   const now = dependencies.now ?? (() => new Date());
   const runtimeSessionId =
     dependencies.runtimeSessionId ?? createBootstrapRuntimeSessionId();
@@ -603,7 +734,8 @@ export function createWebRemoteRuntimeController(
         );
         if (
           currentScopeKey !== sessionScopeKey ||
-          sessionDeletionRevision !== deletionRevision
+          sessionDeletionRevision !== deletionRevision ||
+          dependencies.isAccountWriteQuarantined?.() === true
         ) {
           throw new WebAccountEpochError();
         }
@@ -626,6 +758,13 @@ export function createWebRemoteRuntimeController(
     const session = dependencies.authSessionCoordinator.getCurrentSession();
     if (session === null || session.mode !== 'remote') {
       throw new Error('需要先完成手机号验证。');
+    }
+    if (dependencies.isAccountWriteQuarantined?.() === true) {
+      const sessionScopeKey = getAuthSessionScopeKey(session);
+      if (sessionScopeKey !== null) {
+        dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+      }
+      throw new WebAccountEpochError();
     }
     const deletionState = await readStableDeletionState();
     const revisionBefore = deletionState.revision;
@@ -683,6 +822,29 @@ export function createWebRemoteRuntimeController(
     persistedLearningResult = null;
     persistedSelectionId = null;
     sessionDeletionRevision = null;
+  };
+
+  const discardRejectedSessionExactly = async (session: AuthSession) => {
+    const sessionScopeKey = getAuthSessionScopeKey(session);
+    if (sessionScopeKey === null) {
+      return false;
+    }
+    const currentScopeKey = () =>
+      getAuthSessionScopeKey(
+        dependencies.authSessionCoordinator.getCurrentSession(),
+      );
+    if (currentScopeKey() !== sessionScopeKey) {
+      return false;
+    }
+    try {
+      return await dependencies.authSessionCoordinator
+        .discardUnboundSessionExactly(sessionScopeKey);
+    } finally {
+      if (currentScopeKey() !== sessionScopeKey) {
+        dependencies.stopAudio?.();
+        resetControllerAccountState();
+      }
+    }
   };
 
   const runResolvedAccountCleanup = async <Result>(
@@ -837,7 +999,17 @@ export function createWebRemoteRuntimeController(
       return null;
     }
     try {
-      return await ensureCleanupAuthority(phoneNumber, expectedRevision);
+      const authority = await ensureCleanupAuthority(
+        phoneNumber,
+        expectedRevision,
+      );
+      const sessionScopeKey = getAuthSessionScopeKey(
+        dependencies.authSessionCoordinator.getCurrentSession(),
+      );
+      if (sessionScopeKey !== null) {
+        dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+      }
+      return authority;
     } catch (error) {
       throw new WebAccountEpochError(undefined, {cause: error});
     }
@@ -975,9 +1147,29 @@ export function createWebRemoteRuntimeController(
     if (requestSessionScopeKey === null) {
       throw new WebAccountEpochError();
     }
-    const initialBootstrapGeneration = bootstrapGeneration;
-    let requestBootstrapGeneration = initialBootstrapGeneration;
+    const isRequestAuthorityCurrent = () =>
+      getAuthSessionScopeKey(
+        dependencies.authSessionCoordinator.getCurrentSession(),
+      ) === requestSessionScopeKey &&
+      sessionDeletionRevision === requestDeletionRevision &&
+      dependencies.isAccountWriteQuarantined?.() !== true;
+    const allocateBootstrapGeneration = () => {
+      if (nextBootstrapGeneration >= Number.MAX_SAFE_INTEGER) {
+        throw new Error('Web bootstrap generation is exhausted.');
+      }
+      nextBootstrapGeneration += 1;
+      latestStartedBootstrapGeneration = nextBootstrapGeneration;
+      return nextBootstrapGeneration;
+    };
+    const requestStartGeneration = allocateBootstrapGeneration();
+    let requestBootstrapCount = 0;
+    let finalBootstrapGeneration = requestStartGeneration;
     const loadBootstrap = async (forceFresh: boolean) => {
+      const generation =
+        requestBootstrapCount === 0
+          ? requestStartGeneration
+          : allocateBootstrapGeneration();
+      requestBootstrapCount += 1;
       const dayKey = getChinaDayKey(now());
       const bootstrap = await dependencies.accountBootstrapRepository.load(
         dependencies.track,
@@ -987,12 +1179,12 @@ export function createWebRemoteRuntimeController(
       if (bootstrap === null) {
         throw new Error('远端账户没有返回可验证的当前状态。');
       }
-      requestBootstrapGeneration += 1;
+      finalBootstrapGeneration = generation;
       return {
         bootstrap,
         observation: {
           forceFresh,
-          generation: requestBootstrapGeneration,
+          generation,
           runtimeSessionId,
           schemaVersion: 'account-bootstrap-observation.v1' as const,
         },
@@ -1002,7 +1194,9 @@ export function createWebRemoteRuntimeController(
     // The retained event ledger is replayed before the first canonical read so
     // bootstrap can never silently outrun an acknowledged card completion.
     const eventReplay =
-      await dependencies.learningEventSyncRepository.startReplay(context);
+      await dependencies.learningEventSyncRepository.startReplay(context, {
+        canSubmit: isRequestAuthorityCurrent,
+      });
     if (eventReplay.pendingCount !== 0) {
       throw new Error('仍有学习结果等待服务端确认。');
     }
@@ -1017,6 +1211,8 @@ export function createWebRemoteRuntimeController(
         contentVersion: bootstrap.content.version,
         dayKey: bootstrap.dayKey,
         track: bootstrap.track,
+      }, {
+        canSubmit: isRequestAuthorityCurrent,
       });
     const terminalSpaceRejections = mutationResults.flatMap(result =>
       'terminalRejection' in result
@@ -1037,6 +1233,8 @@ export function createWebRemoteRuntimeController(
             contentVersion: bootstrap.content.version,
             dayKey: bootstrap.dayKey,
             track: bootstrap.track,
+          }, {
+            canSubmit: isRequestAuthorityCurrent,
           });
         terminalSpaceRejections.push(
           ...retryResults.flatMap(result =>
@@ -1147,9 +1345,11 @@ export function createWebRemoteRuntimeController(
       requestSessionScopeKey,
       requestDeletionRevision,
       () => {
-        if (bootstrapGeneration !== initialBootstrapGeneration) {
+        if (
+          finalBootstrapGeneration !== latestStartedBootstrapGeneration
+        ) {
           throw new WebAccountEpochError(
-            '较新的账户状态已经先完成，本次迟到结果不会呈现。',
+            '较新的账户状态读取已经开始，本次迟到结果不会呈现。',
           );
         }
         const previousCardId =
@@ -1169,7 +1369,6 @@ export function createWebRemoteRuntimeController(
         }
         currentBootstrap = bootstrap;
         currentLearningSession = learningSession;
-        bootstrapGeneration = requestBootstrapGeneration;
         if (
           persistedSelectionId !== null &&
           nextSelectionId !== persistedSelectionId
@@ -1213,7 +1412,17 @@ export function createWebRemoteRuntimeController(
       if (cleanupState.state !== null) {
         return dispatchPersistedCleanup(cleanupState.state);
       }
-      if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
+      const currentSession =
+        dependencies.authSessionCoordinator.getCurrentSession();
+      if (
+        currentSession !== null &&
+        sessionDeletionRevision !== null &&
+        cleanupState.revision !== sessionDeletionRevision
+      ) {
+        await discardRejectedSessionExactly(currentSession);
+        return {status: 'none'};
+      }
+      if (currentSession !== null) {
         throw new Error('当前 Web 会话尚未失效，不能跳过远端注销。');
       }
       dependencies.stopAudio?.();
@@ -1313,7 +1522,14 @@ export function createWebRemoteRuntimeController(
       >;
       try {
         replay =
-          await dependencies.learningEventSyncRepository.startReplay(context);
+          await dependencies.learningEventSyncRepository.startReplay(context, {
+            canSubmit: () =>
+              getAuthSessionScopeKey(
+                dependencies.authSessionCoordinator.getCurrentSession(),
+              ) === requestSessionScopeKey &&
+              sessionDeletionRevision === requestDeletionRevision &&
+              dependencies.isAccountWriteQuarantined?.() !== true,
+          });
       } catch (error) {
         if (
           isRemoteAuthorizationError(error) ||
@@ -1359,7 +1575,10 @@ export function createWebRemoteRuntimeController(
     dispose: disposeRuntime,
 
     isAuthenticated() {
-      return dependencies.authSessionCoordinator.getCurrentSession() !== null;
+      return (
+        dependencies.authSessionCoordinator.getCurrentSession() !== null &&
+        dependencies.isAccountWriteQuarantined?.() !== true
+      );
     },
 
     loadAuthenticatedState,
@@ -1654,22 +1873,8 @@ export function createWebRemoteRuntimeController(
           },
         );
       } catch (error) {
-        const rejectedSessionScopeKey = getAuthSessionScopeKey(session);
-        const currentSessionScopeKey = getAuthSessionScopeKey(
-          dependencies.authSessionCoordinator.getCurrentSession(),
-        );
-        const rejectedSessionIsCurrent =
-          sessionEstablished &&
-          currentSessionScopeKey === rejectedSessionScopeKey;
-        if (rejectedSessionIsCurrent) {
-          try {
-            await dependencies.authSessionCoordinator.invalidate();
-          } catch {
-            // Epoch rejection remains authoritative over memory cleanup errors.
-          }
-          dependencies.setAccountWriteRevision?.(null);
-          sessionDeletionRevision = null;
-          activeAccountPhoneNumber = null;
+        if (sessionEstablished) {
+          await discardRejectedSessionExactly(session);
         }
         challenge = null;
         challengeDeletionRevision = null;
@@ -1704,22 +1909,7 @@ export function createWebRemoteRuntimeController(
           }
         }
         if (accountAuthorityChanged) {
-          const rejectedSessionScopeKey = getAuthSessionScopeKey(session);
-          const rejectedSessionIsCurrent =
-            getAuthSessionScopeKey(
-              dependencies.authSessionCoordinator.getCurrentSession(),
-            ) === rejectedSessionScopeKey;
-          if (rejectedSessionIsCurrent) {
-            dependencies.stopAudio?.();
-            try {
-              await dependencies.authSessionCoordinator.invalidate();
-            } catch {
-              // Epoch rejection remains authoritative over memory cleanup errors.
-            }
-            dependencies.setAccountWriteRevision?.(null);
-            sessionDeletionRevision = null;
-            activeAccountPhoneNumber = null;
-          }
+          await discardRejectedSessionExactly(session);
           try {
             await dependencies.authRepository.logout(session);
           } catch {

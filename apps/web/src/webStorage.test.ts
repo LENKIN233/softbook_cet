@@ -345,6 +345,21 @@ describe('Web persistence boundary', () => {
       ),
     ).rejects.toThrow('账户隔离版本已变化');
   });
+
+  it('rechecks the exact null epoch under the Web Lock before remote write dispatch', async () => {
+    localStorage.clear();
+    const staleFence = createBoundAccountWriteFence();
+    const capturedRevision = staleFence.captureAuthenticatedRevision();
+    const deletionStore = createWebAccountDeletionStateStore(localStorage);
+    const dispatch = vi.fn(async () => new Response(null, {status: 204}));
+
+    await deletionStore.ensureCleanupAuthority?.('13800138000', 0);
+
+    await expect(
+      staleFence.runAuthenticatedDispatch(capturedRevision, dispatch),
+    ).rejects.toMatchObject({name: 'WebAccountTransportEpochError'});
+    expect(dispatch).not.toHaveBeenCalled();
+  });
 });
 
 function createOutbox(

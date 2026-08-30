@@ -25,9 +25,22 @@ type WebAccountDeletionStorageEnvelope = {
   state: WebAccountDeletionStorageState | null;
 };
 
+export class WebAccountTransportEpochError extends Error {
+  constructor(message = 'Web authenticated account epoch is quarantined.') {
+    super(message);
+    this.name = 'WebAccountTransportEpochError';
+  }
+}
+
 export type WebAccountWriteFence = {
   bindSessionRevision: (revision: number | null) => void;
+  captureAuthenticatedRevision: () => number;
+  isAuthenticatedRevisionCurrent: (revision: number) => boolean;
   isWriteQuarantined: () => boolean;
+  runAuthenticatedDispatch: <Result>(
+    revision: number,
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
   runAccountCleanup: <Result>(
     scope: {ownerPhoneNumber: string; revision: number},
     operation: () => Promise<Result>,
@@ -55,6 +68,31 @@ export function createWebAccountWriteFence(
       sessionRevision = revision;
     },
 
+    captureAuthenticatedRevision() {
+      const envelope = readAccountDeletionEnvelope(storage);
+      if (
+        envelope.state !== null ||
+        sessionRevision === null ||
+        sessionRevision !== envelope.revision
+      ) {
+        throw new WebAccountTransportEpochError();
+      }
+      return envelope.revision;
+    },
+
+    isAuthenticatedRevisionCurrent(revision) {
+      try {
+        const envelope = readAccountDeletionEnvelope(storage);
+        return (
+          envelope.state === null &&
+          sessionRevision === revision &&
+          envelope.revision === revision
+        );
+      } catch {
+        return false;
+      }
+    },
+
     isWriteQuarantined() {
       const envelope = readAccountDeletionEnvelope(storage);
       return (
@@ -62,6 +100,34 @@ export function createWebAccountWriteFence(
         sessionRevision === null ||
         sessionRevision !== envelope.revision
       );
+    },
+
+    async runAuthenticatedDispatch<Result>(
+      revision: number,
+      operation: () => Promise<Result>,
+    ) {
+      let dispatched: Promise<Result> | null = null;
+      await runWebStorageExclusive(
+        storage,
+        WEB_ACCOUNT_DELETION_STORAGE_KEY,
+        async () => {
+          const envelope = readAccountDeletionEnvelope(storage);
+          if (
+            envelope.state !== null ||
+            sessionRevision !== revision ||
+            envelope.revision !== revision
+          ) {
+            throw new WebAccountTransportEpochError(
+              'Web authenticated account epoch changed before dispatch.',
+            );
+          }
+          dispatched = operation();
+        },
+      );
+      if (dispatched === null) {
+        throw new Error('Web authenticated transport was not dispatched.');
+      }
+      return await dispatched;
     },
 
     async runAccountCleanup(scope, operation) {

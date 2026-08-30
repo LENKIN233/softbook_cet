@@ -21,6 +21,9 @@ export type AuthSessionScopeChangeReason =
   | 'session_changed';
 
 export type AuthSessionCoordinator = {
+  discardUnboundSessionExactly: (
+    expectedSessionScopeKey: string,
+  ) => Promise<boolean>;
   establish: (session: AuthSession) => Promise<void>;
   forceRefresh: () => Promise<RemoteAuthSession>;
   getAccessToken: () => Promise<string | undefined>;
@@ -258,6 +261,20 @@ export function createAuthSessionCoordinator(options: {
   };
 
   return {
+    async discardUnboundSessionExactly(expectedSessionScopeKey) {
+      if (
+        getAuthSessionScopeKey(currentSession) !== expectedSessionScopeKey
+      ) {
+        return false;
+      }
+
+      sessionRevision += 1;
+      setCurrentSession(null);
+      abortRefreshInFlight();
+      await runStorageTransition(() => options.authSessionStore.clearExactly());
+      return true;
+    },
+
     async establish(session) {
       const establishRevision = sessionRevision + 1;
       sessionRevision = establishRevision;

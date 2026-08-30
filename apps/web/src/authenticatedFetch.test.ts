@@ -3,8 +3,74 @@ import {createAuthenticatedFetch} from '../../mobile/src/auth/authenticatedFetch
 import {createAuthSessionCoordinator} from '../../mobile/src/auth/authSessionCoordinator';
 import {createMemoryOnlyAuthSessionStore} from './webStorage';
 import {createWebAccountDeletionStateStore} from './webAccountDeletionState';
+import {RemoteRequestLifecycleError} from '../../mobile/src/runtime/remoteRequest';
 
 describe('Web authenticated fetch deadline', () => {
+  it('aborts an in-flight authenticated transport as soon as its account epoch changes', async () => {
+    const coordinator = await createCoordinator();
+    let epochListener: (() => void) | null = null;
+    let requestSignal: AbortSignal | undefined;
+    let epochCurrent = true;
+    const authenticatedFetch = createAuthenticatedFetch({
+      authSessionCoordinator: coordinator,
+      captureRequestAuthority: () => ({
+        isCurrent: () => epochCurrent,
+        runBeforeDispatch: operation => operation(),
+        subscribeCancellation(listener) {
+          epochListener = listener;
+          return () => {
+            epochListener = null;
+          };
+        },
+      }),
+      fetchImpl: (_input, init) =>
+        new Promise<Response>(() => {
+          requestSignal = init?.signal ?? undefined;
+        }),
+      timeoutMs: 1_000,
+    });
+
+    const request = authenticatedFetch(
+      'https://runtime.example.cn/v2/bootstrap',
+    );
+    await vi.waitFor(() => expect(requestSignal).toBeDefined());
+    epochCurrent = false;
+    expect(epochListener).not.toBeNull();
+    (epochListener as unknown as () => void)();
+
+    await expect(request).rejects.toMatchObject({
+      reason: 'session_quarantined',
+    });
+    expect(requestSignal?.aborted).toBe(true);
+    expect(epochListener).toBeNull();
+  });
+
+  it('runs every authenticated write through its exact pre-dispatch authority', async () => {
+    const coordinator = await createCoordinator();
+    const fetchImpl = vi.fn(async () => new Response(null, {status: 204}));
+    const runBeforeDispatch = vi.fn(async () => {
+      throw new RemoteRequestLifecycleError('session_quarantined');
+    });
+    const authenticatedFetch = createAuthenticatedFetch({
+      authSessionCoordinator: coordinator,
+      captureRequestAuthority: () => ({
+        isCurrent: () => true,
+        runBeforeDispatch,
+        subscribeCancellation: () => () => undefined,
+      }),
+      fetchImpl,
+    });
+
+    await expect(
+      authenticatedFetch('https://runtime.example.cn/v2/learning/events', {
+        body: '{}',
+        method: 'POST',
+      }),
+    ).rejects.toMatchObject({reason: 'session_quarantined'});
+    expect(runBeforeDispatch).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('keeps the deadline active through response body parsing', async () => {
     vi.useFakeTimers();
     try {

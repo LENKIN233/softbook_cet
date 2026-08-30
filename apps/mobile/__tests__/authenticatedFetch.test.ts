@@ -19,6 +19,7 @@ function createResponse(status: number) {
 function createCoordinator() {
   let accessToken = 'access-0';
   const coordinator: AuthSessionCoordinator = {
+    discardUnboundSessionExactly: jest.fn(async () => false),
     establish: jest.fn(),
     forceRefresh: jest.fn(async () => {
       accessToken = 'access-1';
