@@ -336,6 +336,16 @@ cannot create a session after deletion or re-registration.
 Rate-counter increments, active-session reads, refresh rotation, challenge
 reservation/completion, sign-in challenge consumption plus account/session
 creation, and single-session revocation run inside CloudBase transactions.
+The shared CloudBase database adapter retries only the live-measured exact
+`DATABASE_TRANSACTION_FAIL` / `Transaction is busy` response, after 50, 150,
+300, and 600 ms. The fifth failure is returned, and no other code or message
+is retried. This supplements the SDK's own conflict retry without turning
+schema, authorization, configuration, or arbitrary transaction failures into
+replay.
+Within one warm function instance, all CloudBase transactions share one serial
+runner and the next transaction waits for a 25 ms post-settlement cooldown.
+Injected database adapters skip the real timer unless a test supplies it.
+Cross-instance contention remains bounded by the exact busy retry above.
 Every challenge stores account, purpose, collision-safe delivery reservation,
 provider deadline, nullable provider ID, and expected account instance; every
 completion conditionally matches that exact pending intent. Every protected account read and

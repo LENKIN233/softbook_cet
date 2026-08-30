@@ -1734,7 +1734,7 @@ test('v2 check-in never mutates a retained legacy daily baseline', async () => {
   assert.equal(bootstrap.body.data.progress.total_completed_count, 3);
 });
 
-test('CloudBase migration reads every legacy learning-state page', async () => {
+test('CloudBase migration reads one bounded legacy learning-state snapshot without orderBy', async () => {
   const db = createFakeCloudBaseDb();
   const store = createCloudBaseStore({db});
   const {api} = createTestApi({store});
@@ -1806,6 +1806,29 @@ test('CloudBase migration reads every legacy learning-state page', async () => {
     legacyCard.interaction_id === 'flip' ? 'review' : 'incorrect',
   );
   assert.equal(bootstrap.body.data.progress.pending_review_count, 1);
+});
+
+test('CloudBase migration fails closed at the unsupported thousand-document legacy boundary', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api);
+  const source = await cardSource(api, session);
+  const legacyStates = db.collection('softbook_learning_states');
+
+  for (let index = 0; index < 1000; index += 1) {
+    await legacyStates
+      .doc(`legacy-bound-${String(index).padStart(4, '0')}`)
+      .set({phone_number: PHONE_ONE});
+  }
+
+  const response = await submit(api, session, [eventFor(source)]);
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.body.error.code, 'learning_events_projection_invalid');
+  assert.equal(
+    db.snapshot().get('softbook_learning_events')?.size ?? 0,
+    0,
+  );
 });
 
 test('CloudBase migration retries when a v1 revision changes after its preflight snapshot', async () => {
@@ -2126,9 +2149,9 @@ function createFakeCloudBaseDb() {
             return builder;
           },
           orderBy: (field, direction) => {
-            options.field = field;
-            options.direction = direction;
-            return builder;
+            throw new Error(
+              `FlexDB orderBy is unsupported in this fixture: ${field}/${direction}`,
+            );
           },
           skip: value => {
             options.offset = value;

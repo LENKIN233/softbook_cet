@@ -1210,7 +1210,7 @@
         "favorite_and_check_in_authority_remain_separate",
         "retained_content_versions_survive_card_source_replacement",
         "legacy_v1_state_migrates_as_sequence_zero_baseline",
-        "legacy_v1_migration_reads_all_bounded_pages",
+        "legacy_v1_migration_uses_one_at_most_999_document_snapshot_without_order_or_skip_and_fails_closed_at_1000",
         "legacy_migration_snapshot_uses_transactional_revision_fence",
         "legacy_v1_migration_preserves_both_track_baselines",
         "v1_daily_and_learning_snapshot_write_routes_always_return_410",

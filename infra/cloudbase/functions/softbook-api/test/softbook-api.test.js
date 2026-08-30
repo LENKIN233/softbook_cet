@@ -4157,8 +4157,9 @@ function createFakeCloudBaseDb() {
             return builder;
           },
           orderBy: (_field, direction) => {
-            options.order = direction;
-            return builder;
+            throw new Error(
+              `FlexDB orderBy is unsupported in this fixture: ${direction}`,
+            );
           },
           skip: value => {
             options.offset = value;

@@ -83,6 +83,53 @@ test('production bootstrap checks the content release before account state', asy
   assert.deepEqual(accountReads, []);
 });
 
+test('bootstrap serializes transaction-backed canonical reads', async () => {
+  const baseStore = createMemoryStore();
+  const store = {...baseStore};
+  const observed = [];
+  let activeReads = 0;
+  let maximumActiveReads = 0;
+
+  for (const method of [
+    'getMembership',
+    'getLearningState',
+    'getSpaceState',
+    'getDailyProgress',
+  ]) {
+    store[method] = async (...args) => {
+      activeReads += 1;
+      maximumActiveReads = Math.max(maximumActiveReads, activeReads);
+      observed.push(method);
+      await Promise.resolve();
+      try {
+        return await baseStore[method](...args);
+      } finally {
+        activeReads -= 1;
+      }
+    };
+  }
+  const service = createBootstrapV2Service({
+    now: () => fixedNow,
+    runtimeMode: 'development',
+    store,
+  });
+
+  await service.read({
+    accountKey: 'serialized-bootstrap-account',
+    dayKey: '2026-07-20',
+    phoneNumber: '13800138000',
+    track: 'cet4',
+  });
+
+  assert.equal(maximumActiveReads, 1);
+  assert.deepEqual(observed, [
+    'getMembership',
+    'getLearningState',
+    'getSpaceState',
+    'getDailyProgress',
+  ]);
+});
+
 test('controlled-pilot bootstrap exposes its independent entitlement revision', async () => {
   const store = createMemoryStore();
   const contentVersion = `sha256:${'a'.repeat(64)}`;

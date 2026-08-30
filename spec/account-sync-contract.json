@@ -280,7 +280,7 @@
       "stored_projection_integrity_validation": true,
       "cloudbase_atomic_batch_limit": 9,
       "cloudbase_transaction_boundary": "doc_only_with_at_most_100_operations",
-      "legacy_migration_consistency": "bounded_outside_transaction_snapshot_with_transactional_revision_fence",
+      "legacy_migration_consistency": "one_at_most_999_document_outside_transaction_snapshot_without_flexdb_rejected_order_or_unordered_skip_with_transactional_revision_fence_and_fail_closed_at_1000",
       "legacy_all_track_projection_migration": true,
       "mobile_durable_event_producer": true,
       "mobile_bounded_authenticated_requests": true,
@@ -291,6 +291,7 @@
       "migrated_account_v1_learning_writes": "daily_and_learning_snapshot_routes_disabled_globally_v2_check_in_is_the_only_daily_write",
       "server_scheduler": true,
       "server_scheduler_status": "repository_local_backend_implemented_not_deployed",
+      "server_scheduler_transaction_read_order": "nontransactional_card_source_may_overlap_then_learning_membership_space_and_cursor_reads_execute_serially_to_avoid_live_flexdb_busy_bursts",
       "selection_bound_events": true,
       "mobile_scheduler_session_binding": true,
       "production_deployment": false

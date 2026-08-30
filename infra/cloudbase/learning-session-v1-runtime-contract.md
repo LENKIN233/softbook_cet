@@ -159,6 +159,14 @@ generation, and required cursor persistence complete before trial activation.
 Invalid content, unavailable selection entropy, an empty selection, or a failed
 cursor write therefore cannot consume an available trial.
 
+The non-transactional card-source read may overlap the canonical context read,
+but Learning, Membership, Space, and persisted cursor reads execute in that
+explicit order. The deployed FlexDB returns `Transaction is busy` under the
+former four-transaction `Promise.all` burst; serializing only the
+transaction-backed reads removes that runtime-invalid burst without claiming a
+cross-owner snapshot or adding a user/human gate. Controlled-pilot continuation
+uses the same ordered Learning, Membership, and Space read discipline.
+
 After cursor acceptance and before every session response, the scheduler
 re-reads the exact membership checkpoint: stage, canonical `acknowledged_at`,
 base membership revision, beta-entitlement revision, and pilot-entitlement
