@@ -10,7 +10,6 @@ import {
   ViewStyle,
 } from 'react-native';
 
-import { LearningCardResult } from '../learning/model';
 import { hexToRgba } from '../visual/tokens';
 
 type StatisticsPalette = {
@@ -41,26 +40,26 @@ export function StatisticsSurface({
   canCheckInToday,
   deviceClass,
   hasCheckedInToday,
-  learningResults,
+  learningCompletedCount,
   onCheckIn,
   onGoToLearning,
   onStartReview,
   palette,
   pendingReviewCount,
-  reviewResults,
+  reviewCompletedCount,
   syncStatusDetail,
   syncStatusLabel,
 }: {
   canCheckInToday: boolean;
   deviceClass: DeviceClass;
   hasCheckedInToday: boolean;
-  learningResults: LearningCardResult[];
+  learningCompletedCount: number;
   onCheckIn: () => void;
   onGoToLearning: () => void;
   onStartReview: () => void;
   palette: StatisticsPalette;
   pendingReviewCount: number;
-  reviewResults: LearningCardResult[];
+  reviewCompletedCount: number;
   syncStatusDetail: string;
   syncStatusLabel: string;
 }) {
@@ -68,8 +67,8 @@ export function StatisticsSurface({
   const usesCompactLayout =
     deviceClass === 'phone' && (height < 800 || width < 370);
   const usesAccessibilityLayout = fontScale >= 1.3;
-  const combinedResults = [...learningResults, ...reviewResults];
-  const hasLearningProgress = combinedResults.length > 0;
+  const totalCompletedCount = learningCompletedCount + reviewCompletedCount;
+  const hasLearningProgress = totalCompletedCount > 0;
   const checkInTitle = hasCheckedInToday
     ? '已签到'
     : canCheckInToday
@@ -81,11 +80,11 @@ export function StatisticsSurface({
     ? '已完成学习，点一下收好今天。'
     : '完成 1 张后再收好今天。';
   const reviewStatus =
-    reviewResults.length > 0
-      ? `已回看 ${reviewResults.length} · 待回看 ${pendingReviewCount}`
+    reviewCompletedCount > 0
+      ? `已回看 ${reviewCompletedCount} · 待回看 ${pendingReviewCount}`
       : pendingReviewCount > 0
       ? `${pendingReviewCount} 张待回看`
-      : combinedResults.length > 0
+      : totalCompletedCount > 0
       ? '首轮已收口'
       : '暂无今日进展';
   const dailyTitle = hasCheckedInToday
@@ -97,12 +96,12 @@ export function StatisticsSurface({
     : '从第一张开始';
   const dailySummary = hasCheckedInToday
     ? hasLearningProgress
-      ? `完成 ${combinedResults.length} · 回看 ${reviewResults.length}`
+      ? `完成 ${totalCompletedCount} · 回看 ${reviewCompletedCount}`
       : '今日记录已收好；继续学习后自动补充进度。'
     : pendingReviewCount > 0
     ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
     : hasLearningProgress
-    ? `完成 ${combinedResults.length} · 可以收好今天`
+    ? `完成 ${totalCompletedCount} · 可以收好今天`
     : '回到学习完成一张卡，这里只记录当天进度。';
   const nextStepIsReview = pendingReviewCount > 0;
   const nextStepTitle = nextStepIsReview
@@ -125,13 +124,13 @@ export function StatisticsSurface({
       ? undefined
       : syncStatusDetail;
   const dailyRailTarget = Math.max(
-    combinedResults.length + pendingReviewCount,
-    hasLearningProgress ? combinedResults.length : 1,
+    totalCompletedCount + pendingReviewCount,
+    hasLearningProgress ? totalCompletedCount : 1,
     1,
   );
   const dailyRailProgress = Math.min(
     1,
-    combinedResults.length / dailyRailTarget,
+    totalCompletedCount / dailyRailTarget,
   );
   const dailyRailFillPercent = hasLearningProgress
     ? Math.max(14, Math.round(dailyRailProgress * 100))
@@ -264,7 +263,7 @@ export function StatisticsSurface({
               style={[styles.progressRatio, { color: palette.text }]}
               testID="statistics-progress-ratio"
             >
-              {`${combinedResults.length}/${dailyRailTarget}`}
+              {`${totalCompletedCount}/${dailyRailTarget}`}
             </Text>
           </View>
           <View
@@ -296,11 +295,11 @@ export function StatisticsSurface({
         testID="statistics-metric-strip"
       >
         <MetricLedgerRow
-          detail={`首轮 ${learningResults.length}`}
+          detail={`首轮 ${learningCompletedCount}`}
           label="今日完成"
           palette={palette}
           testID="statistics-metric-completed"
-          value={`${combinedResults.length}`}
+          value={`${totalCompletedCount}`}
         />
         <MetricLedgerRow
           label="需要回看"
@@ -313,7 +312,7 @@ export function StatisticsSurface({
           label="今日回看"
           palette={palette}
           testID="statistics-metric-review"
-          value={`${reviewResults.length}`}
+          value={`${reviewCompletedCount}`}
         />
       </View>
 
@@ -873,6 +872,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
   primaryButtonLabel: {
     fontSize: 14,

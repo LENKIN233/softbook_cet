@@ -18,6 +18,7 @@ export type SoftbookRemoteRuntimeProfile = {
     Record<SoftbookRemoteRuntimeFeature, 'local' | 'remote'>
   >;
   learningTrack?: LearningTrack;
+  purchaseMode?: 'client' | 'operator_entitlement_only';
 };
 
 export type SoftbookAppRuntimeConfigResolverOptions = {
@@ -50,6 +51,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   },
   membership: {
     mode: 'local',
+    purchaseMode: 'client',
   },
   progressSync: {
     mode: 'local',
@@ -145,10 +147,13 @@ export function createSoftbookRemoteRuntimeConfig(
       resolveFeatureMode(profile, 'membership') === 'remote'
         ? {
             mode: 'remote',
+            purchaseMode:
+              profile.purchaseMode ?? 'operator_entitlement_only',
             remote,
           }
         : {
             mode: 'local',
+            purchaseMode: 'client',
           },
     progressSync:
       resolveFeatureMode(profile, 'progressSync') === 'remote'

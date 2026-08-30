@@ -110,6 +110,7 @@ import {
   type SoftbookRemoteRuntimeProfile,
 } from './src/runtime/appRuntimeConfig';
 import { installSoftbookAppRuntimeConfig } from './src/runtime/installRuntimeConfig';
+import {findClientUpdateRequiredError} from './src/runtime/clientVersion';
 import {
   applySpaceActionToMap,
   createSpaceAction,
@@ -304,6 +305,7 @@ const SHELL_ACCENT = BRAND_IDENTITY.primary;
 type AuthHandlers = {
   onChangePhone: (value: string) => void;
   onChangeCode: (value: string) => void;
+  onResetPhone: () => void;
   onRequestCode: () => void;
   onSubmitCode: () => void;
   onLogout: () => Promise<void>;
@@ -366,6 +368,8 @@ const LIGHT_PALETTE: Palette = {
 const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
 const AUTH_KEYBOARD_ACCESSORY_ID = 'auth-keyboard-accessory';
 const SMS_CODE_CELL_COUNT = 6;
+const CLIENT_UPDATE_REQUIRED_COPY =
+  '当前版本需要更新；请安装最新版本后继续，登录状态会保留。';
 
 const INITIAL_AUTH_STATE: AuthState = {
   authToken: null,
@@ -548,6 +552,11 @@ function AppShell({
     [membershipRepositoryConfig],
   );
   const runtimeMembershipRepositoryMode = membershipRepositoryConfig.mode;
+  const configuredPurchaseMode = runtimeConfig?.membership?.purchaseMode;
+  const clientPurchaseAvailable =
+    configuredPurchaseMode === 'client' ||
+    (configuredPurchaseMode === undefined &&
+      runtimeMembershipRepositoryMode === 'local');
   const progressSyncRepositoryConfig = useMemo(() => {
     const resolved = resolveProgressSyncRepositoryConfig(runtimeConfig);
 
@@ -639,6 +648,8 @@ function AppShell({
     string | null
   >(null);
   const [learningIndex, setLearningIndex] = useState(0);
+  const [localLearningAttemptGeneration, setLocalLearningAttemptGeneration] =
+    useState(0);
   const [learningCardState, setLearningCardState] =
     useState<LearningCardState | null>(null);
   const [learningCompletedResults, setLearningCompletedResults] = useState<
@@ -664,6 +675,7 @@ function AppShell({
   );
   const [learningStateSyncState, setLearningStateSyncState] =
     useState<LearningStateSyncState>(INITIAL_LEARNING_STATE_SYNC_STATE);
+  const [learningAdvancePending, setLearningAdvancePending] = useState(false);
   const [spaceStateSyncState, setSpaceStateSyncState] =
     useState<SpaceStateSyncState>(INITIAL_SPACE_STATE_SYNC_STATE);
   const [pendingLearningEventCount, setPendingLearningEventCount] = useState(0);
@@ -799,6 +811,7 @@ function AppShell({
       setPendingLearningEventCount(0);
       setLearningEventRecoveryPending(false);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
+      setLearningAdvancePending(false);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
       setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
       startTransition(() => {
@@ -1213,6 +1226,16 @@ function AppShell({
     }),
     [readSpaceCardState, spaceCardStateById],
   );
+  const createTrackedLearningAttemptState = useCallback(
+    (
+      card: LearningSession['cards'][number],
+      stateMap: Record<string, SpaceCardState> = spaceCardStateById,
+    ) => {
+      setLocalLearningAttemptGeneration(current => current + 1);
+      return createTrackedLearningCardState(card, stateMap);
+    },
+    [createTrackedLearningCardState, spaceCardStateById],
+  );
   const resolveVisibleLearningCards = useCallback(
     (
       nextSession: LearningSession | null = learningSession,
@@ -1273,6 +1296,10 @@ function AppShell({
       ? reviewCompletedResults
       : learningCompletedResults;
   const currentLearningCard = activeSessionCards[learningIndex] ?? null;
+  const learningAudioAttemptId =
+    learningSession?.schedulingMode === 'server'
+      ? learningSession.serverSelection?.selectionId ?? null
+      : `local-attempt:${learningSession?.sourceId ?? 'unavailable'}:${learningSession?.track ?? learningTrack}:${learningPhase}:${learningIndex}:${localLearningAttemptGeneration}`;
   const currentRoundCompletion = learningSession?.roundCompletion ?? null;
   const currentRoundSpaceCard = currentRoundCompletion
     ? learningSession?.catalogCards.find(
@@ -2763,12 +2790,12 @@ function AppShell({
       setReviewCompletedResults([]);
       setLearningCardState(
         nextVisibleCards[0]
-          ? createTrackedLearningCardState(nextVisibleCards[0], stateMap)
+          ? createTrackedLearningAttemptState(nextVisibleCards[0], stateMap)
           : null,
       );
     },
     [
-      createTrackedLearningCardState,
+      createTrackedLearningAttemptState,
       learningSession,
       membershipState,
       resolveVisibleLearningCards,
@@ -2809,7 +2836,7 @@ function AppShell({
       setReviewSessionCards(shouldStayInReview ? nextReviewCards : []);
       setLearningCardState(
         nextSessionCards[nextIndex]
-          ? createTrackedLearningCardState(
+          ? createTrackedLearningAttemptState(
               nextSessionCards[nextIndex],
               stateMap,
             )
@@ -2818,7 +2845,7 @@ function AppShell({
     },
     [
       countCompletedCards,
-      createTrackedLearningCardState,
+      createTrackedLearningAttemptState,
       learningCompletedResults,
       learningPhase,
       learningSession,
@@ -2906,6 +2933,34 @@ function AppShell({
       .catch(async (error: unknown) => {
         if (isRemoteRequestCancellationError(error)) {
           return;
+        }
+
+        if (
+          findClientUpdateRequiredError(error) &&
+          restoringSessionScopeKey !== null
+        ) {
+          const retainedSession = authSessionCoordinator.getCurrentSession();
+          if (
+            retainedSession !== null &&
+            getAuthSessionScopeKey(retainedSession) === restoringSessionScopeKey
+          ) {
+            accountBootstrapIntegrityBlockedRef.current = true;
+            setAccountBootstrapIntegrityBlocked(true);
+            setLearningBootstrapStatus('error');
+            setLearningBootstrapError(CLIENT_UPDATE_REQUIRED_COPY);
+            setMembershipError(CLIENT_UPDATE_REQUIRED_COPY);
+            setAuthState({
+              ...INITIAL_AUTH_STATE,
+              authToken:
+                retainedSession === null
+                  ? null
+                  : getAuthAccessToken(retainedSession) ?? null,
+              error: CLIENT_UPDATE_REQUIRED_COPY,
+              phoneNumber: retainedSession.phoneNumber,
+              stage: 'authenticated',
+            });
+            return;
+          }
         }
 
         if (
@@ -3374,12 +3429,31 @@ function AppShell({
           return;
         }
 
+        const bootstrapMembership = accountBootstrapSnapshot?.membership.state;
+        const hasServerMembershipProjection =
+          session.schedulingMode === 'server' &&
+          session.membershipStage !== null;
+        const sessionMembershipIdentityDiffers = Boolean(
+          hasServerMembershipProjection &&
+            bootstrapMembership &&
+            (bootstrapMembership.stage !== session.membershipStage ||
+              bootstrapMembership.trialStartedAt !==
+                session.membershipTrialStartedAt ||
+              bootstrapMembership.trialExpiresAt !==
+                session.membershipTrialExpiresAt),
+        );
+        const sessionClaimsMoreTrialTime = Boolean(
+          hasServerMembershipProjection &&
+            bootstrapMembership?.stage === 'trial' &&
+            session.membershipStage === 'trial' &&
+            session.membershipTrialRemainingSeconds >
+              bootstrapMembership.trialRemainingSeconds,
+        );
+
         if (
           runtimeAccountBootstrapMode === 'remote' &&
           accountBootstrapSnapshot !== null &&
-          session.membershipStage !== null &&
-          accountBootstrapSnapshot.membership.state.stage !==
-            session.membershipStage
+          (sessionMembershipIdentityDiffers || sessionClaimsMoreTrialTime)
         ) {
           const bootstrapRefreshed = await retryCanonicalAccountBootstrap({
             forceFresh: true,
@@ -3389,10 +3463,17 @@ function AppShell({
             return;
           }
 
+          const refreshedMembership =
+            accountBootstrapSnapshotRef.current?.membership.state;
           if (
             !bootstrapRefreshed ||
-            accountBootstrapSnapshotRef.current?.membership.state.stage !==
-              session.membershipStage
+            refreshedMembership === undefined ||
+            refreshedMembership.stage !== session.membershipStage ||
+            refreshedMembership.trialStartedAt !==
+              session.membershipTrialStartedAt ||
+            refreshedMembership.trialExpiresAt !==
+              session.membershipTrialExpiresAt ||
+            sessionClaimsMoreTrialTime
           ) {
             throw new Error(
               'Canonical membership did not reconcile with the learning session.',
@@ -3417,24 +3498,6 @@ function AppShell({
           effectiveMembershipState = startMembershipTrial(
             currentMembershipState,
           );
-        } else if (
-          session.schedulingMode === 'server' &&
-          session.membershipStage !== null &&
-          (currentMembershipState.stage !== session.membershipStage ||
-            currentMembershipState.trialStartedAt !==
-              session.membershipTrialStartedAt ||
-            currentMembershipState.trialExpiresAt !==
-              session.membershipTrialExpiresAt ||
-            currentMembershipState.trialRemainingSeconds !==
-              session.membershipTrialRemainingSeconds)
-        ) {
-          effectiveMembershipState = {
-            ...currentMembershipState,
-            stage: session.membershipStage,
-            trialExpiresAt: session.membershipTrialExpiresAt,
-            trialRemainingSeconds: session.membershipTrialRemainingSeconds,
-            trialStartedAt: session.membershipTrialStartedAt,
-          };
         }
         if (effectiveMembershipState !== currentMembershipState) {
           setMembershipState(effectiveMembershipState);
@@ -3492,7 +3555,7 @@ function AppShell({
         setLearningIndex(nextIndex);
         setLearningCardState(
           nextVisibleCards[nextIndex]
-            ? createTrackedLearningCardState(nextVisibleCards[nextIndex])
+            ? createTrackedLearningAttemptState(nextVisibleCards[nextIndex])
             : null,
         );
         setLearningBootstrapStatus('ready');
@@ -3536,7 +3599,7 @@ function AppShell({
   }, [
     accountBootstrapSnapshot,
     authSessionCoordinator,
-    createTrackedLearningCardState,
+    createTrackedLearningAttemptState,
     authenticatedRuntimeContext,
     clearOriginSessionAfterAuthorizationError,
     isAuthenticated,
@@ -3600,7 +3663,7 @@ function AppShell({
       setLearningIndex(nextIndex);
       setLearningCardState(
         nextVisibleCards[nextIndex]
-          ? createTrackedLearningCardState(
+          ? createTrackedLearningAttemptState(
               nextVisibleCards[nextIndex],
               spaceCardStateById,
             )
@@ -3618,7 +3681,7 @@ function AppShell({
     }
   }, [
     accountBootstrapSnapshot,
-    createTrackedLearningCardState,
+    createTrackedLearningAttemptState,
     learningBootstrapStatus,
     learningSession,
     mappedAccountBootstrapSnapshot,
@@ -3824,6 +3887,17 @@ function AppShell({
         error: null,
       }));
     },
+    onResetPhone: () => {
+      setAuthState(current => ({
+        ...current,
+        challenge: null,
+        error: null,
+        pendingAction: null,
+        phoneNumber: '',
+        smsCode: '',
+        stage: 'logged_out',
+      }));
+    },
     onRequestCode: () => {
       if (authState.pendingAction !== null) {
         return;
@@ -3998,6 +4072,30 @@ function AppShell({
             isRemoteRequestCancellationError(error) ||
             (sessionEstablished && !establishedSessionIsCurrent)
           ) {
+            return;
+          }
+
+          if (
+            sessionEstablished &&
+            establishedSessionIsCurrent &&
+            findClientUpdateRequiredError(error)
+          ) {
+            accountBootstrapIntegrityBlockedRef.current = true;
+            setAccountBootstrapIntegrityBlocked(true);
+            setLearningBootstrapStatus('error');
+            setLearningBootstrapError(CLIENT_UPDATE_REQUIRED_COPY);
+            setMembershipError(CLIENT_UPDATE_REQUIRED_COPY);
+            const retainedSession = authSessionCoordinator.getCurrentSession();
+            setAuthState({
+              ...INITIAL_AUTH_STATE,
+              authToken:
+                retainedSession === null
+                  ? null
+                  : getAuthAccessToken(retainedSession) ?? null,
+              error: CLIENT_UPDATE_REQUIRED_COPY,
+              phoneNumber,
+              stage: 'authenticated',
+            });
             return;
           }
 
@@ -4181,7 +4279,7 @@ function AppShell({
 
     const nextCard = activeSessionCards[nextIndex];
     setLearningIndex(nextIndex);
-    setLearningCardState(createTrackedLearningCardState(nextCard));
+    setLearningCardState(createTrackedLearningAttemptState(nextCard));
   };
 
   const applyDurableSpaceAction = useCallback((action: SpaceAction) => {
@@ -4326,6 +4424,7 @@ function AppShell({
     onTogglePeek: () => {
       patchLearningCardState(current => ({
         ...current,
+        hasUsedPeek: true,
         isPeeked: !current.isPeeked,
       }));
     },
@@ -4352,6 +4451,7 @@ function AppShell({
     onToggleHint: () => {
       patchLearningCardState(current => ({
         ...current,
+        hasUsedHint: true,
         isHintVisible: !current.isHintVisible,
       }));
     },
@@ -4430,10 +4530,34 @@ function AppShell({
     onAdvanceCard: () => {
       if (
         learningCurrentResult === null ||
-        learningEventEnqueueInFlight.current !== null ||
-        (runtimeLearningEventsMode === 'remote' &&
-          pendingLearningEventCountRef.current > 0)
+        learningAdvancePending ||
+        learningEventEnqueueInFlight.current !== null
       ) {
+        return;
+      }
+
+      if (
+        runtimeLearningEventsMode === 'remote' &&
+        pendingLearningEventCountRef.current > 0
+      ) {
+        setLearningAdvancePending(true);
+        setLearningStateSyncState({
+          detail: '正在同步已安全保留的答题记录，确认后即可继续。',
+          label: '同步中',
+          state: 'syncing',
+        });
+        startMutationReplay()
+          .catch((error: unknown) => {
+            setLearningStateSyncState({
+              detail: getUserFacingErrorMessage(
+                error,
+                '已保留的答题记录暂时无法同步，请重试。',
+              ),
+              label: '同步失败',
+              state: 'error',
+            });
+          })
+          .finally(() => setLearningAdvancePending(false));
         return;
       }
 
@@ -4494,6 +4618,7 @@ function AppShell({
       };
 
       learningEventEnqueueInFlight.current = enqueueOperation;
+      setLearningAdvancePending(true);
       setLearningStateSyncState({
         detail: '正在安全保存本次答题记录。',
         label: '记录中',
@@ -4571,6 +4696,7 @@ function AppShell({
           if (learningEventEnqueueInFlight.current === enqueueOperation) {
             learningEventEnqueueInFlight.current = null;
           }
+          setLearningAdvancePending(false);
         }
       })();
     },
@@ -4596,7 +4722,7 @@ function AppShell({
       setLearningCurrentResult(null);
       setLearningScreen('practice');
       setLearningCardState(
-        createTrackedLearningCardState(reviewCandidateCards[0]),
+        createTrackedLearningAttemptState(reviewCandidateCards[0]),
       );
     },
     onRestartDeck: resetLearningDeck,
@@ -4937,6 +5063,7 @@ function AppShell({
                 membershipRepositoryMode={runtimeMembershipRepositoryMode}
                 membershipState={membershipState}
                 palette={palette}
+                purchaseAvailable={clientPurchaseAvailable}
               />
             </>
           ),
@@ -5003,6 +5130,25 @@ function AppShell({
               : '空间状态已同步',
         }
       : null;
+  const learningAdvanceState = {
+    busy: learningAdvancePending,
+    detail:
+      learningCurrentResult === null
+        ? null
+        : learningStateSyncState.state === 'error'
+        ? learningStateSyncState.detail
+        : pendingLearningEventCount > 0 || learningEventRecoveryPending
+        ? '这次答案已保留，先完成同步再进入下一张。'
+        : learningAdvancePending
+        ? '正在安全保存本次答题记录。'
+        : null,
+    needsRetry:
+      learningCurrentResult !== null &&
+      !learningAdvancePending &&
+      (learningStateSyncState.state === 'error' ||
+        pendingLearningEventCount > 0 ||
+        learningEventRecoveryPending),
+  };
 
   const content = shouldShowAuthGate ? (
     <AuthGate
@@ -5018,14 +5164,15 @@ function AppShell({
       authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       checkedInDayKey={checkedInDayKey}
+      completedCount={dailyProgressSnapshot.totalCompletedCount}
       deviceClass={deviceClass}
       favoriteCount={favoriteCount}
       handlers={authHandlers}
-      learningResults={learningCompletedResults}
       membershipError={membershipError}
       membershipGate={membershipGate}
       membershipHandlers={membershipHandlers}
       membershipPendingAction={membershipPendingAction}
+      purchaseAvailable={clientPurchaseAvailable}
       membershipRepositoryMode={runtimeMembershipRepositoryMode}
       membershipState={membershipState}
       onOpenAccountDeletion={openAccountDeletionConfirmation}
@@ -5051,9 +5198,9 @@ function AppShell({
         });
       }}
       palette={learningPalette}
+      pendingReviewCount={dailyProgressSnapshot.pendingReviewCount}
       learningStateSyncState={learningStateSyncState}
       progressSyncState={progressSyncState}
-      reviewResults={reviewCompletedResults}
       sleepingCount={sleepingCount}
       todayKey={todayKey}
     />
@@ -5095,6 +5242,7 @@ function AppShell({
     learningCardState !== null &&
     learningCurrentResult !== null ? (
     <LearningResultDetailSurface
+      advanceState={learningAdvanceState}
       card={currentLearningCard}
       cardState={learningCardState}
       currentIndex={learningIndex}
@@ -5109,6 +5257,8 @@ function AppShell({
     />
   ) : route.key === 'learning' ? (
     <LearningSurface
+      advanceState={learningAdvanceState}
+      audioAttemptId={learningAudioAttemptId}
       completedResults={activeCompletedResults}
       contentManifest={learningSession?.contentManifest ?? null}
       currentCard={currentLearningCard}
@@ -5150,7 +5300,7 @@ function AppShell({
   ) : route.key === 'space' ? (
     <SpaceSurface
       cardStateById={spaceCardStateById}
-      currentLearningCard={currentLearningCard}
+      currentLearningCard={activeLearningContextCard}
       deviceClass={deviceClass}
       onBackToOverview={() => setSpaceScreen('overview')}
       onOpenCardList={() => setSpaceScreen('card_list')}
@@ -5176,13 +5326,13 @@ function AppShell({
       canCheckInToday={canCheckInToday}
       deviceClass={deviceClass}
       hasCheckedInToday={hasCheckedInToday}
-      learningResults={learningCompletedResults}
+      learningCompletedCount={dailyProgressSnapshot.learningCompletedCount}
       onCheckIn={statisticsHandlers.onCheckIn}
       onGoToLearning={openLearningRoute}
       onStartReview={startReviewFromStatistics}
       palette={palette}
-      pendingReviewCount={pendingReviewCount}
-      reviewResults={reviewCompletedResults}
+      pendingReviewCount={dailyProgressSnapshot.pendingReviewCount}
+      reviewCompletedCount={dailyProgressSnapshot.reviewCompletedCount}
       syncStatusDetail={progressSyncState.detail}
       syncStatusLabel={progressSyncState.label}
     />
@@ -6799,10 +6949,10 @@ function MineSurface({
   authRepositoryMode,
   authState,
   checkedInDayKey,
+  completedCount,
   deviceClass,
   favoriteCount,
   handlers,
-  learningResults,
   learningStateSyncState,
   membershipError,
   membershipGate,
@@ -6810,13 +6960,14 @@ function MineSurface({
   membershipPendingAction,
   membershipRepositoryMode,
   membershipState,
+  purchaseAvailable,
   onOpenAccountDeletion,
   onGoToLearning,
   onGoToSpace,
   onGoToStatistics,
   palette,
+  pendingReviewCount,
   progressSyncState,
-  reviewResults,
   sleepingCount,
   todayKey,
 }: {
@@ -6824,10 +6975,10 @@ function MineSurface({
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
+  completedCount: number;
   deviceClass: DeviceClass;
   favoriteCount: number;
   handlers: AuthHandlers;
-  learningResults: LearningCardResult[];
   learningStateSyncState: LearningStateSyncState;
   membershipError: string | null;
   membershipGate: MembershipGate | null;
@@ -6839,13 +6990,14 @@ function MineSurface({
     | null;
   membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
+  purchaseAvailable: boolean;
   onOpenAccountDeletion: () => void;
   onGoToLearning: () => void;
   onGoToSpace: () => void;
   onGoToStatistics: () => void;
   palette: Palette;
+  pendingReviewCount: number;
   progressSyncState: ProgressSyncState;
-  reviewResults: LearningCardResult[];
   sleepingCount: number;
   todayKey: string;
 }) {
@@ -6855,13 +7007,6 @@ function MineSurface({
   const isPhoneViewport = isPhoneMineViewport(viewportWidth, viewportHeight);
   const isAuthenticated = authState.stage === 'authenticated';
   const hasSentCode = authState.stage === 'code_sent';
-  const completedCount = learningResults.length + reviewResults.length;
-  const pendingReviewCount = Math.max(
-    learningResults.filter(
-      result => result.outcome === 'incorrect' || result.outcome === 'review',
-    ).length - reviewResults.length,
-    0,
-  );
   const checkedInToday = checkedInDayKey === todayKey;
   const profileName = isAuthenticated
     ? maskPhoneNumber(authState.phoneNumber)
@@ -7212,7 +7357,58 @@ function MineSurface({
             membershipRepositoryMode={membershipRepositoryMode}
             membershipState={membershipState}
             palette={palette}
+            purchaseAvailable={purchaseAvailable}
           />
+          <View
+            style={[
+              styles.mineAccountPrivacyCard,
+              isCompactPhone ? styles.mineAccountPrivacyCardCompact : null,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+            testID="mine-session-card"
+          >
+            <View style={styles.mineAccountPrivacyCopy}>
+              <Text
+                style={[
+                  styles.mineAccountPrivacyLabel,
+                  {color: palette.text},
+                ]}
+              >
+                当前登录
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.mineAccountPrivacyDetail,
+                  {color: palette.textMuted},
+                ]}
+              >
+                退出后可以改用其他手机号
+              </Text>
+            </View>
+            <Pressable
+              accessibilityHint="退出当前学习账户并返回手机号验证"
+              accessibilityRole="button"
+              disabled={authState.pendingAction !== null}
+              onPress={() => void handlers.onLogout()}
+              style={[
+                styles.secondaryButton,
+                styles.mineAccountLogoutButton,
+                {
+                  backgroundColor: palette.panel,
+                  borderColor: palette.border,
+                },
+              ]}
+              testID="mine-account-logout-button"
+            >
+              <Text style={[styles.secondaryButtonLabel, {color: palette.text}]}>
+                退出登录
+              </Text>
+            </Pressable>
+          </View>
           {accountDeletionAvailable ? (
             <View
               style={[
@@ -7489,6 +7685,7 @@ function MembershipHostCard({
   membershipRepositoryMode,
   membershipState,
   palette,
+  purchaseAvailable,
 }: {
   compact: boolean;
   deviceClass: DeviceClass;
@@ -7503,6 +7700,7 @@ function MembershipHostCard({
   membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
   palette: Palette;
+  purchaseAvailable: boolean;
 }) {
   const access = resolveMembershipAccess(membershipState);
   const benefitSummary = [
@@ -7667,7 +7865,8 @@ function MembershipHostCard({
                   : '开始试用'}
               </Text>
             </Pressable>
-            <Pressable
+            {purchaseAvailable ? (
+              <Pressable
               disabled={membershipPendingAction !== null}
               onPress={handlers.onPurchase}
               style={[
@@ -7688,7 +7887,19 @@ function MembershipHostCard({
               >
                 {membershipPendingAction === 'purchase' ? '同步中' : '开会员'}
               </Text>
-            </Pressable>
+              </Pressable>
+            ) : (
+              <Text
+                style={[
+                  styles.membershipAccessCompactMeta,
+                  styles.membershipOperatorEntitlementCopy,
+                  {color: palette.textMuted},
+                ]}
+                testID="membership-operator-entitlement-copy"
+              >
+                封闭内测权益由邀请开通
+              </Text>
+            )}
           </View>
         </View>
       ) : (
@@ -7756,14 +7967,16 @@ function MembershipHostCard({
           ]}
         >
           <Text style={[styles.membershipFocusTitle, { color: palette.text }]}>
-            恢复购买提醒
+            {purchaseAvailable ? '恢复购买提醒' : '封闭内测权益'}
           </Text>
           <Text
             style={[styles.membershipSummary, { color: palette.textMuted }]}
           >
-            {membershipState.lastExperienceEndedBy === 'premium'
-              ? '会员体验结束后，恢复购买可继续保留完整空间、完整卡库和智能回看。'
-              : '完整试用结束后，恢复购买可继续完整空间与智能回看。'}
+            {purchaseAvailable
+              ? membershipState.lastExperienceEndedBy === 'premium'
+                ? '会员体验结束后，恢复购买可继续保留完整空间、完整卡库和智能回看。'
+                : '完整试用结束后，恢复购买可继续完整空间与智能回看。'
+              : '封闭内测权益由邀请开通；获得资格后会随当前账号自动同步。'}
           </Text>
           <Pressable
             onPress={handlers.onDismissRecovery}
@@ -7806,6 +8019,7 @@ function MembershipHostCard({
           membershipRepositoryMode={membershipRepositoryMode}
           membershipState={membershipState}
           palette={palette}
+          purchaseAvailable={purchaseAvailable}
           quiet
         />
       )}
@@ -7820,6 +8034,7 @@ function MembershipActionGroup({
   membershipRepositoryMode,
   membershipState,
   palette,
+  purchaseAvailable,
   quiet = false,
 }: {
   compact?: boolean;
@@ -7832,6 +8047,7 @@ function MembershipActionGroup({
   membershipRepositoryMode: 'local' | 'remote';
   membershipState: MembershipState;
   palette: Palette;
+  purchaseAvailable: boolean;
   quiet?: boolean;
 }) {
   const isPending = membershipPendingAction !== null;
@@ -7840,6 +8056,18 @@ function MembershipActionGroup({
   const actionText = palette.primaryActionText;
   const showLocalDebugActions =
     membershipRepositoryMode === 'local' && process.env.NODE_ENV === 'test';
+  const operatorEntitlementCopy = (
+    <Text
+      style={[
+        styles.authHint,
+        styles.membershipOperatorEntitlementCopy,
+        {color: palette.textMuted},
+      ]}
+      testID="membership-operator-entitlement-copy"
+    >
+      封闭内测权益由邀请开通，获得后会随当前账号自动同步。
+    </Text>
+  );
 
   return membershipState.stage === 'trial_available' ? (
     <View style={styles.membershipTrialActionRow}>
@@ -7862,7 +8090,8 @@ function MembershipActionGroup({
             : '开始完整试用'}
         </Text>
       </Pressable>
-      <Pressable
+      {purchaseAvailable ? (
+        <Pressable
         disabled={isPending}
         onPress={handlers.onPurchase}
         style={[
@@ -7876,11 +8105,13 @@ function MembershipActionGroup({
         >
           {membershipPendingAction === 'purchase' ? '同步中' : '直接开通'}
         </Text>
-      </Pressable>
+        </Pressable>
+      ) : operatorEntitlementCopy}
     </View>
   ) : membershipState.stage === 'trial' ? (
     <View style={styles.authActions}>
-      <Pressable
+      {purchaseAvailable ? (
+        <Pressable
         disabled={isPending}
         onPress={handlers.onPurchase}
         style={[
@@ -7899,6 +8130,7 @@ function MembershipActionGroup({
             : '直接开通会员'}
         </Text>
       </Pressable>
+      ) : operatorEntitlementCopy}
       {showLocalDebugActions ? (
         <Pressable
           disabled={isPending}
@@ -7946,7 +8178,8 @@ function MembershipActionGroup({
     </View>
   ) : (
     <View style={styles.authActions}>
-      <Pressable
+      {purchaseAvailable ? (
+        <Pressable
         disabled={isPending}
         onPress={handlers.onPurchase}
         style={[
@@ -7964,7 +8197,8 @@ function MembershipActionGroup({
             ? '正在恢复购买'
             : '恢复购买并开通会员'}
         </Text>
-      </Pressable>
+        </Pressable>
+      ) : operatorEntitlementCopy}
     </View>
   );
 }
@@ -8195,6 +8429,21 @@ function PhoneSmsPanel({
               </Text>
             </Pressable>
           </View>
+          {!isAuthenticated ? (
+            <Pressable
+              disabled={isPending}
+              onPress={handlers.onResetPhone}
+              style={[
+                styles.authChangePhoneButton,
+                {backgroundColor: palette.panel, borderColor: palette.border},
+              ]}
+              testID="auth-change-phone-button"
+            >
+              <Text style={[styles.authCodeResendLabel, {color: palette.text}]}>
+                更换手机号
+              </Text>
+            </Pressable>
+          ) : null}
           <Text
             numberOfLines={1}
             style={[
@@ -8281,6 +8530,11 @@ function PhoneSmsPanel({
                 })}
               </View>
               <TextInput
+                accessibilityHint="输入短信中收到的四到六位验证码"
+                accessibilityLabel="短信验证码"
+                accessibilityState={{
+                  disabled: isPending || isAuthenticated,
+                }}
                 caretHidden
                 editable={!isPending && !isAuthenticated}
                 inputAccessoryViewID={
@@ -8425,6 +8679,11 @@ function PhoneSmsPanel({
                 手机号
               </Text>
               <TextInput
+                accessibilityHint="输入用于登录软书四六级的十一位手机号"
+                accessibilityLabel="手机号码"
+                accessibilityState={{
+                  disabled: isPending || isAuthenticated,
+                }}
                 autoCapitalize="none"
                 editable={!isPending && !isAuthenticated}
                 inputAccessoryViewID={
@@ -9615,6 +9874,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 0,
     justifyContent: 'center',
+    minHeight: 44,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
@@ -9622,6 +9882,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
+  },
+  authChangePhoneButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 12,
   },
   fieldGroup: {
     gap: 6,
@@ -10258,6 +10527,12 @@ const styles = StyleSheet.create({
     minWidth: 92,
     paddingHorizontal: 12,
   },
+  mineAccountLogoutButton: {
+    minHeight: 44,
+    minWidth: 92,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   mineAccountDeleteButtonLabel: {
     fontSize: 12,
     fontWeight: '800',
@@ -10642,6 +10917,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
+  },
+  membershipOperatorEntitlementCopy: {
+    flex: 1,
+    flexShrink: 1,
+    lineHeight: 18,
   },
   membershipPrimaryAction: {
     flex: 1,

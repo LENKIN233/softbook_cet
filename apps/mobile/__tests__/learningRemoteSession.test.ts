@@ -213,6 +213,12 @@ test.each([
     },
   },
   {
+    label: 'trial remaining time drifts from generated time',
+    mutate: (payload: ReturnType<typeof createPayload>) => {
+      payload.data.trial_remaining_seconds = 431999;
+    },
+  },
+  {
     label: 'invalid selection identifier',
     mutate: (payload: ReturnType<typeof createPayload>) => {
       payload.data.selection.selection_id = 'sel_short';

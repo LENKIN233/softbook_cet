@@ -18,7 +18,7 @@ describe('Web runtime boundary', () => {
 
     expect(resolveWebRuntime()).toEqual({
       baseUrl: 'https://runtime.example.cn/',
-      clientIdentity: {platform: 'web', version: '0.1.0'},
+      clientIdentity: {platform: 'web', version: '1.0.0'},
       clientKind: 'web',
       contentManifestPublicKeys: {
         'release-2026': 'ab'.repeat(32),

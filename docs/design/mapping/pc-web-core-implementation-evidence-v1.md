@@ -57,6 +57,28 @@ This implementation hypothesis does not turn repository-local cards into approve
 | Private Web audio | shared signed manifest/keyring parser plus deadline-bound streaming with an exact signed byte ceiling and SHA-256 verification before explicit Blob playback; expiring URL is never a playback source, ended/error releases the controller, exact session scope/deletion epoch/content version/selection ID own each playback, cross-tab epoch events, auth-session-scope invalidation/replacement, same-card new selections, and controller disposal abort preparation and stop playback, and the subscribed UI returns to prepare/retry state | `webAudio.ts`, `webAudio.test.ts`, `remoteRuntime.test.ts`, `App.remote.test.tsx` |
 | Accessibility | landmarks, labels, pressed/expanded state, focus-visible treatment, reduced-motion-safe discrete operations | axe-core smoke, keyboard browser flow, unit tests |
 
+## 2026-08-31 Usability And Privacy Corrections
+
+- `Peek` is again an explicit lightweight Learning tool. Peek and hint usage
+  remain sticky after collapse so presentation state cannot rewrite scheduling.
+- Library, group, and box labels pass through the shared display formatter
+  before entering text or aria sinks; `raw-`, `internal-`, `test-`, and
+  `fixture-` values fall back to product copy.
+- If authentication succeeds but the first account snapshot fails, `我的`
+  remains reachable and provides reload plus logout instead of disabling every
+  route.
+- A below-minimum Web build preserves the authenticated state and gives an
+  explicit refresh/update instruction rather than reporting SMS or generic
+  account-loading failure.
+- The tracked Web build follows the formal `1.0.0` release train, and the formal
+  bundle builder rejects a native release minimum above the tracked Web build.
+- Closed-beta Mine copy describes invitation-owned entitlement and removes the
+  implication that a purchase/restore action exists in the current runtime.
+
+These corrections reuse the accepted PC Web object, route rail, context rail,
+and account-object design. No new shell, dashboard, interaction family, or
+visual token is introduced.
+
 ## Explicit Gap Table
 
 | Boundary | Current status | Required before production claim |
@@ -65,7 +87,7 @@ This implementation hypothesis does not turn repository-local cards into approve
 | Canonical bootstrap and scheduler | event replay precedes authenticated bootstrap; shared `/v2/learning/session` and selection-bound completion ack/next are connected | prove receiver content/session execution and recovery in a real browser |
 | Learning events/progress | credential-free event outbox persists in browser storage, serializes cross-tab writes with a fresh transactional reread, and blocks canonical read until replay; explicit check-in uses the same durable mutation boundary | prove browser recovery/runtime results against the receiver |
 | Space sync | credential-free queue and shared `/v2/space/actions` are connected; cross-tab operations and cleanup cannot blind-overwrite one another; visible favorite/sleep updates only after durable enqueue, retryable failures remain queued, persisted terminal 409 quarantine remains rejected across reload, and confirmed requires ack plus fresh bootstrap | prove receiver conflict/offline recovery in a real browser |
-| Membership/payment | remote UI state comes only from canonical server entitlement; no client trial start exists in remote mode; purchase/restore remain unavailable | implement Web purchase/restore and prove payment evidence |
+| Membership/payment | closed beta consistently uses invitation-owned operator entitlement on Web/iOS/Android and exposes no guaranteed-failure purchase action | before a future public commercial release, add one real cross-platform purchase capability and receipt-bound recovery |
 | Audio | signed manifest/keyring, deadline-bound private streaming, actual-byte ceiling, size/SHA-256 verification, terminal cleanup and explicit replayable Blob playback are connected | inject the real public keyring and prove private browser playback/listening QC |
 | Formal content | development structured cards only | approved `card make` payload, import/audit/smoke and coverage evidence |
 | Account deletion | exact-202 acceptance, truthful unknown state, durable cleanup retry, dedicated exact-phone zero-session SMS recovery, strict pending/none parsing, atomic marker/revision envelope migration, and fresh registration without completion claims are connected | prove receiver deletion/worker execution and browser recovery policy evidence |

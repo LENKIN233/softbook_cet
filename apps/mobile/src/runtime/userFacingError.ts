@@ -32,6 +32,9 @@ export function getUserFacingErrorMessage(
   error: unknown,
   fallback: string,
 ): string {
+  if (findClientUpdateRequiredError(error)) {
+    return '当前版本需要更新；请安装最新版本后继续，登录状态会保留。';
+  }
   if (!(error instanceof Error)) {
     return fallback;
   }
@@ -49,3 +52,4 @@ export function getUserFacingErrorMessage(
   // above may cross this rendering boundary.
   return fallback;
 }
+import {findClientUpdateRequiredError} from './clientVersion';

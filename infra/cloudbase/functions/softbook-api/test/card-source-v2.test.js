@@ -10,6 +10,43 @@ const {
 const NOW = new Date('2026-08-12T08:00:00.000Z');
 const PHONE = '13800138000';
 
+test('card-source rejects prompt, model, harness, and credential fields at every DTO boundary', async () => {
+  const source = await createDevelopmentCardSource();
+  const cases = [
+    card => {
+      card.model = 'sentinel-model';
+    },
+    card => {
+      card.front.system_prompt = 'sentinel-prompt';
+    },
+    card => {
+      card.analysis.harness = {run_id: 'sentinel-run'};
+    },
+    card => {
+      card.space_metadata.credentials = {token: 'sentinel-token'};
+    },
+  ];
+
+  for (const mutate of cases) {
+    const candidate = structuredClone(source);
+    mutate(candidate.card_records[0]);
+    assert.throws(
+      () => validateCardSourceForImport(candidate, 'cet4'),
+      /unsupported(?: or missing)? fields/,
+    );
+  }
+
+  const choiceCandidate = structuredClone(source);
+  const choice = choiceCandidate.card_records.find(
+    card => card.interaction_id === 'multiple_choice',
+  );
+  choice.options[0].developer_prompt = 'sentinel-developer-prompt';
+  assert.throws(
+    () => validateCardSourceForImport(choiceCandidate, 'cet4'),
+    /unsupported(?: or missing)? fields/,
+  );
+});
+
 test('authenticated v2 card source serves a controlled-pilot release while v1 remains disabled', async () => {
   const store = createMemoryStore({
     authIndexSecret: 'controlled-pilot-index-secret-00000001',
@@ -297,25 +334,7 @@ test('controlled-pilot trial starts only from an authenticated valid Learning Se
 });
 
 async function createControlledPilotCardSource() {
-  const developmentStore = createMemoryStore();
-  const developmentApi = createSoftbookApi({
-    authV2AcknowledgementSleeper: async () => undefined,
-    authV2IndexSecret: 'softbook-cloudbase-dev-secret',
-    now: () => new Date(NOW),
-    runtimeMode: 'development',
-    smsCode: '2468',
-    store: developmentStore,
-    tokenSecret: 'development-card-source-secret',
-  });
-  const session = await authenticate(developmentApi);
-  const response = await request(developmentApi, {
-    headers: {authorization: `Bearer ${session.access_token}`},
-    method: 'GET',
-    path: '/v1/learning/card-source',
-    query: {track: 'cet4'},
-  });
-  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
-  const source = response.body.data;
+  const source = await createDevelopmentCardSource();
   const cards = Array.from({length: 120}, (_, index) => {
     const template = source.card_records[index % source.card_records.length];
     const suffix = String(Math.floor(index / source.card_records.length) + 1)
@@ -352,6 +371,28 @@ async function createControlledPilotCardSource() {
     },
     'cet4',
   );
+}
+
+async function createDevelopmentCardSource() {
+  const developmentStore = createMemoryStore();
+  const developmentApi = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
+    authV2IndexSecret: 'softbook-cloudbase-dev-secret',
+    now: () => new Date(NOW),
+    runtimeMode: 'development',
+    smsCode: '2468',
+    store: developmentStore,
+    tokenSecret: 'development-card-source-secret',
+  });
+  const session = await authenticate(developmentApi);
+  const response = await request(developmentApi, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v1/learning/card-source',
+    query: {track: 'cet4'},
+  });
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  return response.body.data;
 }
 
 async function authenticate(api) {

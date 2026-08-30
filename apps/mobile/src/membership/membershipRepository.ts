@@ -298,6 +298,31 @@ export function parseSoftbookRemoteMembershipPayload(
   };
 }
 
+export function assertServerDerivedTrialRemainingSeconds(
+  state: Pick<
+    MembershipState,
+    'stage' | 'trialExpiresAt' | 'trialRemainingSeconds'
+  >,
+  observedAt: string,
+  label: string,
+) {
+  const expectedRemainingSeconds =
+    state.stage === 'trial' && state.trialExpiresAt !== null
+      ? Math.max(
+          0,
+          Math.ceil(
+            (Date.parse(state.trialExpiresAt) - Date.parse(observedAt)) / 1000,
+          ),
+        )
+      : 0;
+
+  if (state.trialRemainingSeconds !== expectedRemainingSeconds) {
+    throw new Error(
+      `${label} trial remaining seconds do not match its server observation time.`,
+    );
+  }
+}
+
 function buildRemoteMembershipHeaders(
   config: MembershipRemoteConfig,
   context: MembershipRepositoryContext,

@@ -4,7 +4,14 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { AccessibilityInfo, ScrollView, StyleSheet, Text } from 'react-native';
+import {
+  AccessibilityInfo,
+  NativeModules,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 import {ACCOUNT_DELETION_CLEANUP_STORAGE_KEY} from '../src/account/accountDeletionCleanupStore';
@@ -919,9 +926,13 @@ function createRemoteCatalogSession(): LearningSession {
       library: '远端专属库',
     },
   };
+  const remoteAccessibleCatalog = [
+    remoteCard,
+    ...baseSession.catalogCards.slice(0, 3),
+  ];
 
   return {
-    catalogCards: [remoteCard],
+    catalogCards: remoteAccessibleCatalog,
     cards: [remoteCard],
     contentManifest: null,
     contentVersion: TEST_CONTENT_VERSION,
@@ -1023,6 +1034,13 @@ test('renders correctly', async () => {
     findPressableByTestId(tree!.root, 'auth-request-code-button').props
       .disabled,
   ).toBe(true);
+  expect(
+    tree!.root.findByProps({ testID: 'auth-phone-input' }).props,
+  ).toMatchObject({
+    accessibilityHint: '输入用于登录软书四六级的十一位手机号',
+    accessibilityLabel: '手机号码',
+    accessibilityState: { disabled: false },
+  });
 });
 
 test('keeps protected route auth gates attached to the selected object', async () => {
@@ -1189,6 +1207,13 @@ test('keeps mine code-sent state attached to the account object', async () => {
   expect(
     mineProfileCard.findByProps({ testID: 'auth-code-input' }),
   ).toBeTruthy();
+  expect(
+    mineProfileCard.findByProps({ testID: 'auth-code-input' }).props,
+  ).toMatchObject({
+    accessibilityHint: '输入短信中收到的四到六位验证码',
+    accessibilityLabel: '短信验证码',
+    accessibilityState: { disabled: false },
+  });
   const inlineDockStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
   );
@@ -1967,6 +1992,7 @@ test('refreshes canonical membership when learning-session starts the trial', as
         bootstrapRequestCount === 1 ? 'trial_available' : 'trial',
       );
       if (bootstrapRequestCount > 1) {
+        payload.data.generated_at = '2026-08-12T08:00:01.000Z';
         payload.data.membership.trial_expires_at =
           trialSession.membershipTrialExpiresAt;
         payload.data.membership.trial_remaining_seconds =
@@ -2016,6 +2042,76 @@ test('refreshes canonical membership when learning-session starts the trial', as
     root.findAllByProps({ testID: 'membership-start-trial-button' }),
   ).toHaveLength(0);
   expect(JSON.stringify(tree!.toJSON())).toContain('试用还剩 3 天');
+});
+
+test('rejects a stale learning session that tries to extend the canonical trial clock', async () => {
+  let bootstrapRequestCount = 0;
+  const staleTrialSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'trial' as const,
+    membershipTrialExpiresAt: '2026-08-15T08:00:00.000Z',
+    membershipTrialRemainingSeconds: 259200,
+    membershipTrialStartedAt: '2026-08-10T08:00:00.000Z',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      const payload = createAccountBootstrapPayload(staleTrialSession, 'trial');
+      payload.data.generated_at = '2026-08-12T08:00:01.000Z';
+      payload.data.membership.trial_expires_at =
+        staleTrialSession.membershipTrialExpiresAt;
+      payload.data.membership.trial_remaining_seconds = 259199;
+      payload.data.membership.trial_started_at =
+        staleTrialSession.membershipTrialStartedAt;
+      return createJsonResponse(payload);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(staleTrialSession);
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (
+      root.findAllByProps({testID: 'learning-bootstrap-retry-button'}).length >
+      0
+    ) {
+      break;
+    }
+  }
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(root.findAllByProps({testID: 'learning-flip-button'})).toHaveLength(0);
+  expect(
+    root.findAllByProps({testID: 'learning-bootstrap-retry-button'}).length,
+  ).toBeGreaterThan(0);
+  await openRoute(root, 'mine');
+  expect(JSON.stringify(tree!.toJSON())).toContain('试用还剩 3 天');
+  expectNoUserVisibleMetadataLeakage(tree!);
 });
 
 test('fails closed when refreshed bootstrap still disagrees with learning-session membership', async () => {
@@ -2287,6 +2383,10 @@ test('continues an exact controlled-pilot round before requesting another server
   });
   await authenticateIntoLearningBootstrap(tree!.root);
   await resolveLearningBootstrap(roundSession);
+  await openRoute(tree!.root, 'space');
+  const roundSpaceText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(roundSpaceText).toContain(baseSession.catalogCards[4].front.prompt);
+  await openRoute(tree!.root, 'learning');
   const continueButton = tree!.root.findByProps({
     testID: 'learning-continue-round-button',
   });
@@ -2529,6 +2629,12 @@ test('locks writes after canonical owner drift until a valid revision advance', 
   const root = tree!.root;
   await loginIntoLearningFlow(root);
   await openRoute(root, 'mine');
+
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'mine-account-logout-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
   });
@@ -3172,6 +3278,14 @@ test('space map uses the active learning session catalog', async () => {
   expect(renderedText).toContain('远端专属库');
   expect(renderedText).toContain('远端专属组');
   expect(renderedText).toContain('远端专属盒');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-library-next'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-library-next'}).props.onPress();
+  });
+  expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain('仔细阅读');
 });
 
 test('queues a failed explicit remote check-in without uploading progress counters', async () => {
@@ -3353,6 +3467,98 @@ test('does not count a prior China-day card projection as today or enable check-
   expect(
     findPressableByTestId(root, 'statistics-checkin-button').props.disabled,
   ).toBe(true);
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('uses canonical Progress counts in Statistics and Mine when retained history is outside the current catalog', async () => {
+  const session = createLocalLearningSession('cet4');
+  const retainedEvent: MockLearningEvent = {
+    answer_grade: 'review_needed',
+    card_id: 'retained-card-a',
+    client_occurred_at: new Date().toISOString(),
+    content_version: TEST_CONTENT_VERSION,
+    device_cursor: {device_id: 'retained-device', sequence: 1},
+    event_id: 'event_retained_progress_0001',
+    interaction_id: 'flip',
+    outcome: 'review',
+    phase: 'learning',
+    selection_id: 'sel_retained_progress_0001',
+    used_hint: false,
+    used_peek: false,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      const payload: any = createAccountBootstrapPayload(
+        session,
+        'free',
+        [retainedEvent],
+      );
+      payload.data.learning.card_states[0].is_favorited = true;
+      payload.data.progress.favorite_count = 2;
+      payload.data.progress.learning_completed_count = 4;
+      payload.data.progress.pending_review_count = 3;
+      payload.data.progress.review_completed_count = 2;
+      payload.data.progress.sleeping_count = 1;
+      payload.data.progress.total_completed_count = 6;
+      payload.data.space.acknowledged_at = new Date().toISOString();
+      payload.data.space.states = [
+        {
+          card_id: retainedEvent.card_id,
+          is_favorited: true,
+          is_sleeping: false,
+          last_modified_at: new Date().toISOString(),
+        },
+        {
+          card_id: 'retained-card-b',
+          is_favorited: true,
+          is_sleeping: true,
+          last_modified_at: new Date().toISOString(),
+        },
+      ];
+      payload.data.component_revisions.learning.space_revision = 1;
+      payload.data.component_revisions.progress.space_revision = 1;
+      payload.data.component_revisions.space.state_revision = 1;
+      return createJsonResponse(payload);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root, session);
+  await openRoute(root, 'statistics');
+
+  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('6');
+  expect(readMetricValue(root, 'statistics-metric-pending-review')).toBe('3');
+  expect(readMetricValue(root, 'statistics-metric-review')).toBe('2');
+
+  await openRoute(root, 'mine');
+  expect(readMetricValue(root, 'mine-metric-completed')).toBe('6');
+  expect(readMetricValue(root, 'mine-metric-review')).toBe('3');
+  expect(readMetricValue(root, 'mine-metric-favorites')).toBe('2');
+  expect(readMetricValue(root, 'mine-metric-sleeping')).toBe('1');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -3736,6 +3942,14 @@ test('does not advance the card when durable learning event storage fails', asyn
     });
 
     expect(findPressableByTestId(root, 'learning-next-button')).toBeTruthy();
+    expect(
+      root.findByProps({testID: 'learning-advance-status'}).findByType(Text)
+        .props.children,
+    ).toBe('本次答题记录无法安全保存，请重试。');
+    expect(
+      findPressableByTestId(root, 'learning-next-button').findByType(Text).props
+        .children,
+    ).toBe('重试保存');
     expect(
       mockFetch.mock.calls.some(
         ([input]) =>
@@ -4425,7 +4639,7 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
   expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
@@ -4923,6 +5137,7 @@ test('can unlock gated space after remote purchase', async () => {
     },
     membership: {
       mode: 'remote',
+      purchaseMode: 'client',
       remote: {
         baseUrl: 'https://api.softbook.example',
       },
@@ -5040,6 +5255,7 @@ test('keeps remote purchase failure copy user-facing', async () => {
     },
     membership: {
       mode: 'remote',
+      purchaseMode: 'client',
       remote: {
         baseUrl: 'https://api.softbook.example',
       },
@@ -5483,7 +5699,7 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
-test('keeps phone primary surfaces inside one-screen app panels', async () => {
+test('keeps phone primary surfaces bounded while Space remains scroll-reachable', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5497,7 +5713,7 @@ test('keeps phone primary surfaces inside one-screen app panels', async () => {
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
 
   await openRoute(root, 'space');
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findAllByType(ScrollView)).toHaveLength(1);
 
   await openRoute(root, 'statistics');
   expect(root.findAllByType(ScrollView)).toHaveLength(1);
@@ -5649,7 +5865,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已记录本次结果');
+  expect(output).toContain('本次判断已完成');
   expect(output).toContain('继续下一张');
   expectNoUserVisibleMetadataLeakage(tree!);
 
@@ -5658,7 +5874,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -5680,8 +5896,12 @@ test('can complete the local single-card deck and restart it', async () => {
   const detailResolvedCardStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'learning-detail-resolved-card' }).props.style,
   );
+  const detailResolvedCardContentStyle = StyleSheet.flatten(
+    root.findByProps({ testID: 'learning-detail-resolved-card' }).props
+      .contentContainerStyle,
+  );
   expect(detailResolvedCardStyle.flex).toBe(1);
-  expect(detailResolvedCardStyle.justifyContent).toBe('space-between');
+  expect(detailResolvedCardContentStyle.justifyContent).toBe('space-between');
   const detailAnswerSlipStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'learning-detail-answer-slip' }).props.style,
   );
@@ -5705,11 +5925,15 @@ test('can complete the local single-card deck and restart it', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .findByProps({ testID: 'learning-lock-1-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-lock-2-3' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
 
@@ -5723,11 +5947,11 @@ test('can complete the local single-card deck and restart it', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .findByProps({ testID: 'learning-elimination-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
+    root.findByProps({ testID: 'learning-elimination-2' }).props.onPress();
     root
-      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .findByProps({ testID: 'learning-elimination-4' })
       .props.onPress();
   });
 
@@ -5740,7 +5964,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
+    root.findByProps({ testID: 'learning-swipe-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -5789,7 +6013,7 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -5802,11 +6026,15 @@ test('can start a review round from cards that need revisiting', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .findByProps({ testID: 'learning-lock-1-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-lock-2-3' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
 
@@ -5820,11 +6048,11 @@ test('can start a review round from cards that need revisiting', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .findByProps({ testID: 'learning-elimination-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
+    root.findByProps({ testID: 'learning-elimination-2' }).props.onPress();
     root
-      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .findByProps({ testID: 'learning-elimination-4' })
       .props.onPress();
   });
 
@@ -5837,7 +6065,7 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
+    root.findByProps({ testID: 'learning-swipe-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -5980,6 +6208,16 @@ test('can check in from statistics after making learning progress', async () => 
   expect(
     actionDock.findAllByProps({ testID: 'statistics-checkin-button' }).length,
   ).toBeGreaterThan(0);
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'statistics-go-learning-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'statistics-checkin-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
@@ -7555,7 +7793,7 @@ test('keeps the full five-card session after automatic trial entry', async () =>
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -7568,11 +7806,15 @@ test('keeps the full five-card session after automatic trial entry', async () =>
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .findByProps({ testID: 'learning-lock-1-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-lock-2-3' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
 
@@ -7617,7 +7859,7 @@ test('starts review after membership is already unlocked', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-option-unclear' }).props.onPress();
+    root.findByProps({ testID: 'learning-option-2' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -7630,11 +7872,15 @@ test('starts review after membership is already unlocked', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-subject-the-policy' })
+      .findByProps({ testID: 'learning-lock-1-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({ testID: 'learning-lock-2-3' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-lock-object-test-anxiety' })
+      .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
 
@@ -7648,11 +7894,11 @@ test('starts review after membership is already unlocked', async () => {
 
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'learning-elimination-relative_clause' })
+      .findByProps({ testID: 'learning-elimination-1' })
       .props.onPress();
-    root.findByProps({ testID: 'learning-elimination-adverb' }).props.onPress();
+    root.findByProps({ testID: 'learning-elimination-2' }).props.onPress();
     root
-      .findByProps({ testID: 'learning-elimination-time_phrase' })
+      .findByProps({ testID: 'learning-elimination-4' })
       .props.onPress();
   });
 
@@ -7665,7 +7911,7 @@ test('starts review after membership is already unlocked', async () => {
   });
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-swipe-safe' }).props.onPress();
+    root.findByProps({ testID: 'learning-swipe-1' }).props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
@@ -7766,4 +8012,131 @@ test('keeps basic learning usable when current box cards enter sleep zone', asyn
   expect(output).not.toContain('当前免费态还不能进入完整空间');
   expect(output).not.toContain('恢复一张可学习卡');
   expect(output).not.toContain('当前学习卡都已进入休眠区');
+});
+
+test('authenticated Mine exposes a real logout path', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'mine-account-logout-button').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'mine-account-logout-button'})).toHaveLength(0);
+});
+
+test('code entry can return to an empty phone field without restarting the app', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'auth-phone-input'}).props.onChangeText('13800138000');
+  });
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'auth-request-code-button').props.onPress();
+    await flushAsyncEffects();
+  });
+  expect(root.findByProps({testID: 'auth-code-input'})).toBeTruthy();
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'auth-request-code-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+  expect(
+    StyleSheet.flatten(
+      findPressableByTestId(root, 'auth-change-phone-button').props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+
+  await ReactTestRenderer.act(() => {
+    findPressableByTestId(root, 'auth-change-phone-button').props.onPress();
+  });
+
+  expect(root.findByProps({testID: 'auth-phone-input'}).props.value).toBe('');
+  expect(root.findAllByProps({testID: 'auth-code-input'})).toHaveLength(0);
+});
+
+test('operator-entitlement runtime removes purchase dead ends', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    membership: {mode: 'local', purchaseMode: 'operator_entitlement_only'},
+  };
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'mine');
+
+  expect(root.findAllByProps({testID: 'membership-purchase-button'})).toHaveLength(0);
+  expect(
+    root.findAllByProps({testID: 'membership-operator-entitlement-copy'}).length,
+  ).toBeGreaterThan(0);
+  expect(JSON.stringify(tree!.toJSON())).toContain('封闭内测权益由邀请开通');
+});
+
+test('below-minimum login preserves the session and shows an explicit update path', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      learningState: 'local',
+      membership: 'local',
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  const previousAppInfo = NativeModules.SoftbookAppInfo;
+  NativeModules.SoftbookAppInfo = {
+    platform: Platform.OS,
+    version: '1.0.0',
+  };
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      const payload = createAccountBootstrapPayload();
+      const content = payload.data.content as {
+        release_id: string | null;
+        minimum_client_version: string | null;
+        published_at: string | null;
+      };
+      content.release_id = 'release-update-required';
+      content.minimum_client_version = '2.0.0';
+      content.published_at = '2026-08-31T00:00:00.000Z';
+      return createJsonResponse(payload);
+    }
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  try {
+    let tree: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(<App />);
+    });
+    const root = tree!.root;
+    await authenticateIntoLearningBootstrap(root);
+
+    expect(JSON.stringify(tree!.toJSON())).toContain('当前版本需要更新');
+    expect(root.findAllByProps({testID: 'auth-code-input'})).toHaveLength(0);
+    await openRoute(root, 'mine');
+    expect(
+      findPressableByTestId(root, 'mine-account-logout-button'),
+    ).toBeTruthy();
+  } finally {
+    NativeModules.SoftbookAppInfo = previousAppInfo;
+  }
 });

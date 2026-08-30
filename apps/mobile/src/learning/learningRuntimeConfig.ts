@@ -28,6 +28,7 @@ export type AuthRuntimeConfig = {
 
 export type MembershipRuntimeConfig = {
   mode?: 'local' | 'remote';
+  purchaseMode?: 'client' | 'operator_entitlement_only';
   remote?: {
     apiKey?: string;
     baseUrl: string;

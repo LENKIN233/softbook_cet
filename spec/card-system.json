@@ -1,5 +1,5 @@
 {
-  "version": "vnext-5",
+  "version": "vnext-6",
   "minimum_card_requirements": {
     "must_answer": [
       "这张卡在考什么知识点",
@@ -34,6 +34,22 @@
     "auto_scoring": "whether the system can score directly",
     "answer_key": "data required for auto scoring",
     "space_metadata": "physical-space related metadata, including card position or form changes if needed"
+  },
+  "client_scoring_boundary": {
+    "authenticated_payload_includes_answer_key": true,
+    "reason": "instant and cached first-party practice scoring; this is a self-study product rather than an anti-cheat examination boundary",
+    "confidentiality_claim": "answer_key is not secret from an authenticated client and must never be described as encrypted or hidden from client inspection",
+    "strict_exclusions": [
+      "system_prompt",
+      "developer_prompt",
+      "prompt_template",
+      "model_identity",
+      "harness_metadata",
+      "credentials",
+      "tokens",
+      "private_keys"
+    ],
+    "schema_rule": "backend import, stored card records, API response and client parser must accept only the exact five-interaction card DTO; unknown fields fail validation"
   },
   "audio_field_schema": {
     "required_when_present": [

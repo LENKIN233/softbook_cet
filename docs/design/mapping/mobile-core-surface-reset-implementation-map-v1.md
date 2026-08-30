@@ -97,6 +97,27 @@ Detail must not be implemented as a separate report page or a vertical article. 
 
 These corrections use the already accepted reset decision and mock. They do not claim that every future implementation-evidence item above is now complete.
 
+## 2026-08-31 Usability And Privacy Corrections
+
+- The authenticated Mine account object now exposes a visible `退出登录`
+  action; changing account no longer depends on reaching a signed-out-only
+  component.
+- The SMS-code object exposes `更换手机号`, resets the obsolete challenge, and
+  returns to an empty phone field without restarting the app.
+- Closed-beta runtime profiles declare operator-owned entitlement capability.
+  Mobile hides purchase/restore commands that the runtime guarantees to reject
+  and explains that invitation access will sync to the current account.
+- Core submit, SMS resend/change-phone, statistics, logout, and account actions
+  preserve the accepted minimum `44dp` target.
+- The iOS launch object shows only `软书四六级`; implementation-framework copy
+  is removed.
+- A below-minimum client keeps the authenticated account fact and presents an
+  explicit update-required state instead of calling the valid SMS code wrong.
+
+These are corrections to already accepted Account, Learning, Detail, and
+Statistics objects. They add no new route, interaction family, mastery scale,
+or visual language.
+
 ## Design Review Checklist Answers
 
 Q1: Future implementation must name the current library per screen and keep one strong accent. The reset proof uses the active library with coral.

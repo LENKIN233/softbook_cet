@@ -3,11 +3,14 @@
  */
 
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import {Dimensions, StyleSheet} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
 import { createLocalLearningSession } from '../src/learning/session';
-import { SpaceSurface } from '../src/space/SpaceSurface';
+import {
+  SpaceSurface,
+  isShortSpaceViewport,
+} from '../src/space/SpaceSurface';
 
 const palette = {
   accent: '#7C8BFF',
@@ -138,6 +141,140 @@ test('keeps a physical Space outline when no cards are visible', () => {
   expect(output).not.toContain('空间地图还没有可展示的数据');
 });
 
+test('keeps 44dp hierarchy targets reachable in a scroll viewport at 393x852', () => {
+  expect(isShortSpaceViewport(393, 852)).toBe(false);
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.catalogCards[0];
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const root = tree!.root;
+  expect(root.findByProps({testID: 'space-scroll-viewport'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'space-fixed-viewport'})).toHaveLength(0);
+  for (const level of ['library', 'group', 'box']) {
+    const rowStyle = StyleSheet.flatten(
+      root.findByProps({testID: `space-${level}-row`}).props.style,
+    );
+    const previousStyle = StyleSheet.flatten(
+      root.findByProps({testID: `space-${level}-prev`}).props.style,
+    );
+    const nextStyle = StyleSheet.flatten(
+      root.findByProps({testID: `space-${level}-next`}).props.style,
+    );
+
+    expect(rowStyle.minHeight).toBeGreaterThanOrEqual(44);
+    expect(previousStyle).toMatchObject({height: 44, width: 44});
+    expect(nextStyle).toMatchObject({height: 44, width: 44});
+  }
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-library-next'}).props.onPress();
+  });
+  expect(
+    StyleSheet.flatten(
+      root.findByProps({testID: 'space-follow-current-box'}).props.style,
+    ),
+  ).toMatchObject({minHeight: 44, minWidth: 44});
+  expect(
+    StyleSheet.flatten(
+      root.findByProps({testID: 'space-return-learning'}).props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+  const inspectButton = root.findByProps({testID: 'space-open-card-list'});
+  expect(
+    StyleSheet.flatten(inspectButton.props.style).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+  expect(inspectButton.props.accessibilityRole).toBe('button');
+});
+
+test('short phone Space scrolls intrinsic content instead of clipping the primary return action', () => {
+  expect(isShortSpaceViewport(393, 700)).toBe(true);
+  const consoleErrors: unknown[][] = [];
+  const consoleError = jest.spyOn(console, 'error').mockImplementation(
+    (...args: unknown[]) => {
+      consoleErrors.push(args);
+    },
+  );
+  ReactTestRenderer.act(() => {
+    Dimensions.set({
+      screen: {fontScale: 1, height: 700, scale: 1, width: 393},
+      window: {fontScale: 1, height: 700, scale: 1, width: 393},
+    });
+  });
+  const session = createLocalLearningSession('cet4');
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  try {
+    ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(
+        <SpaceSurface
+          cardStateById={{}}
+          currentLearningCard={session.catalogCards[0]}
+          deviceClass="phone"
+          onReturnToLearning={jest.fn()}
+          onToggleFavoriteTag={jest.fn()}
+          onToggleSleepState={jest.fn()}
+          palette={palette}
+          spaceCards={session.catalogCards}
+        />,
+      );
+    });
+
+    const root = tree!.root;
+    const scroll = root.findByProps({testID: 'space-scroll-viewport'});
+    expect(StyleSheet.flatten(scroll.props.contentContainerStyle).flexGrow).toBe(
+      1,
+    );
+    expect(
+      StyleSheet.flatten(
+        root.findByProps({testID: 'space-shelf-desk'}).props.style,
+      ).flex,
+    ).toBe(0);
+    expect(
+      StyleSheet.flatten(
+        root.findByProps({testID: 'space-current-box-tray'}).props.style,
+      ).overflow,
+    ).toBe('visible');
+    expect(
+      StyleSheet.flatten(
+        root.findByProps({testID: 'space-open-box-deck'}).props.style,
+      ).flex,
+    ).toBe(0);
+    expect(
+      StyleSheet.flatten(
+        root.findByProps({testID: 'space-return-learning'}).props.style,
+      ).minHeight,
+    ).toBeGreaterThanOrEqual(44);
+  } finally {
+    ReactTestRenderer.act(() => {
+      tree?.unmount();
+    });
+    ReactTestRenderer.act(() => {
+      Dimensions.set({
+        screen: {fontScale: 1, height: 852, scale: 1, width: 393},
+        window: {fontScale: 1, height: 852, scale: 1, width: 393},
+      });
+    });
+    consoleError.mockRestore();
+  }
+
+  expect(consoleErrors).toEqual([]);
+});
+
 test('uses contained skeleton slots while Space cards are loading', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];
@@ -224,6 +361,7 @@ test('places Space state rail between address context and current box', () => {
   expect(
     root.findAllByProps({ testID: 'space-sync-rail' }).length,
   ).toBeGreaterThan(0);
+  expect(root.findByProps({testID: 'space-scroll-viewport'})).toBeTruthy();
   expectSpaceFirstReadOrder(tree!, 'space-sync-rail');
 });
 
@@ -286,6 +424,15 @@ test('uses a compact address clue instead of selector controls in the card list 
     root.findByProps({ testID: 'space-browse-card-pager' }).props.style,
   );
   expect(browsePagerStyle.marginTop).toBeUndefined();
+  for (const testID of ['space-card-prev', 'space-card-next']) {
+    const control = root
+      .findAllByProps({testID})
+      .find(candidate => candidate.props.style !== undefined)!;
+    expect(
+      StyleSheet.flatten(control.props.style).minHeight,
+    ).toBeGreaterThanOrEqual(44);
+    expect(control.props.accessibilityRole).toBe('button');
+  }
   const browseStateTrayStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-browse-card-state-tray' }).props.style,
   );
@@ -314,6 +461,17 @@ test('uses a compact address clue instead of selector controls in the card list 
   expect(renderedText).not.toContain('卡片列表');
   expect(renderedText).not.toContain('切换位置');
   expect(renderedText).not.toContain('相邻对象');
+  expect(
+    root.findByProps({testID: 'space-favorite-1'}).props.accessibilityRole,
+  ).toBe('checkbox');
+  expect(
+    root.findByProps({testID: 'space-sleep-1'}).props.accessibilityRole,
+  ).toBe('switch');
+  expect(
+    root.findAllByProps({testID: 'space-return-learning'}).some(
+      candidate => candidate.props.accessibilityRole === 'button',
+    ),
+  ).toBe(true);
 });
 
 test('defaults Space first-read focus to the current learning card box', () => {
@@ -371,9 +529,159 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(renderedText).not.toContain('当前学习卡位于');
 });
 
+test('browses sibling boxes, groups, and libraries while preserving the current-card return focus', () => {
+  const session = createLocalLearningSession('cet4');
+  const baseCard = session.catalogCards[0];
+  const createSpaceCard = (
+    cardId: string,
+    library: string,
+    group: string,
+    box: string,
+    boxRef: string,
+    prompt: string,
+  ) => ({
+    ...baseCard,
+    card_id: cardId,
+    front: {...baseCard.front, prompt},
+    space_metadata: {box, box_ref: boxRef, group, library},
+  });
+  const currentCard = createSpaceCard(
+    '000001',
+    '听力',
+    '逻辑关系',
+    '转折关系',
+    '0000',
+    '当前学习卡提示',
+  );
+  const siblingBoxCard = createSpaceCard(
+    '000101',
+    '听力',
+    '逻辑关系',
+    '因果关系',
+    '0001',
+    '相邻卡盒提示',
+  );
+  const siblingGroupCard = createSpaceCard(
+    '001001',
+    '听力',
+    '细节捕捉',
+    '数字细节',
+    '0010',
+    '相邻分区提示',
+  );
+  const siblingLibraryCard = createSpaceCard(
+    '010001',
+    '仔细阅读',
+    '定位词抓取',
+    '题干定位',
+    '0100',
+    '相邻书架提示',
+  );
+  const onReturnToLearning = jest.fn();
+  const spaceCards = [
+    currentCard,
+    siblingBoxCard,
+    siblingGroupCard,
+    siblingLibraryCard,
+  ];
+  const renderSurface = (screen: 'overview' | 'card_list' = 'overview') => (
+    <SpaceSurface
+      cardStateById={{}}
+      currentLearningCard={currentCard}
+      deviceClass="phone"
+      onReturnToLearning={onReturnToLearning}
+      onToggleFavoriteTag={jest.fn()}
+      onToggleSleepState={jest.fn()}
+      palette={palette}
+      screen={screen}
+      spaceCards={spaceCards}
+      spaceSyncRail={{
+        detail: '空间状态已与账号记录对齐。',
+        label: '已同步',
+        state: 'synced',
+        title: '空间状态已同步',
+      }}
+    />
+  );
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(renderSurface());
+  });
+
+  const root = tree!.root;
+  expect(root.findByProps({testID: 'space-browse-rail'})).toBeTruthy();
+  expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain(
+    '当前学习卡提示',
+  );
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-box-next'}).props.onPress();
+  });
+  let renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('因果关系');
+  expect(renderedText).toContain('相邻卡盒提示');
+  expect(renderedText).toContain('浏览盒桌');
+  expect(renderedText).toContain('正在查看所选卡盒的卡片');
+  expect(renderedText).toContain('所选盒内卡片');
+  expect(renderedText).toContain('所选盒休眠');
+  expect(renderedText).toContain('所选卡盒');
+  expect(root.findByProps({testID: 'space-follow-current-box'})).toBeTruthy();
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-group-next'}).props.onPress();
+  });
+  renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('细节捕捉');
+  expect(renderedText).toContain('相邻分区提示');
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-library-next'}).props.onPress();
+  });
+  renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('仔细阅读');
+  expect(renderedText).toContain('相邻书架提示');
+
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface('card_list'));
+  });
+  renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('所选卡盒');
+  expect(renderedText).toContain('正在查看所选卡盒');
+  expect(renderedText).toContain('所选位置');
+  expect(renderedText).toContain('所选盒卡片');
+  expect(renderedText).toContain('所选盒卡位');
+
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface());
+  });
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-follow-current-box'}).props.onPress();
+  });
+  renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('转折关系');
+  expect(renderedText).toContain('当前学习卡提示');
+  expect(root.findAllByProps({testID: 'space-follow-current-box'})).toHaveLength(
+    0,
+  );
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-return-learning'}).props.onPress();
+  });
+  expect(onReturnToLearning).toHaveBeenCalledTimes(1);
+});
+
 test('stacks Space objects instead of overlapping them at accessibility font sizes', () => {
   const session = createLocalLearningSession('cet4');
-  const currentCard = session.catalogCards[0];
+  const longPrompt =
+    '这是一段需要在辅助功能字号下完整展示、不能因卡片层级而被截断的较长四六级题干。';
+  const accessibleCards = session.catalogCards.map((card, index) =>
+    index === 0
+      ? {...card, front: {...card.front, prompt: longPrompt}}
+      : card,
+  );
+  const currentCard = accessibleCards[0];
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   ReactTestRenderer.act(() => {
@@ -386,7 +694,7 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
         onToggleFavoriteTag={jest.fn()}
         onToggleSleepState={jest.fn()}
         palette={palette}
-        spaceCards={session.catalogCards}
+        spaceCards={accessibleCards}
         usesAccessibilityLayout
       />,
     );
@@ -402,6 +710,9 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
   const returnStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-return-learning' }).props.style,
   );
+  const viewportStyle = StyleSheet.flatten(
+    root.findByProps({testID: 'space-fixed-viewport'}).props.style,
+  );
 
   expect(openBoxDeckStyle).toMatchObject({ flex: 0, overflow: 'visible' });
   expect(cardStyles.length).toBeGreaterThan(1);
@@ -416,6 +727,101 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
     alignItems: 'stretch',
     flexDirection: 'column',
   });
+  expect(viewportStyle.flex).toBe(0);
+  const overviewPromptNodes = root.findAllByProps({children: longPrompt});
+  expect(overviewPromptNodes.length).toBeGreaterThan(0);
+  overviewPromptNodes.forEach(node => {
+    expect(node.props.numberOfLines).toBeUndefined();
+  });
+
+  ReactTestRenderer.act(() => {
+    tree!.update(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        screen="card_list"
+        spaceCards={accessibleCards}
+        usesAccessibilityLayout
+      />,
+    );
+  });
+  expect(
+    tree!.root.findByProps({children: longPrompt}).props.numberOfLines,
+  ).toBeUndefined();
+});
+
+test('keeps accessibility-size tablet Space intrinsically scrollable', () => {
+  const session = createLocalLearningSession('cet4');
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={session.catalogCards[0]}
+        deviceClass="tablet"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+        usesAccessibilityLayout
+      />,
+    );
+  });
+
+  expect(
+    tree!.root.findByProps({testID: 'space-scroll-viewport'}),
+  ).toBeTruthy();
+});
+
+test('opens card inspection on the current learning card instead of the first sibling', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.catalogCards.find((candidate, index, cards) =>
+    cards
+      .slice(0, index)
+      .some(
+        sibling =>
+          sibling.space_metadata.box_ref === candidate.space_metadata.box_ref,
+      ),
+  );
+
+  expect(currentCard).toBeDefined();
+  const siblingCards = session.catalogCards.filter(
+    card => card.space_metadata.box_ref === currentCard!.space_metadata.box_ref,
+  );
+  const currentSiblingIndex = siblingCards.findIndex(
+    card => card.card_id === currentCard!.card_id,
+  );
+  expect(currentSiblingIndex).toBeGreaterThan(0);
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard!}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        screen="card_list"
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain(currentCard!.front.prompt);
+  expect(renderedText).toContain(
+    `${currentSiblingIndex + 1}/${siblingCards.length}`,
+  );
 });
 
 test('resyncs Space focus when the current learning card changes after render', () => {

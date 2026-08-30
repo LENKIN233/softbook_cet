@@ -2,6 +2,8 @@ import {act, fireEvent, render, screen} from '@testing-library/react';
 import {StrictMode} from 'react';
 
 import type {LearningCard, LearningSession} from '../../mobile/src/learning/model';
+import {AccountBootstrapIntegrityError} from '../../mobile/src/bootstrap/accountBootstrapRepository';
+import {ClientUpdateRequiredError} from '../../mobile/src/runtime/clientVersion';
 import {
   createInitialMembershipState,
   type MembershipState,
@@ -13,6 +15,7 @@ import type {
   WebRemoteRuntimeController,
   WebRemoteSnapshot,
 } from './remoteRuntime';
+import {WebRemotePostAuthError} from './remoteRuntime';
 
 const PHONE = '13800138000';
 
@@ -75,6 +78,63 @@ describe('PC Web remote UI authority', () => {
     expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: '翻面看答案'})).toBeNull();
     expect(screen.getByRole('button', {name: '有把握'})).toBeEnabled();
+  });
+
+  it('keeps Mine and logout reachable when the first account snapshot fails', async () => {
+    const controller = createController(createSnapshot('premium'), {
+      verifySmsCode: vi.fn(async () => {
+        throw new WebRemotePostAuthError(new Error('injected bootstrap failure'));
+      }),
+    });
+    await authenticateRemote(controller);
+
+    expect(screen.getByText('当前学习状态暂时不可用')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    expect(
+      screen.getByRole('heading', {name: '当前账户状态暂时无法读取'}),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '退出登录'})).toBeEnabled();
+  });
+
+  it('shows an explicit update path while preserving authenticated state', async () => {
+    const controller = createController(createSnapshot('premium'), {
+      verifySmsCode: vi.fn(async () => {
+        throw new WebRemotePostAuthError(
+          new AccountBootstrapIntegrityError(
+            new ClientUpdateRequiredError('web', '1.0.0', '1.1.0'),
+          ),
+        );
+      }),
+    });
+    await authenticateRemote(controller);
+
+    expect(
+      screen.getByRole('alert'),
+    ).toHaveTextContent('当前版本需要更新；请刷新到最新版本后继续');
+    expect(screen.getByRole('navigation', {name: '主要导航'})).toBeInTheDocument();
+    expect(screen.queryByLabelText('短信验证码')).toBeNull();
+  });
+
+  it('filters internal Space metadata in text and aria sinks', async () => {
+    const snapshot = createSnapshot('premium');
+    for (const card of snapshot.learningSession!.catalogCards) {
+      card.space_metadata = {
+        ...card.space_metadata,
+        box: 'raw-box-name',
+        group: 'internal-group-name',
+        library: 'fixture-library-name',
+      };
+    }
+    await authenticateRemote(createController(snapshot));
+
+    expect(document.body.textContent).not.toMatch(
+      /raw-box-name|internal-group-name|fixture-library-name/,
+    );
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    expect(document.body.textContent).not.toMatch(
+      /raw-box-name|internal-group-name|fixture-library-name/,
+    );
+    expect(screen.getByRole('region', {name: '当前卡盒 当前卡盒'})).toBeInTheDocument();
   });
 
   it('keeps login closed on durable logout cleanup failure and resumes it', async () => {

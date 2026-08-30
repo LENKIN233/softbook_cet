@@ -38,6 +38,27 @@ const {validateCardSourceForReleaseBundle} = require(
   '../infra/cloudbase/functions/softbook-api',
 );
 
+test('tracked Web build follows the formal release version train', () => {
+  const webPackage = JSON.parse(
+    fs.readFileSync(new URL('../apps/web/package.json', import.meta.url), 'utf8'),
+  );
+  assert.equal(webPackage.version, '1.0.0');
+});
+
+test('formal bundle refuses a release minimum above the tracked Web build', t => {
+  const fixture = createFixture();
+  t.after(() => fs.rmSync(fixture.root, {recursive: true, force: true}));
+  const profile = readJson(fixture.profilePath);
+  profile.minimum_client_versions = {android: '1.1.0', ios: '1.1.0'};
+  writeJson(fixture.profilePath, profile);
+
+  assert.throws(
+    () =>
+      assembleFormalReleaseBundle(fixture.options, safeBuildDependencies()),
+    /Tracked Web build version must be at least the formal release minimum 1\.1\.0/,
+  );
+});
+
 test('formal bundle builder is dry-run by default and parses a retained parent', () => {
   const parsed = parseFormalReleaseBundleArguments([
     '--profile',

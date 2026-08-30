@@ -226,16 +226,19 @@ function assertDownloadIsUsable(download: ContentAssetDownload, now: Date) {
     throw new Error('Content asset download URL has expired.');
   }
 
-  assertCredentialFreeHttps(download.url, 'download URL');
+  assertContentAssetCredentialFreeHttps(download.url, 'download URL');
 }
 
 function assertRedirectsAreUsable(redirects: readonly string[]) {
   for (const redirect of redirects) {
-    assertCredentialFreeHttps(redirect, 'download redirect');
+    assertContentAssetCredentialFreeHttps(redirect, 'download redirect');
   }
 }
 
-function assertCredentialFreeHttps(value: string, label: string) {
+export function assertContentAssetCredentialFreeHttps(
+  value: string,
+  label: string,
+) {
   let url: URL;
 
   try {

@@ -22,6 +22,7 @@ class SoftbookAudioPlayerModule(
   private var player: ExoPlayer? = null
   private var preparePromise: Promise? = null
   private var playbackToken: String? = null
+  private var hasRequestedPlayback = false
   private var listenerCount = 0
 
   init {
@@ -48,6 +49,7 @@ class SoftbookAudioPlayerModule(
 
       val newPlayer = ExoPlayer.Builder(reactContext).build()
       playbackToken = token
+      hasRequestedPlayback = false
       preparePromise = promise
       player = newPlayer
       newPlayer.setAudioAttributes(
@@ -67,6 +69,9 @@ class SoftbookAudioPlayerModule(
               preparePromise = null
             } else if (playbackState == Player.STATE_ENDED) {
               sendEvent("ended")
+              if (player === newPlayer) {
+                releasePlayer("audio_ended", "Audio playback ended.")
+              }
             }
           }
 
@@ -94,23 +99,33 @@ class SoftbookAudioPlayerModule(
   }
 
   @ReactMethod
-  fun play(promise: Promise) {
+  fun play(token: String, promise: Promise) {
     reactContext.runOnUiQueueThread {
       val currentPlayer = player
-      if (currentPlayer == null || currentPlayer.playbackState != Player.STATE_READY) {
+      if (
+        currentPlayer == null ||
+          playbackToken != token ||
+          currentPlayer.playbackState != Player.STATE_READY
+      ) {
         promise.reject("audio_not_ready", "Audio is not ready.")
         return@runOnUiQueueThread
       }
 
       currentPlayer.play()
+      hasRequestedPlayback = true
       promise.resolve(null)
     }
   }
 
   @ReactMethod
-  fun pause(promise: Promise) {
+  fun pause(token: String, promise: Promise) {
     reactContext.runOnUiQueueThread {
-      player?.pause()
+      val currentPlayer = player
+      if (currentPlayer == null || playbackToken != token) {
+        promise.reject("audio_not_ready", "Audio is not ready.")
+        return@runOnUiQueueThread
+      }
+      currentPlayer.pause()
       promise.resolve(null)
     }
   }
@@ -136,9 +151,18 @@ class SoftbookAudioPlayerModule(
   override fun onHostResume() = Unit
 
   override fun onHostPause() {
-    if (player?.isPlaying == true) {
+    if (
+      player != null &&
+        playbackToken != null &&
+        hasRequestedPlayback
+    ) {
       player?.pause()
       sendEvent("interruption")
+    } else if (
+      preparePromise != null ||
+        (playbackToken != null && !hasRequestedPlayback)
+    ) {
+      cancelPendingOrReadyPlaybackForInterruption()
     }
   }
 
@@ -158,17 +182,40 @@ class SoftbookAudioPlayerModule(
     player?.release()
     player = null
     playbackToken = null
+    hasRequestedPlayback = false
   }
 
   private fun sendEvent(type: String) {
+    val token = playbackToken ?: return
+    sendEvent(type, token, false)
+  }
+
+  private fun sendEvent(type: String, token: String, requiresPrepare: Boolean) {
     if (listenerCount <= 0) return
     val payload = Arguments.createMap().apply {
       putString("type", type)
-      putString("playbackToken", playbackToken)
+      putString("playbackToken", token)
+      if (requiresPrepare) putBoolean("requiresPrepare", true)
     }
     reactContext
       .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
       .emit(EVENT_NAME, payload)
+  }
+
+  private fun cancelPendingOrReadyPlaybackForInterruption() {
+    val interruptedToken = playbackToken ?: return
+    val interruptedPreparePromise = preparePromise
+    preparePromise = null
+    val interruptedPlayer = player
+    player = null
+    playbackToken = null
+    hasRequestedPlayback = false
+    interruptedPlayer?.release()
+    sendEvent("interruption", interruptedToken, true)
+    interruptedPreparePromise?.reject(
+      "audio_prepare_interrupted",
+      "Audio preparation was interrupted.",
+    )
   }
 
   companion object {

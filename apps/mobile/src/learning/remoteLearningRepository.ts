@@ -65,6 +65,7 @@ export function createRemoteLearningSessionRepository(
         config.remoteSessionConfig,
         fetchImpl,
       );
+
       if (
         requiresPostActivationCardSourceReload(source.cards.length, scheduled)
       ) {

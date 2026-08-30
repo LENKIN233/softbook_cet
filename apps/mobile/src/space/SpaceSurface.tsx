@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleProp,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from 'react-native';
@@ -79,6 +81,10 @@ type SpaceSeed = {
 
 const noop = () => undefined;
 
+export function isShortSpaceViewport(width: number, height: number) {
+  return Math.min(width, height) < 600 && height < 800;
+}
+
 export type SpaceGateRail = {
   actionSlot: React.ReactNode;
   detail: string;
@@ -134,6 +140,11 @@ export function SpaceSurface({
   spaceSyncRail?: SpaceSyncRail | null;
   usesAccessibilityLayout?: boolean;
 }) {
+  const {height: viewportHeight, width: viewportWidth} = useWindowDimensions();
+  const usesShortViewport = isShortSpaceViewport(
+    viewportWidth,
+    viewportHeight,
+  );
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const focusedSelection = useMemo(() => {
     if (!currentLearningCard) {
@@ -188,31 +199,51 @@ export function SpaceSurface({
   const [selectedBoxRef, setSelectedBoxRef] = useState(
     focusedSelection?.boxRef ?? selectedGroup?.boxes[0]?.boxRef ?? '',
   );
-  const [selectedCardIndex, setSelectedCardIndex] = useState(0);
-  const lastFocusedCardIdRef = useRef(focusedSelection?.cardId ?? null);
+  const [selectedCardIndex, setSelectedCardIndex] = useState(
+    focusedSelection?.cardIndex ?? 0,
+  );
+  const focusedSelectionKey = focusedSelection
+    ? [
+        focusedSelection.cardId,
+        focusedSelection.libraryName,
+        focusedSelection.groupName,
+        focusedSelection.boxRef,
+        focusedSelection.cardIndex,
+      ].join('\u0000')
+    : null;
+  const lastFocusedSelectionKeyRef = useRef(focusedSelectionKey);
   useEffect(() => {
-    const focusedCardId = focusedSelection?.cardId ?? null;
-    const didFocusedCardChange = lastFocusedCardIdRef.current !== focusedCardId;
-    lastFocusedCardIdRef.current = focusedCardId;
+    const didFocusedSelectionChange =
+      lastFocusedSelectionKeyRef.current !== focusedSelectionKey;
+    lastFocusedSelectionKeyRef.current = focusedSelectionKey;
 
     if (!focusedSelection) {
       return;
     }
 
-    if (
-      screen === 'overview' ||
-      (selectionMode === 'follow_current' && didFocusedCardChange)
-    ) {
+    if (selectionMode === 'follow_current' && didFocusedSelectionChange) {
       setSelectionMode('follow_current');
       setSelectedLibraryName(focusedSelection.libraryName);
       setSelectedGroupName(focusedSelection.groupName);
       setSelectedBoxRef(focusedSelection.boxRef);
       setSelectedCardIndex(focusedSelection.cardIndex);
     }
-  }, [focusedSelection, screen, selectionMode]);
+  }, [focusedSelection, focusedSelectionKey, selectionMode]);
   const selectedBox =
     selectedGroup?.boxes.find(box => box.boxRef === selectedBoxRef) ??
     selectedGroup?.boxes[0];
+  const selectedLibraryIndex = Math.max(
+    seed.libraries.findIndex(library => library === selectedLibrary),
+    0,
+  );
+  const selectedGroupIndex = Math.max(
+    selectedLibrary?.groups.findIndex(group => group === selectedGroup) ?? 0,
+    0,
+  );
+  const selectedBoxIndex = Math.max(
+    selectedGroup?.boxes.findIndex(box => box === selectedBox) ?? 0,
+    0,
+  );
   const selectedBoxCards = selectedBox?.cards ?? [];
   const safeSelectedCardIndex =
     selectedBoxCards.length === 0
@@ -271,6 +302,64 @@ export function SpaceSurface({
         currentLearningCard.space_metadata.box,
       )
     : null;
+  const selectedBoxIsCurrent = Boolean(
+    focusedSelection &&
+      selectedLibrary?.libraryName === focusedSelection.libraryName &&
+      selectedGroup?.groupName === focusedSelection.groupName &&
+      selectedBox?.boxRef === focusedSelection.boxRef,
+  );
+  const selectLibraryAt = (index: number) => {
+    const library = seed.libraries[index];
+    const group = library?.groups[0];
+    const box = group?.boxes[0];
+
+    if (!library || !group || !box) {
+      return;
+    }
+
+    setSelectionMode('manual');
+    setSelectedLibraryName(library.libraryName);
+    setSelectedGroupName(group.groupName);
+    setSelectedBoxRef(box.boxRef);
+    setSelectedCardIndex(0);
+  };
+  const selectGroupAt = (index: number) => {
+    const group = selectedLibrary?.groups[index];
+    const box = group?.boxes[0];
+
+    if (!group || !box) {
+      return;
+    }
+
+    setSelectionMode('manual');
+    setSelectedGroupName(group.groupName);
+    setSelectedBoxRef(box.boxRef);
+    setSelectedCardIndex(0);
+  };
+  const selectBoxAt = (index: number) => {
+    const box = selectedGroup?.boxes[index];
+
+    if (!box) {
+      return;
+    }
+
+    setSelectionMode('manual');
+    setSelectedBoxRef(box.boxRef);
+    setSelectedCardIndex(
+      focusedSelection?.boxRef === box.boxRef ? focusedSelection.cardIndex : 0,
+    );
+  };
+  const followCurrentBox = () => {
+    if (!focusedSelection) {
+      return;
+    }
+
+    setSelectionMode('follow_current');
+    setSelectedLibraryName(focusedSelection.libraryName);
+    setSelectedGroupName(focusedSelection.groupName);
+    setSelectedBoxRef(focusedSelection.boxRef);
+    setSelectedCardIndex(focusedSelection.cardIndex);
+  };
   const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
   const stateRailStack = (
     <>
@@ -290,6 +379,9 @@ export function SpaceSurface({
   const hasStateRail = Boolean(
     spaceGateRail || spaceSyncRail || spaceStatusRail,
   );
+  const usesScrollableViewport = usesAccessibilityLayout
+    ? deviceClass === 'tablet'
+    : deviceClass === 'phone' || usesShortViewport || hasStateRail;
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     const emptyTone = currentLearningCard
@@ -299,19 +391,17 @@ export function SpaceSurface({
     const isSpaceLoading = spaceStatusRail?.state === 'loading';
 
     return (
-      <View
-        style={[
-          styles.content,
-          styles.contentOneScreen,
-          usesAccessibilityLayout ? styles.contentAccessible : null,
-          deviceClass === 'tablet' ? styles.contentTablet : null,
-        ]}
+      <SpaceViewport
+        deviceClass={deviceClass}
+        usesAccessibilityLayout={usesAccessibilityLayout}
+        usesShortViewport={usesScrollableViewport}
       >
         <View
           style={[
             styles.shelfDeskFrame,
             styles.shelfDeskFrameOneScreen,
             usesAccessibilityLayout ? styles.shelfDeskFrameAccessible : null,
+            usesScrollableViewport ? styles.shelfDeskFrameShortViewport : null,
           ]}
           testID="space-empty-state"
         >
@@ -559,24 +649,22 @@ export function SpaceSurface({
             </SurfaceCard>
           ) : null}
         </View>
-      </View>
+      </SpaceViewport>
     );
   }
 
   return (
-    <View
-      style={[
-        styles.content,
-        styles.contentOneScreen,
-        usesAccessibilityLayout ? styles.contentAccessible : null,
-        deviceClass === 'tablet' ? styles.contentTablet : null,
-      ]}
+    <SpaceViewport
+      deviceClass={deviceClass}
+      usesAccessibilityLayout={usesAccessibilityLayout}
+      usesShortViewport={usesScrollableViewport}
     >
       <View
         style={[
           styles.shelfDeskFrame,
           styles.shelfDeskFrameOneScreen,
           usesAccessibilityLayout ? styles.shelfDeskFrameAccessible : null,
+          usesScrollableViewport ? styles.shelfDeskFrameShortViewport : null,
         ]}
         testID="space-shelf-desk"
       >
@@ -614,12 +702,12 @@ export function SpaceSurface({
                       { color: selectedTone.accent },
                     ]}
                   >
-                    当前位置
+                    {selectedBoxIsCurrent ? '当前位置' : '所选位置'}
                   </Text>
                   <Text
                     style={[styles.addressPathText, { color: palette.text }]}
                   >
-                    当前卡盒已定位
+                    {selectedBoxIsCurrent ? '当前卡盒已定位' : '所选卡盒已定位'}
                   </Text>
                 </View>
               </View>
@@ -628,8 +716,10 @@ export function SpaceSurface({
                 <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
                   空间地址
                 </Text>
-                <Text style={[styles.title, { color: palette.text }]}>
-                  当前卡盒
+                <Text
+                  style={[styles.title, { color: palette.text }]}
+                >
+                  {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
                 </Text>
                 <Text
                   numberOfLines={1}
@@ -675,6 +765,9 @@ export function SpaceSurface({
                 styles.overviewWorkbench,
                 usesAccessibilityLayout
                   ? styles.overviewWorkbenchAccessible
+                  : null,
+                usesScrollableViewport
+                  ? styles.overviewWorkbenchShortViewport
                   : null,
                 {
                   backgroundColor: solidPanel,
@@ -766,10 +859,100 @@ export function SpaceSurface({
                 </View>
               ) : null}
 
+              <View
+                style={[
+                  styles.hierarchyBrowseRail,
+                  {
+                    backgroundColor: neutralObjectSurface,
+                    borderColor: neutralObjectBorder,
+                  },
+                ]}
+                testID="space-browse-rail"
+              >
+                <View style={styles.hierarchyBrowseHeader}>
+                  <Text
+                    style={[
+                      styles.hierarchyBrowseTitle,
+                      { color: selectedTone.accent },
+                    ]}
+                  >
+                    浏览空间
+                  </Text>
+                  {!selectedBoxIsCurrent && focusedSelection ? (
+                    <Pressable
+                      accessibilityLabel="回到当前学习卡所在卡盒"
+                      accessibilityRole="button"
+                      onPress={followCurrentBox}
+                      style={[
+                        styles.followCurrentButton,
+                        {
+                          backgroundColor: solidPanelStrong,
+                          borderColor: hexToRgba(currentTone.accent, 0.24),
+                        },
+                      ]}
+                      testID="space-follow-current-box"
+                    >
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.followCurrentButtonLabel,
+                          { color: currentTone.accent },
+                        ]}
+                      >
+                        回到当前卡盒
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text
+                      style={[
+                        styles.hierarchyBrowseCurrent,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      当前卡焦点
+                    </Text>
+                  )}
+                </View>
+                <HierarchyBrowseRow
+                  index={selectedLibraryIndex}
+                  label="书架"
+                  onNext={() => selectLibraryAt(selectedLibraryIndex + 1)}
+                  onPrevious={() =>
+                    selectLibraryAt(selectedLibraryIndex - 1)
+                  }
+                  palette={palette}
+                  testIDPrefix="space-library"
+                  total={seed.libraries.length}
+                  value={visibleShelfName}
+                />
+                <HierarchyBrowseRow
+                  index={selectedGroupIndex}
+                  label="分区"
+                  onNext={() => selectGroupAt(selectedGroupIndex + 1)}
+                  onPrevious={() => selectGroupAt(selectedGroupIndex - 1)}
+                  palette={palette}
+                  testIDPrefix="space-group"
+                  total={selectedLibrary.groups.length}
+                  value={visibleSectionName}
+                />
+                <HierarchyBrowseRow
+                  index={selectedBoxIndex}
+                  label="卡盒"
+                  onNext={() => selectBoxAt(selectedBoxIndex + 1)}
+                  onPrevious={() => selectBoxAt(selectedBoxIndex - 1)}
+                  palette={palette}
+                  testIDPrefix="space-box"
+                  total={selectedGroup.boxes.length}
+                  value={visibleContainerName}
+                />
+              </View>
+
               <View style={styles.overviewHeroRow}>
                 <View style={styles.statusCopy}>
-                  <Text style={[styles.eyebrow, { color: palette.textMuted }]}>
-                    当前盒桌
+                  <Text
+                    style={[styles.eyebrow, { color: palette.textMuted }]}
+                  >
+                    {selectedBoxIsCurrent ? '当前盒桌' : '浏览盒桌'}
                   </Text>
                   <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
                     打开卡盒
@@ -777,12 +960,18 @@ export function SpaceSurface({
                   <Text
                     style={[styles.locationText, { color: palette.textMuted }]}
                   >
-                    {currentCardPath
+                    {selectedBoxIsCurrent
                       ? '同盒卡片都在这里'
-                      : '学习卡位置会随进度归位'}
+                      : '正在查看所选卡盒的卡片'}
                   </Text>
                 </View>
                 <Pressable
+                  accessibilityLabel={
+                    selectedBoxIsCurrent
+                      ? '查看当前卡盒里的卡片'
+                      : '查看所选卡盒里的卡片'
+                  }
+                  accessibilityRole="button"
                   onPress={onOpenCardList ?? noop}
                   style={[
                     styles.overviewInspectButton,
@@ -809,6 +998,9 @@ export function SpaceSurface({
                   styles.openBoxDeck,
                   styles.openBoxDeckUnified,
                   usesAccessibilityLayout ? styles.openBoxDeckAccessible : null,
+                  usesScrollableViewport
+                    ? styles.openBoxDeckShortViewport
+                    : null,
                   {
                     backgroundColor: neutralObjectSurface,
                     borderColor: neutralObjectBorder,
@@ -829,7 +1021,7 @@ export function SpaceSurface({
                   <Text
                     style={[styles.openBoxLidTitle, { color: palette.text }]}
                   >
-                    同盒卡片
+                    {selectedBoxIsCurrent ? '同盒卡片' : '所选盒内卡片'}
                   </Text>
                   <Text
                     style={[
@@ -923,7 +1115,9 @@ export function SpaceSurface({
                             : '盒内';
                           const cardPositionLabel = isCurrent
                             ? '当前卡位'
-                            : '同盒卡位';
+                            : selectedBoxIsCurrent
+                            ? '同盒卡位'
+                            : '所选盒卡位';
 
                           return (
                             <View
@@ -977,7 +1171,13 @@ export function SpaceSurface({
                                 </Text>
                               </View>
                               <Text
-                                numberOfLines={index === 0 ? 3 : 2}
+                                numberOfLines={
+                                  usesAccessibilityLayout
+                                    ? undefined
+                                    : index === 0
+                                    ? 3
+                                    : 2
+                                }
                                 style={[
                                   styles.deckCardPrompt,
                                   { color: palette.text },
@@ -1042,6 +1242,10 @@ export function SpaceSurface({
                     </View>
 
                     <Pressable
+                      accessibilityLabel={`查看${
+                        selectedBoxIsCurrent ? '同盒' : '所选盒'
+                      }休眠卡，${selectedSleepingCards.length} 张`}
+                      accessibilityRole="button"
                       onPress={onOpenCardList ?? noop}
                       style={[
                         styles.sleepAlcove,
@@ -1061,7 +1265,7 @@ export function SpaceSurface({
                               { color: palette.text },
                             ]}
                           >
-                            同盒休眠
+                            {selectedBoxIsCurrent ? '同盒休眠' : '所选盒休眠'}
                           </Text>
                           <Text
                             style={[
@@ -1097,6 +1301,8 @@ export function SpaceSurface({
               </View>
 
               <Pressable
+                accessibilityLabel="回到当前学习卡"
+                accessibilityRole="button"
                 onPress={onReturnToLearning}
                 style={[
                   styles.returnContinuity,
@@ -1181,6 +1387,9 @@ export function SpaceSurface({
             <View
               style={[
                 styles.boxBrowseSurface,
+                usesScrollableViewport
+                  ? styles.boxBrowseSurfaceShortViewport
+                  : null,
                 {
                   backgroundColor: solidPanel,
                   borderColor: neutralObjectBorder,
@@ -1219,7 +1428,7 @@ export function SpaceSurface({
                     <Text
                       style={[styles.browseTrayTitle, { color: palette.text }]}
                     >
-                      当前卡盒
+                      {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
                     </Text>
                     <Text
                       numberOfLines={1}
@@ -1228,9 +1437,9 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {currentCardPath
+                      {selectedBoxIsCurrent
                         ? '正在查看同盒卡片'
-                        : '学习卡位置会随学习更新'}
+                        : '正在查看所选卡盒'}
                     </Text>
                   </View>
                   <View
@@ -1273,7 +1482,7 @@ export function SpaceSurface({
                         { color: selectedTone.accent },
                       ]}
                     >
-                      当前位置
+                      {selectedBoxIsCurrent ? '当前位置' : '所选位置'}
                     </Text>
                     <Text
                       style={[
@@ -1382,7 +1591,7 @@ export function SpaceSurface({
                                 { color: palette.textMuted },
                               ]}
                             >
-                              同盒卡片
+                              {selectedBoxIsCurrent ? '同盒卡片' : '所选盒卡片'}
                             </Text>
                             <Text
                               style={[
@@ -1417,7 +1626,9 @@ export function SpaceSurface({
                           testID="space-browse-card-face"
                         >
                           <Text
-                            numberOfLines={3}
+                            numberOfLines={
+                              usesAccessibilityLayout ? undefined : 3
+                            }
                             style={[
                               styles.cardPrompt,
                               styles.browseCardPrompt,
@@ -1446,7 +1657,11 @@ export function SpaceSurface({
                                   { color: palette.text },
                                 ]}
                               >
-                                {isCurrent ? '当前卡位' : '同盒卡位'}
+                                {isCurrent
+                                  ? '当前卡位'
+                                  : selectedBoxIsCurrent
+                                  ? '同盒卡位'
+                                  : '所选盒卡位'}
                               </Text>
                             </View>
                             <View style={styles.browseCardLocatorItem}>
@@ -1493,6 +1708,11 @@ export function SpaceSurface({
                           ) : (
                             <>
                               <Pressable
+                                accessibilityLabel={
+                                  isFavorited ? '取消收藏当前卡' : '收藏当前卡'
+                                }
+                                accessibilityRole="checkbox"
+                                accessibilityState={{checked: isFavorited}}
                                 onPress={() => {
                                   setSelectionMode('manual');
                                   onToggleFavoriteTag(card.cardId);
@@ -1541,6 +1761,13 @@ export function SpaceSurface({
                               </Pressable>
 
                               <Pressable
+                                accessibilityLabel={
+                                  isSleeping
+                                    ? '将当前卡移出休眠区'
+                                    : '将当前卡放入休眠区'
+                                }
+                                accessibilityRole="switch"
+                                accessibilityState={{checked: isSleeping}}
                                 onPress={() => {
                                   setSelectionMode('manual');
                                   onToggleSleepState(card.cardId);
@@ -1668,6 +1895,8 @@ export function SpaceSurface({
                           testID="space-browse-card-continuity"
                         >
                           <Pressable
+                            accessibilityLabel="回到当前学习卡"
+                            accessibilityRole="button"
                             onPress={onReturnToLearning}
                             style={[
                               styles.browseContinuityPrimary,
@@ -1695,10 +1924,16 @@ export function SpaceSurface({
                                 { color: primaryActionMuted },
                               ]}
                             >
-                              同一地址
+                              {selectedBoxIsCurrent ? '同一地址' : '回到当前地址'}
                             </Text>
                           </Pressable>
                           <Pressable
+                            accessibilityLabel={
+                              selectedBoxIsCurrent
+                                ? '回到当前卡盒概览'
+                                : '回到所选卡盒概览'
+                            }
+                            accessibilityRole="button"
                             onPress={onBackToOverview ?? noop}
                             style={[
                               styles.browseContinuitySecondary,
@@ -1736,6 +1971,138 @@ export function SpaceSurface({
           </>
         ) : null}
       </View>
+    </SpaceViewport>
+  );
+}
+
+function SpaceViewport({
+  children,
+  deviceClass,
+  usesAccessibilityLayout,
+  usesShortViewport,
+}: {
+  children: React.ReactNode;
+  deviceClass: DeviceClass;
+  usesAccessibilityLayout: boolean;
+  usesShortViewport: boolean;
+}) {
+  const baseStyle = [
+    styles.content,
+    deviceClass === 'tablet' ? styles.contentTablet : null,
+  ];
+
+  if (usesShortViewport) {
+    return (
+      <ScrollView
+        contentContainerStyle={[...baseStyle, styles.contentShortViewport]}
+        showsVerticalScrollIndicator={false}
+        style={styles.contentScroll}
+        testID="space-scroll-viewport"
+      >
+        {children}
+      </ScrollView>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        ...baseStyle,
+        styles.contentOneScreen,
+        usesAccessibilityLayout ? styles.contentAccessible : null,
+      ]}
+      testID="space-fixed-viewport"
+    >
+      {children}
+    </View>
+  );
+}
+
+function HierarchyBrowseRow({
+  index,
+  label,
+  onNext,
+  onPrevious,
+  palette,
+  testIDPrefix,
+  total,
+  value,
+}: {
+  index: number;
+  label: string;
+  onNext: () => void;
+  onPrevious: () => void;
+  palette: SpacePalette;
+  testIDPrefix: string;
+  total: number;
+  value: string;
+}) {
+  const canGoPrevious = index > 0;
+  const canGoNext = index < total - 1;
+
+  return (
+    <View style={styles.hierarchyBrowseRow} testID={`${testIDPrefix}-row`}>
+      <Text style={[styles.hierarchyBrowseLabel, { color: palette.textMuted }]}>
+        {label}
+      </Text>
+      <Pressable
+        accessibilityLabel={`上一个${label}`}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !canGoPrevious }}
+        disabled={!canGoPrevious}
+        onPress={onPrevious}
+        style={[
+          styles.hierarchyBrowseStep,
+          canGoPrevious ? null : styles.hierarchyBrowseStepDisabled,
+          {
+            backgroundColor: palette.panel,
+            borderColor: palette.border,
+          },
+        ]}
+        testID={`${testIDPrefix}-prev`}
+      >
+        <Text style={[styles.hierarchyBrowseStepLabel, { color: palette.text }]}>
+          ‹
+        </Text>
+      </Pressable>
+      <View
+        accessibilityLabel={`${label}，${value}，${index + 1} / ${total}`}
+        accessibilityRole="text"
+        style={styles.hierarchyBrowseSelection}
+        testID={`${testIDPrefix}-selection`}
+      >
+        <Text
+          numberOfLines={1}
+          style={[styles.hierarchyBrowseValue, { color: palette.text }]}
+        >
+          {value}
+        </Text>
+        <Text
+          style={[styles.hierarchyBrowseCount, { color: palette.textMuted }]}
+        >
+          {`${index + 1}/${total}`}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityLabel={`下一个${label}`}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !canGoNext }}
+        disabled={!canGoNext}
+        onPress={onNext}
+        style={[
+          styles.hierarchyBrowseStep,
+          canGoNext ? null : styles.hierarchyBrowseStepDisabled,
+          {
+            backgroundColor: palette.panel,
+            borderColor: palette.border,
+          },
+        ]}
+        testID={`${testIDPrefix}-next`}
+      >
+        <Text style={[styles.hierarchyBrowseStepLabel, { color: palette.text }]}>
+          ›
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -1757,6 +2124,8 @@ function ActionChip({
 }) {
   return (
     <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
       accessibilityState={disabled ? { disabled: true } : undefined}
       disabled={disabled}
       onPress={onPress}
@@ -2096,6 +2465,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 8,
   },
+  contentScroll: {
+    flex: 1,
+  },
+  contentShortViewport: {
+    flexGrow: 1,
+    gap: 8,
+    paddingVertical: 8,
+  },
   contentAccessible: {
     flex: 0,
   },
@@ -2111,6 +2488,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   shelfDeskFrameAccessible: {
+    flex: 0,
+  },
+  shelfDeskFrameShortViewport: {
     flex: 0,
   },
   surfaceCard: {
@@ -2293,6 +2673,11 @@ const styles = StyleSheet.create({
     minHeight: 0,
     overflow: 'visible',
   },
+  overviewWorkbenchShortViewport: {
+    flex: 0,
+    minHeight: 0,
+    overflow: 'visible',
+  },
   overviewWorkbenchAddress: {
     gap: 10,
   },
@@ -2337,6 +2722,95 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 16,
   },
+  hierarchyBrowseRail: {
+    borderRadius: 18,
+    borderWidth: 0,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  hierarchyBrowseHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+    minHeight: 44,
+  },
+  hierarchyBrowseTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    lineHeight: 15,
+  },
+  hierarchyBrowseCurrent: {
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  followCurrentButton: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    maxWidth: '62%',
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: 9,
+    paddingVertical: 8,
+  },
+  followCurrentButtonLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 14,
+  },
+  hierarchyBrowseRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    minHeight: 44,
+  },
+  hierarchyBrowseLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 14,
+    width: 28,
+  },
+  hierarchyBrowseStep: {
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  hierarchyBrowseStepLabel: {
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 22,
+  },
+  hierarchyBrowseStepDisabled: {
+    opacity: 0.46,
+  },
+  hierarchyBrowseSelection: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'space-between',
+    minWidth: 0,
+  },
+  hierarchyBrowseValue: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 15,
+  },
+  hierarchyBrowseCount: {
+    fontSize: 10,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '700',
+    lineHeight: 14,
+  },
   overviewHeroRow: {
     alignItems: 'flex-end',
     flexDirection: 'row',
@@ -2348,6 +2822,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 0,
     gap: 3,
+    minHeight: 44,
     minWidth: 96,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -2372,6 +2847,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingHorizontal: 12,
     paddingTop: 12,
+  },
+  boxBrowseSurfaceShortViewport: {
+    flex: 0,
+    overflow: 'visible',
   },
   boxTrayHeader: {
     alignItems: 'stretch',
@@ -2598,6 +3077,9 @@ const styles = StyleSheet.create({
     flex: 0,
     minHeight: 0,
     overflow: 'visible',
+  },
+  openBoxDeckShortViewport: {
+    flex: 0,
   },
   openBoxLid: {
     alignItems: 'center',
@@ -2910,6 +3392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     borderWidth: 1,
+    minHeight: 44,
     minWidth: 58,
     paddingHorizontal: 11,
     paddingVertical: 8,
@@ -3057,7 +3540,7 @@ const styles = StyleSheet.create({
   },
   browseCompactStateButton: {
     borderRadius: 14,
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
@@ -3257,6 +3740,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: 10,
+    minHeight: 44,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

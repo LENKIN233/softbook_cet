@@ -1,5 +1,5 @@
 {
-  "version": "vnext-5",
+  "version": "vnext-6",
   "purpose": "Machine-readable contract for release targets, device-class strategy, parity expectations, and acceptable platform-specific adaptation.",
   "source_anchors": {
     "top_level_information_architecture": "三端信息架构导航是一致的：学习 空间 统计 我的"
@@ -9,6 +9,11 @@
     "android_app": true,
     "web": true,
     "harmonyos": false
+  },
+  "release_version_policy": {
+    "formal_content_minimum_applies_to_ios_android_and_web": true,
+    "web_build_version_must_be_greater_than_or_equal_to_the_formal_release_minimum": true,
+    "below_minimum_user_experience": "preserve_authenticated_session_and_show_explicit_update_required_action_instead_of_sms_or_generic_loading_failure"
   },
   "device_classes": {
     "phone": {

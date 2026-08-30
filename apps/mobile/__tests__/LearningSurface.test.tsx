@@ -3,9 +3,10 @@
  */
 
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import {Dimensions, StyleSheet, Text} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
+import { LearningAudioPlayer } from '../src/audio/LearningAudioPlayer';
 import {
   LearningResultDetailSurface,
   LearningSurface,
@@ -15,6 +16,7 @@ import {
   resolveSwipeGestureDirection,
 } from '../src/learning/LearningSurface';
 import {
+  canSubmitLearningCard,
   createLearningCardState,
   createLocalLearningSession,
 } from '../src/learning/session';
@@ -45,6 +47,62 @@ test('learning compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactLearningViewport(393, 850)).toBe(true);
   expect(isCompactLearningViewport(744, 1133)).toBe(false);
 });
+
+test.each(['lock', 'elimination', 'swipe'] as const)(
+  'dense %s interaction renders its opened hint layer',
+  interactionId => {
+    const session = createLocalLearningSession('cet4');
+    const card = session.cards.find(
+      candidate => candidate.interaction_id === interactionId,
+    )!;
+    const cardState = createLearningCardState(card);
+    cardState.hasUsedHint = true;
+    cardState.hasUsedPeek = true;
+    cardState.isHintVisible = true;
+    cardState.isPeeked = true;
+    let tree: ReactTestRenderer.ReactTestRenderer;
+
+    ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(
+        <LearningSurface
+          audioAttemptId={null}
+          completedResults={[]}
+          currentCard={card}
+          currentCardState={cardState}
+          currentIndex={0}
+          currentResult={null}
+          onAdvanceCard={jest.fn()}
+          onFlip={jest.fn()}
+          onRestartDeck={jest.fn()}
+          onSelectOption={jest.fn()}
+          onSelectSwipeState={jest.fn()}
+          onSetFlipConfidence={jest.fn()}
+          onSetLockSelection={jest.fn()}
+          onSubmitCurrentCard={jest.fn()}
+          onToggleEliminationItem={jest.fn()}
+          onToggleFavorite={jest.fn()}
+          onToggleHint={jest.fn()}
+          onTogglePeek={jest.fn()}
+          palette={palette}
+          phase="learning"
+          reviewCandidateCount={0}
+          sessionCards={[card]}
+          sessionLabel={session.sourceLabel}
+        />,
+      );
+    });
+
+    expect(
+      tree!.root.findByProps({testID: 'learning-support-layer'}),
+    ).toBeTruthy();
+    expect(JSON.stringify(tree!.toJSON())).toContain(
+      '先把题干里的信号抓出来',
+    );
+    if (card.hint_layer) {
+      expect(JSON.stringify(tree!.toJSON())).toContain(card.hint_layer.content);
+    }
+  },
+);
 
 test('swipe gesture commits at 25% distance or the velocity threshold', () => {
   expect(SWIPE_DISTANCE_THRESHOLD_RATIO).toBe(0.25);
@@ -78,6 +136,7 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-001"
         completedResults={[]}
         contentManifest={{
           access: {
@@ -148,6 +207,12 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
     disabled: false,
     selected: false,
   });
+  expect(tree!.root.findByType(LearningAudioPlayer).props.selection).toMatchObject(
+    {
+      authorityToken: 'local-test-attempt-001',
+      cardToken: `${currentCard.card_id}:${currentCard.audio.sha256}`,
+    },
+  );
   expect(JSON.stringify(tree!.toJSON())).not.toContain(
     'private-content.example',
   );
@@ -175,6 +240,7 @@ test('does not expose raw space metadata while learning', () => {
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-002"
         palette={palette}
         sessionCards={sessionCards}
         sessionLabel="LEAK_SENTINEL_INTERNAL_SOURCE_7A"
@@ -291,6 +357,7 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-003"
         palette={palette}
         sessionCards={session.cards}
         sessionLabel={session.sourceLabel}
@@ -339,6 +406,11 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   expect(
     tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
   ).toBe(true);
+  expect(
+    StyleSheet.flatten(
+      tree!.root.findByProps({testID: 'learning-submit-button'}).props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
   expect(output).toContain('先选答案');
   expect(output).toContain('选定后再提交');
   expect(output).not.toContain('先选一个答案');
@@ -349,6 +421,7 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   ReactTestRenderer.act(() => {
     tree!.update(
       <LearningSurface
+        audioAttemptId="local-test-attempt-003"
         palette={palette}
         sessionCards={session.cards}
         sessionLabel={session.sourceLabel}
@@ -389,6 +462,202 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   expect(output).not.toContain(currentCard.space_metadata.box_ref);
 });
 
+test('lock rows unlock in order, keep wrong rows retryable, and submit only when all rows match', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.cards.find(
+    sessionCard => sessionCard.interaction_id === 'lock',
+  );
+
+  if (!currentCard || currentCard.interaction_id !== 'lock') {
+    throw new Error('Expected a lock card in the local session.');
+  }
+
+  const cardState = createLearningCardState(currentCard);
+  const onSubmitCurrentCard = jest.fn();
+  const renderSurface = () => (
+    <LearningSurface
+      audioAttemptId="local-test-attempt-004"
+      completedResults={[]}
+      currentCard={currentCard}
+      currentCardState={cardState}
+      currentIndex={2}
+      currentResult={null}
+      onAdvanceCard={jest.fn()}
+      onFlip={jest.fn()}
+      onRestartDeck={jest.fn()}
+      onSelectOption={jest.fn()}
+      onSelectSwipeState={jest.fn()}
+      onSetFlipConfidence={jest.fn()}
+      onSetLockSelection={jest.fn()}
+      onSubmitCurrentCard={onSubmitCurrentCard}
+      onToggleEliminationItem={jest.fn()}
+      onToggleFavorite={jest.fn()}
+      onToggleHint={jest.fn()}
+      onTogglePeek={jest.fn()}
+      palette={palette}
+      phase="learning"
+      reviewCandidateCount={0}
+      sessionCards={session.cards}
+      sessionLabel={session.sourceLabel}
+    />
+  );
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(renderSurface());
+  });
+
+  const firstSlot = currentCard.lock_slots[0];
+  const secondSlot = currentCard.lock_slots[1];
+  const firstExpected = currentCard.answer_key.lock_pattern[0];
+  const firstWrong = firstSlot.options.find(option => option !== firstExpected)!;
+  const findChoice = (label: string, option: string) =>
+    tree!.root.findByProps({ accessibilityLabel: `${label}，${option}` });
+
+  expect(findChoice(firstSlot.label, firstExpected).props.accessibilityRole).toBe(
+    'radio',
+  );
+  expect(
+    findChoice(firstSlot.label, firstExpected).props.accessibilityState,
+  ).toEqual({ checked: false, disabled: false });
+  expect(
+    findChoice(secondSlot.label, secondSlot.options[0]).props
+      .accessibilityState,
+  ).toEqual({ checked: false, disabled: true });
+
+  cardState.lockSelections[firstSlot.id] = firstWrong;
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface());
+  });
+
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '当前锁位需要重试',
+  );
+  expect(canSubmitLearningCard(currentCard, cardState)).toBe(false);
+  expect(
+    tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
+  ).toBe(true);
+
+  cardState.lockSelections[firstSlot.id] = firstExpected;
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface());
+  });
+
+  expect(
+    findChoice(firstSlot.label, firstExpected).props.accessibilityState,
+  ).toEqual({ checked: true, disabled: true });
+  expect(
+    findChoice(secondSlot.label, secondSlot.options[0]).props
+      .accessibilityState.disabled,
+  ).toBe(false);
+
+  currentCard.lock_slots.forEach((slot, index) => {
+    cardState.lockSelections[slot.id] =
+      currentCard.answer_key.lock_pattern[index];
+  });
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface());
+  });
+
+  const submitButton = tree!.root.findByProps({
+    testID: 'learning-submit-button',
+  });
+  expect(canSubmitLearningCard(currentCard, cardState)).toBe(true);
+  expect(submitButton.props.accessibilityState).toEqual({ disabled: false });
+  expect(submitButton.props.disabled).toBe(false);
+  ReactTestRenderer.act(() => {
+    submitButton.props.onPress();
+  });
+  expect(onSubmitCurrentCard).toHaveBeenCalledTimes(1);
+});
+
+test('lock and elimination pressables keep 44x44 targets in standard and compact layouts', () => {
+  const session = createLocalLearningSession('cet4');
+  const lockCard = session.cards.find(card => card.interaction_id === 'lock');
+  const eliminationCard = session.cards.find(
+    card => card.interaction_id === 'elimination',
+  );
+  if (!lockCard || lockCard.interaction_id !== 'lock' || !eliminationCard || eliminationCard.interaction_id !== 'elimination') {
+    throw new Error('Expected lock and elimination cards in the local session.');
+  }
+  const renderCard = (card: typeof lockCard | typeof eliminationCard) => (
+    <LearningSurface
+      audioAttemptId="local-test-attempt-005"
+      completedResults={[]}
+      currentCard={card}
+      currentCardState={createLearningCardState(card)}
+      currentIndex={0}
+      currentResult={null}
+      onAdvanceCard={jest.fn()}
+      onFlip={jest.fn()}
+      onRestartDeck={jest.fn()}
+      onSelectOption={jest.fn()}
+      onSelectSwipeState={jest.fn()}
+      onSetFlipConfidence={jest.fn()}
+      onSetLockSelection={jest.fn()}
+      onSubmitCurrentCard={jest.fn()}
+      onToggleEliminationItem={jest.fn()}
+      onToggleFavorite={jest.fn()}
+      onToggleHint={jest.fn()}
+      onTogglePeek={jest.fn()}
+      palette={palette}
+      phase="learning"
+      reviewCandidateCount={0}
+      sessionCards={session.cards}
+      sessionLabel={session.sourceLabel}
+    />
+  );
+
+  try {
+    for (const viewport of [
+      {height: 1133, width: 744},
+      {height: 700, width: 393},
+    ]) {
+      ReactTestRenderer.act(() => {
+        Dimensions.set({
+          screen: {fontScale: 1, scale: 1, ...viewport},
+          window: {fontScale: 1, scale: 1, ...viewport},
+        });
+      });
+      let lockTree: ReactTestRenderer.ReactTestRenderer;
+      let eliminationTree: ReactTestRenderer.ReactTestRenderer;
+      ReactTestRenderer.act(() => {
+        lockTree = ReactTestRenderer.create(renderCard(lockCard));
+        eliminationTree = ReactTestRenderer.create(renderCard(eliminationCard));
+      });
+
+      const firstLockSlot = lockCard.lock_slots[0];
+      const lockTargetStyle = StyleSheet.flatten(
+        lockTree!.root.findByProps({
+          accessibilityLabel: `${firstLockSlot.label}，${firstLockSlot.options[0]}`,
+        }).props.style,
+      );
+      const eliminationTargetStyle = StyleSheet.flatten(
+        eliminationTree!.root.findByProps({
+          testID: 'learning-elimination-1',
+        }).props.style,
+      );
+      expect(lockTargetStyle).toMatchObject({minHeight: 44, minWidth: 44});
+      expect(eliminationTargetStyle).toMatchObject({
+        minHeight: 44,
+        minWidth: 44,
+      });
+
+      ReactTestRenderer.act(() => {
+        lockTree!.unmount();
+        eliminationTree!.unmount();
+      });
+    }
+  } finally {
+    ReactTestRenderer.act(() => {
+      Dimensions.set({
+        screen: {fontScale: 1, height: 852, scale: 1, width: 393},
+        window: {fontScale: 1, height: 852, scale: 1, width: 393},
+      });
+    });
+  }
+});
+
 test('swipe choices stay compact enough for the one-screen phone action plane', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.cards.find(
@@ -404,6 +673,7 @@ test('swipe choices stay compact enough for the one-screen phone action plane', 
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-006"
         palette={palette}
         sessionCards={session.cards}
         sessionLabel={session.sourceLabel}
@@ -430,7 +700,7 @@ test('swipe choices stay compact enough for the one-screen phone action plane', 
     );
   });
 
-  const safeChoice = tree!.root.findByProps({ testID: 'learning-swipe-safe' });
+  const safeChoice = tree!.root.findByProps({ testID: 'learning-swipe-1' });
   const draggableCard = tree!.root.findByProps({
     testID: 'learning-swipe-draggable-card',
   });
@@ -467,6 +737,7 @@ test('completion state keeps the next step primary instead of a metric dashboard
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-007"
         palette={palette}
         sessionCards={session.cards}
         sessionLabel={session.sourceLabel}
@@ -522,6 +793,7 @@ test('controlled-pilot round completion reuses the completion card with one cano
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-008"
         palette={palette}
         sessionCards={[]}
         sessionLabel={session.sourceLabel}
@@ -633,8 +905,12 @@ test('result detail reads as a resolved card without raw metadata', () => {
     tree!.root.findByProps({ testID: 'learning-detail-resolved-card' }).props
       .style,
   );
+  const detailResolvedCardContentStyle = StyleSheet.flatten(
+    tree!.root.findByProps({ testID: 'learning-detail-resolved-card' }).props
+      .contentContainerStyle,
+  );
   expect(detailResolvedCardStyle.flex).toBe(1);
-  expect(detailResolvedCardStyle.justifyContent).toBe('space-between');
+  expect(detailResolvedCardContentStyle.justifyContent).toBe('space-between');
   expect(detailResolvedCardStyle.minHeight).toBe(0);
   const detailAnswerSlipStyle = StyleSheet.flatten(
     tree!.root.findByProps({ testID: 'learning-detail-answer-slip' }).props
@@ -642,6 +918,18 @@ test('result detail reads as a resolved card without raw metadata', () => {
   );
   expect(detailAnswerSlipStyle.flexGrow).toBe(1);
   expect(detailAnswerSlipStyle.justifyContent).toBe('space-between');
+  expect(
+    tree!.root.findByProps({testID: 'learning-detail-analysis-title'}).props
+      .numberOfLines,
+  ).toBeUndefined();
+  expect(
+    tree!.root.findByProps({testID: 'learning-detail-analysis-body'}).props
+      .numberOfLines,
+  ).toBeUndefined();
+  expect(
+    tree!.root.findByProps({testID: 'learning-detail-analysis-tip'}).props
+      .numberOfLines,
+  ).toBeUndefined();
   expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
   expect(output).toContain(card.space_metadata.box);

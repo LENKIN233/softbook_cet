@@ -11,8 +11,8 @@ import type {
 
 type NativeLearningAudioPlayerModule = {
   addListener: (eventName: string) => void;
-  pause: () => Promise<void>;
-  play: () => Promise<void>;
+  pause: (playbackToken: string) => Promise<void>;
+  play: (playbackToken: string) => Promise<void>;
   prepare: (filePath: string, playbackToken: string) => Promise<void>;
   removeListeners: (count: number) => void;
   stop: () => Promise<void>;
@@ -34,8 +34,8 @@ function requireNativeModule() {
 }
 
 export const nativeLearningAudioEngine: LearningAudioEngine = {
-  pause: async () => requireNativeModule().pause(),
-  play: async () => requireNativeModule().play(),
+  pause: async playbackToken => requireNativeModule().pause(playbackToken),
+  play: async playbackToken => requireNativeModule().play(playbackToken),
   prepare: async (filePath, playbackToken) =>
     requireNativeModule().prepare(filePath, playbackToken),
   stop: async () => requireNativeModule().stop(),
@@ -52,7 +52,7 @@ export const nativeLearningAudioEngine: LearningAudioEngine = {
     const subscription: EmitterSubscription = emitter.addListener(
       EVENT_NAME,
       (payload: unknown) => {
-        const event = readNativeEvent(payload);
+        const event = parseNativeLearningAudioEvent(payload);
         if (event) {
           listener(event);
         }
@@ -63,7 +63,9 @@ export const nativeLearningAudioEngine: LearningAudioEngine = {
   },
 };
 
-function readNativeEvent(payload: unknown): LearningAudioEngineEvent | null {
+export function parseNativeLearningAudioEvent(
+  payload: unknown,
+): LearningAudioEngineEvent | null {
   if (
     typeof payload !== 'object' ||
     payload === null ||
@@ -73,7 +75,21 @@ function readNativeEvent(payload: unknown): LearningAudioEngineEvent | null {
   }
 
   const type = (payload as { type?: unknown }).type;
-  return type === 'ended' || type === 'error' || type === 'interruption'
-    ? type
-    : null;
+  const playbackToken = (payload as { playbackToken?: unknown }).playbackToken;
+  const requiresPrepare = (payload as { requiresPrepare?: unknown })
+    .requiresPrepare;
+
+  if (
+    (type !== 'ended' && type !== 'error' && type !== 'interruption') ||
+    typeof playbackToken !== 'string' ||
+    playbackToken.length === 0 ||
+    (requiresPrepare !== undefined && requiresPrepare !== true) ||
+    (requiresPrepare === true && type !== 'interruption')
+  ) {
+    return null;
+  }
+
+  return requiresPrepare === true
+    ? { playbackToken, requiresPrepare, type }
+    : { playbackToken, type };
 }
