@@ -54,6 +54,7 @@ export type LearningSurfacePalette = {
 };
 
 type LearningSurfaceProps = {
+  audioAttemptId: string | null;
   palette: LearningSurfacePalette;
   contentManifest?: VerifiedContentManifest | null;
   sessionCards: LearningCard[];
@@ -219,6 +220,7 @@ export function isCompactLearningViewport(width: number, height: number) {
 }
 
 export function LearningSurface({
+  audioAttemptId,
   palette,
   contentManifest = null,
   sessionCards,
@@ -537,7 +539,7 @@ export function LearningSurface({
   const primaryAction = getPrimaryActionColors(palette);
   const neutralAction = getNeutralActionSurface(palette);
   const audioSelection = (() => {
-    if (!currentCard.audio || !contentManifest) {
+    if (!currentCard.audio || !contentManifest || audioAttemptId === null) {
       return null;
     }
 
@@ -546,6 +548,7 @@ export function LearningSurface({
       return resolved
         ? {
             ...resolved,
+            authorityToken: audioAttemptId,
             cardToken: `${currentCard.card_id}:${currentCard.audio.sha256}`,
           }
         : null;

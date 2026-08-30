@@ -16,6 +16,7 @@ const selection: LearningAudioSelection = {
     sha256: `sha256:${'a'.repeat(64)}`,
     size_bytes: 4096,
   },
+  authorityToken: 'sel_cet4_audio_attempt_0001',
   cardToken: 'cet4-card-001:audio-a',
   download: {
     asset_id: 'cet4.audio.001',
@@ -43,6 +44,22 @@ function createEngine() {
     emit: (event: LearningAudioEngineEvent) => listener?.(event),
     engine,
   };
+}
+
+function readPreparedPlaybackToken(
+  engine: LearningAudioEngine,
+  callIndex = 0,
+) {
+  const prepare = engine.prepare as jest.MockedFunction<
+    LearningAudioEngine['prepare']
+  >;
+  const token = prepare.mock.calls[callIndex]?.[1];
+
+  if (typeof token !== 'string') {
+    throw new Error('Expected a prepared playback token.');
+  }
+
+  return token;
 }
 
 function createCache(
@@ -100,8 +117,9 @@ test('explicit press resolves verified bytes before native playback', async () =
   });
   expect(engine.prepare).toHaveBeenCalledWith(
     '/verified/audio.mp3',
-    selection.cardToken,
+    expect.stringMatching(/^learning-audio-/),
   );
+  expect(readPreparedPlaybackToken(engine)).not.toBe(selection.cardToken);
   expect(engine.play).toHaveBeenCalledTimes(1);
   expect(states).toContainEqual({ status: 'loading' });
   expect(controller.getState()).toEqual({ status: 'playing' });
@@ -115,6 +133,7 @@ test('playing toggles to paused and requires another explicit press to resume', 
   });
   controller.select(selection);
   await controller.press();
+  const playbackToken = readPreparedPlaybackToken(engine);
 
   await controller.press();
   expect(engine.pause).toHaveBeenCalledTimes(1);
@@ -122,6 +141,8 @@ test('playing toggles to paused and requires another explicit press to resume', 
 
   await controller.press();
   expect(engine.play).toHaveBeenCalledTimes(2);
+  expect(engine.prepare).toHaveBeenCalledTimes(1);
+  expect(readPreparedPlaybackToken(engine)).toBe(playbackToken);
   expect(controller.getState()).toEqual({ status: 'playing' });
 });
 
@@ -229,6 +250,44 @@ test('stale preparation from a previous card cannot start playback', async () =>
   expect(controller.getState()).toEqual({ status: 'idle' });
 });
 
+test('same-card new selection authority cancels the old preparation', async () => {
+  let resolveFirst!: (value: { path: string; uri: string }) => void;
+  const resolve = jest
+    .fn()
+    .mockImplementationOnce(
+      () =>
+        new Promise(nextResolve => {
+          resolveFirst = nextResolve;
+        }),
+    )
+    .mockResolvedValue({
+      path: '/verified/audio.mp3',
+      uri: 'file:///verified/audio.mp3',
+    });
+  const { engine } = createEngine();
+  const controller = new LearningAudioController({
+    cache: createCache(resolve),
+    engine,
+  });
+  controller.select(selection);
+  const stalePreparation = controller.press();
+
+  controller.select({
+    ...selection,
+    authorityToken: 'sel_cet4_audio_attempt_0002',
+  });
+  const currentPreparation = controller.press();
+  resolveFirst({
+    path: '/verified/audio.mp3',
+    uri: 'file:///verified/audio.mp3',
+  });
+  await Promise.all([stalePreparation, currentPreparation]);
+
+  expect(engine.prepare).toHaveBeenCalledTimes(1);
+  expect(engine.play).toHaveBeenCalledTimes(1);
+  expect(controller.getState()).toEqual({ status: 'playing' });
+});
+
 test('card changes, backgrounding, interruption, completion, and errors stay bounded', async () => {
   const { emit, engine } = createEngine();
   const controller = new LearningAudioController({
@@ -237,19 +296,22 @@ test('card changes, backgrounding, interruption, completion, and errors stay bou
   });
   controller.select(selection);
   await controller.press();
+  const firstPlaybackToken = readPreparedPlaybackToken(engine);
 
   await controller.pauseForInterruption();
   expect(controller.getState()).toEqual({ status: 'paused' });
   await controller.press();
-  emit({ playbackToken: selection.cardToken, type: 'interruption' });
+  emit({ playbackToken: firstPlaybackToken, type: 'interruption' });
   expect(controller.getState()).toEqual({ status: 'paused' });
 
   await controller.press();
-  emit({ playbackToken: selection.cardToken, type: 'ended' });
+  emit({ playbackToken: firstPlaybackToken, type: 'ended' });
   expect(controller.getState()).toEqual({ status: 'idle' });
 
   await controller.press();
-  emit({ playbackToken: selection.cardToken, type: 'error' });
+  const secondPlaybackToken = readPreparedPlaybackToken(engine, 1);
+  expect(secondPlaybackToken).not.toBe(firstPlaybackToken);
+  emit({ playbackToken: secondPlaybackToken, type: 'error' });
   expect(controller.getState()).toEqual({
     reason: 'temporary',
     status: 'error',
@@ -260,7 +322,7 @@ test('card changes, backgrounding, interruption, completion, and errors stay bou
   expect(engine.stop).toHaveBeenCalled();
 });
 
-test('delayed native events from a previous playback token cannot change the current card state', async () => {
+test('same-card new selection rejects stale ended, error, and interruption events', async () => {
   const { emit, engine } = createEngine();
   const controller = new LearningAudioController({
     cache: createCache(),
@@ -268,19 +330,44 @@ test('delayed native events from a previous playback token cannot change the cur
   });
   controller.select(selection);
   await controller.press();
+  const stalePlaybackToken = readPreparedPlaybackToken(engine);
 
   const nextSelection = {
     ...selection,
-    cardToken: 'cet4-card-002:audio-b',
+    authorityToken: 'sel_cet4_audio_attempt_0002',
   };
   controller.select(nextSelection);
   await controller.press();
+  const currentPlaybackToken = readPreparedPlaybackToken(engine, 1);
+  expect(currentPlaybackToken).not.toBe(stalePlaybackToken);
   expect(controller.getState()).toEqual({ status: 'playing' });
 
-  emit({ playbackToken: selection.cardToken, type: 'ended' });
-  emit({ playbackToken: selection.cardToken, type: 'error' });
+  emit({ playbackToken: stalePlaybackToken, type: 'ended' });
+  emit({ playbackToken: stalePlaybackToken, type: 'error' });
+  emit({ playbackToken: stalePlaybackToken, type: 'interruption' });
   expect(controller.getState()).toEqual({ status: 'playing' });
 
-  emit({ playbackToken: nextSelection.cardToken, type: 'ended' });
+  emit({ playbackToken: currentPlaybackToken, type: 'ended' });
   expect(controller.getState()).toEqual({ status: 'idle' });
+});
+
+test('controller instances never reuse a playback nonce', async () => {
+  const first = createEngine();
+  const second = createEngine();
+  const firstController = new LearningAudioController({
+    cache: createCache(),
+    engine: first.engine,
+  });
+  const secondController = new LearningAudioController({
+    cache: createCache(),
+    engine: second.engine,
+  });
+
+  firstController.select(selection);
+  secondController.select(selection);
+  await Promise.all([firstController.press(), secondController.press()]);
+
+  expect(readPreparedPlaybackToken(first.engine)).not.toBe(
+    readPreparedPlaybackToken(second.engine),
+  );
 });

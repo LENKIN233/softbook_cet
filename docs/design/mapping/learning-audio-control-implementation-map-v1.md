@@ -23,7 +23,8 @@
 
 - The player accepts only a path returned by the verified content-addressed cache.
 - Expiring download URLs never enter visible state or durable UI storage.
-- A card identity token guards every asynchronous prepare completion.
+- The selection authority is the exact server `selection_id` or an explicit local attempt identity, so a same-card next selection invalidates earlier preparation and playback.
+- Every new prepare receives a controller-instance-scoped playback nonce. Native ended, error, and interruption events may change the chip only when that exact nonce is current; pause/resume inside the same selection keeps the nonce.
 - Native/internal errors map to a bounded domain error before reaching visible copy.
 - No autoplay, background resume, global mini-player, waveform, or speed control.
 

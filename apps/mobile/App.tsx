@@ -639,6 +639,8 @@ function AppShell({
     string | null
   >(null);
   const [learningIndex, setLearningIndex] = useState(0);
+  const [localLearningAttemptGeneration, setLocalLearningAttemptGeneration] =
+    useState(0);
   const [learningCardState, setLearningCardState] =
     useState<LearningCardState | null>(null);
   const [learningCompletedResults, setLearningCompletedResults] = useState<
@@ -1213,6 +1215,16 @@ function AppShell({
     }),
     [readSpaceCardState, spaceCardStateById],
   );
+  const createTrackedLearningAttemptState = useCallback(
+    (
+      card: LearningSession['cards'][number],
+      stateMap: Record<string, SpaceCardState> = spaceCardStateById,
+    ) => {
+      setLocalLearningAttemptGeneration(current => current + 1);
+      return createTrackedLearningCardState(card, stateMap);
+    },
+    [createTrackedLearningCardState, spaceCardStateById],
+  );
   const resolveVisibleLearningCards = useCallback(
     (
       nextSession: LearningSession | null = learningSession,
@@ -1273,6 +1285,10 @@ function AppShell({
       ? reviewCompletedResults
       : learningCompletedResults;
   const currentLearningCard = activeSessionCards[learningIndex] ?? null;
+  const learningAudioAttemptId =
+    learningSession?.schedulingMode === 'server'
+      ? learningSession.serverSelection?.selectionId ?? null
+      : `local-attempt:${learningSession?.sourceId ?? 'unavailable'}:${learningSession?.track ?? learningTrack}:${learningPhase}:${learningIndex}:${localLearningAttemptGeneration}`;
   const currentRoundCompletion = learningSession?.roundCompletion ?? null;
   const currentRoundSpaceCard = currentRoundCompletion
     ? learningSession?.catalogCards.find(
@@ -2763,12 +2779,12 @@ function AppShell({
       setReviewCompletedResults([]);
       setLearningCardState(
         nextVisibleCards[0]
-          ? createTrackedLearningCardState(nextVisibleCards[0], stateMap)
+          ? createTrackedLearningAttemptState(nextVisibleCards[0], stateMap)
           : null,
       );
     },
     [
-      createTrackedLearningCardState,
+      createTrackedLearningAttemptState,
       learningSession,
       membershipState,
       resolveVisibleLearningCards,
@@ -2809,7 +2825,7 @@ function AppShell({
       setReviewSessionCards(shouldStayInReview ? nextReviewCards : []);
       setLearningCardState(
         nextSessionCards[nextIndex]
-          ? createTrackedLearningCardState(
+          ? createTrackedLearningAttemptState(
               nextSessionCards[nextIndex],
               stateMap,
             )
@@ -2818,7 +2834,7 @@ function AppShell({
     },
     [
       countCompletedCards,
-      createTrackedLearningCardState,
+      createTrackedLearningAttemptState,
       learningCompletedResults,
       learningPhase,
       learningSession,
@@ -3500,7 +3516,7 @@ function AppShell({
         setLearningIndex(nextIndex);
         setLearningCardState(
           nextVisibleCards[nextIndex]
-            ? createTrackedLearningCardState(nextVisibleCards[nextIndex])
+            ? createTrackedLearningAttemptState(nextVisibleCards[nextIndex])
             : null,
         );
         setLearningBootstrapStatus('ready');
@@ -3544,7 +3560,7 @@ function AppShell({
   }, [
     accountBootstrapSnapshot,
     authSessionCoordinator,
-    createTrackedLearningCardState,
+    createTrackedLearningAttemptState,
     authenticatedRuntimeContext,
     clearOriginSessionAfterAuthorizationError,
     isAuthenticated,
@@ -3608,7 +3624,7 @@ function AppShell({
       setLearningIndex(nextIndex);
       setLearningCardState(
         nextVisibleCards[nextIndex]
-          ? createTrackedLearningCardState(
+          ? createTrackedLearningAttemptState(
               nextVisibleCards[nextIndex],
               spaceCardStateById,
             )
@@ -3626,7 +3642,7 @@ function AppShell({
     }
   }, [
     accountBootstrapSnapshot,
-    createTrackedLearningCardState,
+    createTrackedLearningAttemptState,
     learningBootstrapStatus,
     learningSession,
     mappedAccountBootstrapSnapshot,
@@ -4189,7 +4205,7 @@ function AppShell({
 
     const nextCard = activeSessionCards[nextIndex];
     setLearningIndex(nextIndex);
-    setLearningCardState(createTrackedLearningCardState(nextCard));
+    setLearningCardState(createTrackedLearningAttemptState(nextCard));
   };
 
   const applyDurableSpaceAction = useCallback((action: SpaceAction) => {
@@ -4604,7 +4620,7 @@ function AppShell({
       setLearningCurrentResult(null);
       setLearningScreen('practice');
       setLearningCardState(
-        createTrackedLearningCardState(reviewCandidateCards[0]),
+        createTrackedLearningAttemptState(reviewCandidateCards[0]),
       );
     },
     onRestartDeck: resetLearningDeck,
@@ -5117,6 +5133,7 @@ function AppShell({
     />
   ) : route.key === 'learning' ? (
     <LearningSurface
+      audioAttemptId={learningAudioAttemptId}
       completedResults={activeCompletedResults}
       contentManifest={learningSession?.contentManifest ?? null}
       currentCard={currentLearningCard}

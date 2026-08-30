@@ -6,6 +6,7 @@ import React from 'react';
 import {Dimensions, StyleSheet, Text} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
+import { LearningAudioPlayer } from '../src/audio/LearningAudioPlayer';
 import {
   LearningResultDetailSurface,
   LearningSurface,
@@ -79,6 +80,7 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-001"
         completedResults={[]}
         contentManifest={{
           access: {
@@ -149,6 +151,12 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
     disabled: false,
     selected: false,
   });
+  expect(tree!.root.findByType(LearningAudioPlayer).props.selection).toMatchObject(
+    {
+      authorityToken: 'local-test-attempt-001',
+      cardToken: `${currentCard.card_id}:${currentCard.audio.sha256}`,
+    },
+  );
   expect(JSON.stringify(tree!.toJSON())).not.toContain(
     'private-content.example',
   );
@@ -176,6 +184,7 @@ test('does not expose raw space metadata while learning', () => {
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-002"
         palette={palette}
         sessionCards={sessionCards}
         sessionLabel="LEAK_SENTINEL_INTERNAL_SOURCE_7A"
@@ -292,6 +301,7 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-003"
         palette={palette}
         sessionCards={session.cards}
         sessionLabel={session.sourceLabel}
@@ -350,6 +360,7 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   ReactTestRenderer.act(() => {
     tree!.update(
       <LearningSurface
+        audioAttemptId="local-test-attempt-003"
         palette={palette}
         sessionCards={session.cards}
         sessionLabel={session.sourceLabel}
@@ -404,6 +415,7 @@ test('lock rows unlock in order, keep wrong rows retryable, and submit only when
   const onSubmitCurrentCard = jest.fn();
   const renderSurface = () => (
     <LearningSurface
+      audioAttemptId="local-test-attempt-004"
       completedResults={[]}
       currentCard={currentCard}
       currentCardState={cardState}
@@ -509,6 +521,7 @@ test('lock and elimination pressables keep 44x44 targets in standard and compact
   }
   const renderCard = (card: typeof lockCard | typeof eliminationCard) => (
     <LearningSurface
+      audioAttemptId="local-test-attempt-005"
       completedResults={[]}
       currentCard={card}
       currentCardState={createLearningCardState(card)}
@@ -599,6 +612,7 @@ test('swipe choices stay compact enough for the one-screen phone action plane', 
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-006"
         palette={palette}
         sessionCards={session.cards}
         sessionLabel={session.sourceLabel}
@@ -662,6 +676,7 @@ test('completion state keeps the next step primary instead of a metric dashboard
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-007"
         palette={palette}
         sessionCards={session.cards}
         sessionLabel={session.sourceLabel}
@@ -717,6 +732,7 @@ test('controlled-pilot round completion reuses the completion card with one cano
   ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(
       <LearningSurface
+        audioAttemptId="local-test-attempt-008"
         palette={palette}
         sessionCards={[]}
         sessionLabel={session.sourceLabel}

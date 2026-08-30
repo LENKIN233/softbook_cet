@@ -332,6 +332,7 @@ function CardAcceptanceHarness({ session }: { session: LearningSession }) {
 
   return (
     <LearningSurface
+      audioAttemptId="local-audio-bundle-acceptance-attempt"
       completedResults={result ? [result] : []}
       contentManifest={session.contentManifest}
       currentCard={card}
