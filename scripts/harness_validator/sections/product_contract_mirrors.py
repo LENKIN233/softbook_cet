@@ -194,10 +194,11 @@ def validate(context) -> None:
         "spec/account-sync-contract.json#account_deletion",
         deletion_runtime["owner"],
     )
-    for token in ("persists one exact account-deletion-task.v1 before", "blocks login"):
+    for token in ("account-deletion-task.v2", "blocks login"):
         if token not in deletion["request_rule"]:
             errors.append(f"account deletion request boundary missing: {token}")
     for collection in (
+        "softbook_accounts",
         "softbook_auth_sessions",
         "softbook_learning_events",
         "softbook_learning_sessions",
@@ -207,11 +208,11 @@ def validate(context) -> None:
             errors.append(f"account deletion collection coverage missing: {collection}")
     check_equal(
         "account deletion task schema",
-        "account-deletion-task.v1",
+        "account-deletion-task.v2",
         deletion_runtime["task_schema"],
     )
     for token in (
-        "every_erasure_mutation_transactionally_rechecks_current_task_lease",
+        "expected_deletion_id_account_instance_id",
         "stale_worker_cannot_delete_post_completion_reregistration_data",
         "stale_worker_cannot_complete_or_release_newer_claim",
     ):
@@ -219,6 +220,55 @@ def validate(context) -> None:
             errors.append(f"account deletion lease boundary missing: {token}")
     if deletion_runtime["deployment_status"] != "not_deployed_by_repository_change":
         errors.append("repository changes must not claim account-deletion deployment")
+    auth_runtime_tests = (
+        root
+        / "infra/cloudbase/functions/softbook-api/test/auth-v2.test.js"
+    ).read_text(encoding="utf-8")
+    worker_runtime_tests = (
+        root
+        / "infra/cloudbase/functions/softbook-api/test/account-deletion-worker-v1.test.js"
+    ).read_text(encoding="utf-8")
+    for token in (
+        "challenge reservation uses exactly four transaction operations",
+        "db.transactionOperationCounts(), [2, 3, 4, 2]",
+        "db.transactionOperationCounts().at(-1), 3",
+        "real 50ms acknowledgement envelope prevents absent and task suppression early returns",
+        "Memory and CloudBase converge an empty-read deletion race after origin erasure",
+        "createV2TestApi({providerDeliveryDeadlineMs: 10000})",
+        "createV2TestApi({providerDeliveryDeadlineMs: 8000})",
+    ):
+        if token not in auth_runtime_tests:
+            errors.append(f"auth transaction budget assertion missing: {token}")
+    for token in (
+        "guarded single-document removal uses exactly four transaction operations",
+        "db.transactionOperationCounts().at(-1), 4",
+    ):
+        if token not in worker_runtime_tests:
+            errors.append(f"worker transaction budget assertion missing: {token}")
+    acknowledgement_envelope = deletion_runtime.get(
+        "request_code_acknowledgement_envelope", ""
+    )
+    for token in (
+        "1_to_8000ms",
+        "strictly_below_10000ms_Cloud_Function_timeout",
+        "8000_accepted_10000_rejected",
+        "real_50ms",
+        "providerDeliveryDeadlineMs",
+    ):
+        if token not in acknowledgement_envelope:
+            errors.append(f"request-code acknowledgement envelope missing: {token}")
+    deployment_safety_tests = (
+        root
+        / "infra/cloudbase/functions/softbook-api/test/deployment-safety.test.js"
+    ).read_text(encoding="utf-8")
+    if (
+        "MAX_PROVIDER_DELIVERY_DEADLINE_MS <"
+        not in deployment_safety_tests
+        or "EXPECTED_FUNCTION_CONFIG.timeout * 1000" not in deployment_safety_tests
+    ):
+        errors.append(
+            "auth acknowledgement envelope must be executable-proven below function timeout"
+        )
 
     required_external_ids = set(release["external_capability"]["required_checks"])
     account_ids = {entry["id"] for entry in external["accounts"]}

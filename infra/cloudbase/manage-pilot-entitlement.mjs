@@ -26,6 +26,7 @@ import {
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const MEMBERSHIP_COLLECTION = 'softbook_memberships';
+const ACCOUNT_COLLECTION = 'softbook_accounts';
 const BETA_ENTITLEMENT_COLLECTION = 'softbook_beta_entitlements';
 const PILOT_ENTITLEMENT_COLLECTION = 'softbook_pilot_entitlements';
 const FUNCTION_NAME = 'softbook-api';
@@ -98,7 +99,10 @@ export async function executePilotEntitlementCommand(options, dependencies = {})
       'pilot entitlement command is outside the active pilot window.',
     );
   }
-  const runner = dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
+  const runner = dependencies.runner ?? createCloudBaseCommandRunner({
+    cwd: REPOSITORY_ROOT,
+    env: operatorCredentialFreeEnvironment(process.env),
+  });
   const repositoryStateReader =
     dependencies.repositoryStateReader ??
     (() => dependencies.repository ?? readRepositoryState());
@@ -125,13 +129,20 @@ export async function executePilotEntitlementCommand(options, dependencies = {})
     return {...base, status: 'blocked', writes_performed: false};
   }
 
+  await requireCurrentAccountInstance({
+    command,
+    observedAt: now.toISOString(),
+    profile,
+    runner,
+  });
+
   if (options.apply) {
     if (!writeSafety.ok) {
       throw new PilotEntitlementError(writeSafety.errors.join('; '));
     }
     const operatorSecret =
       dependencies.operatorSecret ?? process.env.SOFTBOOK_PILOT_OPERATOR_SECRET;
-    if (typeof operatorSecret !== 'string' || operatorSecret.length < 32) {
+    if (!isStrongOperatorSecret(operatorSecret)) {
       throw new PilotEntitlementError(
         'SOFTBOOK_PILOT_OPERATOR_SECRET must be a strong receiver-only secret.',
       );
@@ -206,6 +217,14 @@ export async function executePilotEntitlementCommand(options, dependencies = {})
   return {...base, plan: publicPlan, status: 'planned', writes_performed: false};
 }
 
+function isStrongOperatorSecret(value) {
+  return (
+    typeof value === 'string' &&
+    value.length >= 32 &&
+    new Set(value).size >= 12
+  );
+}
+
 function verifyInvokedPilotEntitlement(command, applied, storedDocument) {
   const stored = pilotEntitlementInternals.normalizePilotEntitlementDocument(
     storedDocument,
@@ -247,6 +266,125 @@ async function readDocument({collection, label, phoneNumber, profile, runner}) {
     throw new PilotEntitlementError(`${label} query returned an invalid result.`);
   }
   return results[0] ?? null;
+}
+
+async function requireCurrentAccountInstance({
+  command,
+  observedAt,
+  profile,
+  runner,
+}) {
+  const output = await runner.run(
+    [
+      'db', 'nosql', 'execute', '-e', profile.environment_id, '--command',
+      JSON.stringify([queryByFieldCommand(
+        ACCOUNT_COLLECTION,
+        'account_instance_id',
+        command.expected_account_instance_id,
+      )]),
+      '--json',
+    ],
+    {label: 'verify current account instance'},
+  );
+  const results = parseTcbJson(output)?.data?.results?.[0];
+  if (!Array.isArray(results) || results.length !== 1) {
+    throw new PilotEntitlementError(
+      'The expected account instance does not exist; the user must sign in first.',
+    );
+  }
+  const value = {...results[0]};
+  const documentId = value._id;
+  delete value._id;
+  if (
+    Object.keys(value).sort().join(',') !==
+      'account_instance_id,account_key,created_at,schema_version' ||
+    value.schema_version !== 'account-instance.v1' ||
+    value.account_instance_id !== command.expected_account_instance_id ||
+    !/^[a-f0-9]{64}$/.test(value.account_key ?? '') ||
+    value.account_key !== documentId ||
+    !isCanonicalIsoTimestamp(value.created_at) ||
+    Object.hasOwn(value, 'phone_number')
+  ) {
+    throw new PilotEntitlementError('The expected account instance is invalid.');
+  }
+  const sessionOutput = await runner.run(
+    [
+      'db', 'nosql', 'execute', '-e', profile.environment_id, '--command',
+      JSON.stringify([queryByFilterCommand('softbook_auth_sessions', {
+        account_instance_id: command.expected_account_instance_id,
+        account_key: value.account_key,
+        phone_number: command.phone_number,
+        status: 'active',
+      })]),
+      '--json',
+    ],
+    {label: 'verify account instance phone binding'},
+  );
+  const sessions = parseTcbJson(sessionOutput)?.data?.results?.[0];
+  if (
+    !Array.isArray(sessions) ||
+    sessions.length === 0 ||
+    sessions.some(session => !isExactActiveSession(
+      session,
+      value,
+      command,
+      observedAt,
+    ))
+  ) {
+    throw new PilotEntitlementError(
+      'The expected account instance is not bound to this signed-in user.',
+    );
+  }
+}
+
+function isExactActiveSession(document, account, command, observedAt) {
+  const value = {...document};
+  const documentId = value._id;
+  delete value._id;
+  const expectedKeys = [
+    'access_expires_at', 'account_instance_id', 'account_key', 'created_at',
+    'device_id', 'device_name', 'phone_number', 'refresh_expires_at',
+    'refresh_rotation', 'refresh_token_hash', 'revoked_at', 'revoked_reason',
+    'session_id', 'status', 'updated_at',
+  ].sort();
+  const keys = Object.keys(value).sort();
+  return (
+    keys.length === expectedKeys.length &&
+    keys.every((key, index) => key === expectedKeys[index]) &&
+    value.session_id === documentId &&
+    /^[A-Za-z0-9_-]{24,128}$/.test(value.session_id ?? '') &&
+    value.status === 'active' &&
+    value.revoked_at === null &&
+    value.revoked_reason === null &&
+    value.account_key === account.account_key &&
+    value.account_instance_id === command.expected_account_instance_id &&
+    value.phone_number === command.phone_number &&
+    Number.isSafeInteger(value.refresh_rotation) &&
+    value.refresh_rotation >= 0 &&
+    /^[a-f0-9]{64}$/.test(value.refresh_token_hash ?? '') &&
+    [
+      value.access_expires_at,
+      value.created_at,
+      value.refresh_expires_at,
+      value.updated_at,
+    ].every(isCanonicalIsoTimestamp) &&
+    (value.device_id === null ||
+      (typeof value.device_id === 'string' && value.device_id.length <= 128)) &&
+    (value.device_name === null ||
+      (typeof value.device_name === 'string' && value.device_name.length <= 128)) &&
+    Date.parse(account.created_at) <= Date.parse(value.created_at) &&
+    Date.parse(value.created_at) <= Date.parse(value.updated_at) &&
+    Date.parse(value.updated_at) <= Date.parse(observedAt) &&
+    Date.parse(value.access_expires_at) > Date.parse(value.created_at) &&
+    Date.parse(value.updated_at) < Date.parse(value.access_expires_at) &&
+    Date.parse(value.refresh_expires_at) > Date.parse(observedAt)
+  );
+}
+
+function isCanonicalIsoTimestamp(value) {
+  if (typeof value !== 'string') return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString() === value;
 }
 
 async function invokePilotEntitlement({command, operatorSecret, profile, runner}) {
@@ -345,7 +483,16 @@ function parsePilotEntitlementInvocation(output, command) {
     typeof result.result?.idempotent !== 'boolean' ||
     pilotEntitlementInternals.containsPhoneMaterial(result.result?.actor) ||
     pilotEntitlementInternals.containsPhoneMaterial(result.result?.event_id) ||
-    pilotEntitlementInternals.containsPhoneMaterial(result.result?.pilot_id)
+    pilotEntitlementInternals.containsPhoneMaterial(result.result?.pilot_id) ||
+    pilotEntitlementInternals.containsAccountInstanceMaterial(
+      result.result?.actor,
+    ) ||
+    pilotEntitlementInternals.containsAccountInstanceMaterial(
+      result.result?.event_id,
+    ) ||
+    pilotEntitlementInternals.containsAccountInstanceMaterial(
+      result.result?.pilot_id,
+    )
   ) {
     throw new PilotEntitlementError('pilot entitlement invocation result is invalid.');
   }
@@ -357,6 +504,18 @@ function queryCommand(collection, phoneNumber) {
     TableName: collection,
     CommandType: 'QUERY',
     Command: JSON.stringify({find: collection, filter: {_id: phoneNumber}, limit: 1}),
+  };
+}
+
+function queryByFieldCommand(collection, field, value) {
+  return queryByFilterCommand(collection, {[field]: value});
+}
+
+function queryByFilterCommand(collection, filter) {
+  return {
+    TableName: collection,
+    CommandType: 'QUERY',
+    Command: JSON.stringify({find: collection, filter, limit: 2}),
   };
 }
 
@@ -380,6 +539,14 @@ function readRepositoryState() {
     head: git(['rev-parse', 'HEAD']),
     originMain: git(['rev-parse', 'origin/main']),
   };
+}
+
+function operatorCredentialFreeEnvironment(environment) {
+  const sanitized = {...environment};
+  for (const name of Object.keys(sanitized)) {
+    if (name.startsWith('SOFTBOOK_')) delete sanitized[name];
+  }
+  return sanitized;
 }
 
 function assertCheckedRepositoryHead(repository, checkedHead) {

@@ -11,12 +11,15 @@ const NOW = new Date('2026-08-12T08:00:00.000Z');
 const PHONE = '13800138000';
 
 test('authenticated v2 card source serves a controlled-pilot release while v1 remains disabled', async () => {
-  const store = createMemoryStore();
+  const store = createMemoryStore({
+    authIndexSecret: 'controlled-pilot-index-secret-00000001',
+  });
   store.kind = 'test_persistent_store';
   const cardSource = await createControlledPilotCardSource();
   store.snapshot().cardSources.set('cet4', cardSource);
 
   const api = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
     authV2CodeGenerator: () => '2468',
     authV2IndexSecret: 'controlled-pilot-index-secret-00000001',
     now: () => new Date(NOW),
@@ -88,6 +91,8 @@ test('card-source enforces the canonical membership prefix without leaking inacc
       await store.purchase(PHONE, NOW.toISOString());
     }
     const api = createSoftbookApi({
+      authV2AcknowledgementSleeper: async () => undefined,
+      authV2IndexSecret: 'softbook-cloudbase-dev-secret',
       now: () => new Date(NOW),
       runtimeMode: 'development',
       smsCode: '2468',
@@ -132,12 +137,15 @@ test('card-source enforces the canonical membership prefix without leaking inacc
 });
 
 test('controlled-pilot HTTP events reach the five-card round boundary without schema-external track fields', async () => {
-  const store = createMemoryStore();
+  const store = createMemoryStore({
+    authIndexSecret: 'controlled-pilot-index-secret-00000002',
+  });
   store.kind = 'test_persistent_store';
   const cardSource = await createControlledPilotCardSource();
   store.snapshot().cardSources.set('cet4', cardSource);
   let selectionCounter = 0;
   const api = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
     authV2CodeGenerator: () => '2468',
     authV2IndexSecret: 'controlled-pilot-index-secret-00000002',
     learningSchedulerRandomBytes: size => {
@@ -218,10 +226,13 @@ test('controlled-pilot HTTP events reach the five-card round boundary without sc
 });
 
 test('controlled-pilot trial starts only from an authenticated valid Learning Session', async () => {
-  const store = createMemoryStore();
+  const store = createMemoryStore({
+    authIndexSecret: 'controlled-pilot-index-secret-00000003',
+  });
   store.kind = 'test_persistent_store';
   store.snapshot().cardSources.set('cet4', await createControlledPilotCardSource());
   const api = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
     authV2CodeGenerator: () => '2468',
     authV2IndexSecret: 'controlled-pilot-index-secret-00000003',
     now: () => new Date(NOW),
@@ -288,6 +299,8 @@ test('controlled-pilot trial starts only from an authenticated valid Learning Se
 async function createControlledPilotCardSource() {
   const developmentStore = createMemoryStore();
   const developmentApi = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
+    authV2IndexSecret: 'softbook-cloudbase-dev-secret',
     now: () => new Date(NOW),
     runtimeMode: 'development',
     smsCode: '2468',

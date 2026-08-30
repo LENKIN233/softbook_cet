@@ -95,14 +95,24 @@ async function readLearningSession(config, input) {
           input.phoneNumber,
           dayKey,
           track,
-          {accountKey: input.accountKey, includeSchedulerState: true},
+          {
+            accountKey: input.accountKey,
+            includeSchedulerState: true,
+            sessionAuthority: input.sessionAuthority,
+          },
         ),
-        config.store.getMembership(input.phoneNumber, generatedAtIso),
+        config.store.getMembership(input.phoneNumber, generatedAtIso, {
+          accountKey: input.accountKey,
+          sessionAuthority: input.sessionAuthority,
+        }),
         config.store.getSpaceState(input.phoneNumber, dayKey, {
           accountKey: input.accountKey,
           acknowledgedAt: generatedAtIso,
+          sessionAuthority: input.sessionAuthority,
         }),
-        config.store.getLearningSessionCursor(input.accountKey, track),
+        config.store.getLearningSessionCursor(input.accountKey, track, {
+          sessionAuthority: input.sessionAuthority,
+        }),
       ]);
 
     assertPublishedContentAvailable(
@@ -133,6 +143,7 @@ async function readLearningSession(config, input) {
       config,
       context,
       input.accountKey,
+      input.sessionAuthority,
     );
     if (roundCompletion !== null) {
       const cursorAlreadyEmpty = context.sessionState.cursor === null;
@@ -144,6 +155,7 @@ async function readLearningSession(config, input) {
             expectedLearningServerSequence:
               context.learning.projectionServerSequence,
             expectedRevision: context.sessionState.revision,
+            sessionAuthority: input.sessionAuthority,
             track,
           })
         : await config.store.saveLearningSessionCursor({
@@ -154,6 +166,7 @@ async function readLearningSession(config, input) {
               context.learning.projectionAcknowledgedAt,
             learningServerSequence:
               context.learning.projectionServerSequence,
+            sessionAuthority: input.sessionAuthority,
             track,
             updatedAt: generatedAtIso,
           });
@@ -166,6 +179,7 @@ async function readLearningSession(config, input) {
           context,
           input.phoneNumber,
           generatedAtIso,
+          input.sessionAuthority,
         ))
       ) {
         continue;
@@ -189,6 +203,7 @@ async function readLearningSession(config, input) {
           expectedLearningServerSequence:
             context.learning.projectionServerSequence,
           expectedRevision: context.sessionState.revision,
+          sessionAuthority: input.sessionAuthority,
           track,
         }))
       ) {
@@ -200,6 +215,7 @@ async function readLearningSession(config, input) {
           context,
           input.phoneNumber,
           generatedAtIso,
+          input.sessionAuthority,
         ))
       ) {
         continue;
@@ -211,6 +227,7 @@ async function readLearningSession(config, input) {
           input.phoneNumber,
           generatedAtIso,
           resumed,
+          input.sessionAuthority,
         ))
       ) {
         continue;
@@ -231,6 +248,7 @@ async function readLearningSession(config, input) {
           expectedLearningServerSequence:
             context.learning.projectionServerSequence,
           expectedRevision: context.sessionState.revision,
+          sessionAuthority: input.sessionAuthority,
           track,
         })
       : await config.store.saveLearningSessionCursor({
@@ -240,6 +258,7 @@ async function readLearningSession(config, input) {
           learningAcknowledgedAt:
             context.learning.projectionAcknowledgedAt,
           learningServerSequence: context.learning.projectionServerSequence,
+          sessionAuthority: input.sessionAuthority,
           track,
           updatedAt: generatedAtIso,
         });
@@ -251,6 +270,7 @@ async function readLearningSession(config, input) {
           context,
           input.phoneNumber,
           generatedAtIso,
+          input.sessionAuthority,
         ))
       ) {
         continue;
@@ -262,6 +282,7 @@ async function readLearningSession(config, input) {
           input.phoneNumber,
           generatedAtIso,
           next.selection,
+          input.sessionAuthority,
         ))
       ) {
         continue;
@@ -287,12 +308,16 @@ async function canonicalMembershipMatchesSelectionContext(
   context,
   phoneNumber,
   observedAt,
+  sessionAuthority,
 ) {
   let latestMembership;
 
   try {
     latestMembership = normalizeCanonicalMembershipProjection(
-      await config.store.getMembership(phoneNumber, observedAt),
+      await config.store.getMembership(phoneNumber, observedAt, {
+        accountKey: context.accountKey,
+        sessionAuthority,
+      }),
     );
   } catch (error) {
     if (Number.isInteger(error.statusCode)) {
@@ -334,11 +359,16 @@ async function continuePilotRound(config, input) {
     config.store.getLearningState(input.phoneNumber, dayKey, command.track, {
       accountKey: input.accountKey,
       includeSchedulerState: true,
+      sessionAuthority: input.sessionAuthority,
     }),
-    config.store.getMembership(input.phoneNumber, generatedAtIso),
+    config.store.getMembership(input.phoneNumber, generatedAtIso, {
+      accountKey: input.accountKey,
+      sessionAuthority: input.sessionAuthority,
+    }),
     config.store.getSpaceState(input.phoneNumber, dayKey, {
       accountKey: input.accountKey,
       acknowledgedAt: generatedAtIso,
+      sessionAuthority: input.sessionAuthority,
     }),
   ]);
   assertPublishedContentAvailable(
@@ -378,6 +408,7 @@ async function continuePilotRound(config, input) {
     contentVersion: receipt.content_version,
     pilotId: receipt.pilot_id,
     receiptId: receipt.receipt_id,
+    sessionAuthority: input.sessionAuthority,
     track: command.track,
   });
   return serializePilotRoundAcknowledgement(
@@ -392,13 +423,19 @@ async function continuePilotRound(config, input) {
   );
 }
 
-async function resolvePendingRoundCompletion(config, context, accountKey) {
+async function resolvePendingRoundCompletion(
+  config,
+  context,
+  accountKey,
+  sessionAuthority,
+) {
   if (config.runtimeMode !== 'controlled_pilot') return null;
   const receipt = deriveRoundCompletion(context, accountKey);
   if (receipt === null) return null;
   const acknowledgement = await config.store.getPilotRoundContinuation({
     accountKey,
     completedCount: receipt.completed_count,
+    sessionAuthority,
     track: context.track,
   });
   if (acknowledgement === null) return receipt;
@@ -486,6 +523,7 @@ async function activateAvailableTrial(
   phoneNumber,
   acknowledgedAt,
   selection,
+  sessionAuthority,
 ) {
   if (context.membershipStage !== 'trial_available' || selection === null) {
     return true;
@@ -497,6 +535,7 @@ async function activateAvailableTrial(
     expectedMembership: context.membershipCheckpoint,
     phoneNumber,
     selectionId: selection.cursor.selection_id,
+    sessionAuthority,
     track: context.track,
   });
   if (activatedMembership === null) return false;

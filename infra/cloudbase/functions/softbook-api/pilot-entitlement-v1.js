@@ -7,6 +7,7 @@ const COMMAND_KEYS = [
   'action',
   'actor',
   'event_id',
+  'expected_account_instance_id',
   'occurred_at',
   'phone_number',
   'pilot_id',
@@ -36,6 +37,9 @@ function validatePilotEntitlementCommand(input) {
   if (
     input.schema_version !== 'pilot-entitlement-command.v1' ||
     !isIdentifier(input.event_id) ||
+    !/^account_[A-Za-z0-9_-]{24,128}$/.test(
+      input.expected_account_instance_id ?? '',
+    ) ||
     !isIdentifier(input.pilot_id) ||
     !/^1\d{10}$/.test(input.phone_number) ||
     !['grant', 'revoke'].includes(input.action) ||
@@ -184,6 +188,7 @@ function createAuditEvent(command, commandHash) {
     actor: command.actor,
     command_sha256: commandHash,
     event_id: command.event_id,
+    expected_account_instance_id: command.expected_account_instance_id,
     occurred_at: command.occurred_at,
     pilot_id: command.pilot_id,
     previous_stage: command.previous_stage,
@@ -248,6 +253,7 @@ function normalizePilotEntitlementDocument(input) {
     const reconstructedCommand = validatePilotEntitlementCommand({
       schema_version: 'pilot-entitlement-command.v1',
       event_id: event.event_id,
+      expected_account_instance_id: event.expected_account_instance_id,
       pilot_id: event.pilot_id,
       phone_number: document.phone_number,
       action: event.action,
@@ -310,7 +316,7 @@ function resolveBaseEntitlementAt(input, occurredAt) {
 function isStoredAuditEvent(value) {
   const keys = value && typeof value === 'object' ? Object.keys(value).sort() : [];
   const expectedKeys = [
-    'action', 'actor', 'command_sha256', 'event_id', 'occurred_at', 'pilot_id',
+    'action', 'actor', 'command_sha256', 'event_id', 'expected_account_instance_id', 'occurred_at', 'pilot_id',
     'previous_stage', 'reason', 'resulting_stage', 'schema_version',
   ];
   return value && keys.length === expectedKeys.length &&
@@ -318,6 +324,7 @@ function isStoredAuditEvent(value) {
     value.schema_version === PILOT_ENTITLEMENT_AUDIT_SCHEMA &&
     ['grant', 'revoke'].includes(value.action) && isPrivacySafePublicText(value.actor) &&
     /^sha256:[a-f0-9]{64}$/.test(value.command_sha256 ?? '') && isIdentifier(value.event_id) &&
+    /^account_[A-Za-z0-9_-]{24,128}$/.test(value.expected_account_instance_id ?? '') &&
     isCanonicalIsoTimestamp(value.occurred_at) && isIdentifier(value.pilot_id) &&
     isMembershipStage(value.previous_stage) && isTrimmedNonEmptyString(value.reason) &&
     isMembershipStage(value.resulting_stage);
@@ -357,7 +364,9 @@ function assertPlainObject(value, label) {
 
 function isIdentifier(value) {
   return typeof value === 'string' && value.length >= 3 && value.length <= 128 &&
-    /^[a-z0-9][a-z0-9._-]+$/.test(value) && !containsPhoneMaterial(value);
+    /^[a-z0-9][a-z0-9._-]+$/.test(value) &&
+    !containsPhoneMaterial(value) &&
+    !containsAccountInstanceMaterial(value);
 }
 
 function isCanonicalIsoTimestamp(value) {
@@ -377,12 +386,23 @@ function isTrimmedNonEmptyString(value) {
 }
 
 function isPrivacySafePublicText(value) {
-  return isTrimmedNonEmptyString(value) && !containsPhoneMaterial(value);
+  return (
+    isTrimmedNonEmptyString(value) &&
+    !containsPhoneMaterial(value) &&
+    !containsAccountInstanceMaterial(value)
+  );
 }
 
 function containsPhoneMaterial(value) {
   return typeof value === 'string' &&
     /1\d{10}/.test(value.normalize('NFKC').replace(/\D/g, ''));
+}
+
+function containsAccountInstanceMaterial(value) {
+  return (
+    typeof value === 'string' &&
+    /account_[A-Za-z0-9_-]{24,128}/.test(value)
+  );
 }
 
 module.exports = {
@@ -397,6 +417,7 @@ module.exports = {
   verifyAppliedPilotEntitlement,
   pilotEntitlementInternals: {
     containsPhoneMaterial,
+    containsAccountInstanceMaterial,
     hashCanonical,
     normalizePilotEntitlementDocument,
     stableStringify,

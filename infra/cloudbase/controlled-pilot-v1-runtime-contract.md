@@ -50,6 +50,8 @@ Controlled-pilot rounds are server gates, not client counters. `completed_count`
 The primary “继续下一轮” action calls authenticated `POST /v2/learning/round/continue` with an exact `pilot-round-continue.v1` command containing only schema version, CET4, content version, receipt ID and completed count. The server rederives the account, pilot, active release, canonical count and receipt, requires a positive multiple of five, then writes one exact `pilot-round-continue-ack.v1` record. Exact replay is idempotent; account, pilot, content, count or receipt drift fails closed. Only after this acknowledgement may a later Learning Session select the next card.
 
 The account-scoped continuation record is stored in `softbook_pilot_round_continuations`, validated exactly on every read, included in receiver provisioning/preflight/lifecycle cleanup and removed by account deletion. Duplicate learning events, offline replay, app restart and cross-device reads cannot increment, skip or acknowledge a boundary. Formal beta/production runtime does not expose the endpoint or apply this pilot gate.
+The continuation write transaction reads the account-keyed deletion task and
+rejects task presence before it can persist the acknowledgement.
 
 The exact `pilot-round-completion.v1` receipt returned as
 `learning-session.v1.round_completion` contains only:
@@ -210,9 +212,15 @@ and they do not change any pilot artifact's literal `gate_eligible=false`.
 ### `pilot-entitlement-command.v1`
 
 An untracked receiver-operator input contains one idempotent event, pilot,
-phone, `grant|revoke`, actor, reason, UTC occurrence time, previous stage and
-resulting stage. Public pilot, event and actor identifiers apply NFKC, then
-remove every non-digit character before rejecting phone-number material. Grant must result in
+phone, `grant|revoke`, actor, reason, UTC occurrence time, previous stage,
+resulting stage and `expected_account_instance_id`. The private command, stored
+audit and HMAC bind the raw instance generation; public plan/report projections
+do not expose it. An instance must already exist, so the user signs in before
+any grant; the CLI requires a strict non-expired active session matching phone,
+64-hex account key, instance, canonical timestamps and valid time ordering, and
+pre-registration or malformed active-shaped grants are rejected. Public pilot,
+event and actor identifiers reject phone and raw account-instance material, and
+the CLI result parser applies the same boundary. Grant must result in
 `pilot_premium`; revoke must restore the canonical base stage. Future mutation
 implementation rederives and atomically verifies those stages while storing
 the event and active overlay, leave base membership unchanged, reject client
@@ -235,7 +243,8 @@ independent audited revision in controlled-pilot Bootstrap. The overlay stops
 granting access at the profile's exact pilot expiry. The operator command is receiver
 only, dry-run first, and has no HTTP client route. Apply uses the receiver's
 IAM-authenticated non-HTTP function invocation with a command-bound HMAC from
-an independent receiver-only operator secret; the receiver function reads
+an independent receiver-only operator secret of at least 32 characters and 12
+unique characters; both CLI and receiver enforce that entropy. The receiver function reads
 base, beta and pilot records and commits audit plus overlay in one database
 transaction, after which the CLI independently rereads the audit event. These
 public plan and report projections bind pilot, event, actor, action and stage
@@ -243,6 +252,14 @@ identity without a phone-derived fingerprint. Stored pilot audits reconstruct
 every complete command with the document phone owner before recomputing its
 hash, so a cross-phone transplant fails closed. These repository guarantees
 remain undeployed until receiver execution is completed.
+
+The operator transaction derives and reads the account-keyed deletion task
+and exact current `softbook_accounts` instance before entitlement planning or
+writes. The CLI first requires exactly one matching existing instance, while
+the receiver transaction rederives account key from phone and matches the
+command generation. Queued, processing, future finalizing,
+or malformed task presence fails closed with `account_deletion_pending`, so an
+invocation authenticated before deletion cannot recreate the pilot overlay.
 
 ## Account deletion (repository implementation; not yet deployed)
 

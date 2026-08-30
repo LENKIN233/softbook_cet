@@ -170,6 +170,7 @@ test('public pilot identifiers reject phones after removing every non-digit', ()
     'scope-13800138000',
     'scope-138-0013-8000',
     'scope-138a0013b8000',
+    `account_${'a'.repeat(24)}`,
   ]) {
     for (const field of ['actor', 'event_id', 'pilot_id']) {
       assert.throws(
@@ -197,6 +198,7 @@ function command(action, baseStage) {
     schema_version: 'pilot-entitlement-command.v1',
     event_id:
       action === 'grant' ? 'pilot-event-grant-0001' : 'pilot-event-revoke-0001',
+    expected_account_instance_id: `account_${'a'.repeat(24)}`,
     pilot_id: 'cet4-pilot-2026',
     phone_number: '13800138000',
     action,

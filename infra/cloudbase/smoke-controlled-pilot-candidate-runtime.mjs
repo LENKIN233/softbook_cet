@@ -108,12 +108,15 @@ export async function smokeControlledPilotCandidateRuntime(options) {
     ),
   );
 
-  const store = createMemoryStore();
+  const store = createMemoryStore({
+    authIndexSecret: 'candidate-runtime-smoke-index-secret-00000001',
+  });
   store.kind = 'candidate_runtime_smoke_persistent_adapter';
   store.snapshot().cardSources.set(TRACK, runtimeSource);
   const {privateKey, publicKey} = crypto.generateKeyPairSync('ed25519');
   let selectionCounter = 0;
   const api = createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
     authV2CodeGenerator: () => SMS_CODE,
     authV2IndexSecret: 'candidate-runtime-smoke-index-secret-00000001',
     contentAssetUrlResolver: async ({asset}) =>

@@ -66,6 +66,81 @@ test('pilot entitlement CLI is dry-run by default and redacts the phone', async 
   assert.equal(runner.updateCount(), 0);
 });
 
+test('pilot entitlement CLI rejects a preregistration grant without an account instance', async () => {
+  const fixture = createFixture();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(
+      options,
+      dependencies(createRunner({includeAccount: false})),
+    ),
+    /must sign in first/,
+  );
+});
+
+test('pilot entitlement CLI rejects cross-phone account-instance planning', async () => {
+  const fixture = createFixture();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(
+      options,
+      dependencies(createRunner({sessionPhone: '13900139000'})),
+    ),
+    /not bound to this signed-in user/,
+  );
+});
+
+test('pilot entitlement CLI rejects an expired active-shaped instance session', async () => {
+  const fixture = createFixture();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(
+      options,
+      dependencies(createRunner({
+        refreshExpiresAt: '2026-08-01T00:00:00.000Z',
+      })),
+    ),
+    /not bound to this signed-in user/,
+  );
+});
+
+test('pilot entitlement CLI rejects a malformed active-shaped instance session', async () => {
+  const fixture = createFixture();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(
+      options,
+      dependencies(createRunner({malformedSession: true})),
+    ),
+    /not bound to this signed-in user/,
+  );
+});
+
+test('pilot entitlement CLI rejects impossible active-session chronology', async () => {
+  const fixture = createFixture();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(
+      options,
+      dependencies(createRunner({
+        accessExpiresAt: '2026-08-10T10:00:00.500Z',
+        sessionUpdatedAt: '2026-08-10T10:00:00.750Z',
+      })),
+    ),
+    /not bound to this signed-in user/,
+  );
+});
+
 test('apply writes and verifies once while exact replay is idempotent', async () => {
   const fixture = createFixture();
   const runner = createRunner();
@@ -84,6 +159,24 @@ test('apply writes and verifies once while exact replay is idempotent', async ()
   assert.equal(replay.result.idempotent, true);
   assert.equal(replay.writes_performed, false);
   assert.equal(runner.updateCount(), 1);
+});
+
+test('pilot apply rejects a low-entropy operator secret before invocation', async () => {
+  const fixture = createFixture();
+  const runner = createRunner();
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath,
+    '--command', fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(options, {
+      ...dependencies(runner),
+      operatorSecret: 'x'.repeat(64),
+    }),
+    /strong receiver-only secret/,
+  );
+  assert.equal(runner.invokeCount(), 0);
 });
 
 test('profile pilot mismatch and topic-branch apply fail before mutation', async () => {
@@ -166,6 +259,22 @@ test('pilot CLI result parser rejects letter-separated phone IDs', async () => {
     fixture.profilePath,
     '--command',
     fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(options, dependencies(runner)),
+    /invocation result is invalid/,
+  );
+});
+
+test('pilot CLI result parser rejects account-instance material', async () => {
+  const fixture = createFixture();
+  const runner = createRunner({
+    responseActorOverride: `account_${'a'.repeat(24)}`,
+  });
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile', fixture.profilePath,
+    '--command', fixture.commandPath,
     '--apply',
   ]);
   await assert.rejects(
@@ -451,6 +560,7 @@ function createFixture({
     JSON.stringify({
       schema_version: 'pilot-entitlement-command.v1',
       event_id: 'pilot-event-grant-0001',
+      expected_account_instance_id: `account_${'a'.repeat(24)}`,
       pilot_id: commandPilotId,
       phone_number: '13800138000',
       action: 'grant',
@@ -479,8 +589,46 @@ function dependencies(runner) {
   };
 }
 
-function createRunner({responseActorOverride = null} = {}) {
+function createRunner({
+  accessExpiresAt = '2026-08-10T10:15:00.000Z',
+  includeAccount = true,
+  malformedSession = false,
+  refreshExpiresAt = '2026-09-30T12:00:00.000Z',
+  responseActorOverride = null,
+  sessionPhone = '13800138000',
+  sessionUpdatedAt = '2026-08-10T10:00:00.000Z',
+} = {}) {
   const collections = new Map([
+    ['softbook_accounts', new Map(includeAccount ? [[
+      'a'.repeat(64),
+      {
+        account_instance_id: `account_${'a'.repeat(24)}`,
+        account_key: 'a'.repeat(64),
+        created_at: '2026-08-10T09:00:00.000Z',
+        schema_version: 'account-instance.v1',
+      },
+    ]] : [])],
+    ['softbook_auth_sessions', new Map(includeAccount ? [[
+      'session-test-pilot-instance',
+      {
+        access_expires_at: accessExpiresAt,
+        account_instance_id: `account_${'a'.repeat(24)}`,
+        account_key: 'a'.repeat(64),
+        created_at: '2026-08-10T10:00:00.000Z',
+        device_id: null,
+        device_name: null,
+        phone_number: sessionPhone,
+        refresh_expires_at: refreshExpiresAt,
+        refresh_rotation: 0,
+        refresh_token_hash: 'b'.repeat(64),
+        revoked_at: null,
+        revoked_reason: null,
+        session_id: 'session-test-pilot-instance',
+        status: 'active',
+        updated_at: sessionUpdatedAt,
+        ...(malformedSession ? {unexpected: true} : {}),
+      },
+    ]] : [])],
     ['softbook_beta_entitlements', new Map()],
     ['softbook_pilot_entitlements', new Map()],
     ['softbook_memberships', new Map()],
@@ -517,8 +665,12 @@ function createRunner({responseActorOverride = null} = {}) {
         const results = commands.map(wrapper => {
           const command = JSON.parse(wrapper.Command);
           if (wrapper.CommandType === 'QUERY') {
-            const document = collections.get(wrapper.TableName)?.get(command.filter._id);
-            return document ? [{_id: command.filter._id, ...structuredClone(document)}] : [];
+            return [...(collections.get(wrapper.TableName) ?? new Map())]
+              .map(([id, document]) => ({_id: id, ...structuredClone(document)}))
+              .filter(document => Object.entries(command.filter).every(
+                ([field, expected]) => document[field] === expected,
+              ))
+              .slice(0, command.limit ?? 1);
           }
           if (wrapper.CommandType === 'UPDATE') {
             updates += 1;

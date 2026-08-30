@@ -1174,7 +1174,7 @@ export function inspectReceiverSecrets(
     !isTimeoutMilliseconds(env.SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS)
   ) {
     errors.push(
-      'SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS must be an integer from 1 to 15000',
+      'SOFTBOOK_CLOUDBASE_AUTH_TIMEOUT_MS must be an integer from 1 to 8000',
     );
   }
   if (provider === 'cloudbase-auth') {
@@ -1206,7 +1206,7 @@ export function inspectReceiverSecrets(
     env.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS &&
     !isTimeoutMilliseconds(env.SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS)
   ) {
-    errors.push('SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS must be an integer from 1 to 15000');
+    errors.push('SOFTBOOK_SMS_WEBHOOK_TIMEOUT_MS must be an integer from 1 to 8000');
   }
   if (provider === 'tencentcloud') {
     if (!/^AKID[A-Za-z0-9]{12,124}$/.test(env.SOFTBOOK_SMS_TENCENT_SECRET_ID || '')) {
@@ -1231,7 +1231,7 @@ export function inspectReceiverSecrets(
       env.SOFTBOOK_SMS_TENCENT_TIMEOUT_MS &&
       !isTimeoutMilliseconds(env.SOFTBOOK_SMS_TENCENT_TIMEOUT_MS)
     ) {
-      errors.push('SOFTBOOK_SMS_TENCENT_TIMEOUT_MS must be an integer from 1 to 15000');
+      errors.push('SOFTBOOK_SMS_TENCENT_TIMEOUT_MS must be an integer from 1 to 8000');
     }
   }
   if (env.SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM) {
@@ -1318,7 +1318,7 @@ function isTencentTemplateParameterList(value) {
 }
 
 function isTimeoutMilliseconds(value) {
-  return /^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 15000;
+  return /^\d+$/.test(value) && Number(value) >= 1 && Number(value) <= 8000;
 }
 
 export function inspectWriteSafety({nodeVersion, repository}) {

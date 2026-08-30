@@ -37,7 +37,9 @@ function createContentManifestV1Service(options) {
 
       const access = await resolveContentAccess(
         options.store,
+        input.accountKey,
         input.phoneNumber,
+        input.sessionAuthority,
         cardSource,
         issuedAt,
       );
@@ -93,7 +95,14 @@ function createContentManifestV1Service(options) {
   };
 }
 
-async function resolveContentAccess(store, phoneNumber, cardSource, issuedAt) {
+async function resolveContentAccess(
+  store,
+  accountKey,
+  phoneNumber,
+  sessionAuthority,
+  cardSource,
+  issuedAt,
+) {
   if (typeof phoneNumber !== 'string' || phoneNumber.length === 0) {
     throw contentManifestError(
       401,
@@ -105,6 +114,7 @@ async function resolveContentAccess(store, phoneNumber, cardSource, issuedAt) {
   const membership = await store.getMembership(
     phoneNumber,
     issuedAt.toISOString(),
+    {accountKey, sessionAuthority},
   );
   const totalCardCount = cardSource.card_records.length;
   let accessibleCardCount;

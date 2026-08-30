@@ -30,6 +30,7 @@ const {pilotEntitlementInternals} = require('../pilot-entitlement-v1');
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
 const BETA_BACKEND_DEPLOYMENT_ID =
   `backend-deployment:sha256:${'b'.repeat(64)}`;
+const ACCOUNT_INSTANCE_ID = `account_${'a'.repeat(24)}`;
 const CORE_INTERACTIONS = [
   'elimination',
   'flip',
@@ -64,6 +65,8 @@ function catalogEntriesByRef(track) {
 
 function createTestApi(options = {}) {
   return createSoftbookApi({
+    authV2AcknowledgementSleeper: async () => undefined,
+    authV2IndexSecret: 'softbook-cloudbase-dev-secret',
     now: () => fixedNow,
     runtimeMode: 'development',
     smsCode: '2468',
@@ -315,15 +318,15 @@ test('auth endpoints issue a bearer token for the development fixed SMS code', a
 
 test('learning card source requires auth and covers each core interaction', async () => {
   const api = createTestApi();
-  const token = await authenticatedToken(api);
+  const session = await authenticatedV2Session(api);
   const headers = {
-    authorization: `Bearer ${token}`,
+    authorization: `Bearer ${session.access_token}`,
   };
   const purchased = await request(api, {
-    body: {phone_number: '13800138000'},
+    body: {},
     headers,
     method: 'POST',
-    path: '/v1/membership/purchase',
+    path: '/v2/membership/purchase',
   });
   assert.equal(purchased.statusCode, 200);
 
@@ -332,7 +335,7 @@ test('learning card source requires auth and covers each core interaction', asyn
     const response = await request(api, {
       headers,
       method: 'GET',
-      path: '/softbook-api/v1/learning/card-source',
+      path: '/softbook-api/v2/learning/card-source',
       query: {
         track,
       },
@@ -1055,7 +1058,10 @@ test('production bootstrap fails closed without a matching published release', a
       kind: 'test_sms',
       sendCode: async () => undefined,
     },
-    store: createCloudBaseStore({db}),
+    store: createCloudBaseStore({
+      authIndexSecret: 'production-index-secret-0000000000',
+      db,
+    }),
     tokenSecret: 'production-token-secret-0000000000',
   });
   const session = await authenticatedV2Session(api);
@@ -1098,7 +1104,10 @@ test('production learning session fails closed before trial without a published 
       kind: 'test_sms',
       sendCode: async () => undefined,
     },
-    store: createCloudBaseStore({db}),
+    store: createCloudBaseStore({
+      authIndexSecret: 'production-scheduler-index-secret-0000',
+      db,
+    }),
     tokenSecret: 'production-scheduler-token-secret-0000',
   });
   const session = await authenticatedV2Session(api);
@@ -1172,6 +1181,207 @@ test('CloudBase canonical check-in survives separate function instances', async 
   assert.equal(restored.body.data.progress.checked_in_today, true);
   assert.equal(restored.body.data.progress.total_completed_count, 0);
   assert.equal(restored.body.data.progress.pending_review_count, 0);
+});
+
+test('a check-in authenticated before deletion cannot write after the task is queued', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({
+    authIndexSecret: 'test-secret',
+    db,
+  });
+  const pause = pauseStoreMethod(store, 'checkInDailyProgress');
+  const api = createTestApi({
+    authV2IndexSecret: 'test-secret',
+    store,
+  });
+  const session = await authenticatedV2Session(api);
+  const headers = {authorization: `Bearer ${session.access_token}`};
+  const pendingCheckIn = request(api, {
+    body: {day_key: '2026-04-30'},
+    headers,
+    method: 'POST',
+    path: '/v2/progress/check-in',
+  });
+
+  await pause.entered;
+  const accountKey = deriveTestAccountKey('test-secret', '13800138000');
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set({status: 'queued'});
+  pause.release();
+
+  const checkIn = await pendingCheckIn;
+  assert.equal(checkIn.statusCode, 403, JSON.stringify(checkIn.body));
+  assert.equal(checkIn.body.error.code, 'account_deletion_pending');
+  assert.equal(
+    db.snapshot().get('softbook_daily_check_ins')?.size ?? 0,
+    0,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_account_deletions')?.size ?? 0,
+    1,
+  );
+});
+
+test('every account product mutation reads the deletion fence in its commit transaction', async () => {
+  const db = createFakeCloudBaseDb();
+  const authIndexSecret = 'operator-index-secret-0123456789-ABCDEFG';
+  const phoneNumber = '13800138000';
+  const accountKey = deriveTestAccountKey(authIndexSecret, phoneNumber);
+  const pilotId = 'cet4-pilot-2026';
+  const store = createCloudBaseStore({
+    authIndexSecret,
+    db,
+    pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  });
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set({status: 'queued'});
+  const timestamp = fixedNow.toISOString();
+  const attempts = [
+    [
+      'membership projection and expiry mutation',
+      () => store.getMembership(phoneNumber, timestamp, {accountKey}),
+    ],
+    [
+      'legacy trial activation',
+      () => store.startTrial(phoneNumber, timestamp, {accountKey}),
+    ],
+    [
+      'development purchase',
+      () => store.purchase(phoneNumber, timestamp, {accountKey}),
+    ],
+    [
+      'recovery dismissal',
+      () => store.dismissRecovery(phoneNumber, timestamp, {accountKey}),
+    ],
+    [
+      'learning-session Trial activation',
+      () =>
+        store.activateTrialForLearningSession({
+          accountKey,
+          acknowledgedAt: timestamp,
+          expectedMembership: {},
+          phoneNumber,
+          selectionId: 'sel_deletion_fence',
+          track: 'cet4',
+        }),
+    ],
+    [
+      'learning-session cursor confirmation',
+      () =>
+        store.confirmLearningSessionCursor({
+          accountKey,
+          expectedLearningAcknowledgedAt: null,
+          expectedLearningServerSequence: 0,
+          expectedRevision: 0,
+          track: 'cet4',
+        }),
+    ],
+    [
+      'learning-session cursor write',
+      () =>
+        store.saveLearningSessionCursor({
+          accountKey,
+          cursor: null,
+          expectedRevision: 0,
+          learningAcknowledgedAt: null,
+          learningServerSequence: 0,
+          track: 'cet4',
+          updatedAt: timestamp,
+        }),
+    ],
+    [
+      'pilot round continuation',
+      () =>
+        store.savePilotRoundContinuation({
+          accountKey,
+          acknowledgedAt: timestamp,
+          completedCount: 5,
+          contentVersion: `sha256:${'a'.repeat(64)}`,
+          pilotId,
+          receiptId: 'prc_deletion_fence',
+          track: 'cet4',
+        }),
+    ],
+    [
+      'daily check-in',
+      () =>
+        store.checkInDailyProgress(
+          phoneNumber,
+          '2026-04-30',
+          timestamp,
+          {accountKey},
+        ),
+    ],
+    [
+      'learning event and state projection',
+      () =>
+        store.commitLearningEvents({
+          accountKey,
+          acknowledgedAt: timestamp,
+          events: [],
+          phoneNumber,
+          track: 'cet4',
+          validateNewEvents: async () => undefined,
+        }),
+    ],
+    [
+      'Space state migration or checkpoint',
+      () =>
+        store.getSpaceState(phoneNumber, '2026-04-30', {
+          accountKey,
+          acknowledgedAt: timestamp,
+        }),
+    ],
+    [
+      'Space action commit',
+      () =>
+        store.commitSpaceActions({
+          accountKey,
+          acknowledgedAt: timestamp,
+          actions: [],
+          phoneNumber,
+        }),
+    ],
+    [
+      'beta operator entitlement',
+      () =>
+        store.applyBetaEntitlementCommand(
+          {phone_number: phoneNumber},
+          {accountKey},
+        ),
+    ],
+    [
+      'pilot operator entitlement',
+      () =>
+        store.applyPilotEntitlementCommand(
+          {phone_number: phoneNumber},
+          {accountKey},
+        ),
+    ],
+  ];
+
+  for (const [label, attempt] of attempts) {
+    await assert.rejects(
+      attempt,
+      error => error.code === 'account_deletion_pending',
+      label,
+    );
+  }
+
+  const nonDeletionDocumentCount = [...db.snapshot().entries()]
+    .filter(([name]) => name !== 'softbook_account_deletions')
+    .reduce((count, [, documents]) => count + documents.size, 0);
+  assert.equal(nonDeletionDocumentCount, 0);
+  assert.equal(
+    db.snapshot().get('softbook_account_deletions').has(accountKey),
+    true,
+  );
 });
 
 test('CloudBase learning-session cursor survives separate function instances', async () => {
@@ -1447,37 +1657,26 @@ test('CloudBase bootstrap preserves a legacy account pending-review baseline acr
   }
 });
 
-test('membership entitlement and mutations preserve server-side state by phone', async () => {
+test('membership entitlement and development purchase preserve session-owned state', async () => {
   const api = createTestApi();
-  const token = await authenticatedToken(api);
+  const session = await authenticatedV2Session(api);
   const headers = {
-    authorization: `Bearer ${token}`,
-  };
-  const body = {
-    phone_number: '13800138000',
+    authorization: `Bearer ${session.access_token}`,
   };
 
   const initial = await request(api, {
     headers,
     method: 'GET',
-    path: '/v1/membership/entitlement',
-  });
-  const trial = await request(api, {
-    body,
-    headers,
-    method: 'POST',
-    path: '/v1/membership/start-trial',
+    path: '/v2/membership/entitlement',
   });
   const premium = await request(api, {
-    body,
+    body: {},
     headers,
     method: 'POST',
-    path: '/v1/membership/purchase',
+    path: '/v2/membership/purchase',
   });
 
   assert.equal(initial.body.data.entitlement.stage, 'trial_available');
-  assert.equal(trial.body.data.entitlement.stage, 'trial');
-  assert.equal(trial.body.data.entitlement.trial_started_at_entry_count, 1);
   assert.equal(premium.body.data.entitlement.stage, 'premium');
 });
 
@@ -1776,6 +1975,8 @@ test('v2 check-in is monotonic and idempotent in memory and CloudBase', async ()
   for (const [name, store] of variants) {
     let now = new Date('2026-04-30T12:00:00.000Z');
     const api = createSoftbookApi({
+      authV2AcknowledgementSleeper: async () => undefined,
+      authV2IndexSecret: 'softbook-cloudbase-dev-secret',
       now: () => new Date(now),
       runtimeMode: 'development',
       smsCode: '2468',
@@ -2524,7 +2725,10 @@ test('production space actions require a matching published content release', as
       kind: 'test_sms',
       sendCode: async () => undefined,
     },
-    store: createCloudBaseStore({db}),
+    store: createCloudBaseStore({
+      authIndexSecret: 'production-space-index-secret-000000',
+      db,
+    }),
     tokenSecret: 'production-space-token-secret-000000',
   });
   const session = await authenticatedV2Session(api);
@@ -2619,7 +2823,7 @@ test('CloudBase space action storage accepts only system ids beyond exact busine
   assert.equal(corruptState.body.error.code, 'space_state_invalid');
 });
 
-test('maximum CloudBase space action batch stays within 64 transaction operations', async () => {
+test('maximum CloudBase space action batch stays within 67 transaction operations', async () => {
   const db = createFakeCloudBaseDb();
   const api = createTestApi({store: createCloudBaseStore({db})});
   const session = await authenticatedV2Session(api);
@@ -2637,7 +2841,7 @@ test('maximum CloudBase space action batch stays within 64 transaction operation
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.body.data.results.length, 20);
-  assert.equal(db.transactionOperationCounts().at(-1), 64);
+  assert.equal(db.transactionOperationCounts().at(-1), 67);
 });
 
 test('space action ids and canonical state stay isolated between accounts', async () => {
@@ -2757,6 +2961,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     campaign_id: 'cet4-beta-campaign-001',
     command_sha256: null,
     event_id: 'beta-event-grant-0001',
+    expected_account_instance_id: ACCOUNT_INSTANCE_ID,
     grant_id: 'cet4-beta-grant-0001',
     occurred_at: fixedNow.toISOString(),
     previous_stage: 'trial',
@@ -2868,6 +3073,7 @@ test('learning-session Trial activation rejects a beta grant that races the sele
     campaign_id: 'cet4-beta-campaign-001',
     command_sha256: null,
     event_id: 'beta-event-race-grant-0001',
+    expected_account_instance_id: ACCOUNT_INSTANCE_ID,
     grant_id: 'cet4-beta-race-grant-0001',
     occurred_at: selectedAt,
     previous_stage: 'trial_available',
@@ -2980,6 +3186,7 @@ test('controlled-pilot membership overlays only an exact active pilot grant', as
     actor: 'receiver-operator',
     command_sha256: null,
     event_id: 'pilot-event-grant-0001',
+    expected_account_instance_id: ACCOUNT_INSTANCE_ID,
     occurred_at: occurredAt,
     pilot_id: pilotId,
     previous_stage: 'trial_available',
@@ -3032,6 +3239,7 @@ test('beta entitlement operator invocation reads base revision and commits one t
   const db = createFakeCloudBaseDb();
   const store = createCloudBaseStore({db, runtimeMode: 'production'});
   const command = createBetaOperatorCommand();
+  await seedAccountInstance(db, command.phone_number);
   db.snapshot().get('softbook_memberships').set(command.phone_number, {
     entitlement: {
       counted_entry_count: 0,
@@ -3099,10 +3307,126 @@ test('beta entitlement operator invocation reads base revision and commits one t
   );
 });
 
+test('beta operator transaction rejects deletion queued after invocation validation', async () => {
+  const db = createFakeCloudBaseDb();
+  const authIndexSecret = 'operator-index-secret-0123456789-ABCDEFG';
+  const store = createCloudBaseStore({
+    authIndexSecret,
+    db,
+    runtimeMode: 'production',
+  });
+  const pause = pauseStoreMethod(store, 'applyBetaEntitlementCommand');
+  const command = createBetaOperatorCommand();
+  await seedAccountInstance(db, command.phone_number, authIndexSecret);
+  const invocation = {
+    schema_version: 'beta-entitlement-operator-invoke.v1',
+    backend_deployment_id: BETA_BACKEND_DEPLOYMENT_ID,
+    command,
+    signature: createBetaOperatorSignature(
+      command,
+      BETA_BACKEND_DEPLOYMENT_ID,
+    ),
+  };
+  const pending = handleBetaEntitlementOperatorInvoke(invocation, {
+    authIndexSecret,
+    backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+    now: () => fixedNow,
+    operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+    releaseClass: 'closed_beta',
+    runtimeMode: 'production',
+    store,
+  });
+
+  await pause.entered;
+  const accountKey = deriveTestAccountKey(
+    authIndexSecret,
+    command.phone_number,
+  );
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set({status: 'processing'});
+  pause.release();
+
+  await assert.rejects(
+    pending,
+    error => error.code === 'account_deletion_pending',
+  );
+  assert.equal(
+    db.snapshot().get('softbook_beta_entitlements')?.size ?? 0,
+    0,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_membership_revisions')?.size ?? 0,
+    0,
+  );
+});
+
+test('beta operator requires the exact existing account instance across re-registration', async () => {
+  const db = createFakeCloudBaseDb();
+  const authIndexSecret = 'operator-index-secret-0123456789-ABCDEFG';
+  const store = createCloudBaseStore({authIndexSecret, db, runtimeMode: 'production'});
+  const firstInstanceId = ACCOUNT_INSTANCE_ID;
+  const secondInstanceId = `account_${'b'.repeat(24)}`;
+  const firstCommand = createBetaOperatorCommand();
+  const invoke = command => handleBetaEntitlementOperatorInvoke(
+    {
+      backend_deployment_id: BETA_BACKEND_DEPLOYMENT_ID,
+      command,
+      schema_version: 'beta-entitlement-operator-invoke.v1',
+      signature: createBetaOperatorSignature(command, BETA_BACKEND_DEPLOYMENT_ID),
+    },
+    {
+      authIndexSecret,
+      backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+      operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+      releaseClass: 'closed_beta',
+      runtimeMode: 'production',
+      store,
+    },
+  );
+
+  await assert.rejects(() => invoke(firstCommand), error =>
+    error.code === 'account_instance_mismatch');
+  assert.equal(db.snapshot().get('softbook_beta_entitlements')?.size ?? 0, 0);
+
+  const accountKey = await seedAccountInstance(
+    db,
+    firstCommand.phone_number,
+    authIndexSecret,
+    firstInstanceId,
+  );
+  const first = await invoke(firstCommand);
+  assert.equal(first.writes_performed, true);
+  db.snapshot().get('softbook_accounts').delete(accountKey);
+  db.snapshot().get('softbook_beta_entitlements').delete(firstCommand.phone_number);
+  db.snapshot().get('softbook_memberships').delete(firstCommand.phone_number);
+  db.snapshot().get('softbook_membership_revisions').delete(firstCommand.phone_number);
+  await seedAccountInstance(
+    db,
+    firstCommand.phone_number,
+    authIndexSecret,
+    secondInstanceId,
+  );
+
+  await assert.rejects(() => invoke(firstCommand), error =>
+    error.code === 'account_instance_mismatch');
+  const secondCommand = {
+    ...firstCommand,
+    event_id: 'beta-event-grant-generation-0002',
+    expected_account_instance_id: secondInstanceId,
+    grant_id: 'cet4-beta-grant-generation-0002',
+  };
+  const second = await invoke(secondCommand);
+  assert.equal(second.writes_performed, true);
+  assert.equal(JSON.stringify(second).includes(secondInstanceId), false);
+});
+
 test('beta entitlement operator invocation rejects unauthenticated input and rolls back transaction failure', async () => {
   const db = createFakeCloudBaseDb();
   const store = createCloudBaseStore({db, runtimeMode: 'production'});
   const command = createBetaOperatorCommand();
+  await seedAccountInstance(db, command.phone_number);
   const invocation = {
     schema_version: 'beta-entitlement-operator-invoke.v1',
     backend_deployment_id: BETA_BACKEND_DEPLOYMENT_ID,
@@ -3219,6 +3543,7 @@ test('pilot entitlement operator invocation rederives and commits grant atomical
   });
   const command = {
     schema_version: 'pilot-entitlement-command.v1',
+    expected_account_instance_id: ACCOUNT_INSTANCE_ID,
     event_id: 'pilot-event-grant-0001',
     pilot_id: pilotId,
     phone_number: '13800138000',
@@ -3229,6 +3554,7 @@ test('pilot entitlement operator invocation rederives and commits grant atomical
     previous_stage: 'trial_available',
     resulting_stage: 'pilot_premium',
   };
+  await seedAccountInstance(db, command.phone_number);
   const invoke = () =>
     handlePilotEntitlementOperatorInvoke(
       {
@@ -3264,6 +3590,138 @@ test('pilot entitlement operator invocation rederives and commits grant atomical
   );
 });
 
+test('pilot operator transaction rejects finalizing deletion after invocation validation', async () => {
+  const db = createFakeCloudBaseDb();
+  const authIndexSecret = 'operator-index-secret-0123456789-ABCDEFG';
+  const pilotId = 'cet4-pilot-2026';
+  const pilotExpiresAt = '2026-09-01T00:00:00.000Z';
+  const store = createCloudBaseStore({
+    authIndexSecret,
+    db,
+    pilotExpiresAt,
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  });
+  const pause = pauseStoreMethod(store, 'applyPilotEntitlementCommand');
+  const command = {
+    schema_version: 'pilot-entitlement-command.v1',
+    expected_account_instance_id: ACCOUNT_INSTANCE_ID,
+    event_id: 'pilot-event-deletion-race-0001',
+    pilot_id: pilotId,
+    phone_number: '13800138000',
+    action: 'grant',
+    actor: 'receiver-operator',
+    reason: 'controlled_pilot_continued_access',
+    occurred_at: fixedNow.toISOString(),
+    previous_stage: 'trial_available',
+    resulting_stage: 'pilot_premium',
+  };
+  await seedAccountInstance(db, command.phone_number, authIndexSecret);
+  const pending = handlePilotEntitlementOperatorInvoke(
+    {
+      schema_version: 'pilot-entitlement-operator-invoke.v1',
+      command,
+      signature: createPilotOperatorSignature(command),
+    },
+    {
+      authIndexSecret,
+      now: () => new Date('2026-04-30T12:00:01.000Z'),
+      operatorSecret: 'pilot-operator-secret-0123456789-ABCDEFG',
+      pilotExpiresAt,
+      pilotId,
+      runtimeMode: 'controlled_pilot',
+      store,
+    },
+  );
+
+  await pause.entered;
+  const accountKey = deriveTestAccountKey(
+    authIndexSecret,
+    command.phone_number,
+  );
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set({status: 'finalizing'});
+  pause.release();
+
+  await assert.rejects(
+    pending,
+    error => error.code === 'account_deletion_pending',
+  );
+  assert.equal(
+    db.snapshot().get('softbook_pilot_entitlements')?.size ?? 0,
+    0,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_memberships')?.size ?? 0,
+    0,
+  );
+});
+
+test('pilot operator rejects preregistration and an earlier account generation', async () => {
+  const db = createFakeCloudBaseDb();
+  const authIndexSecret = 'pilot-index-secret-0123456789-ABCDEFG';
+  const pilotId = 'cet4-pilot-2026';
+  const pilotExpiresAt = '2026-09-01T00:00:00.000Z';
+  const store = createCloudBaseStore({
+    authIndexSecret,
+    db,
+    pilotExpiresAt,
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  });
+  const firstCommand = {
+    action: 'grant',
+    actor: 'receiver-operator',
+    event_id: 'pilot-event-generation-0001',
+    expected_account_instance_id: ACCOUNT_INSTANCE_ID,
+    occurred_at: fixedNow.toISOString(),
+    phone_number: '13800138000',
+    pilot_id: pilotId,
+    previous_stage: 'trial_available',
+    reason: 'controlled_pilot_continued_access',
+    resulting_stage: 'pilot_premium',
+    schema_version: 'pilot-entitlement-command.v1',
+  };
+  const invoke = command => handlePilotEntitlementOperatorInvoke(
+    {
+      command,
+      schema_version: 'pilot-entitlement-operator-invoke.v1',
+      signature: createPilotOperatorSignature(command),
+    },
+    {
+      authIndexSecret,
+      now: () => new Date('2026-04-30T12:00:01.000Z'),
+      operatorSecret: 'pilot-operator-secret-0123456789-ABCDEFG',
+      pilotExpiresAt,
+      pilotId,
+      runtimeMode: 'controlled_pilot',
+      store,
+    },
+  );
+
+  await assert.rejects(() => invoke(firstCommand), error =>
+    error.code === 'account_instance_mismatch');
+  const accountKey = await seedAccountInstance(
+    db,
+    firstCommand.phone_number,
+    authIndexSecret,
+  );
+  assert.equal((await invoke(firstCommand)).writes_performed, true);
+  db.snapshot().get('softbook_accounts').delete(accountKey);
+  db.snapshot().get('softbook_pilot_entitlements').delete(firstCommand.phone_number);
+  await seedAccountInstance(
+    db,
+    firstCommand.phone_number,
+    authIndexSecret,
+    `account_${'b'.repeat(24)}`,
+  );
+  await assert.rejects(() => invoke(firstCommand), error =>
+    error.code === 'account_instance_mismatch');
+  assert.equal(db.snapshot().get('softbook_pilot_entitlements')?.size ?? 0, 0);
+});
+
 test('pilot entitlement transaction rejects a stale claimed base stage without writing', async () => {
   const db = createFakeCloudBaseDb();
   const pilotId = 'cet4-pilot-2026';
@@ -3274,6 +3732,7 @@ test('pilot entitlement transaction rejects a stale claimed base stage without w
     pilotId,
     runtimeMode: 'controlled_pilot',
   });
+  await seedAccountInstance(db, phoneNumber);
   db.snapshot().get('softbook_memberships').set(phoneNumber, {
     entitlement: {
       counted_entry_count: 1,
@@ -3292,6 +3751,7 @@ test('pilot entitlement transaction rejects a stale claimed base stage without w
     () =>
       store.applyPilotEntitlementCommand({
         schema_version: 'pilot-entitlement-command.v1',
+        expected_account_instance_id: ACCOUNT_INSTANCE_ID,
         event_id: 'pilot-event-grant-0001',
         pilot_id: pilotId,
         phone_number: phoneNumber,
@@ -3314,6 +3774,7 @@ test('pilot entitlement operator invocation rejects a client-callable unsigned r
   const pilotId = 'cet4-pilot-2026';
   const command = {
     schema_version: 'pilot-entitlement-command.v1',
+    expected_account_instance_id: ACCOUNT_INSTANCE_ID,
     event_id: 'pilot-event-grant-0001',
     pilot_id: pilotId,
     phone_number: '13800138000',
@@ -3336,6 +3797,30 @@ test('pilot entitlement operator invocation rejects a client-callable unsigned r
         {
           now: () => new Date('2026-04-30T12:00:01.000Z'),
           operatorSecret: 'pilot-operator-secret-0123456789-ABCDEFG',
+          pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+          pilotId,
+          runtimeMode: 'controlled_pilot',
+          store: {
+            applyPilotEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /operator authentication failed/,
+  );
+  const weakSecret = 'x'.repeat(64);
+  await assert.rejects(
+    () =>
+      handlePilotEntitlementOperatorInvoke(
+        {
+          schema_version: 'pilot-entitlement-operator-invoke.v1',
+          command,
+          signature: createPilotOperatorSignature(command, weakSecret),
+        },
+        {
+          now: () => new Date('2026-04-30T12:00:01.000Z'),
+          operatorSecret: weakSecret,
           pilotExpiresAt: '2026-09-01T00:00:00.000Z',
           pilotId,
           runtimeMode: 'controlled_pilot',
@@ -3481,15 +3966,15 @@ test('CloudBase store reads and seeds card source documents', async () => {
   const secondApi = createTestApi({
     store: createCloudBaseStore({db}),
   });
-  const token = await authenticatedToken(firstApi);
+  const session = await authenticatedV2Session(firstApi);
   const headers = {
-    authorization: `Bearer ${token}`,
+    authorization: `Bearer ${session.access_token}`,
   };
 
   const persistedSource = await request(firstApi, {
     headers,
     method: 'GET',
-    path: '/v1/learning/card-source',
+    path: '/v2/learning/card-source',
     query: {
       track: 'cet4',
     },
@@ -3497,7 +3982,7 @@ test('CloudBase store reads and seeds card source documents', async () => {
   const seededSource = await request(secondApi, {
     headers,
     method: 'GET',
-    path: '/v1/learning/card-source',
+    path: '/v2/learning/card-source',
     query: {
       track: 'cet6',
     },
@@ -3725,6 +4210,52 @@ function createFakeCloudBaseDb() {
   };
 }
 
+function pauseStoreMethod(store, methodName) {
+  const original = store[methodName].bind(store);
+  let markEntered;
+  let resume;
+  const entered = new Promise(resolve => {
+    markEntered = resolve;
+  });
+  const released = new Promise(resolve => {
+    resume = resolve;
+  });
+
+  store[methodName] = async (...args) => {
+    markEntered();
+    await released;
+    return original(...args);
+  };
+
+  return {
+    entered,
+    release: () => resume(),
+  };
+}
+
+function deriveTestAccountKey(indexSecret, phoneNumber) {
+  return crypto
+    .createHmac('sha256', indexSecret)
+    .update(`account:${phoneNumber}`)
+    .digest('hex');
+}
+
+async function seedAccountInstance(
+  db,
+  phoneNumber,
+  indexSecret = 'softbook-cloudbase-dev-secret',
+  accountInstanceId = ACCOUNT_INSTANCE_ID,
+) {
+  const accountKey = deriveTestAccountKey(indexSecret, phoneNumber);
+  await db.collection('softbook_accounts').doc(accountKey).set({
+    account_instance_id: accountInstanceId,
+    account_key: accountKey,
+    created_at: '2026-04-30T11:00:00.000Z',
+    schema_version: 'account-instance.v1',
+  });
+  return accountKey;
+}
+
 function cloneCollectionMaps(collections) {
   return new Map(
     [...collections.entries()].map(([name, documents]) => [
@@ -3758,6 +4289,7 @@ function cloneJson(value) {
 function betaCommandHash(event, phoneNumber) {
   return betaEntitlementInternals.hashCanonical({
     schema_version: 'beta-entitlement-command.v1',
+    expected_account_instance_id: event.expected_account_instance_id,
     event_id: event.event_id,
     action: event.action,
     phone_number: phoneNumber,
@@ -3772,6 +4304,7 @@ function betaCommandHash(event, phoneNumber) {
 function pilotCommandHash(event, phoneNumber) {
   return pilotEntitlementInternals.hashCanonical({
     schema_version: 'pilot-entitlement-command.v1',
+    expected_account_instance_id: event.expected_account_instance_id,
     event_id: event.event_id,
     pilot_id: event.pilot_id,
     phone_number: phoneNumber,
@@ -3784,10 +4317,13 @@ function pilotCommandHash(event, phoneNumber) {
   });
 }
 
-function createPilotOperatorSignature(command) {
+function createPilotOperatorSignature(
+  command,
+  secret = 'pilot-operator-secret-0123456789-ABCDEFG',
+) {
   const canonical = JSON.stringify(command, Object.keys(command).sort());
   return `hmac-sha256:${crypto
-    .createHmac('sha256', 'pilot-operator-secret-0123456789-ABCDEFG')
+    .createHmac('sha256', secret)
     .update(canonical)
     .digest('hex')}`;
 }
@@ -3795,6 +4331,7 @@ function createPilotOperatorSignature(command) {
 function createBetaOperatorCommand() {
   return {
     schema_version: 'beta-entitlement-command.v1',
+    expected_account_instance_id: ACCOUNT_INSTANCE_ID,
     event_id: 'beta-event-grant-0001',
     action: 'grant',
     phone_number: '13800138000',

@@ -180,6 +180,13 @@ membership-document transaction. A concurrent trial start or recovery
 dismissal cannot overwrite a premium purchase. This storage guarantee does not
 turn the development purchase route into production payment entitlement.
 
+Every cursor confirmation/write, pilot round continuation, Trial activation,
+base membership mutation, and expiry-reconciliation write reads the
+account-keyed deletion task inside that same final transaction. Task presence
+fails closed with `account_deletion_pending`; authentication that completed
+before deletion is not sufficient authority to recreate scheduler or
+membership state.
+
 The selected card is persisted as an opaque cursor. Re-reading while it remains
 eligible returns the same selection ID with reason `persisted_cursor`. Exactly
 one newly accepted event carrying that selection ID and matching card, phase,

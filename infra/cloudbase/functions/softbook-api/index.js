@@ -1,4 +1,13 @@
 const crypto = require('node:crypto');
+const {
+  assertCloudBaseAccountSessionAuthority,
+  assertCloudBaseAccountWriteAllowed,
+  assertCloudBaseOperatorAccountInstance,
+  assertMemoryAccountSessionAuthority,
+  assertMemoryAccountWriteAllowed,
+  assertMemoryOperatorAccountInstance,
+  resolveAccountWriteKey,
+} = require('./account-write-fence');
 const {createAuthV2Service} = require('./auth-v2');
 const {
   createAccountDeletionWorkerV1,
@@ -124,6 +133,7 @@ const MEMBERSHIP_REVISION_KEYS = [
 ];
 const CLOUDBASE_COLLECTIONS = {
   accountDeletions: 'softbook_account_deletions',
+  accounts: 'softbook_accounts',
   authChallenges: 'softbook_auth_challenges',
   authRateLimits: 'softbook_auth_rate_limits',
   authSessions: 'softbook_auth_sessions',
@@ -187,6 +197,8 @@ async function handleBetaEntitlementOperatorInvoke(event, options = {}) {
     null;
   const operatorSecret =
     options.operatorSecret ?? process.env.SOFTBOOK_BETA_OPERATOR_SECRET ?? null;
+  const authIndexSecret =
+    options.authIndexSecret ?? process.env.SOFTBOOK_AUTH_INDEX_SECRET;
   const observedAt = (options.now ?? (() => new Date()))().toISOString();
   const command = validateBetaEntitlementCommand(event.command);
   assertBetaOperatorSignature(
@@ -207,7 +219,16 @@ async function handleBetaEntitlementOperatorInvoke(event, options = {}) {
       'beta entitlement command is outside the receiver closed beta runtime.',
     );
   }
-  const store = options.store ?? createDefaultStore({runtimeMode});
+  if (
+    options.store === undefined &&
+    (typeof authIndexSecret !== 'string' || authIndexSecret.length < 32)
+  ) {
+    throw new BetaEntitlementError(
+      'beta entitlement account write fence is unavailable.',
+    );
+  }
+  const store =
+    options.store ?? createDefaultStore({authIndexSecret, runtimeMode});
   if (typeof store.applyBetaEntitlementCommand !== 'function') {
     throw new BetaEntitlementError(
       'beta entitlement operator store is unavailable.',
@@ -292,6 +313,8 @@ async function handlePilotEntitlementOperatorInvoke(event, options = {}) {
     options.pilotExpiresAt ?? process.env.SOFTBOOK_PILOT_EXPIRES_AT ?? null;
   const operatorSecret =
     options.operatorSecret ?? process.env.SOFTBOOK_PILOT_OPERATOR_SECRET ?? null;
+  const authIndexSecret =
+    options.authIndexSecret ?? process.env.SOFTBOOK_AUTH_INDEX_SECRET;
   const observedAt = (options.now ?? (() => new Date()))().toISOString();
   const command = validatePilotEntitlementCommand(event.command);
   assertPilotOperatorSignature(command, event.signature, operatorSecret);
@@ -307,8 +330,22 @@ async function handlePilotEntitlementOperatorInvoke(event, options = {}) {
       'pilot entitlement command is outside the active receiver pilot.',
     );
   }
+  if (
+    options.store === undefined &&
+    (typeof authIndexSecret !== 'string' || authIndexSecret.length < 32)
+  ) {
+    throw new PilotEntitlementError(
+      'pilot entitlement account write fence is unavailable.',
+    );
+  }
   const store =
-    options.store ?? createDefaultStore({pilotExpiresAt, pilotId, runtimeMode});
+    options.store ??
+    createDefaultStore({
+      authIndexSecret,
+      pilotExpiresAt,
+      pilotId,
+      runtimeMode,
+    });
   if (typeof store.applyPilotEntitlementCommand !== 'function') {
     throw new PilotEntitlementError('pilot entitlement operator store is unavailable.');
   }
@@ -326,6 +363,7 @@ function assertPilotOperatorSignature(command, signature, secret) {
   if (
     typeof secret !== 'string' ||
     secret.length < 32 ||
+    new Set(secret).size < 12 ||
     typeof signature !== 'string' ||
     !/^hmac-sha256:[a-f0-9]{64}$/.test(signature)
   ) {
@@ -358,12 +396,22 @@ function createSoftbookApi(options = {}) {
   const pilotId = options.pilotId ?? process.env.SOFTBOOK_PILOT_ID ?? null;
   const pilotExpiresAt =
     options.pilotExpiresAt ?? process.env.SOFTBOOK_PILOT_EXPIRES_AT ?? null;
-  const store =
-    options.store ?? createDefaultStore({pilotExpiresAt, pilotId, runtimeMode});
   const tokenSecret =
     options.tokenSecret ??
     process.env.SOFTBOOK_AUTH_TOKEN_SECRET ??
     'softbook-cloudbase-dev-secret';
+  const authIndexSecret =
+    options.authV2IndexSecret ??
+    process.env.SOFTBOOK_AUTH_INDEX_SECRET ??
+    (runtimeMode === 'development' ? tokenSecret : undefined);
+  const store =
+    options.store ??
+    createDefaultStore({
+      authIndexSecret,
+      pilotExpiresAt,
+      pilotId,
+      runtimeMode,
+    });
   const config = {
     allowLegacyV1:
       runtimeMode === 'development' ? options.allowLegacyV1 ?? true : false,
@@ -377,15 +425,16 @@ function createSoftbookApi(options = {}) {
     tokenTtlSeconds: resolveTokenTtlSeconds(options.tokenTtlSeconds),
   };
   config.authV2 = createAuthV2Service({
+    acknowledgementSleeper: options.authV2AcknowledgementSleeper,
     accessTokenTtlSeconds: options.authV2AccessTokenTtlSeconds,
     challengeTtlSeconds: options.authV2ChallengeTtlSeconds,
     codeGenerator: options.authV2CodeGenerator,
     developmentSmsCode: config.smsCode,
     ipRequestLimit: options.authV2IpRequestLimit,
-    indexSecret:
-      options.authV2IndexSecret ?? process.env.SOFTBOOK_AUTH_INDEX_SECRET,
+    indexSecret: authIndexSecret,
     now: config.now,
     phoneRequestLimit: options.authV2PhoneRequestLimit,
+    providerDeliveryDeadlineMs: options.authV2ProviderDeliveryDeadlineMs,
     randomBytes: options.authV2RandomBytes,
     rateLimitWindowSeconds: options.authV2RateLimitWindowSeconds,
     refreshTokenTtlSeconds: options.authV2RefreshTokenTtlSeconds,
@@ -593,7 +642,7 @@ async function handleHttpRequest(config, request) {
       return await handleLearningCardSource(
         config,
         request,
-        session.phoneNumber,
+        session,
       );
     }
 
@@ -603,7 +652,10 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            await readCanonicalMembership(config, session.phoneNumber),
+            await readCanonicalMembership(
+              config,
+              session,
+            ),
           ),
         },
       });
@@ -633,6 +685,7 @@ async function handleHttpRequest(config, request) {
             await config.store.purchase(
               session.phoneNumber,
               config.now().toISOString(),
+              {accountKey: session.accountKey, sessionAuthority: session},
             ),
           ),
         },
@@ -648,6 +701,7 @@ async function handleHttpRequest(config, request) {
             await config.store.dismissRecovery(
               session.phoneNumber,
               config.now().toISOString(),
+              {accountKey: session.accountKey, sessionAuthority: session},
             ),
           ),
         },
@@ -673,6 +727,7 @@ async function handleHttpRequest(config, request) {
           accountKey: session.accountKey,
           body: request.body,
           phoneNumber: session.phoneNumber,
+          sessionAuthority: session,
         }),
       });
     }
@@ -702,6 +757,7 @@ async function handleHttpRequest(config, request) {
         data: await config.learningSchedulerV1.read({
           accountKey: session.accountKey,
           phoneNumber: session.phoneNumber,
+          sessionAuthority: session,
           track,
         }),
       });
@@ -713,8 +769,10 @@ async function handleHttpRequest(config, request) {
 
       return jsonResponse(200, {
         data: await config.contentManifestV1.read({
+          accountKey: session.accountKey,
           contentVersion: request.query.content_version,
           phoneNumber: session.phoneNumber,
+          sessionAuthority: session,
           track: request.query.track,
         }),
       });
@@ -731,6 +789,7 @@ async function handleHttpRequest(config, request) {
           accountKey: session.accountKey,
           dayKey,
           phoneNumber: session.phoneNumber,
+          sessionAuthority: session,
           track,
         }),
       });
@@ -759,7 +818,7 @@ async function handleHttpRequest(config, request) {
       return await handleLearningCardSource(
         config,
         request,
-        session.phoneNumber,
+        session,
       );
     }
 
@@ -767,7 +826,10 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: {
           entitlement: serializeMembershipEntitlement(
-            await readCanonicalMembership(config, session.phoneNumber),
+            await readCanonicalMembership(
+              config,
+              session,
+            ),
           ),
         },
       });
@@ -781,6 +843,7 @@ async function handleHttpRequest(config, request) {
             await config.store.startTrial(
               session.phoneNumber,
               config.now().toISOString(),
+              {accountKey: session.accountKey, sessionAuthority: session},
             ),
           ),
         },
@@ -795,6 +858,7 @@ async function handleHttpRequest(config, request) {
             await config.store.purchase(
               session.phoneNumber,
               config.now().toISOString(),
+              {accountKey: session.accountKey, sessionAuthority: session},
             ),
           ),
         },
@@ -809,6 +873,7 @@ async function handleHttpRequest(config, request) {
             await config.store.dismissRecovery(
               session.phoneNumber,
               config.now().toISOString(),
+              {accountKey: session.accountKey, sessionAuthority: session},
             ),
           ),
         },
@@ -826,9 +891,12 @@ async function handleHttpRequest(config, request) {
   }
 }
 
-function readCanonicalMembership(config, phoneNumber) {
+function readCanonicalMembership(config, session) {
   const observedAt = config.now().toISOString();
-  return config.store.getMembership(phoneNumber, observedAt);
+  return config.store.getMembership(session.phoneNumber, observedAt, {
+    accountKey: session.accountKey,
+    sessionAuthority: session,
+  });
 }
 
 function handleRequestCode(request) {
@@ -862,7 +930,8 @@ function handleVerifyCode(config, request) {
   });
 }
 
-async function handleLearningCardSource(config, request, phoneNumber) {
+async function handleLearningCardSource(config, request, session) {
+  const {accountKey, phoneNumber} = session;
   const track = request.query.track ?? 'cet4';
 
   if (track !== 'cet4' && track !== 'cet6') {
@@ -885,7 +954,10 @@ async function handleLearningCardSource(config, request, phoneNumber) {
     );
   }
 
-  const membership = await readCanonicalMembership(config, phoneNumber);
+  const membership = await readCanonicalMembership(
+    config,
+    session,
+  );
 
   return jsonResponse(200, {
     data: serializeCardSourceResponse(
@@ -1001,15 +1073,25 @@ function assertContentManifestRequest(request) {
   }
 }
 
-function createDefaultStore({pilotExpiresAt, pilotId, runtimeMode}) {
+function createDefaultStore({
+  authIndexSecret,
+  pilotExpiresAt,
+  pilotId,
+  runtimeMode,
+}) {
   const storeMode = process.env.SOFTBOOK_STORE_MODE ?? 'memory';
 
   if (storeMode === 'memory') {
-    return createMemoryStore();
+    return createMemoryStore({authIndexSecret});
   }
 
   if (storeMode === 'cloudbase') {
-    return createCloudBaseStore({pilotExpiresAt, pilotId, runtimeMode});
+    return createCloudBaseStore({
+      authIndexSecret,
+      pilotExpiresAt,
+      pilotId,
+      runtimeMode,
+    });
   }
 
   throw new Error(`Unsupported SOFTBOOK_STORE_MODE: ${storeMode}`);
@@ -1066,8 +1148,54 @@ function createDefaultContentAssetUrlResolver() {
   };
 }
 
-function createMemoryStore() {
-  const authStateStore = createMemoryAuthStateStore();
+function createMemoryStore(options = {}) {
+  const authIndexSecret =
+    options.authIndexSecret ??
+    process.env.SOFTBOOK_AUTH_INDEX_SECRET ??
+    'softbook-cloudbase-dev-secret';
+  const authStateStore = createMemoryAuthStateStore({
+    indexSecret: authIndexSecret,
+  });
+  const accountDeletions = authStateStore.snapshotAuth().accountDeletions;
+  const accounts = authStateStore.snapshotAuth().accounts;
+  const authSessions = authStateStore.snapshotAuth().authSessions;
+  const assertAccountWriteAllowed = (
+    phoneNumber,
+    accountKey,
+    authority = {},
+  ) => {
+    const resolvedAccountKey = resolveAccountWriteKey({
+      accountKey,
+      indexSecret: authIndexSecret,
+      phoneNumber,
+    });
+    if (authority.sessionAuthority) {
+      return assertMemoryAccountSessionAuthority(
+        {accountDeletions, accounts, authSessions},
+        authority.sessionAuthority,
+        {indexSecret: authIndexSecret, write: true},
+      );
+    }
+    if (authority.expectedAccountInstanceId) {
+      return assertMemoryOperatorAccountInstance(
+        {accountDeletions, accounts},
+        resolvedAccountKey,
+        authority.expectedAccountInstanceId,
+      );
+    }
+    return assertMemoryAccountWriteAllowed(
+      accountDeletions,
+      resolvedAccountKey,
+    );
+  };
+  const assertAccountReadAllowed = options => {
+    if (!options?.sessionAuthority) return;
+    assertMemoryAccountSessionAuthority(
+      {accountDeletions, accounts, authSessions},
+      options.sessionAuthority,
+      {indexSecret: authIndexSecret},
+    );
+  };
   const cardSources = new Map();
   const cardSourceVersions = new Map();
   const betaEntitlements = new Map();
@@ -1090,6 +1218,10 @@ function createMemoryStore() {
   const runLearningTransaction = createSerializedTransactionRunner();
   const runSpaceTransaction = createSerializedTransactionRunner();
   const commitLearningEvents = createMemoryLearningEventsCommitter({
+    accountDeletions,
+    accounts,
+    authIndexSecret,
+    authSessions,
     createDefaultCardSource,
     normalizeCardSource,
     state: {
@@ -1130,8 +1262,11 @@ function createMemoryStore() {
 
   return {
     ...authStateStore,
-    applyBetaEntitlementCommand: command =>
+    applyBetaEntitlementCommand: (command, options = {}) =>
       runLearningTransaction(async () => {
+        assertAccountWriteAllowed(command.phone_number, options.accountKey, {
+          expectedAccountInstanceId: command.expected_account_instance_id,
+        });
         const base = reconcileMemoryMembershipRevision(
           memberships,
           membershipRevisions,
@@ -1172,6 +1307,7 @@ function createMemoryStore() {
       return cloneCardSource(cardSources.get(track));
     },
     getDailyProgress: (phoneNumber, dayKey, options = {}) => {
+      assertAccountReadAllowed(options);
       const dailyCheckIn = options.accountKey
         ? normalizeStoredDailyCheckIn(
             dailyCheckIns.get(
@@ -1237,6 +1373,7 @@ function createMemoryStore() {
       };
     },
     getLearningState: (phoneNumber, dayKey, track, options = {}) => {
+      assertAccountReadAllowed(options);
       const accountState = options.accountKey
         ? learningStates.get(
             createAccountLearningStateKey(options.accountKey, track),
@@ -1305,14 +1442,17 @@ function createMemoryStore() {
         track,
       };
     },
-    getLearningSessionCursor: (accountKey, track) =>
-      cloneJson(
+    getLearningSessionCursor: (accountKey, track, options = {}) => {
+      assertAccountReadAllowed(options);
+      return cloneJson(
         learningSessions.get(
           createAccountLearningSessionKey(accountKey, track),
         ) ?? null,
-      ),
+      );
+    },
     confirmLearningSessionCursor: input =>
       runLearningTransaction(async () => {
+        assertAccountWriteAllowed(null, input.accountKey, input);
         const key = createAccountLearningSessionKey(
           input.accountKey,
           input.track,
@@ -1331,7 +1471,8 @@ function createMemoryStore() {
             input.expectedLearningServerSequence
         );
       }),
-    getMembership: (phoneNumber, observedAt) => {
+    getMembership: (phoneNumber, observedAt, options = {}) => {
+      assertAccountWriteAllowed(phoneNumber, options.accountKey, options);
       const base = reconcileMemoryMembershipRevision(
         memberships,
         membershipRevisions,
@@ -1370,7 +1511,8 @@ function createMemoryStore() {
         pilotId: null,
       });
     },
-    startTrial: (phoneNumber, acknowledgedAt) => {
+    startTrial: (phoneNumber, acknowledgedAt, options = {}) => {
+      assertAccountWriteAllowed(phoneNumber, options.accountKey, options);
       const base = reconcileMemoryMembershipRevision(
         memberships,
         membershipRevisions,
@@ -1394,6 +1536,7 @@ function createMemoryStore() {
     },
     activateTrialForLearningSession: input =>
       runLearningTransaction(async () => {
+        assertAccountWriteAllowed(input.phoneNumber, input.accountKey, input);
         const session = normalizeStoreLearningSession(
           learningSessions.get(
             createAccountLearningSessionKey(input.accountKey, input.track),
@@ -1459,7 +1602,8 @@ function createMemoryStore() {
           pilotId: null,
         });
       }),
-    purchase: (phoneNumber, acknowledgedAt) => {
+    purchase: (phoneNumber, acknowledgedAt, options = {}) => {
+      assertAccountWriteAllowed(phoneNumber, options.accountKey, options);
       const base = reconcileMemoryMembershipRevision(
         memberships,
         membershipRevisions,
@@ -1479,7 +1623,8 @@ function createMemoryStore() {
       );
       return serializeMembershipAt(current, acknowledgedAt);
     },
-    dismissRecovery: (phoneNumber, acknowledgedAt) => {
+    dismissRecovery: (phoneNumber, acknowledgedAt, options = {}) => {
+      assertAccountWriteAllowed(phoneNumber, options.accountKey, options);
       const base = reconcileMemoryMembershipRevision(
         memberships,
         membershipRevisions,
@@ -1503,6 +1648,7 @@ function createMemoryStore() {
       acknowledgedAt,
     ) =>
       runLearningTransaction(async () => {
+        assertAccountWriteAllowed(phoneNumber);
         dailyProgress.set(`${phoneNumber}:${snapshot.day_key}`, {
           acknowledged_at: acknowledgedAt,
           ...cloneJson(snapshot),
@@ -1516,6 +1662,7 @@ function createMemoryStore() {
     ) =>
       runLearningTransaction(async () => {
         assertLearningWriteAccountKey(options.accountKey);
+        assertAccountWriteAllowed(_phoneNumber, options.accountKey, options);
         const key = createAccountDailyProgressKey(
           options.accountKey,
           dayKey,
@@ -1544,6 +1691,7 @@ function createMemoryStore() {
       acknowledgedAt,
     ) =>
       runLearningTransaction(async () => {
+        assertAccountWriteAllowed(phoneNumber);
         const key = `${phoneNumber}:${snapshot.day_key}:${snapshot.track}`;
         const existing = learningStates.get(key) ?? {
           events_by_card_id: {},
@@ -1567,6 +1715,7 @@ function createMemoryStore() {
       }),
     saveLearningSessionCursor: input =>
       runLearningTransaction(async () => {
+        assertAccountWriteAllowed(null, input.accountKey, input);
         const key = createAccountLearningSessionKey(
           input.accountKey,
           input.track,
@@ -1593,15 +1742,17 @@ function createMemoryStore() {
         return true;
       }),
     getPilotRoundContinuation: input =>
-      runLearningTransaction(async () =>
-        cloneJson(
+      runLearningTransaction(async () => {
+        assertAccountReadAllowed(input);
+        return cloneJson(
           pilotRoundContinuations.get(
             createPilotRoundContinuationKey(input),
           ) ?? null,
-        ),
-      ),
+        );
+      }),
     savePilotRoundContinuation: input =>
       runLearningTransaction(async () => {
+        assertAccountWriteAllowed(null, input.accountKey, input);
         const key = createPilotRoundContinuationKey(input);
         const existing = pilotRoundContinuations.get(key);
         if (existing) return cloneJson(existing);
@@ -1612,7 +1763,9 @@ function createMemoryStore() {
     commitLearningEvents,
     getSpaceState: (phoneNumber, dayKey, options = {}) =>
       runSpaceTransaction(async () => {
+        assertAccountReadAllowed(options);
         assertLearningWriteAccountKey(options.accountKey);
+        assertAccountWriteAllowed(phoneNumber, options.accountKey, options);
         const stateKey = createSpaceStateId(options.accountKey);
         const revisionKey = createSpaceStateRevisionId(options.accountKey);
         const stored = spaceStates.get(stateKey);
@@ -1669,6 +1822,7 @@ function createMemoryStore() {
     commitSpaceActions: input =>
       runSpaceTransaction(async () => {
         assertLearningWriteAccountKey(input.accountKey);
+        assertAccountWriteAllowed(input.phoneNumber, input.accountKey, input);
         const stateKey = createSpaceStateId(input.accountKey);
         const revisionKey = createSpaceStateRevisionId(input.accountKey);
         const stored = spaceStates.get(stateKey);
@@ -1803,6 +1957,7 @@ function createMemoryStore() {
       acknowledgedAt,
     ) =>
       runSpaceTransaction(async () => {
+        assertAccountWriteAllowed(phoneNumber);
         spaceStates.set(phoneNumber, {
           acknowledged_at: acknowledgedAt,
           day_key: snapshot.day_key,
@@ -1840,12 +1995,59 @@ function createMemoryStore() {
 function createCloudBaseStore(options = {}) {
   const db = options.db ?? createCloudBaseDatabase();
   const runtimeMode = options.runtimeMode ?? 'development';
+  const authIndexSecret =
+    options.authIndexSecret ??
+    process.env.SOFTBOOK_AUTH_INDEX_SECRET ??
+    'softbook-cloudbase-dev-secret';
   const pilotId = options.pilotId ?? null;
   const pilotExpiresAt = options.pilotExpiresAt ?? null;
   const authStateStore = createCloudBaseAuthStateStore(
     db,
     CLOUDBASE_COLLECTIONS,
+    {indexSecret: authIndexSecret},
   );
+  const assertAccountWriteAllowed = async (
+    transaction,
+    phoneNumber,
+    accountKey,
+    authority = {},
+  ) => {
+    const resolvedAccountKey = resolveAccountWriteKey({
+      accountKey,
+      indexSecret: authIndexSecret,
+      phoneNumber,
+    });
+    if (authority.sessionAuthority) {
+      return assertCloudBaseAccountSessionAuthority(
+        transaction,
+        CLOUDBASE_COLLECTIONS,
+        authority.sessionAuthority,
+        {indexSecret: authIndexSecret, write: true},
+      );
+    }
+    if (authority.expectedAccountInstanceId) {
+      return assertCloudBaseOperatorAccountInstance(
+        transaction,
+        CLOUDBASE_COLLECTIONS,
+        resolvedAccountKey,
+        authority.expectedAccountInstanceId,
+      );
+    }
+    return assertCloudBaseAccountWriteAllowed(
+      transaction,
+      CLOUDBASE_COLLECTIONS.accountDeletions,
+      resolvedAccountKey,
+    );
+  };
+  const assertAccountReadAllowed = (transaction, options) => {
+    if (!options?.sessionAuthority) return undefined;
+    return assertCloudBaseAccountSessionAuthority(
+      transaction,
+      CLOUDBASE_COLLECTIONS,
+      options.sessionAuthority,
+      {indexSecret: authIndexSecret},
+    );
+  };
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
   const betaEntitlements = db.collection(CLOUDBASE_COLLECTIONS.betaEntitlements);
   const pilotEntitlements = db.collection(CLOUDBASE_COLLECTIONS.pilotEntitlements);
@@ -1872,6 +2074,7 @@ function createCloudBaseStore(options = {}) {
   );
   const spaceStates = db.collection(CLOUDBASE_COLLECTIONS.spaceStates);
   const commitLearningEvents = createCloudBaseLearningEventsCommitter({
+    authIndexSecret,
     collections: CLOUDBASE_COLLECTIONS,
     createDefaultCardSource,
     db,
@@ -1880,8 +2083,14 @@ function createCloudBaseStore(options = {}) {
 
   return {
     ...authStateStore,
-    applyBetaEntitlementCommand: command =>
+    applyBetaEntitlementCommand: (command, options = {}) =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          command.phone_number,
+          options.accountKey,
+          {expectedAccountInstanceId: command.expected_account_instance_id},
+        );
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
@@ -1964,6 +2173,7 @@ function createCloudBaseStore(options = {}) {
       );
 
       return db.runTransaction(async transaction => {
+        await assertAccountReadAllowed(transaction, options);
         const transactionDailyCheckIns = transaction.collection(
           CLOUDBASE_COLLECTIONS.dailyCheckIns,
         );
@@ -2098,6 +2308,10 @@ function createCloudBaseStore(options = {}) {
             );
       assertLearningSessionProjectionWatermark(sessionState, accountState);
 
+      await db.runTransaction(transaction =>
+        assertAccountReadAllowed(transaction, options),
+      );
+
       return {
         ...state,
         component_revision: {
@@ -2117,11 +2331,14 @@ function createCloudBaseStore(options = {}) {
         track,
       };
     },
-    getLearningSessionCursor: async (accountKey, track) => {
-      const document = await getCloudBaseDocument(
-        learningSessions,
-        createAccountLearningSessionId(accountKey, track),
-      );
+    getLearningSessionCursor: async (accountKey, track, options = {}) => {
+      const document = await db.runTransaction(async transaction => {
+        await assertAccountReadAllowed(transaction, options);
+        return getCloudBaseDocument(
+          transaction.collection(CLOUDBASE_COLLECTIONS.learningSessions),
+          createAccountLearningSessionId(accountKey, track),
+        );
+      });
 
       if (!isObject(document) || !Object.hasOwn(document, '_id')) {
         return document;
@@ -2133,6 +2350,12 @@ function createCloudBaseStore(options = {}) {
     },
     confirmLearningSessionCursor: input =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          null,
+          input.accountKey,
+          input,
+        );
         const transactionSessions = transaction.collection(
           CLOUDBASE_COLLECTIONS.learningSessions,
         );
@@ -2163,8 +2386,14 @@ function createCloudBaseStore(options = {}) {
         );
         return true;
       }),
-    applyPilotEntitlementCommand: command =>
+    applyPilotEntitlementCommand: (command, options = {}) =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          command.phone_number,
+          options.accountKey,
+          {expectedAccountInstanceId: command.expected_account_instance_id},
+        );
         if (runtimeMode !== 'controlled_pilot' || command.pilot_id !== pilotId) {
           throw new PilotEntitlementError(
             'pilot entitlement command does not match this runtime.',
@@ -2213,9 +2442,15 @@ function createCloudBaseStore(options = {}) {
         }
         return publicPilotEntitlementPlan(plan);
       }),
-    getMembership: async (phoneNumber, observedAt) => {
-      const [base, betaEntitlement, pilotEntitlement] = await Promise.all([
-        db.runTransaction(async transaction => {
+    getMembership: async (phoneNumber, observedAt, options = {}) => {
+      const {base, betaEntitlement, pilotEntitlement} =
+        await db.runTransaction(async transaction => {
+          await assertAccountWriteAllowed(
+            transaction,
+            phoneNumber,
+            options.accountKey,
+            options,
+          );
           const transactionMemberships = transaction.collection(
             CLOUDBASE_COLLECTIONS.memberships,
           );
@@ -2242,22 +2477,32 @@ function createCloudBaseStore(options = {}) {
             );
           }
           return {
-            ...current,
-            entitlement: normalized.entitlement,
-            observedAt: normalized.observedAt,
-            revision: normalized.changed
-              ? nextBaseMembershipRevision(current.revision)
-              : current.revision,
-            updatedAt: normalized.changed
-              ? normalized.observedAt
-              : current.document?.updated_at ?? null,
+            base: {
+              ...current,
+              entitlement: normalized.entitlement,
+              observedAt: normalized.observedAt,
+              revision: normalized.changed
+                ? nextBaseMembershipRevision(current.revision)
+                : current.revision,
+              updatedAt: normalized.changed
+                ? normalized.observedAt
+                : current.document?.updated_at ?? null,
+            },
+            betaEntitlement: await getCloudBaseDocument(
+              transaction.collection(CLOUDBASE_COLLECTIONS.betaEntitlements),
+              phoneNumber,
+            ),
+            pilotEntitlement:
+              runtimeMode === 'controlled_pilot'
+                ? await getCloudBaseDocument(
+                    transaction.collection(
+                      CLOUDBASE_COLLECTIONS.pilotEntitlements,
+                    ),
+                    phoneNumber,
+                  )
+                : null,
           };
-        }),
-        getCloudBaseDocument(betaEntitlements, phoneNumber),
-        runtimeMode === 'controlled_pilot'
-          ? getCloudBaseDocument(pilotEntitlements, phoneNumber)
-          : null,
-      ]);
+        });
 
       return createCanonicalMembershipProjection({
         base,
@@ -2268,8 +2513,14 @@ function createCloudBaseStore(options = {}) {
         pilotId,
       });
     },
-    startTrial: (phoneNumber, acknowledgedAt) =>
+    startTrial: (phoneNumber, acknowledgedAt, options = {}) =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          phoneNumber,
+          options.accountKey,
+          options,
+        );
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
@@ -2299,6 +2550,12 @@ function createCloudBaseStore(options = {}) {
       }),
     activateTrialForLearningSession: input =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          input.phoneNumber,
+          input.accountKey,
+          input,
+        );
         const transactionSessions = transaction.collection(
           CLOUDBASE_COLLECTIONS.learningSessions,
         );
@@ -2392,8 +2649,14 @@ function createCloudBaseStore(options = {}) {
           pilotId,
         });
       }),
-    purchase: (phoneNumber, acknowledgedAt) =>
+    purchase: (phoneNumber, acknowledgedAt, options = {}) =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          phoneNumber,
+          options.accountKey,
+          options,
+        );
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
@@ -2419,8 +2682,14 @@ function createCloudBaseStore(options = {}) {
         );
         return serializeMembershipAt(current, acknowledgedAt);
       }),
-    dismissRecovery: (phoneNumber, acknowledgedAt) =>
+    dismissRecovery: (phoneNumber, acknowledgedAt, options = {}) =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          phoneNumber,
+          options.accountKey,
+          options,
+        );
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );
@@ -2449,15 +2718,18 @@ function createCloudBaseStore(options = {}) {
       snapshot,
       acknowledgedAt,
     ) =>
-      setCloudBaseDocument(
-        dailyProgress,
-        createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
-        {
-          acknowledged_at: acknowledgedAt,
-          phone_number: phoneNumber,
-          ...cloneJson(snapshot),
-        },
-      ),
+      db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(transaction, phoneNumber);
+        await setCloudBaseDocument(
+          transaction.collection(CLOUDBASE_COLLECTIONS.dailyProgress),
+          createCloudBaseDocumentId(`${phoneNumber}:${snapshot.day_key}`),
+          {
+            acknowledged_at: acknowledgedAt,
+            phone_number: phoneNumber,
+            ...cloneJson(snapshot),
+          },
+        );
+      }),
     checkInDailyProgress: async (
       _phoneNumber,
       dayKey,
@@ -2466,6 +2738,12 @@ function createCloudBaseStore(options = {}) {
     ) =>
       db.runTransaction(async transaction => {
         assertLearningWriteAccountKey(options.accountKey);
+        await assertAccountWriteAllowed(
+          transaction,
+          _phoneNumber,
+          options.accountKey,
+          options,
+        );
         const transactionCheckIns = transaction.collection(
           CLOUDBASE_COLLECTIONS.dailyCheckIns,
         );
@@ -2501,6 +2779,7 @@ function createCloudBaseStore(options = {}) {
       acknowledgedAt,
     ) =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(transaction, phoneNumber);
         const transactionLearningStates = transaction.collection(
           CLOUDBASE_COLLECTIONS.learningStates,
         );
@@ -2534,6 +2813,12 @@ function createCloudBaseStore(options = {}) {
       }),
     saveLearningSessionCursor: input =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          null,
+          input.accountKey,
+          input,
+        );
         const transactionSessions = transaction.collection(
           CLOUDBASE_COLLECTIONS.learningSessions,
         );
@@ -2564,10 +2849,15 @@ function createCloudBaseStore(options = {}) {
         return true;
       }),
     getPilotRoundContinuation: async input => {
-      const document = await getCloudBaseDocument(
-        pilotRoundContinuations,
-        createPilotRoundContinuationId(input),
-      );
+      const document = await db.runTransaction(async transaction => {
+        await assertAccountReadAllowed(transaction, input);
+        return getCloudBaseDocument(
+          transaction.collection(
+            CLOUDBASE_COLLECTIONS.pilotRoundContinuations,
+          ),
+          createPilotRoundContinuationId(input),
+        );
+      });
       if (!isObject(document) || !Object.hasOwn(document, '_id')) {
         return document;
       }
@@ -2577,6 +2867,12 @@ function createCloudBaseStore(options = {}) {
     },
     savePilotRoundContinuation: input =>
       db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          null,
+          input.accountKey,
+          input,
+        );
         const collection = transaction.collection(
           CLOUDBASE_COLLECTIONS.pilotRoundContinuations,
         );
@@ -2606,6 +2902,12 @@ function createCloudBaseStore(options = {}) {
             LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
           );
       return db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          phoneNumber,
+          options.accountKey,
+          options,
+        );
         const transactionSpaceStates = transaction.collection(
           CLOUDBASE_COLLECTIONS.spaceStates,
         );
@@ -2690,6 +2992,12 @@ function createCloudBaseStore(options = {}) {
           );
 
       return db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(
+          transaction,
+          input.phoneNumber,
+          input.accountKey,
+          input,
+        );
         const transactionSpaceActionLineages = transaction.collection(
           CLOUDBASE_COLLECTIONS.spaceActionLineages,
         );
@@ -2849,20 +3157,23 @@ function createCloudBaseStore(options = {}) {
       snapshot,
       acknowledgedAt,
     ) =>
-      setCloudBaseDocument(
-        spaceStates,
-        createCloudBaseDocumentId(
-          `${phoneNumber}:${snapshot.day_key}`,
-        ),
-        {
-          acknowledged_at: acknowledgedAt,
-          day_key: snapshot.day_key,
-          phone_number: phoneNumber,
-          states_by_card_id: Object.fromEntries(
-            snapshot.states.map(state => [state.card_id, {...state}]),
+      db.runTransaction(async transaction => {
+        await assertAccountWriteAllowed(transaction, phoneNumber);
+        await setCloudBaseDocument(
+          transaction.collection(CLOUDBASE_COLLECTIONS.spaceStates),
+          createCloudBaseDocumentId(
+            `${phoneNumber}:${snapshot.day_key}`,
           ),
-        },
-      ),
+          {
+            acknowledged_at: acknowledgedAt,
+            day_key: snapshot.day_key,
+            phone_number: phoneNumber,
+            states_by_card_id: Object.fromEntries(
+              snapshot.states.map(state => [state.card_id, {...state}]),
+            ),
+          },
+        );
+      }),
   };
 }
 

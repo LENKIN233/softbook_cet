@@ -17,7 +17,7 @@ function createDailyCheckInV2Service(options) {
         session.phoneNumber,
         command.day_key,
         options.now().toISOString(),
-        {accountKey: session.accountKey},
+        {accountKey: session.accountKey, sessionAuthority: session},
       );
 
       return serializeDailyCheckIn(canonical, command.day_key);

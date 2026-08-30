@@ -1,5 +1,12 @@
 const crypto = require('node:crypto');
 const {
+  assertCloudBaseAccountSessionAuthority,
+  assertCloudBaseAccountWriteAllowed,
+  assertMemoryAccountSessionAuthority,
+  assertMemoryAccountWriteAllowed,
+  isAccountDeletionPendingError,
+} = require('./account-write-fence');
+const {
   normalizeCloudBaseDocuments,
 } = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
@@ -42,6 +49,22 @@ function createMemoryLearningEventsCommitter(options) {
 
   return input =>
     runTransaction(async () => {
+      if (input.sessionAuthority) {
+        assertMemoryAccountSessionAuthority(
+          {
+            accountDeletions: options.accountDeletions,
+            accounts: options.accounts,
+            authSessions: options.authSessions,
+          },
+          input.sessionAuthority,
+          {indexSecret: options.authIndexSecret, write: true},
+        );
+      } else {
+        assertMemoryAccountWriteAllowed(
+          options.accountDeletions,
+          input.accountKey,
+        );
+      }
       const staged = cloneMemoryState(state);
       const adapter = createMemoryAdapter(options, staged, input);
       const results = await commitLearningEventsTransaction(adapter, input);
@@ -77,6 +100,20 @@ function createCloudBaseLearningEventsCommitter(options) {
         );
 
         return await options.db.runTransaction(async transaction => {
+          if (input.sessionAuthority) {
+            await assertCloudBaseAccountSessionAuthority(
+              transaction,
+              options.collections,
+              input.sessionAuthority,
+              {indexSecret: options.authIndexSecret, write: true},
+            );
+          } else {
+            await assertCloudBaseAccountWriteAllowed(
+              transaction,
+              options.collections.accountDeletions,
+              input.accountKey,
+            );
+          }
           const adapter = createCloudBaseAdapter(
             options,
             transaction,
@@ -93,7 +130,10 @@ function createCloudBaseLearningEventsCommitter(options) {
           continue;
         }
 
-        if (isLearningEventsError(error)) {
+        if (
+          isLearningEventsError(error) ||
+          isAccountDeletionPendingError(error)
+        ) {
           throw error;
         }
 

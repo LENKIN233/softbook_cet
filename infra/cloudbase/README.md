@@ -118,15 +118,23 @@ while `/v2` owns authentication and the canonical bootstrap read:
   revocable server session. Development v1 product routes accept that active
   session; production rejects every v1 route.
 - Auth v2 adds persisted one-time SMS challenges, per-phone and per-IP rate
-  limits, 15-minute access tokens, rotating 30-day refresh tokens, session
-  revocation, and queued account deletion. See
+  limits, durable pre-provider delivery reservations, 15-minute access tokens,
+  rotating 30-day refresh tokens, exact-task session revocation, and queued
+  account deletion. Unauthenticated challenge requests consume the shared-IP
+  limit before phone/deletion checks; deletion branches, internal phone limits,
+  provider rejection, and provider timeout share one public acknowledgement,
+  while only a successfully verified SMS may expose recovery state. See
   `infra/cloudbase/auth-v2-runtime-contract.md`.
 - Receiver delivery deploys the separate non-HTTP
   `softbook-account-deletion-worker` from the same tested artifact with a
-  one-minute timer and no API auth/SMS/signing custom variables. It uses claim-bound leases, erases every current account or
+  one-minute timer and no API auth/SMS/signing custom variables. It binds each
+  claim to the listed deletion ID and request time, uses claim-bound leases,
+  erases every current account or
   phone-owned runtime record plus retained phone-keyed migration state, preserves shared IP rate limits and global
   content, transactionally rechecks the current lease inside every erasure,
-  and removes the login-blocking task last. A stale worker cannot erase data
+  enters finalizing before blocking new challenge material, retries until
+  pre-transition provider reservations are terminal or past their bounded
+  deadline, and removes the login-blocking task last. A stale worker cannot erase data
   written after a newer worker completed and clean re-registration began. This is repository-local
   implementation, not a completed receiver deletion drill.
 - Bootstrap v2 reads server-side membership, progress, learning, physical
@@ -152,11 +160,13 @@ while `/v2` owns authentication and the canonical bootstrap read:
 - Physical-space actions v2 validate the active card source and content version,
   merge favorite and sleep on independent clocks, and commit immutable action
   records plus account canonical state atomically. A maximum 20-action request
-  uses at most 64 CloudBase transaction operations.
+  uses at most 67 CloudBase transaction operations, including exact session
+  and account-instance authority reads, below the platform limit
+  of 100.
 - The CloudBase adapter hard-caps an atomic event request at 9 and accepts at
   most one unseen selection-bound event in a request. The tested first-event
   all-track migration and the maximum replay batch of 8 exact duplicates plus
-  one current-selection event each use at most 29 of the platform's 100 allowed
+  one current-selection event each use at most 32 of the platform's 100 allowed
   transaction operations. Its
   transactions use deterministic document operations only. Bounded legacy
   learning and space queries run before the transaction: learning uses an
@@ -575,7 +585,9 @@ node infra/cloudbase/manage-beta-entitlement.mjs \
 ```
 
 The same command shape is used for `grant` and `revoke`; both bind the exact
-closed-beta `campaign_id`, and apply requires an identified `model:`, `agent:`,
+closed-beta `campaign_id` and current `expected_account_instance_id`. The user
+must sign in first; dry-run and apply both reject a missing or stale instance,
+and public output omits the raw instance ID. Apply requires an identified `model:`, `agent:`,
 `service:` or `oidc:` `actor_id`. Apply also requires Node 22.13.0 plus clean exact
 `main`. The active grant and its audit history are stored together in
 `softbook_beta_entitlements`; the base membership document is not modified.
@@ -692,7 +704,12 @@ node infra/cloudbase/manage-pilot-entitlement.mjs \
   --apply
 ```
 
-The command must bind the exact profile pilot ID. Its active overlay and audit
+The command must bind the exact profile pilot ID and current
+`expected_account_instance_id`; the user must sign in first, pre-registration
+grants are rejected, and public output/identifiers reject the raw instance ID.
+The CLI requires a strict non-expired current session with canonical timestamps,
+and both CLI and receiver require at least 32 characters and 12 unique
+characters in the pilot operator secret. Its active overlay and audit
 history share one `softbook_pilot_entitlements` document; Bootstrap exposes an
 independent `pilot_entitlement_revision`, clients continue to receive the
 existing `premium` stage, and no client grant or revoke route exists. Apply uses

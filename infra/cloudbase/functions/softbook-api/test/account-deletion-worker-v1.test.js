@@ -1,19 +1,31 @@
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const test = require('node:test');
 
 const {
   ACCOUNT_KEY_COLLECTIONS,
+  FINAL_CHALLENGE_COLLECTION,
   PHONE_DOCUMENT_COLLECTIONS,
   PHONE_FILTER_COLLECTIONS,
   RATE_LIMIT_COLLECTION,
   createAccountDeletionWorkerV1,
   createCloudBaseAccountDeletionRepository,
+  createMemoryAccountDeletionRepository,
 } = require('../account-deletion-worker-v1');
+const {createMemoryAuthStateStore} = require('../auth-v2-store');
+const {createAuthV2Service: createAuthV2ServiceRuntime} = require('../auth-v2');
 
 const ACCOUNT_KEY = 'a'.repeat(64);
 const PHONE = '13800138000';
 const PHONE_RATE_KEY = `phone:${'b'.repeat(64)}`;
 const NOW = new Date('2026-08-01T08:00:00.000Z');
+
+function createAuthV2Service(options) {
+  return createAuthV2ServiceRuntime({
+    acknowledgementSleeper: async () => undefined,
+    ...options,
+  });
+}
 
 test('worker clears every current account collection and removes the login lock last', async () => {
   const repository = createRepository();
@@ -32,6 +44,12 @@ test('worker clears every current account collection and removes the login lock 
     repository.calls.at(-2),
     'where:softbook_auth_challenges:phone_number',
   );
+  assert.equal(
+    repository.calls.at(-3),
+    `where:${RATE_LIMIT_COLLECTION}:key`,
+  );
+  assert.match(repository.calls.at(-5), /^finalizing:/);
+  assert.match(repository.calls.at(-4), /^quiescent:/);
   assert.deepEqual(
     repository.calls.filter(call => call.startsWith('where:')).sort(),
     [
@@ -76,6 +94,42 @@ test('partial failure keeps the login lock and a retry finishes idempotently', a
   assert.equal(repository.taskAttemptCount(), 2);
 });
 
+test('final sweep failure stays durably finalizing and retries only the final sweep', async () => {
+  const repository = createRepository({
+    failOnceWhereCollection: FINAL_CHALLENGE_COLLECTION,
+  });
+  const worker = createWorker(repository);
+  const first = await worker.run();
+
+  assert.equal(first.completed_count, 0);
+  assert.equal(first.results[0].status, 'retry_finalizing');
+  assert.equal(repository.task().status, 'finalizing');
+  assert.equal(repository.task().lease_id, null);
+  assert.equal(repository.task().lease_expires_at, null);
+  const bulkCallsAfterFirstRun = repository.calls.filter(
+    call =>
+      call.startsWith('document:') ||
+      (call.startsWith('where:') &&
+        !call.includes(RATE_LIMIT_COLLECTION) &&
+        !call.includes(FINAL_CHALLENGE_COLLECTION)),
+  ).length;
+
+  const second = await worker.run();
+  assert.equal(second.completed_count, 1);
+  assert.equal(repository.taskExists(), false);
+  assert.equal(repository.taskAttemptCount(), 2);
+  assert.equal(
+    repository.calls.filter(
+      call =>
+        call.startsWith('document:') ||
+        (call.startsWith('where:') &&
+          !call.includes(RATE_LIMIT_COLLECTION) &&
+          !call.includes(FINAL_CHALLENGE_COLLECTION)),
+    ).length,
+    bulkCallsAfterFirstRun,
+  );
+});
+
 test('a lost lease cannot remove or requeue a task claimed by another worker', async () => {
   const repository = createRepository({loseLeaseBeforeComplete: true});
   const worker = createWorker(repository);
@@ -84,7 +138,7 @@ test('a lost lease cannot remove or requeue a task claimed by another worker', a
   assert.equal(report.completed_count, 0);
   assert.equal(report.results[0].status, 'lease_lost');
   assert.equal(repository.taskExists(), true);
-  assert.equal(repository.task().status, 'processing');
+  assert.equal(repository.task().status, 'finalizing');
   assert.equal(repository.task().lease_id, `lease_${'z'.repeat(24)}`);
 });
 
@@ -101,7 +155,7 @@ test('a stale worker cannot erase data written after a newer lease completed', a
   assert.equal(repository.hasReregisteredDocument(), true);
   assert.deepEqual(
     repository.calls.filter(call => call.startsWith('where:')),
-    ['where:softbook_auth_sessions:account_key'],
+    ['where:softbook_accounts:account_key'],
   );
 });
 
@@ -113,6 +167,480 @@ test('an expired processing lease is reclaimed and completed with a new owner', 
   assert.equal(report.completed_count, 1);
   assert.equal(repository.taskExists(), false);
   assert.equal(repository.taskAttemptCount(), 2);
+});
+
+test('an expired finalizing lease is reclaimed without rerunning account erasure', async () => {
+  const repository = createRepository({expiredFinalizingLease: true});
+  const worker = createWorker(repository);
+  const report = await worker.run();
+
+  assert.equal(report.completed_count, 1);
+  assert.equal(repository.taskExists(), false);
+  assert.equal(repository.taskAttemptCount(), 2);
+  assert.deepEqual(
+    repository.calls.filter(call => call.startsWith('where:')),
+    [
+      `where:${RATE_LIMIT_COLLECTION}:key`,
+      `where:${FINAL_CHALLENGE_COLLECTION}:phone_number`,
+    ],
+  );
+  assert.equal(
+    repository.calls.some(call => call.startsWith('document:')),
+    false,
+  );
+});
+
+test('a finalizing task with a missing lease TTL fails closed', async () => {
+  const repository = createRepository({missingFinalizingTtl: true});
+  const worker = createWorker(repository);
+
+  await assert.rejects(() => worker.run(), /task is invalid/);
+  assert.equal(repository.calls.length, 0);
+  assert.equal(repository.taskExists(), true);
+});
+
+test('a lease stolen after finalizing prevents every stale final sweep mutation', async () => {
+  const repository = createRepository({stealLeaseAfterFinalizing: true});
+  const worker = createWorker(repository);
+  const report = await worker.run();
+
+  assert.equal(report.completed_count, 0);
+  assert.equal(report.results[0].status, 'lease_lost');
+  assert.equal(repository.task().status, 'finalizing');
+  assert.equal(repository.task().lease_id, `lease_${'z'.repeat(24)}`);
+  assert.equal(repository.hasPhoneRateLimit(), true);
+  assert.equal(repository.hasPhoneChallenge(), true);
+});
+
+test('the finalizing transition linearizes before recovery can create challenge material', async () => {
+  const indexSecret = 'finalizing-race-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  const service = createAuthV2Service({
+    codeGenerator: () => '654321',
+    indexSecret,
+    now: () => new Date(NOW),
+    smsProvider: {
+      delivery: 'test_sms',
+      kind: 'test',
+      sendCode: async () => undefined,
+    },
+    store: authStore,
+    tokenSecret: 'finalizing-race-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const beginFinalizingTask = repository.beginFinalizingTask;
+  let raceObserved = false;
+  repository.beginFinalizingTask = async input => {
+    const transitioned = await beginFinalizingTask(input);
+    assert.equal(transitioned, true);
+    const rateCount = authState.authRateLimits.size;
+    const challengeCount = authState.authChallenges.size;
+
+    const ordinary = await service.requestCode({
+      body: {phone_number: PHONE},
+      clientIp: '203.0.113.100',
+    });
+    const recovery = await service.requestDeletionRecoveryCode({
+      body: {phone_number: PHONE},
+      clientIp: '203.0.113.101',
+    });
+    assert.deepEqual(Object.keys(ordinary).sort(), [
+      'challenge_id',
+      'delivery',
+      'expires_at',
+      'retry_after_seconds',
+    ]);
+    assert.equal(recovery.purpose, 'account_deletion_recovery');
+    assert.equal(authState.authRateLimits.size, rateCount + 2);
+    assert.equal(authState.authChallenges.size, challengeCount);
+    raceObserved = true;
+    return true;
+  };
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 8),
+    repository,
+  });
+
+  const report = await worker.run();
+  assert.equal(raceObserved, true);
+  assert.equal(report.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+
+  const afterCompletion = await service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.102',
+  });
+  assert.equal(afterCompletion.purpose, 'account_deletion_recovery');
+  assert.equal(authState.authChallenges.size, 1);
+  assert.equal(authState.authRateLimits.size, 4);
+});
+
+test('provider-owned challenge intent keeps finalizing retryable until its provider ID lands', async () => {
+  const indexSecret = 'provider-pause-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  let releaseProvider;
+  let providerStarted;
+  const started = new Promise(resolve => {
+    providerStarted = resolve;
+  });
+  const service = createAuthV2Service({
+    indexSecret,
+    now: () => new Date(NOW),
+    providerDeliveryDeadlineMs: 1000,
+    randomBytes: size => Buffer.alloc(size, 4),
+    smsProvider: {
+      delivery: 'provider_pause',
+      kind: 'test',
+      sendChallenge: async () => {
+        providerStarted();
+        return new Promise(resolve => {
+          releaseProvider = () =>
+            resolve({
+              challengeId: 'provider-pause-id-0001',
+              expiresInSeconds: 300,
+            });
+        });
+      },
+      verifyChallenge: async () => undefined,
+    },
+    store: authStore,
+    tokenSecret: 'provider-pause-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 5),
+    repository,
+  });
+
+  const requestPromise = service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.130',
+  });
+  await started;
+  const [localChallengeId, pending] = [...authState.authChallenges.entries()][0];
+  assert.equal(pending.delivery_status, 'pending');
+  assert.equal(pending.provider_challenge_id, null);
+  assert.notEqual(localChallengeId, 'provider-pause-id-0001');
+
+  const first = await worker.run();
+  assert.equal(first.results[0].status, 'retry_finalizing');
+  assert.equal(authState.accountDeletions.get(accountKey).status, 'finalizing');
+  assert.equal(authState.authChallenges.has(localChallengeId), true);
+
+  releaseProvider();
+  const response = await requestPromise;
+  assert.equal(response.challenge_id, localChallengeId);
+  assert.equal(
+    authState.authChallenges.get(localChallengeId).provider_challenge_id,
+    'provider-pause-id-0001',
+  );
+  assert.equal(
+    authState.authChallenges.get(localChallengeId).delivery_status,
+    'delivered',
+  );
+
+  const second = await worker.run();
+  assert.equal(second.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+  assert.equal(authState.authChallenges.has(localChallengeId), false);
+});
+
+test('sendCode reservation keeps finalizing retryable until delivery becomes terminal', async () => {
+  const indexSecret = 'send-code-pause-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  let releaseProvider;
+  let providerStarted;
+  const started = new Promise(resolve => {
+    providerStarted = resolve;
+  });
+  const service = createAuthV2Service({
+    codeGenerator: () => '654321',
+    indexSecret,
+    now: () => new Date(NOW),
+    providerDeliveryDeadlineMs: 1000,
+    randomBytes: size => Buffer.alloc(size, 6),
+    smsProvider: {
+      delivery: 'send_code_pause',
+      kind: 'test',
+      sendCode: async () => {
+        providerStarted();
+        return new Promise(resolve => {
+          releaseProvider = resolve;
+        });
+      },
+    },
+    store: authStore,
+    tokenSecret: 'send-code-pause-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 7),
+    repository,
+  });
+
+  const requestPromise = service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.131',
+  });
+  await started;
+  const [localChallengeId, pending] = [...authState.authChallenges.entries()][0];
+  assert.equal(pending.delivery_status, 'pending');
+  assert.match(pending.delivery_reservation_id, /^delivery_/);
+
+  const first = await worker.run();
+  assert.equal(first.results[0].status, 'retry_finalizing');
+  assert.equal(authState.authChallenges.has(localChallengeId), true);
+  releaseProvider();
+  await requestPromise;
+  assert.equal(
+    authState.authChallenges.get(localChallengeId).delivery_status,
+    'delivered',
+  );
+
+  const second = await worker.run();
+  assert.equal(second.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+  assert.equal(authState.authChallenges.has(localChallengeId), false);
+});
+
+test('provider rejection is terminal for worker cleanup but public only as acknowledgement', async () => {
+  const indexSecret = 'provider-rejection-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  const service = createAuthV2Service({
+    codeGenerator: () => '654321',
+    indexSecret,
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 11),
+    smsProvider: {
+      delivery: 'provider_rejection',
+      kind: 'test',
+      sendCode: async () => {
+        throw new Error('provider rejection must stay private');
+      },
+    },
+    store: authStore,
+    tokenSecret: 'provider-rejection-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 12),
+    repository,
+  });
+
+  const acknowledgement = await service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.133',
+  });
+  assert.equal(typeof acknowledgement.challenge_id, 'string');
+  assert.equal(
+    authState.authChallenges.get(acknowledgement.challenge_id).delivery_status,
+    'delivery_failed',
+  );
+
+  const report = await worker.run();
+  assert.equal(report.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+  assert.equal(
+    authState.authChallenges.has(acknowledgement.challenge_id),
+    false,
+  );
+});
+
+test('a provider that ignores abort cannot make its late challenge locally usable', async () => {
+  const indexSecret = 'ignored-abort-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  let current = new Date(NOW);
+  let providerCompleted = false;
+  let providerStarted;
+  let releaseProvider;
+  const started = new Promise(resolve => {
+    providerStarted = resolve;
+  });
+  const service = createAuthV2Service({
+    indexSecret,
+    now: () => new Date(current),
+    providerDeliveryDeadlineMs: 5,
+    randomBytes: size => Buffer.alloc(size, 9),
+    smsProvider: {
+      delivery: 'ignored_abort',
+      kind: 'test',
+      sendChallenge: async () => {
+        providerStarted();
+        await new Promise(resolve => {
+          releaseProvider = resolve;
+        });
+        providerCompleted = true;
+        return {
+          challengeId: 'ignored-abort-provider-id',
+          expiresInSeconds: 300,
+        };
+      },
+      verifyChallenge: async () => undefined,
+    },
+    store: authStore,
+    tokenSecret: 'ignored-abort-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(current),
+    randomBytes: size => Buffer.alloc(size, 10),
+    repository,
+  });
+
+  const requestPromise = service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.132',
+  });
+  await started;
+  const acknowledgement = await requestPromise;
+  assert.equal(typeof acknowledgement.challenge_id, 'string');
+  const [localChallengeId, timedOut] = [...authState.authChallenges.entries()][0];
+  assert.equal(timedOut.delivery_status, 'pending');
+
+  const beforeDeadline = await worker.run();
+  assert.equal(beforeDeadline.results[0].status, 'retry_finalizing');
+  assert.equal(authState.accountDeletions.has(accountKey), true);
+  current = new Date(NOW.getTime() + 2000);
+  const afterDeadline = await worker.run();
+  assert.equal(afterDeadline.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+  assert.equal(authState.authChallenges.has(localChallengeId), false);
+
+  releaseProvider();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(providerCompleted, true);
+  assert.equal(authState.authChallenges.has(localChallengeId), false);
+});
+
+test('a crashed pending reservation is reclaimed only after its provider deadline', async () => {
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  authState.accountDeletions.set(ACCOUNT_KEY, taskFixture());
+  authState.authChallenges.set('crashed-local-challenge', {
+    challenge_id: 'crashed-local-challenge',
+    delivery_deadline_at: '2026-08-01T08:00:01.000Z',
+    delivery_status: 'pending',
+    phone_number: PHONE,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  let current = new Date(NOW);
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(current),
+    randomBytes: size => Buffer.alloc(size, 8),
+    repository,
+  });
+
+  const first = await worker.run();
+  assert.equal(first.results[0].status, 'retry_finalizing');
+  assert.equal(authState.accountDeletions.has(ACCOUNT_KEY), true);
+  assert.equal(authState.authChallenges.has('crashed-local-challenge'), true);
+
+  current = new Date('2026-08-01T08:00:02.000Z');
+  const second = await worker.run();
+  assert.equal(second.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(ACCOUNT_KEY), false);
+  assert.equal(authState.authChallenges.has('crashed-local-challenge'), false);
+});
+
+test('claim rejects a replaced T2 task and the report fingerprints only the later exact claim', async () => {
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  const state = createMemoryDeletionState(authState);
+  const repository = createMemoryAccountDeletionRepository(state);
+  const t1 = taskFixture();
+  const t2 = {
+    ...t1,
+    deletion_id: 'delete_replacement_task_0002',
+    requested_at: '2026-08-01T07:59:30.000Z',
+  };
+  authState.accountDeletions.set(ACCOUNT_KEY, t1);
+  const [listedT1] = await repository.listRunnableTasks({
+    limit: 1,
+    now: NOW.toISOString(),
+  });
+  authState.accountDeletions.set(ACCOUNT_KEY, t2);
+
+  const staleClaim = await repository.claimTask({
+    accountKey: ACCOUNT_KEY,
+    expectedAccountInstanceId: listedT1.account_instance_id,
+    expectedDeletionId: listedT1.deletion_id,
+    expectedRequestedAt: listedT1.requested_at,
+    leaseExpiresAt: '2026-08-01T08:05:00.000Z',
+    leaseId: `lease_${'q'.repeat(24)}`,
+    now: NOW.toISOString(),
+  });
+  assert.equal(staleClaim, false);
+  assert.equal(authState.accountDeletions.get(ACCOUNT_KEY).deletion_id, t2.deletion_id);
+  assert.equal(authState.accountDeletions.get(ACCOUNT_KEY).status, 'queued');
+
+  const worker = createWorker(repository);
+  const report = await worker.run();
+  assert.equal(report.completed_count, 1);
+  assert.equal(
+    report.results[0].deletion_fingerprint,
+    `sha256:${crypto.createHash('sha256').update(t2.deletion_id).digest('hex')}`,
+  );
 });
 
 test('invalid deletion tasks fail closed before any account mutation', async () => {
@@ -128,6 +656,7 @@ test('CloudBase repository claims, verifies, and erases the current collection s
   const db = createFakeCloudBaseDb();
   const taskCollection = db.collection('softbook_account_deletions');
   await taskCollection.doc(ACCOUNT_KEY).set({
+    account_instance_id: `account_${'i'.repeat(24)}`,
     account_key: ACCOUNT_KEY,
     attempt_count: 0,
     deletion_id: 'delete_cloudbase_worker_0001',
@@ -135,10 +664,11 @@ test('CloudBase repository claims, verifies, and erases the current collection s
     last_failure_code: null,
     lease_expires_at: null,
     lease_id: null,
+    origin_session_id: 's'.repeat(24),
     phone_number: PHONE,
     phone_rate_key: PHONE_RATE_KEY,
     requested_at: '2026-08-01T07:59:00.000Z',
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
   });
   for (const collection of ACCOUNT_KEY_COLLECTIONS) {
@@ -199,13 +729,18 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
   });
   const leaseA = `lease_${'a'.repeat(24)}`;
   assert.equal(
-    await repository.claimTask({
+    (
+      await repository.claimTask({
       accountKey: ACCOUNT_KEY,
+      expectedAccountInstanceId: taskFixture().account_instance_id,
+      expectedDeletionId: taskFixture().deletion_id,
+      expectedRequestedAt: taskFixture().requested_at,
       leaseExpiresAt: '2026-08-01T08:05:00.000Z',
       leaseId: leaseA,
       now: NOW.toISOString(),
-    }),
-    true,
+      })
+    ).status,
+    'processing',
   );
   await tasks.doc(ACCOUNT_KEY).remove();
   await db.collection('softbook_auth_sessions').doc('re-registered').set({
@@ -217,7 +752,13 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
     await repository.removeWhereIfLease(
       'softbook_auth_sessions',
       {account_key: ACCOUNT_KEY},
-      {accountKey: ACCOUNT_KEY, leaseId: leaseA},
+      {
+        accountInstanceId: `account_${'i'.repeat(24)}`,
+        accountKey: ACCOUNT_KEY,
+        deletionId: `delete_${ACCOUNT_KEY.slice(0, 16)}`,
+        leaseId: leaseA,
+        status: 'processing',
+      },
     ),
     false,
   );
@@ -226,6 +767,42 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
       .data.length,
     1,
   );
+});
+
+test('CloudBase guarded single-document removal uses exactly four transaction operations', async () => {
+  const db = createFakeCloudBaseDb();
+  const leaseId = `lease_${'o'.repeat(24)}`;
+  const task = {
+    ...taskFixture(),
+    attempt_count: 1,
+    last_attempt_at: NOW.toISOString(),
+    lease_expires_at: '2026-08-01T08:05:00.000Z',
+    lease_id: leaseId,
+    status: 'processing',
+  };
+  await db.collection('softbook_account_deletions').doc(ACCOUNT_KEY).set(task);
+  await db.collection('softbook_auth_sessions').doc('owned-session').set({
+    account_key: ACCOUNT_KEY,
+  });
+  const repository = createCloudBaseAccountDeletionRepository(db, {
+    accountDeletions: 'softbook_account_deletions',
+  });
+
+  assert.equal(
+    await repository.removeWhereIfLease(
+      'softbook_auth_sessions',
+      {account_key: ACCOUNT_KEY},
+      {
+        accountInstanceId: task.account_instance_id,
+        accountKey: ACCOUNT_KEY,
+        deletionId: task.deletion_id,
+        leaseId,
+        status: 'processing',
+      },
+    ),
+    true,
+  );
+  assert.equal(db.transactionOperationCounts().at(-1), 4);
 });
 
 test('queued CloudBase tasks are not starved by older live processing leases', async () => {
@@ -258,6 +835,52 @@ test('queued CloudBase tasks are not starved by older live processing leases', a
   assert.equal(runnable[0].account_key, queuedAccount);
 });
 
+test('CloudBase selects ready and expired finalizing work without live-lease starvation', async () => {
+  const db = createFakeCloudBaseDb();
+  const tasks = db.collection('softbook_account_deletions');
+  for (let index = 0; index < 120; index += 1) {
+    const accountKey = index.toString(16).padStart(64, '0');
+    await tasks.doc(accountKey).set({
+      ...taskFixture({accountKey}),
+      attempt_count: 1,
+      last_attempt_at: '2026-08-01T07:50:00.000Z',
+      lease_expires_at: '2026-08-01T09:00:00.000Z',
+      lease_id: `lease_${String(index).padStart(24, 'l')}`,
+      requested_at: '2026-07-01T00:00:00.000Z',
+      status: 'finalizing',
+    });
+  }
+  const readyAccount = 'e'.repeat(64);
+  const expiredAccount = 'f'.repeat(64);
+  await tasks.doc(readyAccount).set({
+    ...taskFixture({accountKey: readyAccount}),
+    requested_at: '2026-07-02T00:00:00.000Z',
+    status: 'finalizing',
+  });
+  await tasks.doc(expiredAccount).set({
+    ...taskFixture({accountKey: expiredAccount}),
+    attempt_count: 1,
+    last_attempt_at: '2026-08-01T07:50:00.000Z',
+    lease_expires_at: '2026-08-01T07:55:00.000Z',
+    lease_id: `lease_${'x'.repeat(24)}`,
+    requested_at: '2026-07-03T00:00:00.000Z',
+    status: 'finalizing',
+  });
+  const repository = createCloudBaseAccountDeletionRepository(db, {
+    accountDeletions: 'softbook_account_deletions',
+  });
+
+  const runnable = await repository.listRunnableTasks({
+    limit: 2,
+    now: NOW.toISOString(),
+  });
+
+  assert.deepEqual(
+    runnable.map(task => task.account_key),
+    [readyAccount, expiredAccount],
+  );
+});
+
 function createWorker(repository) {
   return createAccountDeletionWorkerV1({
     now: () => new Date(NOW),
@@ -268,6 +891,7 @@ function createWorker(repository) {
 
 function taskFixture({accountKey = ACCOUNT_KEY} = {}) {
   return {
+    account_instance_id: `account_${'i'.repeat(24)}`,
     account_key: accountKey,
     attempt_count: 0,
     deletion_id: `delete_${accountKey.slice(0, 16)}`,
@@ -275,38 +899,80 @@ function taskFixture({accountKey = ACCOUNT_KEY} = {}) {
     last_failure_code: null,
     lease_expires_at: null,
     lease_id: null,
+    origin_session_id: 's'.repeat(24),
     phone_number: PHONE,
     phone_rate_key: PHONE_RATE_KEY,
     requested_at: '2026-08-01T07:59:00.000Z',
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
+  };
+}
+
+function createMemoryDeletionState(authState) {
+  return {
+    ...authState,
+    betaEntitlements: new Map(),
+    dailyCheckIns: new Map(),
+    dailyProgress: new Map(),
+    learningEventCursors: new Map(),
+    learningEvents: new Map(),
+    learningEventSequences: new Map(),
+    learningMigrationRevisions: new Map(),
+    learningSessions: new Map(),
+    learningStates: new Map(),
+    memberships: new Map(),
+    membershipRevisions: new Map(),
+    pilotEntitlements: new Map(),
+    pilotRoundContinuations: new Map(),
+    spaceActionLineages: new Map(),
+    spaceActions: new Map(),
+    spaceStateRevisions: new Map(),
+    spaceStates: new Map(),
   };
 }
 
 function createRepository({
   completeAndReregisterBeforeFirstMutation = false,
   expiredLease = false,
+  expiredFinalizingLease = false,
   failOnceCollection = null,
+  failOnceWhereCollection = null,
   invalidTask = false,
   loseLeaseBeforeComplete = false,
+  missingFinalizingTtl = false,
+  stealLeaseAfterFinalizing = false,
 } = {}) {
   const calls = [];
   let failed = false;
   let replacedBeforeMutation = false;
-  let attempts = expiredLease ? 1 : 0;
+  let attempts = expiredLease || expiredFinalizingLease ? 1 : 0;
+  const initialFinalizing = expiredFinalizingLease || missingFinalizingTtl;
   let task = {
+    account_instance_id: `account_${'i'.repeat(24)}`,
     account_key: invalidTask ? 'invalid' : ACCOUNT_KEY,
-    attempt_count: expiredLease ? 1 : 0,
+    attempt_count: expiredLease || expiredFinalizingLease ? 1 : 0,
     deletion_id: 'delete_account_worker_0001',
-    last_attempt_at: expiredLease ? '2026-08-01T07:50:00.000Z' : null,
+    last_attempt_at:
+      expiredLease || expiredFinalizingLease || missingFinalizingTtl
+        ? '2026-08-01T07:50:00.000Z'
+        : null,
     last_failure_code: null,
-    lease_expires_at: expiredLease ? '2026-08-01T07:55:00.000Z' : null,
-    lease_id: expiredLease ? `lease_${'x'.repeat(24)}` : null,
+    lease_expires_at:
+      expiredLease || expiredFinalizingLease
+        ? '2026-08-01T07:55:00.000Z'
+        : null,
+    lease_id:
+      expiredLease || initialFinalizing ? `lease_${'x'.repeat(24)}` : null,
+    origin_session_id: 's'.repeat(24),
     phone_number: PHONE,
     phone_rate_key: PHONE_RATE_KEY,
     requested_at: '2026-08-01T07:59:00.000Z',
-    schema_version: 'account-deletion-task.v1',
-    status: expiredLease ? 'processing' : 'queued',
+    schema_version: 'account-deletion-task.v2',
+    status: initialFinalizing
+      ? 'finalizing'
+      : expiredLease
+        ? 'processing'
+        : 'queued',
   };
   const filters = new Map();
   for (const collection of ACCOUNT_KEY_COLLECTIONS) {
@@ -338,6 +1004,14 @@ function createRepository({
       (filters.get('softbook_auth_sessions') ?? []).some(
         row => row.generation === 'new',
       ),
+    hasPhoneChallenge: () =>
+      (filters.get(FINAL_CHALLENGE_COLLECTION) ?? []).some(
+        row => row.phone_number === PHONE,
+      ),
+    hasPhoneRateLimit: () =>
+      (filters.get(RATE_LIMIT_COLLECTION) ?? []).some(
+        row => row.key === PHONE_RATE_KEY,
+      ),
     remainingAccountDocuments: () =>
       [...filters.values()].reduce(
         (sum, rows) =>
@@ -354,10 +1028,15 @@ function createRepository({
     claimTask: async input => {
       if (
         !task ||
+        task.deletion_id !== input.expectedDeletionId ||
+        task.requested_at !== input.expectedRequestedAt ||
         !(
           task.status === 'queued' ||
           (task.status === 'processing' &&
-            task.lease_expires_at <= input.now)
+            task.lease_expires_at <= input.now) ||
+          (task.status === 'finalizing' &&
+            ((task.lease_id === null && task.lease_expires_at === null) ||
+              task.lease_expires_at <= input.now))
         )
       ) {
         return false;
@@ -370,9 +1049,32 @@ function createRepository({
         last_failure_code: null,
         lease_expires_at: input.leaseExpiresAt,
         lease_id: input.leaseId,
-        status: 'processing',
+        status: task.status === 'finalizing' ? 'finalizing' : 'processing',
       };
+      return structuredClone(task);
+    },
+    beginFinalizingTask: async input => {
+      calls.push(`finalizing:${input.accountKey}:${input.leaseId}`);
+      if (
+        !task ||
+        task.status !== 'processing' ||
+        input.leaseId !== task.lease_id
+      ) {
+        return false;
+      }
+      task = {...task, status: 'finalizing'};
+      if (stealLeaseAfterFinalizing) {
+        task = {...task, lease_id: `lease_${'z'.repeat(24)}`};
+      }
       return true;
+    },
+    challengeReservationsQuiescent: async input => {
+      calls.push(`quiescent:${input.accountKey}:${input.leaseId}`);
+      return Boolean(
+        task &&
+          task.status === 'finalizing' &&
+          input.leaseId === task.lease_id,
+      );
     },
     removeWhereIfLease: async (collection, filter, lease) => {
       calls.push(`where:${collection}:${Object.keys(filter)[0]}`);
@@ -390,7 +1092,17 @@ function createRepository({
           id: 're-registered-session',
         });
       }
-      if (!task || task.lease_id !== lease.leaseId) return false;
+      if (
+        !task ||
+        task.lease_id !== lease.leaseId ||
+        task.status !== lease.status
+      ) {
+        return false;
+      }
+      if (collection === failOnceWhereCollection && !failed) {
+        failed = true;
+        throw new Error('simulated final sweep interruption');
+      }
       const rows = filters.get(collection) ?? [];
       filters.set(
         collection,
@@ -402,7 +1114,13 @@ function createRepository({
     },
     removeDocumentIfLease: async (collection, id, lease) => {
       calls.push(`document:${collection}:${id}`);
-      if (!task || task.lease_id !== lease.leaseId) return false;
+      if (
+        !task ||
+        task.lease_id !== lease.leaseId ||
+        task.status !== lease.status
+      ) {
+        return false;
+      }
       if (collection === failOnceCollection && !failed) {
         failed = true;
         throw new Error('simulated delete interruption');
@@ -420,6 +1138,7 @@ function createRepository({
       }
       if (
         !task ||
+        task.status !== 'finalizing' ||
         input.accountKey !== ACCOUNT_KEY ||
         input.leaseId !== task.lease_id
       ) {
@@ -429,22 +1148,27 @@ function createRepository({
       return true;
     },
     releaseTask: async input => {
-      if (!task || input.leaseId !== task.lease_id) return false;
+      if (!task || input.leaseId !== task.lease_id) return null;
+      const retryStatus =
+        task.status === 'finalizing' ? 'retry_finalizing' : 'retry_queued';
       task = {
         ...task,
         last_attempt_at: input.now,
         last_failure_code: input.failureCode,
         lease_expires_at: null,
         lease_id: null,
-        status: 'queued',
+        status:
+          retryStatus === 'retry_finalizing' ? 'finalizing' : 'queued',
       };
-      return true;
+      return retryStatus;
     },
   };
 }
 
 function createFakeCloudBaseDb() {
   const collections = new Map();
+  let transactionOperations = 0;
+  const transactionOperationCounts = [];
 
   function collection(name, {transactional = false} = {}) {
     if (!collections.has(name)) collections.set(name, new Map());
@@ -495,17 +1219,22 @@ function createFakeCloudBaseDb() {
     return {
       doc: id => {
         const erase = async () => {
+          if (transactional) transactionOperations += 1;
           documents.delete(id);
         };
         return {
           delete: erase,
-          get: async () => ({
-            data: documents.has(id)
-              ? [{_id: id, ...structuredClone(documents.get(id))}]
-              : [],
-          }),
+          get: async () => {
+            if (transactional) transactionOperations += 1;
+            return {
+              data: documents.has(id)
+                ? [{_id: id, ...structuredClone(documents.get(id))}]
+                : [],
+            };
+          },
           ...(transactional ? {} : {remove: erase}),
           set: async value => {
+            if (transactional) transactionOperations += 1;
             documents.set(id, structuredClone(value));
           },
         };
@@ -548,10 +1277,18 @@ function createFakeCloudBaseDb() {
     command: {
       lte: value => ({operator: 'lte', value}),
     },
-    runTransaction: callback =>
-      callback({
-        collection: name => collection(name, {transactional: true}),
-      }),
+    runTransaction: async callback => {
+      transactionOperations = 0;
+      try {
+        return await callback({
+          collection: name => collection(name, {transactional: true}),
+        });
+      } finally {
+        transactionOperationCounts.push(transactionOperations);
+        transactionOperations = 0;
+      }
+    },
     snapshot: () => collections,
+    transactionOperationCounts: () => [...transactionOperationCounts],
   };
 }

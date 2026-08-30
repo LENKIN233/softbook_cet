@@ -17,6 +17,7 @@ function validateBetaEntitlementCommand(input) {
     [
       'schema_version',
       'event_id',
+      'expected_account_instance_id',
       'action',
       'phone_number',
       'campaign_id',
@@ -32,6 +33,11 @@ function validateBetaEntitlementCommand(input) {
   }
   if (!isIdentifier(input.event_id, 12, 96)) {
     throw new BetaEntitlementError('event_id is invalid.');
+  }
+  if (!/^account_[A-Za-z0-9_-]{24,128}$/.test(
+    input.expected_account_instance_id ?? '',
+  )) {
+    throw new BetaEntitlementError('expected_account_instance_id is invalid.');
   }
   if (!ACTIONS.has(input.action)) {
     throw new BetaEntitlementError('action must be grant or revoke.');
@@ -220,6 +226,7 @@ function createAuditEvent({command, commandHash, previousStage, resultingStage})
     campaign_id: command.campaign_id,
     command_sha256: commandHash,
     event_id: command.event_id,
+    expected_account_instance_id: command.expected_account_instance_id,
     grant_id: command.grant_id,
     occurred_at: command.occurred_at,
     previous_stage: previousStage,
@@ -292,6 +299,7 @@ function normalizeBetaEntitlementDocument(input) {
     const reconstructedCommand = validateBetaEntitlementCommand({
       schema_version: BETA_ENTITLEMENT_COMMAND_SCHEMA,
       event_id: event.event_id,
+      expected_account_instance_id: event.expected_account_instance_id,
       action: event.action,
       phone_number: document.phone_number,
       campaign_id: event.campaign_id,
@@ -422,6 +430,7 @@ function isStoredAuditEvent(value) {
     'campaign_id',
     'command_sha256',
     'event_id',
+    'expected_account_instance_id',
     'grant_id',
     'occurred_at',
     'previous_stage',
@@ -439,6 +448,9 @@ function isStoredAuditEvent(value) {
     isIdentifier(value.campaign_id, 3, 96) &&
     /^sha256:[a-f0-9]{64}$/.test(value.command_sha256 ?? '') &&
     isIdentifier(value.event_id, 12, 96) &&
+    /^account_[A-Za-z0-9_-]{24,128}$/.test(
+      value.expected_account_instance_id ?? '',
+    ) &&
     isIdentifier(value.grant_id, 12, 96) &&
     isCanonicalIsoTimestamp(value.occurred_at) &&
     MEMBERSHIP_STAGES.has(value.previous_stage) &&
@@ -509,7 +521,8 @@ function isIdentifier(value, minimumLength, maximumLength) {
     value.length >= minimumLength &&
     value.length <= maximumLength &&
     /^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/.test(value) &&
-    !containsPhoneMaterial(value)
+    !containsPhoneMaterial(value) &&
+    !containsAccountInstanceMaterial(value)
   );
 }
 
@@ -517,6 +530,13 @@ function containsPhoneMaterial(value) {
   return (
     typeof value === 'string' &&
     /1\d{10}/.test(value.normalize('NFKC').replace(/\D/g, ''))
+  );
+}
+
+function containsAccountInstanceMaterial(value) {
+  return (
+    typeof value === 'string' &&
+    /account_[A-Za-z0-9_-]{24,128}/.test(value)
   );
 }
 
@@ -528,6 +548,7 @@ function isCanonicalIsoTimestamp(value) {
 
 const betaEntitlementInternals = {
   containsPhoneMaterial,
+  containsAccountInstanceMaterial,
   hashCanonical,
   normalizeBetaEntitlementDocument,
   stableStringify,

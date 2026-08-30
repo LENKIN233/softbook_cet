@@ -208,6 +208,7 @@ test('Tencent Cloud provider sends one E.164 recipient with the approved templat
       SOFTBOOK_SMS_TENCENT_SIGN_NAME: '软书四六级',
       SOFTBOOK_SMS_TENCENT_TEMPLATE_ID: '1110',
       SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS: 'code,expiry_minutes',
+      SOFTBOOK_SMS_TENCENT_TIMEOUT_MS: '8000',
     },
     runtimeMode: 'production',
     tencentCloudClient: {
@@ -230,6 +231,7 @@ test('Tencent Cloud provider sends one E.164 recipient with the approved templat
 
   assert.equal(provider.kind, 'tencentcloud');
   assert.equal(provider.delivery, 'sms_tencentcloud');
+  assert.equal(provider.deliveryDeadlineMs, 8000);
   assert.deepEqual(calls, [
     {
       PhoneNumberSet: ['+8613800138000'],
@@ -376,7 +378,7 @@ for (const env of [
   },
   {
     SOFTBOOK_SMS_PROVIDER: 'tencentcloud',
-    SOFTBOOK_SMS_TENCENT_TIMEOUT_MS: '15001',
+    SOFTBOOK_SMS_TENCENT_TIMEOUT_MS: '10000',
   },
   {
     SOFTBOOK_SMS_PROVIDER: 'tencentcloud',

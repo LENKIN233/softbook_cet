@@ -4,6 +4,7 @@ const {normalizeCloudBaseDocuments} = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
 
 const ACCOUNT_KEY_COLLECTIONS = Object.freeze([
+  'softbook_accounts',
   'softbook_auth_sessions',
   'softbook_daily_check_ins',
   'softbook_daily_progress',
@@ -36,6 +37,7 @@ const FINAL_CHALLENGE_COLLECTION = 'softbook_auth_challenges';
 const TASK_COLLECTION = 'softbook_account_deletions';
 const LEASE_DURATION_MS = 5 * 60 * 1000;
 const TASK_KEYS = Object.freeze([
+  'account_instance_id',
   'account_key',
   'attempt_count',
   'deletion_id',
@@ -43,6 +45,7 @@ const TASK_KEYS = Object.freeze([
   'last_failure_code',
   'lease_expires_at',
   'lease_id',
+  'origin_session_id',
   'phone_number',
   'phone_rate_key',
   'requested_at',
@@ -58,6 +61,8 @@ function createAccountDeletionWorkerV1(options) {
     throw new Error('Account deletion worker requires a repository.');
   }
   for (const method of [
+    'beginFinalizingTask',
+    'challengeReservationsQuiescent',
     'claimTask',
     'completeTask',
     'listRunnableTasks',
@@ -88,30 +93,68 @@ function createAccountDeletionWorkerV1(options) {
         const leaseExpiresAt = new Date(
           Date.parse(startedAt) + LEASE_DURATION_MS,
         ).toISOString();
-        const claimed = await repository.claimTask({
+        const claimedTaskInput = await repository.claimTask({
           accountKey: task.account_key,
+          expectedAccountInstanceId: task.account_instance_id,
+          expectedDeletionId: task.deletion_id,
+          expectedRequestedAt: task.requested_at,
           leaseExpiresAt,
           leaseId,
           now: startedAt,
         });
-        if (!claimed) continue;
+        if (!claimedTaskInput) continue;
+        const claimedTask = normalizeTask(claimedTaskInput);
 
         try {
-          await eraseAccount(task, repository, leaseId);
+          if (claimedTask.status !== 'finalizing') {
+            await eraseAccountBeforeFinalizing(
+              claimedTask,
+              repository,
+              leaseId,
+            );
+            requireLeaseGuardedMutation(
+              await repository.beginFinalizingTask({
+                accountInstanceId: claimedTask.account_instance_id,
+                accountKey: claimedTask.account_key,
+                deletionId: claimedTask.deletion_id,
+                leaseId,
+              }),
+            );
+          }
+          requireLeaseGuardedMutation(
+            await repository.challengeReservationsQuiescent({
+              accountInstanceId: claimedTask.account_instance_id,
+              accountKey: claimedTask.account_key,
+              deletionId: claimedTask.deletion_id,
+              leaseId,
+              now: canonicalTimestamp(now()),
+              phoneNumber: claimedTask.phone_number,
+            }),
+          );
+          await eraseFinalizingArtifacts(claimedTask, repository, leaseId);
           const completed = await repository.completeTask({
-            accountKey: task.account_key,
+            accountInstanceId: claimedTask.account_instance_id,
+            accountKey: claimedTask.account_key,
+            deletionId: claimedTask.deletion_id,
             leaseId,
           });
-          results.push(publicResult(task, completed ? 'completed' : 'lease_lost'));
+          results.push(
+            publicResult(
+              claimedTask,
+              completed ? 'completed' : 'lease_lost',
+            ),
+          );
         } catch {
-          const released = await repository.releaseTask({
-            accountKey: task.account_key,
+          const retryStatus = await repository.releaseTask({
+            accountInstanceId: claimedTask.account_instance_id,
+            accountKey: claimedTask.account_key,
+            deletionId: claimedTask.deletion_id,
             failureCode: 'account_cleanup_incomplete',
             leaseId,
             now: canonicalTimestamp(now()),
           });
           results.push(
-            publicResult(task, released ? 'retry_queued' : 'lease_lost'),
+            publicResult(claimedTask, retryStatus ?? 'lease_lost'),
           );
         }
       }
@@ -128,8 +171,14 @@ function createAccountDeletionWorkerV1(options) {
   };
 }
 
-async function eraseAccount(task, repository, leaseId) {
-  const lease = {accountKey: task.account_key, leaseId};
+async function eraseAccountBeforeFinalizing(task, repository, leaseId) {
+  const lease = {
+    accountInstanceId: task.account_instance_id,
+    accountKey: task.account_key,
+    deletionId: task.deletion_id,
+    leaseId,
+    status: 'processing',
+  };
   for (const collection of ACCOUNT_KEY_COLLECTIONS) {
     requireLeaseGuardedMutation(
       await repository.removeWhereIfLease(
@@ -149,13 +198,6 @@ async function eraseAccount(task, repository, leaseId) {
       ),
     );
   }
-  requireLeaseGuardedMutation(
-    await repository.removeWhereIfLease(
-      RATE_LIMIT_COLLECTION,
-      {key: task.phone_rate_key},
-      lease,
-    ),
-  );
   for (const collection of PHONE_DOCUMENT_COLLECTIONS) {
     requireLeaseGuardedMutation(
       await repository.removeDocumentIfLease(
@@ -165,6 +207,23 @@ async function eraseAccount(task, repository, leaseId) {
       ),
     );
   }
+}
+
+async function eraseFinalizingArtifacts(task, repository, leaseId) {
+  const lease = {
+    accountInstanceId: task.account_instance_id,
+    accountKey: task.account_key,
+    deletionId: task.deletion_id,
+    leaseId,
+    status: 'finalizing',
+  };
+  requireLeaseGuardedMutation(
+    await repository.removeWhereIfLease(
+      RATE_LIMIT_COLLECTION,
+      {key: task.phone_rate_key},
+      lease,
+    ),
+  );
   requireLeaseGuardedMutation(
     await repository.removeWhereIfLease(
       FINAL_CHALLENGE_COLLECTION,
@@ -188,7 +247,7 @@ function createCloudBaseAccountDeletionRepository(db, collections) {
         transaction.collection(taskCollection),
         lease.accountKey,
       );
-      if (!leaseMatches(task, lease.leaseId)) return false;
+      if (!leaseMatches(task, lease.leaseId, lease.status, lease)) return false;
       await mutation(transaction);
       return true;
     });
@@ -198,7 +257,12 @@ function createCloudBaseAccountDeletionRepository(db, collections) {
         throw new Error('Account deletion repository requires db.command.lte().');
       }
       const collection = db.collection(taskCollection);
-      const [queuedResult, expiredResult] = await Promise.all([
+      const [
+        queuedResult,
+        expiredProcessingResult,
+        readyFinalizingResult,
+        expiredFinalizingResult,
+      ] = await Promise.all([
         collection
           .where({status: 'queued'})
           .orderBy('requested_at', 'asc')
@@ -212,11 +276,26 @@ function createCloudBaseAccountDeletionRepository(db, collections) {
           .orderBy('requested_at', 'asc')
           .limit(limit)
           .get(),
+        collection
+          .where({lease_id: null, status: 'finalizing'})
+          .orderBy('requested_at', 'asc')
+          .limit(limit)
+          .get(),
+        collection
+          .where({
+            lease_expires_at: db.command.lte(now),
+            status: 'finalizing',
+          })
+          .orderBy('requested_at', 'asc')
+          .limit(limit)
+          .get(),
       ]);
       const byAccount = new Map();
       for (const task of [
         ...normalizeCloudBaseDocuments(queuedResult.data),
-        ...normalizeCloudBaseDocuments(expiredResult.data),
+        ...normalizeCloudBaseDocuments(expiredProcessingResult.data),
+        ...normalizeCloudBaseDocuments(readyFinalizingResult.data),
+        ...normalizeCloudBaseDocuments(expiredFinalizingResult.data),
       ]) {
         if (isRunnableTask(task, now)) byAccount.set(task.account_key, task);
       }
@@ -232,17 +311,56 @@ function createCloudBaseAccountDeletionRepository(db, collections) {
         const task = await getDocument(collection, input.accountKey);
         if (!task || !isRunnableTask(task, input.now)) return false;
         const normalized = normalizeTask(task);
-        await setDocument(collection, input.accountKey, {
+        if (
+          normalized.deletion_id !== input.expectedDeletionId ||
+          normalized.account_instance_id !== input.expectedAccountInstanceId ||
+          normalized.requested_at !== input.expectedRequestedAt
+        ) {
+          return false;
+        }
+        const claimedStatus =
+          normalized.status === 'finalizing' ? 'finalizing' : 'processing';
+        const claimedTask = {
           ...normalized,
           attempt_count: normalized.attempt_count + 1,
           last_attempt_at: input.now,
           last_failure_code: null,
           lease_expires_at: input.leaseExpiresAt,
           lease_id: input.leaseId,
-          status: 'processing',
+          status: claimedStatus,
+        };
+        await setDocument(collection, input.accountKey, claimedTask);
+        return claimedTask;
+      }),
+    beginFinalizingTask: input =>
+      db.runTransaction(async transaction => {
+        const collection = transaction.collection(taskCollection);
+        const task = await getDocument(collection, input.accountKey);
+        if (!leaseMatches(task, input.leaseId, 'processing', input)) return false;
+        await setDocument(collection, input.accountKey, {
+          ...normalizeTask(task),
+          status: 'finalizing',
         });
         return true;
       }),
+    challengeReservationsQuiescent: async input => {
+      const pendingResult = await db
+        .collection(FINAL_CHALLENGE_COLLECTION)
+        .where({
+          delivery_status: 'pending',
+          phone_number: input.phoneNumber,
+        })
+        .get();
+      const pending = normalizeCloudBaseDocuments(pendingResult.data);
+      if (!pending.every(challengeReservationExpired(input.now))) return false;
+      return db.runTransaction(async transaction => {
+        const task = await getDocument(
+          transaction.collection(taskCollection),
+          input.accountKey,
+        );
+        return leaseMatches(task, input.leaseId, 'finalizing', input);
+      });
+    },
     removeWhereIfLease: (collection, filter, lease) =>
       removeAllMatchingIfLease(
         db,
@@ -259,7 +377,7 @@ function createCloudBaseAccountDeletionRepository(db, collections) {
       const removed = await db.runTransaction(async transaction => {
         const collection = transaction.collection(taskCollection);
         const task = await getDocument(collection, input.accountKey);
-        if (!leaseMatches(task, input.leaseId)) return false;
+        if (!leaseMatches(task, input.leaseId, 'finalizing', input)) return false;
         await deleteDocumentReference(collection.doc(input.accountKey));
         return true;
       });
@@ -278,16 +396,22 @@ function createCloudBaseAccountDeletionRepository(db, collections) {
       db.runTransaction(async transaction => {
         const collection = transaction.collection(taskCollection);
         const task = await getDocument(collection, input.accountKey);
-        if (!leaseMatches(task, input.leaseId)) return false;
+        if (!leaseMatches(task, input.leaseId, null, input)) return null;
+        const normalized = normalizeTask(task);
+        const retryStatus =
+          normalized.status === 'finalizing'
+            ? 'retry_finalizing'
+            : 'retry_queued';
         await setDocument(collection, input.accountKey, {
-          ...normalizeTask(task),
+          ...normalized,
           last_attempt_at: input.now,
           last_failure_code: input.failureCode,
           lease_expires_at: null,
           lease_id: null,
-          status: 'queued',
+          status:
+            retryStatus === 'retry_finalizing' ? 'finalizing' : 'queued',
         });
-        return true;
+        return retryStatus;
       }),
   };
 }
@@ -295,6 +419,7 @@ function createCloudBaseAccountDeletionRepository(db, collections) {
 function createMemoryAccountDeletionRepository(state) {
   const collectionMaps = new Map([
     ['softbook_account_deletions', state.accountDeletions],
+    ['softbook_accounts', state.accounts],
     ['softbook_auth_challenges', state.authChallenges],
     ['softbook_auth_rate_limits', state.authRateLimits],
     ['softbook_auth_sessions', state.authSessions],
@@ -335,19 +460,64 @@ function createMemoryAccountDeletionRepository(state) {
       const task = tasks.get(input.accountKey);
       if (!task || !isRunnableTask(task, input.now)) return false;
       const normalized = normalizeTask(task);
-      tasks.set(input.accountKey, {
+      if (
+        normalized.deletion_id !== input.expectedDeletionId ||
+        normalized.account_instance_id !== input.expectedAccountInstanceId ||
+        normalized.requested_at !== input.expectedRequestedAt
+      ) {
+        return false;
+      }
+      const claimedStatus =
+        task.status === 'finalizing' ? 'finalizing' : 'processing';
+      const claimedTask = {
         ...normalized,
         attempt_count: normalized.attempt_count + 1,
         last_attempt_at: input.now,
         last_failure_code: null,
         lease_expires_at: input.leaseExpiresAt,
         lease_id: input.leaseId,
-        status: 'processing',
+        status: claimedStatus,
+      };
+      tasks.set(input.accountKey, claimedTask);
+      return structuredClone(claimedTask);
+    },
+    beginFinalizingTask: async input => {
+      const task = tasks.get(input.accountKey);
+      if (!leaseMatches(task, input.leaseId, 'processing', input)) return false;
+      tasks.set(input.accountKey, {
+        ...normalizeTask(task),
+        status: 'finalizing',
       });
       return true;
     },
+    challengeReservationsQuiescent: async input => {
+      if (
+        !leaseMatches(
+          tasks.get(input.accountKey),
+          input.leaseId,
+          'finalizing',
+          input,
+        )
+      ) {
+        return false;
+      }
+      return [...state.authChallenges.values()]
+        .filter(
+          challenge =>
+            challenge?.phone_number === input.phoneNumber &&
+            challenge?.delivery_status === 'pending',
+        )
+        .every(challengeReservationExpired(input.now));
+    },
     removeWhereIfLease: async (collection, filter, lease) => {
-      if (!leaseMatches(tasks.get(lease.accountKey), lease.leaseId)) {
+      if (
+        !leaseMatches(
+          tasks.get(lease.accountKey),
+          lease.leaseId,
+          lease.status,
+          lease,
+        )
+      ) {
         return false;
       }
       const map = collectionMaps.get(collection);
@@ -363,7 +533,14 @@ function createMemoryAccountDeletionRepository(state) {
       return true;
     },
     removeDocumentIfLease: async (collection, documentId, lease) => {
-      if (!leaseMatches(tasks.get(lease.accountKey), lease.leaseId)) {
+      if (
+        !leaseMatches(
+          tasks.get(lease.accountKey),
+          lease.leaseId,
+          lease.status,
+          lease,
+        )
+      ) {
         return false;
       }
       collectionMaps.get(collection).delete(documentId);
@@ -371,22 +548,28 @@ function createMemoryAccountDeletionRepository(state) {
     },
     completeTask: async input => {
       const task = tasks.get(input.accountKey);
-      if (!leaseMatches(task, input.leaseId)) return false;
+      if (!leaseMatches(task, input.leaseId, 'finalizing', input)) return false;
       tasks.delete(input.accountKey);
       return true;
     },
     releaseTask: async input => {
       const task = tasks.get(input.accountKey);
-      if (!leaseMatches(task, input.leaseId)) return false;
+      if (!leaseMatches(task, input.leaseId, null, input)) return null;
+      const normalized = normalizeTask(task);
+      const retryStatus =
+        normalized.status === 'finalizing'
+          ? 'retry_finalizing'
+          : 'retry_queued';
       tasks.set(input.accountKey, {
-        ...normalizeTask(task),
+        ...normalized,
         last_attempt_at: input.now,
         last_failure_code: input.failureCode,
         lease_expires_at: null,
         lease_id: null,
-        status: 'queued',
+        status:
+          retryStatus === 'retry_finalizing' ? 'finalizing' : 'queued',
       });
-      return true;
+      return retryStatus;
     },
   };
 }
@@ -413,7 +596,7 @@ async function removeAllMatchingIfLease(
         transaction.collection(taskCollection),
         lease.accountKey,
       );
-      if (!leaseMatches(task, lease.leaseId)) return false;
+      if (!leaseMatches(task, lease.leaseId, lease.status, lease)) return false;
       const targetCollection = transaction.collection(collectionName);
       const document = await getDocument(targetCollection, documentId);
       if (document === null) return true;
@@ -430,6 +613,12 @@ function documentMatches(document, filter) {
   return Object.entries(filter).every(
     ([field, expected]) => document?.[field] === expected,
   );
+}
+
+function challengeReservationExpired(now) {
+  return challenge =>
+    isCanonicalIsoTimestamp(challenge?.delivery_deadline_at) &&
+    challenge.delivery_deadline_at <= now;
 }
 
 async function removeDocument(collection, documentId) {
@@ -481,6 +670,9 @@ function normalizeTask(value) {
   if (
     keys.length !== TASK_KEYS.length ||
     keys.some((key, index) => key !== TASK_KEYS[index]) ||
+    !/^account_[A-Za-z0-9_-]{24,128}$/.test(
+      task.account_instance_id ?? '',
+    ) ||
     !/^[a-f0-9]{64}$/.test(task.account_key ?? '') ||
     !Number.isSafeInteger(task.attempt_count) ||
     task.attempt_count < 0 ||
@@ -489,15 +681,18 @@ function normalizeTask(value) {
     !nullableFailureCode(task.last_failure_code) ||
     !nullableTimestamp(task.lease_expires_at) ||
     !nullableLeaseId(task.lease_id) ||
+    !/^[A-Za-z0-9_-]{24,128}$/.test(task.origin_session_id ?? '') ||
     !/^1\d{10}$/.test(task.phone_number ?? '') ||
     !/^phone:[a-f0-9]{64}$/.test(task.phone_rate_key ?? '') ||
     !isCanonicalIsoTimestamp(task.requested_at) ||
-    task.schema_version !== 'account-deletion-task.v1' ||
-    !['queued', 'processing'].includes(task.status) ||
+    task.schema_version !== 'account-deletion-task.v2' ||
+    !['queued', 'processing', 'finalizing'].includes(task.status) ||
     (task.status === 'queued' &&
       (task.lease_id !== null || task.lease_expires_at !== null)) ||
     (task.status === 'processing' &&
-      (task.lease_id === null || task.lease_expires_at === null))
+      (task.lease_id === null || task.lease_expires_at === null)) ||
+    (task.status === 'finalizing' &&
+      ((task.lease_id === null) !== (task.lease_expires_at === null)))
   ) {
     throw new Error('Account deletion task is invalid.');
   }
@@ -511,15 +706,26 @@ function isRunnableTask(value, now) {
     (value.status === 'queued' ||
       (value.status === 'processing' &&
         (!isCanonicalIsoTimestamp(value.lease_expires_at) ||
+          value.lease_expires_at <= now)) ||
+      (value.status === 'finalizing' &&
+        ((value.lease_id === null && value.lease_expires_at === null) ||
+          (value.lease_id === null) !== (value.lease_expires_at === null) ||
+          !isCanonicalIsoTimestamp(value.lease_expires_at) ||
           value.lease_expires_at <= now)))
   );
 }
 
-function leaseMatches(task, leaseId) {
+function leaseMatches(task, leaseId, status = null, expected = null) {
   try {
     const normalized = normalizeTask(task);
     return (
-      normalized.status === 'processing' && normalized.lease_id === leaseId
+      ['processing', 'finalizing'].includes(normalized.status) &&
+      (status === null || normalized.status === status) &&
+      (expected?.deletionId === undefined ||
+        normalized.deletion_id === expected.deletionId) &&
+      (expected?.accountInstanceId === undefined ||
+        normalized.account_instance_id === expected.accountInstanceId) &&
+      normalized.lease_id === leaseId
     );
   } catch {
     return false;
@@ -572,6 +778,7 @@ function nullableLeaseId(value) {
 
 module.exports = {
   ACCOUNT_KEY_COLLECTIONS,
+  FINAL_CHALLENGE_COLLECTION,
   PHONE_DOCUMENT_COLLECTIONS,
   PHONE_FILTER_COLLECTIONS,
   RATE_LIMIT_COLLECTION,

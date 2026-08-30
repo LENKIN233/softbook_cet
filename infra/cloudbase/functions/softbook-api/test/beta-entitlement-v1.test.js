@@ -187,6 +187,7 @@ test('public beta identifiers reject phones after removing every non-digit', () 
     'scope-13800138000',
     'scope-138-0013-8000',
     'scope-138a0013b8000',
+    `account_${'a'.repeat(24)}`,
   ]) {
     for (const field of ['actor_id', 'campaign_id', 'event_id', 'grant_id']) {
       assert.throws(
@@ -205,6 +206,7 @@ function command(action) {
   return {
     schema_version: 'beta-entitlement-command.v1',
     event_id: action === 'grant' ? 'beta-event-grant-0001' : 'beta-event-revoke-0001',
+    expected_account_instance_id: `account_${'a'.repeat(24)}`,
     action,
     phone_number: '13800138000',
     campaign_id: 'cet4-beta-campaign-001',

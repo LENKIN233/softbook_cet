@@ -1,5 +1,9 @@
 const crypto = require('node:crypto');
 const {
+  deriveAccountKey,
+  requireAccountInstanceId,
+} = require('./account-write-fence');
+const {
   normalizeAccountDeletionTask,
 } = require('./account-deletion-worker-v1');
 
@@ -9,6 +13,9 @@ const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_SECONDS = 10 * 60;
 const PHONE_REQUEST_LIMIT = 5;
 const IP_REQUEST_LIMIT = 20;
+const PROVIDER_COMPLETION_GRACE_MS = 1000;
+const PROVIDER_DELIVERY_DEADLINE_MS = 8 * 1000;
+const PROVIDER_OWNED_PUBLIC_TTL_SECONDS = 60;
 const VERIFY_ATTEMPT_LIMIT = 5;
 const EXTERNAL_PROVIDER_VERIFIED_CODE = 'external-provider-verified';
 const SIGN_IN_CHALLENGE_PURPOSE = 'sign_in';
@@ -30,6 +37,8 @@ function createAuthV2Service(options) {
       ? generateSixDigitCode
       : () => String(options.developmentSmsCode ?? '2468'));
   const config = {
+    acknowledgementSleeper:
+      options.acknowledgementSleeper ?? fixedDelay,
     accessTokenTtlSeconds:
       options.accessTokenTtlSeconds ?? ACCESS_TOKEN_TTL_SECONDS,
     challengeTtlSeconds: options.challengeTtlSeconds ?? CHALLENGE_TTL_SECONDS,
@@ -38,6 +47,10 @@ function createAuthV2Service(options) {
     ipRequestLimit: options.ipRequestLimit ?? IP_REQUEST_LIMIT,
     now,
     phoneRequestLimit: options.phoneRequestLimit ?? PHONE_REQUEST_LIMIT,
+    providerDeliveryDeadlineMs:
+      options.providerDeliveryDeadlineMs ??
+      smsProvider.deliveryDeadlineMs ??
+      PROVIDER_DELIVERY_DEADLINE_MS,
     randomBytes,
     rateLimitWindowSeconds:
       options.rateLimitWindowSeconds ?? RATE_LIMIT_WINDOW_SECONDS,
@@ -55,7 +68,7 @@ function createAuthV2Service(options) {
 
   return {
     deriveAccountKey: phoneNumber =>
-      keyedHash(config.indexSecret, 'account', phoneNumber),
+      deriveAccountKey(config.indexSecret, phoneNumber),
     logout: request => logout(config, request),
     refresh: request => refresh(config, request),
     requestAccountDeletion: request => requestAccountDeletion(config, request),
@@ -83,6 +96,7 @@ function createAuthV2Service(options) {
 
 function createDevelopmentSmsProvider() {
   return {
+    deliveryDeadlineMs: 1000,
     delivery: 'development_fixed_code',
     kind: 'development',
     sendCode: async () => undefined,
@@ -91,7 +105,6 @@ function createDevelopmentSmsProvider() {
 
 async function requestCode(config, request, purpose) {
   const body = requireObject(request.body, 'request body');
-  const phoneNumber = requirePhoneNumber(body.phone_number);
   const clientIp = resolveClientIp(config, request);
   const requestedAt = config.now();
   const windowStartedAt = new Date(
@@ -99,57 +112,81 @@ async function requestCode(config, request, purpose) {
       config.rateLimitWindowSeconds *
       1000,
   );
-
-  await consumeRateLimit(config, {
+  const sharedIpStatus = await consumeRateLimit(config, {
     key: `ip:${keyedHash(config.indexSecret, 'rate-ip', clientIp)}`,
     limit: config.ipRequestLimit,
     requestedAt,
+    sharedIp: true,
     windowStartedAt,
   });
-  await consumeRateLimit(config, {
-    key: `phone:${keyedHash(config.indexSecret, 'rate-phone', phoneNumber)}`,
-    limit: config.phoneRequestLimit,
-    requestedAt,
-    windowStartedAt,
-  });
+  assertChallengeMaterialAllowed(sharedIpStatus);
 
+  const phoneNumber = requirePhoneNumber(body.phone_number);
+  const accountKey = deriveAccountKey(config.indexSecret, phoneNumber);
+  const allowAccountDeletionPending =
+    purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE;
   const providerOwnsChallenge =
     typeof config.smsProvider.sendChallenge === 'function';
-  let challengeId = randomBase64Url(config.randomBytes, 24);
-  let code = providerOwnsChallenge
+  const challengeId = randomBase64Url(config.randomBytes, 24);
+  const deliveryReservationId = `delivery_${randomBase64Url(
+    config.randomBytes,
+    18,
+  )}`;
+  const code = providerOwnsChallenge
     ? EXTERNAL_PROVIDER_VERIFIED_CODE
     : normalizeSmsCode(config.codeGenerator());
   let expiresAt = new Date(
-    requestedAt.getTime() + config.challengeTtlSeconds * 1000,
+    requestedAt.getTime() +
+      Math.min(
+        config.challengeTtlSeconds,
+        providerOwnsChallenge
+          ? PROVIDER_OWNED_PUBLIC_TTL_SECONDS
+          : config.challengeTtlSeconds,
+      ) *
+        1000,
   );
-  let providerChallenge = null;
-  if (providerOwnsChallenge) {
-    try {
-      providerChallenge = await config.smsProvider.sendChallenge({phoneNumber});
-      challengeId = requireOpaqueId(
-        providerChallenge?.challengeId,
-        'provider challenge_id',
-      );
-      if (
-        !Number.isSafeInteger(providerChallenge?.expiresInSeconds) ||
-        providerChallenge.expiresInSeconds <= 0 ||
-        providerChallenge.expiresInSeconds > 600
-      ) {
-        throw new Error('provider challenge expiry is invalid');
-      }
-      expiresAt = new Date(
-        requestedAt.getTime() +
-          Math.min(
-            config.challengeTtlSeconds,
-            providerChallenge.expiresInSeconds,
-          ) *
-            1000,
-      );
-    } catch {
-      throw authError(503, 'sms_delivery_failed', 'SMS delivery failed.');
-    }
+  const providerTerminalWriteReserveMs = Math.min(
+    PROVIDER_COMPLETION_GRACE_MS,
+    Math.max(1, Math.floor(config.providerDeliveryDeadlineMs / 5)),
+  );
+  const providerCallDeadlineAt = new Date(
+    requestedAt.getTime() +
+      config.providerDeliveryDeadlineMs -
+      providerTerminalWriteReserveMs,
+  );
+  const deliveryDeadlineAt = new Date(
+    requestedAt.getTime() + config.providerDeliveryDeadlineMs,
+  );
+  const publicChallenge = () => ({
+    challenge_id: challengeId,
+    delivery: config.smsProvider.delivery ?? 'sms',
+    expires_at: expiresAt.toISOString(),
+    retry_after_seconds: config.rateLimitWindowSeconds,
+  });
+  const acknowledgementReady = Promise.resolve(
+    config.acknowledgementSleeper(config.providerDeliveryDeadlineMs),
+  );
+  const acknowledgedChallenge = async () => {
+    await acknowledgementReady;
+    return publicChallenge();
+  };
+
+  const phoneRateStatus = await consumeRateLimit(config, {
+    accountKey,
+    allowAccountDeletionPending,
+    key: `phone:${keyedHash(config.indexSecret, 'rate-phone', phoneNumber)}`,
+    limit: config.phoneRequestLimit,
+    phoneNumber,
+    requestedAt,
+    windowStartedAt,
+  });
+  if (isSuppressedChallengeStatus(phoneRateStatus)) {
+    return acknowledgedChallenge();
   }
+  assertChallengeMaterialAllowed(phoneRateStatus);
+
   const challenge = {
+    account_key: accountKey,
     attempts: 0,
     challenge_id: challengeId,
     code_digest: digestSmsCode(
@@ -161,56 +198,96 @@ async function requestCode(config, request, purpose) {
     ),
     consumed_at: null,
     created_at: requestedAt.toISOString(),
+    delivery_deadline_at: deliveryDeadlineAt.toISOString(),
+    delivery_reservation_id: deliveryReservationId,
     delivery_status: 'pending',
     expires_at: expiresAt.toISOString(),
     phone_number: phoneNumber,
+    provider_challenge_id: null,
     purpose,
+    updated_at: requestedAt.toISOString(),
   };
 
   const challengeCreated = await config.store.createAuthChallenge({
-    accountKey: keyedHash(config.indexSecret, 'account', phoneNumber),
-    allowAccountDeletionPending:
-      purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE,
+    accountKey,
+    allowAccountDeletionPending,
     challenge,
   });
 
-  if (!challengeCreated) {
-    throw authError(
-      403,
-      'account_deletion_pending',
-      'Account deletion is already pending.',
-    );
+  if (isSuppressedChallengeStatus(challengeCreated)) {
+    return acknowledgedChallenge();
   }
+  assertChallengeMaterialAllowed(challengeCreated);
 
   try {
-    if (!providerOwnsChallenge) {
-      await config.smsProvider.sendCode({
-        challengeId,
-        code,
-        expiresAt: expiresAt.toISOString(),
-        phoneNumber,
-      });
+    let providerChallengeId;
+    if (providerOwnsChallenge) {
+      const providerChallenge = await runProviderDelivery(
+        config,
+        providerCallDeadlineAt,
+        signal => config.smsProvider.sendChallenge({phoneNumber, signal}),
+      );
+      providerChallengeId = requireOpaqueId(
+        providerChallenge?.challengeId,
+        'provider challenge_id',
+      );
+      if (
+        !Number.isSafeInteger(providerChallenge?.expiresInSeconds) ||
+        providerChallenge.expiresInSeconds <
+          PROVIDER_OWNED_PUBLIC_TTL_SECONDS ||
+        providerChallenge.expiresInSeconds > 600
+      ) {
+        throw new Error('provider challenge expiry is invalid');
+      }
+      expiresAt = new Date(
+        requestedAt.getTime() +
+          Math.min(
+            config.challengeTtlSeconds,
+            providerChallenge.expiresInSeconds,
+            PROVIDER_OWNED_PUBLIC_TTL_SECONDS,
+          ) *
+            1000,
+      );
+    } else {
+      await runProviderDelivery(config, providerCallDeadlineAt, signal =>
+        config.smsProvider.sendCode({
+          challengeId,
+          code,
+          expiresAt: expiresAt.toISOString(),
+          phoneNumber,
+          signal,
+        }),
+      );
     }
-    await config.store.markAuthChallengeDelivery(
+    const marked = await config.store.markAuthChallengeDelivery({
+      accountKey,
       challengeId,
-      'delivered',
-      requestedAt.toISOString(),
-    );
-  } catch {
-    await config.store.markAuthChallengeDelivery(
+      deliveryReservationId,
+      expiresAt: expiresAt.toISOString(),
+      phoneNumber,
+      providerChallengeId,
+      purpose,
+      status: 'delivered',
+      updatedAt: config.now().toISOString(),
+    });
+    if (!marked) throw new Error('SMS delivery reservation was lost.');
+  } catch (error) {
+    await config.store.markAuthChallengeDelivery({
+      accountKey,
       challengeId,
-      'delivery_failed',
-      requestedAt.toISOString(),
-    );
-    throw authError(503, 'sms_delivery_failed', 'SMS delivery failed.');
+      deliveryReservationId,
+      phoneNumber,
+      purpose,
+      status:
+        error?.code === 'sms_provider_delivery_deadline'
+          ? 'pending'
+          : 'delivery_failed',
+      updatedAt: config.now().toISOString(),
+    });
+    return acknowledgedChallenge();
   }
 
-  return {
-    challenge_id: challengeId,
-    delivery: config.smsProvider.delivery ?? 'sms',
-    expires_at: expiresAt.toISOString(),
-    retry_after_seconds: config.rateLimitWindowSeconds,
-  };
+  return acknowledgedChallenge();
 }
 
 async function verifyCode(config, request, purpose) {
@@ -221,9 +298,36 @@ async function verifyCode(config, request, purpose) {
   const verifiedAt = config.now();
   let codeForStore = smsCode;
   if (typeof config.smsProvider.verifyChallenge === 'function') {
+    const localChallenge = await config.store.getAuthChallenge(challengeId);
+    const providerChallengeId = providerChallengeIdForVerification(
+      localChallenge,
+      {
+        maxAttempts: config.verifyAttemptLimit,
+        now: verifiedAt.toISOString(),
+        phoneNumber,
+        purpose,
+      },
+    );
+    if (providerChallengeId === null) {
+      const unavailable = await config.store.verifyAuthChallenge({
+        challengeId,
+        codeDigest: digestSmsCode(
+          config.tokenSecret,
+          challengeId,
+          phoneNumber,
+          purpose,
+          smsCode,
+        ),
+        maxAttempts: config.verifyAttemptLimit,
+        now: verifiedAt.toISOString(),
+        phoneNumber,
+        purpose,
+      });
+      assertChallengeVerified(unavailable.status);
+    }
     try {
       await config.smsProvider.verifyChallenge({
-        challengeId,
+        challengeId: providerChallengeId,
         code: smsCode,
         phoneNumber,
       });
@@ -247,27 +351,26 @@ async function verifyCode(config, request, purpose) {
       throw authError(401, 'invalid_sms_code', 'SMS code is invalid.');
     }
   }
-  const verification = await config.store.verifyAuthChallenge({
-    challengeId,
-    codeDigest: digestSmsCode(
-      config.tokenSecret,
+  if (purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE) {
+    const verification = await config.store.verifyAuthChallenge({
       challengeId,
+      codeDigest: digestSmsCode(
+        config.tokenSecret,
+        challengeId,
+        phoneNumber,
+        purpose,
+        codeForStore,
+      ),
+      maxAttempts: config.verifyAttemptLimit,
+      now: verifiedAt.toISOString(),
       phoneNumber,
       purpose,
-      codeForStore,
-    ),
-    maxAttempts: config.verifyAttemptLimit,
-    now: verifiedAt.toISOString(),
-    phoneNumber,
-    purpose,
-  });
-
-  assertChallengeVerified(verification.status);
-
-  if (purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE) {
+    });
+    assertChallengeVerified(verification.status);
     return readAccountDeletionRecoveryState(config, phoneNumber);
   }
 
+  const accountKey = deriveAccountKey(config.indexSecret, phoneNumber);
   const sessionId = randomBase64Url(config.randomBytes, 24);
   const refreshToken = createRefreshToken(config, sessionId, 0);
   const accessExpiresAt = new Date(
@@ -277,7 +380,7 @@ async function verifyCode(config, request, purpose) {
     verifiedAt.getTime() + config.refreshTokenTtlSeconds * 1000,
   );
   const session = {
-    account_key: keyedHash(config.indexSecret, 'account', phoneNumber),
+    account_key: accountKey,
     access_expires_at: accessExpiresAt.toISOString(),
     created_at: verifiedAt.toISOString(),
     device_id: optionalBoundedString(body.device_id, 'device_id', 128),
@@ -293,26 +396,44 @@ async function verifyCode(config, request, purpose) {
     updated_at: verifiedAt.toISOString(),
   };
 
-  const sessionCreated = await config.store.createAuthSession(session);
-
-  if (!sessionCreated) {
-    throw authError(
-      403,
-      'account_deletion_pending',
-      'Account deletion is already pending.',
-    );
-  }
+  const registration = await config.store.verifyAuthChallengeAndCreateSession({
+    accountCandidate: {
+      account_instance_id: `account_${randomBase64Url(
+        config.randomBytes,
+        24,
+      )}`,
+      account_key: accountKey,
+      created_at: verifiedAt.toISOString(),
+      schema_version: 'account-instance.v1',
+    },
+    accountKey,
+    challengeId,
+    codeDigest: digestSmsCode(
+      config.tokenSecret,
+      challengeId,
+      phoneNumber,
+      purpose,
+      codeForStore,
+    ),
+    maxAttempts: config.verifyAttemptLimit,
+    now: verifiedAt.toISOString(),
+    phoneNumber,
+    purpose,
+    session,
+  });
+  assertChallengeVerified(registration.status);
+  const createdSession = registration.session;
 
   return sessionResponse(
-    createAccessToken(config, session, verifiedAt),
+    createAccessToken(config, createdSession, verifiedAt),
     refreshToken,
-    session,
+    createdSession,
     config.accessTokenTtlSeconds,
   );
 }
 
 async function readAccountDeletionRecoveryState(config, phoneNumber) {
-  const accountKey = keyedHash(config.indexSecret, 'account', phoneNumber);
+  const accountKey = deriveAccountKey(config.indexSecret, phoneNumber);
   const storedTask = await config.store.getAccountDeletionTask(accountKey);
 
   if (storedTask === null) {
@@ -342,6 +463,13 @@ async function readAccountDeletionRecoveryState(config, phoneNumber) {
       500,
       'account_deletion_state_invalid',
       'Account deletion state is invalid.',
+    );
+  }
+  if (task.status === 'finalizing') {
+    throw authError(
+      409,
+      'account_deletion_finalizing',
+      'Account deletion is finalizing. Retry recovery after cleanup.',
     );
   }
 
@@ -401,12 +529,37 @@ async function logout(config, request) {
 
 async function requestAccountDeletion(config, request) {
   const access = readSignedAccessToken(config, request);
+  const accountKey = deriveAccountKey(config.indexSecret, access.phone_number);
+  const existingTaskInput = await config.store.getAccountDeletionTask(
+    accountKey,
+  );
+  if (existingTaskInput !== null) {
+    let existingTask;
+    try {
+      existingTask = normalizeAccountDeletionTask(existingTaskInput);
+    } catch {
+      throw authError(
+        500,
+        'account_deletion_state_invalid',
+        'Account deletion state is invalid.',
+      );
+    }
+    if (
+      existingTask.account_key !== accountKey ||
+      existingTask.phone_number !== access.phone_number ||
+      existingTask.origin_session_id !== access.session_id
+    ) {
+      throw authError(401, 'revoked_auth_session', 'Auth session is not active.');
+    }
+    return deletionRequestProjection(existingTask);
+  }
   const persistedSession = await config.store.getAuthSession(access.session_id);
 
   if (
     !persistedSession ||
     persistedSession.phone_number !== access.phone_number ||
     !hasCanonicalAccountKey(config, persistedSession) ||
+    !isBoundAccountSession(persistedSession) ||
     (persistedSession.status !== 'active' &&
       persistedSession.revoked_reason !== 'account_deletion_requested')
   ) {
@@ -414,12 +567,14 @@ async function requestAccountDeletion(config, request) {
   }
 
   const session = {
+    accountInstanceId: persistedSession.account_instance_id,
     accountKey: persistedSession.account_key,
     phoneNumber: persistedSession.phone_number,
     sessionId: persistedSession.session_id,
   };
   const requestedAt = config.now().toISOString();
   const deletionTask = await config.store.getOrCreateAccountDeletionTask({
+    account_instance_id: session.accountInstanceId,
     account_key: session.accountKey,
     attempt_count: 0,
     deletion_id: `delete_${randomBase64Url(config.randomBytes, 18)}`,
@@ -427,6 +582,7 @@ async function requestAccountDeletion(config, request) {
     last_failure_code: null,
     lease_expires_at: null,
     lease_id: null,
+    origin_session_id: session.sessionId,
     phone_number: session.phoneNumber,
     phone_rate_key: `phone:${keyedHash(
       config.indexSecret,
@@ -434,37 +590,50 @@ async function requestAccountDeletion(config, request) {
       session.phoneNumber,
     )}`,
     requested_at: requestedAt,
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
   });
 
-  await config.store.revokeAuthSessionsByAccount(
-    session.accountKey,
-    requestedAt,
-    'account_deletion_requested',
-  );
+  if (deletionTask.status === 'queued') {
+    await config.store.revokeAuthSessionsByAccount(
+      session.accountKey,
+      deletionTask.deletion_id,
+      session.accountInstanceId,
+      requestedAt,
+      'account_deletion_requested',
+    );
+  }
 
+  return deletionRequestProjection(deletionTask);
+}
+
+function deletionRequestProjection(deletionTask) {
   return {
     deletion_request: {
       id: deletionTask.deletion_id,
       requested_at: deletionTask.requested_at,
-      status: deletionTask.status,
+      status:
+        deletionTask.status === 'finalizing'
+          ? 'processing'
+          : deletionTask.status,
     },
   };
 }
 
 async function requireActiveSession(config, request) {
   const access = readSignedAccessToken(config, request);
+  const checkedAt = config.now();
   const session = await config.store.getActiveAuthSession(
     access.session_id,
-    config.now().toISOString(),
+    checkedAt.toISOString(),
   );
 
   if (
     !session ||
     session.status !== 'active' ||
     session.phone_number !== access.phone_number ||
-    !hasCanonicalAccountKey(config, session)
+    !hasCanonicalAccountKey(config, session) ||
+    !isBoundAccountSession(session)
   ) {
     throw authError(401, 'revoked_auth_session', 'Auth session is not active.');
   }
@@ -473,16 +642,27 @@ async function requireActiveSession(config, request) {
 
   if (
     !Number.isFinite(refreshExpiresAt) ||
-    refreshExpiresAt <= config.now().getTime()
+    refreshExpiresAt <= checkedAt.getTime()
   ) {
     throw authError(401, 'expired_auth_session', 'Auth session has expired.');
   }
 
   return {
+    accountInstanceId: session.account_instance_id,
     accountKey: session.account_key,
+    checkedAt: checkedAt.toISOString(),
     phoneNumber: session.phone_number,
     sessionId: session.session_id,
   };
+}
+
+function isBoundAccountSession(session) {
+  try {
+    requireAccountInstanceId(session?.account_instance_id);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function hasCanonicalAccountKey(config, session) {
@@ -496,7 +676,7 @@ function hasCanonicalAccountKey(config, session) {
 
   return safeEqual(
     session.account_key,
-    keyedHash(config.indexSecret, 'account', session.phone_number),
+    deriveAccountKey(config.indexSecret, session.phone_number),
   );
 }
 
@@ -647,29 +827,86 @@ function sessionResponse(accessToken, refreshToken, session, expiresIn) {
 
 async function consumeRateLimit(
   config,
-  {key, limit, requestedAt, windowStartedAt},
+  {
+    accountKey,
+    allowAccountDeletionPending,
+    key,
+    limit,
+    phoneNumber,
+    requestedAt,
+    sharedIp = false,
+    windowStartedAt,
+  },
 ) {
-  const accepted = await config.store.consumeAuthRateLimit({
+  const status = await config.store.consumeAuthRateLimit({
+    accountKey,
+    allowAccountDeletionPending,
     expiresAt: new Date(
       windowStartedAt.getTime() + config.rateLimitWindowSeconds * 1000 * 2,
     ).toISOString(),
     key,
     limit,
     now: requestedAt.toISOString(),
+    phoneNumber,
+    sharedIp,
     windowStartedAt: windowStartedAt.toISOString(),
   });
+  return status;
+}
 
-  if (!accepted) {
-    throw authError(
+function isSuppressedChallengeStatus(status) {
+  return [
+    'account_deletion_finalizing',
+    'account_deletion_pending',
+    'account_deletion_state_invalid',
+    'rate_limited',
+  ].includes(status);
+}
+
+function assertChallengeMaterialAllowed(status) {
+  const errors = {
+    account_deletion_finalizing: [
+      409,
+      'account_deletion_finalizing',
+      'Account deletion is finalizing. Retry recovery after cleanup.',
+    ],
+    account_deletion_pending: [
+      403,
+      'account_deletion_pending',
+      'Account deletion is already pending.',
+    ],
+    account_deletion_state_invalid: [
+      500,
+      'account_deletion_state_invalid',
+      'Account deletion state is invalid.',
+    ],
+    rate_limited: [
       429,
       'sms_rate_limited',
       'SMS request rate limit exceeded.',
-    );
-  }
+    ],
+  };
+  if (status === 'accepted') return;
+  const [statusCode, code, message] = errors[status] ?? [
+    500,
+    'auth_store_error',
+    'Auth store returned an invalid state.',
+  ];
+  throw authError(statusCode, code, message);
 }
 
 function assertChallengeVerified(status) {
   const errors = {
+    account_deletion_pending: [
+      403,
+      'account_deletion_pending',
+      'Account deletion is already pending.',
+    ],
+    account_instance_changed: [
+      409,
+      'account_instance_changed',
+      'This SMS challenge belongs to an earlier account instance.',
+    ],
     consumed: [
       409,
       'sms_challenge_consumed',
@@ -684,9 +921,9 @@ function assertChallengeVerified(status) {
     ],
     not_found: [401, 'invalid_sms_code', 'Invalid SMS challenge or code.'],
     unavailable: [
-      503,
-      'sms_challenge_unavailable',
-      'SMS challenge is unavailable.',
+      401,
+      'invalid_sms_code',
+      'Invalid SMS challenge or code.',
     ],
   };
 
@@ -739,9 +976,10 @@ function validateServiceConfig(config) {
   const requiredStoreMethods = [
     'consumeAuthRateLimit',
     'createAuthChallenge',
+    'getAuthChallenge',
     'markAuthChallengeDelivery',
     'verifyAuthChallenge',
-    'createAuthSession',
+    'verifyAuthChallengeAndCreateSession',
     'getAccountDeletionTask',
     'getAuthSession',
     'getActiveAuthSession',
@@ -785,12 +1023,21 @@ function validateServiceConfig(config) {
     'rateLimitWindowSeconds',
     'refreshTokenTtlSeconds',
     'verifyAttemptLimit',
+    'providerDeliveryDeadlineMs',
   ];
 
   for (const key of positiveIntegers) {
     if (!Number.isInteger(config[key]) || config[key] <= 0) {
       throw new Error(`Auth v2 ${key} must be a positive integer.`);
     }
+  }
+  if (config.providerDeliveryDeadlineMs > PROVIDER_DELIVERY_DEADLINE_MS) {
+    throw new Error(
+      'Auth v2 providerDeliveryDeadlineMs must not exceed 8000ms.',
+    );
+  }
+  if (typeof config.acknowledgementSleeper !== 'function') {
+    throw new Error('Auth v2 acknowledgementSleeper must be a function.');
   }
 
   if (config.runtimeMode === 'development') {
@@ -835,6 +1082,58 @@ function validateServiceConfig(config) {
   ) {
     throw new Error('Production auth requires a non-development SMS provider.');
   }
+}
+
+async function runProviderDelivery(config, deliveryDeadlineAt, operation) {
+  const controller = new AbortController();
+  const remainingMs = deliveryDeadlineAt.getTime() - config.now().getTime();
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+    throw providerDeliveryDeadlineError();
+  }
+  let timer;
+  const timeout = new Promise((resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(providerDeliveryDeadlineError());
+    }, remainingMs);
+  });
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => operation(controller.signal)),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function fixedDelay(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function providerDeliveryDeadlineError() {
+  const error = new Error('SMS provider delivery deadline exceeded.');
+  error.code = 'sms_provider_delivery_deadline';
+  return error;
+}
+
+function providerChallengeIdForVerification(challenge, input) {
+  if (
+    !challenge ||
+    challenge.delivery_status !== 'delivered' ||
+    challenge.consumed_at ||
+    !Number.isFinite(Date.parse(challenge.expires_at)) ||
+    Date.parse(challenge.expires_at) <= Date.parse(input.now) ||
+    !Number.isSafeInteger(challenge.attempts) ||
+    challenge.attempts >= input.maxAttempts ||
+    challenge.phone_number !== input.phoneNumber ||
+    challenge.purpose !== input.purpose ||
+    typeof challenge.provider_challenge_id !== 'string' ||
+    challenge.provider_challenge_id.length === 0
+  ) {
+    return null;
+  }
+  return challenge.provider_challenge_id;
 }
 
 function resolveClientIp(config, request) {
@@ -1004,6 +1303,7 @@ function authError(statusCode, code, message) {
 }
 
 module.exports = {
+  MAX_PROVIDER_DELIVERY_DEADLINE_MS: PROVIDER_DELIVERY_DEADLINE_MS,
   createAuthV2Service,
   createDevelopmentSmsProvider,
 };

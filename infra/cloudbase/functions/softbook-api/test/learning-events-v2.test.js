@@ -39,6 +39,8 @@ function createTestApi(options = {}) {
 
   return {
     api: createSoftbookApi({
+      authV2AcknowledgementSleeper: async () => undefined,
+      authV2IndexSecret: 'softbook-cloudbase-dev-secret',
       now: clock.now,
       runtimeMode: 'development',
       smsCode: '2468',
@@ -656,7 +658,7 @@ test('maximum replay batch with one unseen selection retains CloudBase headroom'
     response.body.data.results.map(result => result.status),
     [...Array(8).fill('duplicate'), 'accepted'],
   );
-  assert.equal(db.lastTransactionOperations(), 29);
+  assert.equal(db.lastTransactionOperations(), 32);
 });
 
 test('learning-events v2 rejects a stored session whose account key no longer matches its phone', async () => {
@@ -1334,12 +1336,13 @@ test('first v2 event migrates v1 learning and progress baselines without favorit
 });
 
 test('first v2 event preserves the legacy baseline for both tracks', async () => {
+  const cloudBaseDb = createFakeCloudBaseDb();
   const variants = [
-    ['memory', createMemoryStore()],
-    ['cloudbase', createCloudBaseStore({db: createFakeCloudBaseDb()})],
+    ['memory', createMemoryStore(), null],
+    ['cloudbase', createCloudBaseStore({db: cloudBaseDb}), cloudBaseDb],
   ];
 
-  for (const [name, store] of variants) {
+  for (const [name, store, db] of variants) {
     const {api} = createTestApi({store});
     const session = await authenticatedSession(
       api,
@@ -1395,6 +1398,7 @@ test('first v2 event preserves the legacy baseline for both tracks', async () =>
     });
     const firstAccepted = await submit(api, session, [first], 'cet4');
     assert.equal(firstAccepted.statusCode, 200, name);
+    if (db) assert.equal(db.lastTransactionOperations(), 23);
 
     const migratedCet6 = await request(api, {
       headers,

@@ -75,6 +75,10 @@ store.
 CloudBase transactions use deterministic `doc` operations only. Legacy learning
 documents are read in bounded pages outside the transaction; the transaction
 then reads and writes the account revision fence together with the first event.
+The same transaction first reads the account-keyed deletion task. Any present
+task fails closed with `account_deletion_pending`, so an event request that
+passed session authorization before deletion cannot recreate an event ledger,
+learning state, cursor, sequence, migration revision, or daily projection.
 If a retained snapshot revision changes after preflight, the complete snapshot
 is read again before retrying. Legacy physical-space discovery follows the same
 doc-only boundary: its query is outside the transaction and the canonical merge
@@ -82,8 +86,9 @@ is transactionally written to one deterministic account document.
 
 The CloudBase adapter accepts at most 9 input events per request, but at most
 one may be unseen. The maximum successful fixture of 8 distinct exact
-duplicates plus one current-selection event uses 29 operations. The first-event
-all-track migration fixture also stays at or below 29, leaving substantial
+duplicates plus one current-selection event uses 32 operations after the
+same-transaction exact session, account-instance and account-deletion fence
+reads. The measured first-event all-track migration uses 23 operations, leaving substantial
 headroom below CloudBase's 100-operation transaction ceiling. Defaults are
 therefore 9 input events, 90 days of past-event retention, and five minutes of
 future clock skew.
@@ -323,7 +328,8 @@ independent account-and-day `daily-check-in.v2` record and never mutates the
 retained baseline. Learning-event transactions never overwrite that record, so
 a concurrent first event cannot lose the check-in. Canonical reads overlay the
 record on event-derived learning counts and physical-space-derived favorite and
-sleeping counts.
+sleeping counts. Its one-document transaction also reads the account deletion
+task before the monotonic write and rejects task presence.
 
 CloudBase may materialize its adapter-owned `_id` on read. The store adapter
 strips only that system field before validating the exact five business fields;
@@ -513,8 +519,8 @@ The repository-local backend tests currently prove:
 - the active session account key is rederived from the signed session phone;
 - an atomic batch above 9 is rejected before storage work;
 - the maximum successful nine-input replay fixture, containing 8 distinct
-  exact duplicates and one current-selection event, uses 29 transaction
-  operations, while first-event all-track migration also stays at or below 29;
+  exact duplicates and one current-selection event, uses 32 transaction
+  operations, while the measured first-event all-track migration uses 23;
 - transaction test doubles reject `where`, matching CloudBase's doc-only rule;
 - stored immutable event payloads are rehashed before duplicate acknowledgement;
 - stored v2 learning/daily projections and migrated v1 events are fully
