@@ -39,6 +39,7 @@ function createTestApi(options = {}) {
   return {
     api: createSoftbookApi({
       now: clock.now,
+      runtimeMode: 'development',
       smsCode: '2468',
       tokenSecret: 'learning-events-test-secret',
       ...options,

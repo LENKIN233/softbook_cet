@@ -52,6 +52,7 @@ function createTestApi(options = {}) {
         return Buffer.alloc(size, selectionCounter);
       },
       now: clock.now,
+      runtimeMode: 'development',
       smsCode: '2468',
       tokenSecret: 'learning-scheduler-test-secret',
       ...options,

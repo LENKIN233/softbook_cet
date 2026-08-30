@@ -57,11 +57,75 @@ function catalogEntriesByRef(track) {
 function createTestApi(options = {}) {
   return createSoftbookApi({
     now: () => fixedNow,
+    runtimeMode: 'development',
     smsCode: '2468',
     tokenSecret: 'test-secret',
     ...options,
   });
 }
+
+test('default CloudBase entry requires an explicit runtime mode and accepts explicit development', () => {
+  const modulePath = require.resolve('../index');
+  const event = {
+    body: {phone_number: '13800138000'},
+    headers: {},
+    httpMethod: 'POST',
+    path: '/v2/auth/request-code',
+    queryStringParameters: {},
+  };
+  const script = `
+    const {main} = require(${JSON.stringify(modulePath)});
+    main(${JSON.stringify(event)})
+      .then(response => process.stdout.write(JSON.stringify(response)))
+      .catch(error => {
+        process.stderr.write(String(error && error.message));
+        process.exitCode = 17;
+      });
+  `;
+  const missingRuntimeEnvironment = {...process.env};
+  delete missingRuntimeEnvironment.SOFTBOOK_RUNTIME_MODE;
+  delete missingRuntimeEnvironment.SOFTBOOK_SMS_PROVIDER;
+  const missing = spawnSync(process.execPath, ['-e', script], {
+    encoding: 'utf8',
+    env: missingRuntimeEnvironment,
+  });
+
+  assert.equal(missing.status, 17);
+  assert.match(
+    missing.stderr,
+    /SOFTBOOK_RUNTIME_MODE must be explicitly configured/,
+  );
+
+  const typo = spawnSync(process.execPath, ['-e', script], {
+    encoding: 'utf8',
+    env: {
+      ...missingRuntimeEnvironment,
+      SOFTBOOK_RUNTIME_MODE: 'prodction',
+      SOFTBOOK_STORE_MODE: 'memory',
+    },
+  });
+  assert.equal(typo.status, 17);
+  assert.match(
+    typo.stderr,
+    /Unsupported SOFTBOOK_RUNTIME_MODE: prodction/,
+  );
+
+  const development = spawnSync(process.execPath, ['-e', script], {
+    encoding: 'utf8',
+    env: {
+      ...missingRuntimeEnvironment,
+      SOFTBOOK_RUNTIME_MODE: 'development',
+      SOFTBOOK_STORE_MODE: 'memory',
+    },
+  });
+  assert.equal(development.status, 0, development.stderr);
+  const response = JSON.parse(development.stdout);
+  assert.equal(response.statusCode, 200);
+  assert.equal(
+    JSON.parse(response.body).data.delivery,
+    'development_fixed_code',
+  );
+});
 
 test('browser preflight allowlist matches Web runtime headers without Cache-Control', async () => {
   const response = await request(createTestApi(), {
@@ -1698,6 +1762,7 @@ test('v2 check-in is monotonic and idempotent in memory and CloudBase', async ()
     let now = new Date('2026-04-30T12:00:00.000Z');
     const api = createSoftbookApi({
       now: () => new Date(now),
+      runtimeMode: 'development',
       smsCode: '2468',
       store,
       tokenSecret: `check-in-idempotence-${name}`,

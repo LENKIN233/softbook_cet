@@ -835,6 +835,7 @@ function rewriteBundle(bundlePath, mutate) {
 
 async function developmentCardSource() {
   const api = createSoftbookApi({
+    runtimeMode: 'development',
     smsCode: '2468',
     tokenSecret: 'publisher-fixture-secret',
   });

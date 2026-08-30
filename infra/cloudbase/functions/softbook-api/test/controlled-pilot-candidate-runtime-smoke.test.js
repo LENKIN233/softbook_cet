@@ -252,6 +252,7 @@ async function createFixture() {
 
 async function candidatePayload() {
   const api = createSoftbookApi({
+    runtimeMode: 'development',
     smsCode: '2468',
     tokenSecret: 'candidate-smoke-fixture-secret',
   });

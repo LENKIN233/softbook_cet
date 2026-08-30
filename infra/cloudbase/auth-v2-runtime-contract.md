@@ -38,6 +38,8 @@ Referenced active specs:
 
 The function accepts
 `SOFTBOOK_RUNTIME_MODE=development|production|controlled_pilot`.
+The deployed default entry requires that value explicitly; missing or blank
+configuration fails before a store, fixed code, or HTTP route becomes usable.
 
 Development mode keeps `/v1` available and supplies the existing fixed-code
 adapter when no SMS provider is injected. Production mode fails closed unless:
@@ -61,6 +63,11 @@ and membership paths have moved to `/v2`; their development `/v1` aliases are
 evaluated after the non-development v1 rejection, so none can expose v1 in
 production or controlled pilot.
 
+The unaudited `/v2/membership/purchase` placeholder is development-only.
+Production and controlled pilot return `404 route_not_found`; closed-beta
+premium access remains available only through the audited receiver-operator
+entitlement operation.
+
 ## Endpoints
 
 ### Request a challenge
@@ -77,6 +84,10 @@ Success returns `challenge_id`, `delivery`, `expires_at`, and
 applies independent, persistent ten-minute counters per HMAC-keyed phone number
 and trusted client IP. Defaults are five requests per phone and twenty per IP;
 the raw values and enumerable bare hashes are not used as counter keys.
+Challenge persistence derives the canonical account key and transactionally
+checks the account-deletion task in the same store operation. While the task
+exists, request-code returns `account_deletion_pending` and cannot leave a
+challenge that survives worker completion.
 
 ### Verify a challenge
 
@@ -113,6 +124,19 @@ failed attempts. Verification returns:
 The access token is HMAC-signed and expires after 15 minutes. The refresh token
 expires after 30 days. Database records contain only the SMS-code HMAC digest
 and current refresh-token SHA-256 hash, never either raw secret.
+For provider-owned challenges, every active provider rejection is also
+committed as one local failed attempt; reaching the configured limit locks the
+local challenge even if a later provider verification would succeed.
+
+### Read the authorized card source
+
+`GET /v2/learning/card-source?track=cet4|cet6` derives canonical membership
+from the active session before serialization. Trial, premium, and the
+trial-available pre-session transition receive the full ordered source needed
+for server selection; free receives only the stable prefix
+`ceil(card_count * 0.5)`. The response keeps the full release content identity
+but never serializes suffix card bodies, answer keys, or analysis to free
+accounts.
 
 ### Rotate a refresh token
 
@@ -193,15 +217,16 @@ Learning Event/cursor/sequence/migration/session/state, pilot-round continuation
 and Space action/lineage/revision/state records; phone-filtered SMS challenges
 plus retained legacy daily-progress, learning-state and Space-state records;
 phone-keyed base membership, membership revision, beta entitlement and pilot
-entitlement; and only the phone rate-limit key. Shared IP rate limits and global
-content releases remain untouched. Every individual erasure runs in a
-transaction that re-reads the account-deletion task and requires the current
-lease ID before deleting. A stale worker therefore cannot continue after a
-newer worker owns or removes the task and cannot erase data written by a clean
-post-completion re-registration. Every deletion is idempotently re-read or
-re-queried, the task is removed last, partial failure returns the same live
-lease to queued, and a completed task leaves no tombstone so a clean
-re-registration is allowed.
+entitlement; and only the phone rate-limit key. It repeats the phone challenge
+sweep as the final guarded data mutation immediately before task completion.
+Shared IP rate limits and global content releases remain untouched. Every
+individual erasure runs in a transaction that re-reads the account-deletion
+task and requires the current lease ID before deleting. A stale worker therefore
+cannot continue after a newer worker owns or removes the task and cannot erase
+data written by a clean post-completion re-registration. Every deletion is
+idempotently re-read or re-queried, the task is removed last, partial failure
+returns the same live lease to queued, and a completed task leaves no tombstone
+so a clean re-registration is allowed.
 
 Before production deployment, infrastructure work must add collection TTL
 policies for expired rate-limit and challenge records, least-privilege access,

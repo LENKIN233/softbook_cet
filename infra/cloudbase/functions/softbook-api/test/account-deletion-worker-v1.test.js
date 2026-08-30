@@ -28,6 +28,10 @@ test('worker clears every current account collection and removes the login lock 
   assert.equal(repository.taskExists(), false);
   assert.equal(repository.remainingAccountDocuments(), 0);
   assert.match(repository.calls.at(-1), /^complete:/);
+  assert.equal(
+    repository.calls.at(-2),
+    'where:softbook_auth_challenges:phone_number',
+  );
   assert.deepEqual(
     repository.calls.filter(call => call.startsWith('where:')).sort(),
     [

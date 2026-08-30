@@ -28,8 +28,16 @@ function createMemoryAuthStateStore() {
       authRateLimits.set(documentId, {...current, count: current.count + 1});
       return true;
     },
-    createAuthChallenge: async challenge => {
-      authChallenges.set(challenge.challenge_id, clone(challenge));
+    createAuthChallenge: async input => {
+      if (accountDeletions.has(input.accountKey)) {
+        return false;
+      }
+
+      authChallenges.set(
+        input.challenge.challenge_id,
+        clone(input.challenge),
+      );
+      return true;
     },
     markAuthChallengeDelivery: async (challengeId, status, updatedAt) => {
       const challenge = authChallenges.get(challengeId);
@@ -178,12 +186,23 @@ function createCloudBaseAuthStateStore(db, collections) {
         });
         return true;
       }),
-    createAuthChallenge: challenge =>
-      setDocument(
-        db.collection(names.authChallenges),
-        challenge.challenge_id,
-        challenge,
-      ),
+    createAuthChallenge: input =>
+      db.runTransaction(async transaction => {
+        const deletion = await getDocument(
+          transaction.collection(names.accountDeletions),
+          input.accountKey,
+        );
+        if (deletion) {
+          return false;
+        }
+
+        await setDocument(
+          transaction.collection(names.authChallenges),
+          input.challenge.challenge_id,
+          input.challenge,
+        );
+        return true;
+      }),
     markAuthChallengeDelivery: (challengeId, status, updatedAt) =>
       db.runTransaction(async transaction => {
         const collection = transaction.collection(names.authChallenges);

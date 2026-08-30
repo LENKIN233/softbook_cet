@@ -144,7 +144,18 @@ async function requestCode(config, request) {
     phone_number: phoneNumber,
   };
 
-  await config.store.createAuthChallenge(challenge);
+  const challengeCreated = await config.store.createAuthChallenge({
+    accountKey: keyedHash(config.indexSecret, 'account', phoneNumber),
+    challenge,
+  });
+
+  if (!challengeCreated) {
+    throw authError(
+      403,
+      'account_deletion_pending',
+      'Account deletion is already pending.',
+    );
+  }
 
   try {
     if (!providerOwnsChallenge) {
@@ -193,6 +204,19 @@ async function verifyCode(config, request) {
       });
       codeForStore = EXTERNAL_PROVIDER_VERIFIED_CODE;
     } catch {
+      const failedVerification = await config.store.verifyAuthChallenge({
+        challengeId,
+        codeDigest: digestSmsCode(
+          config.tokenSecret,
+          challengeId,
+          phoneNumber,
+          `provider-rejected:${smsCode}`,
+        ),
+        maxAttempts: config.verifyAttemptLimit,
+        now: verifiedAt.toISOString(),
+        phoneNumber,
+      });
+      assertChallengeVerified(failedVerification.status);
       throw authError(401, 'invalid_sms_code', 'SMS code is invalid.');
     }
   }

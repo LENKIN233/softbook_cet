@@ -1,5 +1,5 @@
 {
-  "version": "vnext-17",
+  "version": "vnext-18",
   "purpose": "Machine-readable contract for authentication, trial start, purchase recovery, external account readiness evidence, sync scope, canonical account reads, idempotent learning events, server scheduling, default sync strategy, and offline behavior.",
   "source_anchors": {
     "login_gate": "必须登入",
@@ -27,9 +27,9 @@
   },
   "account_deletion": {
     "classification": "implementation_hypothesis",
-    "request_rule": "POST /v2/account/deletion derives account and phone identity only from the signed active session, persists one exact account-deletion-task.v1 before account-wide session revocation, and blocks login refresh and protected access while that task exists",
+    "request_rule": "POST /v2/account/deletion derives account and phone identity only from the signed active session, persists one exact account-deletion-task.v1 before account-wide session revocation, and blocks login, refresh, protected access, and request-code challenge creation while that task exists; request-code derives the same account key and atomically refuses challenge persistence when the task is present",
     "task_rule": "the account-keyed task stores deletion_id, phone, derived phone-only rate-limit key, attempt count, last attempt, failure code, lease ID, lease expiry, requested time, and queued or processing status; unknown or malformed worker fields fail closed",
-    "worker_rule": "the separately deployed softbook-account-deletion-worker claims at most 50 queued or expired-lease tasks with a random claim-bound five-minute lease, transactionally rechecks the current task lease inside every erasure mutation, erases all current account-keyed and phone-keyed user collections idempotently, and removes the login-blocking task last",
+    "worker_rule": "the separately deployed softbook-account-deletion-worker claims at most 50 queued or expired-lease tasks with a random claim-bound five-minute lease, transactionally rechecks the current task lease inside every erasure mutation, erases all current account-keyed and phone-keyed user collections idempotently, performs its final phone challenge sweep immediately before completion, and removes the login-blocking task last",
     "queue_selection_rule": "query oldest queued tasks and lease_expires_at <= now processing tasks independently before merging by requested_at and applying the run limit, so older live processing leases cannot starve queued work",
     "account_keyed_collections": ["softbook_auth_sessions", "softbook_daily_check_ins", "softbook_daily_progress", "softbook_learning_event_cursors", "softbook_learning_events", "softbook_learning_event_sequences", "softbook_learning_migration_revisions", "softbook_learning_sessions", "softbook_learning_states", "softbook_pilot_round_continuations", "softbook_space_action_lineages", "softbook_space_actions", "softbook_space_state_revisions", "softbook_space_states"],
     "phone_filtered_collections": ["softbook_auth_challenges", "softbook_daily_progress", "softbook_learning_states", "softbook_space_states"],

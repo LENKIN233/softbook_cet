@@ -108,6 +108,7 @@ function loadCandidateCardSources(root, filePaths) {
 
 async function loadCurrentCards() {
   const api = createSoftbookApi({
+    runtimeMode: 'development',
     smsCode: '2468',
     store: createMemoryStore(),
     tokenSecret: 'content-gap-report-secret',
