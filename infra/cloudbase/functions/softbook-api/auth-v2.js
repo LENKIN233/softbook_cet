@@ -15,6 +15,7 @@ const PHONE_REQUEST_LIMIT = 5;
 const IP_REQUEST_LIMIT = 20;
 const PROVIDER_COMPLETION_GRACE_MS = 1000;
 const PROVIDER_DELIVERY_DEADLINE_MS = 8 * 1000;
+const DEVELOPMENT_PROVIDER_DELIVERY_DEADLINE_MS = 4 * 1000;
 const PROVIDER_OWNED_PUBLIC_TTL_SECONDS = 60;
 const VERIFY_ATTEMPT_LIMIT = 5;
 const EXTERNAL_PROVIDER_VERIFIED_CODE = 'external-provider-verified';
@@ -96,7 +97,7 @@ function createAuthV2Service(options) {
 
 function createDevelopmentSmsProvider() {
   return {
-    deliveryDeadlineMs: 1000,
+    deliveryDeadlineMs: DEVELOPMENT_PROVIDER_DELIVERY_DEADLINE_MS,
     delivery: 'development_fixed_code',
     kind: 'development',
     sendCode: async () => undefined,
