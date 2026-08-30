@@ -514,6 +514,30 @@ async function logout(config, request) {
 
 async function requestAccountDeletion(config, request) {
   const access = readSignedAccessToken(config, request);
+  const accountKey = deriveAccountKey(config.indexSecret, access.phone_number);
+  const existingTaskInput = await config.store.getAccountDeletionTask(
+    accountKey,
+  );
+  if (existingTaskInput !== null) {
+    let existingTask;
+    try {
+      existingTask = normalizeAccountDeletionTask(existingTaskInput);
+    } catch {
+      throw authError(
+        500,
+        'account_deletion_state_invalid',
+        'Account deletion state is invalid.',
+      );
+    }
+    if (
+      existingTask.account_key !== accountKey ||
+      existingTask.phone_number !== access.phone_number ||
+      existingTask.origin_session_id !== access.session_id
+    ) {
+      throw authError(401, 'revoked_auth_session', 'Auth session is not active.');
+    }
+    return deletionRequestProjection(existingTask);
+  }
   const persistedSession = await config.store.getAuthSession(access.session_id);
 
   if (
@@ -565,6 +589,10 @@ async function requestAccountDeletion(config, request) {
     );
   }
 
+  return deletionRequestProjection(deletionTask);
+}
+
+function deletionRequestProjection(deletionTask) {
   return {
     deletion_request: {
       id: deletionTask.deletion_id,

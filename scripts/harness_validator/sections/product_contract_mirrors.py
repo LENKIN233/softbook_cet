@@ -212,7 +212,7 @@ def validate(context) -> None:
         deletion_runtime["task_schema"],
     )
     for token in (
-        "every_claim_and_erasure_mutation_transactionally_rechecks_exact_deletion_id_account_instance_id",
+        "expected_deletion_id_account_instance_id",
         "stale_worker_cannot_delete_post_completion_reregistration_data",
         "stale_worker_cannot_complete_or_release_newer_claim",
     ):

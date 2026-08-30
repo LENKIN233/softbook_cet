@@ -422,12 +422,22 @@ function isExactActiveSession(document, account, command, observedAt) {
     keys.length === expectedKeys.length &&
     keys.every((key, index) => key === expectedKeys[index]) &&
     value.session_id === documentId &&
+    /^[A-Za-z0-9_-]{24,128}$/.test(value.session_id ?? '') &&
     value.status === 'active' &&
     value.revoked_at === null &&
     value.revoked_reason === null &&
     value.account_key === account.account_key &&
     value.account_instance_id === command.expected_account_instance_id &&
     value.phone_number === command.phone_number &&
+    Number.isSafeInteger(value.refresh_rotation) &&
+    value.refresh_rotation >= 0 &&
+    /^[a-f0-9]{64}$/.test(value.refresh_token_hash ?? '') &&
+    [value.access_expires_at, value.created_at, value.updated_at]
+      .every(timestamp => Number.isFinite(Date.parse(timestamp))) &&
+    (value.device_id === null ||
+      (typeof value.device_id === 'string' && value.device_id.length <= 128)) &&
+    (value.device_name === null ||
+      (typeof value.device_name === 'string' && value.device_name.length <= 128)) &&
     Number.isFinite(Date.parse(value.refresh_expires_at)) &&
     Date.parse(value.refresh_expires_at) > Date.parse(observedAt)
   );

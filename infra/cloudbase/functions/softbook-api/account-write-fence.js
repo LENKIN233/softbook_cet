@@ -55,11 +55,20 @@ function assertMemoryAccountSessionAuthority(
   ) {
     throw revokedAuthSessionError();
   }
-  const session = authSessions?.get(normalized.sessionId) ?? null;
-  const account = normalizeAccountInstance(
-    accounts?.get(normalized.accountKey) ?? null,
+  assertMemoryAccountWriteAllowed(
+    accountDeletions,
     normalized.accountKey,
   );
+  const session = authSessions?.get(normalized.sessionId) ?? null;
+  let account;
+  try {
+    account = normalizeAccountInstance(
+      accounts?.get(normalized.accountKey) ?? null,
+      normalized.accountKey,
+    );
+  } catch {
+    throw revokedAuthSessionError();
+  }
 
   if (
     !session ||
@@ -73,12 +82,6 @@ function assertMemoryAccountSessionAuthority(
   ) {
     throw revokedAuthSessionError();
   }
-  // Task presence is a read and write fence. A GET authorized before the
-  // deletion request must not observe a later re-registration generation.
-  assertMemoryAccountWriteAllowed(
-    accountDeletions,
-    normalized.accountKey,
-  );
   return normalized;
 }
 
@@ -140,7 +143,11 @@ async function assertCloudBaseAccountSessionAuthority(
   ) {
     throw revokedAuthSessionError();
   }
-  const [session, account] = await Promise.all([
+  const [deletion, session, account] = await Promise.all([
+    getDocument(
+      transaction.collection(collections.accountDeletions),
+      normalized.accountKey,
+    ),
     getDocument(
       transaction.collection(collections.authSessions),
       normalized.sessionId,
@@ -150,6 +157,9 @@ async function assertCloudBaseAccountSessionAuthority(
       normalized.accountKey,
     ),
   ]);
+  if (deletion !== null) {
+    throw accountDeletionPendingError();
+  }
   let normalizedAccount;
   try {
     normalizedAccount = normalizeAccountInstance(
@@ -171,11 +181,6 @@ async function assertCloudBaseAccountSessionAuthority(
   ) {
     throw revokedAuthSessionError();
   }
-  await assertCloudBaseAccountWriteAllowed(
-    transaction,
-    collections.accountDeletions,
-    normalized.accountKey,
-  );
   return normalized;
 }
 

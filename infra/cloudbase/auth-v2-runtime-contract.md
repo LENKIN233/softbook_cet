@@ -344,6 +344,13 @@ mutation matches that generation and lease. Its status is `queued`,
 `processing`, or durable `finalizing`; finalizing waits or retries until pending
 provider reservations settle or pass their bounded deadline before final sweep.
 
+Deletion-request retry first derives account and origin session from the signed
+token and strictly reads the task. An exact existing task may be returned after
+the worker has erased its account/session, including processing or finalizing,
+because that still-present task prevents a new generation; a mismatch never
+creates or returns a task. Only task absence enters active-session and current-
+instance creation checks.
+
 Queued tasks, expired processing leases, unleased finalizing retries, and
 expired finalizing leases are queried independently, merged by `requested_at`,
 and then capped by the worker run limit. Older live leases therefore cannot

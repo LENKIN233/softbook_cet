@@ -695,6 +695,13 @@ function completeVerifiedRegistration({
   session,
 }) {
   const consumedChallenge = clone(challenge);
+  if (challenge?.account_key !== session.account_key) {
+    return {
+      challenge: consumedChallenge,
+      session: null,
+      status: 'account_instance_changed',
+    };
+  }
   let normalizedCurrent = null;
   try {
     if (currentAccount !== null && currentAccount !== undefined) {

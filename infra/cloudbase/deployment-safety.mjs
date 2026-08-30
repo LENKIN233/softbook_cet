@@ -878,7 +878,7 @@ export function redactText(value) {
     )
     .replace(/\b1\d{10}\b/g, "<redacted-phone>")
     .replace(
-      /\baccount_[A-Za-z0-9_-]{24,128}\b/g,
+      /(?<![A-Za-z0-9_])account_[A-Za-z0-9_-]{24,128}(?![A-Za-z0-9_-])/g,
       "<redacted-account-instance>"
     )
     .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]{12,}\b/gi, "$1<redacted-token>")

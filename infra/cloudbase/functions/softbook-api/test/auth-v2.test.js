@@ -26,6 +26,7 @@ function createClock(initial = '2026-07-20T08:00:00.000Z') {
 
 function deletionTaskFixture(accountKey, overrides = {}) {
   return {
+    account_instance_id: `account_${'a'.repeat(24)}`,
     account_key: accountKey,
     attempt_count: 0,
     deletion_id: 'delete_auth_v2_fixture_0001',
@@ -33,10 +34,11 @@ function deletionTaskFixture(accountKey, overrides = {}) {
     last_failure_code: null,
     lease_expires_at: null,
     lease_id: null,
+    origin_session_id: 'session_origin_fixture_0001',
     phone_number: PHONE_NUMBER,
     phone_rate_key: `phone:${'d'.repeat(64)}`,
     requested_at: '2026-07-20T07:59:00.000Z',
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
     ...overrides,
   };
@@ -287,6 +289,35 @@ test('old session, challenge, read, and deletion request cannot cross delete and
     path: '/v2/progress/check-in',
   });
   assert.equal(currentWrite.statusCode, 200);
+});
+
+test('memory and CloudBase both fail a missing account instance as revoked session', async () => {
+  const cloudDb = createFakeCloudBaseDb();
+  const variants = [
+    ['memory', createMemoryStore(), null],
+    ['cloudbase', createCloudBaseStore({db: cloudDb}), cloudDb],
+  ];
+  for (const [kind, store, db] of variants) {
+    const {api} = createV2TestApi({store});
+    const session = await issueSession(api, {
+      clientIp: kind === 'memory' ? '203.0.113.17' : '203.0.113.18',
+    });
+    const persisted = kind === 'memory'
+      ? store.snapshot().authSessions.get(session.session_id)
+      : db.snapshot().get('softbook_auth_sessions').get(session.session_id);
+    if (kind === 'memory') {
+      store.snapshot().accounts.delete(persisted.account_key);
+    } else {
+      db.snapshot().get('softbook_accounts').delete(persisted.account_key);
+    }
+    const response = await request(api, {
+      headers: {authorization: `Bearer ${session.access_token}`},
+      method: 'GET',
+      path: '/v2/membership/entitlement',
+    });
+    assert.equal(response.statusCode, 401, kind);
+    assert.equal(response.body.error.code, 'revoked_auth_session', kind);
+  }
 });
 
 test('v2 delegates provider-owned SMS challenges without storing or generating the code', async () => {
@@ -668,7 +699,7 @@ test('provider failure and timeout acknowledgements cannot enumerate deletion st
       sms: {provider},
     });
     const accountKey = crypto
-      .createHmac('sha256', TOKEN_SECRET)
+      .createHmac('sha256', 'softbook-cloudbase-dev-secret')
       .update(`account:${PHONE_NUMBER}`)
       .digest('hex');
     if (state !== 'absent') {
@@ -774,7 +805,7 @@ test('unauthenticated challenge probes consume shared IP first and normalize del
   const malformedPhone = '13500135000';
   const accountKey = phoneNumber =>
     crypto
-      .createHmac('sha256', TOKEN_SECRET)
+      .createHmac('sha256', 'softbook-cloudbase-dev-secret')
       .update(`account:${phoneNumber}`)
       .digest('hex');
   store.snapshot().accountDeletions.set(
@@ -1341,6 +1372,35 @@ test('finalizing deletion blocks ordinary and recovery request material until cl
   assert.equal(typeof registered.access_token, 'string');
 });
 
+test('lost deletion acknowledgement retries survive erased origin session until task completion', async () => {
+  const {api, store} = createV2TestApi();
+  const session = await issueSession(api, {clientIp: '203.0.113.116'});
+  const headers = {authorization: `Bearer ${session.access_token}`};
+  const first = await request(api, {headers, path: '/v2/account/deletion'});
+  assert.equal(first.statusCode, 202);
+  const [accountKey, queued] = [...store.snapshot().accountDeletions.entries()][0];
+  store.snapshot().accounts.delete(accountKey);
+  store.snapshot().authSessions.delete(session.session_id);
+
+  for (const status of ['processing', 'finalizing']) {
+    store.snapshot().accountDeletions.set(accountKey, {
+      ...queued,
+      attempt_count: 1,
+      last_attempt_at: '2026-07-20T08:00:00.000Z',
+      lease_expires_at: '2026-07-20T08:05:00.000Z',
+      lease_id: `lease_${'l'.repeat(24)}`,
+      status,
+    });
+    const retry = await request(api, {headers, path: '/v2/account/deletion'});
+    assert.equal(retry.statusCode, 202, status);
+    assert.equal(retry.body.data.deletion_request.id,
+      first.body.data.deletion_request.id, status);
+    assert.equal(retry.body.data.deletion_request.status, 'processing', status);
+  }
+  assert.equal(store.snapshot().accounts.size, 0);
+  assert.equal(store.snapshot().authSessions.size, 0);
+});
+
 test('missing finalizing lease TTL remains a material-creation fence', async () => {
   const {api, sms, store} = createV2TestApi({
     ipRequestLimit: 100,
@@ -1661,6 +1721,7 @@ test('CloudBase account revocation rechecks the exact queued task and current se
       mutateAfterQuery = false;
       db.snapshot().get('softbook_auth_sessions').delete('session-deleted');
       db.snapshot().get('softbook_auth_sessions').set('session-replaced', {
+        account_instance_id: `account_${'a'.repeat(24)}`,
         account_key: 'b'.repeat(64),
         session_id: 'session-replaced',
         status: 'active',
@@ -1688,6 +1749,7 @@ test('CloudBase account revocation rechecks the exact queued task and current se
     .set(deletionTaskFixture(accountKey, {deletion_id: deletionId}));
   for (const sessionId of ['session-deleted', 'session-replaced']) {
     await db.collection('softbook_auth_sessions').doc(sessionId).set({
+      account_instance_id: `account_${'a'.repeat(24)}`,
       account_key: accountKey,
       session_id: sessionId,
       status: 'active',
@@ -1698,6 +1760,7 @@ test('CloudBase account revocation rechecks the exact queued task and current se
   const interrupted = await store.revokeAuthSessionsByAccount(
     accountKey,
     deletionId,
+    `account_${'a'.repeat(24)}`,
     '2026-07-20T08:00:00.000Z',
     'account_deletion_requested',
   );
@@ -1709,6 +1772,7 @@ test('CloudBase account revocation rechecks the exact queued task and current se
   assert.deepEqual(
     db.snapshot().get('softbook_auth_sessions').get('session-replaced'),
     {
+      account_instance_id: `account_${'a'.repeat(24)}`,
       account_key: 'b'.repeat(64),
       session_id: 'session-replaced',
       status: 'active',
@@ -1724,6 +1788,7 @@ test('CloudBase account revocation rechecks the exact queued task and current se
       }),
     );
   await db.collection('softbook_auth_sessions').doc('session-current').set({
+    account_instance_id: `account_${'a'.repeat(24)}`,
     account_key: accountKey,
     session_id: 'session-current',
     status: 'active',
@@ -1732,6 +1797,7 @@ test('CloudBase account revocation rechecks the exact queued task and current se
     await store.revokeAuthSessionsByAccount(
       accountKey,
       deletionId,
+      `account_${'a'.repeat(24)}`,
       '2026-07-20T08:00:01.000Z',
       'account_deletion_requested',
     ),
@@ -1753,6 +1819,7 @@ test('CloudBase account revocation rechecks the exact queued task and current se
     await store.revokeAuthSessionsByAccount(
       accountKey,
       deletionId,
+      `account_${'a'.repeat(24)}`,
       '2026-07-20T08:00:02.000Z',
       'account_deletion_requested',
     ),

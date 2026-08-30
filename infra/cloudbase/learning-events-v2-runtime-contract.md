@@ -88,7 +88,7 @@ The CloudBase adapter accepts at most 9 input events per request, but at most
 one may be unseen. The maximum successful fixture of 8 distinct exact
 duplicates plus one current-selection event uses 32 operations after the
 same-transaction exact session, account-instance and account-deletion fence
-reads. The first-event all-track migration fixture also remains below 100, leaving substantial
+reads. The measured first-event all-track migration uses 23 operations, leaving substantial
 headroom below CloudBase's 100-operation transaction ceiling. Defaults are
 therefore 9 input events, 90 days of past-event retention, and five minutes of
 future clock skew.
@@ -519,8 +519,8 @@ The repository-local backend tests currently prove:
 - the active session account key is rederived from the signed session phone;
 - an atomic batch above 9 is rejected before storage work;
 - the maximum successful nine-input replay fixture, containing 8 distinct
-  exact duplicates and one current-selection event, uses 30 transaction
-  operations, while first-event all-track migration also stays at or below 30;
+  exact duplicates and one current-selection event, uses 32 transaction
+  operations, while the measured first-event all-track migration uses 23;
 - transaction test doubles reject `where`, matching CloudBase's doc-only rule;
 - stored immutable event payloads are rehashed before duplicate acknowledgement;
 - stored v2 learning/daily projections and migrated v1 events are fully
