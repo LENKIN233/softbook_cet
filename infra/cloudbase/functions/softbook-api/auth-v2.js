@@ -269,7 +269,7 @@ async function requestCode(config, request, purpose) {
           : 'delivery_failed',
       updatedAt: config.now().toISOString(),
     });
-    throw authError(503, 'sms_delivery_failed', 'SMS delivery failed.');
+    return publicChallenge();
   }
 
   return publicChallenge();
@@ -878,9 +878,9 @@ function assertChallengeVerified(status) {
     ],
     not_found: [401, 'invalid_sms_code', 'Invalid SMS challenge or code.'],
     unavailable: [
-      503,
-      'sms_challenge_unavailable',
-      'SMS challenge is unavailable.',
+      401,
+      'invalid_sms_code',
+      'Invalid SMS challenge or code.',
     ],
   };
 

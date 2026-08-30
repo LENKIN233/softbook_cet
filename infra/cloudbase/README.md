@@ -121,7 +121,9 @@ while `/v2` owns authentication and the canonical bootstrap read:
   limits, durable pre-provider delivery reservations, 15-minute access tokens,
   rotating 30-day refresh tokens, exact-task session revocation, and queued
   account deletion. Unauthenticated challenge requests consume the shared-IP
-  limit before phone/deletion checks and do not expose deletion state. See
+  limit before phone/deletion checks; deletion branches, internal phone limits,
+  provider rejection, and provider timeout share one public acknowledgement,
+  while only a successfully verified SMS may expose recovery state. See
   `infra/cloudbase/auth-v2-runtime-contract.md`.
 - Receiver delivery deploys the separate non-HTTP
   `softbook-account-deletion-worker` from the same tested artifact with a

@@ -109,6 +109,12 @@ operation settles before the durable deadline.
 Provider-owned acknowledgements use one conservative 60-second local expiry in
 both real and suppressed branches and accept only provider challenges valid for
 at least that interval, so provider TTL cannot become a deletion-state oracle.
+Provider rejection, invalid provider output, and service timeout also return
+that same success-shaped public acknowledgement. Rejection conditionally marks
+the reservation `delivery_failed`; timeout leaves it `pending` until the
+durable deadline. Neither state verifies, and failed, pending, or nonexistent
+challenge IDs all return the same generic `invalid_sms_code` response instead
+of exposing whether a provider call or suppression branch occurred.
 
 ### Verify a challenge
 
@@ -249,6 +255,9 @@ calls no SMS provider, and persists no challenge. A recovery challenge created
 before that transition may observe retryable `account_deletion_finalizing` only
 after successful SMS verification and still mints no session. That code does
 not mean accepted, completed, safe to register, or absent.
+Provider rejection or timeout on an otherwise permitted recovery send remains
+the same public request acknowledgement and reveals no task state; only a later
+successful purpose-bound SMS verification may return the recovery projection.
 
 ```http
 POST /v2/account/deletion/recovery/verify-code
@@ -385,7 +394,6 @@ Expected client-actionable codes include:
 
 - `invalid_phone_number`
 - `sms_rate_limited`
-- `sms_delivery_failed`
 - `invalid_sms_code`
 - `expired_sms_challenge`
 - `sms_challenge_locked`

@@ -432,6 +432,61 @@ test('sendCode reservation keeps finalizing retryable until delivery becomes ter
   assert.equal(authState.authChallenges.has(localChallengeId), false);
 });
 
+test('provider rejection is terminal for worker cleanup but public only as acknowledgement', async () => {
+  const indexSecret = 'provider-rejection-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  const service = createAuthV2Service({
+    codeGenerator: () => '654321',
+    indexSecret,
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 11),
+    smsProvider: {
+      delivery: 'provider_rejection',
+      kind: 'test',
+      sendCode: async () => {
+        throw new Error('provider rejection must stay private');
+      },
+    },
+    store: authStore,
+    tokenSecret: 'provider-rejection-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 12),
+    repository,
+  });
+
+  const acknowledgement = await service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.133',
+  });
+  assert.equal(typeof acknowledgement.challenge_id, 'string');
+  assert.equal(
+    authState.authChallenges.get(acknowledgement.challenge_id).delivery_status,
+    'delivery_failed',
+  );
+
+  const report = await worker.run();
+  assert.equal(report.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+  assert.equal(
+    authState.authChallenges.has(acknowledgement.challenge_id),
+    false,
+  );
+});
+
 test('a provider that ignores abort cannot make its late challenge locally usable', async () => {
   const indexSecret = 'ignored-abort-index-secret';
   const authStore = createMemoryAuthStateStore();
@@ -489,10 +544,8 @@ test('a provider that ignores abort cannot make its late challenge locally usabl
     clientIp: '203.0.113.132',
   });
   await started;
-  await assert.rejects(
-    requestPromise,
-    error => error.code === 'sms_delivery_failed',
-  );
+  const acknowledgement = await requestPromise;
+  assert.equal(typeof acknowledgement.challenge_id, 'string');
   const [localChallengeId, timedOut] = [...authState.authChallenges.entries()][0];
   assert.equal(timedOut.delivery_status, 'pending');
 

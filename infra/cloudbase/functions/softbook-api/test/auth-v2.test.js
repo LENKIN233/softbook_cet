@@ -67,6 +67,7 @@ function createV2TestApi(options = {}) {
       options.indexSecret ?? 'softbook-cloudbase-dev-secret',
     authV2IpRequestLimit: options.ipRequestLimit,
     authV2PhoneRequestLimit: options.phoneRequestLimit,
+    authV2ProviderDeliveryDeadlineMs: options.providerDeliveryDeadlineMs,
     authV2VerifyAttemptLimit: options.verifyAttemptLimit,
     now: clock.now,
     runtimeMode: options.runtimeMode ?? 'development',
@@ -560,9 +561,13 @@ test('v2 records failed SMS delivery and does not activate that challenge', asyn
   });
   const response = await issueChallenge(api);
 
-  assert.equal(response.statusCode, 503);
-  assert.equal(response.body.error.code, 'sms_delivery_failed');
-  assert.equal(response.body.error.message, 'Internal Softbook API error.');
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(Object.keys(response.body.data).sort(), [
+    'challenge_id',
+    'delivery',
+    'expires_at',
+    'retry_after_seconds',
+  ]);
   const persisted = [...store.snapshot().authChallenges.values()][0];
   assert.equal(persisted.delivery_status, 'delivery_failed');
   assert.equal(JSON.stringify(persisted).includes(SMS_CODE), false);
@@ -610,11 +615,151 @@ test('provider completion cannot recreate a deleted local challenge intent', asy
   store.snapshot().authChallenges.delete(localChallengeId);
   releaseProvider();
 
-  await assert.rejects(
-    requestPromise,
-    error => error.code === 'sms_delivery_failed',
-  );
+  const response = await requestPromise;
+  assert.equal(response.challenge_id, localChallengeId);
   assert.equal(store.snapshot().authChallenges.has(localChallengeId), false);
+});
+
+test('provider failure and timeout acknowledgements cannot enumerate deletion state', async () => {
+  const states = [
+    'absent',
+    'queued',
+    'processing',
+    'finalizing',
+    'malformed',
+  ];
+  const endpoints = [
+    {
+      name: 'ordinary',
+      requestPath: '/v2/auth/request-code',
+      verifyPath: '/v2/auth/verify-code',
+    },
+    {
+      name: 'recovery',
+      requestPath: '/v2/account/deletion/recovery/request-code',
+      verifyPath: '/v2/account/deletion/recovery/verify-code',
+    },
+  ];
+  const baselineByEndpoint = new Map();
+
+  async function verifyMatrixCase(providerStyle, deliveryMode, endpoint, state) {
+    const providerCalls = [];
+    const outbound = async input => {
+      providerCalls.push(input);
+      if (deliveryMode === 'failure') {
+        throw new Error('provider failure must stay private');
+      }
+      return new Promise(() => undefined);
+    };
+    const provider = {
+      delivery: 'test_sms',
+      kind: 'test',
+      ...(providerStyle === 'sendCode'
+        ? {sendCode: outbound}
+        : {
+            sendChallenge: outbound,
+            verifyChallenge: async () => undefined,
+          }),
+    };
+    const {api, store} = createV2TestApi({
+      ipRequestLimit: 100,
+      phoneRequestLimit: 100,
+      providerDeliveryDeadlineMs: 5,
+      sms: {provider},
+    });
+    const accountKey = crypto
+      .createHmac('sha256', TOKEN_SECRET)
+      .update(`account:${PHONE_NUMBER}`)
+      .digest('hex');
+    if (state !== 'absent') {
+      const overrides = {
+        deletion_id: `delete_provider_matrix_${state}`,
+      };
+      if (state === 'processing' || state === 'finalizing') {
+        Object.assign(overrides, {
+          attempt_count: 1,
+          last_attempt_at: '2026-07-20T07:59:30.000Z',
+          lease_expires_at: '2026-07-20T08:05:00.000Z',
+          lease_id: `lease_${state[0].repeat(24)}`,
+          status: state,
+        });
+      }
+      if (state === 'malformed') {
+        Object.assign(overrides, {
+          lease_id: `lease_${'m'.repeat(24)}`,
+          status: 'processing',
+        });
+      }
+      store.snapshot().accountDeletions.set(
+        accountKey,
+        deletionTaskFixture(accountKey, overrides),
+      );
+    }
+
+    const response = await request(api, {
+      body: {phone_number: PHONE_NUMBER},
+      clientIp: '203.0.113.142',
+      path: endpoint.requestPath,
+    });
+    const caseName = `${providerStyle}/${deliveryMode}/${endpoint.name}/${state}`;
+    assert.equal(response.statusCode, 200, caseName);
+    const acknowledgement = {...response.body.data};
+    const challengeId = acknowledgement.challenge_id;
+    delete acknowledgement.challenge_id;
+    const baselineKey = `${providerStyle}/${endpoint.name}`;
+    if (!baselineByEndpoint.has(baselineKey)) {
+      baselineByEndpoint.set(baselineKey, acknowledgement);
+    } else {
+      assert.deepEqual(
+        acknowledgement,
+        baselineByEndpoint.get(baselineKey),
+        caseName,
+      );
+    }
+
+    const deliveryPermitted =
+      state === 'absent' ||
+      (endpoint.name === 'recovery' &&
+        (state === 'queued' || state === 'processing'));
+    assert.equal(providerCalls.length, deliveryPermitted ? 1 : 0);
+    assert.equal(
+      store.snapshot().authChallenges.size,
+      deliveryPermitted ? 1 : 0,
+    );
+    assert.equal(
+      store.snapshot().authRateLimits.size,
+      deliveryPermitted ? 2 : 1,
+    );
+    if (deliveryPermitted) {
+      const persisted = store.snapshot().authChallenges.get(challengeId);
+      assert.equal(
+        persisted.delivery_status,
+        deliveryMode === 'failure' ? 'delivery_failed' : 'pending',
+      );
+    }
+
+    const verification = await request(api, {
+      body: {
+        challenge_id: challengeId,
+        phone_number: PHONE_NUMBER,
+        sms_code: SMS_CODE,
+      },
+      path: endpoint.verifyPath,
+    });
+    assert.equal(verification.statusCode, 401);
+    assert.equal(verification.body.error.code, 'invalid_sms_code');
+    assert.equal(store.snapshot().authSessions.size, 0);
+  }
+
+  for (const providerStyle of ['sendCode', 'providerOwned']) {
+    for (const deliveryMode of ['failure', 'timeout']) {
+      for (const endpoint of endpoints) {
+        for (const state of states) {
+          await verifyMatrixCase(providerStyle, deliveryMode, endpoint, state);
+        }
+      }
+    }
+  }
 });
 
 test('unauthenticated challenge probes consume shared IP first and normalize deletion states', async () => {

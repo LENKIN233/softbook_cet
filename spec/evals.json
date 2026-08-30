@@ -1477,6 +1477,8 @@
         "provider_ignoring_abort_leaves_pending_until_deadline_and_its_late_result_cannot_upsert_or_become_locally_verifiable",
         "ordinary_and_recovery_request_code_create_no_phone_or_challenge_material_after_finalizing",
         "unauthenticated_request_code_consumes_shared_IP_rate_before_phone_validation_or_deletion_state_and_normalizes_absent_pending_finalizing_invalid_and_phone_limited_acknowledgements",
+        "provider_rejection_and_timeout_share_the_same_public_acknowledgement_across_absent_queued_processing_finalizing_and_malformed_states",
+        "failed_pending_and_nonexistent_challenges_share_generic_invalid_verification_and_never_mint_a_session",
         "deletion_state_is_disclosed_only_after_purpose_bound_SMS_verification",
         "recovery_finalizing_is_retryable_without_pending_none_or_completion_claim",
         "stale_worker_cannot_delete_post_completion_reregistration_data",
