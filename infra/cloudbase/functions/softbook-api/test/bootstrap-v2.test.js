@@ -9,7 +9,10 @@ const {createMemoryStore} = require('../index');
 const fixedNow = new Date('2026-07-20T12:00:00.000Z');
 
 test('development card-source imports cannot publish formal releases', async () => {
-  const {assertDevelopmentCardSourceImport} = await import(
+  const {
+    assertDevelopmentCardSourceImport,
+    DEVELOPMENT_CARD_SOURCE_ENV_ID,
+  } = await import(
     '../../../card-source-import-policy.mjs'
   );
 
@@ -23,6 +26,15 @@ test('development card-source imports cannot publish formal releases', async () 
       }),
     /cannot publish content releases/,
   );
+  assert.throws(
+    () =>
+      assertDevelopmentCardSourceImport(
+        {release: null},
+        {envId: 'receiver-production'},
+      ),
+    /development importer is pinned/,
+  );
+  assert.equal(DEVELOPMENT_CARD_SOURCE_ENV_ID, 'test-d2gzcyxr9f7e80972');
 });
 
 test('bootstrap service requires every canonical read capability', () => {

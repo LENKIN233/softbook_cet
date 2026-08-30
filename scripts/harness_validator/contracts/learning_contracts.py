@@ -207,7 +207,7 @@ SCHEDULER_RUNTIME_CHECKS = (
 )
 
 SCHEDULER_RUNTIME_SNIPPETS = (
-    "This backend and the mobile binding are repository-local and not deployed.",
+    "This backend plus native and PC Web bindings are repository-local and not deployed.",
     "dismissal cannot overwrite a premium purchase.",
     "and its `next_due_at` receive the same transactional watermark",
 )

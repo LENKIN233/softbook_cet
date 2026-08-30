@@ -305,9 +305,10 @@ node infra/cloudbase/import-card-source.mjs --file path/to/card-source.json --tr
 The first command is a dry-run and performs no CloudBase write. The `--apply`
 form first reads and validates the existing current source, archives a replaced
 version in `softbook_card_source_versions`, registers the new version as
-`active`, and upserts `softbook_card_sources.<track>` in the current
-`CLOUDBASE_ENV_ID`, defaulting to `test-d2gzcyxr9f7e80972` when the variable is
-not set. The JSON payload must contain `source`, `track`, and `card_records`.
+`active`, and upserts `softbook_card_sources.<track>` only in the fixed
+development environment `test-d2gzcyxr9f7e80972`. It does not accept an
+environment override; receiver publication must use the formal delivery
+pipeline. The JSON payload must contain `source`, `track`, and `card_records`.
 Validation computes and persists a deterministic `content_version`; a candidate
 without current model authorization persists `release: null`. This development importer
 rejects any non-null release descriptor. Only a separate pipeline that verifies

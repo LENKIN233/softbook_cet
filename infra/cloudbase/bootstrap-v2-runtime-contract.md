@@ -348,7 +348,8 @@ pending.
 The current `import-card-source.mjs` is a development importer and rejects
 non-null release descriptors. On apply it validates and archives a replaced
 current source in `softbook_card_source_versions`, then registers the new
-current version as active. Formal and controlled-pilot publication use their
+current version as active only in the fixed repository development environment;
+it accepts no environment override. Formal and controlled-pilot publication use their
 separate fail-closed release pipelines; their repository-local implementation
 does not constitute receiver deployment or launch evidence.
 

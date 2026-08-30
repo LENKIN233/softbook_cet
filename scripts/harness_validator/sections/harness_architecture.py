@@ -227,6 +227,8 @@ def validate(context) -> None:
                 "network": "forbidden_by_catalog_and_os_enforced_outbound_denial",
                 "includes": [
                     "local_harness_and_harness_regressions",
+                    "learning_scheduler_contract_regressions",
+                    "model_review_gate_regressions",
                     "local_gate_runner_regressions",
                     "launch_readiness_contract",
                     "maestro_selector_contract",
@@ -240,6 +242,7 @@ def validate(context) -> None:
                 "includes": [
                     "full_remote_harness",
                     "real_pull_request_body_gates",
+                    "exact_head_model_review_record_gate",
                     "dependency_security_with_visible_exceptions",
                     "strict_changed_tree_repository_health",
                     "git_lfs_fsck",

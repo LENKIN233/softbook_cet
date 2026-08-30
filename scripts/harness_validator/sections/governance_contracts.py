@@ -227,6 +227,16 @@ def validate(context) -> None:
         errors.append("PR workflow must run signed Android release evidence regressions")
     if "node --test scripts/test_model_acceptance_contract.mjs" not in workflow:
         errors.append("PR workflow must run model-owned acceptance regressions")
+    for token in (
+        "node --test scripts/test_validate_model_review.mjs",
+        "node scripts/validate_model_review.mjs --head",
+        'PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}',
+        "types: [opened, synchronize, reopened, edited]",
+    ):
+        if token not in workflow:
+            errors.append(f"PR workflow is missing exact-head model review gate token: {token}")
+    if "python3 scripts/test_learning_scheduler_contract.py" not in workflow:
+        errors.append("PR workflow must run learning-scheduler contract regressions")
     if "node --test scripts/test_verify_trusted_media_run_receipt.mjs" not in workflow:
         errors.append("PR workflow must run trusted media receipt regressions")
     if "PR_BODY: ${{ github.event.pull_request.body }}" in workflow:

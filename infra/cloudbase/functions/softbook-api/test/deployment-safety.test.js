@@ -435,8 +435,10 @@ test("published versions require one new immutable ID with the exact description
 });
 
 test("log redaction removes phone, bearer token, and secret assignments", () => {
+  const pem =
+    "-----BEGIN PRIVATE KEY-----\nVERY-SECRET-PEM-BYTES\n-----END PRIVATE KEY-----";
   const redacted = safety.redactText(
-    'phone=19012345678 Authorization: Bearer abcdefghijklmnopqrstuvwxyz token=very-secret-value "refresh_token":"json-secret-value" SOFTBOOK_AUTH_TOKEN_SECRET=env-secret-value'
+    `phone=19012345678 Authorization: Bearer abcdefghijklmnopqrstuvwxyz token=very-secret-value "refresh_token":"json-secret-value" SOFTBOOK_AUTH_TOKEN_SECRET=env-secret-value {"Key":"SOFTBOOK_AUTH_INDEX_SECRET","Value":"cloudbase-json-secret"} ${pem}`
   );
 
   assert.equal(redacted.includes("19012345678"), false);
@@ -444,6 +446,8 @@ test("log redaction removes phone, bearer token, and secret assignments", () => 
   assert.equal(redacted.includes("very-secret-value"), false);
   assert.equal(redacted.includes("json-secret-value"), false);
   assert.equal(redacted.includes("env-secret-value"), false);
+  assert.equal(redacted.includes("cloudbase-json-secret"), false);
+  assert.equal(redacted.includes("VERY-SECRET-PEM-BYTES"), false);
 });
 
 test("manager arguments default every cloud write to dry-run", () => {
