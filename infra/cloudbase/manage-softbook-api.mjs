@@ -1079,11 +1079,6 @@ function buildValidatedArtifact(context) {
     },
     recursive: true,
   });
-  mkdirSync(join(validationWorkspace, "spec"), {recursive: true});
-  cpSync(
-    join(REPOSITORY_ROOT, "spec", "box-catalog.json"),
-    join(validationWorkspace, "spec", "box-catalog.json")
-  );
   copyValidationSupportFiles(validationWorkspace);
   runProcess(context, "npm", ["ci", "--ignore-scripts"], {
     cwd: validationDirectory,
@@ -1131,7 +1126,9 @@ export function copyValidationSupportFiles(validationWorkspace) {
   const source = join(REPOSITORY_ROOT, "scripts", "lib");
   const scriptsTarget = join(validationWorkspace, "scripts");
   const libraryTarget = join(scriptsTarget, "lib");
+  const specTarget = join(validationWorkspace, "spec");
   mkdirSync(scriptsTarget, {recursive: true});
+  mkdirSync(specTarget, {recursive: true});
   cpSync(source, libraryTarget, {
     filter: currentPath => basename(currentPath) !== ".DS_Store",
     recursive: true,
@@ -1144,6 +1141,12 @@ export function copyValidationSupportFiles(validationWorkspace) {
     cpSync(
       join(REPOSITORY_ROOT, "scripts", filename),
       join(scriptsTarget, filename)
+    );
+  }
+  for (const filename of ["box-catalog.json", "membership.json"]) {
+    cpSync(
+      join(REPOSITORY_ROOT, "spec", filename),
+      join(specTarget, filename)
     );
   }
   return scriptsTarget;

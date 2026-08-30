@@ -45,4 +45,13 @@ test('deployment validation workspace includes repository support modules', asyn
       filename,
     );
   }
+  for (const filename of ['box-catalog.json', 'membership.json']) {
+    const copied = path.join(temporaryRoot, 'spec', filename);
+    assert.equal(fs.statSync(copied).isFile(), true, filename);
+    assert.deepEqual(
+      fs.readFileSync(copied),
+      fs.readFileSync(path.join(repositoryRoot, 'spec', filename)),
+      filename,
+    );
+  }
 });
