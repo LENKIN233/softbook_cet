@@ -702,12 +702,12 @@ export function SpaceSurface({
                       { color: selectedTone.accent },
                     ]}
                   >
-                    当前位置
+                    {selectedBoxIsCurrent ? '当前位置' : '所选位置'}
                   </Text>
                   <Text
                     style={[styles.addressPathText, { color: palette.text }]}
                   >
-                    当前卡盒已定位
+                    {selectedBoxIsCurrent ? '当前卡盒已定位' : '所选卡盒已定位'}
                   </Text>
                 </View>
               </View>
@@ -716,8 +716,10 @@ export function SpaceSurface({
                 <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
                   空间地址
                 </Text>
-                <Text style={[styles.title, { color: palette.text }]}>
-                  当前卡盒
+                <Text
+                  style={[styles.title, { color: palette.text }]}
+                >
+                  {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
                 </Text>
                 <Text
                   numberOfLines={1}
@@ -1922,11 +1924,15 @@ export function SpaceSurface({
                                 { color: primaryActionMuted },
                               ]}
                             >
-                              同一地址
+                              {selectedBoxIsCurrent ? '同一地址' : '回到当前地址'}
                             </Text>
                           </Pressable>
                           <Pressable
-                            accessibilityLabel="回到当前卡盒概览"
+                            accessibilityLabel={
+                              selectedBoxIsCurrent
+                                ? '回到当前卡盒概览'
+                                : '回到所选卡盒概览'
+                            }
                             accessibilityRole="button"
                             onPress={onBackToOverview ?? noop}
                             style={[

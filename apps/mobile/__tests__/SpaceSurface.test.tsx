@@ -595,6 +595,12 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
       palette={palette}
       screen={screen}
       spaceCards={spaceCards}
+      spaceSyncRail={{
+        detail: '空间状态已与账号记录对齐。',
+        label: '已同步',
+        state: 'synced',
+        title: '空间状态已同步',
+      }}
     />
   );
   let tree: ReactTestRenderer.ReactTestRenderer;
@@ -619,6 +625,7 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
   expect(renderedText).toContain('正在查看所选卡盒的卡片');
   expect(renderedText).toContain('所选盒内卡片');
   expect(renderedText).toContain('所选盒休眠');
+  expect(renderedText).toContain('所选卡盒');
   expect(root.findByProps({testID: 'space-follow-current-box'})).toBeTruthy();
 
   ReactTestRenderer.act(() => {
