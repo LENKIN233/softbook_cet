@@ -303,11 +303,19 @@ test("deployment and iOS acceptance keep lifecycle ownership around remote write
   );
   assert.match(
     smoke,
-    /payload\.error\.code === 'DATABASE_TRANSACTION_FAIL'/,
+    /allowedCodes\.includes\(payload\.error\.code\)/,
   );
   assert.match(
     smoke,
     /headers: remoteHeaders,[\s\S]*method: 'GET'/,
+  );
+  assert.match(
+    smoke,
+    /postJsonWithExactReplay\([\s\S]*'\/v2\/learning\/events'[\s\S]*learning_events_unavailable/,
+  );
+  assert.match(
+    smoke,
+    /postJsonWithExactReplay\([\s\S]*'\/v2\/space\/actions'[\s\S]*DATABASE_TRANSACTION_FAIL/,
   );
 });
 

@@ -596,10 +596,11 @@ async function loadLearningSelection(cardSource) {
 }
 
 async function checkInDailyProgress() {
-  const response = await postJson(
+  const response = await postJsonWithExactReplay(
     '/v2/progress/check-in',
     {day_key: todayKey()},
     remoteHeaders,
+    ['DATABASE_TRANSACTION_FAIL'],
   );
 
   assertOk(response, 'daily check-in');
@@ -711,10 +712,11 @@ async function syncLearningEvents(cardSource, card, selection) {
     track: cardSource.track,
     events: [event],
   };
-  const acceptedResponse = await postJson(
+  const acceptedResponse = await postJsonWithExactReplay(
     '/v2/learning/events',
     body,
     remoteHeaders,
+    ['DATABASE_TRANSACTION_FAIL', 'learning_events_unavailable'],
   );
 
   assertOk(acceptedResponse, 'learning-events accepted');
@@ -724,10 +726,11 @@ async function syncLearningEvents(cardSource, card, selection) {
     event.event_id,
     'accepted',
   );
-  const duplicateResponse = await postJson(
+  const duplicateResponse = await postJsonWithExactReplay(
     '/v2/learning/events',
     body,
     remoteHeaders,
+    ['DATABASE_TRANSACTION_FAIL', 'learning_events_unavailable'],
   );
 
   assertOk(duplicateResponse, 'learning-events duplicate');
@@ -814,10 +817,11 @@ async function applySpaceAction(cardSource, card) {
     schema_version: 'space-actions.v2',
     track: cardSource.track,
   };
-  const acceptedResponse = await postJson(
+  const acceptedResponse = await postJsonWithExactReplay(
     '/v2/space/actions',
     body,
     remoteHeaders,
+    ['DATABASE_TRANSACTION_FAIL'],
   );
 
   assertOk(acceptedResponse, 'space action accepted');
@@ -829,10 +833,11 @@ async function applySpaceAction(cardSource, card) {
     cardSource,
     card.card_id,
   );
-  const duplicateResponse = await postJson(
+  const duplicateResponse = await postJsonWithExactReplay(
     '/v2/space/actions',
     body,
     remoteHeaders,
+    ['DATABASE_TRANSACTION_FAIL'],
   );
 
   assertOk(duplicateResponse, 'space action duplicate');
@@ -1161,7 +1166,9 @@ async function get(path) {
     });
     if (
       attempt === CLOUDBASE_READ_RETRY_DELAYS_MS.length ||
-      !(await isExactTransientCloudBaseReadFailure(response))
+      !(await isExactTransientCloudBaseFailure(response, [
+        'DATABASE_TRANSACTION_FAIL',
+      ]))
     ) {
       return response;
     }
@@ -1170,8 +1177,11 @@ async function get(path) {
   fail('CloudBase read retry is unreachable.');
 }
 
-async function isExactTransientCloudBaseReadFailure(response) {
-  if (response.status !== 500 || typeof response.clone !== 'function') {
+async function isExactTransientCloudBaseFailure(response, allowedCodes) {
+  if (
+    ![500, 503].includes(response.status) ||
+    typeof response.clone !== 'function'
+  ) {
     return false;
   }
   try {
@@ -1186,7 +1196,7 @@ async function isExactTransientCloudBaseReadFailure(response) {
       !Array.isArray(payload.error) &&
       JSON.stringify(Object.keys(payload.error).sort()) ===
         JSON.stringify(['code', 'message']) &&
-      payload.error.code === 'DATABASE_TRANSACTION_FAIL'
+      allowedCodes.includes(payload.error.code)
     );
   } catch {
     return false;
@@ -1203,6 +1213,29 @@ async function postJson(path, body, headers = authHeaders) {
     headers,
     method: 'POST',
   });
+}
+
+async function postJsonWithExactReplay(
+  path,
+  body,
+  headers,
+  allowedCodes,
+) {
+  for (
+    let attempt = 0;
+    attempt <= CLOUDBASE_READ_RETRY_DELAYS_MS.length;
+    attempt += 1
+  ) {
+    const response = await postJson(path, body, headers);
+    if (
+      attempt === CLOUDBASE_READ_RETRY_DELAYS_MS.length ||
+      !(await isExactTransientCloudBaseFailure(response, allowedCodes))
+    ) {
+      return response;
+    }
+    await wait(CLOUDBASE_READ_RETRY_DELAYS_MS[attempt]);
+  }
+  fail('CloudBase exact replay is unreachable.');
 }
 
 function assertOk(response, label) {

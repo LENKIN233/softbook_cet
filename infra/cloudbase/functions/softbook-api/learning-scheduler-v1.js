@@ -90,6 +90,7 @@ async function readLearningSession(config, input) {
       {
         accountKey: input.accountKey,
         includeSchedulerState: true,
+        schedulerSnapshot: true,
         sessionAuthority: input.sessionAuthority,
       },
     );
@@ -98,6 +99,7 @@ async function readLearningSession(config, input) {
       generatedAtIso,
       {
         accountKey: input.accountKey,
+        schedulerSnapshot: true,
         sessionAuthority: input.sessionAuthority,
       },
     );
@@ -107,13 +109,17 @@ async function readLearningSession(config, input) {
       {
         accountKey: input.accountKey,
         acknowledgedAt: generatedAtIso,
+        schedulerSnapshot: true,
         sessionAuthority: input.sessionAuthority,
       },
     );
     const sessionStateValue = await config.store.getLearningSessionCursor(
       input.accountKey,
       track,
-      {sessionAuthority: input.sessionAuthority},
+      {
+        schedulerSnapshot: true,
+        sessionAuthority: input.sessionAuthority,
+      },
     );
     const cardSource = await cardSourcePromise;
 
@@ -366,6 +372,7 @@ async function continuePilotRound(config, input) {
     {
       accountKey: input.accountKey,
       includeSchedulerState: true,
+      schedulerSnapshot: true,
       sessionAuthority: input.sessionAuthority,
     },
   );
@@ -374,6 +381,7 @@ async function continuePilotRound(config, input) {
     generatedAtIso,
     {
       accountKey: input.accountKey,
+      schedulerSnapshot: true,
       sessionAuthority: input.sessionAuthority,
     },
   );
@@ -383,6 +391,7 @@ async function continuePilotRound(config, input) {
     {
       accountKey: input.accountKey,
       acknowledgedAt: generatedAtIso,
+      schedulerSnapshot: true,
       sessionAuthority: input.sessionAuthority,
     },
   );
