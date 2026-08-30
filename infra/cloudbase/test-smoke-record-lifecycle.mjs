@@ -285,6 +285,18 @@ test("deployment and iOS acceptance keep lifecycle ownership around remote write
   assert.match(maestro, /trap on_exit EXIT/);
   assert.match(smoke, /SOFTBOOK_CET_TEST_PHONE \|\| createIsolatedPhoneNumber/);
   assert.doesNotMatch(smoke, /using isolated generated phone/);
+  assert.match(
+    smoke,
+    /expectedInitialCardCount = initialCardSourceIsLimited[\s\S]*Math\.ceil\(initialBootstrap\.content\.card_count \* 0\.5\)/,
+  );
+  assert.match(
+    smoke,
+    /learningSelection\.membership_stage === 'trial'[\s\S]*requireCoreInteractions: true/,
+  );
+  assert.match(
+    smoke,
+    /activated Trial did not expose the complete canonical card source/,
+  );
 });
 
 test("CloudBase dev smoke fails before network access without lifecycle ownership", () => {

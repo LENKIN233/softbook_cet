@@ -110,10 +110,18 @@ if (initialBootstrap.membership.stage !== entitlement.stage) {
   );
 }
 
-const cardSource = await loadLearningCardSource();
+const initialCardSourceIsLimited = ['free', 'trial_available'].includes(
+  entitlement.stage,
+);
+let cardSource = await loadLearningCardSource({
+  requireCoreInteractions: !initialCardSourceIsLimited,
+});
+const expectedInitialCardCount = initialCardSourceIsLimited
+  ? Math.ceil(initialBootstrap.content.card_count * 0.5)
+  : initialBootstrap.content.card_count;
 
 if (
-  initialBootstrap.content.card_count !== cardSource.card_records.length ||
+  expectedInitialCardCount !== cardSource.card_records.length ||
   initialBootstrap.content.source.id !== cardSource.source.id ||
   initialBootstrap.content.version !== cardSource.content_version
 ) {
@@ -122,6 +130,22 @@ if (
 
 if (enableWrites) {
   const learningSelection = await loadLearningSelection(cardSource);
+  if (
+    initialCardSourceIsLimited &&
+    learningSelection.membership_stage === 'trial'
+  ) {
+    cardSource = await loadLearningCardSource({
+      requireCoreInteractions: true,
+    });
+    if (
+      cardSource.card_records.length !==
+        initialBootstrap.content.card_count ||
+      cardSource.content_version !== initialBootstrap.content.version ||
+      cardSource.source.id !== initialBootstrap.content.source.id
+    ) {
+      fail('activated Trial did not expose the complete canonical card source.');
+    }
+  }
   const selectedCard = cardSource.card_records.find(
     card => card.card_id === learningSelection.card_id,
   );
@@ -436,7 +460,7 @@ async function assertBootstrapWrites(
   }
 }
 
-async function loadLearningCardSource() {
+async function loadLearningCardSource({requireCoreInteractions}) {
   const response = await get(`/v2/learning/card-source?track=${track}`);
 
   assertOk(response, 'learning card-source');
@@ -467,12 +491,14 @@ async function loadLearningCardSource() {
     validateCardRecord(card, `data.card_records[${index}]`);
   }
 
-  assertCoreInteractionCoverage(data.card_records, 'data.card_records');
+  if (requireCoreInteractions) {
+    assertCoreInteractionCoverage(data.card_records, 'data.card_records');
+  }
   ok(
     'learning card-source',
-    `${
-      data.card_records.length
-    } cards from ${sourceId} covering ${REQUIRED_CORE_INTERACTIONS.join(',')}`,
+    `${data.card_records.length} cards from ${sourceId}; scope=${
+      requireCoreInteractions ? 'complete' : 'authorized-prefix'
+    }`,
   );
   return {
     card_records: data.card_records,
@@ -565,7 +591,7 @@ async function loadLearningSelection(cardSource) {
     'learning session',
     `${selection.phase}:${selection.card_id}; stage=${data.membership_stage}; remaining=${data.trial_remaining_seconds}`,
   );
-  return selection;
+  return {...selection, membership_stage: data.membership_stage};
 }
 
 async function checkInDailyProgress() {
