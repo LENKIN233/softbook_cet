@@ -234,6 +234,76 @@ test('restores canonical learning results against matching content', () => {
   expect(result.reviewResults).toHaveLength(0);
 });
 
+test('restores canonical learning results against the server-authorized free prefix', () => {
+  const bootstrap = createBootstrapFixture();
+  const fullSession = createContentBoundSession();
+  const accessibleCardCount = Math.ceil(fullSession.catalogCards.length * 0.5);
+  const accessibleCards = fullSession.catalogCards.slice(0, accessibleCardCount);
+  bootstrap.membership.state.stage = 'free';
+  const session = {
+    ...fullSession,
+    cards: accessibleCards.slice(0, 1),
+    catalogCards: accessibleCards,
+    membershipStage: 'free' as const,
+    schedulingMode: 'server' as const,
+  };
+
+  const result = resolveAccountBootstrapLearningState(bootstrap, session);
+
+  expect(result.learningResults).toHaveLength(1);
+  expect(result.reviewResults).toHaveLength(0);
+});
+
+test('keeps full-catalog compatibility when a server-shaped session has no membership projection', () => {
+  const bootstrap = createBootstrapFixture();
+  const fullSession = createContentBoundSession();
+  bootstrap.membership.state.stage = 'free';
+
+  const result = resolveAccountBootstrapLearningState(bootstrap, {
+    ...fullSession,
+    membershipStage: null,
+    schedulingMode: 'server',
+  });
+
+  expect(result.learningResults).toHaveLength(1);
+  expect(result.reviewResults).toHaveLength(0);
+});
+
+test('rejects a server catalog whose membership projection disagrees with bootstrap', () => {
+  const bootstrap = createBootstrapFixture();
+  const fullSession = createContentBoundSession();
+  bootstrap.membership.state.stage = 'free';
+
+  expect(() =>
+    resolveAccountBootstrapLearningState(bootstrap, {
+      ...fullSession,
+      membershipStage: 'premium',
+      schedulingMode: 'server',
+    }),
+  ).toThrow(/does not match the loaded learning content/);
+});
+
+test('rejects a server catalog that is smaller than the authorized free prefix', () => {
+  const bootstrap = createBootstrapFixture();
+  const fullSession = createContentBoundSession();
+  const accessibleCardCount = Math.ceil(fullSession.catalogCards.length * 0.5);
+  const incompleteCards = fullSession.catalogCards.slice(
+    0,
+    accessibleCardCount - 1,
+  );
+  bootstrap.membership.state.stage = 'free';
+
+  expect(() =>
+    resolveAccountBootstrapLearningState(bootstrap, {
+      ...fullSession,
+      cards: incompleteCards.slice(0, 1),
+      catalogCards: incompleteCards,
+      membershipStage: 'free',
+      schedulingMode: 'server',
+    }),
+  ).toThrow(/does not match the loaded learning content/);
+});
+
 test('does not treat a prior China-day card projection as current-day progress', () => {
   const bootstrap = createBootstrapFixture();
   bootstrap.dayKey = '2026-07-21';

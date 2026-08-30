@@ -1,4 +1,5 @@
 import type { LearningCardResult, LearningSession } from '../learning/model';
+import { resolveAccessibleLearningCardCount } from '../membership/localMembership';
 import type { PersistedUserState } from '../persistence/userStateStore';
 import { getChinaDayKey } from '../shared/chinaDay';
 import {
@@ -49,10 +50,22 @@ export function resolveAccountBootstrapLearningState(
   bootstrap: AccountBootstrapSnapshot,
   learningSession: LearningSession,
 ): Pick<AccountBootstrapHydration, 'learningResults' | 'reviewResults'> {
+  const expectedCatalogCardCount =
+    learningSession.schedulingMode === 'server' &&
+    learningSession.membershipStage !== null
+      ? resolveAccessibleLearningCardCount(
+          bootstrap.content.cardCount,
+          bootstrap.membership.state,
+        )
+      : bootstrap.content.cardCount;
+
   if (
     bootstrap.track !== learningSession.track ||
     bootstrap.content.source.id !== learningSession.sourceId ||
-    bootstrap.content.cardCount !== learningSession.catalogCards.length ||
+    (learningSession.schedulingMode === 'server' &&
+      learningSession.membershipStage !== null &&
+      bootstrap.membership.state.stage !== learningSession.membershipStage) ||
+    expectedCatalogCardCount !== learningSession.catalogCards.length ||
     bootstrap.content.version !== learningSession.contentVersion
   ) {
     throw new Error(
