@@ -101,7 +101,20 @@ RCT_EXPORT_METHOD(prepare:(NSString *)filePath
 RCT_EXPORT_METHOD(play:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
-  if (self.player == nil || ![self.player play]) {
+  if (self.player == nil) {
+    reject(@"audio_not_ready", @"Audio is not ready.", nil);
+    return;
+  }
+
+  NSError *sessionError = nil;
+  [[AVAudioSession sharedInstance] setActive:YES error:&sessionError];
+  if (sessionError != nil) {
+    reject(@"audio_session_failed", @"Audio session is unavailable.", sessionError);
+    return;
+  }
+
+  if (![self.player play]) {
+    [self deactivateAudioSession];
     reject(@"audio_not_ready", @"Audio is not ready.", nil);
     return;
   }
@@ -142,17 +155,25 @@ RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve
 - (void)handleAudioSessionInterruption:(NSNotification *)notification
 {
   NSNumber *typeValue = notification.userInfo[AVAudioSessionInterruptionTypeKey];
-  if (typeValue.unsignedIntegerValue == AVAudioSessionInterruptionTypeBegan && self.player.isPlaying) {
+  if (typeValue.unsignedIntegerValue == AVAudioSessionInterruptionTypeBegan && self.player != nil) {
+    BOOL wasPlaying = self.player.isPlaying;
     [self.player pause];
-    [self emitType:@"interruption"];
+    [self deactivateAudioSession];
+    if (wasPlaying) {
+      [self emitType:@"interruption"];
+    }
   }
 }
 
 - (void)handleApplicationBackground:(NSNotification *)notification
 {
-  if (self.player.isPlaying) {
+  if (self.player != nil) {
+    BOOL wasPlaying = self.player.isPlaying;
     [self.player pause];
-    [self emitType:@"interruption"];
+    [self deactivateAudioSession];
+    if (wasPlaying) {
+      [self emitType:@"interruption"];
+    }
   }
 }
 

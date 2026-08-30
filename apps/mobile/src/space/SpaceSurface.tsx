@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
+  ScrollView,
   StyleProp,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from 'react-native';
@@ -79,6 +81,10 @@ type SpaceSeed = {
 
 const noop = () => undefined;
 
+export function isShortSpaceViewport(width: number, height: number) {
+  return Math.min(width, height) < 600 && height < 800;
+}
+
 export type SpaceGateRail = {
   actionSlot: React.ReactNode;
   detail: string;
@@ -134,6 +140,11 @@ export function SpaceSurface({
   spaceSyncRail?: SpaceSyncRail | null;
   usesAccessibilityLayout?: boolean;
 }) {
+  const {height: viewportHeight, width: viewportWidth} = useWindowDimensions();
+  const usesShortViewport = isShortSpaceViewport(
+    viewportWidth,
+    viewportHeight,
+  );
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const focusedSelection = useMemo(() => {
     if (!currentLearningCard) {
@@ -357,6 +368,8 @@ export function SpaceSurface({
   const hasStateRail = Boolean(
     spaceGateRail || spaceSyncRail || spaceStatusRail,
   );
+  const usesScrollableViewport =
+    !usesAccessibilityLayout && (usesShortViewport || hasStateRail);
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     const emptyTone = currentLearningCard
@@ -366,19 +379,17 @@ export function SpaceSurface({
     const isSpaceLoading = spaceStatusRail?.state === 'loading';
 
     return (
-      <View
-        style={[
-          styles.content,
-          styles.contentOneScreen,
-          usesAccessibilityLayout ? styles.contentAccessible : null,
-          deviceClass === 'tablet' ? styles.contentTablet : null,
-        ]}
+      <SpaceViewport
+        deviceClass={deviceClass}
+        usesAccessibilityLayout={usesAccessibilityLayout}
+        usesShortViewport={usesScrollableViewport}
       >
         <View
           style={[
             styles.shelfDeskFrame,
             styles.shelfDeskFrameOneScreen,
             usesAccessibilityLayout ? styles.shelfDeskFrameAccessible : null,
+            usesScrollableViewport ? styles.shelfDeskFrameShortViewport : null,
           ]}
           testID="space-empty-state"
         >
@@ -626,24 +637,22 @@ export function SpaceSurface({
             </SurfaceCard>
           ) : null}
         </View>
-      </View>
+      </SpaceViewport>
     );
   }
 
   return (
-    <View
-      style={[
-        styles.content,
-        styles.contentOneScreen,
-        usesAccessibilityLayout ? styles.contentAccessible : null,
-        deviceClass === 'tablet' ? styles.contentTablet : null,
-      ]}
+    <SpaceViewport
+      deviceClass={deviceClass}
+      usesAccessibilityLayout={usesAccessibilityLayout}
+      usesShortViewport={usesScrollableViewport}
     >
       <View
         style={[
           styles.shelfDeskFrame,
           styles.shelfDeskFrameOneScreen,
           usesAccessibilityLayout ? styles.shelfDeskFrameAccessible : null,
+          usesScrollableViewport ? styles.shelfDeskFrameShortViewport : null,
         ]}
         testID="space-shelf-desk"
       >
@@ -742,6 +751,9 @@ export function SpaceSurface({
                 styles.overviewWorkbench,
                 usesAccessibilityLayout
                   ? styles.overviewWorkbenchAccessible
+                  : null,
+                usesScrollableViewport
+                  ? styles.overviewWorkbenchShortViewport
                   : null,
                 {
                   backgroundColor: solidPanel,
@@ -964,6 +976,9 @@ export function SpaceSurface({
                   styles.openBoxDeck,
                   styles.openBoxDeckUnified,
                   usesAccessibilityLayout ? styles.openBoxDeckAccessible : null,
+                  usesScrollableViewport
+                    ? styles.openBoxDeckShortViewport
+                    : null,
                   {
                     backgroundColor: neutralObjectSurface,
                     borderColor: neutralObjectBorder,
@@ -1336,6 +1351,9 @@ export function SpaceSurface({
             <View
               style={[
                 styles.boxBrowseSurface,
+                usesScrollableViewport
+                  ? styles.boxBrowseSurfaceShortViewport
+                  : null,
                 {
                   backgroundColor: solidPanel,
                   borderColor: neutralObjectBorder,
@@ -1891,6 +1909,46 @@ export function SpaceSurface({
           </>
         ) : null}
       </View>
+    </SpaceViewport>
+  );
+}
+
+function SpaceViewport({
+  children,
+  deviceClass,
+  usesAccessibilityLayout,
+  usesShortViewport,
+}: {
+  children: React.ReactNode;
+  deviceClass: DeviceClass;
+  usesAccessibilityLayout: boolean;
+  usesShortViewport: boolean;
+}) {
+  const baseStyle = [
+    styles.content,
+    usesAccessibilityLayout ? styles.contentAccessible : null,
+    deviceClass === 'tablet' ? styles.contentTablet : null,
+  ];
+
+  if (usesShortViewport) {
+    return (
+      <ScrollView
+        contentContainerStyle={[...baseStyle, styles.contentShortViewport]}
+        showsVerticalScrollIndicator={false}
+        style={styles.contentScroll}
+        testID="space-scroll-viewport"
+      >
+        {children}
+      </ScrollView>
+    );
+  }
+
+  return (
+    <View
+      style={[...baseStyle, styles.contentOneScreen]}
+      testID="space-fixed-viewport"
+    >
+      {children}
     </View>
   );
 }
@@ -2340,6 +2398,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 8,
   },
+  contentScroll: {
+    flex: 1,
+  },
+  contentShortViewport: {
+    flexGrow: 1,
+    gap: 8,
+    paddingVertical: 8,
+  },
   contentAccessible: {
     flex: 0,
   },
@@ -2355,6 +2421,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   shelfDeskFrameAccessible: {
+    flex: 0,
+  },
+  shelfDeskFrameShortViewport: {
     flex: 0,
   },
   surfaceCard: {
@@ -2537,6 +2606,11 @@ const styles = StyleSheet.create({
     minHeight: 0,
     overflow: 'visible',
   },
+  overviewWorkbenchShortViewport: {
+    flex: 0,
+    minHeight: 0,
+    overflow: 'visible',
+  },
   overviewWorkbenchAddress: {
     gap: 10,
   },
@@ -2593,7 +2667,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'space-between',
-    minHeight: 24,
+    minHeight: 44,
   },
   hierarchyBrowseTitle: {
     fontSize: 11,
@@ -2607,11 +2681,15 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   followCurrentButton: {
+    alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
+    justifyContent: 'center',
     maxWidth: '62%',
+    minHeight: 44,
+    minWidth: 44,
     paddingHorizontal: 9,
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   followCurrentButtonLabel: {
     fontSize: 10,
@@ -2622,7 +2700,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 5,
-    minHeight: 29,
+    minHeight: 44,
   },
   hierarchyBrowseLabel: {
     fontSize: 10,
@@ -2634,9 +2712,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 10,
     borderWidth: 1,
-    height: 28,
+    height: 44,
     justifyContent: 'center',
-    width: 32,
+    width: 44,
   },
   hierarchyBrowseStepLabel: {
     fontSize: 20,
@@ -2701,6 +2779,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingHorizontal: 12,
     paddingTop: 12,
+  },
+  boxBrowseSurfaceShortViewport: {
+    flex: 0,
+    overflow: 'visible',
   },
   boxTrayHeader: {
     alignItems: 'stretch',
@@ -2927,6 +3009,9 @@ const styles = StyleSheet.create({
     flex: 0,
     minHeight: 0,
     overflow: 'visible',
+  },
+  openBoxDeckShortViewport: {
+    flex: 0,
   },
   openBoxLid: {
     alignItems: 'center',
@@ -3586,6 +3671,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: 10,
+    minHeight: 44,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

@@ -3,11 +3,14 @@
  */
 
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import {Dimensions, StyleSheet} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
 import { createLocalLearningSession } from '../src/learning/session';
-import { SpaceSurface } from '../src/space/SpaceSurface';
+import {
+  SpaceSurface,
+  isShortSpaceViewport,
+} from '../src/space/SpaceSurface';
 
 const palette = {
   accent: '#7C8BFF',
@@ -138,6 +141,114 @@ test('keeps a physical Space outline when no cards are visible', () => {
   expect(output).not.toContain('空间地图还没有可展示的数据');
 });
 
+test('uses fixed 44dp hierarchy targets at the 393x852 phone viewport', () => {
+  expect(isShortSpaceViewport(393, 852)).toBe(false);
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.catalogCards[0];
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const root = tree!.root;
+  expect(root.findByProps({testID: 'space-fixed-viewport'})).toBeTruthy();
+  expect(
+    root.findAllByProps({testID: 'space-scroll-viewport'}),
+  ).toHaveLength(0);
+  for (const level of ['library', 'group', 'box']) {
+    const rowStyle = StyleSheet.flatten(
+      root.findByProps({testID: `space-${level}-row`}).props.style,
+    );
+    const previousStyle = StyleSheet.flatten(
+      root.findByProps({testID: `space-${level}-prev`}).props.style,
+    );
+    const nextStyle = StyleSheet.flatten(
+      root.findByProps({testID: `space-${level}-next`}).props.style,
+    );
+
+    expect(rowStyle.minHeight).toBeGreaterThanOrEqual(44);
+    expect(previousStyle).toMatchObject({height: 44, width: 44});
+    expect(nextStyle).toMatchObject({height: 44, width: 44});
+  }
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-library-next'}).props.onPress();
+  });
+  expect(
+    StyleSheet.flatten(
+      root.findByProps({testID: 'space-follow-current-box'}).props.style,
+    ),
+  ).toMatchObject({minHeight: 44, minWidth: 44});
+  expect(
+    StyleSheet.flatten(
+      root.findByProps({testID: 'space-return-learning'}).props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+});
+
+test('short phone Space scrolls intrinsic content instead of clipping the primary return action', () => {
+  expect(isShortSpaceViewport(393, 700)).toBe(true);
+  Dimensions.set({
+    screen: {fontScale: 1, height: 700, scale: 1, width: 393},
+    window: {fontScale: 1, height: 700, scale: 1, width: 393},
+  });
+  const session = createLocalLearningSession('cet4');
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={session.catalogCards[0]}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const root = tree!.root;
+  const scroll = root.findByProps({testID: 'space-scroll-viewport'});
+  expect(StyleSheet.flatten(scroll.props.contentContainerStyle).flexGrow).toBe(
+    1,
+  );
+  expect(
+    StyleSheet.flatten(
+      root.findByProps({testID: 'space-shelf-desk'}).props.style,
+    ).flex,
+  ).toBe(0);
+  expect(
+    StyleSheet.flatten(
+      root.findByProps({testID: 'space-current-box-tray'}).props.style,
+    ).overflow,
+  ).toBe('visible');
+  expect(
+    StyleSheet.flatten(
+      root.findByProps({testID: 'space-open-box-deck'}).props.style,
+    ).flex,
+  ).toBe(0);
+  expect(
+    StyleSheet.flatten(
+      root.findByProps({testID: 'space-return-learning'}).props.style,
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+});
+
 test('uses contained skeleton slots while Space cards are loading', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];
@@ -224,6 +335,7 @@ test('places Space state rail between address context and current box', () => {
   expect(
     root.findAllByProps({ testID: 'space-sync-rail' }).length,
   ).toBeGreaterThan(0);
+  expect(root.findByProps({testID: 'space-scroll-viewport'})).toBeTruthy();
   expectSpaceFirstReadOrder(tree!, 'space-sync-rail');
 });
 
