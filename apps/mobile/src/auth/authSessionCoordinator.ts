@@ -43,6 +43,10 @@ const DEFAULT_REFRESH_LEEWAY_MS = 60_000;
 export function createAuthSessionCoordinator(options: {
   authRepository: AuthRepository;
   authSessionStore: AuthSessionStore;
+  beforeSessionInvalidation?: (input: {
+    reason: AuthSessionScopeChangeReason;
+    session: AuthSession;
+  }) => Promise<void>;
   now?: () => Date;
   refreshLeewayMs?: number;
   shouldPreserveAuthorizationRejection?: (
@@ -108,6 +112,19 @@ export function createAuthSessionCoordinator(options: {
   const invalidate = async (
     reason: AuthSessionScopeChangeReason = 'session_changed',
   ) => {
+    const invalidatingSession = currentSession;
+    const invalidatingScopeKey = getAuthSessionScopeKey(invalidatingSession);
+    if (invalidatingSession !== null) {
+      await options.beforeSessionInvalidation?.({
+        reason,
+        session: invalidatingSession,
+      });
+      if (
+        getAuthSessionScopeKey(currentSession) !== invalidatingScopeKey
+      ) {
+        return;
+      }
+    }
     sessionRevision += 1;
     setCurrentSession(null, reason);
     abortRefreshInFlight();

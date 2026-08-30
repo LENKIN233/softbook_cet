@@ -240,6 +240,11 @@ export function createWebRemoteRuntime(
   const isDeletionQuarantined = (sessionScopeKey: string | null) =>
     sessionScopeKey !== null &&
     deletionQuarantinedSessionScopes.has(sessionScopeKey);
+  const accountDeletionStateStore = createWebAccountDeletionStateStore(
+    browserStorage,
+  );
+  const accountWriteFence = createWebAccountWriteFence(browserStorage);
+  let currentAccountWriteRevision: number | null = null;
   const authRepository = createAuthRepository({
     fetchImpl,
     mode: 'remote',
@@ -251,6 +256,22 @@ export function createWebRemoteRuntime(
   const authSessionCoordinator = createAuthSessionCoordinator({
     authRepository,
     authSessionStore: createMemoryOnlyAuthSessionStore(),
+    async beforeSessionInvalidation({session}) {
+      const ensureCleanupAuthority =
+        accountDeletionStateStore.ensureCleanupAuthority;
+      if (
+        currentAccountWriteRevision === null ||
+        ensureCleanupAuthority === undefined
+      ) {
+        throw new Error(
+          'Web session invalidation requires durable cleanup authority.',
+        );
+      }
+      await ensureCleanupAuthority(
+        session.phoneNumber,
+        currentAccountWriteRevision,
+      );
+    },
     shouldPreserveAuthorizationRejection: isDeletionQuarantined,
   });
   const authenticatedFetch = createAuthenticatedFetch({
@@ -270,10 +291,6 @@ export function createWebRemoteRuntime(
       baseUrl: runtime.baseUrl,
       fetchImpl,
     });
-  const accountDeletionStateStore = createWebAccountDeletionStateStore(
-    browserStorage,
-  );
-  const accountWriteFence = createWebAccountWriteFence(browserStorage);
   const accountBootstrapRepository = createAccountBootstrapRepository({
     fetchImpl: authenticatedFetch,
     mode: 'remote',
@@ -460,6 +477,7 @@ export function createWebRemoteRuntime(
       else deletionQuarantinedSessionScopes.delete(sessionScopeKey);
     },
     setAccountWriteRevision(revision) {
+      currentAccountWriteRevision = revision;
       accountWriteFence.bindSessionRevision(revision);
     },
     subscribeAccountEpochChanges(listener) {
@@ -759,21 +777,34 @@ export function createWebRemoteRuntimeController(
     }
   };
 
+  const persistLocalAccountCleanup = async (
+    phoneNumber: string,
+    expectedRevision: number,
+  ) => {
+    const ensureCleanupAuthority =
+      dependencies.accountDeletionStateStore?.ensureCleanupAuthority;
+    if (ensureCleanupAuthority === undefined) {
+      return null;
+    }
+    try {
+      return await ensureCleanupAuthority(phoneNumber, expectedRevision);
+    } catch (error) {
+      throw new WebAccountEpochError(undefined, {cause: error});
+    }
+  };
+
   const beginLocalAccountCleanup = async (
     phoneNumber: string,
     expectedRevision: number,
   ): Promise<WebAccountDeletionOutcome> => {
-    const beginLocalCleanup =
-      dependencies.accountDeletionStateStore?.beginLocalCleanup;
-    if (beginLocalCleanup === undefined) {
+    const persistedRevision = await persistLocalAccountCleanup(
+      phoneNumber,
+      expectedRevision,
+    );
+    if (persistedRevision === null) {
       await clearDurableQueues(phoneNumber);
       resetControllerAccountState();
       return {status: 'none'};
-    }
-    try {
-      await beginLocalCleanup(phoneNumber, expectedRevision);
-    } catch (error) {
-      throw new WebAccountEpochError(undefined, {cause: error});
     }
     return finishLocalAccountCleanup(phoneNumber);
   };
@@ -1319,28 +1350,25 @@ export function createWebRemoteRuntimeController(
       if (currentSession !== null) {
         activeAccountPhoneNumber = currentSession.phoneNumber;
       }
-      dependencies.stopAudio?.();
-      if (currentSession !== null) {
-        await dependencies.authSessionCoordinator.logout();
-      }
-      const deletionStateAfterLogout = await readStableDeletionState();
-      if (
-        deletionStateAfterLogout.state !== null ||
-        deletionStateAfterLogout.revision !==
-          deletionStateBeforeLogout.revision
-      ) {
-        throw new Error(
-          '账户删除状态已变化，普通退出不会清理待确认记录。',
-        );
-      }
       const phoneNumber = activeAccountPhoneNumber;
       if (phoneNumber === null) {
         throw new Error('没有可安全清理的 Web 账户作用域。');
       }
-      const outcome = await beginLocalAccountCleanup(
+      const persistedCleanupRevision = await persistLocalAccountCleanup(
         phoneNumber,
-        deletionStateAfterLogout.revision ?? 0,
+        deletionStateBeforeLogout.revision ?? 0,
       );
+      dependencies.stopAudio?.();
+      if (currentSession !== null) {
+        await dependencies.authSessionCoordinator.logout();
+      }
+      const outcome =
+        persistedCleanupRevision === null
+          ? await beginLocalAccountCleanup(
+              phoneNumber,
+              deletionStateBeforeLogout.revision ?? 0,
+            )
+          : await finishLocalAccountCleanup(phoneNumber);
       if (outcome.status === 'session_cleanup_required') {
         throw new Error('退出后的本地待同步状态未能完整清理。');
       }

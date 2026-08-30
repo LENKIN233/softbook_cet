@@ -20,7 +20,7 @@ type WebAccountDeletionEnvelope = {
 type BrowserStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 
 export type WebAccountDeletionStateStore = {
-  beginLocalCleanup?: (
+  ensureCleanupAuthority?: (
     phoneNumber: string,
     expectedRevision: number,
   ) => Promise<number>;
@@ -52,7 +52,7 @@ export function createWebAccountDeletionStateStore(
   };
 
   return {
-    beginLocalCleanup(phoneNumber, expectedRevision) {
+    ensureCleanupAuthority(phoneNumber, expectedRevision) {
       return runExclusive(() =>
         runWebStorageExclusive(
           storage,
@@ -60,8 +60,16 @@ export function createWebAccountDeletionStateStore(
           async () => {
             assertPhoneNumber(phoneNumber);
             const envelope = readEnvelope(storage);
+            if (envelope.state !== null) {
+              if (envelope.state.phoneNumber !== phoneNumber) {
+                throw new Error(
+                  'Web account cleanup authority belongs to another owner.',
+                );
+              }
+              observedRevision = envelope.revision;
+              return envelope.revision;
+            }
             if (
-              envelope.state !== null ||
               envelope.revision !== expectedRevision
             ) {
               throw new Error(

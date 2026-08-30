@@ -1,4 +1,5 @@
 import type {AuthRepository} from '../../mobile/src/auth/authRepository';
+import type {AuthSession} from '../../mobile/src/auth/authSession';
 import {createAuthSessionCoordinator} from '../../mobile/src/auth/authSessionCoordinator';
 import type {AccountBootstrapSnapshot} from '../../mobile/src/bootstrap/accountBootstrapRepository';
 import type {LearningSession} from '../../mobile/src/learning/model';
@@ -363,6 +364,13 @@ describe('authenticated Web remote orchestration', () => {
     });
     const deletionStateStore =
       createWebAccountDeletionStateStore(localStorage);
+    const remoteLogout = vi.spyOn(authRepository, 'logout');
+    remoteLogout.mockImplementation(async () => {
+      await expect(deletionStateStore.load()).resolves.toEqual({
+        phase: 'local_cleanup',
+        phoneNumber: PHONE,
+      });
+    });
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {
         async load() {
@@ -481,6 +489,157 @@ describe('authenticated Web remote orchestration', () => {
       createWebAccountDeletionStateStore(localStorage).load(),
     ).resolves.toBeNull();
     await expect(secondController.requestSmsCode(PHONE)).resolves.toBeDefined();
+  });
+
+  it('does not call remote logout or clear session when the local cleanup marker fails', async () => {
+    localStorage.clear();
+    const authRepository = createSimpleAuthRepository();
+    const remoteLogout = vi.spyOn(authRepository, 'logout');
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const durableStore = createWebAccountDeletionStateStore(localStorage);
+    const ensureCleanupAuthority = vi.fn(async () => {
+      throw new Error('injected marker failure');
+    });
+    const cleanupOperations: string[] = [];
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore: {
+        ...durableStore,
+        ensureCleanupAuthority,
+      },
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: {
+        ...createEmptyEventSyncRepository(),
+        async clearAccount() {
+          cleanupOperations.push('events-clear');
+        },
+      },
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository(cleanupOperations),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    cleanupOperations.length = 0;
+
+    await expect(controller.logout()).rejects.toMatchObject({
+      name: 'WebAccountEpochError',
+    });
+    expect(remoteLogout).not.toHaveBeenCalled();
+    expect(controller.isAuthenticated()).toBe(true);
+    expect(cleanupOperations).toEqual([]);
+    await expect(durableStore.load()).resolves.toBeNull();
+  });
+
+  it('leaves local cleanup durable when session-store clear crashes after marker', async () => {
+    localStorage.clear();
+    let persistedSession: AuthSession | null = null;
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: {
+        async clear() {
+          throw new Error('injected session-store crash');
+        },
+        async clearExactly() {
+          throw new Error('not used');
+        },
+        async load() {
+          return persistedSession;
+        },
+        async save(session) {
+          persistedSession = session;
+        },
+      },
+    });
+    const stateStore = createWebAccountDeletionStateStore(localStorage);
+    const cleanupOperations: string[] = [];
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore: stateStore,
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: {
+        ...createEmptyEventSyncRepository(),
+        async clearAccount() {
+          cleanupOperations.push('events-clear');
+        },
+      },
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository(cleanupOperations),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    cleanupOperations.length = 0;
+    await expect(controller.logout()).rejects.toThrow(
+      'injected session-store crash',
+    );
+
+    expect(controller.isAuthenticated()).toBe(false);
+    expect(cleanupOperations).toEqual([]);
+    await expect(stateStore.load()).resolves.toEqual({
+      phase: 'local_cleanup',
+      phoneNumber: PHONE,
+    });
+
+    const recoveryAuthRepository = createSimpleAuthRepository();
+    const recoveryController = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          throw new Error('post-crash cleanup must not bootstrap');
+        },
+      },
+      accountDeletionStateStore:
+        createWebAccountDeletionStateStore(localStorage),
+      authRepository: recoveryAuthRepository,
+      authSessionCoordinator: createAuthSessionCoordinator({
+        authRepository: recoveryAuthRepository,
+        authSessionStore: createMemoryOnlyAuthSessionStore(),
+      }),
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          throw new Error('post-crash cleanup must not load learning');
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+    await expect(recoveryController.resumeAccountDeletion()).resolves.toEqual({
+      status: 'none',
+    });
+    await expect(
+      createWebAccountDeletionStateStore(localStorage).load(),
+    ).resolves.toBeNull();
   });
 
   it('retains a durably enqueued Learning event as queued after network ack failure', async () => {

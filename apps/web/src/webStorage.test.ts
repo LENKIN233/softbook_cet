@@ -308,7 +308,7 @@ describe('Web persistence boundary', () => {
     const terminalStore = createWebAccountDeletionStateStore(localStorage);
 
     await expect(
-      terminalStore.beginLocalCleanup?.('13800138000', 0),
+      terminalStore.ensureCleanupAuthority?.('13800138000', 0),
     ).resolves.toBe(1);
 
     await expect(

@@ -2,6 +2,7 @@ import type {AuthRepository} from '../../mobile/src/auth/authRepository';
 import {createAuthenticatedFetch} from '../../mobile/src/auth/authenticatedFetch';
 import {createAuthSessionCoordinator} from '../../mobile/src/auth/authSessionCoordinator';
 import {createMemoryOnlyAuthSessionStore} from './webStorage';
+import {createWebAccountDeletionStateStore} from './webAccountDeletionState';
 
 describe('Web authenticated fetch deadline', () => {
   it('keeps the deadline active through response body parsing', async () => {
@@ -144,9 +145,60 @@ describe('Web authenticated fetch deadline', () => {
 
     expect(fetchImpl).not.toHaveBeenCalled();
   });
+
+  it('preserves the Web session when a 403 cleanup marker cannot be written', async () => {
+    localStorage.clear();
+    const stateStore = createWebAccountDeletionStateStore(localStorage);
+    const coordinator = await createCoordinator(async () => {
+      throw new Error('injected marker failure');
+    });
+    const authenticatedFetch = createAuthenticatedFetch({
+      authSessionCoordinator: coordinator,
+      fetchImpl: vi.fn(async () => new Response(null, {status: 403})),
+    });
+
+    await expect(
+      authenticatedFetch('https://runtime.example.cn/v2/bootstrap'),
+    ).rejects.toThrow('injected marker failure');
+
+    expect(coordinator.getCurrentSession()).not.toBeNull();
+    await expect(stateStore.load()).resolves.toBeNull();
+  });
+
+  it('persists local cleanup before a terminal 401 clears the Web session', async () => {
+    localStorage.clear();
+    const stateStore = createWebAccountDeletionStateStore(localStorage);
+    let expectedRevision = 0;
+    const coordinator = await createCoordinator(async ({session}) => {
+      expectedRevision =
+        (await stateStore.ensureCleanupAuthority?.(
+          session.phoneNumber,
+          expectedRevision,
+        )) ?? expectedRevision;
+    });
+    const authenticatedFetch = createAuthenticatedFetch({
+      authSessionCoordinator: coordinator,
+      fetchImpl: vi.fn(async () => new Response(null, {status: 401})),
+    });
+
+    await expect(
+      authenticatedFetch('https://runtime.example.cn/v2/bootstrap'),
+    ).resolves.toMatchObject({status: 401});
+
+    expect(coordinator.getCurrentSession()).toBeNull();
+    await expect(stateStore.load()).resolves.toEqual({
+      phase: 'local_cleanup',
+      phoneNumber: '13800138000',
+    });
+    await expect(stateStore.getRevision()).resolves.toBe(1);
+  });
 });
 
-async function createCoordinator() {
+async function createCoordinator(
+  beforeSessionInvalidation?: Parameters<
+    typeof createAuthSessionCoordinator
+  >[0]['beforeSessionInvalidation'],
+) {
   const authRepository: AuthRepository = {
     logout: async () => undefined,
     refreshSession: async session => session,
@@ -164,6 +216,7 @@ async function createCoordinator() {
   const coordinator = createAuthSessionCoordinator({
     authRepository,
     authSessionStore: createMemoryOnlyAuthSessionStore(),
+    beforeSessionInvalidation,
   });
   await coordinator.establish({
     accessToken: 'memory-access',
