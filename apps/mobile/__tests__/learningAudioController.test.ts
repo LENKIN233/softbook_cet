@@ -438,6 +438,33 @@ test('native interruption during initial play uses the same pending cancellation
   expect(controller.getState()).toEqual({ status: 'playing' });
 });
 
+test('native stop-required interruption invalidates prepared playback and requires a fresh press', async () => {
+  const { emit, engine } = createEngine();
+  const controller = new LearningAudioController({
+    cache: createCache(),
+    engine,
+  });
+  controller.select(selection);
+  await controller.press();
+  const interruptedPlaybackToken = readPreparedPlaybackToken(engine);
+  (engine.stop as jest.MockedFunction<LearningAudioEngine['stop']>).mockClear();
+
+  emit({
+    playbackToken: interruptedPlaybackToken,
+    requiresPrepare: true,
+    type: 'interruption',
+  });
+  expect(controller.getState()).toEqual({ status: 'idle' });
+  expect(engine.stop).toHaveBeenCalledTimes(1);
+
+  await controller.press();
+  expect(engine.prepare).toHaveBeenCalledTimes(2);
+  expect(readPreparedPlaybackToken(engine, 1)).not.toBe(
+    interruptedPlaybackToken,
+  );
+  expect(controller.getState()).toEqual({ status: 'playing' });
+});
+
 test('card changes, backgrounding, interruption, completion, and errors stay bounded', async () => {
   const { emit, engine } = createEngine();
   const controller = new LearningAudioController({

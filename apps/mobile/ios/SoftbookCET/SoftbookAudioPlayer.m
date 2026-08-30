@@ -8,7 +8,23 @@ static NSString *const SoftbookAudioPlayerEvent = @"SoftbookAudioPlayerEvent";
 @interface SoftbookAudioPlayer : RCTEventEmitter <AVAudioPlayerDelegate>
 @property(nonatomic, strong) AVAudioPlayer *player;
 @property(nonatomic, copy) NSString *playbackToken;
+@property(nonatomic, copy) NSString *pendingPlaybackToken;
+@property(nonatomic, assign) NSUInteger playbackGeneration;
+@property(nonatomic, assign) NSUInteger pendingPlaybackGeneration;
+@property(nonatomic, assign) NSUInteger preparedPlaybackGeneration;
+@property(nonatomic, assign) NSUInteger interruptedPlaybackGeneration;
 @property(nonatomic, assign) BOOL hasListeners;
+- (NSUInteger)beginPendingPreparationWithPlaybackToken:(NSString *)playbackToken;
+- (BOOL)isPendingPlaybackToken:(NSString *)playbackToken
+                    generation:(NSUInteger)generation;
+- (BOOL)installPreparedPlayer:(AVAudioPlayer *)player
+                playbackToken:(NSString *)playbackToken
+                   generation:(NSUInteger)generation;
+- (void)clearPendingPreparationForGeneration:(NSUInteger)generation;
+- (void)cancelCurrentPlaybackForSystemInterruption;
+- (void)emitType:(NSString *)type
+    playbackToken:(NSString *)playbackToken
+   requiresPrepare:(BOOL)requiresPrepare;
 @end
 
 @implementation SoftbookAudioPlayer
@@ -18,6 +34,11 @@ RCT_EXPORT_MODULE();
 + (BOOL)requiresMainQueueSetup
 {
   return YES;
+}
+
+- (dispatch_queue_t)methodQueue
+{
+  return dispatch_get_main_queue();
 }
 
 - (instancetype)init
@@ -68,7 +89,7 @@ RCT_EXPORT_METHOD(prepare:(NSString *)filePath
     return;
   }
 
-  [self stopPlayer];
+  NSUInteger generation = [self beginPendingPreparationWithPlaybackToken:playbackToken];
   NSError *sessionError = nil;
   AVAudioSession *session = [AVAudioSession sharedInstance];
   [session setCategory:AVAudioSessionCategoryPlayback
@@ -79,7 +100,13 @@ RCT_EXPORT_METHOD(prepare:(NSString *)filePath
     [session setActive:YES error:&sessionError];
   }
   if (sessionError != nil) {
+    [self clearPendingPreparationForGeneration:generation];
     reject(@"audio_session_failed", @"Audio session is unavailable.", sessionError);
+    return;
+  }
+
+  if (![self isPendingPlaybackToken:playbackToken generation:generation]) {
+    reject(@"audio_prepare_interrupted", @"Audio preparation was interrupted.", nil);
     return;
   }
 
@@ -87,21 +114,32 @@ RCT_EXPORT_METHOD(prepare:(NSString *)filePath
   AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithContentsOfURL:fileURL
                                                                  error:&playerError];
   if (player == nil || playerError != nil || ![player prepareToPlay]) {
-    [self deactivateAudioSession];
+    [self clearPendingPreparationForGeneration:generation];
     reject(@"audio_prepare_failed", @"Audio preparation failed.", playerError);
     return;
   }
 
-  player.delegate = self;
-  self.playbackToken = playbackToken;
-  self.player = player;
+  if (![self installPreparedPlayer:player
+                     playbackToken:playbackToken
+                        generation:generation]) {
+    [player stop];
+    player.delegate = nil;
+    reject(@"audio_prepare_interrupted", @"Audio preparation was interrupted.", nil);
+    return;
+  }
   resolve(nil);
 }
 
-RCT_EXPORT_METHOD(play:(RCTPromiseResolveBlock)resolve
+RCT_EXPORT_METHOD(play:(NSString *)playbackToken
+                  resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
-  if (self.player == nil) {
+  AVAudioPlayer *player = self.player;
+  NSUInteger generation = self.preparedPlaybackGeneration;
+  if (player == nil ||
+      generation == 0 ||
+      self.playbackGeneration != generation ||
+      ![self.playbackToken isEqualToString:playbackToken]) {
     reject(@"audio_not_ready", @"Audio is not ready.", nil);
     return;
   }
@@ -113,7 +151,14 @@ RCT_EXPORT_METHOD(play:(RCTPromiseResolveBlock)resolve
     return;
   }
 
-  if (![self.player play]) {
+  if (player != self.player ||
+      generation != self.playbackGeneration ||
+      ![self.playbackToken isEqualToString:playbackToken]) {
+    reject(@"audio_prepare_interrupted", @"Audio preparation was interrupted.", nil);
+    return;
+  }
+
+  if (![player play]) {
     [self deactivateAudioSession];
     reject(@"audio_not_ready", @"Audio is not ready.", nil);
     return;
@@ -121,9 +166,15 @@ RCT_EXPORT_METHOD(play:(RCTPromiseResolveBlock)resolve
   resolve(nil);
 }
 
-RCT_EXPORT_METHOD(pause:(RCTPromiseResolveBlock)resolve
+RCT_EXPORT_METHOD(pause:(NSString *)playbackToken
+                  resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 {
+  if (self.player == nil ||
+      ![self.playbackToken isEqualToString:playbackToken]) {
+    reject(@"audio_not_ready", @"Audio is not ready.", nil);
+    return;
+  }
   [self.player pause];
   resolve(nil);
 }
@@ -155,47 +206,154 @@ RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve
 - (void)handleAudioSessionInterruption:(NSNotification *)notification
 {
   NSNumber *typeValue = notification.userInfo[AVAudioSessionInterruptionTypeKey];
-  if (typeValue.unsignedIntegerValue == AVAudioSessionInterruptionTypeBegan && self.player != nil) {
-    BOOL wasPlaying = self.player.isPlaying;
-    [self.player pause];
-    [self deactivateAudioSession];
-    if (wasPlaying) {
-      [self emitType:@"interruption"];
-    }
+  if (typeValue.unsignedIntegerValue == AVAudioSessionInterruptionTypeBegan) {
+    RCTExecuteOnMainQueue(^{
+      [self cancelCurrentPlaybackForSystemInterruption];
+    });
   }
 }
 
 - (void)handleApplicationBackground:(NSNotification *)notification
 {
-  if (self.player != nil) {
-    BOOL wasPlaying = self.player.isPlaying;
-    [self.player pause];
-    [self deactivateAudioSession];
-    if (wasPlaying) {
-      [self emitType:@"interruption"];
-    }
-  }
+  RCTExecuteOnMainQueue(^{
+    [self cancelCurrentPlaybackForSystemInterruption];
+  });
 }
 
 - (void)emitType:(NSString *)type
 {
-  if (!self.hasListeners) {
+  [self emitType:type
+    playbackToken:self.playbackToken ?: @""
+   requiresPrepare:NO];
+}
+
+- (void)emitType:(NSString *)type
+    playbackToken:(NSString *)playbackToken
+   requiresPrepare:(BOOL)requiresPrepare
+{
+  if (!self.hasListeners || playbackToken.length == 0) {
     return;
   }
+  NSMutableDictionary *body = [@{
+    @"type" : type,
+    @"playbackToken" : playbackToken
+  } mutableCopy];
+  if (requiresPrepare) {
+    body[@"requiresPrepare"] = @YES;
+  }
   [self sendEventWithName:SoftbookAudioPlayerEvent
-                     body:@{
-                       @"type" : type,
-                       @"playbackToken" : self.playbackToken ?: @""
-                     }];
+                     body:body];
+}
+
+- (NSUInteger)beginPendingPreparationWithPlaybackToken:(NSString *)playbackToken
+{
+  AVAudioPlayer *previousPlayer = self.player;
+  BOOL hadActivePlayback = previousPlayer != nil ||
+      self.playbackToken.length > 0 ||
+      self.pendingPlaybackToken.length > 0;
+
+  self.playbackGeneration += 1;
+  NSUInteger generation = self.playbackGeneration;
+  self.player = nil;
+  self.playbackToken = nil;
+  self.preparedPlaybackGeneration = 0;
+  self.pendingPlaybackToken = [playbackToken copy];
+  self.pendingPlaybackGeneration = generation;
+
+  [previousPlayer stop];
+  previousPlayer.delegate = nil;
+  if (hadActivePlayback) {
+    [self deactivateAudioSession];
+  }
+  return generation;
+}
+
+- (BOOL)isPendingPlaybackToken:(NSString *)playbackToken
+                    generation:(NSUInteger)generation
+{
+  return generation != 0 &&
+      self.playbackGeneration == generation &&
+      self.pendingPlaybackGeneration == generation &&
+      [self.pendingPlaybackToken isEqualToString:playbackToken];
+}
+
+- (BOOL)installPreparedPlayer:(AVAudioPlayer *)player
+                playbackToken:(NSString *)playbackToken
+                   generation:(NSUInteger)generation
+{
+  if (![self isPendingPlaybackToken:playbackToken generation:generation]) {
+    return NO;
+  }
+
+  player.delegate = self;
+  self.player = player;
+  self.playbackToken = [playbackToken copy];
+  self.preparedPlaybackGeneration = generation;
+  self.pendingPlaybackToken = nil;
+  self.pendingPlaybackGeneration = 0;
+  return YES;
+}
+
+- (void)clearPendingPreparationForGeneration:(NSUInteger)generation
+{
+  if (generation == 0 ||
+      self.playbackGeneration != generation ||
+      self.pendingPlaybackGeneration != generation) {
+    return;
+  }
+
+  self.playbackGeneration += 1;
+  self.pendingPlaybackToken = nil;
+  self.pendingPlaybackGeneration = 0;
+  [self deactivateAudioSession];
+}
+
+- (void)cancelCurrentPlaybackForSystemInterruption
+{
+  NSString *interruptedToken = self.pendingPlaybackToken.length > 0
+      ? self.pendingPlaybackToken
+      : self.playbackToken;
+  NSUInteger interruptedGeneration = self.pendingPlaybackGeneration != 0
+      ? self.pendingPlaybackGeneration
+      : self.preparedPlaybackGeneration;
+
+  if (interruptedToken.length == 0 ||
+      interruptedGeneration == 0 ||
+      self.interruptedPlaybackGeneration == interruptedGeneration) {
+    return;
+  }
+
+  self.interruptedPlaybackGeneration = interruptedGeneration;
+  self.playbackGeneration += 1;
+  AVAudioPlayer *interruptedPlayer = self.player;
+  self.player = nil;
+  self.playbackToken = nil;
+  self.preparedPlaybackGeneration = 0;
+  self.pendingPlaybackToken = nil;
+  self.pendingPlaybackGeneration = 0;
+
+  [interruptedPlayer stop];
+  interruptedPlayer.delegate = nil;
+  [self deactivateAudioSession];
+  [self emitType:@"interruption"
+    playbackToken:interruptedToken
+   requiresPrepare:YES];
 }
 
 - (void)stopPlayer
 {
-  BOOL hadActivePlayer = self.player != nil || self.playbackToken.length > 0;
-  [self.player stop];
-  self.player.delegate = nil;
+  AVAudioPlayer *stoppedPlayer = self.player;
+  BOOL hadActivePlayer = stoppedPlayer != nil ||
+      self.playbackToken.length > 0 ||
+      self.pendingPlaybackToken.length > 0;
+  self.playbackGeneration += 1;
   self.player = nil;
   self.playbackToken = nil;
+  self.preparedPlaybackGeneration = 0;
+  self.pendingPlaybackToken = nil;
+  self.pendingPlaybackGeneration = 0;
+  [stoppedPlayer stop];
+  stoppedPlayer.delegate = nil;
   if (hadActivePlayer) {
     [self deactivateAudioSession];
   }

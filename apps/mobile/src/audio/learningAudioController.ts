@@ -13,12 +13,13 @@ export type LearningAudioPlaybackState =
 
 export type LearningAudioEngineEvent = {
   playbackToken: string;
+  requiresPrepare?: true;
   type: 'ended' | 'error' | 'interruption';
 };
 
 export type LearningAudioEngine = {
-  pause: () => Promise<void>;
-  play: () => Promise<void>;
+  pause: (playbackToken: string) => Promise<void>;
+  play: (playbackToken: string) => Promise<void>;
   prepare: (filePath: string, playbackToken: string) => Promise<void>;
   stop: () => Promise<void>;
   subscribe: (
@@ -69,7 +70,10 @@ export class LearningAudioController {
         return;
       }
 
-      if (event.type === 'interruption' && this.state.status === 'loading') {
+      if (
+        event.type === 'interruption' &&
+        (this.state.status === 'loading' || event.requiresPrepare === true)
+      ) {
         this.cancelPendingPlayback().catch(() => undefined);
         return;
       }
@@ -146,7 +150,7 @@ export class LearningAudioController {
       }
 
       try {
-        await this.dependencies.engine.pause();
+        await this.dependencies.engine.pause(playbackToken);
         if (
           this.isCurrentPlayback(
             generation,
@@ -182,7 +186,7 @@ export class LearningAudioController {
       }
 
       try {
-        await this.dependencies.engine.play();
+        await this.dependencies.engine.play(playbackToken);
         if (
           this.isCurrentPlayback(
             generation,
@@ -229,7 +233,7 @@ export class LearningAudioController {
     }
 
     try {
-      await this.dependencies.engine.pause();
+      await this.dependencies.engine.pause(playbackToken);
     } finally {
       if (
         this.isCurrentPlayback(
@@ -290,7 +294,7 @@ export class LearningAudioController {
         }
 
         const playbackRevision = this.playbackRevision;
-        await this.dependencies.engine.play();
+        await this.dependencies.engine.play(playbackToken);
 
         if (
           !this.isCurrentPlayback(
