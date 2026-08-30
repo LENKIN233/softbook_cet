@@ -32,6 +32,7 @@ type WebAudioDependencies = {
   now?: () => Date;
   onPlaybackTerminated?: (reason: 'ended' | 'error' | 'stopped') => void;
   revokeObjectUrl?: (source: string) => void;
+  signal?: AbortSignal;
   timeoutMs?: number;
 };
 
@@ -56,6 +57,9 @@ export async function prepareVerifiedCardAudio(options: {
 
   assertCredentialFreeHttpsUrl(selection.download.url);
   const {bytes, digest} = await runBoundedRemoteRequest({
+    cancellationSources: dependencies.signal
+      ? [{reason: 'session_superseded', signal: dependencies.signal}]
+      : [],
     timeoutMs: dependencies.timeoutMs ?? DEFAULT_REMOTE_REQUEST_TIMEOUT_MS,
     operation: async signal => {
       const response = await (dependencies.fetchImpl ?? fetch)(

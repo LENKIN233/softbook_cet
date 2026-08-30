@@ -823,6 +823,9 @@ describe('authenticated Web remote orchestration', () => {
       mutationQueueRepository: createMutationRepository(operations),
       playAudio: async () => 'ready',
       setAccountDeletionQuarantine,
+      stopAudio() {
+        operations.push('audio-stop');
+      },
       track: 'cet4',
     });
 
@@ -853,6 +856,9 @@ describe('authenticated Web remote orchestration', () => {
     });
     expect(controller.isAuthenticated()).toBe(false);
     expect(persistedDeletionState).toBeNull();
+    expect(operations.indexOf('audio-stop')).toBeLessThan(
+      operations.indexOf(`events-clear:${PHONE}`),
+    );
     expect(operations).toContain(`events-clear:${PHONE}`);
     expect(operations).toContain('mutation-clear');
     expect(operations.at(-1)).toBe('deletion-marker-clear');
@@ -1068,6 +1074,7 @@ describe('authenticated Web remote orchestration', () => {
 
   it('quarantines an old tab after another tab completes deletion cleanup', async () => {
     localStorage.clear();
+    const cleanupOperations: string[] = [];
     const authRepository = createSimpleAuthRepository();
     const authSessionCoordinator = createAuthSessionCoordinator({
       authRepository,
@@ -1093,14 +1100,19 @@ describe('authenticated Web remote orchestration', () => {
       accountDeletionStateStore: controllerDeletionStore,
       authRepository,
       authSessionCoordinator,
-      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningEventSyncRepository: {
+        ...createEmptyEventSyncRepository(),
+        async clearAccount(phoneNumber) {
+          cleanupOperations.push(`events-clear:${phoneNumber}`);
+        },
+      },
       learningSessionRepository: {
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
         },
       },
-      mutationQueueRepository: createMutationRepository([]),
+      mutationQueueRepository: createMutationRepository(cleanupOperations),
       playAudio: async () => 'ready',
       track: 'cet4',
     });
@@ -1108,7 +1120,13 @@ describe('authenticated Web remote orchestration', () => {
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
     expect(bootstrapLoads).toBe(1);
+    cleanupOperations.length = 0;
     await otherTabDeletionStore.mark(PHONE, 'requesting');
+    await expect(controller.logout()).rejects.toThrow(
+      '普通退出不会清理待确认记录',
+    );
+    expect(controller.isAuthenticated()).toBe(true);
+    expect(cleanupOperations).toEqual([]);
     await otherTabDeletionStore.mark(PHONE, 'accepted');
     await otherTabDeletionStore.clear();
 
@@ -1120,6 +1138,64 @@ describe('authenticated Web remote orchestration', () => {
       'changed in another tab',
     );
     await expect(controllerDeletionStore.load()).resolves.toBeNull();
+  });
+
+  it('does not establish an ordinary session when deletion starts during SMS verification', async () => {
+    localStorage.clear();
+    let continueVerification: (() => void) | undefined;
+    let markVerificationStarted: (() => void) | undefined;
+    const verificationGate = new Promise<void>(resolve => {
+      continueVerification = resolve;
+    });
+    const verificationStarted = new Promise<void>(resolve => {
+      markVerificationStarted = resolve;
+    });
+    const authRepository = createSimpleAuthRepository();
+    const verifySmsCode = authRepository.verifySmsCode;
+    authRepository.verifySmsCode = async input => {
+      markVerificationStarted?.();
+      await verificationGate;
+      return verifySmsCode(input);
+    };
+    const logout = vi.spyOn(authRepository, 'logout');
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const controllerDeletionStore =
+      createWebAccountDeletionStateStore(localStorage);
+    const otherTabDeletionStore =
+      createWebAccountDeletionStateStore(localStorage);
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          throw new Error('stale verification must not bootstrap');
+        },
+      },
+      accountDeletionStateStore: controllerDeletionStore,
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          throw new Error('stale verification must not load learning');
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    const verification = controller.verifySmsCode(PHONE, '123456');
+    await verificationStarted;
+    await otherTabDeletionStore.mark(PHONE, 'requesting');
+    continueVerification?.();
+
+    await expect(verification).rejects.toThrow('删除恢复入口');
+    expect(controller.isAuthenticated()).toBe(false);
+    expect(logout).toHaveBeenCalledTimes(1);
   });
 
   it('persists explicit check-in before reporting server confirmation', async () => {

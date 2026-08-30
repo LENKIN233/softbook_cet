@@ -263,24 +263,32 @@ async function fetchWithCurrentAccessToken(
   signal: AbortSignal,
   requestLifetimeController: AbortController,
 ) {
-  const accessToken = await authSessionCoordinator.getAccessToken();
-
-  if (
-    getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
-    expectedSessionScopeKey
-  ) {
-    throw new RemoteRequestLifecycleError('session_superseded');
-  }
-
-  const headers = new Headers(init?.headers);
-
-  if (accessToken) {
-    headers.set('Authorization', `Bearer ${accessToken}`);
-  }
-
   const abortRequestLifetime = () => requestLifetimeController.abort();
   signal.addEventListener('abort', abortRequestLifetime, {once: true});
+  if (signal.aborted) {
+    abortRequestLifetime();
+  }
+
   try {
+    const accessToken = await authSessionCoordinator.getAccessToken();
+
+    if (requestLifetimeController.signal.aborted) {
+      throw new RemoteRequestLifecycleError('caller_cancelled');
+    }
+
+    if (
+      getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !==
+      expectedSessionScopeKey
+    ) {
+      throw new RemoteRequestLifecycleError('session_superseded');
+    }
+
+    const headers = new Headers(init?.headers);
+
+    if (accessToken) {
+      headers.set('Authorization', `Bearer ${accessToken}`);
+    }
+
     return await fetchImpl(input, {
       ...init,
       headers,

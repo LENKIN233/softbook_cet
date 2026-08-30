@@ -176,6 +176,42 @@ describe('Web private audio boundary', () => {
     }
   });
 
+  it('cancels an in-flight private download when its playback authority ends', async () => {
+    const authority = new AbortController();
+    let requestSignal: AbortSignal | undefined;
+    let markFetchStarted: (() => void) | undefined;
+    const fetchStarted = new Promise<void>(resolve => {
+      markFetchStarted = resolve;
+    });
+    const task = prepareVerifiedCardAudio({
+      card,
+      contentManifest: manifest,
+      dependencies: {
+        fetchImpl: async (_input, init) => {
+          requestSignal = init?.signal ?? undefined;
+          markFetchStarted?.();
+          return new Promise<Response>((_resolve, reject) => {
+            requestSignal?.addEventListener(
+              'abort',
+              () => reject(new DOMException('aborted', 'AbortError')),
+              {once: true},
+            );
+          });
+        },
+        now: () => new Date('2026-08-29T00:00:00.000Z'),
+        signal: authority.signal,
+      },
+    });
+
+    await fetchStarted;
+    authority.abort();
+
+    await expect(task).rejects.toMatchObject({
+      reason: 'session_superseded',
+    });
+    expect(requestSignal?.aborted).toBe(true);
+  });
+
   it.each(['ended', 'error'] as const)(
     'releases %s playback state so the card can be prepared again',
     async eventName => {

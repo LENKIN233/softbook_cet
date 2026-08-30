@@ -66,6 +66,84 @@ describe('Web authenticated fetch deadline', () => {
     });
     expect(requestSignal?.aborted).toBe(true);
   });
+
+  it('does not start transport after cancellation while token refresh is pending', async () => {
+    let markRefreshStarted: (() => void) | undefined;
+    let resolveRefresh:
+      | ((session: Awaited<ReturnType<AuthRepository['refreshSession']>>) => void)
+      | undefined;
+    const refreshStarted = new Promise<void>(resolve => {
+      markRefreshStarted = resolve;
+    });
+    const refreshResult = new Promise<
+      Awaited<ReturnType<AuthRepository['refreshSession']>>
+    >(resolve => {
+      resolveRefresh = resolve;
+    });
+    const authRepository: AuthRepository = {
+      logout: async () => undefined,
+      refreshSession: async () => {
+        markRefreshStarted?.();
+        return refreshResult;
+      },
+      requestSmsCode: async phoneNumber => ({
+        challengeId: 'challenge-web-cancel-refresh',
+        expiresAt: '2026-08-29T12:05:00.000Z',
+        mode: 'remote',
+        phoneNumber,
+        retryAfterSeconds: 0,
+      }),
+      verifySmsCode: async () => {
+        throw new Error('not used');
+      },
+    };
+    const coordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+      now: () => new Date('2026-08-29T12:00:00.000Z'),
+    });
+    await coordinator.establish({
+      accessToken: 'expiring-access',
+      accessTokenExpiresAt: '2026-08-29T12:00:30.000Z',
+      mode: 'remote',
+      phoneNumber: '13800138000',
+      refreshExpiresAt: '2026-09-29T12:00:00.000Z',
+      refreshToken: 'refresh-before-cancel',
+      sessionId: 'session-web-cancel-refresh',
+      tokenType: 'Bearer',
+    });
+    const fetchImpl = vi.fn<typeof fetch>();
+    const authenticatedFetch = createAuthenticatedFetch({
+      authSessionCoordinator: coordinator,
+      fetchImpl,
+      timeoutMs: 1_000,
+    });
+    const caller = new AbortController();
+
+    const request = authenticatedFetch('https://runtime.example.cn/v2/bootstrap', {
+      signal: caller.signal,
+    });
+    await refreshStarted;
+    caller.abort();
+    await expect(request).rejects.toMatchObject({reason: 'caller_cancelled'});
+
+    resolveRefresh?.({
+      accessToken: 'refreshed-after-cancel',
+      accessTokenExpiresAt: '2026-08-29T13:00:00.000Z',
+      mode: 'remote',
+      phoneNumber: '13800138000',
+      refreshExpiresAt: '2026-09-29T12:00:00.000Z',
+      refreshToken: 'rotated-after-cancel',
+      sessionId: 'session-web-cancel-refresh',
+      tokenType: 'Bearer',
+    });
+    await refreshResult;
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
 });
 
 async function createCoordinator() {

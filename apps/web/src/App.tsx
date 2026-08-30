@@ -121,6 +121,7 @@ export function App({
     useState<AccountDeletionStage>(
       runtime.mode === 'remote' ? 'checking' : 'none',
     );
+  const audioRequestGeneration = useRef(0);
 
   const activeCards = runtime.mode === 'remote'
     ? session?.cards ?? []
@@ -267,6 +268,7 @@ export function App({
     setSessionComplete(nextSession.cards.length === 0);
     setResults([...snapshot.learningResults, ...snapshot.reviewResults]);
     if (!preservesCurrentCardDraft) {
+      audioRequestGeneration.current += 1;
       setResolved(null);
     }
     setFavorites(snapshot.favorites);
@@ -431,6 +433,7 @@ export function App({
   }
 
   function resetAccountState() {
+    audioRequestGeneration.current += 1;
     setAuthStage('phone');
     setPhone('');
     setCode('');
@@ -503,6 +506,16 @@ export function App({
         await remoteController.logout();
         resetAccountState();
       } catch {
+        try {
+          const deletionOutcome =
+            await remoteController.resumeAccountDeletion();
+          if (deletionOutcome.status !== 'none') {
+            applyAccountDeletionOutcome(deletionOutcome);
+            return;
+          }
+        } catch {
+          // Preserve the authenticated recovery shell below when state is unreadable.
+        }
         setRemoteError('本地待同步记录尚未安全清理，当前页面不会退出。请重试。');
       } finally {
         setRemoteBusy(false);
@@ -614,11 +627,19 @@ export function App({
     if (runtime.mode !== 'remote' || remoteController === null || !currentCard) {
       return;
     }
+    const requestGeneration = audioRequestGeneration.current + 1;
+    audioRequestGeneration.current = requestGeneration;
     setRemoteError('');
     setAudioStatus('loading');
     try {
-      setAudioStatus(await remoteController.playCardAudio(currentCard));
+      const status = await remoteController.playCardAudio(currentCard);
+      if (audioRequestGeneration.current === requestGeneration) {
+        setAudioStatus(status);
+      }
     } catch (error) {
+      if (audioRequestGeneration.current !== requestGeneration) {
+        return;
+      }
       setAudioStatus('error');
       await handleRemoteFailure(error, '卡片音频暂时无法播放。');
     }

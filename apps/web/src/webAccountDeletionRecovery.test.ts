@@ -42,12 +42,14 @@ describe('Web account deletion recovery repository', () => {
       state: 'pending',
     });
 
-    expect(fetchImpl).toHaveBeenNthCalledWith(
+      expect(fetchImpl).toHaveBeenNthCalledWith(
       1,
       'https://runtime.example.cn/v2/account/deletion/recovery/request-code',
       expect.objectContaining({
         body: JSON.stringify({phone_number: PHONE}),
+        credentials: 'omit',
         method: 'POST',
+        redirect: 'error',
       }),
     );
     expect(fetchImpl).toHaveBeenNthCalledWith(
@@ -59,7 +61,9 @@ describe('Web account deletion recovery repository', () => {
           phone_number: PHONE,
           sms_code: '123456',
         }),
+        credentials: 'omit',
         method: 'POST',
+        redirect: 'error',
       }),
     );
     for (const [, init] of fetchImpl.mock.calls) {

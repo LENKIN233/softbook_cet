@@ -64,8 +64,10 @@ export function createWebAccountDeletionRecoveryRepository(options: {
             `${baseUrl}/v2/account/deletion/recovery/request-code`,
             {
               body: JSON.stringify({phone_number: phoneNumber}),
+              credentials: 'omit',
               headers,
               method: 'POST',
+              redirect: 'error',
               signal,
             },
           );
@@ -91,8 +93,10 @@ export function createWebAccountDeletionRecoveryRepository(options: {
                 phone_number: challenge.phoneNumber,
                 sms_code: smsCode,
               }),
+              credentials: 'omit',
               headers,
               method: 'POST',
+              redirect: 'error',
               signal,
             },
           );

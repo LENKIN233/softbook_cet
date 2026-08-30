@@ -39,7 +39,10 @@ import {resolveMembershipRepositoryConfig} from '../../mobile/src/membership/mem
 import {resolveMembershipAccess} from '../../mobile/src/membership/localMembership';
 import {getChinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {isRemoteAuthorizationError} from '../../mobile/src/runtime/remoteHttpError';
-import {isRemoteRequestCancellationError} from '../../mobile/src/runtime/remoteRequest';
+import {
+  isRemoteRequestCancellationError,
+  RemoteRequestLifecycleError,
+} from '../../mobile/src/runtime/remoteRequest';
 import {createSoftbookClientHeaders} from '../../mobile/src/runtime/remoteClient';
 import {
   applySpaceActionToMap,
@@ -64,6 +67,7 @@ import {resolveProgressSyncRepositoryConfig} from '../../mobile/src/sync/progres
 import type {WebRuntime} from './runtime';
 import {prepareVerifiedCardAudio} from './webAudio';
 import {
+  createWebAccountWriteFence,
   createMemoryOnlyAuthSessionStore,
   createWebLearningEventStorage,
   createWebMutationQueueStorage,
@@ -143,10 +147,15 @@ type RemoteRuntimeDependencies = {
   ) => Promise<'paused' | 'playing' | 'ready'>;
   stopAudio?: () => void;
   runtimeSessionId?: string;
+  runAccountDeletionCleanup?: <Result>(
+    scope: {ownerPhoneNumber: string; revision: number},
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
   setAccountDeletionQuarantine?: (
     sessionScopeKey: string,
     active: boolean,
   ) => void;
+  setAccountWriteRevision?: (revision: number | null) => void;
   subscribeAudioStatus?: (
     listener: (status: 'error' | 'idle') => void,
   ) => () => void;
@@ -240,6 +249,7 @@ export function createWebRemoteRuntime(
   const accountDeletionStateStore = createWebAccountDeletionStateStore(
     browserStorage,
   );
+  const accountWriteFence = createWebAccountWriteFence(browserStorage);
   const accountBootstrapRepository = createAccountBootstrapRepository({
     fetchImpl: authenticatedFetch,
     mode: 'remote',
@@ -284,28 +294,53 @@ export function createWebRemoteRuntime(
   const learningEventSyncRepository = createLearningEventSyncRepository({
     eventsRepository: learningEventsRepository,
     outbox: new LearningEventOutbox({
-      storage: createWebLearningEventStorage(browserStorage),
+      storage: createWebLearningEventStorage(browserStorage, accountWriteFence),
     }),
   });
   const mutationQueueRepository = createMutationQueueRepository({
     membershipRepository,
     progressSyncRepository,
     queueManager: new MutationQueueManager({
-      storage: createWebMutationQueueStorage(browserStorage),
+      storage: createWebMutationQueueStorage(browserStorage, accountWriteFence),
     }),
     spaceStateRepository,
   });
 
   let activeAudio: {
     cardToken: string;
+    generation: number;
     pause: () => void;
     play: () => Promise<void>;
     status: 'paused' | 'playing' | 'ready';
     stop: () => void;
   } | null = null;
+  let activeAudioPreparation: AbortController | null = null;
+  let audioGeneration = 0;
   const audioStatusListeners = new Set<
     (status: 'error' | 'idle') => void
   >();
+  const notifyAudioStatus = (status: 'error' | 'idle') => {
+    for (const listener of audioStatusListeners) {
+      try {
+        listener(status);
+      } catch {
+        // One view listener cannot block playback cleanup.
+      }
+    }
+  };
+  const stopActiveAudio = () => {
+    const hadActiveAudio =
+      activeAudio !== null || activeAudioPreparation !== null;
+    audioGeneration += 1;
+    activeAudioPreparation?.abort();
+    activeAudioPreparation = null;
+    const playback = activeAudio;
+    activeAudio = null;
+    playback?.stop();
+    if (hadActiveAudio) {
+      notifyAudioStatus('idle');
+    }
+  };
   return createWebRemoteRuntimeController({
     accountDeletionRecoveryRepository,
     accountDeletionRepository,
@@ -316,52 +351,85 @@ export function createWebRemoteRuntime(
     learningEventSyncRepository,
     learningSessionRepository,
     mutationQueueRepository,
+    runAccountDeletionCleanup: (scope, operation) =>
+      accountWriteFence.runDeletionCleanup(scope, operation),
     playAudio: async (card, session) => {
       if (session.contentManifest === null) {
         throw new Error('当前学习内容没有经过签名音频清单校验。');
       }
       const cardToken = `${card.card_id}:${card.audio?.sha256 ?? 'no-audio'}`;
       if (activeAudio?.cardToken === cardToken) {
-        if (activeAudio.status === 'playing') {
-          activeAudio.pause();
-          activeAudio.status = 'paused';
+        const currentAudio = activeAudio;
+        if (currentAudio.status === 'playing') {
+          currentAudio.pause();
+          currentAudio.status = 'paused';
           return 'paused';
         }
-        await activeAudio.play();
-        activeAudio.status = 'playing';
+        await currentAudio.play();
+        if (activeAudio !== currentAudio) {
+          throw new Error('卡片音频播放已中断，请重新准备。');
+        }
+        currentAudio.status = 'playing';
         return 'playing';
       }
-      activeAudio?.stop();
-      const playback = await prepareVerifiedCardAudio({
-        card,
-        contentManifest: session.contentManifest,
-        dependencies: {
-          fetchImpl,
-          onPlaybackTerminated(reason) {
-            if (activeAudio?.cardToken === cardToken) {
-              activeAudio = null;
-            }
-            const status = reason === 'error' ? 'error' : 'idle';
-            for (const listener of audioStatusListeners) {
-              try {
-                listener(status);
-              } catch {
-                // One view listener cannot block playback cleanup.
+      audioGeneration += 1;
+      const preparationGeneration = audioGeneration;
+      activeAudioPreparation?.abort();
+      const previousAudio = activeAudio;
+      activeAudio = null;
+      previousAudio?.stop();
+      const preparationController = new AbortController();
+      activeAudioPreparation = preparationController;
+      let terminatedDuringPreparation: 'ended' | 'error' | 'stopped' | null =
+        null;
+      let playback: Awaited<ReturnType<typeof prepareVerifiedCardAudio>>;
+      try {
+        playback = await prepareVerifiedCardAudio({
+          card,
+          contentManifest: session.contentManifest,
+          dependencies: {
+            fetchImpl,
+            onPlaybackTerminated(reason) {
+              terminatedDuringPreparation = reason;
+              if (audioGeneration !== preparationGeneration) {
+                return;
               }
-            }
+              if (activeAudio?.generation === preparationGeneration) {
+                activeAudio = null;
+              }
+              const status = reason === 'error' ? 'error' : 'idle';
+              notifyAudioStatus(status);
+            },
+            signal: preparationController.signal,
           },
-        },
-      });
-      activeAudio = {...playback, cardToken, status: 'ready'};
+        });
+      } finally {
+        if (activeAudioPreparation === preparationController) {
+          activeAudioPreparation = null;
+        }
+      }
+      if (
+        audioGeneration !== preparationGeneration ||
+        terminatedDuringPreparation !== null
+      ) {
+        playback.stop();
+        throw new RemoteRequestLifecycleError('session_superseded');
+      }
+      activeAudio = {
+        ...playback,
+        cardToken,
+        generation: preparationGeneration,
+        status: 'ready',
+      };
       return 'ready';
     },
-    stopAudio: () => {
-      activeAudio?.stop();
-      activeAudio = null;
-    },
+    stopAudio: stopActiveAudio,
     setAccountDeletionQuarantine(sessionScopeKey, active) {
       if (active) deletionQuarantinedSessionScopes.add(sessionScopeKey);
       else deletionQuarantinedSessionScopes.delete(sessionScopeKey);
+    },
+    setAccountWriteRevision(revision) {
+      accountWriteFence.bindSessionRevision(revision);
     },
     subscribeAudioStatus(listener) {
       audioStatusListeners.add(listener);
@@ -375,6 +443,7 @@ export function createWebRemoteRuntimeController(
   dependencies: RemoteRuntimeDependencies,
 ): WebRemoteRuntimeController {
   let challenge: AuthChallenge | null = null;
+  let challengeDeletionRevision: number | null = null;
   let deletionRecoveryChallenge: WebAccountDeletionRecoveryChallenge | null =
     null;
   let activeAccountPhoneNumber: string | null = null;
@@ -390,40 +459,41 @@ export function createWebRemoteRuntimeController(
   const runtimeSessionId =
     dependencies.runtimeSessionId ?? createBootstrapRuntimeSessionId();
 
+  const readStableDeletionState = async () => {
+    const stateStore = dependencies.accountDeletionStateStore;
+    if (stateStore === undefined) {
+      return {revision: null, state: null};
+    }
+    const revisionBefore = await stateStore.getRevision();
+    const state = await stateStore.load();
+    const revisionAfter = await stateStore.getRevision();
+    if (revisionBefore !== revisionAfter) {
+      throw new Error('Web account deletion marker changed in another tab.');
+    }
+    return {revision: revisionAfter, state};
+  };
+
   const requireAuthenticatedContext = async () => {
     const session = dependencies.authSessionCoordinator.getCurrentSession();
     if (session === null || session.mode !== 'remote') {
       throw new Error('需要先完成手机号验证。');
     }
-    const deletionStateStore = dependencies.accountDeletionStateStore;
-    const revisionBefore =
-      deletionStateStore === undefined
-        ? null
-        : await deletionStateStore.getRevision();
+    const deletionState = await readStableDeletionState();
+    const revisionBefore = deletionState.revision;
     if (sessionDeletionRevision === null) {
       sessionDeletionRevision = revisionBefore;
+      dependencies.setAccountWriteRevision?.(revisionBefore);
     }
     if (revisionBefore !== sessionDeletionRevision) {
       const sessionScopeKey = getAuthSessionScopeKey(session);
       if (sessionScopeKey !== null) {
         dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
       }
+      dependencies.stopAudio?.();
       throw new Error('账户隔离状态已变化，请完成当前恢复操作。');
     }
-    const deletionState = await deletionStateStore?.load();
-    const revisionAfter =
-      deletionStateStore === undefined
-        ? null
-        : await deletionStateStore.getRevision();
-    if (revisionAfter !== sessionDeletionRevision) {
-      const sessionScopeKey = getAuthSessionScopeKey(session);
-      if (sessionScopeKey !== null) {
-        dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
-      }
-      throw new Error('账户隔离状态已变化，请完成当前恢复操作。');
-    }
-    if (deletionState !== undefined && deletionState !== null) {
-      if (deletionState.phoneNumber !== session.phoneNumber) {
+    if (deletionState.state !== null) {
+      if (deletionState.state.phoneNumber !== session.phoneNumber) {
         throw new Error('删除状态属于另一个 Web 账户。');
       }
       const sessionScopeKey = getAuthSessionScopeKey(session);
@@ -431,6 +501,7 @@ export function createWebRemoteRuntimeController(
         throw new Error('Web account deletion session scope is invalid.');
       }
       dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+      dependencies.stopAudio?.();
       throw new Error('删除结果确认期间已暂停新的账户操作。');
     }
     activeAccountPhoneNumber = session.phoneNumber;
@@ -452,7 +523,9 @@ export function createWebRemoteRuntimeController(
     if (cleanupResults.some(result => result.status === 'rejected')) {
       throw new Error('退出后的本地待同步状态未能完整清理。');
     }
+    dependencies.setAccountWriteRevision?.(null);
     challenge = null;
+    challengeDeletionRevision = null;
     deletionRecoveryChallenge = null;
     activeAccountPhoneNumber = null;
     currentBootstrap = null;
@@ -470,7 +543,8 @@ export function createWebRemoteRuntimeController(
       throw new Error('Web account deletion state store is unavailable.');
     }
     activeAccountPhoneNumber = phoneNumber;
-    try {
+    const cleanup = async (): Promise<WebAccountDeletionOutcome> => {
+      dependencies.stopAudio?.();
       if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
         await dependencies.authSessionCoordinator.invalidate();
       }
@@ -478,6 +552,15 @@ export function createWebRemoteRuntimeController(
       await stateStore.clear();
       acceptedDeletionPhoneNumber = null;
       return {status: 'accepted'};
+    };
+    try {
+      const revision = await stateStore.getRevision();
+      return dependencies.runAccountDeletionCleanup === undefined
+        ? await cleanup()
+        : await dependencies.runAccountDeletionCleanup(
+            {ownerPhoneNumber: phoneNumber, revision},
+            cleanup,
+          );
     } catch {
       return {status: 'cleanup_required'};
     }
@@ -491,7 +574,8 @@ export function createWebRemoteRuntimeController(
       throw new Error('Web account deletion state store is unavailable.');
     }
     activeAccountPhoneNumber = phoneNumber;
-    try {
+    const cleanup = async (): Promise<WebAccountDeletionOutcome> => {
+      dependencies.stopAudio?.();
       if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
         await dependencies.authSessionCoordinator.invalidate();
       }
@@ -499,6 +583,15 @@ export function createWebRemoteRuntimeController(
       await stateStore.clear();
       registrationReadyPhoneNumber = null;
       return {status: 'registration_ready'};
+    };
+    try {
+      const revision = await stateStore.getRevision();
+      return dependencies.runAccountDeletionCleanup === undefined
+        ? await cleanup()
+        : await dependencies.runAccountDeletionCleanup(
+            {ownerPhoneNumber: phoneNumber, revision},
+            cleanup,
+          );
     } catch {
       return {status: 'registration_cleanup_required'};
     }
@@ -951,12 +1044,32 @@ export function createWebRemoteRuntimeController(
     async logout() {
       const currentSession =
         dependencies.authSessionCoordinator.getCurrentSession();
+      const deletionStateBeforeLogout = await readStableDeletionState();
+      if (
+        deletionStateBeforeLogout.state !== null ||
+        (sessionDeletionRevision !== null &&
+          deletionStateBeforeLogout.revision !== sessionDeletionRevision)
+      ) {
+        throw new Error(
+          '账户删除状态已变化，普通退出不会清理待确认记录。',
+        );
+      }
       if (currentSession !== null) {
         activeAccountPhoneNumber = currentSession.phoneNumber;
       }
       dependencies.stopAudio?.();
       if (currentSession !== null) {
         await dependencies.authSessionCoordinator.logout();
+      }
+      const deletionStateAfterLogout = await readStableDeletionState();
+      if (
+        deletionStateAfterLogout.state !== null ||
+        deletionStateAfterLogout.revision !==
+          deletionStateBeforeLogout.revision
+      ) {
+        throw new Error(
+          '账户删除状态已变化，普通退出不会清理待确认记录。',
+        );
       }
       await clearDurableAccountState();
     },
@@ -970,9 +1083,8 @@ export function createWebRemoteRuntimeController(
     },
 
     async requestSmsCode(phoneNumber) {
-      const deletionState =
-        await dependencies.accountDeletionStateStore?.load();
-      if (deletionState !== undefined && deletionState !== null) {
+      const deletionStateBeforeRequest = await readStableDeletionState();
+      if (deletionStateBeforeRequest.state !== null) {
         throw new Error(
           '请先通过删除恢复入口确认原账户状态。',
         );
@@ -985,7 +1097,20 @@ export function createWebRemoteRuntimeController(
           '上一个 Web 会话的本地待同步状态尚未安全清理。',
         );
       }
-      challenge = await dependencies.authRepository.requestSmsCode(phoneNumber);
+      const requestedChallenge =
+        await dependencies.authRepository.requestSmsCode(phoneNumber);
+      const deletionStateAfterRequest = await readStableDeletionState();
+      if (
+        deletionStateAfterRequest.state !== null ||
+        deletionStateAfterRequest.revision !==
+          deletionStateBeforeRequest.revision
+      ) {
+        throw new Error(
+          '请先通过删除恢复入口确认原账户状态。',
+        );
+      }
+      challenge = requestedChallenge;
+      challengeDeletionRevision = deletionStateAfterRequest.revision;
       return challenge;
     },
 
@@ -1097,15 +1222,17 @@ export function createWebRemoteRuntimeController(
     },
 
     async verifySmsCode(phoneNumber, smsCode) {
-      const deletionState =
-        await dependencies.accountDeletionStateStore?.load();
-      if (deletionState !== undefined && deletionState !== null) {
+      if (challenge === null) {
+        throw new Error('请先获取短信验证码。');
+      }
+      const deletionStateBeforeVerify = await readStableDeletionState();
+      if (
+        deletionStateBeforeVerify.state !== null ||
+        deletionStateBeforeVerify.revision !== challengeDeletionRevision
+      ) {
         throw new Error(
           '请先通过删除恢复入口确认原账户状态。',
         );
-      }
-      if (challenge === null) {
-        throw new Error('请先获取短信验证码。');
       }
       const session = await dependencies.authRepository.verifySmsCode({
         challenge,
@@ -1115,13 +1242,28 @@ export function createWebRemoteRuntimeController(
       if (session.mode !== 'remote') {
         throw new Error('生产 Web 只接受远端账户会话。');
       }
+      const deletionStateAfterVerify = await readStableDeletionState();
+      if (
+        deletionStateAfterVerify.state !== null ||
+        deletionStateAfterVerify.revision !== challengeDeletionRevision
+      ) {
+        challenge = null;
+        challengeDeletionRevision = null;
+        try {
+          await dependencies.authRepository.logout(session);
+        } catch {
+          // The deletion path may already have revoked this unbound session.
+        }
+        throw new Error(
+          '请先通过删除恢复入口确认原账户状态。',
+        );
+      }
       await dependencies.authSessionCoordinator.establish(session);
       activeAccountPhoneNumber = session.phoneNumber;
-      sessionDeletionRevision =
-        dependencies.accountDeletionStateStore === undefined
-          ? null
-          : await dependencies.accountDeletionStateStore.getRevision();
+      sessionDeletionRevision = deletionStateAfterVerify.revision;
+      dependencies.setAccountWriteRevision?.(sessionDeletionRevision);
       challenge = null;
+      challengeDeletionRevision = null;
       try {
         return await loadAuthenticatedState();
       } catch (error) {
