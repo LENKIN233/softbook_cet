@@ -12,6 +12,11 @@ export type WebAccountDeletionState = {
   phoneNumber: string;
 };
 
+export type WebAccountCleanupAuthority = {
+  phase: WebAccountDeletionState['phase'];
+  revision: number;
+};
+
 type WebAccountDeletionEnvelope = {
   revision: number;
   state: WebAccountDeletionState | null;
@@ -23,7 +28,7 @@ export type WebAccountDeletionStateStore = {
   ensureCleanupAuthority?: (
     phoneNumber: string,
     expectedRevision: number,
-  ) => Promise<number>;
+  ) => Promise<WebAccountCleanupAuthority>;
   clear: () => Promise<void>;
   getRevision: () => Promise<number>;
   load: () => Promise<WebAccountDeletionState | null>;
@@ -67,7 +72,10 @@ export function createWebAccountDeletionStateStore(
                 );
               }
               observedRevision = envelope.revision;
-              return envelope.revision;
+              return {
+                phase: envelope.state.phase,
+                revision: envelope.revision,
+              };
             }
             if (
               envelope.revision !== expectedRevision
@@ -82,7 +90,10 @@ export function createWebAccountDeletionStateStore(
             };
             persistEnvelope(storage, nextEnvelope);
             observedRevision = nextEnvelope.revision;
-            return nextEnvelope.revision;
+            return {
+              phase: nextEnvelope.state.phase,
+              revision: nextEnvelope.revision,
+            };
           },
         ),
       );

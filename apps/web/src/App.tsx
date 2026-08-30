@@ -519,7 +519,11 @@ export function App({
     if (runtime.mode === 'remote' && remoteController !== null) {
       setRemoteBusy(true);
       try {
-        await remoteController.logout();
+        const outcome = await remoteController.logout();
+        if (outcome !== null && outcome.status !== 'none') {
+          applyAccountDeletionOutcome(outcome);
+          return;
+        }
         resetAccountState();
       } catch {
         try {
@@ -551,7 +555,11 @@ export function App({
   async function handleRemoteFailure(error: unknown, fallback: string) {
     if (remoteController !== null && !remoteController.isAuthenticated()) {
       try {
-        await remoteController.cleanupInvalidatedSession();
+        const outcome = await remoteController.cleanupInvalidatedSession();
+        if (outcome !== null && outcome.status !== 'none') {
+          applyAccountDeletionOutcome(outcome);
+          return;
+        }
         resetAccountState();
         setAuthError('登录已失效，请重新验证。');
       } catch {

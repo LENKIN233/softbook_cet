@@ -171,10 +171,12 @@ describe('Web authenticated fetch deadline', () => {
     let expectedRevision = 0;
     const coordinator = await createCoordinator(async ({session}) => {
       expectedRevision =
-        (await stateStore.ensureCleanupAuthority?.(
-          session.phoneNumber,
-          expectedRevision,
-        )) ?? expectedRevision;
+        (
+          await stateStore.ensureCleanupAuthority?.(
+            session.phoneNumber,
+            expectedRevision,
+          )
+        )?.revision ?? expectedRevision;
     });
     const authenticatedFetch = createAuthenticatedFetch({
       authSessionCoordinator: coordinator,
@@ -192,6 +194,35 @@ describe('Web authenticated fetch deadline', () => {
     });
     await expect(stateStore.getRevision()).resolves.toBe(1);
   });
+
+  it.each(['requesting', 'accepted', 'registration_ready'] as const)(
+    'terminal invalidation observes %s deletion authority without clearing it',
+    async phase => {
+      localStorage.clear();
+      const stateStore = createWebAccountDeletionStateStore(localStorage);
+      const coordinator = await createCoordinator(async ({session}) => {
+        await stateStore.ensureCleanupAuthority?.(session.phoneNumber, 0);
+      });
+      await stateStore.mark('13800138000', 'requesting');
+      if (phase !== 'requesting') {
+        await stateStore.mark('13800138000', phase);
+      }
+      const authenticatedFetch = createAuthenticatedFetch({
+        authSessionCoordinator: coordinator,
+        fetchImpl: vi.fn(async () => new Response(null, {status: 403})),
+      });
+
+      await expect(
+        authenticatedFetch('https://runtime.example.cn/v2/bootstrap'),
+      ).resolves.toMatchObject({status: 403});
+
+      expect(coordinator.getCurrentSession()).toBeNull();
+      await expect(stateStore.load()).resolves.toEqual({
+        phase,
+        phoneNumber: '13800138000',
+      });
+    },
+  );
 });
 
 async function createCoordinator(

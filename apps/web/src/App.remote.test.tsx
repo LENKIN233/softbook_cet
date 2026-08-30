@@ -450,6 +450,37 @@ describe('PC Web remote UI authority', () => {
     expect(controller.requestSmsCode).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['accepted', '删除申请已提交'],
+    ['registration_ready', '现在可以重新验证手机号'],
+  ] as const)(
+    'renders %s truth returned by logout cleanup dispatch',
+    async (status, expectedTitle) => {
+      const controller = createController(createSnapshot('premium'), {
+        logout: vi.fn(async () => ({status})),
+      });
+      await authenticateRemote(controller);
+
+      fireEvent.click(screen.getByRole('button', {name: '退出'}));
+
+      expect(await screen.findByText(expectedTitle)).toBeInTheDocument();
+      expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
+    },
+  );
+
+  it('keeps requesting truth when logout races an account deletion request', async () => {
+    const controller = createController(createSnapshot('premium'), {
+      logout: vi.fn(async () => ({status: 'unknown' as const})),
+    });
+    await authenticateRemote(controller);
+
+    fireEvent.click(screen.getByRole('button', {name: '退出'}));
+    fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
+
+    expect(await screen.findByText('删除结果暂时未知')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', {name: '主要导航'})).toBeInTheDocument();
+  });
+
   it('updates the audio action after ended and error events', async () => {
     const snapshot = createSnapshot('premium');
     const audioCard = {
@@ -582,7 +613,7 @@ function createController(
   return {
     applySpaceState: vi.fn(async () => snapshot),
     checkInToday: vi.fn(async () => snapshot),
-    cleanupInvalidatedSession: vi.fn(async () => undefined),
+    cleanupInvalidatedSession: vi.fn(async () => null),
     completeCurrentCard: vi.fn(async () => ({
       pendingEventCount: 0,
       status: 'confirmed' as const,
@@ -591,7 +622,7 @@ function createController(
     dispose: vi.fn(),
     isAuthenticated: vi.fn(() => true),
     loadAuthenticatedState: vi.fn(async () => snapshot),
-    logout: vi.fn(async () => undefined),
+    logout: vi.fn(async () => null),
     playCardAudio: vi.fn(async (): Promise<'ready'> => 'ready'),
     requestSmsCode: vi.fn(async (phoneNumber: string) => ({
       challengeId: 'challenge-ui',

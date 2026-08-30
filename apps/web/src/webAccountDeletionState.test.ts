@@ -157,10 +157,10 @@ describe('Web account deletion durable state', () => {
 
     await expect(
       terminalStore.ensureCleanupAuthority?.('13800138000', 0),
-    ).resolves.toBe(1);
+    ).resolves.toEqual({phase: 'local_cleanup', revision: 1});
     await expect(
       terminalStore.ensureCleanupAuthority?.('13800138000', 0),
-    ).resolves.toBe(1);
+    ).resolves.toEqual({phase: 'local_cleanup', revision: 1});
     await expect(terminalStore.load()).resolves.toEqual({
       phase: 'local_cleanup',
       phoneNumber: '13800138000',

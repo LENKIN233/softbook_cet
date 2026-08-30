@@ -442,9 +442,9 @@ describe('authenticated Web remote orchestration', () => {
 
     await firstController.requestSmsCode(PHONE);
     await firstController.verifySmsCode(PHONE, '123456');
-    await expect(firstController.logout()).rejects.toThrow(
-      '本地待同步状态未能完整清理',
-    );
+    await expect(firstController.logout()).resolves.toEqual({
+      status: 'session_cleanup_required',
+    });
     expect(firstController.isAuthenticated()).toBe(false);
     await expect(firstStateStore.load()).resolves.toEqual({
       phase: 'local_cleanup',
@@ -641,6 +641,78 @@ describe('authenticated Web remote orchestration', () => {
       createWebAccountDeletionStateStore(localStorage).load(),
     ).resolves.toBeNull();
   });
+
+  it.each([
+    ['accepted', 'accepted'],
+    ['registration_ready', 'registration_ready'],
+    ['requesting', 'unknown'],
+  ] as const)(
+    'preserves %s authority when another tab wins the initial-null logout race',
+    async (racingPhase, expectedStatus) => {
+      localStorage.clear();
+      const authRepository = createSimpleAuthRepository();
+      const remoteLogout = vi.spyOn(authRepository, 'logout');
+      const authSessionCoordinator = createAuthSessionCoordinator({
+        authRepository,
+        authSessionStore: createMemoryOnlyAuthSessionStore(),
+      });
+      const controllerStore = createWebAccountDeletionStateStore(localStorage);
+      const competingStore = createWebAccountDeletionStateStore(localStorage);
+      let raceInjected = false;
+      const controller = createWebRemoteRuntimeController({
+        accountBootstrapRepository: {
+          async load() {
+            return createBootstrapFixture(createInitialMembershipState());
+          },
+        },
+        accountDeletionStateStore: {
+          ...controllerStore,
+          async ensureCleanupAuthority(phoneNumber, expectedRevision) {
+            if (!raceInjected) {
+              raceInjected = true;
+              await competingStore.mark(phoneNumber, 'requesting');
+              if (racingPhase !== 'requesting') {
+                await competingStore.mark(phoneNumber, racingPhase);
+              }
+            }
+            return controllerStore.ensureCleanupAuthority!(
+              phoneNumber,
+              expectedRevision,
+            );
+          },
+        },
+        authRepository,
+        authSessionCoordinator,
+        learningEventSyncRepository: createEmptyEventSyncRepository(),
+        learningSessionRepository: {
+          continueRound: async () => undefined,
+          async loadSession() {
+            return createLearningSessionFixture(null);
+          },
+        },
+        mutationQueueRepository: createMutationRepository([]),
+        playAudio: async () => 'ready',
+        track: 'cet4',
+      });
+
+      await controller.requestSmsCode(PHONE);
+      await controller.verifySmsCode(PHONE, '123456');
+      const outcome = await controller.logout();
+
+      expect(outcome).toMatchObject({status: expectedStatus});
+      expect(remoteLogout).not.toHaveBeenCalled();
+      if (racingPhase === 'requesting') {
+        expect(controller.isAuthenticated()).toBe(true);
+        await competingStore.mark(PHONE, 'accepted');
+        await expect(controllerStore.load()).resolves.toEqual({
+          phase: 'accepted',
+          phoneNumber: PHONE,
+        });
+      } else {
+        await expect(controllerStore.load()).resolves.toBeNull();
+      }
+    },
+  );
 
   it('retains a durably enqueued Learning event as queued after network ack failure', async () => {
     const membership = {
@@ -1413,9 +1485,7 @@ describe('authenticated Web remote orchestration', () => {
     expect(bootstrapLoads).toBe(1);
     cleanupOperations.length = 0;
     await otherTabDeletionStore.mark(PHONE, 'requesting');
-    await expect(controller.logout()).rejects.toThrow(
-      '普通退出不会清理待确认记录',
-    );
+    await expect(controller.logout()).resolves.toEqual({status: 'unknown'});
     expect(controller.isAuthenticated()).toBe(true);
     expect(cleanupOperations).toEqual([]);
     await otherTabDeletionStore.mark(PHONE, 'accepted');

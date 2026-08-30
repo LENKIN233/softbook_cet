@@ -309,7 +309,7 @@ describe('Web persistence boundary', () => {
 
     await expect(
       terminalStore.ensureCleanupAuthority?.('13800138000', 0),
-    ).resolves.toBe(1);
+    ).resolves.toEqual({phase: 'local_cleanup', revision: 1});
 
     await expect(
       staleOutbox.enqueueCompletion(
