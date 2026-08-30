@@ -133,7 +133,8 @@ test('pilot entitlement CLI rejects impossible active-session chronology', async
     () => cli.executePilotEntitlementCommand(
       options,
       dependencies(createRunner({
-        accessExpiresAt: '2026-08-10T09:59:59.000Z',
+        accessExpiresAt: '2026-08-10T10:00:00.500Z',
+        sessionUpdatedAt: '2026-08-10T10:00:00.750Z',
       })),
     ),
     /not bound to this signed-in user/,
@@ -595,6 +596,7 @@ function createRunner({
   refreshExpiresAt = '2026-09-30T12:00:00.000Z',
   responseActorOverride = null,
   sessionPhone = '13800138000',
+  sessionUpdatedAt = '2026-08-10T10:00:00.000Z',
 } = {}) {
   const collections = new Map([
     ['softbook_accounts', new Map(includeAccount ? [[
@@ -623,7 +625,7 @@ function createRunner({
         revoked_reason: null,
         session_id: 'session-test-pilot-instance',
         status: 'active',
-        updated_at: '2026-08-10T10:00:00.000Z',
+        updated_at: sessionUpdatedAt,
         ...(malformedSession ? {unexpected: true} : {}),
       },
     ]] : [])],

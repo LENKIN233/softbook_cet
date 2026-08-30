@@ -157,7 +157,8 @@ test('beta entitlement CLI rejects impossible active-session chronology', async 
     () => cli.executeBetaEntitlementCommand(
       options,
       dependencies(createRunner({
-        accessExpiresAt: '2026-08-30T07:59:59.000Z',
+        accessExpiresAt: '2026-08-30T08:05:00.000Z',
+        sessionUpdatedAt: '2026-08-30T08:10:00.000Z',
       })),
     ),
     /not bound to this signed-in user/,
@@ -765,6 +766,7 @@ function createRunner({
   malformedSession = false,
   refreshExpiresAt = '2026-09-30T12:00:00.000Z',
   sessionPhone = '13800138000',
+  sessionUpdatedAt = '2026-08-30T08:00:00.000Z',
   mutateMembershipAfterInvocation = false,
   remoteBackendDeploymentId = null,
   responseActionOverride = null,
@@ -797,7 +799,7 @@ function createRunner({
         revoked_reason: null,
         session_id: 'session-test-beta-instance',
         status: 'active',
-        updated_at: '2026-08-30T08:00:00.000Z',
+        updated_at: sessionUpdatedAt,
         ...(malformedSession ? {unexpected: true} : {}),
       },
     ]] : [])],
