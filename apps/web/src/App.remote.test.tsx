@@ -9,6 +9,7 @@ import {
 import {App} from './App';
 import type {
   WebAccountDeletionOutcome,
+  WebAccountPresentationInvalidation,
   WebRemoteRuntimeController,
   WebRemoteSnapshot,
 } from './remoteRuntime';
@@ -326,6 +327,191 @@ describe('PC Web remote UI authority', () => {
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
   });
 
+  it('immediately removes every cached account surface on a cross-tab authority change', async () => {
+    const snapshot = createSnapshot('premium');
+    let invalidatePresentation:
+      | ((event: WebAccountPresentationInvalidation) => void)
+      | null = null;
+    let resolveRecovery:
+      | ((outcome: WebAccountDeletionOutcome) => void)
+      | null = null;
+    const recovery = new Promise<WebAccountDeletionOutcome>(resolve => {
+      resolveRecovery = resolve;
+    });
+    const resumeAccountDeletion = vi
+      .fn()
+      .mockResolvedValueOnce({status: 'none' as const})
+      .mockReturnValueOnce(recovery);
+    const controller = createController(snapshot, {
+      resumeAccountDeletion,
+      subscribeAccountPresentationInvalidation: vi.fn(listener => {
+        invalidatePresentation = listener;
+        return () => {
+          invalidatePresentation = null;
+        };
+      }),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    expect(screen.getByRole('heading', {name: '138 **** 8000'}))
+      .toBeInTheDocument();
+    expect(screen.getByText('会员')).toBeInTheDocument();
+
+    act(() => invalidatePresentation?.({source: 'external_epoch'}));
+
+    expect(screen.getByText('正在读取删除状态')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
+    expect(screen.queryByText('138 **** 8000')).toBeNull();
+    expect(screen.queryByText('会员')).toBeNull();
+    expect(screen.queryByText('Card 1')).toBeNull();
+
+    await act(async () => {
+      resolveRecovery?.({
+        phoneNumber: PHONE,
+        status: 'reauthentication_required',
+      });
+      await recovery;
+    });
+
+    expect(
+      screen.getByRole('heading', {
+        name: '重新验证手机号，继续确认删除',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/138 \*\*\*\* 8000/)).toBeInTheDocument();
+    expect(resumeAccountDeletion).toHaveBeenCalledTimes(2);
+  });
+
+  it('closes an ordinary SMS code surface when an external deletion epoch arrives', async () => {
+    let invalidatePresentation:
+      | ((event: WebAccountPresentationInvalidation) => void)
+      | null = null;
+    let resolveRecovery:
+      | ((outcome: WebAccountDeletionOutcome) => void)
+      | null = null;
+    const recovery = new Promise<WebAccountDeletionOutcome>(resolve => {
+      resolveRecovery = resolve;
+    });
+    const resumeAccountDeletion = vi
+      .fn()
+      .mockResolvedValueOnce({status: 'none' as const})
+      .mockReturnValueOnce(recovery);
+    const controller = createController(createSnapshot('premium'), {
+      resumeAccountDeletion,
+      subscribeAccountPresentationInvalidation: vi.fn(listener => {
+        invalidatePresentation = listener;
+        return () => {
+          invalidatePresentation = null;
+        };
+      }),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.change(await screen.findByLabelText('手机号'), {
+      target: {value: PHONE},
+    });
+    fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
+    expect(await screen.findByLabelText('短信验证码')).toBeInTheDocument();
+
+    act(() => invalidatePresentation?.({source: 'external_epoch'}));
+
+    expect(screen.getByText('正在读取删除状态')).toBeInTheDocument();
+    expect(screen.queryByLabelText('手机号')).toBeNull();
+    expect(screen.queryByLabelText('短信验证码')).toBeNull();
+
+    await act(async () => {
+      resolveRecovery?.({
+        phoneNumber: PHONE,
+        status: 'reauthentication_required',
+      });
+      await recovery;
+    });
+    expect(
+      screen.getByRole('heading', {
+        name: '重新验证手机号，继续确认删除',
+      }),
+    ).toBeInTheDocument();
+    expect(controller.verifySmsCode).not.toHaveBeenCalled();
+  });
+
+  it('lets the owning deletion request resolve a local session invalidation without a competing resume', async () => {
+    const snapshot = createSnapshot('premium');
+    let invalidatePresentation:
+      | ((event: WebAccountPresentationInvalidation) => void)
+      | null = null;
+    let resolveDeletion:
+      | ((outcome: WebAccountDeletionOutcome) => void)
+      | null = null;
+    const deletion = new Promise<WebAccountDeletionOutcome>(resolve => {
+      resolveDeletion = resolve;
+    });
+    const resumeAccountDeletion = vi.fn(async () => ({
+      status: 'none' as const,
+    }));
+    const controller = createController(snapshot, {
+      requestAccountDeletion: vi.fn(() => deletion),
+      resumeAccountDeletion,
+      subscribeAccountPresentationInvalidation: vi.fn(listener => {
+        invalidatePresentation = listener;
+        return () => {
+          invalidatePresentation = null;
+        };
+      }),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    fireEvent.click(screen.getByRole('button', {name: '删除账户'}));
+    fireEvent.click(screen.getByRole('button', {name: '确认删除账户'}));
+
+    act(() =>
+      invalidatePresentation?.({source: 'session_authority'}),
+    );
+    expect(screen.getByText('正在读取删除状态')).toBeInTheDocument();
+    expect(resumeAccountDeletion).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveDeletion?.({status: 'accepted'});
+      await deletion;
+    });
+    expect(screen.getByText('删除申请已提交')).toBeInTheDocument();
+    expect(resumeAccountDeletion).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps failed cross-tab phase resolution retryable without restoring account presentation', async () => {
+    const snapshot = createSnapshot('premium');
+    let invalidatePresentation:
+      | ((event: WebAccountPresentationInvalidation) => void)
+      | null = null;
+    const resumeAccountDeletion = vi
+      .fn()
+      .mockResolvedValueOnce({status: 'none' as const})
+      .mockRejectedValueOnce(new Error('injected phase read failure'))
+      .mockResolvedValueOnce({status: 'registration_ready' as const});
+    const controller = createController(snapshot, {
+      resumeAccountDeletion,
+      subscribeAccountPresentationInvalidation: vi.fn(listener => {
+        invalidatePresentation = listener;
+        return () => {
+          invalidatePresentation = null;
+        };
+      }),
+    });
+    await authenticateRemote(controller);
+
+    await act(async () => {
+      invalidatePresentation?.({source: 'external_epoch'});
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('删除结果暂时未知')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '重试确认'}));
+    expect(
+      await screen.findByText('现在可以重新验证手机号'),
+    ).toBeInTheDocument();
+    expect(resumeAccountDeletion).toHaveBeenCalledTimes(3);
+  });
+
   it('recovers a refreshed unknown deletion only with the original phone', async () => {
     const snapshot = createSnapshot('premium');
     const controller = createController(snapshot, {
@@ -549,6 +735,13 @@ describe('PC Web remote UI authority', () => {
 
   it('restarts controller listeners under StrictMode and disposes on remount', () => {
     const strictControllers: WebRemoteRuntimeController[] = [];
+    let activePresentationSubscriptions = 0;
+    const subscribeAccountPresentationInvalidation = vi.fn(() => {
+      activePresentationSubscriptions += 1;
+      return () => {
+        activePresentationSubscriptions -= 1;
+      };
+    });
     const firstRender = render(
       <StrictMode>
         <App
@@ -557,6 +750,7 @@ describe('PC Web remote UI authority', () => {
               resumeAccountDeletion: vi.fn(
                 () => new Promise<WebAccountDeletionOutcome>(() => undefined),
               ),
+              subscribeAccountPresentationInvalidation,
             });
             strictControllers.push(controller);
             return controller;
@@ -576,19 +770,24 @@ describe('PC Web remote UI authority', () => {
     expect(discarded.dispose).not.toHaveBeenCalled();
     expect(first.start).toHaveBeenCalledTimes(2);
     expect(first.dispose).toHaveBeenCalledTimes(1);
+    expect(activePresentationSubscriptions).toBe(1);
     firstRender.unmount();
     expect(first.dispose).toHaveBeenCalledTimes(2);
+    expect(activePresentationSubscriptions).toBe(0);
 
     const second = createController(createSnapshot('premium'), {
       resumeAccountDeletion: vi.fn(
         () => new Promise<WebAccountDeletionOutcome>(() => undefined),
       ),
+      subscribeAccountPresentationInvalidation,
     });
     const secondRender = render(<App remoteRuntimeFactory={() => second} />);
     expect(second.start).toHaveBeenCalledTimes(1);
+    expect(activePresentationSubscriptions).toBe(1);
     expect(first.start).toHaveBeenCalledTimes(2);
     secondRender.unmount();
     expect(second.dispose).toHaveBeenCalledTimes(1);
+    expect(activePresentationSubscriptions).toBe(0);
   });
 });
 
@@ -641,6 +840,9 @@ function createController(
     })),
     resumeAccountDeletion: vi.fn(async () => ({status: 'none' as const})),
     start: vi.fn(),
+    subscribeAccountPresentationInvalidation: vi.fn(
+      () => () => undefined,
+    ),
     subscribeAudioStatus: vi.fn(() => () => undefined),
     verifyAccountDeletionRecoverySmsCode: vi.fn(async () => ({
       status: 'unknown' as const,

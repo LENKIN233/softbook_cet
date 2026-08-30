@@ -1,4 +1,11 @@
-import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import type {
   LearningCard,
@@ -24,6 +31,7 @@ import {
   createWebRemoteRuntime,
   WebRemotePostAuthError,
   type WebAccountDeletionOutcome,
+  type WebAccountPresentationInvalidation,
   type WebRemoteSnapshot,
 } from './remoteRuntime';
 import {resolveWebRuntime} from './runtime';
@@ -123,6 +131,30 @@ export function App({
       runtime.mode === 'remote' ? 'checking' : 'none',
     );
   const audioRequestGeneration = useRef(0);
+  const accountAuthorityGeneration = useRef(0);
+  const handleAccountPresentationInvalidation = useEffectEvent(
+    (event: WebAccountPresentationInvalidation) => {
+      const generation = accountAuthorityGeneration.current + 1;
+      accountAuthorityGeneration.current = generation;
+      resetAccountState();
+      setAccountDeletionStage('checking');
+      if (event.source !== 'external_epoch' || remoteController === null) {
+        return;
+      }
+      void Promise.resolve()
+        .then(() => remoteController.resumeAccountDeletion())
+        .then(outcome => {
+          if (accountAuthorityGeneration.current === generation) {
+            applyAccountDeletionOutcome(outcome);
+          }
+        })
+        .catch(() => {
+          if (accountAuthorityGeneration.current === generation) {
+            setAccountDeletionStage('unknown');
+          }
+        });
+    },
+  );
 
   const activeCards = runtime.mode === 'remote'
     ? session?.cards ?? []
@@ -185,8 +217,15 @@ export function App({
     if (remoteController === null) {
       return;
     }
+    const unsubscribePresentation =
+      remoteController.subscribeAccountPresentationInvalidation(
+        handleAccountPresentationInvalidation,
+      );
     remoteController.start();
-    return () => remoteController.dispose();
+    return () => {
+      unsubscribePresentation();
+      remoteController.dispose();
+    };
   }, [remoteController]);
 
   useEffect(() => {
@@ -209,6 +248,7 @@ export function App({
 
   useEffect(() => {
     let active = true;
+    const generation = accountAuthorityGeneration.current;
     if (runtime.mode !== 'remote' || remoteController === null) {
       setAccountDeletionStage('none');
       return;
@@ -216,7 +256,9 @@ export function App({
     void remoteController
       .resumeAccountDeletion()
       .then(outcome => {
-        if (!active) return;
+        if (!active || accountAuthorityGeneration.current !== generation) {
+          return;
+        }
         setAccountDeletionStage(
           outcome.status === 'accepted'
             ? 'accepted'
@@ -240,7 +282,12 @@ export function App({
         }
       })
       .catch(() => {
-        if (active) setAccountDeletionStage('cleanup_required');
+        if (
+          active &&
+          accountAuthorityGeneration.current === generation
+        ) {
+          setAccountDeletionStage('unknown');
+        }
       });
     return () => {
       active = false;
@@ -476,6 +523,7 @@ export function App({
     setLearningSync(null);
     setCheckInSync(null);
     setQueuedLearningResult(null);
+    setAccountDeletionStage('none');
   }
 
   function applyAccountDeletionOutcome(outcome: WebAccountDeletionOutcome) {

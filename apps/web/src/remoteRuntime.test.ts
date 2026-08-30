@@ -1708,7 +1708,7 @@ describe('authenticated Web remote orchestration', () => {
     await competingDeletionStore.mark(PHONE, 'requesting');
     await competingDeletionStore.mark(PHONE, 'accepted');
     await competingDeletionStore.clear();
-    releaseBootstrap?.();
+    (releaseBootstrap as unknown as () => void)();
 
     const error = await verification.catch(value => value as Error);
     expect(error).toMatchObject({name: 'WebAccountEpochError'});
@@ -1779,6 +1779,128 @@ describe('authenticated Web remote orchestration', () => {
     expect(stopAudio).toHaveBeenCalled();
   });
 
+  it('invalidates an ordinary SMS challenge on an external epoch before presentation exists', async () => {
+    localStorage.clear();
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    let accountEpochListener:
+      | ((reason?: 'authority_quarantined' | 'external_epoch') => void)
+      | null = null;
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore:
+        createWebAccountDeletionStateStore(localStorage),
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      subscribeAccountEpochChanges(listener) {
+        accountEpochListener = listener;
+        return () => undefined;
+      },
+      track: 'cet4',
+    });
+    const presentationInvalidated = vi.fn();
+    controller.subscribeAccountPresentationInvalidation(
+      presentationInvalidated,
+    );
+    controller.start();
+    await controller.requestSmsCode(PHONE);
+
+    expect(accountEpochListener).not.toBeNull();
+    (
+      accountEpochListener as unknown as (
+        reason: 'external_epoch'
+      ) => void
+    )('external_epoch');
+
+    expect(presentationInvalidated).toHaveBeenCalledTimes(1);
+    await expect(controller.verifySmsCode(PHONE, '123456')).rejects.toThrow(
+      '请先获取短信验证码',
+    );
+  });
+
+  it('invalidates an initial authenticated bootstrap before it can present stale account data', async () => {
+    localStorage.clear();
+    let markBootstrapStarted: (() => void) | null = null;
+    let releaseBootstrap: (() => void) | null = null;
+    const bootstrapStarted = new Promise<void>(resolve => {
+      markBootstrapStarted = resolve;
+    });
+    const bootstrapGate = new Promise<void>(resolve => {
+      releaseBootstrap = resolve;
+    });
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    let accountEpochListener:
+      | ((reason?: 'authority_quarantined' | 'external_epoch') => void)
+      | null = null;
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          markBootstrapStarted?.();
+          await bootstrapGate;
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore:
+        createWebAccountDeletionStateStore(localStorage),
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      subscribeAccountEpochChanges(listener) {
+        accountEpochListener = listener;
+        return () => undefined;
+      },
+      track: 'cet4',
+    });
+    const presentationInvalidated = vi.fn();
+    controller.subscribeAccountPresentationInvalidation(
+      presentationInvalidated,
+    );
+    controller.start();
+    await controller.requestSmsCode(PHONE);
+    const verification = controller.verifySmsCode(PHONE, '123456');
+    await bootstrapStarted;
+
+    (
+      accountEpochListener as unknown as (
+        reason: 'external_epoch'
+      ) => void
+    )('external_epoch');
+    (releaseBootstrap as unknown as () => void)();
+
+    expect(presentationInvalidated).toHaveBeenCalledTimes(1);
+    await expect(verification).rejects.toMatchObject({
+      name: 'WebAccountEpochError',
+    });
+  });
+
   it('binds audio to session, epoch, content, and selection and stops on authority change', async () => {
     localStorage.clear();
     const authRepository = createSimpleAuthRepository();
@@ -1789,7 +1911,9 @@ describe('authenticated Web remote orchestration', () => {
     const deletionStateStore =
       createWebAccountDeletionStateStore(localStorage);
     let learningSession = createLearningSessionFixture(null);
-    let accountEpochListener: (() => void) | null = null;
+    let accountEpochListener:
+      | ((reason?: 'authority_quarantined' | 'external_epoch') => void)
+      | null = null;
     const playAudio = vi.fn(async () => 'ready' as const);
     const stopAudio = vi.fn();
     const controller = createWebRemoteRuntimeController({
@@ -1816,7 +1940,7 @@ describe('authenticated Web remote orchestration', () => {
         return () => undefined;
       },
       subscribeSessionScopeChanges(listener) {
-        return authSessionCoordinator.subscribeSessionScope(() => listener());
+        return authSessionCoordinator.subscribeSessionScope(listener);
       },
       track: 'cet4',
     });
@@ -1848,15 +1972,35 @@ describe('authenticated Web remote orchestration', () => {
     expect(stopAudio).toHaveBeenCalledTimes(1);
 
     expect(accountEpochListener).not.toBeNull();
-    (accountEpochListener as unknown as () => void)();
+    const presentationInvalidated = vi.fn();
+    controller.subscribeAccountPresentationInvalidation(
+      presentationInvalidated,
+    );
+    (
+      accountEpochListener as unknown as (
+        reason: 'external_epoch'
+      ) => void
+    )('external_epoch');
     expect(stopAudio).toHaveBeenCalledTimes(2);
+    expect(presentationInvalidated).toHaveBeenCalledTimes(1);
+    await expect(
+      controller.applySpaceState(card.card_id, 'favorite', true),
+    ).rejects.toThrow('需要先读取当前账户状态');
     await authSessionCoordinator.invalidate();
     expect(stopAudio).toHaveBeenCalledTimes(3);
+    expect(presentationInvalidated).toHaveBeenCalledTimes(1);
   });
 
   it('disposes and restarts epoch/session listeners without leaking across controller creation', () => {
-    const epochListeners = new Set<() => void>();
-    const sessionListeners = new Set<() => void>();
+    const epochListeners = new Set<
+      (reason?: 'authority_quarantined' | 'external_epoch') => void
+    >();
+    const sessionListeners = new Set<
+      (
+        sessionScopeKey: string | null,
+        reason: 'authorization_invalidated' | 'session_changed',
+      ) => void
+    >();
     const createController = (stopAudio: () => void) => {
       const authRepository = createSimpleAuthRepository();
       return createWebRemoteRuntimeController({
@@ -1909,8 +2053,10 @@ describe('authenticated Web remote orchestration', () => {
     expect(sessionListeners.size).toBe(1);
     const firstStopCount = firstStop.mock.calls.length;
 
-    for (const listener of epochListeners) listener();
-    for (const listener of sessionListeners) listener();
+    for (const listener of epochListeners) listener('external_epoch');
+    for (const listener of sessionListeners) {
+      listener(null, 'session_changed');
+    }
     expect(firstStop).toHaveBeenCalledTimes(firstStopCount);
     expect(secondStop).toHaveBeenCalledTimes(2);
 

@@ -15,6 +15,7 @@ import type {
 import {getAuthSessionScopeKey} from '../../mobile/src/auth/authSession';
 import {
   createAuthSessionCoordinator,
+  type AuthSessionScopeChangeReason,
   type AuthSessionCoordinator,
 } from '../../mobile/src/auth/authSessionCoordinator';
 import {createAuthenticatedFetch} from '../../mobile/src/auth/authenticatedFetch';
@@ -96,6 +97,10 @@ type WebAudioAuthority = {
   sessionScopeKey: string;
 };
 
+type WebAccountEpochChangeReason =
+  | 'authority_quarantined'
+  | 'external_epoch';
+
 export type WebRemoteSnapshot = {
   bootstrap: AccountBootstrapSnapshot;
   favorites: string[];
@@ -141,6 +146,10 @@ export type WebAccountDeletionOutcome =
 
 export type WebLearningCompletionSync = WebRemoteSnapshot['learningSync'];
 
+export type WebAccountPresentationInvalidation = {
+  source: 'external_epoch' | 'session_authority';
+};
+
 type RemoteRuntimeDependencies = {
   accountDeletionRecoveryRepository?: WebAccountDeletionRecoveryRepository;
   accountDeletionRepository?: AccountDeletionRepository;
@@ -171,8 +180,15 @@ type RemoteRuntimeDependencies = {
     active: boolean,
   ) => void;
   setAccountWriteRevision?: (revision: number | null) => void;
-  subscribeAccountEpochChanges?: (listener: () => void) => () => void;
-  subscribeSessionScopeChanges?: (listener: () => void) => () => void;
+  subscribeAccountEpochChanges?: (
+    listener: (reason?: WebAccountEpochChangeReason) => void,
+  ) => () => void;
+  subscribeSessionScopeChanges?: (
+    listener: (
+      sessionScopeKey: string | null,
+      reason: AuthSessionScopeChangeReason,
+    ) => void,
+  ) => () => void;
   subscribeAudioStatus?: (
     listener: (status: 'error' | 'idle') => void,
   ) => () => void;
@@ -203,6 +219,9 @@ export type WebRemoteRuntimeController = {
   requestAccountDeletionRecoverySmsCode: () => Promise<WebAccountDeletionRecoveryChallenge>;
   resumeAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
   start: () => void;
+  subscribeAccountPresentationInvalidation: (
+    listener: (event: WebAccountPresentationInvalidation) => void,
+  ) => () => void;
   subscribeAudioStatus: (
     listener: (status: 'error' | 'idle') => void,
   ) => () => void;
@@ -242,15 +261,17 @@ export function createWebRemoteRuntime(
   const fetchImpl = options.fetchImpl ?? fetch;
   const browserStorage = options.storage ?? window.localStorage;
   const deletionQuarantinedSessionScopes = new Set<string>();
-  const accountEpochListeners = new Set<() => void>();
+  const accountEpochListeners = new Set<
+    (reason: WebAccountEpochChangeReason) => void
+  >();
   let storageEpochListenerInstalled = false;
   const isDeletionQuarantined = (sessionScopeKey: string | null) =>
     sessionScopeKey !== null &&
     deletionQuarantinedSessionScopes.has(sessionScopeKey);
-  const notifyAccountEpochChange = () => {
+  const notifyAccountEpochChange = (reason: WebAccountEpochChangeReason) => {
     for (const listener of accountEpochListeners) {
       try {
-        listener();
+        listener(reason);
       } catch {
         // One consumer cannot prevent transport quarantine for the others.
       }
@@ -269,7 +290,7 @@ export function createWebRemoteRuntime(
     if (sessionScopeKey !== null) {
       deletionQuarantinedSessionScopes.add(sessionScopeKey);
     }
-    notifyAccountEpochChange();
+    notifyAccountEpochChange('external_epoch');
     const session = authSessionCoordinator.getCurrentSession();
     if (session !== null) {
       const sessionScopeKey = getAuthSessionScopeKey(session);
@@ -284,7 +305,9 @@ export function createWebRemoteRuntime(
         });
     }
   };
-  const subscribeAccountEpochChanges = (listener: () => void) => {
+  const subscribeAccountEpochChanges = (
+    listener: (reason: WebAccountEpochChangeReason) => void,
+  ) => {
     accountEpochListeners.add(listener);
     if (!storageEpochListenerInstalled) {
       window.addEventListener('storage', handleStorageEpochChange);
@@ -335,7 +358,7 @@ export function createWebRemoteRuntime(
           deletionQuarantinedSessionScopes.has(sessionScopeKey);
         deletionQuarantinedSessionScopes.add(sessionScopeKey);
         if (!wasAlreadyQuarantined) {
-          notifyAccountEpochChange();
+          notifyAccountEpochChange('authority_quarantined');
         }
       }
     },
@@ -399,6 +422,7 @@ export function createWebRemoteRuntime(
       };
     },
     fetchImpl,
+    protectRawResponseBody: true,
     shouldPreserveAuthorizationRejection: isDeletionQuarantined,
     shouldQuarantineSession: isDeletionQuarantined,
   });
@@ -601,7 +625,7 @@ export function createWebRemoteRuntime(
           deletionQuarantinedSessionScopes.has(sessionScopeKey);
         deletionQuarantinedSessionScopes.add(sessionScopeKey);
         if (!wasAlreadyQuarantined) {
-          notifyAccountEpochChange();
+          notifyAccountEpochChange('authority_quarantined');
         }
       } else {
         deletionQuarantinedSessionScopes.delete(sessionScopeKey);
@@ -623,7 +647,7 @@ export function createWebRemoteRuntime(
       return subscribeAccountEpochChanges(listener);
     },
     subscribeSessionScopeChanges(listener) {
-      return authSessionCoordinator.subscribeSessionScope(() => listener());
+      return authSessionCoordinator.subscribeSessionScope(listener);
     },
     subscribeAudioStatus(listener) {
       audioStatusListeners.add(listener);
@@ -651,21 +675,60 @@ export function createWebRemoteRuntimeController(
   let registrationReadyPhoneNumber: string | null = null;
   let nextBootstrapGeneration = 0;
   let latestStartedBootstrapGeneration = 0;
+  let presentedSessionScopeKey: string | null = null;
   const now = dependencies.now ?? (() => new Date());
   const runtimeSessionId =
     dependencies.runtimeSessionId ?? createBootstrapRuntimeSessionId();
   let listenerCleanups: Array<() => void> = [];
   let listenersStarted = false;
+  const accountPresentationInvalidationListeners = new Set<
+    (event: WebAccountPresentationInvalidation) => void
+  >();
+  const invalidateAccountPresentation = (
+    source: WebAccountPresentationInvalidation['source'],
+  ) => {
+    const hasPresentedAccount =
+      presentedSessionScopeKey !== null ||
+      currentBootstrap !== null ||
+      currentLearningSession !== null ||
+      activeAccountPhoneNumber !== null;
+    dependencies.stopAudio?.();
+    if (!hasPresentedAccount && source !== 'external_epoch') {
+      return;
+    }
+    resetControllerAccountState();
+    for (const listener of accountPresentationInvalidationListeners) {
+      try {
+        listener({source});
+      } catch {
+        // One view cannot preserve stale presentation in another view.
+      }
+    }
+  };
   const startRuntimeListeners = () => {
     if (listenersStarted) {
       return;
     }
     listenersStarted = true;
-    const stopAudio = () => dependencies.stopAudio?.();
     const epochCleanup =
-      dependencies.subscribeAccountEpochChanges?.(stopAudio);
+      dependencies.subscribeAccountEpochChanges?.(reason => {
+        if (reason !== 'authority_quarantined') {
+          invalidateAccountPresentation('external_epoch');
+        } else {
+          dependencies.stopAudio?.();
+        }
+      });
     const sessionCleanup =
-      dependencies.subscribeSessionScopeChanges?.(stopAudio);
+      dependencies.subscribeSessionScopeChanges?.(nextSessionScopeKey => {
+        if (
+          presentedSessionScopeKey !== null &&
+          nextSessionScopeKey !== presentedSessionScopeKey
+        ) {
+          invalidateAccountPresentation('session_authority');
+        } else {
+          dependencies.stopAudio?.();
+        }
+      });
     listenerCleanups = [epochCleanup, sessionCleanup].filter(
       (cleanup): cleanup is () => void => cleanup !== undefined,
     );
@@ -811,7 +874,7 @@ export function createWebRemoteRuntimeController(
     }
   };
 
-  const resetControllerAccountState = () => {
+  function resetControllerAccountState() {
     dependencies.setAccountWriteRevision?.(null);
     challenge = null;
     challengeDeletionRevision = null;
@@ -822,7 +885,8 @@ export function createWebRemoteRuntimeController(
     persistedLearningResult = null;
     persistedSelectionId = null;
     sessionDeletionRevision = null;
-  };
+    presentedSessionScopeKey = null;
+  }
 
   const discardRejectedSessionExactly = async (session: AuthSession) => {
     const sessionScopeKey = getAuthSessionScopeKey(session);
@@ -1369,6 +1433,7 @@ export function createWebRemoteRuntimeController(
         }
         currentBootstrap = bootstrap;
         currentLearningSession = learningSession;
+        presentedSessionScopeKey = requestSessionScopeKey;
         if (
           persistedSelectionId !== null &&
           nextSelectionId !== persistedSelectionId
@@ -1771,6 +1836,11 @@ export function createWebRemoteRuntimeController(
     },
 
     start: startRuntimeListeners,
+
+    subscribeAccountPresentationInvalidation(listener) {
+      accountPresentationInvalidationListeners.add(listener);
+      return () => accountPresentationInvalidationListeners.delete(listener);
+    },
 
     async verifyAccountDeletionRecoverySmsCode(smsCode) {
       const recoveryRepository =
