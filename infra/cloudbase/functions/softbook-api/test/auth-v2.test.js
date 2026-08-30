@@ -31,6 +31,50 @@ function createClock(initial = '2026-07-20T08:00:00.000Z') {
   };
 }
 
+test('development provider keeps measured CloudBase-like persistence inside its delivery envelope', async () => {
+  const clock = createClock();
+  const sleeperCalls = [];
+  const baseStore = createMemoryStore();
+  const store = {
+    ...baseStore,
+    consumeAuthRateLimit: async input => {
+      clock.advanceSeconds(0.75);
+      return baseStore.consumeAuthRateLimit(input);
+    },
+    createAuthChallenge: async input => {
+      clock.advanceSeconds(0.75);
+      return baseStore.createAuthChallenge(input);
+    },
+  };
+  const api = createSoftbookApi({
+    authV2AcknowledgementSleeper: async milliseconds => {
+      sleeperCalls.push(milliseconds);
+    },
+    authV2IndexSecret: 'softbook-cloudbase-dev-secret',
+    now: clock.now,
+    runtimeMode: 'development',
+    store,
+    tokenSecret: TOKEN_SECRET,
+  });
+
+  const challenge = await issueChallenge(api);
+  assert.equal(challenge.statusCode, 200);
+  assert.equal(challenge.body.data.delivery, 'development_fixed_code');
+  assert.deepEqual(sleeperCalls, [4000]);
+  const persisted = [...baseStore.snapshot().authChallenges.values()][0];
+  assert.equal(persisted.delivery_status, 'delivered');
+
+  const verification = await request(api, {
+    body: {
+      challenge_id: challenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: '2468',
+    },
+    path: '/v2/auth/verify-code',
+  });
+  assert.equal(verification.statusCode, 200);
+});
+
 function deletionTaskFixture(accountKey, overrides = {}) {
   return {
     account_instance_id: `account_${'a'.repeat(24)}`,

@@ -101,6 +101,12 @@ leaving at least seven seconds inside the clients' 15000 ms request deadline.
 The deployment preflight and provider parser accept 8000 and reject 10000. Tests
 may inject the sleeper but production uses the real fixed timer; a real 50 ms
 regression proves absent and suppressed branches cannot return early.
+The fixed-code development provider uses a 4000 ms envelope because the real
+CloudBase path performs two durable rate-limit transactions and one challenge
+transaction before its immediate provider completion. That measured storage
+path can exhaust 1000 ms; the bounded 4000 ms default preserves provider-call,
+function-timeout and client-deadline headroom without imposing the maximum
+8000 ms wait on every development login.
 
 Every actual outbound challenge first persists a collision-safe local
 `challenge_id`, delivery reservation ID, and bounded delivery deadline with
