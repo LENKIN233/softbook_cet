@@ -69,13 +69,20 @@ receiver grant or deployed concurrency proof.
 
 `infra/cloudbase/manage-beta-entitlement.mjs` is read/write only against a
 validated receiver-owned `delivery-profile.v1`. It performs remote environment
-and collection preflight, reads the current base membership and beta record,
-and prints a phone-free account fingerprint in its plan. It is dry-run by
+and collection preflight. Dry-run reads the current base membership and beta
+record and plans locally. Public plans contain campaign, grant, event, actor,
+action and stage identities but no phone-derived identifier. It is dry-run by
 default.
 
 `--apply` additionally requires Node 22.13.0 and a clean `main` exactly equal to
-`origin/main`. After an update it re-reads and byte-compares the normalized
-stored record with the plan. Its privacy-safe `beta-entitlement-report.v2`
+`origin/main`, plus a dedicated strong `SOFTBOOK_BETA_OPERATOR_SECRET` distinct
+from auth secrets. Apply sends one strict
+`beta-entitlement-operator-invoke.v1` command-bound HMAC invocation to the
+receiver function. That function reads base membership plus its revision,
+plans the mutation, and writes the beta entitlement in one database
+transaction. The CLI never performs the beta write directly; afterward it
+re-reads and verifies the normalized beta audit against the function result.
+Its privacy-safe `beta-entitlement-report.v3`
 binds the repository commit, profile bytes, environment, campaign, command
 hash, identified operator, execution window, receiver preflight, write safety,
 unchanged base-membership digest and verified beta revision/audit/active state.
@@ -88,8 +95,8 @@ The closed-beta evidence loader registers `beta-entitlement-drill` only over
 five distinct tracked strict-JSON roles: one exact delivery profile plus applied
 grant, idempotent grant replay, applied revoke and idempotent revoke replay
 reports. It rehashes every raw file and requires one commit/profile/environment,
-candidate campaign, account fingerprint, grant, identified operator and
-unchanged base-membership digest. Grant must move a non-premium base stage to
+candidate campaign, grant, distinct grant/revoke event identities, identified
+operator and unchanged base-membership digest. Grant must move a non-premium base stage to
 premium; revoke must restore it; revision/audit state advances exactly once per
 mutation and remains byte-identical on both replays. A planned or isolated raw
 report cannot pass the drill.

@@ -24,7 +24,20 @@ test('grant creates pilot-premium audit evidence while clients receive premium',
     'premium',
   );
   assert.equal(base.stage, 'free');
-  assert.equal(JSON.stringify(pilot.publicPilotEntitlementPlan(plan)).includes('13800138000'), false);
+  const publicPlan = pilot.publicPilotEntitlementPlan(plan);
+  assert.equal(publicPlan.schema_version, 'pilot-entitlement-plan.v2');
+  assert.equal(JSON.stringify(publicPlan).includes('13800138000'), false);
+  assert.deepEqual(Object.keys(publicPlan).sort(), [
+    'action',
+    'actor',
+    'changed',
+    'event_id',
+    'idempotent',
+    'pilot_id',
+    'previous_stage',
+    'resulting_stage',
+    'schema_version',
+  ]);
 });
 
 test('exact replay is idempotent while event collisions fail closed', () => {

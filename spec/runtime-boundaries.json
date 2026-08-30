@@ -1,5 +1,5 @@
 {
-  "version": "vnext-27",
+  "version": "vnext-28",
   "product_level_requirements": [
     "frontend_core_is_react_native",
     "support_ios_android_web_release_targets",
@@ -397,11 +397,11 @@
     "scope": "receiver_owned_closed_beta_environment_only",
     "campaign_boundary": "every_command_active_grant_audit_event_and_applied_report_bind_the_exact_closed_beta_release_candidate_campaign_id",
     "access_state": "premium",
-    "mutation_boundary": "receiver_operator_only_via_iam_authenticated_non_http_function_invocation_with_independent_command_bound_hmac_no_client_route",
+    "mutation_boundary": "receiver_operator_only_via_iam_authenticated_non_http_function_invocation_with_dedicated_strong_secret_and_independent_command_bound_hmac_one_transaction_reads_base_membership_revision_plans_and_writes_beta_no_client_route_no_CLI_direct_write",
     "audit_boundary": "idempotent_event_id_actor_reason_timestamp_previous_stage_resulting_stage_and_command_hash_saved_atomically_with_the_active_beta_grant_record_while_base_membership_remains_unchanged",
     "write_safety": "dry_run_by_default_apply_requires_clean_main_exactly_equal_to_origin_main_and_a_receiver_delivery_profile",
     "revoke_boundary": "revoke_only_an_active_matching_beta_campaign_and_grant_then_resolve_the_unchanged_current_base_membership_without_downgrading_a_later_non_beta_premium_entitlement",
-    "report_boundary": "beta_entitlement_report_v2_binds_applied_repository_commit_profile_hash_environment_campaign_command_hash_identified_operator_execution_window_preflight_write_safety_base_membership_before_after_digest_and_verified_beta_revision_audit_active_state_without_phone_number",
+    "report_boundary": "beta_entitlement_report_v3_binds_applied_repository_commit_profile_hash_environment_campaign_grant_and_distinct_event_identity_command_hash_identified_operator_execution_window_preflight_write_safety_transaction_observed_base_membership_digest_and_verified_beta_revision_audit_active_state_without_phone_or_phone_derived_identifier",
     "personal_data_boundary": "command_files_are_operator_inputs_not_release_bundle_artifacts_and_must_not_be_committed_or_exported",
     "deployment_status": "not_deployed_by_repository_change",
     "launch_gate_status": "pending"

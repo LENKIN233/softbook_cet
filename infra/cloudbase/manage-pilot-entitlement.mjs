@@ -89,7 +89,7 @@ export async function executePilotEntitlementCommand(options, dependencies = {})
   const preflight = await inspectReceiver({profile, runner});
   const writeSafety = inspectWriteSafety({nodeVersion, repository});
   const base = {
-    schema_version: 'pilot-entitlement-report.v1',
+    schema_version: 'pilot-entitlement-report.v2',
     applied: options.apply,
     environment_id: profile.environment_id,
     gate_eligible: false,
@@ -351,7 +351,7 @@ async function main() {
       console.log(
         `[pilot-entitlement] ${report.status}; action=${plan?.action ?? 'none'}; pilot=${
           report.pilot_id
-        }; account=${plan?.account_fingerprint ?? 'none'}; writes=${report.writes_performed}`,
+        }; event=${plan?.event_id ?? 'none'}; writes=${report.writes_performed}`,
       );
     }
     if (report.status === 'blocked') process.exitCode = 1;

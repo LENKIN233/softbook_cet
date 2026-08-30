@@ -1,17 +1,27 @@
 const assert = require('node:assert/strict');
-const {mkdtempSync, rmSync, writeFileSync} = require('node:fs');
+const crypto = require('node:crypto');
+const {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} = require('node:fs');
 const {tmpdir} = require('node:os');
 const {join, resolve} = require('node:path');
 const {pathToFileURL} = require('node:url');
 const {after, before, test} = require('node:test');
 
 let cli;
+let beta;
 let deploymentSafety;
 const temporaryDirectories = [];
 
 before(async () => {
   cli = await import(
     pathToFileURL(resolve(__dirname, '../../../manage-beta-entitlement.mjs'))
+  );
+  beta = await import(
+    pathToFileURL(resolve(__dirname, '../../../beta-entitlement-v1.mjs'))
   );
   deploymentSafety = await import(
     pathToFileURL(resolve(__dirname, '../../../deployment-safety.mjs'))
@@ -41,7 +51,7 @@ test('beta entitlement CLI is dry-run by default and never reports a phone numbe
   );
 
   assert.equal(report.status, 'planned');
-  assert.equal(report.schema_version, 'beta-entitlement-report.v2');
+  assert.equal(report.schema_version, 'beta-entitlement-report.v3');
   assert.equal(report.gate_eligible, false);
   assert.equal(report.writes_performed, false);
   assert.equal(report.plan.resulting_stage, 'premium');
@@ -51,6 +61,8 @@ test('beta entitlement CLI is dry-run by default and never reports a phone numbe
   assert.equal(report.beta_state.active, true);
   assert.equal(report.write_safety.node_version, '22.13.0');
   assert.equal(JSON.stringify(report).includes('13800138000'), false);
+  assert.equal(Object.hasOwn(report.command, 'account_fingerprint'), false);
+  assert.equal(Object.hasOwn(report.plan, 'account_fingerprint'), false);
   assert.equal(runner.updateCount(), 0);
 });
 
@@ -88,6 +100,7 @@ test('apply writes and verifies one auditable grant while exact replay is idempo
   assert.equal(replay.writes_performed, false);
   assert.equal(replay.result.idempotent, true);
   assert.equal(runner.updateCount(), 1);
+  assert.equal(runner.invokeCount(), 2);
 });
 
 test('apply refuses topic branches even when receiver preflight passes', async () => {
@@ -162,9 +175,9 @@ test('apply requires a formal actor identity and full repository commit', async 
   assert.equal(invalidCommitRunner.updateCount(), 0);
 });
 
-test('apply fails verification when base membership changes during the mutation', async () => {
+test('apply report remains valid when base membership changes after the receiver transaction', async () => {
   const fixture = createFixture();
-  const runner = createRunner({mutateMembershipOnBetaWrite: true});
+  const runner = createRunner({mutateMembershipAfterInvocation: true});
   const options = cli.parseBetaEntitlementArguments([
     '--profile',
     fixture.profilePath,
@@ -172,10 +185,38 @@ test('apply fails verification when base membership changes during the mutation'
     fixture.commandPath,
     '--apply',
   ]);
-  await assert.rejects(
-    () => cli.executeBetaEntitlementCommand(options, dependencies(runner)),
-    /base membership changed/,
+  const report = await cli.executeBetaEntitlementCommand(
+    options,
+    dependencies(runner),
   );
+
+  assert.equal(report.status, 'passed');
+  assert.equal(report.writes_performed, true);
+  assert.equal(report.base_membership.unchanged, true);
+  assert.equal(runner.updateCount(), 1);
+  assert.equal(runner.invokeCount(), 1);
+});
+
+test('apply rejects a weak or missing beta operator secret before invocation', async () => {
+  const fixture = createFixture();
+  const runner = createRunner();
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+
+  await assert.rejects(
+    () =>
+      cli.executeBetaEntitlementCommand(options, {
+        ...dependencies(runner),
+        operatorSecret: 'a'.repeat(32),
+      }),
+    /strong receiver-only secret/,
+  );
+  assert.equal(runner.invokeCount(), 0);
 });
 
 test('beta entitlement commands reject a formal production profile', async () => {
@@ -249,17 +290,20 @@ function dependencies(runner) {
       head: 'a'.repeat(40),
       originMain: 'a'.repeat(40),
     },
+    operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
     runner,
   };
 }
 
-function createRunner({mutateMembershipOnBetaWrite = false} = {}) {
+function createRunner({mutateMembershipAfterInvocation = false} = {}) {
   const collections = new Map([
     ['softbook_beta_entitlements', new Map()],
     ['softbook_memberships', new Map()],
   ]);
   let updates = 0;
+  let invocations = 0;
   return {
+    invokeCount: () => invocations,
     updateCount: () => updates,
     async run(args) {
       if (args[0] === 'env') {
@@ -297,32 +341,89 @@ function createRunner({mutateMembershipOnBetaWrite = false} = {}) {
               : [];
           }
           if (wrapper.CommandType === 'UPDATE') {
-            updates += 1;
-            const update = command.updates[0];
-            const id = update.q._id;
-            collections
-              .get(wrapper.TableName)
-              .set(id, structuredClone(update.u.$set));
-            if (
-              mutateMembershipOnBetaWrite &&
-              wrapper.TableName === 'softbook_beta_entitlements'
-            ) {
-              collections.get('softbook_memberships').set(id, {
-                entitlement: {
-                  counted_entry_count: 1,
-                  last_experience_ended_by: null,
-                  recovery_prompt_visible: false,
-                  stage: 'premium',
-                  trial_duration_days: 5,
-                  trial_started_at_entry_count: 1,
-                },
-              });
-            }
-            return [{ok: 1, n: 1}];
+            throw new Error('beta apply must not issue a direct database update');
           }
           throw new Error(`unexpected database command ${wrapper.CommandType}`);
         });
         return JSON.stringify({data: {results}});
+      }
+      if (args[0] === 'fn' && args[1] === 'invoke') {
+        invocations += 1;
+        const dataArgument = args[args.indexOf('-d') + 1];
+        const invocation = JSON.parse(
+          readFileSync(dataArgument.slice(1), 'utf8'),
+        );
+        assert.deepEqual(Object.keys(invocation).sort(), [
+          'command',
+          'schema_version',
+          'signature',
+        ]);
+        assert.equal(
+          invocation.schema_version,
+          'beta-entitlement-operator-invoke.v1',
+        );
+        const canonicalCommand = beta.validateBetaEntitlementCommand(
+          invocation.command,
+        );
+        const expectedSignature = `hmac-sha256:${crypto
+          .createHmac(
+            'sha256',
+            'beta-operator-secret-0123456789-ABCDEFG',
+          )
+          .update(beta.betaEntitlementInternals.stableStringify(canonicalCommand))
+          .digest('hex')}`;
+        assert.equal(invocation.signature, expectedSignature);
+        const current =
+          collections
+            .get('softbook_beta_entitlements')
+            .get(canonicalCommand.phone_number) ?? null;
+        const membership =
+          collections
+            .get('softbook_memberships')
+            .get(canonicalCommand.phone_number) ?? null;
+        const plan = beta.planBetaEntitlementMutation(
+          canonicalCommand,
+          current,
+          membership?.entitlement ?? membership,
+        );
+        if (plan.changed) {
+          updates += 1;
+          collections
+            .get('softbook_beta_entitlements')
+            .set(canonicalCommand.phone_number, structuredClone(plan.document));
+        }
+        const baseMembershipSha256 = beta.betaEntitlementInternals.hashCanonical({
+          entitlement: membership?.entitlement ?? membership ?? null,
+          revision: 0,
+        });
+        const result = {
+          schema_version: 'beta-entitlement-operator-result.v1',
+          base_membership_sha256: baseMembershipSha256,
+          beta_state: beta.publicBetaEntitlementState(plan.document),
+          gate_eligible: false,
+          result: beta.publicBetaEntitlementPlan(plan),
+          status: 'passed',
+          writes_performed: plan.changed,
+        };
+        if (mutateMembershipAfterInvocation && plan.changed) {
+          collections.get('softbook_memberships').set(
+            canonicalCommand.phone_number,
+            {
+              entitlement: {
+                counted_entry_count: 1,
+                last_experience_ended_by: null,
+                recovery_prompt_visible: false,
+                stage: 'premium',
+                trial_duration_days: 5,
+                trial_started_at_entry_count: 1,
+              },
+            },
+          );
+        }
+        return JSON.stringify({
+          InvokeResult: 0,
+          RetMsg: JSON.stringify(result),
+        });
       }
       throw new Error(`unexpected command ${args.join(' ')}`);
     },

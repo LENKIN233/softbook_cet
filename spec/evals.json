@@ -1,5 +1,5 @@
 {
-  "version": "vnext-31",
+  "version": "vnext-32",
   "regressions": [
     {
       "id": "HR-01",
@@ -709,7 +709,7 @@
         "beta_command_active_grant_and_audit_bind_exact_campaign_id",
         "revoke_requires_matching_active_campaign_and_grant",
         "apply_requires_identified_actor_and_full_repository_commit",
-        "beta_entitlement_report_v2_binds_commit_profile_environment_and_campaign",
+        "beta_entitlement_report_v3_binds_commit_profile_environment_and_campaign",
         "report_binds_command_hash_operator_and_execution_window",
         "receiver_preflight_and_clean_exact_main_write_safety_are_retained",
         "stored_beta_revision_audit_count_active_state_and_digest_are_verified",
@@ -1530,11 +1530,12 @@
         "beta_entitlement_command_v1_campaign_id",
         "active_grant_and_every_audit_event_campaign_binding",
         "matching_campaign_and_grant_revoke",
-        "beta_entitlement_report_v2",
+        "beta_entitlement_report_v3",
         "repository_commit_and_raw_profile_SHA256",
         "identified_execution_operator_and_canonical_window",
         "receiver_preflight_and_Node_22_13_clean_exact_main",
-        "privacy_safe_command_hash_and_account_fingerprint",
+        "privacy_safe_command_hash_without_phone_derived_identifier",
+        "receiver_function_single_transaction_and_command_bound_hmac",
         "verified_beta_state_revision_audit_active_and_digest",
         "base_membership_unchanged_digest",
         "no_phone_command_bytes_or_false_receiver_execution_claim"
@@ -1546,9 +1547,9 @@
       "must_include": [
         "beta_entitlement_drill_registered_closed_beta_evidence",
         "strict_profile_grant_grant_replay_revoke_revoke_replay_loader",
-        "beta_entitlement_report_v2_applied_status_and_gate_ineligible_raw_boundary",
+        "beta_entitlement_report_v3_applied_status_and_gate_ineligible_raw_boundary",
         "candidate_commit_profile_environment_and_campaign_binding",
-        "one_account_fingerprint_grant_actor_and_base_membership_digest",
+        "one_campaign_grant_actor_distinct_event_identity_and_base_membership_digest",
         "grant_nonpremium_to_premium_and_active_state",
         "grant_idempotent_replay_no_write_and_same_state_digest",
         "revoke_premium_to_original_base_and_inactive_state",

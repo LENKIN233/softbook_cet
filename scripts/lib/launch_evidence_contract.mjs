@@ -375,7 +375,7 @@ export const REQUIRED_EVIDENCE_CHECKS = Object.freeze({
     'grant-replay-idempotent',
     'revoke-applied-and-verified',
     'revoke-replay-idempotent',
-    'campaign-account-and-base-membership-bound',
+    'campaign-grant-event-and-base-membership-bound',
   ],
   'space-sync-test': [
     'two-client-canonical-convergence',
@@ -1134,6 +1134,7 @@ function validateProductionDeploymentMeasurements(
       artifact,
       executionTimes,
       operation: 'deploy',
+      receiverProfile: loaded.profile,
     },
     `${label} deploy report`,
     errors,
@@ -1144,6 +1145,7 @@ function validateProductionDeploymentMeasurements(
       artifact,
       executionTimes,
       operation: 'verify',
+      receiverProfile: loaded.profile,
     },
     `${label} verify report`,
     errors,
@@ -1226,8 +1228,9 @@ function validateBetaEntitlementDrillMeasurements(
     [
       ...roleFields,
       'campaign_id',
-      'account_fingerprint',
       'grant_id',
+      'grant_event_id',
+      'revoke_event_id',
       'assertions',
     ],
     label,
@@ -1244,13 +1247,22 @@ function validateBetaEntitlementDrillMeasurements(
     errors.push(`${label} raw artifact roles must be distinct.`);
   }
   requirePattern(value.campaign_id, ID_PATTERN, `${label}.campaign_id`, errors);
+  requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
   requirePattern(
-    value.account_fingerprint,
-    /^sha256:[0-9a-f]{16}$/,
-    `${label}.account_fingerprint`,
+    value.grant_event_id,
+    ID_PATTERN,
+    `${label}.grant_event_id`,
     errors,
   );
-  requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
+  requirePattern(
+    value.revoke_event_id,
+    ID_PATTERN,
+    `${label}.revoke_event_id`,
+    errors,
+  );
+  if (value.grant_event_id === value.revoke_event_id) {
+    errors.push(`${label} grant and revoke event IDs must be distinct.`);
+  }
   assertEqual(
     value.campaign_id,
     expectedSubject?.entitlement?.campaign_id,
@@ -1265,7 +1277,7 @@ function validateBetaEntitlementDrillMeasurements(
       'revoke_applied_and_verified',
       'revoke_replay_idempotent',
       'base_membership_unchanged',
-      'same_campaign_account_and_candidate',
+      'same_campaign_grant_and_candidate',
     ],
     `${label}.assertions`,
     errors,
@@ -1416,7 +1428,7 @@ function validateBetaEntitlementPhaseReport(
     label,
     errors,
   );
-  assertEqual(report.schema_version, 'beta-entitlement-report.v2', `${label}.schema_version`, errors);
+  assertEqual(report.schema_version, 'beta-entitlement-report.v3', `${label}.schema_version`, errors);
   assertEqual(report.applied, true, `${label}.applied`, errors);
   assertEqual(report.gate_eligible, false, `${label}.gate_eligible`, errors);
   assertEqual(report.repository_commit, artifact.subject?.commit_sha, `${label}.repository_commit`, errors);
@@ -1497,7 +1509,6 @@ function validateBetaEntitlementReportCommand(value, action, label, errors) {
   assertExactKeys(
     value,
     [
-      'account_fingerprint',
       'action',
       'actor_id',
       'campaign_id',
@@ -1508,7 +1519,6 @@ function validateBetaEntitlementReportCommand(value, action, label, errors) {
     label,
     errors,
   );
-  requirePattern(value.account_fingerprint, /^sha256:[0-9a-f]{16}$/, `${label}.account_fingerprint`, errors);
   assertEqual(value.action, action, `${label}.action`, errors);
   requirePattern(
     value.actor_id,
@@ -1616,7 +1626,6 @@ function validateBetaEntitlementResult(
     [
       'schema_version',
       'action',
-      'account_fingerprint',
       'actor_id',
       'campaign_id',
       'changed',
@@ -1629,10 +1638,9 @@ function validateBetaEntitlementResult(
     label,
     errors,
   );
-  assertEqual(value.schema_version, 'beta-entitlement-plan.v1', `${label}.schema_version`, errors);
+  assertEqual(value.schema_version, 'beta-entitlement-plan.v2', `${label}.schema_version`, errors);
   for (const field of [
     'action',
-    'account_fingerprint',
     'actor_id',
     'campaign_id',
     'event_id',
@@ -1657,14 +1665,13 @@ function validateBetaEntitlementPhaseRelationships(phases, measurements, label, 
   const commands = phases.map(phase => phase.command ?? {});
   for (const [field, expected] of [
     ['campaign_id', measurements.campaign_id],
-    ['account_fingerprint', measurements.account_fingerprint],
     ['grant_id', measurements.grant_id],
   ]) {
     for (const [index, command] of commands.entries()) {
       assertEqual(command[field], expected, `${label}.phase_${index + 1}.${field}`, errors);
     }
   }
-  for (const field of ['actor_id', 'campaign_id', 'account_fingerprint', 'grant_id']) {
+  for (const field of ['actor_id', 'campaign_id', 'grant_id']) {
     for (const command of commands.slice(1)) {
       assertEqual(command[field], commands[0]?.[field], `${label}.${field} parity`, errors);
     }
@@ -1676,6 +1683,18 @@ function validateBetaEntitlementPhaseRelationships(phases, measurements, label, 
       errors.push(`${label} grant and revoke ${field} must be distinct.`);
     }
   }
+  assertEqual(
+    grant.command?.event_id,
+    measurements.grant_event_id,
+    `${label}.grant event measurement`,
+    errors,
+  );
+  assertEqual(
+    revoke.command?.event_id,
+    measurements.revoke_event_id,
+    `${label}.revoke event measurement`,
+    errors,
+  );
   for (const phase of phases.slice(1)) {
     assertEqual(phase.baseHash, phases[0].baseHash, `${label}.base membership campaign parity`, errors);
   }
@@ -2095,7 +2114,7 @@ function validateSpaceSyncState(value, label, errors) {
 
 function validateReceiverDeliveryReport(
   report,
-  {artifact, executionTimes, operation},
+  {artifact, executionTimes, operation, receiverProfile},
   label,
   errors,
 ) {
@@ -2165,7 +2184,12 @@ function validateReceiverDeliveryReport(
     errors,
   );
   validateReceiverPreflight(report.preflight, artifact.subject, `${label}.preflight`, errors);
-  validateReceiverSecretSummary(report.receiver_secrets, `${label}.receiver_secrets`, errors);
+  validateReceiverSecretSummary(
+    report.receiver_secrets,
+    receiverProfile,
+    `${label}.receiver_secrets`,
+    errors,
+  );
   assertEqual(
     report.mobile_runtime_profile?.signing_key_id,
     report.receiver_secrets?.signing_key_id,
@@ -2434,7 +2458,7 @@ function validateReceiverPreflight(value, subject, label, errors) {
   }
 }
 
-function validateReceiverSecretSummary(value, label, errors) {
+function validateReceiverSecretSummary(value, profile, label, errors) {
   if (!isRecord(value)) {
     errors.push(`${label} must be an object.`);
     return;
@@ -2448,6 +2472,9 @@ function validateReceiverSecretSummary(value, label, errors) {
     'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
     'SOFTBOOK_SMS_PROVIDER',
   ];
+  if (profile?.runtime_mode === 'closed_beta') {
+    common.push('SOFTBOOK_BETA_OPERATOR_SECRET');
+  }
   const allowedSets = [
     [
       ...common,

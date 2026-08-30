@@ -95,9 +95,8 @@ function planPilotEntitlementMutation(commandInput, currentDocumentInput, baseEn
 
 function publicPilotEntitlementPlan(plan) {
   return {
-    schema_version: 'pilot-entitlement-plan.v1',
+    schema_version: 'pilot-entitlement-plan.v2',
     action: plan.command.action,
-    account_fingerprint: accountFingerprint(plan.command.phone_number),
     actor: plan.command.actor,
     changed: plan.changed,
     event_id: plan.command.event_id,
@@ -321,10 +320,6 @@ function isActivePilotEntitlement(value) {
     isIdentifier(value.pilot_id) && isTrimmedNonEmptyString(value.reason);
 }
 
-function accountFingerprint(phoneNumber) {
-  return `sha256:${createHash('sha256').update(phoneNumber).digest('hex').slice(0, 16)}`;
-}
-
 function hashCanonical(value) {
   return `sha256:${createHash('sha256').update(stableStringify(value)).digest('hex')}`;
 }
@@ -374,7 +369,6 @@ module.exports = {
   validatePilotEntitlementCommand,
   verifyAppliedPilotEntitlement,
   pilotEntitlementInternals: {
-    accountFingerprint,
     hashCanonical,
     normalizePilotEntitlementDocument,
     stableStringify,

@@ -579,7 +579,12 @@ closed-beta `campaign_id`, and apply requires an identified `model:`, `agent:`,
 `service:` or `oidc:` `actor_id`. Apply also requires Node 22.13.0 plus clean exact
 `main`. The active grant and its audit history are stored together in
 `softbook_beta_entitlements`; the base membership document is not modified.
-The privacy-safe `beta-entitlement-report.v2` binds commit/profile/campaign,
+Closed-beta receiver deployment requires a dedicated strong
+`SOFTBOOK_BETA_OPERATOR_SECRET` distinct from auth secrets. Apply signs the
+exact command and invokes the non-HTTP receiver handler; the receiver reads the
+base membership revision, plans, and writes beta state in one transaction.
+The CLI does not issue a direct database update.
+The privacy-safe `beta-entitlement-report.v3` binds commit/profile/campaign,
 command hash, operator, execution, receiver/write safety, unchanged base digest
 and verified beta state without exposing the phone or command bytes. Command
 reports remain `gate_eligible=false` until a registered formal drill wrapper
@@ -587,9 +592,10 @@ revalidates the exact grant/replay/revoke sequence. Command files contain phone
 numbers and must not be committed or included in a release bundle.
 
 Formal `beta-entitlement-drill` evidence uses one tracked profile and four
-tracked applied report v2 files in exact order: grant, idempotent grant replay,
+tracked applied report v3 files in exact order: grant, idempotent grant replay,
 revoke and idempotent revoke replay. The wrapper revalidates one candidate
-campaign/account/grant/operator/commit and one unchanged base-membership digest;
+campaign, grant, distinct event identities, operator, commit and one unchanged
+base-membership digest;
 it never ingests the phone-bearing command files.
 
 ### Receiver Space sync drill

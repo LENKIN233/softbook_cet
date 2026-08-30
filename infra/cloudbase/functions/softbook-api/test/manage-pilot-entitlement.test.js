@@ -39,9 +39,12 @@ test('pilot entitlement CLI is dry-run by default and redacts the phone', async 
   const report = await cli.executePilotEntitlementCommand(options, dependencies(runner));
 
   assert.equal(report.status, 'planned');
+  assert.equal(report.schema_version, 'pilot-entitlement-report.v2');
   assert.equal(report.gate_eligible, false);
+  assert.equal(report.plan.schema_version, 'pilot-entitlement-plan.v2');
   assert.equal(report.plan.resulting_stage, 'pilot_premium');
   assert.equal(JSON.stringify(report).includes('13800138000'), false);
+  assert.equal(Object.hasOwn(report.plan, 'account_fingerprint'), false);
   assert.equal(runner.updateCount(), 0);
 });
 

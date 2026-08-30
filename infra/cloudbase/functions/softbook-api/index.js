@@ -29,6 +29,14 @@ const {
 } = require('./content-manifest-v1');
 const {createDailyCheckInV2Service} = require('./daily-check-in-v2');
 const {
+  BetaEntitlementError,
+  betaEntitlementInternals,
+  planBetaEntitlementMutation,
+  publicBetaEntitlementPlan,
+  publicBetaEntitlementState,
+  validateBetaEntitlementCommand,
+} = require('./beta-entitlement-v1');
+const {
   PilotEntitlementError,
   pilotEntitlementInternals,
   planPilotEntitlementMutation,
@@ -77,6 +85,8 @@ const {
 
 const DEFAULT_SMS_CODE = '2468';
 const FREE_CARD_ACCESS_RATIO = 0.5;
+const BETA_OPERATOR_PATTERN =
+  /^(model|agent|service|oidc):[A-Za-z0-9_.-]+$/;
 const RUNTIME_MODES = new Set([
   'controlled_pilot',
   'development',
@@ -143,10 +153,85 @@ const DEFAULT_CARD_SOURCE = {
 let defaultApi;
 
 async function main(event, context) {
+  if (event?.schema_version === 'beta-entitlement-operator-invoke.v1') {
+    return handleBetaEntitlementOperatorInvoke(event);
+  }
   if (event?.schema_version === 'pilot-entitlement-operator-invoke.v1') {
     return handlePilotEntitlementOperatorInvoke(event);
   }
   return getDefaultApi().handleCloudBaseEvent(event, context);
+}
+
+async function handleBetaEntitlementOperatorInvoke(event, options = {}) {
+  const actualKeys = Object.keys(event ?? {}).sort();
+  if (
+    actualKeys.length !== 3 ||
+    actualKeys[0] !== 'command' ||
+    actualKeys[1] !== 'schema_version' ||
+    actualKeys[2] !== 'signature' ||
+    event.schema_version !== 'beta-entitlement-operator-invoke.v1'
+  ) {
+    throw new BetaEntitlementError(
+      'beta entitlement operator invocation is invalid.',
+    );
+  }
+  const runtimeMode = resolveRuntimeMode(options.runtimeMode);
+  const operatorSecret =
+    options.operatorSecret ?? process.env.SOFTBOOK_BETA_OPERATOR_SECRET ?? null;
+  const command = validateBetaEntitlementCommand(event.command);
+  assertBetaOperatorSignature(command, event.signature, operatorSecret);
+  if (
+    runtimeMode !== 'production' ||
+    !BETA_OPERATOR_PATTERN.test(command.actor_id)
+  ) {
+    throw new BetaEntitlementError(
+      'beta entitlement command is outside the receiver closed beta runtime.',
+    );
+  }
+  const store = options.store ?? createDefaultStore({runtimeMode});
+  if (typeof store.applyBetaEntitlementCommand !== 'function') {
+    throw new BetaEntitlementError(
+      'beta entitlement operator store is unavailable.',
+    );
+  }
+  const applied = await store.applyBetaEntitlementCommand(command);
+  return {
+    schema_version: 'beta-entitlement-operator-result.v1',
+    base_membership_sha256: applied.baseMembershipSha256,
+    beta_state: applied.betaState,
+    gate_eligible: false,
+    result: applied.result,
+    status: 'passed',
+    writes_performed: applied.writesPerformed,
+  };
+}
+
+function assertBetaOperatorSignature(command, signature, secret) {
+  if (
+    typeof secret !== 'string' ||
+    secret.length < 32 ||
+    new Set(secret).size < 12 ||
+    typeof signature !== 'string' ||
+    !/^hmac-sha256:[a-f0-9]{64}$/.test(signature)
+  ) {
+    throw new BetaEntitlementError(
+      'beta entitlement operator authentication failed.',
+    );
+  }
+  const expected = `hmac-sha256:${crypto
+    .createHmac('sha256', secret)
+    .update(betaEntitlementInternals.stableStringify(command))
+    .digest('hex')}`;
+  if (
+    !crypto.timingSafeEqual(
+      Buffer.from(signature, 'utf8'),
+      Buffer.from(expected, 'utf8'),
+    )
+  ) {
+    throw new BetaEntitlementError(
+      'beta entitlement operator authentication failed.',
+    );
+  }
 }
 
 async function accountDeletionWorkerMain(event = {}) {
@@ -1013,6 +1098,28 @@ function createMemoryStore() {
 
   return {
     ...authStateStore,
+    applyBetaEntitlementCommand: command =>
+      runLearningTransaction(async () => {
+        const base = reconcileMemoryMembershipRevision(
+          memberships,
+          membershipRevisions,
+          command.phone_number,
+        );
+        const plan = planBetaEntitlementMutation(
+          command,
+          betaEntitlements.get(command.phone_number) ?? null,
+          base.entitlement,
+        );
+        if (plan.changed) {
+          betaEntitlements.set(command.phone_number, cloneJson(plan.document));
+        }
+        return {
+          baseMembershipSha256: createBetaOperatorBaseDigest(base),
+          betaState: publicBetaEntitlementState(plan.document),
+          result: publicBetaEntitlementPlan(plan),
+          writesPerformed: plan.changed,
+        };
+      }),
     runAccountDeletionWorkerForTest: options =>
       accountDeletionWorker.run(options),
     getCardSource: (track, options = {}) => {
@@ -1737,6 +1844,45 @@ function createCloudBaseStore(options = {}) {
 
   return {
     ...authStateStore,
+    applyBetaEntitlementCommand: command =>
+      db.runTransaction(async transaction => {
+        const transactionMemberships = transaction.collection(
+          CLOUDBASE_COLLECTIONS.memberships,
+        );
+        const transactionMembershipRevisions = transaction.collection(
+          CLOUDBASE_COLLECTIONS.membershipRevisions,
+        );
+        const transactionBetaEntitlements = transaction.collection(
+          CLOUDBASE_COLLECTIONS.betaEntitlements,
+        );
+        const base = await getCloudBaseMembershipRecord(
+          transactionMemberships,
+          transactionMembershipRevisions,
+          command.phone_number,
+        );
+        const current = await getCloudBaseDocument(
+          transactionBetaEntitlements,
+          command.phone_number,
+        );
+        const plan = planBetaEntitlementMutation(
+          command,
+          current,
+          base.entitlement,
+        );
+        if (plan.changed) {
+          await setCloudBaseDocument(
+            transactionBetaEntitlements,
+            command.phone_number,
+            plan.document,
+          );
+        }
+        return {
+          baseMembershipSha256: createBetaOperatorBaseDigest(base),
+          betaState: publicBetaEntitlementState(plan.document),
+          result: publicBetaEntitlementPlan(plan),
+          writesPerformed: plan.changed,
+        };
+      }),
     getCardSource: async (track, options = {}) => {
       const existing = await getCloudBaseDocument(cardSources, track);
 
@@ -3557,6 +3703,17 @@ function nextBaseMembershipRevision(currentRevision) {
   }
 
   return revision + 1;
+}
+
+function createBetaOperatorBaseDigest(base) {
+  return betaEntitlementInternals.hashCanonical({
+    entitlement: cloneMembership(base.entitlement),
+    revision: requireNonNegativeSafeInteger(
+      base.revision,
+      'base membership revision',
+    ),
+    updated_at: base.document?.updated_at ?? null,
+  });
 }
 
 function requireNonNegativeSafeInteger(value, label) {
@@ -5447,6 +5604,7 @@ module.exports = {
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,
+  handleBetaEntitlementOperatorInvoke,
   handlePilotEntitlementOperatorInvoke,
   get defaultApi() {
     return getDefaultApi();

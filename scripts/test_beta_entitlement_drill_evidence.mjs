@@ -38,10 +38,35 @@ test('beta entitlement drill rejects planned, drifted, non-idempotent and regres
   planned.loaded.grantReport.applied = false;
   assertInvalid(planned, /grant report\.applied/);
 
+  const legacySchema = createFixture();
+  legacySchema.loaded.grantReport.schema_version =
+    'beta-entitlement-report.v2';
+  assertInvalid(legacySchema, /schema_version/);
+
+  const legacyPlanSchema = createFixture();
+  legacyPlanSchema.loaded.grantReport.result.schema_version =
+    'beta-entitlement-plan.v1';
+  assertInvalid(legacyPlanSchema, /result\.schema_version/);
+
   const campaignDrift = createFixture();
   campaignDrift.loaded.revokeReport.command.campaign_id = 'another-campaign';
   campaignDrift.loaded.revokeReport.result.campaign_id = 'another-campaign';
   assertInvalid(campaignDrift, /campaign_id/);
+
+  const eventDrift = createFixture();
+  eventDrift.artifact.measurements.revoke_event_id =
+    'beta-event-revoke-other';
+  assertInvalid(eventDrift, /revoke event measurement/);
+
+  const legacyFingerprint = createFixture();
+  legacyFingerprint.artifact.measurements.account_fingerprint =
+    `sha256:${hash('legacy-phone-derived-value').slice(0, 16)}`;
+  assertInvalid(legacyFingerprint, /contain exactly/);
+
+  const legacyReportFingerprint = createFixture();
+  legacyReportFingerprint.loaded.grantReport.command.account_fingerprint =
+    `sha256:${hash('legacy-report-value').slice(0, 16)}`;
+  assertInvalid(legacyReportFingerprint, /command must contain exactly/);
 
   const replayWrites = createFixture();
   replayWrites.loaded.grantReplayReport.result.changed = true;
@@ -143,7 +168,6 @@ test('tracked beta entitlement drill validates end to end and raw tamper fails',
 function createFixture() {
   const commit = hash('beta-drill-commit').slice(0, 40);
   const campaignId = 'cet4-beta-campaign-001';
-  const accountFingerprint = `sha256:${hash('beta-account').slice(0, 16)}`;
   const grantId = 'cet4-beta-grant-0001';
   const operator = 'service:receiver-beta-operator';
   const profile = {
@@ -164,7 +188,6 @@ function createFixture() {
     profileHash,
     profileId: profile.profile_id,
     campaignId,
-    accountFingerprint,
     grantId,
     operator,
   };
@@ -309,7 +332,7 @@ function createFixture() {
       'grant-replay-idempotent',
       'revoke-applied-and-verified',
       'revoke-replay-idempotent',
-      'campaign-account-and-base-membership-bound',
+      'campaign-grant-event-and-base-membership-bound',
     ].map(id => ({
       id,
       status: 'passed',
@@ -322,15 +345,16 @@ function createFixture() {
       revoke_report_role: 'revoke-report',
       revoke_replay_report_role: 'revoke-replay-report',
       campaign_id: campaignId,
-      account_fingerprint: accountFingerprint,
       grant_id: grantId,
+      grant_event_id: 'beta-event-grant-0001',
+      revoke_event_id: 'beta-event-revoke-0001',
       assertions: {
         grant_applied_and_verified: true,
         grant_replay_idempotent: true,
         revoke_applied_and_verified: true,
         revoke_replay_idempotent: true,
         base_membership_unchanged: true,
-        same_campaign_account_and_candidate: true,
+        same_campaign_grant_and_candidate: true,
       },
     },
   };
@@ -369,7 +393,6 @@ function createPhaseReport(
   },
 ) {
   const command = {
-    account_fingerprint: common.accountFingerprint,
     action,
     actor_id: common.operator,
     campaign_id: common.campaignId,
@@ -378,7 +401,7 @@ function createPhaseReport(
     grant_id: common.grantId,
   };
   return {
-    schema_version: 'beta-entitlement-report.v2',
+    schema_version: 'beta-entitlement-report.v3',
     applied: true,
     gate_eligible: false,
     repository_commit: common.commit,
@@ -413,9 +436,8 @@ function createPhaseReport(
       state_sha256: stateHash,
     },
     result: {
-      schema_version: 'beta-entitlement-plan.v1',
+      schema_version: 'beta-entitlement-plan.v2',
       action: command.action,
-      account_fingerprint: command.account_fingerprint,
       actor_id: command.actor_id,
       campaign_id: command.campaign_id,
       changed,

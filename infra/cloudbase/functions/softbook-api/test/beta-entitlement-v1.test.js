@@ -24,7 +24,21 @@ test('grant creates premium access evidence without changing base membership', (
   assert.equal(beta.applyBetaEntitlementToMembership(base, plan.document).stage, 'premium');
   assert.equal(base.stage, 'trial');
   assert.equal(JSON.stringify(plan.document).includes('13800138000'), true);
-  assert.equal(JSON.stringify(beta.publicBetaEntitlementPlan(plan)).includes('13800138000'), false);
+  const publicPlan = beta.publicBetaEntitlementPlan(plan);
+  assert.equal(publicPlan.schema_version, 'beta-entitlement-plan.v2');
+  assert.equal(JSON.stringify(publicPlan).includes('13800138000'), false);
+  assert.deepEqual(Object.keys(publicPlan).sort(), [
+    'action',
+    'actor_id',
+    'campaign_id',
+    'changed',
+    'event_id',
+    'grant_id',
+    'idempotent',
+    'previous_stage',
+    'resulting_stage',
+    'schema_version',
+  ]);
 });
 
 test('exact event replay is idempotent while event collisions fail closed', () => {

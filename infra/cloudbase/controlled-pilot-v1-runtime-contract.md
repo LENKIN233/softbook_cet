@@ -232,7 +232,9 @@ IAM-authenticated non-HTTP function invocation with a command-bound HMAC from
 an independent receiver-only operator secret; the receiver function reads
 base, beta and pilot records and commits audit plus overlay in one database
 transaction, after which the CLI independently rereads the audit event. These
-repository guarantees remain undeployed until receiver execution is completed.
+public plan and report projections bind pilot, event, actor, action and stage
+identity without a phone-derived fingerprint. These repository guarantees
+remain undeployed until receiver execution is completed.
 
 ## Account deletion (repository implementation; not yet deployed)
 

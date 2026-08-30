@@ -8,6 +8,7 @@ const {
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,
+  handleBetaEntitlementOperatorInvoke,
   handlePilotEntitlementOperatorInvoke,
   validateCardSourceForImport,
 } = require('../index');
@@ -2988,6 +2989,149 @@ test('controlled-pilot membership overlays only an exact active pilot grant', as
   assert.equal(afterExpiry.component_revision.pilot_entitlement_revision, 3);
 });
 
+test('beta entitlement operator invocation reads base revision and commits one transaction', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db, runtimeMode: 'production'});
+  const command = createBetaOperatorCommand();
+  db.snapshot().get('softbook_memberships').set(command.phone_number, {
+    entitlement: {
+      counted_entry_count: 0,
+      last_experience_ended_by: null,
+      recovery_prompt_visible: false,
+      stage: 'trial_available',
+      trial_duration_days: 5,
+      trial_expires_at: null,
+      trial_started_at: null,
+      trial_started_at_entry_count: null,
+    },
+    phone_number: command.phone_number,
+    updated_at: '2026-04-29T12:00:00.000Z',
+  });
+  const invocation = {
+    schema_version: 'beta-entitlement-operator-invoke.v1',
+    command,
+    signature: createBetaOperatorSignature(command),
+  };
+
+  const first = await handleBetaEntitlementOperatorInvoke(invocation, {
+    operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+    runtimeMode: 'production',
+    store,
+  });
+  const replay = await handleBetaEntitlementOperatorInvoke(invocation, {
+    operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+    runtimeMode: 'production',
+    store,
+  });
+
+  assert.equal(first.writes_performed, true);
+  assert.equal(first.result.resulting_stage, 'premium');
+  assert.equal(replay.writes_performed, false);
+  assert.equal(replay.result.idempotent, true);
+  assert.equal(first.base_membership_sha256, replay.base_membership_sha256);
+  assert.match(first.base_membership_sha256, /^sha256:[a-f0-9]{64}$/);
+  assert.equal(JSON.stringify(first).includes(command.phone_number), false);
+  assert.equal(JSON.stringify(first).includes('account_fingerprint'), false);
+  assert.equal(db.transactionCount(), 2);
+  assert.equal(
+    db.snapshot().get('softbook_beta_entitlements').get(command.phone_number)
+      .audit.length,
+    1,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_memberships').get(command.phone_number)
+      .entitlement.stage,
+    'trial_available',
+  );
+  assert.equal(
+    db.snapshot().get('softbook_membership_revisions').get(command.phone_number)
+      .revision,
+    1,
+  );
+});
+
+test('beta entitlement operator invocation rejects unauthenticated input and rolls back transaction failure', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db, runtimeMode: 'production'});
+  const command = createBetaOperatorCommand();
+  const invocation = {
+    schema_version: 'beta-entitlement-operator-invoke.v1',
+    command,
+    signature: createBetaOperatorSignature(command),
+  };
+  let storeCalled = false;
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(
+        {...invocation, extra: true},
+        {
+          operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          runtimeMode: 'production',
+          store: {
+            applyBetaEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /invocation is invalid/,
+  );
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(
+        {...invocation, schema_version: 'beta-entitlement-operator-invoke.v2'},
+        {
+          operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          runtimeMode: 'production',
+          store: {
+            applyBetaEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /invocation is invalid/,
+  );
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(
+        {...invocation, signature: `hmac-sha256:${'0'.repeat(64)}`},
+        {
+          operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          runtimeMode: 'production',
+          store: {
+            applyBetaEntitlementCommand: async () => {
+              storeCalled = true;
+            },
+          },
+        },
+      ),
+    /authentication failed/,
+  );
+  assert.equal(storeCalled, false);
+
+  db.failNextTransactionSet('softbook_beta_entitlements');
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(invocation, {
+        operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+        runtimeMode: 'production',
+        store,
+      }),
+    /injected transaction set failure/,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_beta_entitlements')?.has(command.phone_number) ??
+      false,
+    false,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_membership_revisions')?.has(command.phone_number) ??
+      false,
+    false,
+  );
+});
+
 test('pilot entitlement operator invocation rederives and commits grant atomically', async () => {
   const db = createFakeCloudBaseDb();
   const pilotId = 'cet4-pilot-2026';
@@ -3537,6 +3681,28 @@ function createPilotOperatorSignature(command) {
   const canonical = JSON.stringify(command, Object.keys(command).sort());
   return `hmac-sha256:${crypto
     .createHmac('sha256', 'pilot-operator-secret-0123456789-ABCDEFG')
+    .update(canonical)
+    .digest('hex')}`;
+}
+
+function createBetaOperatorCommand() {
+  return {
+    schema_version: 'beta-entitlement-command.v1',
+    event_id: 'beta-event-grant-0001',
+    action: 'grant',
+    phone_number: '13800138000',
+    campaign_id: 'cet4-beta-campaign-001',
+    grant_id: 'cet4-beta-grant-0001',
+    actor_id: 'service:receiver-operator',
+    reason: 'closed_beta_access',
+    occurred_at: '2026-04-30T12:00:00.000Z',
+  };
+}
+
+function createBetaOperatorSignature(command) {
+  const canonical = JSON.stringify(command, Object.keys(command).sort());
+  return `hmac-sha256:${crypto
+    .createHmac('sha256', 'beta-operator-secret-0123456789-ABCDEFG')
     .update(canonical)
     .digest('hex')}`;
 }
