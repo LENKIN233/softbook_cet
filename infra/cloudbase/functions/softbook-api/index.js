@@ -432,6 +432,7 @@ function createSoftbookApi(options = {}) {
     indexSecret: authIndexSecret,
     now: config.now,
     phoneRequestLimit: options.authV2PhoneRequestLimit,
+    providerDeliveryDeadlineMs: options.authV2ProviderDeliveryDeadlineMs,
     randomBytes: options.authV2RandomBytes,
     rateLimitWindowSeconds: options.authV2RateLimitWindowSeconds,
     refreshTokenTtlSeconds: options.authV2RefreshTokenTtlSeconds,

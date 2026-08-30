@@ -41,7 +41,8 @@ test('worker clears every current account collection and removes the login lock 
     repository.calls.at(-3),
     `where:${RATE_LIMIT_COLLECTION}:key`,
   );
-  assert.match(repository.calls.at(-4), /^finalizing:/);
+  assert.match(repository.calls.at(-5), /^finalizing:/);
+  assert.match(repository.calls.at(-4), /^quiescent:/);
   assert.deepEqual(
     repository.calls.filter(call => call.startsWith('where:')).sort(),
     [
@@ -239,23 +240,22 @@ test('the finalizing transition linearizes before recovery can create challenge 
     const rateCount = authState.authRateLimits.size;
     const challengeCount = authState.authChallenges.size;
 
-    await assert.rejects(
-      () =>
-        service.requestCode({
-          body: {phone_number: PHONE},
-          clientIp: '203.0.113.100',
-        }),
-      error => error.code === 'account_deletion_pending',
-    );
-    await assert.rejects(
-      () =>
-        service.requestDeletionRecoveryCode({
-          body: {phone_number: PHONE},
-          clientIp: '203.0.113.101',
-        }),
-      error => error.code === 'account_deletion_finalizing',
-    );
-    assert.equal(authState.authRateLimits.size, rateCount);
+    const ordinary = await service.requestCode({
+      body: {phone_number: PHONE},
+      clientIp: '203.0.113.100',
+    });
+    const recovery = await service.requestDeletionRecoveryCode({
+      body: {phone_number: PHONE},
+      clientIp: '203.0.113.101',
+    });
+    assert.deepEqual(Object.keys(ordinary).sort(), [
+      'challenge_id',
+      'delivery',
+      'expires_at',
+      'retry_after_seconds',
+    ]);
+    assert.equal(recovery.purpose, 'account_deletion_recovery');
+    assert.equal(authState.authRateLimits.size, rateCount + 2);
     assert.equal(authState.authChallenges.size, challengeCount);
     raceObserved = true;
     return true;
@@ -277,7 +277,310 @@ test('the finalizing transition linearizes before recovery can create challenge 
   });
   assert.equal(afterCompletion.purpose, 'account_deletion_recovery');
   assert.equal(authState.authChallenges.size, 1);
-  assert.equal(authState.authRateLimits.size, 2);
+  assert.equal(authState.authRateLimits.size, 4);
+});
+
+test('provider-owned challenge intent keeps finalizing retryable until its provider ID lands', async () => {
+  const indexSecret = 'provider-pause-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  let releaseProvider;
+  let providerStarted;
+  const started = new Promise(resolve => {
+    providerStarted = resolve;
+  });
+  const service = createAuthV2Service({
+    indexSecret,
+    now: () => new Date(NOW),
+    providerDeliveryDeadlineMs: 1000,
+    randomBytes: size => Buffer.alloc(size, 4),
+    smsProvider: {
+      delivery: 'provider_pause',
+      kind: 'test',
+      sendChallenge: async () => {
+        providerStarted();
+        return new Promise(resolve => {
+          releaseProvider = () =>
+            resolve({
+              challengeId: 'provider-pause-id-0001',
+              expiresInSeconds: 300,
+            });
+        });
+      },
+      verifyChallenge: async () => undefined,
+    },
+    store: authStore,
+    tokenSecret: 'provider-pause-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 5),
+    repository,
+  });
+
+  const requestPromise = service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.130',
+  });
+  await started;
+  const [localChallengeId, pending] = [...authState.authChallenges.entries()][0];
+  assert.equal(pending.delivery_status, 'pending');
+  assert.equal(pending.provider_challenge_id, null);
+  assert.notEqual(localChallengeId, 'provider-pause-id-0001');
+
+  const first = await worker.run();
+  assert.equal(first.results[0].status, 'retry_finalizing');
+  assert.equal(authState.accountDeletions.get(accountKey).status, 'finalizing');
+  assert.equal(authState.authChallenges.has(localChallengeId), true);
+
+  releaseProvider();
+  const response = await requestPromise;
+  assert.equal(response.challenge_id, localChallengeId);
+  assert.equal(
+    authState.authChallenges.get(localChallengeId).provider_challenge_id,
+    'provider-pause-id-0001',
+  );
+  assert.equal(
+    authState.authChallenges.get(localChallengeId).delivery_status,
+    'delivered',
+  );
+
+  const second = await worker.run();
+  assert.equal(second.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+  assert.equal(authState.authChallenges.has(localChallengeId), false);
+});
+
+test('sendCode reservation keeps finalizing retryable until delivery becomes terminal', async () => {
+  const indexSecret = 'send-code-pause-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  let releaseProvider;
+  let providerStarted;
+  const started = new Promise(resolve => {
+    providerStarted = resolve;
+  });
+  const service = createAuthV2Service({
+    codeGenerator: () => '654321',
+    indexSecret,
+    now: () => new Date(NOW),
+    providerDeliveryDeadlineMs: 1000,
+    randomBytes: size => Buffer.alloc(size, 6),
+    smsProvider: {
+      delivery: 'send_code_pause',
+      kind: 'test',
+      sendCode: async () => {
+        providerStarted();
+        return new Promise(resolve => {
+          releaseProvider = resolve;
+        });
+      },
+    },
+    store: authStore,
+    tokenSecret: 'send-code-pause-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 7),
+    repository,
+  });
+
+  const requestPromise = service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.131',
+  });
+  await started;
+  const [localChallengeId, pending] = [...authState.authChallenges.entries()][0];
+  assert.equal(pending.delivery_status, 'pending');
+  assert.match(pending.delivery_reservation_id, /^delivery_/);
+
+  const first = await worker.run();
+  assert.equal(first.results[0].status, 'retry_finalizing');
+  assert.equal(authState.authChallenges.has(localChallengeId), true);
+  releaseProvider();
+  await requestPromise;
+  assert.equal(
+    authState.authChallenges.get(localChallengeId).delivery_status,
+    'delivered',
+  );
+
+  const second = await worker.run();
+  assert.equal(second.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+  assert.equal(authState.authChallenges.has(localChallengeId), false);
+});
+
+test('a provider that ignores abort cannot make its late challenge locally usable', async () => {
+  const indexSecret = 'ignored-abort-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  let current = new Date(NOW);
+  let providerCompleted = false;
+  let providerStarted;
+  let releaseProvider;
+  const started = new Promise(resolve => {
+    providerStarted = resolve;
+  });
+  const service = createAuthV2Service({
+    indexSecret,
+    now: () => new Date(current),
+    providerDeliveryDeadlineMs: 5,
+    randomBytes: size => Buffer.alloc(size, 9),
+    smsProvider: {
+      delivery: 'ignored_abort',
+      kind: 'test',
+      sendChallenge: async () => {
+        providerStarted();
+        await new Promise(resolve => {
+          releaseProvider = resolve;
+        });
+        providerCompleted = true;
+        return {
+          challengeId: 'ignored-abort-provider-id',
+          expiresInSeconds: 300,
+        };
+      },
+      verifyChallenge: async () => undefined,
+    },
+    store: authStore,
+    tokenSecret: 'ignored-abort-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(current),
+    randomBytes: size => Buffer.alloc(size, 10),
+    repository,
+  });
+
+  const requestPromise = service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.132',
+  });
+  await started;
+  await assert.rejects(
+    requestPromise,
+    error => error.code === 'sms_delivery_failed',
+  );
+  const [localChallengeId, timedOut] = [...authState.authChallenges.entries()][0];
+  assert.equal(timedOut.delivery_status, 'pending');
+
+  const beforeDeadline = await worker.run();
+  assert.equal(beforeDeadline.results[0].status, 'retry_finalizing');
+  assert.equal(authState.accountDeletions.has(accountKey), true);
+  current = new Date(NOW.getTime() + 2000);
+  const afterDeadline = await worker.run();
+  assert.equal(afterDeadline.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+  assert.equal(authState.authChallenges.has(localChallengeId), false);
+
+  releaseProvider();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(providerCompleted, true);
+  assert.equal(authState.authChallenges.has(localChallengeId), false);
+});
+
+test('a crashed pending reservation is reclaimed only after its provider deadline', async () => {
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  authState.accountDeletions.set(ACCOUNT_KEY, taskFixture());
+  authState.authChallenges.set('crashed-local-challenge', {
+    challenge_id: 'crashed-local-challenge',
+    delivery_deadline_at: '2026-08-01T08:00:01.000Z',
+    delivery_status: 'pending',
+    phone_number: PHONE,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  let current = new Date(NOW);
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(current),
+    randomBytes: size => Buffer.alloc(size, 8),
+    repository,
+  });
+
+  const first = await worker.run();
+  assert.equal(first.results[0].status, 'retry_finalizing');
+  assert.equal(authState.accountDeletions.has(ACCOUNT_KEY), true);
+  assert.equal(authState.authChallenges.has('crashed-local-challenge'), true);
+
+  current = new Date('2026-08-01T08:00:02.000Z');
+  const second = await worker.run();
+  assert.equal(second.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(ACCOUNT_KEY), false);
+  assert.equal(authState.authChallenges.has('crashed-local-challenge'), false);
+});
+
+test('claim rejects a replaced T2 task and the report fingerprints only the later exact claim', async () => {
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  const state = createMemoryDeletionState(authState);
+  const repository = createMemoryAccountDeletionRepository(state);
+  const t1 = taskFixture();
+  const t2 = {
+    ...t1,
+    deletion_id: 'delete_replacement_task_0002',
+    requested_at: '2026-08-01T07:59:30.000Z',
+  };
+  authState.accountDeletions.set(ACCOUNT_KEY, t1);
+  const [listedT1] = await repository.listRunnableTasks({
+    limit: 1,
+    now: NOW.toISOString(),
+  });
+  authState.accountDeletions.set(ACCOUNT_KEY, t2);
+
+  const staleClaim = await repository.claimTask({
+    accountKey: ACCOUNT_KEY,
+    expectedAccountInstanceId: listedT1.account_instance_id,
+    expectedDeletionId: listedT1.deletion_id,
+    expectedRequestedAt: listedT1.requested_at,
+    leaseExpiresAt: '2026-08-01T08:05:00.000Z',
+    leaseId: `lease_${'q'.repeat(24)}`,
+    now: NOW.toISOString(),
+  });
+  assert.equal(staleClaim, false);
+  assert.equal(authState.accountDeletions.get(ACCOUNT_KEY).deletion_id, t2.deletion_id);
+  assert.equal(authState.accountDeletions.get(ACCOUNT_KEY).status, 'queued');
+
+  const worker = createWorker(repository);
+  const report = await worker.run();
+  assert.equal(report.completed_count, 1);
+  assert.equal(
+    report.results[0].deletion_fingerprint,
+    `sha256:${crypto.createHash('sha256').update(t2.deletion_id).digest('hex')}`,
+  );
 });
 
 test('invalid deletion tasks fail closed before any account mutation', async () => {
@@ -366,14 +669,17 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
   });
   const leaseA = `lease_${'a'.repeat(24)}`;
   assert.equal(
-    await repository.claimTask({
-      accountInstanceId: `account_${'i'.repeat(24)}`,
+    (
+      await repository.claimTask({
       accountKey: ACCOUNT_KEY,
-      deletionId: `delete_${ACCOUNT_KEY.slice(0, 16)}`,
+      expectedAccountInstanceId: taskFixture().account_instance_id,
+      expectedDeletionId: taskFixture().deletion_id,
+      expectedRequestedAt: taskFixture().requested_at,
       leaseExpiresAt: '2026-08-01T08:05:00.000Z',
       leaseId: leaseA,
       now: NOW.toISOString(),
-    }),
+      })
+    ).status,
     'processing',
   );
   await tasks.doc(ACCOUNT_KEY).remove();
@@ -626,6 +932,8 @@ function createRepository({
     claimTask: async input => {
       if (
         !task ||
+        task.deletion_id !== input.expectedDeletionId ||
+        task.requested_at !== input.expectedRequestedAt ||
         !(
           task.status === 'queued' ||
           (task.status === 'processing' &&
@@ -647,7 +955,7 @@ function createRepository({
         lease_id: input.leaseId,
         status: task.status === 'finalizing' ? 'finalizing' : 'processing',
       };
-      return task.status;
+      return structuredClone(task);
     },
     beginFinalizingTask: async input => {
       calls.push(`finalizing:${input.accountKey}:${input.leaseId}`);
@@ -663,6 +971,14 @@ function createRepository({
         task = {...task, lease_id: `lease_${'z'.repeat(24)}`};
       }
       return true;
+    },
+    challengeReservationsQuiescent: async input => {
+      calls.push(`quiescent:${input.accountKey}:${input.leaseId}`);
+      return Boolean(
+        task &&
+          task.status === 'finalizing' &&
+          input.leaseId === task.lease_id,
+      );
     },
     removeWhereIfLease: async (collection, filter, lease) => {
       calls.push(`where:${collection}:${Object.keys(filter)[0]}`);

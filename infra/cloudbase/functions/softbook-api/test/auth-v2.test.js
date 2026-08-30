@@ -24,6 +24,24 @@ function createClock(initial = '2026-07-20T08:00:00.000Z') {
   };
 }
 
+function deletionTaskFixture(accountKey, overrides = {}) {
+  return {
+    account_key: accountKey,
+    attempt_count: 0,
+    deletion_id: 'delete_auth_v2_fixture_0001',
+    last_attempt_at: null,
+    last_failure_code: null,
+    lease_expires_at: null,
+    lease_id: null,
+    phone_number: PHONE_NUMBER,
+    phone_rate_key: `phone:${'d'.repeat(64)}`,
+    requested_at: '2026-07-20T07:59:00.000Z',
+    schema_version: 'account-deletion-task.v1',
+    status: 'queued',
+    ...overrides,
+  };
+}
+
 function createSmsProvider() {
   const deliveries = [];
 
@@ -302,16 +320,24 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
   const challenge = await issueChallenge(api);
 
   assert.equal(challenge.statusCode, 200);
-  assert.equal(
+  assert.match(challenge.body.data.challenge_id, /^[A-Za-z0-9_-]{32}$/);
+  assert.notEqual(
     challenge.body.data.challenge_id,
     'cloudbase-verification-123456',
   );
   assert.equal(challenge.body.data.delivery, 'sms_cloudbase_auth_default');
-  assert.deepEqual(calls, [{kind: 'send', phoneNumber: PHONE_NUMBER}]);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].kind, 'send');
+  assert.equal(calls[0].phoneNumber, PHONE_NUMBER);
+  assert.equal(calls[0].signal instanceof AbortSignal, true);
   const persisted = store
     .snapshot()
     .authChallenges.get(challenge.body.data.challenge_id);
   assert.equal(persisted.code_digest.length, 64);
+  assert.equal(
+    persisted.provider_challenge_id,
+    'cloudbase-verification-123456',
+  );
   assert.equal(persisted.purpose, 'sign_in');
   assert.equal(JSON.stringify(persisted).includes(SMS_CODE), false);
 
@@ -344,13 +370,13 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
   assert.match(verified.body.data.access_token, /^softbook_v2\./);
   assert.deepEqual(calls.slice(1), [
     {
-      challengeId: challenge.body.data.challenge_id,
+      challengeId: 'cloudbase-verification-123456',
       code: '000000',
       kind: 'verify',
       phoneNumber: PHONE_NUMBER,
     },
     {
-      challengeId: challenge.body.data.challenge_id,
+      challengeId: 'cloudbase-verification-123456',
       code: SMS_CODE,
       kind: 'verify',
       phoneNumber: PHONE_NUMBER,
@@ -487,8 +513,13 @@ test('v2 request-code enforces independent phone and client-IP limits', async ()
     PHONE_NUMBER,
     '203.0.113.11',
   );
-  assert.equal(phoneRejected.statusCode, 429);
-  assert.equal(phoneRejected.body.error.code, 'sms_rate_limited');
+  assert.equal(phoneRejected.statusCode, 200);
+  assert.notEqual(
+    phoneRejected.body.data.challenge_id,
+    phoneLimited.sms.deliveries[0].challengeId,
+  );
+  assert.equal(phoneLimited.sms.deliveries.length, 1);
+  assert.equal(phoneLimited.store.snapshot().authChallenges.size, 1);
 
   const ipLimited = createV2TestApi({ipRequestLimit: 1});
   assert.equal((await issueChallenge(ipLimited.api)).statusCode, 200);
@@ -535,6 +566,141 @@ test('v2 records failed SMS delivery and does not activate that challenge', asyn
   const persisted = [...store.snapshot().authChallenges.values()][0];
   assert.equal(persisted.delivery_status, 'delivery_failed');
   assert.equal(JSON.stringify(persisted).includes(SMS_CODE), false);
+});
+
+test('provider completion cannot recreate a deleted local challenge intent', async () => {
+  let providerStarted;
+  let releaseProvider;
+  const started = new Promise(resolve => {
+    providerStarted = resolve;
+  });
+  const store = createMemoryStore();
+  const service = createAuthV2Service({
+    indexSecret: TOKEN_SECRET,
+    now: createClock().now,
+    providerDeliveryDeadlineMs: 1000,
+    smsProvider: {
+      delivery: 'provider_pause',
+      kind: 'test',
+      sendChallenge: async () => {
+        providerStarted();
+        return new Promise(resolve => {
+          releaseProvider = () =>
+            resolve({
+              challengeId: 'provider-conditional-id',
+              expiresInSeconds: 300,
+            });
+        });
+      },
+      verifyChallenge: async () => undefined,
+    },
+    store,
+    tokenSecret: TOKEN_SECRET,
+  });
+  const requestPromise = service.requestCode({
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.140',
+  });
+  await started;
+  const [localChallengeId] = store.snapshot().authChallenges.keys();
+  assert.equal(
+    store.snapshot().authChallenges.get(localChallengeId).delivery_status,
+    'pending',
+  );
+  store.snapshot().authChallenges.delete(localChallengeId);
+  releaseProvider();
+
+  await assert.rejects(
+    requestPromise,
+    error => error.code === 'sms_delivery_failed',
+  );
+  assert.equal(store.snapshot().authChallenges.has(localChallengeId), false);
+});
+
+test('unauthenticated challenge probes consume shared IP first and normalize deletion states', async () => {
+  const {api, sms, store} = createV2TestApi({
+    ipRequestLimit: 5,
+    phoneRequestLimit: 100,
+  });
+  const absentPhone = '13700137000';
+  const queuedPhone = PHONE_NUMBER;
+  const processingPhone = '13600136000';
+  const finalizingPhone = '13900139000';
+  const malformedPhone = '13500135000';
+  const accountKey = phoneNumber =>
+    crypto
+      .createHmac('sha256', TOKEN_SECRET)
+      .update(`account:${phoneNumber}`)
+      .digest('hex');
+  store.snapshot().accountDeletions.set(
+    accountKey(queuedPhone),
+    deletionTaskFixture(accountKey(queuedPhone), {phone_number: queuedPhone}),
+  );
+  store.snapshot().accountDeletions.set(
+    accountKey(processingPhone),
+    deletionTaskFixture(accountKey(processingPhone), {
+      attempt_count: 1,
+      deletion_id: 'delete_auth_v2_processing',
+      last_attempt_at: '2026-07-20T07:59:30.000Z',
+      lease_expires_at: '2026-07-20T08:05:00.000Z',
+      lease_id: `lease_${'y'.repeat(24)}`,
+      phone_number: processingPhone,
+      status: 'processing',
+    }),
+  );
+  store.snapshot().accountDeletions.set(
+    accountKey(finalizingPhone),
+    deletionTaskFixture(accountKey(finalizingPhone), {
+      attempt_count: 1,
+      deletion_id: 'delete_auth_v2_finalizing',
+      last_attempt_at: '2026-07-20T07:59:30.000Z',
+      lease_expires_at: '2026-07-20T08:05:00.000Z',
+      lease_id: `lease_${'z'.repeat(24)}`,
+      phone_number: finalizingPhone,
+      status: 'finalizing',
+    }),
+  );
+  store.snapshot().accountDeletions.set(accountKey(malformedPhone), {
+    ...deletionTaskFixture(accountKey(malformedPhone), {
+      phone_number: malformedPhone,
+    }),
+    lease_id: `lease_${'m'.repeat(24)}`,
+    status: 'processing',
+  });
+  const clientIp = '203.0.113.141';
+  const absent = await issueChallenge(api, absentPhone, clientIp);
+  const queued = await issueChallenge(api, queuedPhone, clientIp);
+  const processing = await issueChallenge(api, processingPhone, clientIp);
+  const finalizing = await issueChallenge(api, finalizingPhone, clientIp);
+  const malformed = await issueChallenge(api, malformedPhone, clientIp);
+
+  assert.equal(absent.statusCode, 200);
+  assert.equal(queued.statusCode, 200);
+  assert.equal(processing.statusCode, 200);
+  assert.equal(finalizing.statusCode, 200);
+  assert.equal(malformed.statusCode, 200);
+  for (const response of [queued, processing, finalizing, malformed]) {
+    assert.deepEqual(
+      Object.keys(response.body.data).sort(),
+      Object.keys(absent.body.data).sort(),
+    );
+    assert.equal(Object.hasOwn(response.body.data, 'deletion_request'), false);
+    assert.equal(Object.hasOwn(response.body.data, 'state'), false);
+  }
+  assert.equal(sms.deliveries.length, 1);
+  assert.equal(store.snapshot().authChallenges.size, 1);
+
+  const boundedInvalidProbe = await request(api, {
+    body: {phone_number: 'not-a-phone'},
+    clientIp,
+    path: '/v2/auth/request-code',
+  });
+  assert.equal(boundedInvalidProbe.statusCode, 429);
+  assert.equal(boundedInvalidProbe.body.error.code, 'sms_rate_limited');
+  const sharedIpCounter = [...store.snapshot().authRateLimits.values()].find(
+    value => value.key.startsWith('ip:'),
+  );
+  assert.equal(sharedIpCounter.count, 5);
 });
 
 test('v2 refresh rotates tokens and revokes the session when an old token is replayed', async () => {
@@ -649,18 +815,20 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
     PHONE_NUMBER,
     '203.0.113.23',
   );
-  assert.equal(challengeAfterDeletion.statusCode, 403);
-  assert.equal(
-    challengeAfterDeletion.body.error.code,
-    'account_deletion_pending',
-  );
+  assert.equal(challengeAfterDeletion.statusCode, 200);
+  assert.deepEqual(Object.keys(challengeAfterDeletion.body.data).sort(), [
+    'challenge_id',
+    'delivery',
+    'expires_at',
+    'retry_after_seconds',
+  ]);
   assert.equal(
     store.snapshot().authChallenges.size,
     challengeCountBeforeBlockedRequest,
   );
   assert.equal(
     store.snapshot().authRateLimits.size,
-    rateLimitCountBeforeBlockedRequest,
+    rateLimitCountBeforeBlockedRequest + 1,
   );
   assert.equal(
     [...store.snapshot().authSessions.values()].some(
@@ -959,23 +1127,22 @@ test('finalizing deletion blocks ordinary and recovery request material until cl
     PHONE_NUMBER,
     '203.0.113.112',
   );
-  assert.equal(ordinary.statusCode, 403);
-  assert.equal(ordinary.body.error.code, 'account_deletion_pending');
+  assert.equal(ordinary.statusCode, 200);
   const recovery = await request(api, {
     body: {phone_number: PHONE_NUMBER},
     clientIp: '203.0.113.113',
     path: '/v2/account/deletion/recovery/request-code',
   });
-  assert.equal(recovery.statusCode, 409);
-  assert.deepEqual(recovery.body.error, {
-    code: 'account_deletion_finalizing',
-    message: 'Account deletion is finalizing. Retry recovery after cleanup.',
-  });
+  assert.equal(recovery.statusCode, 200);
+  assert.equal(
+    recovery.body.data.purpose,
+    'account_deletion_recovery',
+  );
   assert.deepEqual(
     {
       challenges: store.snapshot().authChallenges.size,
       deliveries: sms.deliveries.length,
-      rateLimits: store.snapshot().authRateLimits.size,
+      rateLimits: store.snapshot().authRateLimits.size - 2,
       sessions: store.snapshot().authSessions.size,
     },
     materialBefore,
@@ -995,7 +1162,10 @@ test('finalizing deletion blocks ordinary and recovery request material until cl
     'account_deletion_finalizing',
   );
   assert.equal(store.snapshot().authChallenges.size, materialBefore.challenges);
-  assert.equal(store.snapshot().authRateLimits.size, materialBefore.rateLimits);
+  assert.equal(
+    store.snapshot().authRateLimits.size,
+    materialBefore.rateLimits + 2,
+  );
   assert.equal(store.snapshot().authSessions.size, materialBefore.sessions);
 
   store.snapshot().accountDeletions.delete(accountKey);
@@ -1058,13 +1228,12 @@ test('missing finalizing lease TTL remains a material-creation fence', async () 
     clientIp: '203.0.113.117',
     path: '/v2/account/deletion/recovery/request-code',
   });
-  assert.equal(response.statusCode, 409);
-  assert.equal(response.body.error.code, 'account_deletion_finalizing');
+  assert.equal(response.statusCode, 200);
   assert.deepEqual(
     {
       challenges: store.snapshot().authChallenges.size,
       deliveries: sms.deliveries.length,
-      rateLimits: store.snapshot().authRateLimits.size,
+      rateLimits: store.snapshot().authRateLimits.size - 1,
     },
     before,
   );
@@ -1103,13 +1272,12 @@ test('missing processing lease TTL fails recovery closed before material creatio
     path: '/v2/account/deletion/recovery/request-code',
   });
 
-  assert.equal(response.statusCode, 500);
-  assert.equal(response.body.error.code, 'account_deletion_state_invalid');
+  assert.equal(response.statusCode, 200);
   assert.deepEqual(
     {
       challenges: store.snapshot().authChallenges.size,
       deliveries: sms.deliveries.length,
-      rateLimits: store.snapshot().authRateLimits.size,
+      rateLimits: store.snapshot().authRateLimits.size - 1,
     },
     before,
   );
@@ -1326,11 +1494,131 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
     PHONE_NUMBER,
     '203.0.113.32',
   );
-  assert.equal(blockedChallenge.statusCode, 403);
-  assert.equal(blockedChallenge.body.error.code, 'account_deletion_pending');
+  assert.equal(blockedChallenge.statusCode, 200);
   assert.equal(
     db.snapshot().get('softbook_auth_challenges').size,
     challengeCountBeforeBlockedRequest,
+  );
+});
+
+test('CloudBase account revocation rechecks the exact queued task and current session query-set', async () => {
+  let mutateAfterQuery = false;
+  let db;
+  db = createFakeCloudBaseDb({
+    onWhereGet: ({collectionName, query}) => {
+      if (
+        !mutateAfterQuery ||
+        collectionName !== 'softbook_auth_sessions' ||
+        query.account_key === undefined
+      ) {
+        return;
+      }
+      mutateAfterQuery = false;
+      db.snapshot().get('softbook_auth_sessions').delete('session-deleted');
+      db.snapshot().get('softbook_auth_sessions').set('session-replaced', {
+        account_key: 'b'.repeat(64),
+        session_id: 'session-replaced',
+        status: 'active',
+      });
+      const task = db
+        .snapshot()
+        .get('softbook_account_deletions')
+        .get('a'.repeat(64));
+      db.snapshot().get('softbook_account_deletions').set('a'.repeat(64), {
+        ...task,
+        status: 'processing',
+        attempt_count: 1,
+        last_attempt_at: '2026-07-20T08:00:00.000Z',
+        lease_expires_at: '2026-07-20T08:05:00.000Z',
+        lease_id: `lease_${'r'.repeat(24)}`,
+      });
+    },
+  });
+  const store = createCloudBaseStore({db});
+  const accountKey = 'a'.repeat(64);
+  const deletionId = 'delete_cloudbase_revoke_exact';
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set(deletionTaskFixture(accountKey, {deletion_id: deletionId}));
+  for (const sessionId of ['session-deleted', 'session-replaced']) {
+    await db.collection('softbook_auth_sessions').doc(sessionId).set({
+      account_key: accountKey,
+      session_id: sessionId,
+      status: 'active',
+    });
+  }
+  mutateAfterQuery = true;
+
+  const interrupted = await store.revokeAuthSessionsByAccount(
+    accountKey,
+    deletionId,
+    '2026-07-20T08:00:00.000Z',
+    'account_deletion_requested',
+  );
+  assert.equal(interrupted, 0);
+  assert.equal(
+    db.snapshot().get('softbook_auth_sessions').has('session-deleted'),
+    false,
+  );
+  assert.deepEqual(
+    db.snapshot().get('softbook_auth_sessions').get('session-replaced'),
+    {
+      account_key: 'b'.repeat(64),
+      session_id: 'session-replaced',
+      status: 'active',
+    },
+  );
+
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set(
+      deletionTaskFixture(accountKey, {
+        deletion_id: 'delete_cloudbase_revoke_t2',
+      }),
+    );
+  await db.collection('softbook_auth_sessions').doc('session-current').set({
+    account_key: accountKey,
+    session_id: 'session-current',
+    status: 'active',
+  });
+  assert.equal(
+    await store.revokeAuthSessionsByAccount(
+      accountKey,
+      deletionId,
+      '2026-07-20T08:00:01.000Z',
+      'account_deletion_requested',
+    ),
+    0,
+  );
+  assert.equal(
+    db
+      .snapshot()
+      .get('softbook_auth_sessions')
+      .get('session-current').status,
+    'active',
+  );
+
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set(deletionTaskFixture(accountKey, {deletion_id: deletionId}));
+  assert.equal(
+    await store.revokeAuthSessionsByAccount(
+      accountKey,
+      deletionId,
+      '2026-07-20T08:00:02.000Z',
+      'account_deletion_requested',
+    ),
+    1,
+  );
+  assert.equal(
+    db
+      .snapshot()
+      .get('softbook_auth_sessions')
+      .get('session-current').status,
+    'revoked',
   );
 });
 
@@ -1371,12 +1659,10 @@ test('CloudBase finalizing fence rejects request-code before any durable materia
     '203.0.113.119',
   );
 
-  assert.equal(recovery.statusCode, 409);
-  assert.equal(recovery.body.error.code, 'account_deletion_finalizing');
-  assert.equal(ordinary.statusCode, 403);
-  assert.equal(ordinary.body.error.code, 'account_deletion_pending');
+  assert.equal(recovery.statusCode, 200);
+  assert.equal(ordinary.statusCode, 200);
   assert.equal(sms.deliveries.length, 0);
-  assert.equal(db.snapshot().has('softbook_auth_rate_limits'), false);
+  assert.equal(db.snapshot().get('softbook_auth_rate_limits').size, 2);
   assert.equal(db.snapshot().has('softbook_auth_challenges'), false);
 });
 
@@ -1583,7 +1869,10 @@ test('CloudBase adapter discovers v2 paths and trusted gateway source IP', async
   assert.equal(JSON.parse(response.body).data.delivery, 'test_sms');
 });
 
-function createFakeCloudBaseDb({missingDocumentErrorCode = null} = {}) {
+function createFakeCloudBaseDb({
+  missingDocumentErrorCode = null,
+  onWhereGet = null,
+} = {}) {
   const collections = new Map();
   let transactionTail = Promise.resolve();
 
@@ -1631,8 +1920,8 @@ function createFakeCloudBaseDb({missingDocumentErrorCode = null} = {}) {
         },
       }),
       where: query => ({
-        get: async () => ({
-          data: [...documents.entries()]
+        get: async () => {
+          const data = [...documents.entries()]
             .filter(([, document]) =>
               Object.entries(query).every(
                 ([key, value]) => document[key] === value,
@@ -1641,8 +1930,10 @@ function createFakeCloudBaseDb({missingDocumentErrorCode = null} = {}) {
             .map(([documentId, document]) => ({
               _id: documentId,
               ...cloneJson(document),
-            })),
-        }),
+            }));
+          await onWhereGet?.({collectionName: name, data, query});
+          return {data};
+        },
       }),
     };
   };

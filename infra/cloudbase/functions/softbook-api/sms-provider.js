@@ -61,6 +61,7 @@ function createRuntimeSmsProvider(options = {}) {
       templateParameters: parseTencentTemplateParameters(
         env.SOFTBOOK_SMS_TENCENT_TEMPLATE_PARAMETERS,
       ),
+      timeoutMs,
     });
   }
 
@@ -96,8 +97,11 @@ function createCloudBaseAuthSmsProvider({
   }
   requireTimeout(timeoutMs, 'CloudBase Auth SMS');
 
-  const post = async (pathname, body) => {
+  const post = async (pathname, body, parentSignal) => {
     const controller = new AbortController();
+    const relayAbort = () => controller.abort();
+    if (parentSignal?.aborted) controller.abort();
+    parentSignal?.addEventListener?.('abort', relayAbort, {once: true});
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetchImpl(new URL(pathname, origin), {
@@ -119,17 +123,19 @@ function createCloudBaseAuthSmsProvider({
       throw new Error('CloudBase Auth SMS request failed.');
     } finally {
       clearTimeout(timer);
+      parentSignal?.removeEventListener?.('abort', relayAbort);
     }
   };
 
   return {
+    deliveryDeadlineMs: timeoutMs,
     delivery: 'sms_cloudbase_auth_default',
     kind: 'cloudbase_auth',
-    async sendChallenge({phoneNumber}) {
+    async sendChallenge({phoneNumber, signal}) {
       const {payload, requestId} = await post('/auth/v1/verification', {
         phone_number: requireCloudBasePhoneNumber(phoneNumber),
         target: 'ANY',
-      });
+      }, signal);
       if (
         typeof payload.verification_id !== 'string' ||
         !/^[A-Za-z0-9_-]{16,128}$/.test(payload.verification_id) ||
@@ -176,10 +182,14 @@ function createWebhookSmsProvider({endpoint, fetchImpl, secret, timeoutMs = DEFA
   requireTimeout(timeoutMs, 'SMS webhook');
 
   return {
+    deliveryDeadlineMs: timeoutMs,
     delivery: 'sms_webhook',
     kind: 'webhook',
-    async sendCode({challengeId, code, expiresAt, phoneNumber}) {
+    async sendCode({challengeId, code, expiresAt, phoneNumber, signal}) {
       const controller = new AbortController();
+      const relayAbort = () => controller.abort();
+      if (signal?.aborted) controller.abort();
+      signal?.addEventListener?.('abort', relayAbort, {once: true});
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
@@ -213,6 +223,7 @@ function createWebhookSmsProvider({endpoint, fetchImpl, secret, timeoutMs = DEFA
         throw new Error('SMS webhook delivery failed.');
       } finally {
         clearTimeout(timer);
+        signal?.removeEventListener?.('abort', relayAbort);
       }
     },
   };
@@ -242,6 +253,7 @@ function createTencentCloudSmsProvider({
   signName,
   templateId,
   templateParameters,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
 }) {
   if (!client || typeof client.SendSms !== 'function') {
     throw new Error('Tencent Cloud SMS requires a SendSms client.');
@@ -269,11 +281,13 @@ function createTencentCloudSmsProvider({
   const validatedTemplateParameters = requireTencentTemplateParameterNames(
     templateParameters,
   );
+  const validatedTimeoutMs = requireTimeout(timeoutMs, 'Tencent Cloud SMS');
 
   return {
+    deliveryDeadlineMs: validatedTimeoutMs,
     delivery: 'sms_tencentcloud',
     kind: 'tencentcloud',
-    async sendCode({code, expiresAt, phoneNumber}) {
+    async sendCode({code, expiresAt, phoneNumber, signal}) {
       const e164PhoneNumber = requireMainlandPhoneNumber(phoneNumber);
       const parameters = buildTencentTemplateParameters({
         clock,
@@ -283,13 +297,19 @@ function createTencentCloudSmsProvider({
       });
 
       try {
-        const response = await client.SendSms({
-          PhoneNumberSet: [e164PhoneNumber],
-          SignName: validatedSignName,
-          SmsSdkAppId: validatedSdkAppId,
-          TemplateId: validatedTemplateId,
-          TemplateParamSet: parameters,
-        });
+        if (signal?.aborted) {
+          throw new Error('SMS provider request aborted.');
+        }
+        const response = await withAbortSignal(
+          client.SendSms({
+            PhoneNumberSet: [e164PhoneNumber],
+            SignName: validatedSignName,
+            SmsSdkAppId: validatedSdkAppId,
+            TemplateId: validatedTemplateId,
+            TemplateParamSet: parameters,
+          }),
+          signal,
+        );
         const statuses = response?.SendStatusSet;
         if (
           !Array.isArray(statuses) ||
@@ -311,6 +331,22 @@ function createTencentCloudSmsProvider({
       }
     },
   };
+}
+
+async function withAbortSignal(operation, signal) {
+  if (!signal) return operation;
+  if (signal.aborted) throw new Error('SMS provider request aborted.');
+  let removeAbortListener = () => undefined;
+  const aborted = new Promise((resolve, reject) => {
+    const onAbort = () => reject(new Error('SMS provider request aborted.'));
+    signal.addEventListener('abort', onAbort, {once: true});
+    removeAbortListener = () => signal.removeEventListener('abort', onAbort);
+  });
+  try {
+    return await Promise.race([operation, aborted]);
+  } finally {
+    removeAbortListener();
+  }
 }
 
 function buildTencentTemplateParameters({clock, code, expiresAt, templateParameters}) {

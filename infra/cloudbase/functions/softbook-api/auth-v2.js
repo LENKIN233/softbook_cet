@@ -13,6 +13,9 @@ const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_SECONDS = 10 * 60;
 const PHONE_REQUEST_LIMIT = 5;
 const IP_REQUEST_LIMIT = 20;
+const PROVIDER_COMPLETION_GRACE_MS = 1000;
+const PROVIDER_DELIVERY_DEADLINE_MS = 15 * 1000;
+const PROVIDER_OWNED_PUBLIC_TTL_SECONDS = 60;
 const VERIFY_ATTEMPT_LIMIT = 5;
 const EXTERNAL_PROVIDER_VERIFIED_CODE = 'external-provider-verified';
 const SIGN_IN_CHALLENGE_PURPOSE = 'sign_in';
@@ -42,6 +45,10 @@ function createAuthV2Service(options) {
     ipRequestLimit: options.ipRequestLimit ?? IP_REQUEST_LIMIT,
     now,
     phoneRequestLimit: options.phoneRequestLimit ?? PHONE_REQUEST_LIMIT,
+    providerDeliveryDeadlineMs:
+      options.providerDeliveryDeadlineMs ??
+      smsProvider.deliveryDeadlineMs ??
+      PROVIDER_DELIVERY_DEADLINE_MS,
     randomBytes,
     rateLimitWindowSeconds:
       options.rateLimitWindowSeconds ?? RATE_LIMIT_WINDOW_SECONDS,
@@ -87,6 +94,7 @@ function createAuthV2Service(options) {
 
 function createDevelopmentSmsProvider() {
   return {
+    deliveryDeadlineMs: 1000,
     delivery: 'development_fixed_code',
     kind: 'development',
     sendCode: async () => undefined,
@@ -95,7 +103,6 @@ function createDevelopmentSmsProvider() {
 
 async function requestCode(config, request, purpose) {
   const body = requireObject(request.body, 'request body');
-  const phoneNumber = requirePhoneNumber(body.phone_number);
   const clientIp = resolveClientIp(config, request);
   const requestedAt = config.now();
   const windowStartedAt = new Date(
@@ -103,20 +110,53 @@ async function requestCode(config, request, purpose) {
       config.rateLimitWindowSeconds *
       1000,
   );
+  const sharedIpStatus = await consumeRateLimit(config, {
+    key: `ip:${keyedHash(config.indexSecret, 'rate-ip', clientIp)}`,
+    limit: config.ipRequestLimit,
+    requestedAt,
+    sharedIp: true,
+    windowStartedAt,
+  });
+  assertChallengeMaterialAllowed(sharedIpStatus);
+
+  const phoneNumber = requirePhoneNumber(body.phone_number);
   const accountKey = deriveAccountKey(config.indexSecret, phoneNumber);
   const allowAccountDeletionPending =
     purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE;
-
-  await consumeRateLimit(config, {
-    accountKey,
-    allowAccountDeletionPending,
-    key: `ip:${keyedHash(config.indexSecret, 'rate-ip', clientIp)}`,
-    limit: config.ipRequestLimit,
-    phoneNumber,
-    requestedAt,
-    windowStartedAt,
+  const providerOwnsChallenge =
+    typeof config.smsProvider.sendChallenge === 'function';
+  const challengeId = randomBase64Url(config.randomBytes, 24);
+  const deliveryReservationId = `delivery_${randomBase64Url(
+    config.randomBytes,
+    18,
+  )}`;
+  const code = providerOwnsChallenge
+    ? EXTERNAL_PROVIDER_VERIFIED_CODE
+    : normalizeSmsCode(config.codeGenerator());
+  let expiresAt = new Date(
+    requestedAt.getTime() +
+      Math.min(
+        config.challengeTtlSeconds,
+        providerOwnsChallenge
+          ? PROVIDER_OWNED_PUBLIC_TTL_SECONDS
+          : config.challengeTtlSeconds,
+      ) *
+        1000,
+  );
+  const providerCallDeadlineAt = new Date(
+    requestedAt.getTime() + config.providerDeliveryDeadlineMs,
+  );
+  const deliveryDeadlineAt = new Date(
+    providerCallDeadlineAt.getTime() + PROVIDER_COMPLETION_GRACE_MS,
+  );
+  const publicChallenge = () => ({
+    challenge_id: challengeId,
+    delivery: config.smsProvider.delivery ?? 'sms',
+    expires_at: expiresAt.toISOString(),
+    retry_after_seconds: config.rateLimitWindowSeconds,
   });
-  await consumeRateLimit(config, {
+
+  const phoneRateStatus = await consumeRateLimit(config, {
     accountKey,
     allowAccountDeletionPending,
     key: `phone:${keyedHash(config.indexSecret, 'rate-phone', phoneNumber)}`,
@@ -125,44 +165,13 @@ async function requestCode(config, request, purpose) {
     requestedAt,
     windowStartedAt,
   });
-
-  const providerOwnsChallenge =
-    typeof config.smsProvider.sendChallenge === 'function';
-  let challengeId = randomBase64Url(config.randomBytes, 24);
-  let code = providerOwnsChallenge
-    ? EXTERNAL_PROVIDER_VERIFIED_CODE
-    : normalizeSmsCode(config.codeGenerator());
-  let expiresAt = new Date(
-    requestedAt.getTime() + config.challengeTtlSeconds * 1000,
-  );
-  let providerChallenge = null;
-  if (providerOwnsChallenge) {
-    try {
-      providerChallenge = await config.smsProvider.sendChallenge({phoneNumber});
-      challengeId = requireOpaqueId(
-        providerChallenge?.challengeId,
-        'provider challenge_id',
-      );
-      if (
-        !Number.isSafeInteger(providerChallenge?.expiresInSeconds) ||
-        providerChallenge.expiresInSeconds <= 0 ||
-        providerChallenge.expiresInSeconds > 600
-      ) {
-        throw new Error('provider challenge expiry is invalid');
-      }
-      expiresAt = new Date(
-        requestedAt.getTime() +
-          Math.min(
-            config.challengeTtlSeconds,
-            providerChallenge.expiresInSeconds,
-          ) *
-            1000,
-      );
-    } catch {
-      throw authError(503, 'sms_delivery_failed', 'SMS delivery failed.');
-    }
+  if (isSuppressedChallengeStatus(phoneRateStatus)) {
+    return publicChallenge();
   }
+  assertChallengeMaterialAllowed(phoneRateStatus);
+
   const challenge = {
+    account_key: accountKey,
     attempts: 0,
     challenge_id: challengeId,
     code_digest: digestSmsCode(
@@ -174,10 +183,14 @@ async function requestCode(config, request, purpose) {
     ),
     consumed_at: null,
     created_at: requestedAt.toISOString(),
+    delivery_deadline_at: deliveryDeadlineAt.toISOString(),
+    delivery_reservation_id: deliveryReservationId,
     delivery_status: 'pending',
     expires_at: expiresAt.toISOString(),
     phone_number: phoneNumber,
+    provider_challenge_id: null,
     purpose,
+    updated_at: requestedAt.toISOString(),
   };
 
   const challengeCreated = await config.store.createAuthChallenge({
@@ -186,37 +199,80 @@ async function requestCode(config, request, purpose) {
     challenge,
   });
 
+  if (isSuppressedChallengeStatus(challengeCreated)) {
+    return publicChallenge();
+  }
   assertChallengeMaterialAllowed(challengeCreated);
 
   try {
-    if (!providerOwnsChallenge) {
-      await config.smsProvider.sendCode({
-        challengeId,
-        code,
-        expiresAt: expiresAt.toISOString(),
-        phoneNumber,
-      });
+    let providerChallengeId;
+    if (providerOwnsChallenge) {
+      const providerChallenge = await runProviderDelivery(
+        config,
+        providerCallDeadlineAt,
+        signal => config.smsProvider.sendChallenge({phoneNumber, signal}),
+      );
+      providerChallengeId = requireOpaqueId(
+        providerChallenge?.challengeId,
+        'provider challenge_id',
+      );
+      if (
+        !Number.isSafeInteger(providerChallenge?.expiresInSeconds) ||
+        providerChallenge.expiresInSeconds <
+          PROVIDER_OWNED_PUBLIC_TTL_SECONDS ||
+        providerChallenge.expiresInSeconds > 600
+      ) {
+        throw new Error('provider challenge expiry is invalid');
+      }
+      expiresAt = new Date(
+        requestedAt.getTime() +
+          Math.min(
+            config.challengeTtlSeconds,
+            providerChallenge.expiresInSeconds,
+            PROVIDER_OWNED_PUBLIC_TTL_SECONDS,
+          ) *
+            1000,
+      );
+    } else {
+      await runProviderDelivery(config, providerCallDeadlineAt, signal =>
+        config.smsProvider.sendCode({
+          challengeId,
+          code,
+          expiresAt: expiresAt.toISOString(),
+          phoneNumber,
+          signal,
+        }),
+      );
     }
-    await config.store.markAuthChallengeDelivery(
+    const marked = await config.store.markAuthChallengeDelivery({
+      accountKey,
       challengeId,
-      'delivered',
-      requestedAt.toISOString(),
-    );
-  } catch {
-    await config.store.markAuthChallengeDelivery(
+      deliveryReservationId,
+      expiresAt: expiresAt.toISOString(),
+      phoneNumber,
+      providerChallengeId,
+      purpose,
+      status: 'delivered',
+      updatedAt: config.now().toISOString(),
+    });
+    if (!marked) throw new Error('SMS delivery reservation was lost.');
+  } catch (error) {
+    await config.store.markAuthChallengeDelivery({
+      accountKey,
       challengeId,
-      'delivery_failed',
-      requestedAt.toISOString(),
-    );
+      deliveryReservationId,
+      phoneNumber,
+      purpose,
+      status:
+        error?.code === 'sms_provider_delivery_deadline'
+          ? 'pending'
+          : 'delivery_failed',
+      updatedAt: config.now().toISOString(),
+    });
     throw authError(503, 'sms_delivery_failed', 'SMS delivery failed.');
   }
 
-  return {
-    challenge_id: challengeId,
-    delivery: config.smsProvider.delivery ?? 'sms',
-    expires_at: expiresAt.toISOString(),
-    retry_after_seconds: config.rateLimitWindowSeconds,
-  };
+  return publicChallenge();
 }
 
 async function verifyCode(config, request, purpose) {
@@ -227,9 +283,36 @@ async function verifyCode(config, request, purpose) {
   const verifiedAt = config.now();
   let codeForStore = smsCode;
   if (typeof config.smsProvider.verifyChallenge === 'function') {
+    const localChallenge = await config.store.getAuthChallenge(challengeId);
+    const providerChallengeId = providerChallengeIdForVerification(
+      localChallenge,
+      {
+        maxAttempts: config.verifyAttemptLimit,
+        now: verifiedAt.toISOString(),
+        phoneNumber,
+        purpose,
+      },
+    );
+    if (providerChallengeId === null) {
+      const unavailable = await config.store.verifyAuthChallenge({
+        challengeId,
+        codeDigest: digestSmsCode(
+          config.tokenSecret,
+          challengeId,
+          phoneNumber,
+          purpose,
+          smsCode,
+        ),
+        maxAttempts: config.verifyAttemptLimit,
+        now: verifiedAt.toISOString(),
+        phoneNumber,
+        purpose,
+      });
+      assertChallengeVerified(unavailable.status);
+    }
     try {
       await config.smsProvider.verifyChallenge({
-        challengeId,
+        challengeId: providerChallengeId,
         code: smsCode,
         phoneNumber,
       });
@@ -473,20 +556,13 @@ async function requestAccountDeletion(config, request) {
   });
 
   if (deletionTask.status === 'queued') {
-    const sessionsRevoked = await config.store.revokeAuthSessionsByAccount(
+    await config.store.revokeAuthSessionsByAccount(
       session.accountKey,
       deletionTask.deletion_id,
       session.accountInstanceId,
       requestedAt,
       'account_deletion_requested',
     );
-    if (sessionsRevoked !== true) {
-      throw authError(
-        503,
-        'account_deletion_revocation_incomplete',
-        'Account deletion session revocation is incomplete.',
-      );
-    }
   }
 
   return {
@@ -715,6 +791,7 @@ async function consumeRateLimit(
     limit,
     phoneNumber,
     requestedAt,
+    sharedIp = false,
     windowStartedAt,
   },
 ) {
@@ -728,10 +805,19 @@ async function consumeRateLimit(
     limit,
     now: requestedAt.toISOString(),
     phoneNumber,
+    sharedIp,
     windowStartedAt: windowStartedAt.toISOString(),
   });
+  return status;
+}
 
-  assertChallengeMaterialAllowed(status);
+function isSuppressedChallengeStatus(status) {
+  return [
+    'account_deletion_finalizing',
+    'account_deletion_pending',
+    'account_deletion_state_invalid',
+    'rate_limited',
+  ].includes(status);
 }
 
 function assertChallengeMaterialAllowed(status) {
@@ -847,6 +933,7 @@ function validateServiceConfig(config) {
   const requiredStoreMethods = [
     'consumeAuthRateLimit',
     'createAuthChallenge',
+    'getAuthChallenge',
     'markAuthChallengeDelivery',
     'verifyAuthChallenge',
     'verifyAuthChallengeAndCreateSession',
@@ -893,12 +980,18 @@ function validateServiceConfig(config) {
     'rateLimitWindowSeconds',
     'refreshTokenTtlSeconds',
     'verifyAttemptLimit',
+    'providerDeliveryDeadlineMs',
   ];
 
   for (const key of positiveIntegers) {
     if (!Number.isInteger(config[key]) || config[key] <= 0) {
       throw new Error(`Auth v2 ${key} must be a positive integer.`);
     }
+  }
+  if (config.providerDeliveryDeadlineMs > PROVIDER_DELIVERY_DEADLINE_MS) {
+    throw new Error(
+      'Auth v2 providerDeliveryDeadlineMs must not exceed 15000ms.',
+    );
   }
 
   if (config.runtimeMode === 'development') {
@@ -943,6 +1036,54 @@ function validateServiceConfig(config) {
   ) {
     throw new Error('Production auth requires a non-development SMS provider.');
   }
+}
+
+async function runProviderDelivery(config, deliveryDeadlineAt, operation) {
+  const controller = new AbortController();
+  const remainingMs = deliveryDeadlineAt.getTime() - config.now().getTime();
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+    throw providerDeliveryDeadlineError();
+  }
+  let timer;
+  const timeout = new Promise((resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(providerDeliveryDeadlineError());
+    }, remainingMs);
+  });
+  try {
+    return await Promise.race([
+      Promise.resolve().then(() => operation(controller.signal)),
+      timeout,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function providerDeliveryDeadlineError() {
+  const error = new Error('SMS provider delivery deadline exceeded.');
+  error.code = 'sms_provider_delivery_deadline';
+  return error;
+}
+
+function providerChallengeIdForVerification(challenge, input) {
+  if (
+    !challenge ||
+    challenge.delivery_status !== 'delivered' ||
+    challenge.consumed_at ||
+    !Number.isFinite(Date.parse(challenge.expires_at)) ||
+    Date.parse(challenge.expires_at) <= Date.parse(input.now) ||
+    !Number.isSafeInteger(challenge.attempts) ||
+    challenge.attempts >= input.maxAttempts ||
+    challenge.phone_number !== input.phoneNumber ||
+    challenge.purpose !== input.purpose ||
+    typeof challenge.provider_challenge_id !== 'string' ||
+    challenge.provider_challenge_id.length === 0
+  ) {
+    return null;
+  }
+  return challenge.provider_challenge_id;
 }
 
 function resolveClientIp(config, request) {

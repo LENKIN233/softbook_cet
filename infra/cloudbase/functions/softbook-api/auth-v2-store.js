@@ -23,13 +23,15 @@ function createMemoryAuthStateStore(options = {}) {
   return {
     kind: 'memory',
     consumeAuthRateLimit: async input => {
-      const deletionStatus = challengeDeletionFenceStatus(
-        accountDeletions.get(input.accountKey) ?? null,
-        input.allowAccountDeletionPending === true,
-        input.accountKey,
-        input.phoneNumber,
-      );
-      if (deletionStatus !== 'accepted') return deletionStatus;
+      if (input.sharedIp !== true) {
+        const deletionStatus = challengeDeletionFenceStatus(
+          accountDeletions.get(input.accountKey) ?? null,
+          input.allowAccountDeletionPending === true,
+          input.accountKey,
+          input.phoneNumber,
+        );
+        if (deletionStatus !== 'accepted') return deletionStatus;
+      }
 
       const documentId = `${input.key}:${input.windowStartedAt}`;
       const current = authRateLimits.get(documentId) ?? {
@@ -60,22 +62,27 @@ function createMemoryAuthStateStore(options = {}) {
         ? null
         : normalizeAccountInstance(account, input.accountKey)
           .account_instance_id;
+      if (authChallenges.has(input.challenge.challenge_id)) {
+        return 'challenge_id_conflict';
+      }
       authChallenges.set(input.challenge.challenge_id, {
         ...clone(input.challenge),
         expected_account_instance_id: expectedAccountInstanceId,
       });
       return 'accepted';
     },
-    markAuthChallengeDelivery: async (challengeId, status, updatedAt) => {
-      const challenge = authChallenges.get(challengeId);
+    getAuthChallenge: async challengeId =>
+      clone(authChallenges.get(challengeId) ?? null),
+    markAuthChallengeDelivery: async input => {
+      const challenge = authChallenges.get(input.challengeId);
 
-      if (challenge) {
-        authChallenges.set(challengeId, {
-          ...challenge,
-          delivery_status: status,
-          updated_at: updatedAt,
-        });
-      }
+      if (!deliveryReservationMatches(challenge, input)) return false;
+
+      authChallenges.set(
+        input.challengeId,
+        completedDeliveryRecord(challenge, input),
+      );
+      return true;
     },
     verifyAuthChallenge: async input => {
       const challenge = authChallenges.get(input.challengeId);
@@ -200,28 +207,40 @@ function createMemoryAuthStateStore(options = {}) {
       revokedAt,
       reason,
     ) => {
-      const task = normalizeAccountDeletionTask(
-        accountDeletions.get(accountKey),
-      );
-      if (
-        task.status !== 'queued' ||
-        task.deletion_id !== deletionId ||
-        task.account_instance_id !== accountInstanceId
-      ) {
-        return false;
-      }
-      for (const [sessionId, session] of authSessions.entries()) {
-        if (
+      const sessionIds = [...authSessions.entries()]
+        .filter(([, session]) =>
           session.account_key === accountKey &&
-          session.account_instance_id === accountInstanceId
+          session.account_instance_id === accountInstanceId)
+        .map(([sessionId]) => sessionId);
+      let revokedCount = 0;
+
+      for (const sessionId of sessionIds) {
+        if (
+          !exactQueuedDeletionTaskMatches(
+            accountDeletions.get(accountKey) ?? null,
+            accountKey,
+            deletionId,
+            accountInstanceId,
+          )
         ) {
-          authSessions.set(
-            sessionId,
-            revokeSessionRecord(session, revokedAt, reason),
-          );
+          continue;
         }
+        const current = authSessions.get(sessionId);
+        if (
+          !current ||
+          current.account_key !== accountKey ||
+          current.account_instance_id !== accountInstanceId ||
+          current.status !== 'active'
+        ) {
+          continue;
+        }
+        authSessions.set(
+          sessionId,
+          revokeSessionRecord(current, revokedAt, reason),
+        );
+        revokedCount += 1;
       }
-      return true;
+      return revokedCount;
     },
     getOrCreateAccountDeletionTask: async task => {
       const normalizedTask = normalizeAccountDeletionTask(task);
@@ -285,17 +304,19 @@ function createCloudBaseAuthStateStore(db, collections, options = {}) {
     kind: 'cloudbase',
     consumeAuthRateLimit: input =>
       db.runTransaction(async transaction => {
-        const deletion = await getDocument(
-          transaction.collection(names.accountDeletions),
-          input.accountKey,
-        );
-        const deletionStatus = challengeDeletionFenceStatus(
-          deletion,
-          input.allowAccountDeletionPending === true,
-          input.accountKey,
-          input.phoneNumber,
-        );
-        if (deletionStatus !== 'accepted') return deletionStatus;
+        if (input.sharedIp !== true) {
+          const deletion = await getDocument(
+            transaction.collection(names.accountDeletions),
+            input.accountKey,
+          );
+          const deletionStatus = challengeDeletionFenceStatus(
+            deletion,
+            input.allowAccountDeletionPending === true,
+            input.accountKey,
+            input.phoneNumber,
+          );
+          if (deletionStatus !== 'accepted') return deletionStatus;
+        }
 
         const collection = transaction.collection(names.authRateLimits);
         const documentId = hashValue(`${input.key}:${input.windowStartedAt}`);
@@ -339,8 +360,20 @@ function createCloudBaseAuthStateStore(db, collections, options = {}) {
           ? null
           : normalizeAccountInstance(account, input.accountKey)
             .account_instance_id;
+        const challengeCollection = transaction.collection(
+          names.authChallenges,
+        );
+        if (
+          (await getDocument(
+            challengeCollection,
+            input.challenge.challenge_id,
+          )) !== null
+        ) {
+          return 'challenge_id_conflict';
+        }
+
         await setDocument(
-          transaction.collection(names.authChallenges),
+          challengeCollection,
           input.challenge.challenge_id,
           {
             ...input.challenge,
@@ -349,18 +382,21 @@ function createCloudBaseAuthStateStore(db, collections, options = {}) {
         );
         return 'accepted';
       }),
-    markAuthChallengeDelivery: (challengeId, status, updatedAt) =>
+    getAuthChallenge: challengeId =>
+      getDocument(db.collection(names.authChallenges), challengeId),
+    markAuthChallengeDelivery: input =>
       db.runTransaction(async transaction => {
         const collection = transaction.collection(names.authChallenges);
-        const challenge = await getDocument(collection, challengeId);
+        const challenge = await getDocument(collection, input.challengeId);
 
-        if (challenge) {
-          await setDocument(collection, challengeId, {
-            ...challenge,
-            delivery_status: status,
-            updated_at: updatedAt,
-          });
-        }
+        if (!deliveryReservationMatches(challenge, input)) return false;
+
+        await setDocument(
+          collection,
+          input.challengeId,
+          completedDeliveryRecord(challenge, input),
+        );
+        return true;
       }),
     verifyAuthChallenge: input =>
       db.runTransaction(async transaction => {
@@ -553,49 +589,47 @@ function createCloudBaseAuthStateStore(db, collections, options = {}) {
       const collection = db.collection(names.authSessions);
       const result = await collection.where({account_key: accountKey}).get();
       const sessions = normalizeCloudBaseDocuments(result.data);
+      let revokedCount = 0;
 
-      await Promise.all(
-        sessions.map(session =>
-          db.runTransaction(async transaction => {
-            const task = await getDocument(
-              transaction.collection(names.accountDeletions),
-              accountKey,
-            );
-            let normalizedTask;
-            try {
-              normalizedTask = normalizeAccountDeletionTask(task);
-            } catch {
-              return false;
-            }
-            if (
-              normalizedTask.status !== 'queued' ||
-              normalizedTask.deletion_id !== deletionId ||
-              normalizedTask.account_instance_id !== accountInstanceId
-            ) {
-              return false;
-            }
-            const sessionId = session.session_id ?? session._id;
-            const current = await getDocument(
-              transaction.collection(names.authSessions),
-              sessionId,
-            );
-            if (
-              !current ||
-              current.account_key !== accountKey ||
-              current.account_instance_id !== accountInstanceId
-            ) {
-              return false;
-            }
-            await setDocument(
-              transaction.collection(names.authSessions),
-              sessionId,
-              revokeSessionRecord(current, revokedAt, reason),
-            );
-            return true;
-          }),
-        ),
-      );
-      return true;
+      for (const queriedSession of sessions) {
+        const sessionId = queriedSession.session_id ?? queriedSession._id;
+        if (typeof sessionId !== 'string' || sessionId.length === 0) continue;
+        const revoked = await db.runTransaction(async transaction => {
+          const task = await getDocument(
+            transaction.collection(names.accountDeletions),
+            accountKey,
+          );
+          if (!exactQueuedDeletionTaskMatches(
+            task,
+            accountKey,
+            deletionId,
+            accountInstanceId,
+          )) {
+            return false;
+          }
+
+          const transactionSessions = transaction.collection(
+            names.authSessions,
+          );
+          const current = await getDocument(transactionSessions, sessionId);
+          if (
+            !current ||
+            current.account_key !== accountKey ||
+            current.account_instance_id !== accountInstanceId ||
+            current.status !== 'active'
+          ) {
+            return false;
+          }
+          await setDocument(
+            transactionSessions,
+            sessionId,
+            revokeSessionRecord(current, revokedAt, reason),
+          );
+          return true;
+        });
+        if (revoked) revokedCount += 1;
+      }
+      return revokedCount;
     },
     getOrCreateAccountDeletionTask: task =>
       db.runTransaction(async transaction => {
@@ -830,6 +864,52 @@ function challengeDeletionFenceStatus(
     return 'account_deletion_state_invalid';
   }
   return 'account_deletion_state_invalid';
+}
+
+function exactQueuedDeletionTaskMatches(
+  task,
+  accountKey,
+  deletionId,
+  accountInstanceId,
+) {
+  try {
+    const normalized = normalizeAccountDeletionTask(task);
+    return (
+      normalized.account_key === accountKey &&
+      normalized.deletion_id === deletionId &&
+      normalized.account_instance_id === accountInstanceId &&
+      normalized.status === 'queued'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function deliveryReservationMatches(challenge, input) {
+  return (
+    challenge &&
+    challenge.challenge_id === input.challengeId &&
+    challenge.delivery_reservation_id === input.deliveryReservationId &&
+    challenge.delivery_status === 'pending' &&
+    challenge.account_key === input.accountKey &&
+    challenge.phone_number === input.phoneNumber &&
+    challenge.purpose === input.purpose
+  );
+}
+
+function completedDeliveryRecord(challenge, input) {
+  const next = {
+    ...clone(challenge),
+    delivery_status: input.status,
+    updated_at: input.updatedAt,
+  };
+  if (input.status === 'delivered') {
+    if (input.expiresAt !== undefined) next.expires_at = input.expiresAt;
+    if (input.providerChallengeId !== undefined) {
+      next.provider_challenge_id = input.providerChallengeId;
+    }
+  }
+  return next;
 }
 
 function verifyChallengeRecord(challenge, input) {

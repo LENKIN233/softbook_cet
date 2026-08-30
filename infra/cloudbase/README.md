@@ -118,15 +118,21 @@ while `/v2` owns authentication and the canonical bootstrap read:
   revocable server session. Development v1 product routes accept that active
   session; production rejects every v1 route.
 - Auth v2 adds persisted one-time SMS challenges, per-phone and per-IP rate
-  limits, 15-minute access tokens, rotating 30-day refresh tokens, session
-  revocation, and queued account deletion. See
+  limits, durable pre-provider delivery reservations, 15-minute access tokens,
+  rotating 30-day refresh tokens, exact-task session revocation, and queued
+  account deletion. Unauthenticated challenge requests consume the shared-IP
+  limit before phone/deletion checks and do not expose deletion state. See
   `infra/cloudbase/auth-v2-runtime-contract.md`.
 - Receiver delivery deploys the separate non-HTTP
   `softbook-account-deletion-worker` from the same tested artifact with a
-  one-minute timer and no API auth/SMS/signing custom variables. It uses claim-bound leases, erases every current account or
+  one-minute timer and no API auth/SMS/signing custom variables. It binds each
+  claim to the listed deletion ID and request time, uses claim-bound leases,
+  erases every current account or
   phone-owned runtime record plus retained phone-keyed migration state, preserves shared IP rate limits and global
   content, transactionally rechecks the current lease inside every erasure,
-  and removes the login-blocking task last. A stale worker cannot erase data
+  enters finalizing before blocking new challenge material, retries until
+  pre-transition provider reservations are terminal or past their bounded
+  deadline, and removes the login-blocking task last. A stale worker cannot erase data
   written after a newer worker completed and clean re-registration began. This is repository-local
   implementation, not a completed receiver deletion drill.
 - Bootstrap v2 reads server-side membership, progress, learning, physical
