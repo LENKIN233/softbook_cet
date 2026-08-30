@@ -35,7 +35,9 @@ The strict operator input contains `event_id`, `action=grant|revoke`,
 UTC `occurred_at`. Unknown fields fail closed. The campaign must equal the
 closed-beta release candidate campaign used by formal evidence. The exact
 canonical command receives a SHA-256 binding; replaying the same event is
-idempotent, while reusing an event ID for different bytes is rejected.
+idempotent, while reusing an event ID for different bytes is rejected. Public
+actor, campaign, grant and event identifiers reject a literal phone number or
+one revealed after separator removal.
 
 Command files contain personal data. They are operational inputs, not release
 artifacts, and must not be committed, copied into `release-bundle.v1`, or
@@ -49,7 +51,10 @@ requires no other active beta grant. Revoke requires the exact active campaign
 and grant ID. Revision and audit length advance together in the same
 beta-entitlement document update. Planning resolves an expired canonical Trial
 at the command timestamp without rewriting the base membership, so audit stages
-cannot preserve an already elapsed Trial.
+cannot preserve an already elapsed Trial. Every stored audit event is converted
+back to the complete command with the document phone owner and its SHA-256 is
+recomputed. Moving an otherwise valid audit document from phone A to phone B
+therefore fails closed before it can grant canonical membership.
 
 The runtime fails closed on malformed active evidence. Inactive historical
 records do not change membership. Account/smoke lifecycle cleanup treats the
@@ -74,7 +79,9 @@ validated receiver-owned `delivery-profile.v1`. It performs remote environment
 and collection preflight. Dry-run reads the current base membership and beta
 record and plans locally. Public plans contain campaign, grant, event, actor,
 action and stage identities but no phone-derived identifier. It is dry-run by
-default.
+default. Apply accepts the personal-data command only as a regular non-symlink
+file outside the repository; tracked, exact-HEAD and untracked in-repository
+command paths are all rejected before remote access.
 
 `--apply` additionally requires Node 22.13.0 and a clean `main` exactly equal to
 `origin/main`, plus a dedicated strong `SOFTBOOK_BETA_OPERATOR_SECRET` distinct

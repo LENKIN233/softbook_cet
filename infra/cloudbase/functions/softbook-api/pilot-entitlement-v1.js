@@ -39,7 +39,7 @@ function validatePilotEntitlementCommand(input) {
     !isIdentifier(input.pilot_id) ||
     !/^1\d{10}$/.test(input.phone_number) ||
     !['grant', 'revoke'].includes(input.action) ||
-    !isTrimmedNonEmptyString(input.actor) ||
+    !isPrivacySafePublicText(input.actor) ||
     !isTrimmedNonEmptyString(input.reason) ||
     !isCanonicalIsoTimestamp(input.occurred_at) ||
     !isMembershipStage(input.previous_stage) ||
@@ -94,14 +94,15 @@ function planPilotEntitlementMutation(commandInput, currentDocumentInput, baseEn
 }
 
 function publicPilotEntitlementPlan(plan) {
+  const command = validatePilotEntitlementCommand(plan.command);
   return {
     schema_version: 'pilot-entitlement-plan.v2',
-    action: plan.command.action,
-    actor: plan.command.actor,
+    action: command.action,
+    actor: command.actor,
     changed: plan.changed,
-    event_id: plan.command.event_id,
+    event_id: command.event_id,
     idempotent: plan.idempotent,
-    pilot_id: plan.command.pilot_id,
+    pilot_id: command.pilot_id,
     previous_stage: plan.previousStage,
     resulting_stage: plan.resultingStage,
   };
@@ -241,9 +242,24 @@ function normalizePilotEntitlementDocument(input) {
   let activeGrantEventId = null;
   let activePilotId = null;
   let previousTimestamp = null;
+  const eventIds = new Set();
   for (const event of audit) {
     const occurredAt = Date.parse(event.occurred_at);
+    const reconstructedCommand = validatePilotEntitlementCommand({
+      schema_version: 'pilot-entitlement-command.v1',
+      event_id: event.event_id,
+      pilot_id: event.pilot_id,
+      phone_number: document.phone_number,
+      action: event.action,
+      actor: event.actor,
+      reason: event.reason,
+      occurred_at: event.occurred_at,
+      previous_stage: event.previous_stage,
+      resulting_stage: event.resulting_stage,
+    });
     if (
+      eventIds.has(event.event_id) ||
+      event.command_sha256 !== hashCanonical(reconstructedCommand) ||
       (previousTimestamp !== null && occurredAt < previousTimestamp) ||
       (event.action === 'grant' &&
         (activeGrantEventId !== null || event.previous_stage === 'pilot_premium' || event.resulting_stage !== 'pilot_premium')) ||
@@ -252,6 +268,7 @@ function normalizePilotEntitlementDocument(input) {
     ) {
       throw new PilotEntitlementError('pilot entitlement audit sequence is invalid.');
     }
+    eventIds.add(event.event_id);
     activeGrantEventId = event.action === 'grant' ? event.event_id : null;
     activePilotId = event.action === 'grant' ? event.pilot_id : null;
     previousTimestamp = occurredAt;
@@ -299,7 +316,7 @@ function isStoredAuditEvent(value) {
   return value && keys.length === expectedKeys.length &&
     keys.every((key, index) => key === expectedKeys[index]) &&
     value.schema_version === PILOT_ENTITLEMENT_AUDIT_SCHEMA &&
-    ['grant', 'revoke'].includes(value.action) && isTrimmedNonEmptyString(value.actor) &&
+    ['grant', 'revoke'].includes(value.action) && isPrivacySafePublicText(value.actor) &&
     /^sha256:[a-f0-9]{64}$/.test(value.command_sha256 ?? '') && isIdentifier(value.event_id) &&
     isCanonicalIsoTimestamp(value.occurred_at) && isIdentifier(value.pilot_id) &&
     isMembershipStage(value.previous_stage) && isTrimmedNonEmptyString(value.reason) &&
@@ -314,7 +331,7 @@ function isActivePilotEntitlement(value) {
   ];
   return value && keys.length === expectedKeys.length &&
     keys.every((key, index) => key === expectedKeys[index]) &&
-    value.schema_version === PILOT_ENTITLEMENT_STATE_SCHEMA && isTrimmedNonEmptyString(value.actor) &&
+    value.schema_version === PILOT_ENTITLEMENT_STATE_SCHEMA && isPrivacySafePublicText(value.actor) &&
     /^sha256:[a-f0-9]{64}$/.test(value.command_sha256 ?? '') &&
     isIdentifier(value.grant_event_id) && isCanonicalIsoTimestamp(value.granted_at) &&
     isIdentifier(value.pilot_id) && isTrimmedNonEmptyString(value.reason);
@@ -339,7 +356,8 @@ function assertPlainObject(value, label) {
 }
 
 function isIdentifier(value) {
-  return typeof value === 'string' && value.length >= 3 && value.length <= 128 && /^[a-z0-9][a-z0-9._-]+$/.test(value);
+  return typeof value === 'string' && value.length >= 3 && value.length <= 128 &&
+    /^[a-z0-9][a-z0-9._-]+$/.test(value) && !containsPhoneMaterial(value);
 }
 
 function isCanonicalIsoTimestamp(value) {
@@ -358,6 +376,15 @@ function isTrimmedNonEmptyString(value) {
   return typeof value === 'string' && value.length > 0 && value.trim() === value;
 }
 
+function isPrivacySafePublicText(value) {
+  return isTrimmedNonEmptyString(value) && !containsPhoneMaterial(value);
+}
+
+function containsPhoneMaterial(value) {
+  return typeof value === 'string' &&
+    /1\d{10}/.test(value.replace(/[^A-Za-z0-9]/g, ''));
+}
+
 module.exports = {
   PILOT_ENTITLEMENT_AUDIT_SCHEMA,
   PILOT_ENTITLEMENT_HISTORY_LIMIT,
@@ -369,6 +396,7 @@ module.exports = {
   validatePilotEntitlementCommand,
   verifyAppliedPilotEntitlement,
   pilotEntitlementInternals: {
+    containsPhoneMaterial,
     hashCanonical,
     normalizePilotEntitlementDocument,
     stableStringify,

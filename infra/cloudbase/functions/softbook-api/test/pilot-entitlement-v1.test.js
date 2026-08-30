@@ -148,6 +148,38 @@ test('expired trial is rederived as free at command occurrence time', () => {
   assert.equal(plan.previousStage, 'free');
 });
 
+test('pilot audit hashes reject phone-owner transplants', () => {
+  const grant = pilot.planPilotEntitlementMutation(
+    command('grant', 'free'),
+    null,
+    membership('free'),
+  );
+  const transplanted = {
+    ...grant.document,
+    phone_number: '13900139000',
+  };
+
+  assert.throws(
+    () => pilot.pilotEntitlementInternals.normalizePilotEntitlementDocument(transplanted),
+    /audit sequence is invalid/,
+  );
+});
+
+test('public pilot identifiers reject literal and separator-normalized phones', () => {
+  for (const value of ['scope-13800138000', 'scope-138-0013-8000']) {
+    for (const field of ['actor', 'event_id', 'pilot_id']) {
+      assert.throws(
+        () =>
+          pilot.validatePilotEntitlementCommand({
+            ...command('grant', 'free'),
+            [field]: value,
+          }),
+        /invalid/,
+      );
+    }
+  }
+});
+
 function command(action, baseStage) {
   return {
     schema_version: 'pilot-entitlement-command.v1',

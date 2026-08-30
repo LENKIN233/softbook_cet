@@ -15,6 +15,7 @@ import {
 } from './controlled-pilot-v1.mjs';
 import {REQUIRED_DEPLOYMENT_NODE_VERSION, parseTcbJson, redactText} from './deployment-safety.mjs';
 import {inspectReceiver, inspectWriteSafety} from './deliver-release.mjs';
+import {requirePrivateOperatorCommandPath} from './operator-command-input.mjs';
 import {
   PilotEntitlementError,
   pilotEntitlementInternals,
@@ -64,7 +65,13 @@ export function parsePilotEntitlementArguments(argv) {
 
 export async function executePilotEntitlementCommand(options, dependencies = {}) {
   const profile = validateControlledPilotProfile(readJson(options.profilePath));
-  const command = validatePilotEntitlementCommand(readJson(options.commandPath));
+  const commandPath = options.apply
+    ? requirePrivateOperatorCommandPath(options.commandPath, {
+        createError: message => new PilotEntitlementError(message),
+        repositoryRoot: REPOSITORY_ROOT,
+      })
+    : options.commandPath;
+  const command = validatePilotEntitlementCommand(readJson(commandPath));
   const now = dependencies.now ?? new Date();
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
     throw new PilotEntitlementError('operator clock is invalid.');
@@ -267,13 +274,55 @@ function parsePilotEntitlementInvocation(output, command) {
   } catch {
     throw new PilotEntitlementError('pilot entitlement invocation returned invalid JSON.');
   }
+  const expectedKeys = [
+    'gate_eligible',
+    'result',
+    'schema_version',
+    'status',
+    'writes_performed',
+  ];
+  const actualKeys =
+    result && typeof result === 'object' && !Array.isArray(result)
+      ? Object.keys(result).sort()
+      : [];
+  const expectedResultKeys = [
+    'action',
+    'actor',
+    'changed',
+    'event_id',
+    'idempotent',
+    'pilot_id',
+    'previous_stage',
+    'resulting_stage',
+    'schema_version',
+  ];
+  const resultKeys =
+    result?.result &&
+    typeof result.result === 'object' &&
+    !Array.isArray(result.result)
+      ? Object.keys(result.result).sort()
+      : [];
   if (
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== expectedKeys[index]) ||
+    resultKeys.length !== expectedResultKeys.length ||
+    resultKeys.some((key, index) => key !== expectedResultKeys[index]) ||
     result?.schema_version !== 'pilot-entitlement-operator-result.v1' ||
     result.status !== 'passed' ||
     result.gate_eligible !== false ||
     typeof result.writes_performed !== 'boolean' ||
+    result.writes_performed !== result.result?.changed ||
+    result.result?.schema_version !== 'pilot-entitlement-plan.v2' ||
+    result.result?.action !== command.action ||
+    result.result?.actor !== command.actor ||
     result.result?.event_id !== command.event_id ||
-    result.result?.pilot_id !== command.pilot_id
+    result.result?.pilot_id !== command.pilot_id ||
+    result.result?.previous_stage !== command.previous_stage ||
+    result.result?.resulting_stage !== command.resulting_stage ||
+    typeof result.result?.idempotent !== 'boolean' ||
+    pilotEntitlementInternals.containsPhoneMaterial(result.result?.actor) ||
+    pilotEntitlementInternals.containsPhoneMaterial(result.result?.event_id) ||
+    pilotEntitlementInternals.containsPhoneMaterial(result.result?.pilot_id)
   ) {
     throw new PilotEntitlementError('pilot entitlement invocation result is invalid.');
   }
@@ -371,6 +420,7 @@ if (isDirectExecution) main();
 
 export const pilotEntitlementCliInternals = {
   invokePilotEntitlement,
+  parsePilotEntitlementInvocation,
   queryCommand,
   verifyInvokedPilotEntitlement,
 };

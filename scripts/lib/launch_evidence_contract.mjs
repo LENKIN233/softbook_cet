@@ -1248,15 +1248,27 @@ function validateBetaEntitlementDrillMeasurements(
   }
   requirePattern(value.campaign_id, ID_PATTERN, `${label}.campaign_id`, errors);
   requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
+  rejectPhoneMaterial(value.campaign_id, `${label}.campaign_id`, errors);
+  rejectPhoneMaterial(value.grant_id, `${label}.grant_id`, errors);
   requirePattern(
     value.grant_event_id,
     ID_PATTERN,
     `${label}.grant_event_id`,
     errors,
   );
+  rejectPhoneMaterial(
+    value.grant_event_id,
+    `${label}.grant_event_id`,
+    errors,
+  );
   requirePattern(
     value.revoke_event_id,
     ID_PATTERN,
+    `${label}.revoke_event_id`,
+    errors,
+  );
+  rejectPhoneMaterial(
+    value.revoke_event_id,
     `${label}.revoke_event_id`,
     errors,
   );
@@ -1555,6 +1567,9 @@ function validateBetaEntitlementReportCommand(value, action, label, errors) {
   );
   requirePattern(value.event_id, ID_PATTERN, `${label}.event_id`, errors);
   requirePattern(value.grant_id, ID_PATTERN, `${label}.grant_id`, errors);
+  for (const field of ['actor_id', 'campaign_id', 'event_id', 'grant_id']) {
+    rejectPhoneMaterial(value[field], `${label}.${field}`, errors);
+  }
   return value;
 }
 
@@ -1740,6 +1755,16 @@ function validateBetaEntitlementState(value, active, label, errors) {
   if (value.active === true) {
     requirePattern(value.active_campaign_id, ID_PATTERN, `${label}.active_campaign_id`, errors);
     requirePattern(value.active_grant_id, ID_PATTERN, `${label}.active_grant_id`, errors);
+    rejectPhoneMaterial(
+      value.active_campaign_id,
+      `${label}.active_campaign_id`,
+      errors,
+    );
+    rejectPhoneMaterial(
+      value.active_grant_id,
+      `${label}.active_grant_id`,
+      errors,
+    );
   } else {
     assertEqual(value.active_campaign_id, null, `${label}.active_campaign_id`, errors);
     assertEqual(value.active_grant_id, null, `${label}.active_grant_id`, errors);
@@ -5896,6 +5921,15 @@ function requireNonNegativeInteger(value, label, errors) {
 function requirePattern(value, pattern, label, errors) {
   if (typeof value !== 'string' || !pattern.test(value)) {
     errors.push(`${label} has an invalid value.`);
+  }
+}
+
+function rejectPhoneMaterial(value, label, errors) {
+  if (
+    typeof value === 'string' &&
+    /1\d{10}/.test(value.replace(/[^A-Za-z0-9]/g, ''))
+  ) {
+    errors.push(`${label} must not contain phone-number material.`);
   }
 }
 

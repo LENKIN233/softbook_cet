@@ -21,7 +21,11 @@ const {
   prepareSpaceActionCommit,
 } = require('../space-actions-v2');
 const {stableJsonStringify} = require('../content-manifest-v1');
-const {betaEntitlementInternals} = require('../beta-entitlement-v1');
+const {
+  betaEntitlementInternals,
+  planBetaEntitlementMutation,
+} = require('../beta-entitlement-v1');
+const {pilotEntitlementInternals} = require('../pilot-entitlement-v1');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
 const BETA_BACKEND_DEPLOYMENT_ID =
@@ -2751,7 +2755,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     action: 'grant',
     actor_id: 'receiver-operator',
     campaign_id: 'cet4-beta-campaign-001',
-    command_sha256: `sha256:${'a'.repeat(64)}`,
+    command_sha256: null,
     event_id: 'beta-event-grant-0001',
     grant_id: 'cet4-beta-grant-0001',
     occurred_at: fixedNow.toISOString(),
@@ -2759,6 +2763,7 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     reason: 'closed_beta_access',
     resulting_stage: 'premium',
   };
+  grantEvent.command_sha256 = betaCommandHash(grantEvent, phoneNumber);
   db.snapshot().get('softbook_beta_entitlements').set(phoneNumber, {
     active_grant: {
       schema_version: 'beta-entitlement.v1',
@@ -2805,14 +2810,17 @@ test('CloudBase membership overlays an audited beta grant without overwriting ba
     .get('softbook_beta_entitlements')
     .get(phoneNumber);
   betaDocument.active_grant = null;
-  betaDocument.audit.push({
+  const revokeEvent = {
     ...grantEvent,
     action: 'revoke',
+    command_sha256: null,
     event_id: 'beta-event-revoke-0001',
     occurred_at: '2026-05-02T12:00:00.000Z',
     previous_stage: 'premium',
     resulting_stage: 'premium',
-  });
+  };
+  revokeEvent.command_sha256 = betaCommandHash(revokeEvent, phoneNumber);
+  betaDocument.audit.push(revokeEvent);
   betaDocument.revision = 2;
   betaDocument.updated_at = '2026-05-02T12:00:00.000Z';
   const revoked = await store.getMembership(phoneNumber);
@@ -2858,7 +2866,7 @@ test('learning-session Trial activation rejects a beta grant that races the sele
     action: 'grant',
     actor_id: 'receiver-operator',
     campaign_id: 'cet4-beta-campaign-001',
-    command_sha256: `sha256:${'b'.repeat(64)}`,
+    command_sha256: null,
     event_id: 'beta-event-race-grant-0001',
     grant_id: 'cet4-beta-race-grant-0001',
     occurred_at: selectedAt,
@@ -2866,6 +2874,7 @@ test('learning-session Trial activation rejects a beta grant that races the sele
     reason: 'closed_beta_access',
     resulting_stage: 'premium',
   };
+  grantEvent.command_sha256 = betaCommandHash(grantEvent, phoneNumber);
   db.snapshot().get('softbook_beta_entitlements').set(phoneNumber, {
     active_grant: {
       schema_version: 'beta-entitlement.v1',
@@ -2928,6 +2937,32 @@ test('CloudBase membership fails closed on malformed active beta evidence', asyn
   );
 });
 
+test('CloudBase membership rejects a beta audit transplanted to another phone', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const command = createBetaOperatorCommand();
+  const grant = planBetaEntitlementMutation(command, null, {
+    counted_entry_count: 0,
+    last_experience_ended_by: null,
+    recovery_prompt_visible: false,
+    stage: 'trial_available',
+    trial_duration_days: 5,
+    trial_expires_at: null,
+    trial_started_at: null,
+    trial_started_at_entry_count: null,
+  });
+  const otherPhone = '13900139000';
+  db.snapshot().get('softbook_beta_entitlements').set(otherPhone, {
+    ...structuredClone(grant.document),
+    phone_number: otherPhone,
+  });
+
+  await assert.rejects(
+    () => store.getMembership(otherPhone, fixedNow.toISOString()),
+    error => error.code === 'invalid_beta_entitlement',
+  );
+});
+
 test('controlled-pilot membership overlays only an exact active pilot grant', async () => {
   const db = createFakeCloudBaseDb();
   const pilotId = 'cet4-pilot-2026';
@@ -2943,7 +2978,7 @@ test('controlled-pilot membership overlays only an exact active pilot grant', as
     schema_version: 'pilot-entitlement-audit.v1',
     action: 'grant',
     actor: 'receiver-operator',
-    command_sha256: `sha256:${'b'.repeat(64)}`,
+    command_sha256: null,
     event_id: 'pilot-event-grant-0001',
     occurred_at: occurredAt,
     pilot_id: pilotId,
@@ -2951,6 +2986,7 @@ test('controlled-pilot membership overlays only an exact active pilot grant', as
     reason: 'controlled_pilot_continued_access',
     resulting_stage: 'pilot_premium',
   };
+  event.command_sha256 = pilotCommandHash(event, phoneNumber);
   db.snapshot().get('softbook_pilot_entitlements').set(phoneNumber, {
     active_grant: {
       schema_version: 'pilot-entitlement.v1',
@@ -3325,28 +3361,30 @@ test('controlled-pilot membership rejects active entitlement from another pilot'
     pilotId: 'cet4-pilot-2026',
     runtimeMode: 'controlled_pilot',
   });
+  const event = {
+    schema_version: 'pilot-entitlement-audit.v1',
+    action: 'grant',
+    actor: 'receiver-operator',
+    command_sha256: null,
+    event_id: 'pilot-event-grant-0001',
+    occurred_at: occurredAt,
+    pilot_id: 'another-pilot',
+    previous_stage: 'trial_available',
+    reason: 'controlled_pilot_continued_access',
+    resulting_stage: 'pilot_premium',
+  };
+  event.command_sha256 = pilotCommandHash(event, phoneNumber);
   db.snapshot().get('softbook_pilot_entitlements').set(phoneNumber, {
     active_grant: {
       schema_version: 'pilot-entitlement.v1',
-      actor: 'receiver-operator',
-      command_sha256: `sha256:${'c'.repeat(64)}`,
-      grant_event_id: 'pilot-event-grant-0001',
+      actor: event.actor,
+      command_sha256: event.command_sha256,
+      grant_event_id: event.event_id,
       granted_at: occurredAt,
-      pilot_id: 'another-pilot',
-      reason: 'controlled_pilot_continued_access',
+      pilot_id: event.pilot_id,
+      reason: event.reason,
     },
-    audit: [{
-      schema_version: 'pilot-entitlement-audit.v1',
-      action: 'grant',
-      actor: 'receiver-operator',
-      command_sha256: `sha256:${'c'.repeat(64)}`,
-      event_id: 'pilot-event-grant-0001',
-      occurred_at: occurredAt,
-      pilot_id: 'another-pilot',
-      previous_stage: 'trial_available',
-      reason: 'controlled_pilot_continued_access',
-      resulting_stage: 'pilot_premium',
-    }],
+    audit: [event],
     phone_number: phoneNumber,
     pilot_id: 'another-pilot',
     revision: 1,
@@ -3715,6 +3753,35 @@ function commitCollectionWrites(target, staged, writes) {
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function betaCommandHash(event, phoneNumber) {
+  return betaEntitlementInternals.hashCanonical({
+    schema_version: 'beta-entitlement-command.v1',
+    event_id: event.event_id,
+    action: event.action,
+    phone_number: phoneNumber,
+    campaign_id: event.campaign_id,
+    grant_id: event.grant_id,
+    actor_id: event.actor_id,
+    reason: event.reason,
+    occurred_at: event.occurred_at,
+  });
+}
+
+function pilotCommandHash(event, phoneNumber) {
+  return pilotEntitlementInternals.hashCanonical({
+    schema_version: 'pilot-entitlement-command.v1',
+    event_id: event.event_id,
+    pilot_id: event.pilot_id,
+    phone_number: phoneNumber,
+    action: event.action,
+    actor: event.actor,
+    reason: event.reason,
+    occurred_at: event.occurred_at,
+    previous_stage: event.previous_stage,
+    resulting_stage: event.resulting_stage,
+  });
 }
 
 function createPilotOperatorSignature(command) {

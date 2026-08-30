@@ -4,6 +4,7 @@ const {
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } = require('node:fs');
 const {tmpdir} = require('node:os');
@@ -16,6 +17,13 @@ let beta;
 let deliveryCli;
 let deploymentSafety;
 const temporaryDirectories = [];
+const REPOSITORY_ROOT = resolve(__dirname, '../../../../..');
+const TEST_CONTENT_MANIFEST_PRIVATE_KEY_PEM = String(
+  crypto.generateKeyPairSync('ed25519').privateKey.export({
+    format: 'pem',
+    type: 'pkcs8',
+  }),
+);
 
 before(async () => {
   cli = await import(
@@ -287,7 +295,7 @@ test('apply blocks before invocation when remote backend or beta secret drifts',
   assert.equal(secretReport.preflight.backend_deployment_verified, false);
   assert.match(
     secretReport.preflight.errors.join(';'),
-    /beta operator secret is missing or weak/,
+    /SOFTBOOK_BETA_OPERATOR_SECRET is missing/,
   );
   assert.equal(missingSecret.invokeCount(), 0);
 });
@@ -306,6 +314,67 @@ test('apply rejects a semantically inconsistent receiver result', async () => {
     () => cli.executeBetaEntitlementCommand(options, dependencies(runner)),
     /invocation result is invalid/,
   );
+});
+
+test('beta CLI result parser rejects separator-normalized phone IDs', async () => {
+  const fixture = createFixture();
+  const runner = createRunner({
+    responseActiveCampaignOverride: 'campaign-138-0013-8000',
+  });
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executeBetaEntitlementCommand(options, dependencies(runner)),
+    /semantically invalid/,
+  );
+});
+
+test('apply rejects tracked, in-repository, and symlink command inputs', async () => {
+  const fixture = createFixture();
+  const assertRejectedPath = async (commandPath, pattern) => {
+    const runner = createRunner();
+    const options = cli.parseBetaEntitlementArguments([
+      '--profile',
+      fixture.profilePath,
+      '--command',
+      commandPath,
+      '--apply',
+    ]);
+    await assert.rejects(
+      () => cli.executeBetaEntitlementCommand(options, dependencies(runner)),
+      pattern,
+    );
+    assert.equal(runner.invokeCount(), 0);
+  };
+
+  await assertRejectedPath(
+    resolve(REPOSITORY_ROOT, 'spec/membership.json'),
+    /outside the repository and cannot be tracked at HEAD/,
+  );
+
+  const inRepositoryDirectory = mkdtempSync(
+    join(REPOSITORY_ROOT, '.beta-command-test-'),
+  );
+  temporaryDirectories.push(inRepositoryDirectory);
+  const inRepositoryPath = join(inRepositoryDirectory, 'command.json');
+  writeFileSync(inRepositoryPath, readFileSync(fixture.commandPath));
+  await assertRejectedPath(
+    inRepositoryPath,
+    /outside the repository and cannot be tracked at HEAD/,
+  );
+
+  const symlinkDirectory = mkdtempSync(
+    join(tmpdir(), 'beta-command-symlink-test-'),
+  );
+  temporaryDirectories.push(symlinkDirectory);
+  const symlinkPath = join(symlinkDirectory, 'command.json');
+  symlinkSync(fixture.commandPath, symlinkPath);
+  await assertRejectedPath(symlinkPath, /regular non-symlink file/);
 });
 
 test('beta entitlement commands reject a formal production profile', async () => {
@@ -389,6 +458,7 @@ function createRunner({
   mutateMembershipAfterInvocation = false,
   remoteBackendDeploymentId = null,
   responseActionOverride = null,
+  responseActiveCampaignOverride = null,
 } = {}) {
   const collections = new Map([
     ['softbook_beta_entitlements', new Map()],
@@ -464,6 +534,18 @@ function createRunner({
                 {
                   Key: 'SOFTBOOK_AUTH_TOKEN_SECRET',
                   Value: 'token-secret-9876543210-ZYXWVUTSRQP',
+                },
+                {
+                  Key: 'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
+                  Value: TEST_CONTENT_MANIFEST_PRIVATE_KEY_PEM,
+                },
+                {
+                  Key: 'SOFTBOOK_SMS_WEBHOOK_SECRET',
+                  Value: 'sms-webhook-secret-0123456789-ABCDEFG',
+                },
+                {
+                  Key: 'SOFTBOOK_SMS_WEBHOOK_URL',
+                  Value: 'https://sms.example/softbook/send',
                 },
                 ...(includeBetaSecret
                   ? [
@@ -568,6 +650,10 @@ function createRunner({
         };
         if (responseActionOverride !== null) {
           result.result.action = responseActionOverride;
+        }
+        if (responseActiveCampaignOverride !== null) {
+          result.beta_state.active_campaign_id =
+            responseActiveCampaignOverride;
         }
         if (mutateMembershipAfterInvocation && plan.changed) {
           collections.get('softbook_memberships').set(

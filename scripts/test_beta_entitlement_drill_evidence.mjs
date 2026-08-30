@@ -2,6 +2,7 @@
 
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -16,6 +17,8 @@ import {
 } from './validate_cet4_closed_beta_readiness.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(import.meta.url);
+const betaRuntime = require('../infra/cloudbase/functions/softbook-api/beta-entitlement-v1.js');
 const NOW = new Date('2026-08-24T00:00:00.000Z');
 const readinessSpec = readJson(
   path.join(ROOT, 'spec/cet4-closed-beta-readiness.json'),
@@ -59,8 +62,17 @@ test('beta entitlement drill rejects planned, drifted, non-idempotent and regres
   assertInvalid(eventDrift, /revoke event measurement/);
 
   const crossAccountSplice = createFixture();
+  const accountAState = createRuntimeGrantState('13800138000');
+  const accountBState = createRuntimeGrantState('13900139000');
+  assert.notEqual(accountAState.state_sha256, accountBState.state_sha256);
+  crossAccountSplice.loaded.grantReport.beta_state.state_sha256 =
+    accountAState.state_sha256;
+  crossAccountSplice.loaded.grantReplayReport.beta_state_before.state_sha256 =
+    accountAState.state_sha256;
+  crossAccountSplice.loaded.grantReplayReport.beta_state.state_sha256 =
+    accountAState.state_sha256;
   crossAccountSplice.loaded.revokeReport.beta_state_before.state_sha256 =
-    digest('another-account-grant-state');
+    accountBState.state_sha256;
   assertInvalid(crossAccountSplice, /revoke input chain\.state_sha256/);
 
   const backendDrift = createFixture();
@@ -74,6 +86,18 @@ test('beta entitlement drill rejects planned, drifted, non-idempotent and regres
       name => name !== 'SOFTBOOK_BETA_OPERATOR_SECRET',
     );
   assertInvalid(missingRemoteSecret, /must bind the beta secret and release class/);
+
+  for (const [field, value] of [
+    ['actor_id', 'service:model-138-0013-8000'],
+    ['campaign_id', 'campaign-138-0013-8000'],
+    ['event_id', 'event-138-0013-8000'],
+    ['grant_id', 'grant-138-0013-8000'],
+  ]) {
+    const phoneIdentifier = createFixture();
+    phoneIdentifier.loaded.grantReport.command[field] = value;
+    phoneIdentifier.loaded.grantReport.result[field] = value;
+    assertInvalid(phoneIdentifier, /phone-number material/);
+  }
 
   const legacyFingerprint = createFixture();
   legacyFingerprint.artifact.measurements.account_fingerprint =
@@ -631,6 +655,34 @@ function writeFile(root, relativePath, payload) {
 
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
+}
+
+function createRuntimeGrantState(phoneNumber) {
+  const plan = betaRuntime.planBetaEntitlementMutation(
+    {
+      schema_version: 'beta-entitlement-command.v1',
+      event_id: 'beta-event-grant-0001',
+      action: 'grant',
+      phone_number: phoneNumber,
+      campaign_id: 'cet4-beta-campaign-001',
+      grant_id: 'cet4-beta-grant-0001',
+      actor_id: 'service:receiver-beta-operator',
+      reason: 'closed_beta_access',
+      occurred_at: '2026-08-23T09:00:00.000Z',
+    },
+    null,
+    {
+      counted_entry_count: 1,
+      last_experience_ended_by: 'trial',
+      recovery_prompt_visible: true,
+      stage: 'free',
+      trial_duration_days: 5,
+      trial_expires_at: '2026-08-20T09:00:00.000Z',
+      trial_started_at: '2026-08-15T09:00:00.000Z',
+      trial_started_at_entry_count: 1,
+    },
+  );
+  return betaRuntime.publicBetaEntitlementState(plan.document);
 }
 
 function hash(value) {

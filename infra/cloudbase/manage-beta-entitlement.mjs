@@ -37,6 +37,7 @@ import {
   validateDeliveryProfile,
 } from './release-delivery-v1.mjs';
 import {parseStrictJson} from '../../scripts/lib/strict_json.mjs';
+import {requirePrivateOperatorCommandPath} from './operator-command-input.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
@@ -101,7 +102,13 @@ export async function executeBetaEntitlementCommand(
       'beta entitlement commands require a closed_beta delivery profile.',
     );
   }
-  const command = validateBetaEntitlementCommand(readJson(options.commandPath));
+  const commandPath = options.apply
+    ? requirePrivateOperatorCommandPath(options.commandPath, {
+        createError: message => new BetaEntitlementError(message),
+        repositoryRoot: REPOSITORY_ROOT,
+      })
+    : options.commandPath;
+  const command = validateBetaEntitlementCommand(readJson(commandPath));
   const completeReport = report => ({
     ...report,
     execution: {
@@ -484,6 +491,12 @@ function validateBetaEntitlementInvocationSemantics(result, command) {
         ) &&
         /^[A-Za-z0-9][A-Za-z0-9._:-]{11,95}$/.test(
           state.active_grant_id ?? '',
+        ) &&
+        !betaEntitlementInternals.containsPhoneMaterial(
+          state.active_campaign_id,
+        ) &&
+        !betaEntitlementInternals.containsPhoneMaterial(
+          state.active_grant_id,
         )
       : state.active_campaign_id === null && state.active_grant_id === null;
     return (

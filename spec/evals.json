@@ -1,5 +1,5 @@
 {
-  "version": "vnext-33",
+  "version": "vnext-34",
   "regressions": [
     {
       "id": "HR-01",
@@ -714,6 +714,9 @@
         "report_binds_exact_observed_backend_deployment_and_closed_beta_release_class",
         "receiver_preflight_and_clean_exact_main_write_safety_are_retained",
         "stored_beta_revision_audit_count_active_state_and_digest_are_verified",
+        "every_stored_audit_reconstructs_full_command_with_document_phone_and_recomputes_SHA256",
+        "apply_command_is_regular_non_symlink_outside_repository_and_not_tracked_at_HEAD",
+        "public_actor_campaign_grant_and_event_ids_reject_literal_or_separator_normalized_phone_material",
         "base_membership_before_after_digest_must_be_unchanged",
         "phone_and_command_bytes_are_never_reported",
         "raw_operator_report_gate_eligible_false_and_formal_drill_wrapper_still_required",
@@ -730,6 +733,7 @@
         "raw_operator_reports_remain_gate_eligible_false",
         "same_commit_profile_environment_candidate_campaign_grant_and_operator",
         "before_after_beta_state_digest_chain_proves_one_continuous_account_without_phone_derived_identifier",
+        "valid_phone_A_and_phone_B_command_hashes_produce_distinct_state_chain_and_cross_phone_transplant_fails_closed",
         "grant_from_nonpremium_to_premium_with_one_revision_and_audit_state",
         "grant_replay_same_command_state_and_zero_write",
         "revoke_from_premium_to_original_base_with_one_revision_and_audit_state",
@@ -1540,6 +1544,9 @@
         "receiver_function_single_transaction_and_command_bound_hmac",
         "HMAC_and_result_bind_exact_backend_deployment_and_closed_beta_release_class",
         "before_and_after_beta_state_transition_digests",
+        "stored_audit_full_command_hash_recomputation_prevents_phone_owner_transplant",
+        "public_IDs_and_CLI_result_parser_reject_phone_material",
+        "apply_rejects_tracked_in_repository_and_symlink_command_files",
         "verified_beta_state_revision_audit_active_and_digest",
         "base_membership_unchanged_digest",
         "no_phone_command_bytes_or_false_receiver_execution_claim"
@@ -1555,6 +1562,7 @@
         "candidate_commit_profile_environment_and_campaign_binding",
         "one_campaign_grant_actor_distinct_event_identity_and_base_membership_digest",
         "continuous_before_after_state_chain_rejects_cross_account_splicing",
+        "cross_account_negative_uses_real_phone_bound_runtime_state_digests",
         "grant_nonpremium_to_premium_and_active_state",
         "grant_idempotent_replay_no_write_and_same_state_digest",
         "revoke_premium_to_original_base_and_inactive_state",

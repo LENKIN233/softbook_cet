@@ -165,6 +165,38 @@ test('stored beta entitlement rejects unknown fields and active campaign drift',
   }
 });
 
+test('stored beta audit command hashes reject phone-owner transplants', () => {
+  const grant = beta.planBetaEntitlementMutation(
+    command('grant'),
+    null,
+    membership('free'),
+  );
+  const transplanted = {
+    ...grant.document,
+    phone_number: '13900139000',
+  };
+
+  assert.throws(
+    () => beta.betaEntitlementInternals.normalizeBetaEntitlementDocument(transplanted),
+    /audit sequence is invalid/,
+  );
+});
+
+test('public beta identifiers reject literal and separator-normalized phones', () => {
+  for (const value of ['scope-13800138000', 'scope-138-0013-8000']) {
+    for (const field of ['actor_id', 'campaign_id', 'event_id', 'grant_id']) {
+      assert.throws(
+        () =>
+          beta.validateBetaEntitlementCommand({
+            ...command('grant'),
+            [field]: value,
+          }),
+        /invalid/,
+      );
+    }
+  }
+});
+
 function command(action) {
   return {
     schema_version: 'beta-entitlement-command.v1',

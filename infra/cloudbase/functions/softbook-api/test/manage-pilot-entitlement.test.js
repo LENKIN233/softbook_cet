@@ -1,5 +1,11 @@
 const assert = require('node:assert/strict');
-const {mkdtempSync, readFileSync, rmSync, writeFileSync} = require('node:fs');
+const {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} = require('node:fs');
 const {tmpdir} = require('node:os');
 const {join, resolve} = require('node:path');
 const {pathToFileURL} = require('node:url');
@@ -9,6 +15,7 @@ const pilotRuntime = require('../pilot-entitlement-v1');
 let cli;
 let deploymentSafety;
 const temporaryDirectories = [];
+const REPOSITORY_ROOT = resolve(__dirname, '../../../../..');
 
 before(async () => {
   cli = await import(
@@ -138,6 +145,67 @@ test('future commands and expired pilot profiles fail before remote reads', asyn
   assert.equal(expiredRunner.callCount(), 0);
 });
 
+test('pilot CLI result parser rejects separator-normalized phone IDs', async () => {
+  const fixture = createFixture();
+  const runner = createRunner({
+    responseActorOverride: 'service-138-0013-8000',
+  });
+  const options = cli.parsePilotEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executePilotEntitlementCommand(options, dependencies(runner)),
+    /invocation result is invalid/,
+  );
+});
+
+test('pilot apply rejects tracked, in-repository, and symlink command inputs', async () => {
+  const fixture = createFixture();
+  const assertRejectedPath = async (commandPath, pattern) => {
+    const runner = createRunner();
+    const options = cli.parsePilotEntitlementArguments([
+      '--profile',
+      fixture.profilePath,
+      '--command',
+      commandPath,
+      '--apply',
+    ]);
+    await assert.rejects(
+      () => cli.executePilotEntitlementCommand(options, dependencies(runner)),
+      pattern,
+    );
+    assert.equal(runner.callCount(), 0);
+  };
+
+  await assertRejectedPath(
+    resolve(REPOSITORY_ROOT, 'spec/membership.json'),
+    /outside the repository and cannot be tracked at HEAD/,
+  );
+
+  const inRepositoryDirectory = mkdtempSync(
+    join(REPOSITORY_ROOT, '.pilot-command-test-'),
+  );
+  temporaryDirectories.push(inRepositoryDirectory);
+  const inRepositoryPath = join(inRepositoryDirectory, 'command.json');
+  writeFileSync(inRepositoryPath, readFileSync(fixture.commandPath));
+  await assertRejectedPath(
+    inRepositoryPath,
+    /outside the repository and cannot be tracked at HEAD/,
+  );
+
+  const symlinkDirectory = mkdtempSync(
+    join(tmpdir(), 'pilot-command-symlink-test-'),
+  );
+  temporaryDirectories.push(symlinkDirectory);
+  const symlinkPath = join(symlinkDirectory, 'command.json');
+  symlinkSync(fixture.commandPath, symlinkPath);
+  await assertRejectedPath(symlinkPath, /regular non-symlink file/);
+});
+
 function createFixture({
   commandPilotId = 'cet4-pilot-2026',
   occurredAt = '2026-08-10T10:00:00.000Z',
@@ -193,7 +261,7 @@ function dependencies(runner) {
   };
 }
 
-function createRunner() {
+function createRunner({responseActorOverride = null} = {}) {
   const collections = new Map([
     ['softbook_beta_entitlements', new Map()],
     ['softbook_pilot_entitlements', new Map()],
@@ -281,6 +349,9 @@ function createRunner() {
           writes_performed: plan.changed,
           result: pilotRuntime.publicPilotEntitlementPlan(plan),
         };
+        if (responseActorOverride !== null) {
+          result.result.actor = responseActorOverride;
+        }
         return JSON.stringify({
           functionType: 'Event',
           InvokeResult: 0,

@@ -101,14 +101,15 @@ function planBetaEntitlementMutation(
 }
 
 function publicBetaEntitlementPlan(plan) {
+  const command = validateBetaEntitlementCommand(plan.command);
   return {
     schema_version: 'beta-entitlement-plan.v2',
-    action: plan.command.action,
-    actor_id: plan.command.actor_id,
-    campaign_id: plan.command.campaign_id,
+    action: command.action,
+    actor_id: command.actor_id,
+    campaign_id: command.campaign_id,
     changed: plan.changed,
-    event_id: plan.command.event_id,
-    grant_id: plan.command.grant_id,
+    event_id: command.event_id,
+    grant_id: command.grant_id,
     idempotent: plan.idempotent,
     previous_stage: plan.previousStage,
     resulting_stage: plan.resultingStage,
@@ -288,8 +289,20 @@ function normalizeBetaEntitlementDocument(input) {
   let previousTimestamp = null;
   const eventIds = new Set();
   for (const event of audit) {
+    const reconstructedCommand = validateBetaEntitlementCommand({
+      schema_version: BETA_ENTITLEMENT_COMMAND_SCHEMA,
+      event_id: event.event_id,
+      action: event.action,
+      phone_number: document.phone_number,
+      campaign_id: event.campaign_id,
+      grant_id: event.grant_id,
+      actor_id: event.actor_id,
+      reason: event.reason,
+      occurred_at: event.occurred_at,
+    });
     if (
       eventIds.has(event.event_id) ||
+      event.command_sha256 !== hashCanonical(reconstructedCommand) ||
       (previousTimestamp !== null && event.occurred_at < previousTimestamp) ||
       (event.action === 'grant' &&
         (openGrantId !== null || event.resulting_stage !== 'premium')) ||
@@ -495,7 +508,15 @@ function isIdentifier(value, minimumLength, maximumLength) {
     typeof value === 'string' &&
     value.length >= minimumLength &&
     value.length <= maximumLength &&
-    /^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/.test(value)
+    /^[a-zA-Z0-9][a-zA-Z0-9._:-]*$/.test(value) &&
+    !containsPhoneMaterial(value)
+  );
+}
+
+function containsPhoneMaterial(value) {
+  return (
+    typeof value === 'string' &&
+    /1\d{10}/.test(value.replace(/[^A-Za-z0-9]/g, ''))
   );
 }
 
@@ -506,6 +527,7 @@ function isCanonicalIsoTimestamp(value) {
 }
 
 const betaEntitlementInternals = {
+  containsPhoneMaterial,
   hashCanonical,
   normalizeBetaEntitlementDocument,
   stableStringify,

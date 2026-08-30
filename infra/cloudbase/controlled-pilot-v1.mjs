@@ -89,7 +89,7 @@ export function validateControlledPilotProfile(value) {
   return {
     schema_version: SCHEMA.profile,
     profile_id: requirePattern(profile.profile_id, IDENTIFIER_PATTERN, 'profile_id'),
-    pilot_id: requirePattern(profile.pilot_id, IDENTIFIER_PATTERN, 'pilot_id'),
+    pilot_id: requirePublicIdentifier(profile.pilot_id, 'pilot_id'),
     environment_id: environmentId,
     region: requirePattern(profile.region, /^[a-z]+-[a-z]+(?:-\d+)?$/, 'region'),
     api_base_url: requireHttpsApiBaseUrl(profile.api_base_url, 'api_base_url'),
@@ -161,7 +161,7 @@ export function validateControlledPilotBundle(value) {
     schema_version: SCHEMA.bundle,
     bundle_id: requirePattern(bundle.bundle_id, IDENTIFIER_PATTERN, 'bundle_id'),
     profile_id: requirePattern(bundle.profile_id, IDENTIFIER_PATTERN, 'profile_id'),
-    pilot_id: requirePattern(bundle.pilot_id, IDENTIFIER_PATTERN, 'pilot_id'),
+    pilot_id: requirePublicIdentifier(bundle.pilot_id, 'pilot_id'),
     release_id: requirePattern(bundle.release_id, IDENTIFIER_PATTERN, 'release_id'),
     track: 'cet4',
     runtime_mode: 'controlled_pilot',
@@ -222,7 +222,7 @@ export function validatePilotContentRelease(value) {
 
   return {
     schema_version: SCHEMA.release,
-    pilot_id: requirePattern(release.pilot_id, IDENTIFIER_PATTERN, 'pilot_id'),
+    pilot_id: requirePublicIdentifier(release.pilot_id, 'pilot_id'),
     profile_id: requirePattern(release.profile_id, IDENTIFIER_PATTERN, 'profile_id'),
     release_id: requirePattern(release.release_id, IDENTIFIER_PATTERN, 'release_id'),
     release_class: 'controlled_pilot',
@@ -288,11 +288,11 @@ export function validatePilotEntitlementCommand(value) {
 
   return {
     schema_version: SCHEMA.entitlementCommand,
-    event_id: requirePattern(command.event_id, IDENTIFIER_PATTERN, 'event_id'),
-    pilot_id: requirePattern(command.pilot_id, IDENTIFIER_PATTERN, 'pilot_id'),
+    event_id: requirePublicIdentifier(command.event_id, 'event_id'),
+    pilot_id: requirePublicIdentifier(command.pilot_id, 'pilot_id'),
     phone_number: requirePattern(command.phone_number, PHONE_PATTERN, 'phone_number'),
     action,
-    actor: requireString(command.actor, 'actor'),
+    actor: requirePrivacySafePublicText(command.actor, 'actor'),
     reason: requireString(command.reason, 'reason'),
     occurred_at: requireIsoTimestamp(command.occurred_at, 'occurred_at'),
     previous_stage: previousStage,
@@ -342,7 +342,7 @@ export function validatePilotOutcomeReport(value) {
 
   return {
     schema_version: SCHEMA.outcomeReport,
-    pilot_id: requirePattern(report.pilot_id, IDENTIFIER_PATTERN, 'pilot_id'),
+    pilot_id: requirePublicIdentifier(report.pilot_id, 'pilot_id'),
     generated_at: requireIsoTimestamp(report.generated_at, 'generated_at'),
     days_observed: 5,
     cohort_size: cohortSize,
@@ -836,6 +836,26 @@ function requirePattern(value, pattern, label) {
     fail(`${label} is invalid.`);
   }
   return candidate;
+}
+
+function requirePublicIdentifier(value, label) {
+  const candidate = requirePattern(value, IDENTIFIER_PATTERN, label);
+  if (containsPhoneMaterial(candidate)) {
+    fail(`${label} must not contain phone-number material.`);
+  }
+  return candidate;
+}
+
+function requirePrivacySafePublicText(value, label) {
+  const candidate = requireString(value, label);
+  if (containsPhoneMaterial(candidate)) {
+    fail(`${label} must not contain phone-number material.`);
+  }
+  return candidate;
+}
+
+function containsPhoneMaterial(value) {
+  return /1\d{10}/.test(value.replace(/[^A-Za-z0-9]/g, ''));
 }
 
 function requireString(value, label) {
