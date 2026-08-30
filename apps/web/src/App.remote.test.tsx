@@ -433,7 +433,56 @@ describe('PC Web remote UI authority', () => {
     expect(controller.verifySmsCode).not.toHaveBeenCalled();
   });
 
-  it('lets the owning deletion request resolve a local session invalidation without a competing resume', async () => {
+  it('clears phone and code when session authority is lost before initial bootstrap presents', async () => {
+    let invalidatePresentation:
+      | ((event: WebAccountPresentationInvalidation) => void)
+      | null = null;
+    let resolveVerification:
+      | ((snapshot: WebRemoteSnapshot) => void)
+      | null = null;
+    const verification = new Promise<WebRemoteSnapshot>(resolve => {
+      resolveVerification = resolve;
+    });
+    const controller = createController(createSnapshot('premium'), {
+      subscribeAccountPresentationInvalidation: vi.fn(listener => {
+        invalidatePresentation = listener;
+        return () => {
+          invalidatePresentation = null;
+        };
+      }),
+      verifySmsCode: vi.fn(() => verification),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.change(await screen.findByLabelText('手机号'), {
+      target: {value: PHONE},
+    });
+    fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
+    fireEvent.change(await screen.findByLabelText('短信验证码'), {
+      target: {value: '123456'},
+    });
+    fireEvent.click(screen.getByRole('button', {name: '验证并继续'}));
+
+    act(() =>
+      invalidatePresentation?.({
+        reason: 'authorization_invalidated',
+        source: 'session_authority',
+      }),
+    );
+    expect(screen.getByText('正在读取删除状态')).toBeInTheDocument();
+    expect(await screen.findByLabelText('手机号')).toHaveValue('');
+    expect(screen.queryByLabelText('短信验证码')).not.toBeInTheDocument();
+    expect(screen.getByText('登录已失效，请重新验证。')).toBeInTheDocument();
+    expect(controller.cleanupInvalidatedSession).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveVerification?.(createSnapshot('premium'));
+      await verification;
+    });
+
+    expect(screen.getByLabelText('手机号')).toHaveValue('');
+    expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
+  });
+
+  it('returns session-authority loss to a clean phone shell without a competing resume', async () => {
     const snapshot = createSnapshot('premium');
     let invalidatePresentation:
       | ((event: WebAccountPresentationInvalidation) => void)
@@ -465,14 +514,17 @@ describe('PC Web remote UI authority', () => {
     act(() =>
       invalidatePresentation?.({source: 'session_authority'}),
     );
-    expect(screen.getByText('正在读取删除状态')).toBeInTheDocument();
+    expect(screen.getByLabelText('手机号')).toHaveValue('');
+    expect(screen.queryByLabelText('短信验证码')).not.toBeInTheDocument();
+    expect(screen.getByText('登录已失效，请重新验证。')).toBeInTheDocument();
     expect(resumeAccountDeletion).toHaveBeenCalledTimes(1);
 
     await act(async () => {
       resolveDeletion?.({status: 'accepted'});
       await deletion;
     });
-    expect(screen.getByText('删除申请已提交')).toBeInTheDocument();
+    expect(screen.getByLabelText('手机号')).toHaveValue('');
+    expect(screen.queryByText('删除申请已提交')).not.toBeInTheDocument();
     expect(resumeAccountDeletion).toHaveBeenCalledTimes(1);
   });
 
@@ -586,6 +638,158 @@ describe('PC Web remote UI authority', () => {
     expect(screen.queryByText('删除申请已提交')).toBeNull();
     fireEvent.click(screen.getByRole('button', {name: '返回手机号验证'}));
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
+  });
+
+  it('does not let a stale recovery-code request overwrite a newer external epoch', async () => {
+    let invalidatePresentation:
+      | ((event: WebAccountPresentationInvalidation) => void)
+      | null = null;
+    let resolveRequest:
+      | (() => void)
+      | null = null;
+    const request = new Promise<void>(resolve => {
+      resolveRequest = resolve;
+    });
+    const resumeAccountDeletion = vi
+      .fn()
+      .mockResolvedValueOnce({
+        phoneNumber: PHONE,
+        status: 'reauthentication_required' as const,
+      })
+      .mockResolvedValueOnce({status: 'registration_ready' as const});
+    const controller = createController(createSnapshot('premium'), {
+      requestAccountDeletionRecoverySmsCode: vi.fn(async () => {
+        await request;
+        return {
+          challengeId: 'challenge-deletion-recovery',
+          delivery: 'sms',
+          expiresAt: '2026-08-29T12:05:00.000Z',
+          phoneNumber: PHONE,
+          requestingRevision: 1,
+          retryAfterSeconds: 0,
+        };
+      }),
+      resumeAccountDeletion,
+      subscribeAccountPresentationInvalidation: vi.fn(listener => {
+        invalidatePresentation = listener;
+        return () => {
+          invalidatePresentation = null;
+        };
+      }),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: '向原手机号获取验证码',
+      }),
+    );
+
+    act(() => invalidatePresentation?.({source: 'external_epoch'}));
+    expect(
+      await screen.findByText('现在可以重新验证手机号'),
+    ).toBeInTheDocument();
+    await act(async () => {
+      resolveRequest?.();
+      await request;
+    });
+
+    expect(screen.getByText('现在可以重新验证手机号')).toBeInTheDocument();
+    expect(screen.queryByLabelText('短信验证码')).not.toBeInTheDocument();
+  });
+
+  it('does not let a stale recovery verification overwrite a newer external epoch', async () => {
+    let invalidatePresentation:
+      | ((event: WebAccountPresentationInvalidation) => void)
+      | null = null;
+    let resolveVerification:
+      | ((outcome: WebAccountDeletionOutcome) => void)
+      | null = null;
+    const verification = new Promise<WebAccountDeletionOutcome>(resolve => {
+      resolveVerification = resolve;
+    });
+    const resumeAccountDeletion = vi
+      .fn()
+      .mockResolvedValueOnce({
+        phoneNumber: PHONE,
+        status: 'reauthentication_required' as const,
+      })
+      .mockResolvedValueOnce({status: 'registration_ready' as const});
+    const controller = createController(createSnapshot('premium'), {
+      resumeAccountDeletion,
+      subscribeAccountPresentationInvalidation: vi.fn(listener => {
+        invalidatePresentation = listener;
+        return () => {
+          invalidatePresentation = null;
+        };
+      }),
+      verifyAccountDeletionRecoverySmsCode: vi.fn(() => verification),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: '向原手机号获取验证码',
+      }),
+    );
+    fireEvent.change(await screen.findByLabelText('短信验证码'), {
+      target: {value: '123456'},
+    });
+    fireEvent.click(
+      screen.getByRole('button', {name: '验证并继续确认删除'}),
+    );
+
+    act(() => invalidatePresentation?.({source: 'external_epoch'}));
+    expect(
+      await screen.findByText('现在可以重新验证手机号'),
+    ).toBeInTheDocument();
+    await act(async () => {
+      resolveVerification?.({status: 'accepted'});
+      await verification;
+    });
+
+    expect(screen.getByText('现在可以重新验证手机号')).toBeInTheDocument();
+    expect(screen.queryByText('删除申请已提交')).not.toBeInTheDocument();
+  });
+
+  it('keeps a newer external recovery result when an older retry finishes late', async () => {
+    let invalidatePresentation:
+      | ((event: WebAccountPresentationInvalidation) => void)
+      | null = null;
+    let resolveRetry:
+      | ((outcome: WebAccountDeletionOutcome) => void)
+      | null = null;
+    const retry = new Promise<WebAccountDeletionOutcome>(resolve => {
+      resolveRetry = resolve;
+    });
+    const resumeAccountDeletion = vi
+      .fn()
+      .mockResolvedValueOnce({status: 'unknown' as const})
+      .mockReturnValueOnce(retry)
+      .mockResolvedValueOnce({status: 'registration_ready' as const});
+    const controller = createController(createSnapshot('premium'), {
+      resumeAccountDeletion,
+      subscribeAccountPresentationInvalidation: vi.fn(listener => {
+        invalidatePresentation = listener;
+        return () => {
+          invalidatePresentation = null;
+        };
+      }),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.click(
+      await screen.findByRole('button', {name: '重试确认'}),
+    );
+
+    act(() => invalidatePresentation?.({source: 'external_epoch'}));
+    expect(
+      await screen.findByText('现在可以重新验证手机号'),
+    ).toBeInTheDocument();
+    await act(async () => {
+      resolveRetry?.({status: 'accepted'});
+      await retry;
+    });
+
+    expect(screen.getByText('现在可以重新验证手机号')).toBeInTheDocument();
+    expect(screen.queryByText('删除申请已提交')).not.toBeInTheDocument();
   });
 
   it('retries registration-ready local cleanup without another SMS', async () => {
@@ -836,6 +1040,7 @@ function createController(
       delivery: 'sms',
       expiresAt: '2026-08-29T12:05:00.000Z',
       phoneNumber: PHONE,
+      requestingRevision: 1,
       retryAfterSeconds: 0,
     })),
     resumeAccountDeletion: vi.fn(async () => ({status: 'none' as const})),

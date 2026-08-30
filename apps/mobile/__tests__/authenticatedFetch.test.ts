@@ -138,6 +138,9 @@ test.each([403, 401])(
       expect(fetchImpl).toHaveBeenCalledTimes(2);
     }
     expect(coordinator.invalidate).toHaveBeenCalledTimes(1);
+    expect(coordinator.invalidate).toHaveBeenCalledWith(
+      'authorization_invalidated',
+    );
   },
 );
 

@@ -986,6 +986,73 @@ describe('Web authenticated fetch deadline', () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it('does not wait for a discarded 401 body cancellation before retrying', async () => {
+    const coordinator = await createCoordinator();
+    const cancelFirstBody = vi.fn(
+      () => new Promise<void>(() => undefined),
+    );
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            cancel: cancelFirstBody,
+            start() {
+              // The rejected response body never produces bytes.
+            },
+          }),
+          {status: 401},
+        ),
+      )
+      .mockResolvedValueOnce(new Response(null, {status: 204}));
+    const authenticatedFetch = createAuthenticatedFetch({
+      authSessionCoordinator: coordinator,
+      fetchImpl,
+      timeoutMs: 1_000,
+    });
+
+    await expect(
+      authenticatedFetch('https://runtime.example.cn/v2/bootstrap'),
+    ).resolves.toMatchObject({status: 204});
+
+    expect(cancelFirstBody).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels a normal discarded 401 body without disturbing the retry body', async () => {
+    const coordinator = await createCoordinator();
+    const cancelFirstBody = vi.fn(async () => undefined);
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            cancel: cancelFirstBody,
+            start(controller) {
+              controller.enqueue(
+                new TextEncoder().encode('discarded-authorization-body'),
+              );
+            },
+          }),
+          {status: 401},
+        ),
+      )
+      .mockResolvedValueOnce(new Response('current-response-body'));
+    const authenticatedFetch = createAuthenticatedFetch({
+      authSessionCoordinator: coordinator,
+      fetchImpl,
+      timeoutMs: 1_000,
+    });
+
+    const response = await authenticatedFetch(
+      'https://runtime.example.cn/v2/bootstrap',
+    );
+
+    await expect(response.text()).resolves.toBe('current-response-body');
+    expect(cancelFirstBody).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it('preserves the Web session when a 403 cleanup marker cannot be written', async () => {
     localStorage.clear();
     const stateStore = createWebAccountDeletionStateStore(localStorage);
@@ -1018,6 +1085,10 @@ describe('Web authenticated fetch deadline', () => {
           )
         )?.revision ?? expectedRevision;
     });
+    const invalidationReasons: string[] = [];
+    coordinator.subscribeSessionScope((_sessionScopeKey, reason) => {
+      invalidationReasons.push(reason);
+    });
     const authenticatedFetch = createAuthenticatedFetch({
       authSessionCoordinator: coordinator,
       fetchImpl: vi.fn(async () => new Response(null, {status: 401})),
@@ -1028,6 +1099,7 @@ describe('Web authenticated fetch deadline', () => {
     ).resolves.toMatchObject({status: 401});
 
     expect(coordinator.getCurrentSession()).toBeNull();
+    expect(invalidationReasons).toEqual(['authorization_invalidated']);
     await expect(stateStore.load()).resolves.toEqual({
       phase: 'local_cleanup',
       phoneNumber: '13800138000',
@@ -1043,9 +1115,12 @@ describe('Web authenticated fetch deadline', () => {
       const coordinator = await createCoordinator(async ({session}) => {
         await stateStore.ensureCleanupAuthority?.(session.phoneNumber, 0);
       });
-      await stateStore.mark('13800138000', 'requesting');
+      const requestingAuthority = await stateStore.beginRequesting?.(
+        '13800138000',
+        0,
+      );
       if (phase !== 'requesting') {
-        await stateStore.mark('13800138000', phase);
+        await stateStore.resolveRequesting?.(requestingAuthority!, phase);
       }
       const authenticatedFetch = createAuthenticatedFetch({
         authSessionCoordinator: coordinator,

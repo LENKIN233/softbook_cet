@@ -14,6 +14,18 @@ export type WebAccountDeletionState = {
 
 export type WebAccountCleanupAuthority = {
   phase: WebAccountDeletionState['phase'];
+  phoneNumber: string;
+  revision: number;
+};
+
+export type WebAccountResolvedCleanupAuthority = {
+  phase: 'accepted' | 'local_cleanup' | 'registration_ready';
+  phoneNumber: string;
+  revision: number;
+};
+
+export type WebAccountDeletionRequestingAuthority = {
+  phoneNumber: string;
   revision: number;
 };
 
@@ -25,17 +37,21 @@ type WebAccountDeletionEnvelope = {
 type BrowserStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 
 export type WebAccountDeletionStateStore = {
+  beginRequesting?: (
+    phoneNumber: string,
+    expectedNullRevision: number,
+  ) => Promise<WebAccountDeletionRequestingAuthority>;
   ensureCleanupAuthority?: (
     phoneNumber: string,
     expectedRevision: number,
   ) => Promise<WebAccountCleanupAuthority>;
-  clear: () => Promise<void>;
+  clear: (authority: WebAccountResolvedCleanupAuthority) => Promise<void>;
   getRevision: () => Promise<number>;
   load: () => Promise<WebAccountDeletionState | null>;
-  mark: (
-    phoneNumber: string,
-    phase: WebAccountDeletionState['phase'],
-  ) => Promise<void>;
+  resolveRequesting?: (
+    authority: WebAccountDeletionRequestingAuthority,
+    phase: 'accepted' | 'registration_ready',
+  ) => Promise<WebAccountCleanupAuthority>;
   runAtNullRevision?: <Result>(
     expectedRevision: number,
     operation: () => Promise<Result>,
@@ -45,7 +61,7 @@ export type WebAccountDeletionStateStore = {
 export function createWebAccountDeletionStateStore(
   storage: BrowserStorage,
 ): WebAccountDeletionStateStore {
-  let observedRevision = readInitialRevision(storage);
+  readInitialRevision(storage);
   let operationTail: Promise<void> = Promise.resolve();
   const runExclusive = <Result>(operation: () => Promise<Result>) => {
     const result = operationTail.then(operation);
@@ -57,6 +73,44 @@ export function createWebAccountDeletionStateStore(
   };
 
   return {
+    beginRequesting(phoneNumber, expectedNullRevision) {
+      return runExclusive(() =>
+        runWebStorageExclusive(
+          storage,
+          WEB_ACCOUNT_DELETION_STORAGE_KEY,
+          async () => {
+            assertPhoneNumber(phoneNumber);
+            if (
+              !Number.isSafeInteger(expectedNullRevision) ||
+              expectedNullRevision < 0
+            ) {
+              throw new Error(
+                'Web account deletion null revision is invalid.',
+              );
+            }
+            const envelope = readEnvelope(storage);
+            if (
+              envelope.state !== null ||
+              envelope.revision !== expectedNullRevision
+            ) {
+              throw new Error(
+                'Web account deletion null authority changed.',
+              );
+            }
+            const nextEnvelope = {
+              revision: incrementRevision(envelope.revision),
+              state: {phase: 'requesting' as const, phoneNumber},
+            };
+            persistEnvelope(storage, nextEnvelope);
+            return {
+              phoneNumber,
+              revision: nextEnvelope.revision,
+            };
+          },
+        ),
+      );
+    },
+
     ensureCleanupAuthority(phoneNumber, expectedRevision) {
       return runExclusive(() =>
         runWebStorageExclusive(
@@ -71,9 +125,9 @@ export function createWebAccountDeletionStateStore(
                   'Web account cleanup authority belongs to another owner.',
                 );
               }
-              observedRevision = envelope.revision;
               return {
                 phase: envelope.state.phase,
+                phoneNumber: envelope.state.phoneNumber,
                 revision: envelope.revision,
               };
             }
@@ -89,9 +143,9 @@ export function createWebAccountDeletionStateStore(
               state: {phase: 'local_cleanup' as const, phoneNumber},
             };
             persistEnvelope(storage, nextEnvelope);
-            observedRevision = nextEnvelope.revision;
             return {
               phase: nextEnvelope.state.phase,
+              phoneNumber,
               revision: nextEnvelope.revision,
             };
           },
@@ -99,21 +153,32 @@ export function createWebAccountDeletionStateStore(
       );
     },
 
-    clear() {
+    clear(authority) {
       return runExclusive(() =>
         runWebStorageExclusive(
           storage,
           WEB_ACCOUNT_DELETION_STORAGE_KEY,
           async () => {
             const envelope = readEnvelope(storage);
-            assertObservedRevision(observedRevision, envelope.revision);
+            assertPhoneNumber(authority.phoneNumber);
             if (
-              envelope.state?.phase !== 'accepted' &&
-              envelope.state?.phase !== 'local_cleanup' &&
-              envelope.state?.phase !== 'registration_ready'
+              !Number.isSafeInteger(authority.revision) ||
+              authority.revision < 0 ||
+              (authority.phase !== 'accepted' &&
+                authority.phase !== 'local_cleanup' &&
+                authority.phase !== 'registration_ready')
             ) {
               throw new Error(
-                'Web account deletion marker cleanup requires resolved state.',
+                'Web account deletion cleanup authority is invalid.',
+              );
+            }
+            if (
+              envelope.revision !== authority.revision ||
+              envelope.state?.phoneNumber !== authority.phoneNumber ||
+              envelope.state.phase !== authority.phase
+            ) {
+              throw new Error(
+                'Web account deletion cleanup authority changed.',
               );
             }
             const nextEnvelope = {
@@ -121,7 +186,6 @@ export function createWebAccountDeletionStateStore(
               state: null,
             };
             persistEnvelope(storage, nextEnvelope);
-            observedRevision = nextEnvelope.revision;
           },
         ),
       );
@@ -144,30 +208,49 @@ export function createWebAccountDeletionStateStore(
           WEB_ACCOUNT_DELETION_STORAGE_KEY,
           async () => {
             const envelope = readEnvelope(storage);
-            observedRevision = envelope.revision;
             return envelope.state;
           },
         ),
       );
     },
 
-    mark(phoneNumber, phase) {
+    resolveRequesting(authority, phase) {
       return runExclusive(() =>
         runWebStorageExclusive(
           storage,
           WEB_ACCOUNT_DELETION_STORAGE_KEY,
           async () => {
-            assertPhoneNumber(phoneNumber);
-            assertPhase(phase);
+            assertPhoneNumber(authority.phoneNumber);
+            if (!Number.isSafeInteger(authority.revision) || authority.revision < 0) {
+              throw new Error(
+                'Web account deletion requesting revision is invalid.',
+              );
+            }
+            if (phase !== 'accepted' && phase !== 'registration_ready') {
+              throw new Error(
+                'Web account deletion requesting resolution is invalid.',
+              );
+            }
             const envelope = readEnvelope(storage);
-            assertObservedRevision(observedRevision, envelope.revision);
-            assertTransition(envelope.state, phoneNumber, phase);
+            if (
+              envelope.revision !== authority.revision ||
+              envelope.state?.phase !== 'requesting' ||
+              envelope.state.phoneNumber !== authority.phoneNumber
+            ) {
+              throw new Error(
+                'Web account deletion requesting authority changed.',
+              );
+            }
             const nextEnvelope = {
               revision: incrementRevision(envelope.revision),
-              state: {phase, phoneNumber},
+              state: {phase, phoneNumber: authority.phoneNumber},
             };
             persistEnvelope(storage, nextEnvelope);
-            observedRevision = nextEnvelope.revision;
+            return {
+              phase: nextEnvelope.state.phase,
+              phoneNumber: nextEnvelope.state.phoneNumber,
+              revision: nextEnvelope.revision,
+            };
           },
         ),
       );
@@ -198,7 +281,6 @@ export function createWebAccountDeletionStateStore(
                 'Web account write epoch changed during authority commit.',
               );
             }
-            observedRevision = after.revision;
             return result;
           },
         ),
@@ -346,40 +428,6 @@ function clearLegacyRevision(storage: BrowserStorage) {
   storage.removeItem(LEGACY_REVISION_KEY);
   if (storage.getItem(LEGACY_REVISION_KEY) !== null) {
     throw new Error('Web account deletion legacy revision cleanup failed.');
-  }
-}
-
-function assertTransition(
-  current: WebAccountDeletionState | null,
-  phoneNumber: string,
-  phase: WebAccountDeletionState['phase'],
-) {
-  if (current === null) {
-    if (phase !== 'requesting') {
-      throw new Error('Web account deletion marker must start requesting.');
-    }
-    return;
-  }
-  if (current.phoneNumber !== phoneNumber) {
-    throw new Error('Web account deletion marker owner changed.');
-  }
-  if (current.phase === 'accepted' && phase !== 'accepted') {
-    throw new Error('Web account deletion marker cannot regress.');
-  }
-  if (current.phase === 'local_cleanup' && phase !== 'local_cleanup') {
-    throw new Error('Web local cleanup marker cannot change purpose.');
-  }
-  if (
-    current.phase === 'registration_ready' &&
-    phase !== 'registration_ready'
-  ) {
-    throw new Error('Web account deletion registration state cannot regress.');
-  }
-}
-
-function assertObservedRevision(observed: number, current: number) {
-  if (observed !== current) {
-    throw new Error('Web account deletion marker changed in another tab.');
   }
 }
 

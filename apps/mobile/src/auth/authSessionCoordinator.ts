@@ -28,7 +28,7 @@ export type AuthSessionCoordinator = {
   forceRefresh: () => Promise<RemoteAuthSession>;
   getAccessToken: () => Promise<string | undefined>;
   getCurrentSession: () => AuthSession | null;
-  invalidate: () => Promise<void>;
+  invalidate: (reason?: AuthSessionScopeChangeReason) => Promise<void>;
   logout: () => Promise<AuthSessionLogoutResult>;
   restore: (
     observeRestoredSession?: (session: AuthSession) => void,

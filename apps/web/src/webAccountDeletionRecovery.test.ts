@@ -2,6 +2,7 @@ import {createWebAccountDeletionRecoveryRepository} from './webAccountDeletionRe
 
 const PHONE = '13800138000';
 const CHALLENGE_ID = 'challenge_recovery_1234567890';
+const REQUESTING_REVISION = 7;
 
 describe('Web account deletion recovery repository', () => {
   it('uses dedicated credential-free routes and parses pending state', async () => {
@@ -29,7 +30,11 @@ describe('Web account deletion recovery repository', () => {
       fetchImpl,
     });
 
-    const challenge = await repository.requestCode(PHONE);
+    const challenge = await repository.requestCode({
+      phoneNumber: PHONE,
+      requestingRevision: REQUESTING_REVISION,
+    });
+    expect(challenge.requestingRevision).toBe(REQUESTING_REVISION);
     await expect(
       repository.verifyCode({challenge, smsCode: '123456'}),
     ).resolves.toEqual({
@@ -92,7 +97,10 @@ describe('Web account deletion recovery repository', () => {
         })),
     });
 
-    const challenge = await repository.requestCode(PHONE);
+    const challenge = await repository.requestCode({
+      phoneNumber: PHONE,
+      requestingRevision: REQUESTING_REVISION,
+    });
     await expect(
       repository.verifyCode({challenge, smsCode: '123456'}),
     ).resolves.toEqual({
@@ -149,6 +157,7 @@ describe('Web account deletion recovery repository', () => {
           delivery: 'sms',
           expiresAt: '2026-08-30T12:05:00.000Z',
           phoneNumber: PHONE,
+          requestingRevision: REQUESTING_REVISION,
           retryAfterSeconds: 0,
         },
         smsCode: '123456',
