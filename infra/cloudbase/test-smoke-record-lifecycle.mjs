@@ -299,7 +299,7 @@ test("deployment and iOS acceptance keep lifecycle ownership around remote write
   );
   assert.match(
     smoke,
-    /const CLOUDBASE_READ_RETRY_DELAYS_MS = \[250, 750\]/,
+    /const CLOUDBASE_READ_RETRY_DELAYS_MS = \[250, 750, 1500\]/,
   );
   assert.match(
     smoke,

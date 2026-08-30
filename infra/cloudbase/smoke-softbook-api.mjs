@@ -34,7 +34,7 @@ const REQUIRED_CORE_INTERACTIONS = [
   'multiple_choice',
   'swipe',
 ];
-const CLOUDBASE_READ_RETRY_DELAYS_MS = [250, 750];
+const CLOUDBASE_READ_RETRY_DELAYS_MS = [250, 750, 1500];
 
 if (!baseUrl) {
   fail('SOFTBOOK_CET_REMOTE_BASE_URL is required.');
