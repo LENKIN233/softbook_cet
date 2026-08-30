@@ -297,6 +297,18 @@ test("deployment and iOS acceptance keep lifecycle ownership around remote write
     smoke,
     /activated Trial did not expose the complete canonical card source/,
   );
+  assert.match(
+    smoke,
+    /const CLOUDBASE_READ_RETRY_DELAYS_MS = \[250, 750\]/,
+  );
+  assert.match(
+    smoke,
+    /payload\.error\.code === 'DATABASE_TRANSACTION_FAIL'/,
+  );
+  assert.match(
+    smoke,
+    /headers: remoteHeaders,[\s\S]*method: 'GET'/,
+  );
 });
 
 test("CloudBase dev smoke fails before network access without lifecycle ownership", () => {
