@@ -105,7 +105,11 @@ export function canSubmitLearningCard(
   switch (card.interaction_id) {
     case 'flip': return state.isFlipped && state.flipConfidence !== null;
     case 'multiple_choice': return state.selectedOptionId !== null;
-    case 'lock': return card.lock_slots.every(slot => state.lockSelections[slot.id] !== null);
+    case 'lock':
+      return card.lock_slots.every(
+        (slot, index) =>
+          state.lockSelections[slot.id] === card.answer_key.lock_pattern[index],
+      );
     case 'elimination': return state.eliminatedItemIds.length > 0;
     case 'swipe': return state.swipeSelection !== null;
     default: return false;

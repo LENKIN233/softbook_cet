@@ -52,7 +52,7 @@ export const nativeLearningAudioEngine: LearningAudioEngine = {
     const subscription: EmitterSubscription = emitter.addListener(
       EVENT_NAME,
       (payload: unknown) => {
-        const event = readNativeEvent(payload);
+        const event = parseNativeLearningAudioEvent(payload);
         if (event) {
           listener(event);
         }
@@ -63,7 +63,9 @@ export const nativeLearningAudioEngine: LearningAudioEngine = {
   },
 };
 
-function readNativeEvent(payload: unknown): LearningAudioEngineEvent | null {
+export function parseNativeLearningAudioEvent(
+  payload: unknown,
+): LearningAudioEngineEvent | null {
   if (
     typeof payload !== 'object' ||
     payload === null ||
@@ -73,7 +75,15 @@ function readNativeEvent(payload: unknown): LearningAudioEngineEvent | null {
   }
 
   const type = (payload as { type?: unknown }).type;
-  return type === 'ended' || type === 'error' || type === 'interruption'
-    ? type
-    : null;
+  const playbackToken = (payload as { playbackToken?: unknown }).playbackToken;
+
+  if (
+    (type !== 'ended' && type !== 'error' && type !== 'interruption') ||
+    typeof playbackToken !== 'string' ||
+    playbackToken.length === 0
+  ) {
+    return null;
+  }
+
+  return { playbackToken, type };
 }

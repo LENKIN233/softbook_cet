@@ -68,6 +68,7 @@ RCT_EXPORT_METHOD(prepare:(NSString *)filePath
     return;
   }
 
+  [self stopPlayer];
   NSError *sessionError = nil;
   AVAudioSession *session = [AVAudioSession sharedInstance];
   [session setCategory:AVAudioSessionCategoryPlayback
@@ -82,11 +83,11 @@ RCT_EXPORT_METHOD(prepare:(NSString *)filePath
     return;
   }
 
-  [self stopPlayer];
   NSError *playerError = nil;
   AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithContentsOfURL:fileURL
                                                                  error:&playerError];
   if (player == nil || playerError != nil || ![player prepareToPlay]) {
+    [self deactivateAudioSession];
     reject(@"audio_prepare_failed", @"Audio preparation failed.", playerError);
     return;
   }
@@ -127,12 +128,14 @@ RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve
     return;
   }
   [self emitType:flag ? @"ended" : @"error"];
+  [self stopPlayer];
 }
 
 - (void)audioPlayerDecodeErrorDidOccur:(AVAudioPlayer *)player error:(NSError *)error
 {
   if (player == self.player) {
     [self emitType:@"error"];
+    [self stopPlayer];
   }
 }
 
@@ -167,10 +170,26 @@ RCT_EXPORT_METHOD(stop:(RCTPromiseResolveBlock)resolve
 
 - (void)stopPlayer
 {
+  BOOL hadActivePlayer = self.player != nil || self.playbackToken.length > 0;
   [self.player stop];
   self.player.delegate = nil;
   self.player = nil;
   self.playbackToken = nil;
+  if (hadActivePlayer) {
+    [self deactivateAudioSession];
+  }
+}
+
+- (void)deactivateAudioSession
+{
+  NSError *sessionError = nil;
+  [[AVAudioSession sharedInstance]
+      setActive:NO
+      withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation
+      error:&sessionError];
+  if (sessionError != nil) {
+    RCTLogWarn(@"Softbook audio session deactivation failed: %@", sessionError.localizedDescription);
+  }
 }
 
 - (void)invalidate

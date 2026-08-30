@@ -1,9 +1,13 @@
 import ReactNativeBlobUtil from 'react-native-blob-util';
 
 import {
+  assertContentAssetCredentialFreeHttps,
   createContentAssetCache,
   type ContentAssetCacheFileSystem,
 } from './contentAssetCache';
+
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+const MAX_REDIRECTS = 5;
 
 const fileSystem: ContentAssetCacheFileSystem = {
   cacheDirectory: ReactNativeBlobUtil.fs.dirs.CacheDir,
@@ -19,14 +23,46 @@ const fileSystem: ContentAssetCacheFileSystem = {
     }
   },
   download: async ({destinationPath, timeoutMs, url}) => {
-    const response = await ReactNativeBlobUtil.config({
-      overwrite: false,
-      path: destinationPath,
-      timeout: timeoutMs,
-    }).fetch('GET', url, {Accept: 'audio/mpeg'});
+    const startedAt = Date.now();
+    const redirects: string[] = [];
+    let requestUrl = url;
 
-    const info = response.info();
-    return {redirects: info.redirects ?? [], status: info.status};
+    for (let redirectCount = 0; ; redirectCount += 1) {
+      const remainingTimeoutMs = timeoutMs - (Date.now() - startedAt);
+
+      if (remainingTimeoutMs <= 0) {
+        throw new Error('Native content asset download timed out.');
+      }
+
+      const response = await ReactNativeBlobUtil.config({
+        followRedirect: false,
+        overwrite: false,
+        path: destinationPath,
+        timeout: remainingTimeoutMs,
+      }).fetch('GET', requestUrl, {Accept: 'audio/mpeg'});
+      const info = response.info();
+
+      if (!REDIRECT_STATUSES.has(info.status)) {
+        return {redirects, status: info.status};
+      }
+
+      if (redirectCount >= MAX_REDIRECTS) {
+        throw new Error('Native content asset download has too many redirects.');
+      }
+
+      const location = readRedirectLocation(info.headers);
+      const redirectUrl = resolveRedirectUrl(location, requestUrl);
+      assertContentAssetCredentialFreeHttps(
+        redirectUrl,
+        'download redirect',
+      );
+      redirects.push(redirectUrl);
+
+      if (await ReactNativeBlobUtil.fs.exists(destinationPath)) {
+        await ReactNativeBlobUtil.fs.unlink(destinationPath);
+      }
+      requestUrl = redirectUrl;
+    }
   },
   exists: path => ReactNativeBlobUtil.fs.exists(path),
   hashSha256: path => ReactNativeBlobUtil.fs.hash(path, 'sha256'),
@@ -49,3 +85,27 @@ const fileSystem: ContentAssetCacheFileSystem = {
 export const reactNativeContentAssetCache = createContentAssetCache({
   fileSystem,
 });
+
+function readRedirectLocation(headers: unknown) {
+  if (typeof headers !== 'object' || headers === null || Array.isArray(headers)) {
+    throw new Error('Native content asset redirect requires a Location header.');
+  }
+
+  const entry = Object.entries(headers).find(
+    ([name]) => name.toLowerCase() === 'location',
+  );
+
+  if (!entry || typeof entry[1] !== 'string' || entry[1].length === 0) {
+    throw new Error('Native content asset redirect requires a Location header.');
+  }
+
+  return entry[1];
+}
+
+function resolveRedirectUrl(location: string, requestUrl: string) {
+  try {
+    return new URL(location, requestUrl).toString();
+  } catch {
+    throw new Error('Native content asset redirect Location is invalid.');
+  }
+}

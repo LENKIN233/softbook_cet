@@ -64,9 +64,21 @@ export function assertAccountBootstrapRevisionTransition(
       membershipRevisionRecord(previousRevisions),
       membershipRevisionRecord(nextRevisions),
     ) &&
-    !jsonEqual(previous.membership.state, next.membership.state)
+    !jsonEqual(
+      stableMembershipProjection(previous),
+      stableMembershipProjection(next),
+    )
   ) {
     throw new Error('Bootstrap membership changed without a new revision.');
+  }
+
+  if (
+    revisionRecordsEqual(
+      membershipRevisionRecord(previousRevisions),
+      membershipRevisionRecord(nextRevisions),
+    )
+  ) {
+    assertTrialRemainingPresentationTransition(previous, next);
   }
 
   if (trackIsSame) {
@@ -367,6 +379,65 @@ function dailyLearningProgressProjection(
     reviewCompletedCount: progress.reviewCompletedCount,
     totalCompletedCount: progress.totalCompletedCount,
   };
+}
+
+function stableMembershipProjection(snapshot: AccountBootstrapSnapshot) {
+  const state = snapshot.membership.state;
+
+  return {
+    countedEntryCount: state.countedEntryCount,
+    lastExperienceEndedBy: state.lastExperienceEndedBy,
+    recoveryPromptVisible: state.recoveryPromptVisible,
+    stage: state.stage,
+    trialDurationDays: state.trialDurationDays,
+    trialExpiresAt: state.trialExpiresAt,
+    trialStartedAt: state.trialStartedAt,
+    trialStartedAtEntryCount: state.trialStartedAtEntryCount,
+  };
+}
+
+function assertTrialRemainingPresentationTransition(
+  previous: AccountBootstrapSnapshot,
+  next: AccountBootstrapSnapshot,
+) {
+  const previousState = previous.membership.state;
+  const nextState = next.membership.state;
+
+  if (previousState.stage !== 'trial' || nextState.stage !== 'trial') {
+    if (
+      previousState.trialRemainingSeconds !== 0 ||
+      nextState.trialRemainingSeconds !== 0
+    ) {
+      throw new Error('Bootstrap membership trial presentation is invalid.');
+    }
+    return;
+  }
+
+  const previousGeneratedAt = Date.parse(previous.generatedAt);
+  const nextGeneratedAt = Date.parse(next.generatedAt);
+
+  if (
+    nextGeneratedAt >= previousGeneratedAt &&
+    nextState.trialRemainingSeconds > previousState.trialRemainingSeconds
+  ) {
+    throw new Error(
+      'Bootstrap membership trial remaining time increased without a new revision.',
+    );
+  }
+
+  const elapsedSeconds = Math.ceil(
+    Math.max(nextGeneratedAt - previousGeneratedAt, 0) / 1000,
+  );
+  if (
+    nextGeneratedAt >= previousGeneratedAt &&
+    previousState.trialRemainingSeconds -
+      nextState.trialRemainingSeconds >
+      elapsedSeconds
+  ) {
+    throw new Error(
+      'Bootstrap membership trial remaining time decreased faster than the server clock.',
+    );
+  }
 }
 
 function membershipRevisionRecord(

@@ -137,19 +137,27 @@ function formatLearningSubmitDockCopy(
           };
     }
     case 'lock': {
-      const selectedCount = card.lock_slots.filter(
-        slot => cardState.lockSelections[slot.id] !== null,
+      const unlockedCount = card.lock_slots.filter(
+        (slot, index) =>
+          cardState.lockSelections[slot.id] ===
+          card.answer_key.lock_pattern[index],
       ).length;
       const totalCount = card.lock_slots.length;
+      const hasWrongSelection = card.lock_slots.some(
+        (slot, index) =>
+          cardState.lockSelections[slot.id] !== null &&
+          cardState.lockSelections[slot.id] !==
+            card.answer_key.lock_pattern[index],
+      );
 
-      return selectedCount === totalCount
+      return unlockedCount === totalCount
         ? {
-            title: '锁位已齐',
+            title: '全部开锁',
             detail: '确认后看解析',
           }
         : {
-            title: `${selectedCount}/${totalCount} 已锁`,
-            detail: '补齐后再提交',
+            title: `${unlockedCount}/${totalCount} 已开`,
+            detail: hasWrongSelection ? '当前锁位需要重试' : '按顺序完成锁位',
           };
     }
     case 'elimination': {
@@ -970,6 +978,9 @@ export function LearningSurface({
                   </Text>
                 </View>
                 <Pressable
+                  accessibilityLabel="提交当前答案"
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: !canSubmitCurrentCard }}
                   disabled={!canSubmitCurrentCard}
                   onPress={onSubmitCurrentCard}
                   style={[
@@ -1078,6 +1089,9 @@ function InteractionBody({
             </View>
           ) : (
             <Pressable
+              accessibilityLabel="翻面查看答案"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: false }}
               onPress={onFlip}
               style={[
                 styles.primaryButton,
@@ -1104,6 +1118,11 @@ function InteractionBody({
               ]}
             >
               <Pressable
+                accessibilityLabel="自评有把握"
+                accessibilityRole="radio"
+                accessibilityState={{
+                  checked: cardState.flipConfidence === 'confident',
+                }}
                 onPress={() => onSetFlipConfidence('confident')}
                 style={[
                   styles.choicePill,
@@ -1129,6 +1148,11 @@ function InteractionBody({
                 </Text>
               </Pressable>
               <Pressable
+                accessibilityLabel="自评再回看"
+                accessibilityRole="radio"
+                accessibilityState={{
+                  checked: cardState.flipConfidence === 'review',
+                }}
                 onPress={() => onSetFlipConfidence('review')}
                 style={[
                   styles.choicePill,
@@ -1197,6 +1221,13 @@ function InteractionBody({
 
               return (
                 <Pressable
+                  accessibilityLabel={`选项 ${option.label}，${option.text}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{
+                    checked: isSelected,
+                    disabled: isResolved,
+                  }}
+                  disabled={isResolved}
                   key={option.id}
                   onPress={() => onSelectOption(option.id)}
                   style={[
@@ -1274,9 +1305,21 @@ function InteractionBody({
           <View
             style={[styles.lockList, compact ? styles.lockListCompact : null]}
           >
-            {card.lock_slots.map(slot => {
+            {card.lock_slots.map((slot, index) => {
               const selectedValue = cardState.lockSelections[slot.id];
-              const isUnlocked = Boolean(selectedValue);
+              const expectedValue = card.answer_key.lock_pattern[index];
+              const isUnlocked = selectedValue === expectedValue;
+              const hasWrongSelection =
+                selectedValue !== null && !isUnlocked;
+              const firstLockedIndex = card.lock_slots.findIndex(
+                (candidateSlot, candidateIndex) =>
+                  cardState.lockSelections[candidateSlot.id] !==
+                  card.answer_key.lock_pattern[candidateIndex],
+              );
+              const isCurrentRow = firstLockedIndex === index;
+              const canChoose = currentResult === null && isCurrentRow;
+              const isWaitingForPrevious =
+                firstLockedIndex >= 0 && index > firstLockedIndex;
 
               return (
                 <View
@@ -1347,7 +1390,13 @@ function InteractionBody({
                             },
                           ]}
                         >
-                          {isUnlocked ? '已开锁' : '待选择'}
+                          {isUnlocked
+                            ? '已开锁'
+                            : hasWrongSelection
+                            ? '再试一次'
+                            : isWaitingForPrevious
+                            ? '按顺序解锁'
+                            : '待选择'}
                         </Text>
                       ) : null}
                     </View>
@@ -1363,18 +1412,36 @@ function InteractionBody({
 
                         return (
                           <Pressable
+                            accessibilityLabel={`${slot.label}，${option}`}
+                            accessibilityRole="radio"
+                            accessibilityState={{
+                              checked: isSelected,
+                              disabled: !canChoose,
+                            }}
+                            disabled={!canChoose}
                             key={option}
-                            onPress={() => onSetLockSelection(slot.id, option)}
+                            onPress={() =>
+                              canChoose
+                                ? onSetLockSelection(slot.id, option)
+                                : undefined
+                            }
                             style={[
                               styles.choicePill,
                               styles.lockChoicePill,
                               compact ? styles.lockChoicePillCompact : null,
+                              canChoose || isSelected
+                                ? null
+                                : styles.lockChoicePillDisabled,
                               {
                                 backgroundColor: isSelected
-                                  ? palette.panel
+                                  ? hasWrongSelection
+                                    ? hexToRgba(palette.danger, 0.08)
+                                    : palette.panel
                                   : palette.panelStrong,
                                 borderColor: isSelected
-                                  ? neutralAction.border
+                                  ? hasWrongSelection
+                                    ? hexToRgba(palette.danger, 0.42)
+                                    : neutralAction.border
                                   : palette.border,
                               },
                             ]}
@@ -1431,6 +1498,13 @@ function InteractionBody({
 
               return (
                 <Pressable
+                  accessibilityLabel={`排除候选项，${item.text}`}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{
+                    checked: isSelected,
+                    disabled: currentResult !== null,
+                  }}
+                  disabled={currentResult !== null}
                   key={item.id}
                   onPress={() => onToggleEliminationItem(item.id)}
                   style={[
@@ -1751,8 +1825,13 @@ function SwipeInteraction({
         {card.swipe_states.map((state, index) => (
           <Pressable
             accessibilityHint="点按后直接提交这一判断"
-            accessibilityLabel={index === 0 ? '左划选项' : '右划选项'}
-            accessibilityRole="button"
+            accessibilityLabel={`${index === 0 ? '左划' : '右划'}，${
+              state.label
+            }`}
+            accessibilityRole="radio"
+            accessibilityState={{
+              checked: cardState.swipeSelection === state.id,
+            }}
             key={state.id}
             onPress={() => commitStateAtIndex(index)}
             style={[
@@ -3473,6 +3552,9 @@ const styles = StyleSheet.create({
   lockChoicePillCompact: {
     paddingHorizontal: 4,
     paddingVertical: 4,
+  },
+  lockChoicePillDisabled: {
+    opacity: 0.58,
   },
   lockChoiceLabel: {
     fontSize: 11,

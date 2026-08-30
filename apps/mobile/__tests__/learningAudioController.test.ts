@@ -241,15 +241,15 @@ test('card changes, backgrounding, interruption, completion, and errors stay bou
   await controller.pauseForInterruption();
   expect(controller.getState()).toEqual({ status: 'paused' });
   await controller.press();
-  emit('interruption');
+  emit({ playbackToken: selection.cardToken, type: 'interruption' });
   expect(controller.getState()).toEqual({ status: 'paused' });
 
   await controller.press();
-  emit('ended');
+  emit({ playbackToken: selection.cardToken, type: 'ended' });
   expect(controller.getState()).toEqual({ status: 'idle' });
 
   await controller.press();
-  emit('error');
+  emit({ playbackToken: selection.cardToken, type: 'error' });
   expect(controller.getState()).toEqual({
     reason: 'temporary',
     status: 'error',
@@ -258,4 +258,29 @@ test('card changes, backgrounding, interruption, completion, and errors stay bou
   controller.select(null);
   expect(controller.getState()).toEqual({ status: 'idle' });
   expect(engine.stop).toHaveBeenCalled();
+});
+
+test('delayed native events from a previous playback token cannot change the current card state', async () => {
+  const { emit, engine } = createEngine();
+  const controller = new LearningAudioController({
+    cache: createCache(),
+    engine,
+  });
+  controller.select(selection);
+  await controller.press();
+
+  const nextSelection = {
+    ...selection,
+    cardToken: 'cet4-card-002:audio-b',
+  };
+  controller.select(nextSelection);
+  await controller.press();
+  expect(controller.getState()).toEqual({ status: 'playing' });
+
+  emit({ playbackToken: selection.cardToken, type: 'ended' });
+  emit({ playbackToken: selection.cardToken, type: 'error' });
+  expect(controller.getState()).toEqual({ status: 'playing' });
+
+  emit({ playbackToken: nextSelection.cardToken, type: 'ended' });
+  expect(controller.getState()).toEqual({ status: 'idle' });
 });

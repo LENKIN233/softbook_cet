@@ -15,6 +15,7 @@ import {
   resolveSwipeGestureDirection,
 } from '../src/learning/LearningSurface';
 import {
+  canSubmitLearningCard,
   createLearningCardState,
   createLocalLearningSession,
 } from '../src/learning/session';
@@ -387,6 +388,114 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   expect(output).not.toContain(`已选 ${currentCard.options[0].label}`);
   expect(output).not.toContain('提交后立即看解析');
   expect(output).not.toContain(currentCard.space_metadata.box_ref);
+});
+
+test('lock rows unlock in order, keep wrong rows retryable, and submit only when all rows match', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.cards.find(
+    sessionCard => sessionCard.interaction_id === 'lock',
+  );
+
+  if (!currentCard || currentCard.interaction_id !== 'lock') {
+    throw new Error('Expected a lock card in the local session.');
+  }
+
+  const cardState = createLearningCardState(currentCard);
+  const onSubmitCurrentCard = jest.fn();
+  const renderSurface = () => (
+    <LearningSurface
+      completedResults={[]}
+      currentCard={currentCard}
+      currentCardState={cardState}
+      currentIndex={2}
+      currentResult={null}
+      onAdvanceCard={jest.fn()}
+      onFlip={jest.fn()}
+      onRestartDeck={jest.fn()}
+      onSelectOption={jest.fn()}
+      onSelectSwipeState={jest.fn()}
+      onSetFlipConfidence={jest.fn()}
+      onSetLockSelection={jest.fn()}
+      onSubmitCurrentCard={onSubmitCurrentCard}
+      onToggleEliminationItem={jest.fn()}
+      onToggleFavorite={jest.fn()}
+      onToggleHint={jest.fn()}
+      onTogglePeek={jest.fn()}
+      palette={palette}
+      phase="learning"
+      reviewCandidateCount={0}
+      sessionCards={session.cards}
+      sessionLabel={session.sourceLabel}
+    />
+  );
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(renderSurface());
+  });
+
+  const firstSlot = currentCard.lock_slots[0];
+  const secondSlot = currentCard.lock_slots[1];
+  const firstExpected = currentCard.answer_key.lock_pattern[0];
+  const firstWrong = firstSlot.options.find(option => option !== firstExpected)!;
+  const findChoice = (label: string, option: string) =>
+    tree!.root.findByProps({ accessibilityLabel: `${label}，${option}` });
+
+  expect(findChoice(firstSlot.label, firstExpected).props.accessibilityRole).toBe(
+    'radio',
+  );
+  expect(
+    findChoice(firstSlot.label, firstExpected).props.accessibilityState,
+  ).toEqual({ checked: false, disabled: false });
+  expect(
+    findChoice(secondSlot.label, secondSlot.options[0]).props
+      .accessibilityState,
+  ).toEqual({ checked: false, disabled: true });
+
+  cardState.lockSelections[firstSlot.id] = firstWrong;
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface());
+  });
+
+  expect(JSON.stringify(tree!.toJSON())).toContain(
+    '当前锁位需要重试',
+  );
+  expect(canSubmitLearningCard(currentCard, cardState)).toBe(false);
+  expect(
+    tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
+  ).toBe(true);
+
+  cardState.lockSelections[firstSlot.id] = firstExpected;
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface());
+  });
+
+  expect(
+    findChoice(firstSlot.label, firstExpected).props.accessibilityState,
+  ).toEqual({ checked: true, disabled: true });
+  expect(
+    findChoice(secondSlot.label, secondSlot.options[0]).props
+      .accessibilityState.disabled,
+  ).toBe(false);
+
+  currentCard.lock_slots.forEach((slot, index) => {
+    cardState.lockSelections[slot.id] =
+      currentCard.answer_key.lock_pattern[index];
+  });
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface());
+  });
+
+  const submitButton = tree!.root.findByProps({
+    testID: 'learning-submit-button',
+  });
+  expect(canSubmitLearningCard(currentCard, cardState)).toBe(true);
+  expect(submitButton.props.accessibilityState).toEqual({ disabled: false });
+  expect(submitButton.props.disabled).toBe(false);
+  ReactTestRenderer.act(() => {
+    submitButton.props.onPress();
+  });
+  expect(onSubmitCurrentCard).toHaveBeenCalledTimes(1);
 });
 
 test('swipe choices stay compact enough for the one-screen phone action plane', () => {

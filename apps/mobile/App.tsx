@@ -5018,10 +5018,10 @@ function AppShell({
       authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       checkedInDayKey={checkedInDayKey}
+      completedCount={dailyProgressSnapshot.totalCompletedCount}
       deviceClass={deviceClass}
       favoriteCount={favoriteCount}
       handlers={authHandlers}
-      learningResults={learningCompletedResults}
       membershipError={membershipError}
       membershipGate={membershipGate}
       membershipHandlers={membershipHandlers}
@@ -5051,9 +5051,9 @@ function AppShell({
         });
       }}
       palette={learningPalette}
+      pendingReviewCount={dailyProgressSnapshot.pendingReviewCount}
       learningStateSyncState={learningStateSyncState}
       progressSyncState={progressSyncState}
-      reviewResults={reviewCompletedResults}
       sleepingCount={sleepingCount}
       todayKey={todayKey}
     />
@@ -5176,13 +5176,13 @@ function AppShell({
       canCheckInToday={canCheckInToday}
       deviceClass={deviceClass}
       hasCheckedInToday={hasCheckedInToday}
-      learningResults={learningCompletedResults}
+      learningCompletedCount={dailyProgressSnapshot.learningCompletedCount}
       onCheckIn={statisticsHandlers.onCheckIn}
       onGoToLearning={openLearningRoute}
       onStartReview={startReviewFromStatistics}
       palette={palette}
-      pendingReviewCount={pendingReviewCount}
-      reviewResults={reviewCompletedResults}
+      pendingReviewCount={dailyProgressSnapshot.pendingReviewCount}
+      reviewCompletedCount={dailyProgressSnapshot.reviewCompletedCount}
       syncStatusDetail={progressSyncState.detail}
       syncStatusLabel={progressSyncState.label}
     />
@@ -6799,10 +6799,10 @@ function MineSurface({
   authRepositoryMode,
   authState,
   checkedInDayKey,
+  completedCount,
   deviceClass,
   favoriteCount,
   handlers,
-  learningResults,
   learningStateSyncState,
   membershipError,
   membershipGate,
@@ -6815,8 +6815,8 @@ function MineSurface({
   onGoToSpace,
   onGoToStatistics,
   palette,
+  pendingReviewCount,
   progressSyncState,
-  reviewResults,
   sleepingCount,
   todayKey,
 }: {
@@ -6824,10 +6824,10 @@ function MineSurface({
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
+  completedCount: number;
   deviceClass: DeviceClass;
   favoriteCount: number;
   handlers: AuthHandlers;
-  learningResults: LearningCardResult[];
   learningStateSyncState: LearningStateSyncState;
   membershipError: string | null;
   membershipGate: MembershipGate | null;
@@ -6844,8 +6844,8 @@ function MineSurface({
   onGoToSpace: () => void;
   onGoToStatistics: () => void;
   palette: Palette;
+  pendingReviewCount: number;
   progressSyncState: ProgressSyncState;
-  reviewResults: LearningCardResult[];
   sleepingCount: number;
   todayKey: string;
 }) {
@@ -6855,13 +6855,6 @@ function MineSurface({
   const isPhoneViewport = isPhoneMineViewport(viewportWidth, viewportHeight);
   const isAuthenticated = authState.stage === 'authenticated';
   const hasSentCode = authState.stage === 'code_sent';
-  const completedCount = learningResults.length + reviewResults.length;
-  const pendingReviewCount = Math.max(
-    learningResults.filter(
-      result => result.outcome === 'incorrect' || result.outcome === 'review',
-    ).length - reviewResults.length,
-    0,
-  );
   const checkedInToday = checkedInDayKey === todayKey;
   const profileName = isAuthenticated
     ? maskPhoneNumber(authState.phoneNumber)
@@ -8281,6 +8274,11 @@ function PhoneSmsPanel({
                 })}
               </View>
               <TextInput
+                accessibilityHint="输入短信中收到的四到六位验证码"
+                accessibilityLabel="短信验证码"
+                accessibilityState={{
+                  disabled: isPending || isAuthenticated,
+                }}
                 caretHidden
                 editable={!isPending && !isAuthenticated}
                 inputAccessoryViewID={
@@ -8425,6 +8423,11 @@ function PhoneSmsPanel({
                 手机号
               </Text>
               <TextInput
+                accessibilityHint="输入用于登录软书四六级的十一位手机号"
+                accessibilityLabel="手机号码"
+                accessibilityState={{
+                  disabled: isPending || isAuthenticated,
+                }}
                 autoCapitalize="none"
                 editable={!isPending && !isAuthenticated}
                 inputAccessoryViewID={

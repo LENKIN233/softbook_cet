@@ -371,6 +371,121 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(renderedText).not.toContain('当前学习卡位于');
 });
 
+test('browses sibling boxes, groups, and libraries while preserving the current-card return focus', () => {
+  const session = createLocalLearningSession('cet4');
+  const baseCard = session.catalogCards[0];
+  const createSpaceCard = (
+    cardId: string,
+    library: string,
+    group: string,
+    box: string,
+    boxRef: string,
+    prompt: string,
+  ) => ({
+    ...baseCard,
+    card_id: cardId,
+    front: {...baseCard.front, prompt},
+    space_metadata: {box, box_ref: boxRef, group, library},
+  });
+  const currentCard = createSpaceCard(
+    '000001',
+    '听力',
+    '逻辑关系',
+    '转折关系',
+    '0000',
+    '当前学习卡提示',
+  );
+  const siblingBoxCard = createSpaceCard(
+    '000101',
+    '听力',
+    '逻辑关系',
+    '因果关系',
+    '0001',
+    '相邻卡盒提示',
+  );
+  const siblingGroupCard = createSpaceCard(
+    '001001',
+    '听力',
+    '细节捕捉',
+    '数字细节',
+    '0010',
+    '相邻分区提示',
+  );
+  const siblingLibraryCard = createSpaceCard(
+    '010001',
+    '仔细阅读',
+    '定位词抓取',
+    '题干定位',
+    '0100',
+    '相邻书架提示',
+  );
+  const onReturnToLearning = jest.fn();
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={onReturnToLearning}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={[
+          currentCard,
+          siblingBoxCard,
+          siblingGroupCard,
+          siblingLibraryCard,
+        ]}
+      />,
+    );
+  });
+
+  const root = tree!.root;
+  expect(root.findByProps({testID: 'space-browse-rail'})).toBeTruthy();
+  expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain(
+    '当前学习卡提示',
+  );
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-box-next'}).props.onPress();
+  });
+  let renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('因果关系');
+  expect(renderedText).toContain('相邻卡盒提示');
+  expect(root.findByProps({testID: 'space-follow-current-box'})).toBeTruthy();
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-group-next'}).props.onPress();
+  });
+  renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('细节捕捉');
+  expect(renderedText).toContain('相邻分区提示');
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-library-next'}).props.onPress();
+  });
+  renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('仔细阅读');
+  expect(renderedText).toContain('相邻书架提示');
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-follow-current-box'}).props.onPress();
+  });
+  renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('转折关系');
+  expect(renderedText).toContain('当前学习卡提示');
+  expect(root.findAllByProps({testID: 'space-follow-current-box'})).toHaveLength(
+    0,
+  );
+
+  ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-return-learning'}).props.onPress();
+  });
+  expect(onReturnToLearning).toHaveBeenCalledTimes(1);
+});
+
 test('stacks Space objects instead of overlapping them at accessibility font sizes', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];

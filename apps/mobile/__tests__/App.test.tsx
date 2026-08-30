@@ -919,9 +919,13 @@ function createRemoteCatalogSession(): LearningSession {
       library: '远端专属库',
     },
   };
+  const remoteAccessibleCatalog = [
+    remoteCard,
+    ...baseSession.catalogCards.slice(0, 3),
+  ];
 
   return {
-    catalogCards: [remoteCard],
+    catalogCards: remoteAccessibleCatalog,
     cards: [remoteCard],
     contentManifest: null,
     contentVersion: TEST_CONTENT_VERSION,
@@ -1023,6 +1027,13 @@ test('renders correctly', async () => {
     findPressableByTestId(tree!.root, 'auth-request-code-button').props
       .disabled,
   ).toBe(true);
+  expect(
+    tree!.root.findByProps({ testID: 'auth-phone-input' }).props,
+  ).toMatchObject({
+    accessibilityHint: '输入用于登录软书四六级的十一位手机号',
+    accessibilityLabel: '手机号码',
+    accessibilityState: { disabled: false },
+  });
 });
 
 test('keeps protected route auth gates attached to the selected object', async () => {
@@ -1189,6 +1200,13 @@ test('keeps mine code-sent state attached to the account object', async () => {
   expect(
     mineProfileCard.findByProps({ testID: 'auth-code-input' }),
   ).toBeTruthy();
+  expect(
+    mineProfileCard.findByProps({ testID: 'auth-code-input' }).props,
+  ).toMatchObject({
+    accessibilityHint: '输入短信中收到的四到六位验证码',
+    accessibilityLabel: '短信验证码',
+    accessibilityState: { disabled: false },
+  });
   const inlineDockStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
   );
@@ -3172,6 +3190,14 @@ test('space map uses the active learning session catalog', async () => {
   expect(renderedText).toContain('远端专属库');
   expect(renderedText).toContain('远端专属组');
   expect(renderedText).toContain('远端专属盒');
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-library-next'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-library-next'}).props.onPress();
+  });
+  expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain('仔细阅读');
 });
 
 test('queues a failed explicit remote check-in without uploading progress counters', async () => {
@@ -3353,6 +3379,98 @@ test('does not count a prior China-day card projection as today or enable check-
   expect(
     findPressableByTestId(root, 'statistics-checkin-button').props.disabled,
   ).toBe(true);
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
+test('uses canonical Progress counts in Statistics and Mine when retained history is outside the current catalog', async () => {
+  const session = createLocalLearningSession('cet4');
+  const retainedEvent: MockLearningEvent = {
+    answer_grade: 'review_needed',
+    card_id: 'retained-card-a',
+    client_occurred_at: new Date().toISOString(),
+    content_version: TEST_CONTENT_VERSION,
+    device_cursor: {device_id: 'retained-device', sequence: 1},
+    event_id: 'event_retained_progress_0001',
+    interaction_id: 'flip',
+    outcome: 'review',
+    phase: 'learning',
+    selection_id: 'sel_retained_progress_0001',
+    used_hint: false,
+    used_peek: false,
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+  });
+
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+
+    if (input === 'https://api.softbook.example/v2/membership/entitlement') {
+      return createJsonResponse(createRemoteMembershipPayload('free'));
+    }
+
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      const payload: any = createAccountBootstrapPayload(
+        session,
+        'free',
+        [retainedEvent],
+      );
+      payload.data.learning.card_states[0].is_favorited = true;
+      payload.data.progress.favorite_count = 2;
+      payload.data.progress.learning_completed_count = 4;
+      payload.data.progress.pending_review_count = 3;
+      payload.data.progress.review_completed_count = 2;
+      payload.data.progress.sleeping_count = 1;
+      payload.data.progress.total_completed_count = 6;
+      payload.data.space.acknowledged_at = new Date().toISOString();
+      payload.data.space.states = [
+        {
+          card_id: retainedEvent.card_id,
+          is_favorited: true,
+          is_sleeping: false,
+          last_modified_at: new Date().toISOString(),
+        },
+        {
+          card_id: 'retained-card-b',
+          is_favorited: true,
+          is_sleeping: true,
+          last_modified_at: new Date().toISOString(),
+        },
+      ];
+      payload.data.component_revisions.learning.space_revision = 1;
+      payload.data.component_revisions.progress.space_revision = 1;
+      payload.data.component_revisions.space.state_revision = 1;
+      return createJsonResponse(payload);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+
+  const root = tree!.root;
+  await loginIntoLearningFlow(root, session);
+  await openRoute(root, 'statistics');
+
+  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('6');
+  expect(readMetricValue(root, 'statistics-metric-pending-review')).toBe('3');
+  expect(readMetricValue(root, 'statistics-metric-review')).toBe('2');
+
+  await openRoute(root, 'mine');
+  expect(readMetricValue(root, 'mine-metric-completed')).toBe('6');
+  expect(readMetricValue(root, 'mine-metric-review')).toBe('3');
+  expect(readMetricValue(root, 'mine-metric-favorites')).toBe('2');
+  expect(readMetricValue(root, 'mine-metric-sleeping')).toBe('1');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -5707,7 +5825,11 @@ test('can complete the local single-card deck and restart it', async () => {
     root
       .findByProps({ testID: 'learning-lock-subject-the-policy' })
       .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root
       .findByProps({ testID: 'learning-lock-object-test-anxiety' })
       .props.onPress();
@@ -5804,7 +5926,11 @@ test('can start a review round from cards that need revisiting', async () => {
     root
       .findByProps({ testID: 'learning-lock-subject-the-policy' })
       .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root
       .findByProps({ testID: 'learning-lock-object-test-anxiety' })
       .props.onPress();
@@ -7570,7 +7696,11 @@ test('keeps the full five-card session after automatic trial entry', async () =>
     root
       .findByProps({ testID: 'learning-lock-subject-the-policy' })
       .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root
       .findByProps({ testID: 'learning-lock-object-test-anxiety' })
       .props.onPress();
@@ -7632,7 +7762,11 @@ test('starts review after membership is already unlocked', async () => {
     root
       .findByProps({ testID: 'learning-lock-subject-the-policy' })
       .props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-lock-verb-reduces' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root
       .findByProps({ testID: 'learning-lock-object-test-anxiety' })
       .props.onPress();

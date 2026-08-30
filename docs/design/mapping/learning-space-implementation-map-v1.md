@@ -175,9 +175,46 @@ The previous design-proof questions are now closed by accepted artifacts:
 - rendered motion prototype for flip / hint reveal / swipe: `docs/design/storyboards/learning-space-motion-prototype-v1.html`.
 - rendered Learning card rhythm phone proof for place / focus / support / resolve / settle / continue: `docs/design/mocks/learning-card-rhythm-v1.html`.
 
+## Mobile Implementation Evidence — 2026-08-30
+
+The mobile integrity implementation consumes the accepted artifacts already
+listed in this map. It does not add design authority or change product truth.
+
+Implemented mapping:
+
+- Learning current object plane remains one addressed card in
+  `apps/mobile/src/learning/LearningSurface.tsx`.
+- Lock action plane now follows the accepted vertical-row silhouette: only the
+  current row is operable, a wrong choice remains in that row for retry,
+  already-correct rows stay open, and submit becomes available only after every
+  row matches `answer_key.lock_pattern`.
+- Core answer controls expose their selected / checked / disabled semantics to
+  assistive technology without adding another visual decision or mastery scale.
+- Space parent-context region now provides compact previous / next browsing for
+  library, group, and sibling box. Changing the browsed address does not mutate
+  the current Learning card or its knowledge ownership.
+- Space current-object region remains the open box tray; contained-card,
+  favorite-tag, and sleep-alcove regions continue to stay under that owning
+  box.
+- Space continuity region keeps `回学习` bound to the unchanged Learning
+  context and exposes `回到当前卡盒` whenever manual browsing steps away from
+  the current card address.
+
+Implementation-only gaps and evidence boundary:
+
+- This change adds no new Space operation, arbitrary reassignment, motion
+  shape, visual token, or platform layout authority.
+- Tablet and PC Web rendered-proof gaps listed by the accepted Space artifact
+  remain unchanged.
+- Repository tests and native static checks do not prove real-device layout,
+  VoiceOver / TalkBack behavior, private audio playback, or receiver deployment.
+
 ## Remaining Implementation Boundary
 
-RN / Web implementation has not started in this mapping PR. Future implementation PRs still must name the accepted artifact being implemented, map component regions to this file, declare any implementation-only gaps, and pass the PR design gate.
+The original mapping PR was design-only. Mobile now has the scoped implementation
+evidence recorded above; future RN / Web implementation work must still name the
+accepted artifact being consumed, map component regions to this file, declare
+implementation-only gaps, and pass the design gate.
 
 ## Design Review Checklist Answers
 

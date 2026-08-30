@@ -199,20 +199,29 @@ export function SpaceSurface({
       return;
     }
 
-    if (
-      screen === 'overview' ||
-      (selectionMode === 'follow_current' && didFocusedCardChange)
-    ) {
+    if (selectionMode === 'follow_current' && didFocusedCardChange) {
       setSelectionMode('follow_current');
       setSelectedLibraryName(focusedSelection.libraryName);
       setSelectedGroupName(focusedSelection.groupName);
       setSelectedBoxRef(focusedSelection.boxRef);
       setSelectedCardIndex(focusedSelection.cardIndex);
     }
-  }, [focusedSelection, screen, selectionMode]);
+  }, [focusedSelection, selectionMode]);
   const selectedBox =
     selectedGroup?.boxes.find(box => box.boxRef === selectedBoxRef) ??
     selectedGroup?.boxes[0];
+  const selectedLibraryIndex = Math.max(
+    seed.libraries.findIndex(library => library === selectedLibrary),
+    0,
+  );
+  const selectedGroupIndex = Math.max(
+    selectedLibrary?.groups.findIndex(group => group === selectedGroup) ?? 0,
+    0,
+  );
+  const selectedBoxIndex = Math.max(
+    selectedGroup?.boxes.findIndex(box => box === selectedBox) ?? 0,
+    0,
+  );
   const selectedBoxCards = selectedBox?.cards ?? [];
   const safeSelectedCardIndex =
     selectedBoxCards.length === 0
@@ -271,6 +280,64 @@ export function SpaceSurface({
         currentLearningCard.space_metadata.box,
       )
     : null;
+  const selectedBoxIsCurrent = Boolean(
+    focusedSelection &&
+      selectedLibrary?.libraryName === focusedSelection.libraryName &&
+      selectedGroup?.groupName === focusedSelection.groupName &&
+      selectedBox?.boxRef === focusedSelection.boxRef,
+  );
+  const selectLibraryAt = (index: number) => {
+    const library = seed.libraries[index];
+    const group = library?.groups[0];
+    const box = group?.boxes[0];
+
+    if (!library || !group || !box) {
+      return;
+    }
+
+    setSelectionMode('manual');
+    setSelectedLibraryName(library.libraryName);
+    setSelectedGroupName(group.groupName);
+    setSelectedBoxRef(box.boxRef);
+    setSelectedCardIndex(0);
+  };
+  const selectGroupAt = (index: number) => {
+    const group = selectedLibrary?.groups[index];
+    const box = group?.boxes[0];
+
+    if (!group || !box) {
+      return;
+    }
+
+    setSelectionMode('manual');
+    setSelectedGroupName(group.groupName);
+    setSelectedBoxRef(box.boxRef);
+    setSelectedCardIndex(0);
+  };
+  const selectBoxAt = (index: number) => {
+    const box = selectedGroup?.boxes[index];
+
+    if (!box) {
+      return;
+    }
+
+    setSelectionMode('manual');
+    setSelectedBoxRef(box.boxRef);
+    setSelectedCardIndex(
+      focusedSelection?.boxRef === box.boxRef ? focusedSelection.cardIndex : 0,
+    );
+  };
+  const followCurrentBox = () => {
+    if (!focusedSelection) {
+      return;
+    }
+
+    setSelectionMode('follow_current');
+    setSelectedLibraryName(focusedSelection.libraryName);
+    setSelectedGroupName(focusedSelection.groupName);
+    setSelectedBoxRef(focusedSelection.boxRef);
+    setSelectedCardIndex(focusedSelection.cardIndex);
+  };
   const isGated = spaceGateRail !== null && spaceGateRail !== undefined;
   const stateRailStack = (
     <>
@@ -765,6 +832,94 @@ export function SpaceSurface({
                   </View>
                 </View>
               ) : null}
+
+              <View
+                style={[
+                  styles.hierarchyBrowseRail,
+                  {
+                    backgroundColor: neutralObjectSurface,
+                    borderColor: neutralObjectBorder,
+                  },
+                ]}
+                testID="space-browse-rail"
+              >
+                <View style={styles.hierarchyBrowseHeader}>
+                  <Text
+                    style={[
+                      styles.hierarchyBrowseTitle,
+                      { color: selectedTone.accent },
+                    ]}
+                  >
+                    浏览空间
+                  </Text>
+                  {!selectedBoxIsCurrent && focusedSelection ? (
+                    <Pressable
+                      accessibilityLabel="回到当前学习卡所在卡盒"
+                      accessibilityRole="button"
+                      onPress={followCurrentBox}
+                      style={[
+                        styles.followCurrentButton,
+                        {
+                          backgroundColor: solidPanelStrong,
+                          borderColor: hexToRgba(currentTone.accent, 0.24),
+                        },
+                      ]}
+                      testID="space-follow-current-box"
+                    >
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.followCurrentButtonLabel,
+                          { color: currentTone.accent },
+                        ]}
+                      >
+                        回到当前卡盒
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text
+                      style={[
+                        styles.hierarchyBrowseCurrent,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      当前卡焦点
+                    </Text>
+                  )}
+                </View>
+                <HierarchyBrowseRow
+                  index={selectedLibraryIndex}
+                  label="书架"
+                  onNext={() => selectLibraryAt(selectedLibraryIndex + 1)}
+                  onPrevious={() =>
+                    selectLibraryAt(selectedLibraryIndex - 1)
+                  }
+                  palette={palette}
+                  testIDPrefix="space-library"
+                  total={seed.libraries.length}
+                  value={visibleShelfName}
+                />
+                <HierarchyBrowseRow
+                  index={selectedGroupIndex}
+                  label="分区"
+                  onNext={() => selectGroupAt(selectedGroupIndex + 1)}
+                  onPrevious={() => selectGroupAt(selectedGroupIndex - 1)}
+                  palette={palette}
+                  testIDPrefix="space-group"
+                  total={selectedLibrary.groups.length}
+                  value={visibleSectionName}
+                />
+                <HierarchyBrowseRow
+                  index={selectedBoxIndex}
+                  label="卡盒"
+                  onNext={() => selectBoxAt(selectedBoxIndex + 1)}
+                  onPrevious={() => selectBoxAt(selectedBoxIndex - 1)}
+                  palette={palette}
+                  testIDPrefix="space-box"
+                  total={selectedGroup.boxes.length}
+                  value={visibleContainerName}
+                />
+              </View>
 
               <View style={styles.overviewHeroRow}>
                 <View style={styles.statusCopy}>
@@ -1740,6 +1895,95 @@ export function SpaceSurface({
   );
 }
 
+function HierarchyBrowseRow({
+  index,
+  label,
+  onNext,
+  onPrevious,
+  palette,
+  testIDPrefix,
+  total,
+  value,
+}: {
+  index: number;
+  label: string;
+  onNext: () => void;
+  onPrevious: () => void;
+  palette: SpacePalette;
+  testIDPrefix: string;
+  total: number;
+  value: string;
+}) {
+  const canGoPrevious = index > 0;
+  const canGoNext = index < total - 1;
+
+  return (
+    <View style={styles.hierarchyBrowseRow} testID={`${testIDPrefix}-row`}>
+      <Text style={[styles.hierarchyBrowseLabel, { color: palette.textMuted }]}>
+        {label}
+      </Text>
+      <Pressable
+        accessibilityLabel={`上一个${label}`}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !canGoPrevious }}
+        disabled={!canGoPrevious}
+        onPress={onPrevious}
+        style={[
+          styles.hierarchyBrowseStep,
+          canGoPrevious ? null : styles.hierarchyBrowseStepDisabled,
+          {
+            backgroundColor: palette.panel,
+            borderColor: palette.border,
+          },
+        ]}
+        testID={`${testIDPrefix}-prev`}
+      >
+        <Text style={[styles.hierarchyBrowseStepLabel, { color: palette.text }]}>
+          ‹
+        </Text>
+      </Pressable>
+      <View
+        accessibilityLabel={`${label}，${value}，${index + 1} / ${total}`}
+        accessibilityRole="text"
+        style={styles.hierarchyBrowseSelection}
+        testID={`${testIDPrefix}-selection`}
+      >
+        <Text
+          numberOfLines={1}
+          style={[styles.hierarchyBrowseValue, { color: palette.text }]}
+        >
+          {value}
+        </Text>
+        <Text
+          style={[styles.hierarchyBrowseCount, { color: palette.textMuted }]}
+        >
+          {`${index + 1}/${total}`}
+        </Text>
+      </View>
+      <Pressable
+        accessibilityLabel={`下一个${label}`}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !canGoNext }}
+        disabled={!canGoNext}
+        onPress={onNext}
+        style={[
+          styles.hierarchyBrowseStep,
+          canGoNext ? null : styles.hierarchyBrowseStepDisabled,
+          {
+            backgroundColor: palette.panel,
+            borderColor: palette.border,
+          },
+        ]}
+        testID={`${testIDPrefix}-next`}
+      >
+        <Text style={[styles.hierarchyBrowseStepLabel, { color: palette.text }]}>
+          ›
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function ActionChip({
   disabled = false,
   label,
@@ -2336,6 +2580,91 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
+  },
+  hierarchyBrowseRail: {
+    borderRadius: 18,
+    borderWidth: 0,
+    gap: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+  },
+  hierarchyBrowseHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'space-between',
+    minHeight: 24,
+  },
+  hierarchyBrowseTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    lineHeight: 15,
+  },
+  hierarchyBrowseCurrent: {
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  followCurrentButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    maxWidth: '62%',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  followCurrentButtonLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 14,
+  },
+  hierarchyBrowseRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+    minHeight: 29,
+  },
+  hierarchyBrowseLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 14,
+    width: 28,
+  },
+  hierarchyBrowseStep: {
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 28,
+    justifyContent: 'center',
+    width: 32,
+  },
+  hierarchyBrowseStepLabel: {
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 22,
+  },
+  hierarchyBrowseStepDisabled: {
+    opacity: 0.46,
+  },
+  hierarchyBrowseSelection: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'space-between',
+    minWidth: 0,
+  },
+  hierarchyBrowseValue: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 15,
+  },
+  hierarchyBrowseCount: {
+    fontSize: 10,
+    fontVariant: ['tabular-nums'],
+    fontWeight: '700',
+    lineHeight: 14,
   },
   overviewHeroRow: {
     alignItems: 'flex-end',

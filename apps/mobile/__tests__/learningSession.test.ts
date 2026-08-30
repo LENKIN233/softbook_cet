@@ -85,11 +85,25 @@ test('multiple choice, lock, elimination and swipe cards can all be auto-scored'
   ).toBe('correct');
 
   const lockCard = cardsByInteraction.lock!;
+  if (lockCard.interaction_id !== 'lock') {
+    throw new Error('Expected a lock card.');
+  }
   const lockState = createLearningCardState(lockCard);
   lockState.lockSelections.subject = 'The policy';
   lockState.lockSelections.verb = 'reduces';
   lockState.lockSelections.object = 'test anxiety';
   expect(evaluateLearningCard(lockCard, lockState)?.outcome).toBe('correct');
+
+  const incorrectLockState = createLearningCardState(lockCard);
+  lockCard.lock_slots.forEach((slot, index) => {
+    incorrectLockState.lockSelections[slot.id] =
+      index === 0
+        ? slot.options.find(
+            option => option !== lockCard.answer_key.lock_pattern[index],
+          ) ?? null
+        : lockCard.answer_key.lock_pattern[index];
+  });
+  expect(evaluateLearningCard(lockCard, incorrectLockState)).toBeNull();
 
   const eliminationCard = cardsByInteraction.elimination!;
   const eliminationState = createLearningCardState(eliminationCard);

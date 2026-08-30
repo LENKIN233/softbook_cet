@@ -11,7 +11,10 @@ export type LearningAudioPlaybackState =
   | { status: 'paused' }
   | { reason: 'offline' | 'temporary'; status: 'error' };
 
-export type LearningAudioEngineEvent = 'ended' | 'error' | 'interruption';
+export type LearningAudioEngineEvent = {
+  playbackToken: string;
+  type: 'ended' | 'error' | 'interruption';
+};
 
 export type LearningAudioEngine = {
   pause: () => Promise<void>;
@@ -46,12 +49,19 @@ export class LearningAudioController {
     },
   ) {
     this.unsubscribeEngine = dependencies.engine.subscribe(event => {
-      if (event === 'ended') {
+      if (
+        this.selection === null ||
+        event.playbackToken !== this.selection.cardToken
+      ) {
+        return;
+      }
+
+      if (event.type === 'ended') {
         this.setState({ status: 'idle' });
         return;
       }
 
-      if (event === 'interruption') {
+      if (event.type === 'interruption') {
         if (this.state.status === 'playing') {
           this.setState({ status: 'paused' });
         }

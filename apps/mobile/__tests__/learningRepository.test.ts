@@ -203,7 +203,10 @@ test('remote repository renders only the server-selected canonical card', async 
 
 test('remote free sessions accept exactly the stable authorized card-source prefix', async () => {
   const accessibleCardCount = Math.ceil(localLearningCardRecords.length / 2);
-  const accessibleCards = localLearningCardRecords.slice(0, accessibleCardCount);
+  const accessibleCards = localLearningCardRecords.slice(
+    0,
+    accessibleCardCount,
+  );
   const selectedCard = accessibleCards[accessibleCards.length - 1];
   const fetchMock = jest
     .fn()
@@ -286,6 +289,44 @@ test('remote first-trial activation refetches the canonical full card source bef
   expect(session.cards.map(card => card.card_id)).toEqual([
     selectedCard.card_id,
   ]);
+  expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+    'https://example.com/v1/learning/card-source?track=cet4',
+    'https://example.com/v2/learning/session?track=cet4',
+    'https://example.com/v1/learning/card-source?track=cet4',
+  ]);
+});
+
+test('remote first-trial activation fails closed when the canonical refetch cannot supply full access', async () => {
+  const trialAvailablePrefix = localLearningCardRecords.slice(
+    0,
+    Math.ceil(localLearningCardRecords.length / 2),
+  );
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(trialAvailablePrefix),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload(),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(trialAvailablePrefix),
+    });
+
+  await expect(
+    createRemoteRepository(fetchMock).loadSession(
+      authenticatedContext,
+      'cet4',
+    ),
+  ).rejects.toThrow(
+    'Remote learning session does not match canonical card-source content.',
+  );
   expect(fetchMock).toHaveBeenCalledTimes(3);
 });
 
@@ -381,6 +422,96 @@ test('remote repository binds a verified manifest to the canonical card source a
       CONTENT_VERSION,
     )}`,
   ]);
+});
+
+test('remote free prefix binds manifest access without requiring inaccessible card bodies', async () => {
+  const audioCards = localLearningCardRecords.map((card, index) =>
+    index === 0
+      ? {
+          ...card,
+          audio: {
+            asset_id: 'cet4.002001.prompt',
+            duration_ms: 2100,
+            sha256: AUDIO_SHA256,
+          },
+        }
+      : card,
+  );
+  const accessibleCardCount = Math.ceil(audioCards.length / 2);
+  const accessibleCards = audioCards.slice(0, accessibleCardCount);
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(accessibleCards),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSessionPayload({membershipStage: 'free'}),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          access: {
+            accessible_card_count: accessibleCardCount,
+            mode: 'free_subset',
+            total_card_count: audioCards.length,
+          },
+          downloads: [
+            {
+              asset_id: 'cet4.002001.prompt',
+              expires_at: '2026-07-24T08:05:00.000Z',
+              url: 'https://private-content.example/cet4.mp3?token=opaque',
+            },
+          ],
+          manifest: {
+            assets: [
+              {
+                asset_id: 'cet4.002001.prompt',
+                duration_ms: 2100,
+                media_type: 'audio/mpeg',
+                sha256: AUDIO_SHA256,
+                size_bytes: 4096,
+              },
+            ],
+            content_version: CONTENT_VERSION,
+            minimum_client_version: '1.0.0',
+            parent_release_id: null,
+            release_id: 'cet4-release-1',
+            schema_version: 'content-manifest.v1',
+            track: 'cet4',
+          },
+          signature: {
+            algorithm: 'ed25519',
+            key_id: 'content-key-1',
+            value: 'c'.repeat(128),
+          },
+        },
+      }),
+    });
+  const repository = createRemoteRepository(fetchMock, {
+    baseUrl: 'https://example.com',
+    installedClientIdentityProvider: () => ({
+      platform: 'ios',
+      version: '1.0.0',
+    }),
+    mode: 'remote',
+    now: () => new Date('2026-07-24T08:00:00.000Z'),
+    verifySignature: () => true,
+  });
+
+  const session = await repository.loadSession(authenticatedContext, 'cet4');
+
+  expect(session.catalogCards).toHaveLength(accessibleCardCount);
+  expect(session.contentManifest?.access).toEqual({
+    accessible_card_count: accessibleCardCount,
+    mode: 'free_subset',
+    total_card_count: audioCards.length,
+  });
 });
 
 test('remote repository rejects content-manifest access that drifts from the canonical session', async () => {
