@@ -28,6 +28,7 @@ function createSourcePayload(cardRecords = localLearningCardRecords) {
 function createSessionPayload(
   overrides: {
     contentVersion?: string;
+    membershipStage?: 'trial' | 'free' | 'premium';
     selection?: {
       selection_id: string;
       card_id: string;
@@ -42,6 +43,10 @@ function createSessionPayload(
 ) {
   const totalCardCount =
     overrides.totalCardCount ?? localLearningCardRecords.length;
+  const membershipStage = overrides.membershipStage ?? 'trial';
+  const accessMode = membershipStage === 'free' ? 'free_subset' : 'full';
+  const accessibleCardCount =
+    accessMode === 'full' ? totalCardCount : Math.ceil(totalCardCount / 2);
 
   return {
     data: {
@@ -50,10 +55,12 @@ function createSessionPayload(
       track: 'cet4',
       content_version: overrides.contentVersion ?? CONTENT_VERSION,
       source_id: overrides.sourceId ?? 'remote-learning-cards',
-      membership_stage: 'trial',
-      trial_started_at: '2026-07-24T08:00:00.000Z',
-      trial_expires_at: '2026-07-29T08:00:00.000Z',
-      trial_remaining_seconds: 432000,
+      membership_stage: membershipStage,
+      trial_started_at:
+        membershipStage === 'trial' ? '2026-07-24T08:00:00.000Z' : null,
+      trial_expires_at:
+        membershipStage === 'trial' ? '2026-07-29T08:00:00.000Z' : null,
+      trial_remaining_seconds: membershipStage === 'trial' ? 432000 : 0,
       algorithm: {
         id: 'FSRS-6',
         library: 'ts-fsrs',
@@ -61,8 +68,8 @@ function createSessionPayload(
         policy_version: 'softbook-fsrs.v1',
       },
       access: {
-        mode: 'full',
-        accessible_card_count: totalCardCount,
+        mode: accessMode,
+        accessible_card_count: accessibleCardCount,
         total_card_count: totalCardCount,
       },
       selection:
@@ -192,6 +199,94 @@ test('remote repository renders only the server-selected canonical card', async 
     'https://example.com/v1/learning/card-source?track=cet4',
     'https://example.com/v2/learning/session?track=cet4',
   ]);
+});
+
+test('remote free sessions accept exactly the stable authorized card-source prefix', async () => {
+  const accessibleCardCount = Math.ceil(localLearningCardRecords.length / 2);
+  const accessibleCards = localLearningCardRecords.slice(0, accessibleCardCount);
+  const selectedCard = accessibleCards[accessibleCards.length - 1];
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(accessibleCards),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          membershipStage: 'free',
+          selection: {
+            selection_id: SELECTION_ID,
+            card_id: selectedCard.card_id,
+            phase: 'learning',
+            reason: 'catalog_new',
+            due_at: null,
+          },
+        }),
+    });
+
+  const session = await createRemoteRepository(fetchMock).loadSession(
+    authenticatedContext,
+    'cet4',
+  );
+
+  expect(session.membershipStage).toBe('free');
+  expect(session.catalogCards.map(card => card.card_id)).toEqual(
+    accessibleCards.map(card => card.card_id),
+  );
+  expect(session.cards.map(card => card.card_id)).toEqual([
+    selectedCard.card_id,
+  ]);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test('remote first-trial activation refetches the canonical full card source before binding selection', async () => {
+  const trialAvailablePrefix = localLearningCardRecords.slice(
+    0,
+    Math.ceil(localLearningCardRecords.length / 2),
+  );
+  const selectedCard = localLearningCardRecords.at(-1)!;
+  const fetchMock = jest
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(trialAvailablePrefix),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () =>
+        createSessionPayload({
+          selection: {
+            selection_id: SELECTION_ID,
+            card_id: selectedCard.card_id,
+            phase: 'learning',
+            reason: 'catalog_new',
+            due_at: null,
+          },
+        }),
+    })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => createSourcePayload(),
+    });
+
+  const session = await createRemoteRepository(fetchMock).loadSession(
+    authenticatedContext,
+    'cet4',
+  );
+
+  expect(session.membershipStage).toBe('trial');
+  expect(session.catalogCards).toHaveLength(localLearningCardRecords.length);
+  expect(session.cards.map(card => card.card_id)).toEqual([
+    selectedCard.card_id,
+  ]);
+  expect(fetchMock).toHaveBeenCalledTimes(3);
 });
 
 test('remote repository binds a verified manifest to the canonical card source and session access', async () => {

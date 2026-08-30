@@ -462,6 +462,31 @@ test('shared audio assets require one authorized download across multiple cards'
   ).not.toThrow();
 });
 
+test('authorized card prefixes bind manifest access to the full server catalog count', () => {
+  const payload = createPayload();
+  payload.data.access = {
+    accessible_card_count: 1,
+    mode: 'free_subset',
+    total_card_count: 2,
+  };
+  const result = parseContentManifestPayload(payload, {
+    contentVersion: CONTENT_VERSION,
+    now: NOW,
+    track: 'cet4',
+  });
+  const card = createAudioCard();
+
+  expect(() =>
+    assertContentManifestMatchesCards(result, [card], {
+      cardsAreAccessiblePrefix: true,
+      totalCardCount: 2,
+    }),
+  ).not.toThrow();
+  expect(() => assertContentManifestMatchesCards(result, [card])).toThrow(
+    'Content manifest access does not match the loaded catalog.',
+  );
+});
+
 test('pinned verifier checks a real Node Ed25519 signature with strict semantics', async () => {
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
   const rawPublicKey = publicKey

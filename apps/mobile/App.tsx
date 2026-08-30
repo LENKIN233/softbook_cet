@@ -4908,13 +4908,15 @@ function AppShell({
   };
 
   const accessibleSpaceCards = learningSession
-    ? learningSession.catalogCards.slice(
-        0,
-        resolveAccessibleLearningCardCount(
-          learningSession.catalogCards.length,
-          membershipState,
-        ),
-      )
+    ? learningSession.schedulingMode === 'server'
+      ? learningSession.catalogCards
+      : learningSession.catalogCards.slice(
+          0,
+          resolveAccessibleLearningCardCount(
+            learningSession.catalogCards.length,
+            membershipState,
+          ),
+        )
     : [];
   const spaceSurfaceCards = membershipAccess.completePhysicalSpace
     ? learningSession?.catalogCards ?? []

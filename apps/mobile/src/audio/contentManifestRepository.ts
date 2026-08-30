@@ -218,6 +218,10 @@ export function parseContentManifestPayload(
 export function assertContentManifestMatchesCards(
   result: VerifiedContentManifest,
   cards: readonly LearningCard[],
+  scope: {
+    cardsAreAccessiblePrefix?: boolean;
+    totalCardCount?: number;
+  } = {},
 ) {
   const manifestAssets = new Map(
     result.manifest.assets.map(asset => [asset.asset_id, asset]),
@@ -235,21 +239,31 @@ export function assertContentManifestMatchesCards(
   }
 
   for (const asset of result.manifest.assets) {
-    if (!referenced.has(asset.asset_id)) {
+    if (!scope.cardsAreAccessiblePrefix && !referenced.has(asset.asset_id)) {
       throw new Error(
         `Content manifest asset ${asset.asset_id} is not referenced by the loaded cards.`,
       );
     }
   }
 
-  if (result.access.total_card_count !== cards.length) {
+  const totalCardCount = scope.cardsAreAccessiblePrefix
+    ? scope.totalCardCount
+    : cards.length;
+
+  if (
+    !Number.isSafeInteger(totalCardCount) ||
+    (totalCardCount ?? 0) <= 0 ||
+    result.access.total_card_count !== totalCardCount
+  ) {
     throw new Error(
       'Content manifest access does not match the loaded catalog.',
     );
   }
 
   const expectedAccessibleCardCount =
-    result.access.mode === 'full'
+    scope.cardsAreAccessiblePrefix
+      ? cards.length
+      : result.access.mode === 'full'
       ? cards.length
       : result.access.mode === 'free_subset'
       ? Math.ceil(cards.length * 0.5)
@@ -262,7 +276,12 @@ export function assertContentManifestMatchesCards(
   const expectedDownloadIds = [
     ...new Set(
       cards
-        .slice(0, expectedAccessibleCardCount)
+        .slice(
+          0,
+          scope.cardsAreAccessiblePrefix
+            ? cards.length
+            : expectedAccessibleCardCount,
+        )
         .flatMap(card => (card.audio ? [card.audio.asset_id] : [])),
     ),
   ].sort();
