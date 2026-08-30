@@ -298,6 +298,29 @@ describe('Web persistence boundary', () => {
     expect(await createOutbox('webdevice_reader').getAll()).toEqual([]);
     expect(await createMutationQueue().getAll()).toEqual([]);
   });
+
+  it('fences fresh stale-tab enqueues after terminal cleanup advances a null epoch', async () => {
+    localStorage.clear();
+    const staleFence = createBoundAccountWriteFence();
+    const staleOutbox = createOutbox('webdevice_stale_logout', staleFence);
+    const staleQueue = createMutationQueue(staleFence);
+    await Promise.all([staleOutbox.hydrate(), staleQueue.hydrate()]);
+    const terminalStore = createWebAccountDeletionStateStore(localStorage);
+
+    await expect(terminalStore.advanceNullRevision?.(0)).resolves.toBe(1);
+
+    await expect(
+      staleOutbox.enqueueCompletion(
+        createCompletion('13800138000', '000001', 'sel_1234567890abcdef'),
+      ),
+    ).rejects.toThrow('账户隔离版本已变化');
+    await expect(
+      staleQueue.enqueue(
+        'apply_space_action',
+        createSpaceMutation('13800138000', '000001', 'space_web_logout1'),
+      ),
+    ).rejects.toThrow('账户隔离版本已变化');
+  });
 });
 
 function createOutbox(

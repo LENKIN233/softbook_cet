@@ -16,6 +16,7 @@ import {createWebAccountDeletionStateStore} from './webAccountDeletionState';
 import {
   createWebRemoteRuntime,
   createWebRemoteRuntimeController,
+  WebRemotePostAuthError,
 } from './remoteRuntime';
 
 const PHONE = '13800138000';
@@ -349,6 +350,48 @@ describe('authenticated Web remote orchestration', () => {
     );
     await controller.cleanupInvalidatedSession();
     expect(staleEventPresent).toBe(false);
+  });
+
+  it('advances the shared null epoch for logout and terminal auth cleanup', async () => {
+    localStorage.clear();
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const deletionStateStore =
+      createWebAccountDeletionStateStore(localStorage);
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore: deletionStateStore,
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    await controller.logout();
+    await expect(deletionStateStore.getRevision()).resolves.toBe(1);
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    await authSessionCoordinator.invalidate();
+    await controller.cleanupInvalidatedSession();
+    await expect(deletionStateStore.getRevision()).resolves.toBe(2);
   });
 
   it('retains a durably enqueued Learning event as queued after network ack failure', async () => {
@@ -1196,6 +1239,191 @@ describe('authenticated Web remote orchestration', () => {
     await expect(verification).rejects.toThrow('删除恢复入口');
     expect(controller.isAuthenticated()).toBe(false);
     expect(logout).toHaveBeenCalledTimes(1);
+  });
+
+  it('revokes a newly established session when deletion wins before the first snapshot commits', async () => {
+    localStorage.clear();
+    let releaseBootstrap: (() => void) | undefined;
+    let markBootstrapStarted: (() => void) | undefined;
+    const bootstrapGate = new Promise<void>(resolve => {
+      releaseBootstrap = resolve;
+    });
+    const bootstrapStarted = new Promise<void>(resolve => {
+      markBootstrapStarted = resolve;
+    });
+    const authRepository = createSimpleAuthRepository();
+    const logout = vi.spyOn(authRepository, 'logout');
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const controllerDeletionStore =
+      createWebAccountDeletionStateStore(localStorage);
+    const competingDeletionStore =
+      createWebAccountDeletionStateStore(localStorage);
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          markBootstrapStarted?.();
+          await bootstrapGate;
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore: controllerDeletionStore,
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    const verification = controller.verifySmsCode(PHONE, '123456');
+    await bootstrapStarted;
+    await competingDeletionStore.mark(PHONE, 'requesting');
+    releaseBootstrap?.();
+
+    const error = await verification.catch(value => value as Error);
+    expect(error).toMatchObject({name: 'WebAccountEpochError'});
+    expect(error).not.toBeInstanceOf(WebRemotePostAuthError);
+    expect(controller.isAuthenticated()).toBe(false);
+    expect(logout).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a late authenticated snapshot after deletion starts in another tab', async () => {
+    localStorage.clear();
+    let bootstrapLoads = 0;
+    let releaseLateBootstrap: (() => void) | undefined;
+    let markLateBootstrapStarted: (() => void) | undefined;
+    const lateBootstrapGate = new Promise<void>(resolve => {
+      releaseLateBootstrap = resolve;
+    });
+    const lateBootstrapStarted = new Promise<void>(resolve => {
+      markLateBootstrapStarted = resolve;
+    });
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const controllerDeletionStore =
+      createWebAccountDeletionStateStore(localStorage);
+    const competingDeletionStore =
+      createWebAccountDeletionStateStore(localStorage);
+    const stopAudio = vi.fn();
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          bootstrapLoads += 1;
+          if (bootstrapLoads === 2) {
+            markLateBootstrapStarted?.();
+            await lateBootstrapGate;
+          }
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore: controllerDeletionStore,
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      stopAudio,
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    const lateSnapshot = controller.loadAuthenticatedState();
+    await lateBootstrapStarted;
+    await competingDeletionStore.mark(PHONE, 'requesting');
+    releaseLateBootstrap?.();
+
+    await expect(lateSnapshot).rejects.toMatchObject({
+      name: 'WebAccountEpochError',
+    });
+    expect(stopAudio).toHaveBeenCalled();
+  });
+
+  it('binds audio to session, epoch, content, and selection and stops on authority change', async () => {
+    localStorage.clear();
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const deletionStateStore =
+      createWebAccountDeletionStateStore(localStorage);
+    let learningSession = createLearningSessionFixture(null);
+    let accountEpochListener: (() => void) | null = null;
+    const playAudio = vi.fn(async () => 'ready' as const);
+    const stopAudio = vi.fn();
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore: deletionStateStore,
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return learningSession;
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio,
+      stopAudio,
+      subscribeAccountEpochChanges(listener) {
+        accountEpochListener = listener;
+        return () => undefined;
+      },
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    await expect(controller.playCardAudio(card)).resolves.toBe('ready');
+    expect(playAudio).toHaveBeenCalledWith(
+      card,
+      learningSession,
+      {
+        contentVersion: learningSession.contentVersion,
+        deletionRevision: 0,
+        selectionId: 'sel_1234567890abcdef',
+        sessionScopeKey: 'remote:13800138000:session-simple',
+      },
+    );
+
+    learningSession = {
+      ...learningSession,
+      serverSelection: {
+        ...learningSession.serverSelection!,
+        selectionId: 'sel_fedcba0987654321',
+      },
+    };
+    await controller.loadAuthenticatedState();
+    expect(stopAudio).toHaveBeenCalledTimes(1);
+
+    expect(accountEpochListener).not.toBeNull();
+    (accountEpochListener as unknown as () => void)();
+    expect(stopAudio).toHaveBeenCalledTimes(2);
   });
 
   it('persists explicit check-in before reporting server confirmation', async () => {

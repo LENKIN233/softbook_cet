@@ -20,6 +20,7 @@ type WebAccountDeletionEnvelope = {
 type BrowserStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 
 export type WebAccountDeletionStateStore = {
+  advanceNullRevision?: (expectedRevision: number) => Promise<number>;
   clear: () => Promise<void>;
   getRevision: () => Promise<number>;
   load: () => Promise<WebAccountDeletionState | null>;
@@ -27,6 +28,10 @@ export type WebAccountDeletionStateStore = {
     phoneNumber: string,
     phase: WebAccountDeletionState['phase'],
   ) => Promise<void>;
+  runAtNullRevision?: <Result>(
+    expectedRevision: number,
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
 };
 
 export function createWebAccountDeletionStateStore(
@@ -44,6 +49,33 @@ export function createWebAccountDeletionStateStore(
   };
 
   return {
+    advanceNullRevision(expectedRevision) {
+      return runExclusive(() =>
+        runWebStorageExclusive(
+          storage,
+          WEB_ACCOUNT_DELETION_STORAGE_KEY,
+          async () => {
+            const envelope = readEnvelope(storage);
+            if (
+              envelope.state !== null ||
+              envelope.revision !== expectedRevision
+            ) {
+              throw new Error(
+                'Web account write epoch changed in another tab.',
+              );
+            }
+            const nextEnvelope = {
+              revision: incrementRevision(envelope.revision),
+              state: null,
+            };
+            persistEnvelope(storage, nextEnvelope);
+            observedRevision = nextEnvelope.revision;
+            return nextEnvelope.revision;
+          },
+        ),
+      );
+    },
+
     clear() {
       return runExclusive(() =>
         runWebStorageExclusive(
@@ -112,6 +144,38 @@ export function createWebAccountDeletionStateStore(
             };
             persistEnvelope(storage, nextEnvelope);
             observedRevision = nextEnvelope.revision;
+          },
+        ),
+      );
+    },
+
+    runAtNullRevision(expectedRevision, operation) {
+      return runExclusive(() =>
+        runWebStorageExclusive(
+          storage,
+          WEB_ACCOUNT_DELETION_STORAGE_KEY,
+          async () => {
+            const before = readEnvelope(storage);
+            if (
+              before.state !== null ||
+              before.revision !== expectedRevision
+            ) {
+              throw new Error(
+                'Web account write epoch changed in another tab.',
+              );
+            }
+            const result = await operation();
+            const after = readEnvelope(storage);
+            if (
+              after.state !== null ||
+              after.revision !== expectedRevision
+            ) {
+              throw new Error(
+                'Web account write epoch changed during authority commit.',
+              );
+            }
+            observedRevision = after.revision;
+            return result;
           },
         ),
       );

@@ -74,6 +74,7 @@ import {
 } from './webStorage';
 import {
   createWebAccountDeletionStateStore,
+  WEB_ACCOUNT_DELETION_STORAGE_KEY,
   type WebAccountDeletionStateStore,
 } from './webAccountDeletionState';
 import {
@@ -83,6 +84,13 @@ import {
 } from './webAccountDeletionRecovery';
 
 type RemoteWebRuntime = Extract<WebRuntime, {mode: 'remote'}>;
+
+type WebAudioAuthority = {
+  contentVersion: string;
+  deletionRevision: number | null;
+  selectionId: string;
+  sessionScopeKey: string;
+};
 
 export type WebRemoteSnapshot = {
   bootstrap: AccountBootstrapSnapshot;
@@ -144,6 +152,7 @@ type RemoteRuntimeDependencies = {
   playAudio: (
     card: LearningCard,
     session: LearningSession,
+    authority: WebAudioAuthority,
   ) => Promise<'paused' | 'playing' | 'ready'>;
   stopAudio?: () => void;
   runtimeSessionId?: string;
@@ -156,6 +165,7 @@ type RemoteRuntimeDependencies = {
     active: boolean,
   ) => void;
   setAccountWriteRevision?: (revision: number | null) => void;
+  subscribeAccountEpochChanges?: (listener: () => void) => () => void;
   subscribeAudioStatus?: (
     listener: (status: 'error' | 'idle') => void,
   ) => () => void;
@@ -200,6 +210,16 @@ export class WebRemotePostAuthError extends Error {
   constructor(cause: unknown) {
     super('Authenticated Web bootstrap failed.', {cause});
     this.name = 'WebRemotePostAuthError';
+  }
+}
+
+class WebAccountEpochError extends Error {
+  constructor(
+    message = '账户隔离状态已变化，请完成当前恢复操作。',
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = 'WebAccountEpochError';
   }
 }
 
@@ -353,11 +373,18 @@ export function createWebRemoteRuntime(
     mutationQueueRepository,
     runAccountDeletionCleanup: (scope, operation) =>
       accountWriteFence.runDeletionCleanup(scope, operation),
-    playAudio: async (card, session) => {
+    playAudio: async (card, session, authority) => {
       if (session.contentManifest === null) {
         throw new Error('当前学习内容没有经过签名音频清单校验。');
       }
-      const cardToken = `${card.card_id}:${card.audio?.sha256 ?? 'no-audio'}`;
+      const cardToken = JSON.stringify([
+        authority.sessionScopeKey,
+        authority.deletionRevision,
+        authority.selectionId,
+        authority.contentVersion,
+        card.card_id,
+        card.audio?.sha256 ?? 'no-audio',
+      ]);
       if (activeAudio?.cardToken === cardToken) {
         const currentAudio = activeAudio;
         if (currentAudio.status === 'playing') {
@@ -431,6 +458,18 @@ export function createWebRemoteRuntime(
     setAccountWriteRevision(revision) {
       accountWriteFence.bindSessionRevision(revision);
     },
+    subscribeAccountEpochChanges(listener) {
+      const handleStorage = (event: StorageEvent) => {
+        if (
+          event.key === WEB_ACCOUNT_DELETION_STORAGE_KEY &&
+          (event.storageArea === null || event.storageArea === browserStorage)
+        ) {
+          listener();
+        }
+      };
+      window.addEventListener('storage', handleStorage);
+      return () => window.removeEventListener('storage', handleStorage);
+    },
     subscribeAudioStatus(listener) {
       audioStatusListeners.add(listener);
       return () => audioStatusListeners.delete(listener);
@@ -458,6 +497,9 @@ export function createWebRemoteRuntimeController(
   const now = dependencies.now ?? (() => new Date());
   const runtimeSessionId =
     dependencies.runtimeSessionId ?? createBootstrapRuntimeSessionId();
+  dependencies.subscribeAccountEpochChanges?.(() => {
+    dependencies.stopAudio?.();
+  });
 
   const readStableDeletionState = async () => {
     const stateStore = dependencies.accountDeletionStateStore;
@@ -468,9 +510,67 @@ export function createWebRemoteRuntimeController(
     const state = await stateStore.load();
     const revisionAfter = await stateStore.getRevision();
     if (revisionBefore !== revisionAfter) {
-      throw new Error('Web account deletion marker changed in another tab.');
+      throw new WebAccountEpochError();
     }
     return {revision: revisionAfter, state};
+  };
+
+  const runAtAccountWriteEpoch = async <Result>(
+    expectedRevision: number | null,
+    operation: () => Promise<Result> | Result,
+  ): Promise<Result> => {
+    const runAtNullRevision =
+      dependencies.accountDeletionStateStore?.runAtNullRevision;
+    if (expectedRevision === null || runAtNullRevision === undefined) {
+      return operation();
+    }
+    let operationFailure: unknown = null;
+    try {
+      return await runAtNullRevision(expectedRevision, async () => {
+        try {
+          return await operation();
+        } catch (error) {
+          operationFailure = error;
+          throw error;
+        }
+      });
+    } catch (error) {
+      if (operationFailure !== null) {
+        throw operationFailure;
+      }
+      throw new WebAccountEpochError(undefined, {cause: error});
+    }
+  };
+
+  const runWithAuthenticatedAuthority = async <Result>(
+    sessionScopeKey: string,
+    deletionRevision: number | null,
+    operation: () => Promise<Result> | Result,
+  ) => {
+    try {
+      return await runAtAccountWriteEpoch(deletionRevision, () => {
+        const currentScopeKey = getAuthSessionScopeKey(
+          dependencies.authSessionCoordinator.getCurrentSession(),
+        );
+        if (
+          currentScopeKey !== sessionScopeKey ||
+          sessionDeletionRevision !== deletionRevision
+        ) {
+          throw new WebAccountEpochError();
+        }
+        return operation();
+      });
+    } catch (error) {
+      if (
+        error instanceof WebAccountEpochError &&
+        getAuthSessionScopeKey(
+          dependencies.authSessionCoordinator.getCurrentSession(),
+        ) === sessionScopeKey
+      ) {
+        dependencies.stopAudio?.();
+      }
+      throw error;
+    }
   };
 
   const requireAuthenticatedContext = async () => {
@@ -490,11 +590,11 @@ export function createWebRemoteRuntimeController(
         dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
       }
       dependencies.stopAudio?.();
-      throw new Error('账户隔离状态已变化，请完成当前恢复操作。');
+      throw new WebAccountEpochError();
     }
     if (deletionState.state !== null) {
       if (deletionState.state.phoneNumber !== session.phoneNumber) {
-        throw new Error('删除状态属于另一个 Web 账户。');
+        throw new WebAccountEpochError();
       }
       const sessionScopeKey = getAuthSessionScopeKey(session);
       if (sessionScopeKey === null) {
@@ -502,7 +602,9 @@ export function createWebRemoteRuntimeController(
       }
       dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
       dependencies.stopAudio?.();
-      throw new Error('删除结果确认期间已暂停新的账户操作。');
+      throw new WebAccountEpochError(
+        '删除结果确认期间已暂停新的账户操作。',
+      );
     }
     activeAccountPhoneNumber = session.phoneNumber;
     return {
@@ -511,10 +613,33 @@ export function createWebRemoteRuntimeController(
     };
   };
 
-  const clearDurableAccountState = async () => {
+  const advanceTerminalAccountWriteEpoch = async () => {
+    const advanceNullRevision =
+      dependencies.accountDeletionStateStore?.advanceNullRevision;
+    if (
+      sessionDeletionRevision === null ||
+      advanceNullRevision === undefined
+    ) {
+      return;
+    }
+    try {
+      const nextRevision = await advanceNullRevision(sessionDeletionRevision);
+      sessionDeletionRevision = nextRevision;
+      dependencies.setAccountWriteRevision?.(nextRevision);
+    } catch (error) {
+      throw new WebAccountEpochError(undefined, {cause: error});
+    }
+  };
+
+  const clearDurableAccountState = async (
+    options: {advanceNullEpoch?: boolean} = {},
+  ) => {
     const phoneNumber = activeAccountPhoneNumber;
     if (phoneNumber === null) {
       throw new Error('没有可安全清理的 Web 账户作用域。');
+    }
+    if (options.advanceNullEpoch) {
+      await advanceTerminalAccountWriteEpoch();
     }
     const cleanupResults = await Promise.allSettled([
       dependencies.learningEventSyncRepository.clearAccount(phoneNumber),
@@ -672,6 +797,7 @@ export function createWebRemoteRuntimeController(
       throw new Error('Web account deletion session scope is invalid.');
     }
     dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+    dependencies.stopAudio?.();
     if (persisted === null) {
       try {
         await stateStore.mark(session.phoneNumber, 'requesting');
@@ -697,30 +823,38 @@ export function createWebRemoteRuntimeController(
     return finishAcceptedAccountDeletion(session.phoneNumber);
   };
 
-  const loadBootstrap = async (forceFresh: boolean) => {
-    const dayKey = getChinaDayKey(now());
-    const bootstrap = await dependencies.accountBootstrapRepository.load(
-      dependencies.track,
-      dayKey,
-      {forceFresh},
-    );
-    if (bootstrap === null) {
-      throw new Error('远端账户没有返回可验证的当前状态。');
-    }
-    bootstrapGeneration += 1;
-    return {
-      bootstrap,
-      observation: {
-        forceFresh,
-        generation: bootstrapGeneration,
-        runtimeSessionId,
-        schemaVersion: 'account-bootstrap-observation.v1' as const,
-      },
-    };
-  };
-
   const loadAuthenticatedState = async (): Promise<WebRemoteSnapshot> => {
     const context = await requireAuthenticatedContext();
+    const requestSessionScopeKey = getAuthSessionScopeKey(
+      dependencies.authSessionCoordinator.getCurrentSession(),
+    );
+    const requestDeletionRevision = sessionDeletionRevision;
+    if (requestSessionScopeKey === null) {
+      throw new WebAccountEpochError();
+    }
+    const initialBootstrapGeneration = bootstrapGeneration;
+    let requestBootstrapGeneration = initialBootstrapGeneration;
+    const loadBootstrap = async (forceFresh: boolean) => {
+      const dayKey = getChinaDayKey(now());
+      const bootstrap = await dependencies.accountBootstrapRepository.load(
+        dependencies.track,
+        dayKey,
+        {forceFresh},
+      );
+      if (bootstrap === null) {
+        throw new Error('远端账户没有返回可验证的当前状态。');
+      }
+      requestBootstrapGeneration += 1;
+      return {
+        bootstrap,
+        observation: {
+          forceFresh,
+          generation: requestBootstrapGeneration,
+          runtimeSessionId,
+          schemaVersion: 'account-bootstrap-observation.v1' as const,
+        },
+      };
+    };
 
     // The retained event ledger is replayed before the first canonical read so
     // bootstrap can never silently outrun an acknowledged card completion.
@@ -827,22 +961,8 @@ export function createWebRemoteRuntimeController(
       .filter(([, state]) => state.isSleeping)
       .map(([cardId]) => cardId);
 
-    const previousCardId = currentLearningSession?.cards[0]?.card_id ?? null;
-    const nextCardId = learningSession.cards[0]?.card_id ?? null;
-    if (previousCardId !== null && previousCardId !== nextCardId) {
-      dependencies.stopAudio?.();
-    }
-    currentBootstrap = bootstrap;
-    currentLearningSession = learningSession;
     const nextSelectionId = learningSession.serverSelection?.selectionId ?? null;
-    if (
-      persistedSelectionId !== null &&
-      nextSelectionId !== persistedSelectionId
-    ) {
-      persistedLearningResult = null;
-      persistedSelectionId = null;
-    }
-    return {
+    const nextSnapshot: WebRemoteSnapshot = {
       bootstrap,
       checkInSync: {
         checkedInToday: bootstrap.progress.snapshot.checkedInToday,
@@ -880,6 +1000,43 @@ export function createWebRemoteRuntimeController(
             : 'queued',
       },
     };
+    return runWithAuthenticatedAuthority(
+      requestSessionScopeKey,
+      requestDeletionRevision,
+      () => {
+        if (bootstrapGeneration !== initialBootstrapGeneration) {
+          throw new WebAccountEpochError(
+            '较新的账户状态已经先完成，本次迟到结果不会呈现。',
+          );
+        }
+        const previousCardId =
+          currentLearningSession?.cards[0]?.card_id ?? null;
+        const nextCardId = learningSession.cards[0]?.card_id ?? null;
+        const previousSelectionId =
+          currentLearningSession?.serverSelection?.selectionId ?? null;
+        const previousContentVersion =
+          currentLearningSession?.contentVersion ?? null;
+        if (
+          previousCardId !== null &&
+          (previousCardId !== nextCardId ||
+            previousSelectionId !== nextSelectionId ||
+            previousContentVersion !== learningSession.contentVersion)
+        ) {
+          dependencies.stopAudio?.();
+        }
+        currentBootstrap = bootstrap;
+        currentLearningSession = learningSession;
+        bootstrapGeneration = requestBootstrapGeneration;
+        if (
+          persistedSelectionId !== null &&
+          nextSelectionId !== persistedSelectionId
+        ) {
+          persistedLearningResult = null;
+          persistedSelectionId = null;
+        }
+        return nextSnapshot;
+      },
+    );
   };
 
   return {
@@ -922,7 +1079,7 @@ export function createWebRemoteRuntimeController(
         throw new Error('当前 Web 会话尚未失效，不能跳过远端注销。');
       }
       dependencies.stopAudio?.();
-      await clearDurableAccountState();
+      await clearDurableAccountState({advanceNullEpoch: true});
     },
 
     async checkInToday() {
@@ -953,6 +1110,19 @@ export function createWebRemoteRuntimeController(
 
     async completeCurrentCard(result) {
       const context = await requireAuthenticatedContext();
+      const requestSessionScopeKey = getAuthSessionScopeKey(
+        dependencies.authSessionCoordinator.getCurrentSession(),
+      );
+      const requestDeletionRevision = sessionDeletionRevision;
+      if (requestSessionScopeKey === null) {
+        throw new WebAccountEpochError();
+      }
+      const finish = (sync: WebLearningCompletionSync) =>
+        runWithAuthenticatedAuthority(
+          requestSessionScopeKey,
+          requestDeletionRevision,
+          () => sync,
+        );
       const selection = currentLearningSession?.serverSelection;
       const contentVersion = currentLearningSession?.contentVersion;
       if (
@@ -982,8 +1152,14 @@ export function createWebRemoteRuntimeController(
           selectionId: selection.selectionId,
           track: currentLearningSession.track,
         });
-        persistedLearningResult = {...result};
-        persistedSelectionId = selection.selectionId;
+        await runWithAuthenticatedAuthority(
+          requestSessionScopeKey,
+          requestDeletionRevision,
+          () => {
+            persistedLearningResult = {...result};
+            persistedSelectionId = selection.selectionId;
+          },
+        );
       }
       let replay: Awaited<
         ReturnType<
@@ -1012,15 +1188,15 @@ export function createWebRemoteRuntimeController(
           // Durable enqueue succeeded, so an ambiguous replay/read remains
           // queued until exact acknowledgement can be proven.
         }
-        return {pendingEventCount, status: 'queued'};
+        return finish({pendingEventCount, status: 'queued'});
       }
       if (replay.pendingCount !== 0) {
-        return {
+        return finish({
           pendingEventCount: replay.pendingCount,
           status: 'queued',
-        };
+        });
       }
-      return {pendingEventCount: 0, status: 'confirmed'};
+      return finish({pendingEventCount: 0, status: 'confirmed'});
     },
 
     async continueServerRound() {
@@ -1071,15 +1247,68 @@ export function createWebRemoteRuntimeController(
           '账户删除状态已变化，普通退出不会清理待确认记录。',
         );
       }
-      await clearDurableAccountState();
+      await clearDurableAccountState({advanceNullEpoch: true});
     },
 
     async playCardAudio(card) {
       await requireAuthenticatedContext();
-      if (currentLearningSession === null) {
+      const sessionScopeKey = getAuthSessionScopeKey(
+        dependencies.authSessionCoordinator.getCurrentSession(),
+      );
+      const deletionRevision = sessionDeletionRevision;
+      const learningSession = currentLearningSession;
+      const selection = learningSession?.serverSelection;
+      if (
+        learningSession === null ||
+        sessionScopeKey === null ||
+        selection == null ||
+        learningSession.contentVersion === null ||
+        learningSession.cards[0]?.card_id !== card.card_id ||
+        selection.cardId !== card.card_id
+      ) {
         throw new Error('当前没有经过验证的学习内容。');
       }
-      return dependencies.playAudio(card, currentLearningSession);
+      const authority = {
+        contentVersion: learningSession.contentVersion,
+        deletionRevision,
+        selectionId: selection.selectionId,
+        sessionScopeKey,
+      };
+      try {
+        const status = await dependencies.playAudio(
+          card,
+          learningSession,
+          authority,
+        );
+        return await runWithAuthenticatedAuthority(
+          sessionScopeKey,
+          deletionRevision,
+          () => {
+            const currentSelection =
+              currentLearningSession?.serverSelection;
+            if (
+              currentLearningSession?.contentVersion !==
+                authority.contentVersion ||
+              currentSelection?.selectionId !== authority.selectionId ||
+              currentSelection?.cardId !== card.card_id
+            ) {
+              throw new WebAccountEpochError(
+                'Web audio selection authority changed.',
+              );
+            }
+            return status;
+          },
+        );
+      } catch (error) {
+        if (
+          getAuthSessionScopeKey(
+            dependencies.authSessionCoordinator.getCurrentSession(),
+          ) === sessionScopeKey
+        ) {
+          dependencies.stopAudio?.();
+        }
+        throw error;
+      }
     },
 
     async requestSmsCode(phoneNumber) {
@@ -1258,15 +1487,94 @@ export function createWebRemoteRuntimeController(
           '请先通过删除恢复入口确认原账户状态。',
         );
       }
-      await dependencies.authSessionCoordinator.establish(session);
-      activeAccountPhoneNumber = session.phoneNumber;
-      sessionDeletionRevision = deletionStateAfterVerify.revision;
-      dependencies.setAccountWriteRevision?.(sessionDeletionRevision);
+      let sessionEstablished = false;
+      try {
+        await runAtAccountWriteEpoch(
+          deletionStateAfterVerify.revision,
+          async () => {
+            await dependencies.authSessionCoordinator.establish(session);
+            sessionEstablished = true;
+            activeAccountPhoneNumber = session.phoneNumber;
+            sessionDeletionRevision = deletionStateAfterVerify.revision;
+            dependencies.setAccountWriteRevision?.(sessionDeletionRevision);
+          },
+        );
+      } catch (error) {
+        const rejectedSessionScopeKey = getAuthSessionScopeKey(session);
+        const currentSessionScopeKey = getAuthSessionScopeKey(
+          dependencies.authSessionCoordinator.getCurrentSession(),
+        );
+        const rejectedSessionIsCurrent =
+          sessionEstablished &&
+          currentSessionScopeKey === rejectedSessionScopeKey;
+        if (rejectedSessionIsCurrent) {
+          try {
+            await dependencies.authSessionCoordinator.invalidate();
+          } catch {
+            // Epoch rejection remains authoritative over memory cleanup errors.
+          }
+          dependencies.setAccountWriteRevision?.(null);
+          sessionDeletionRevision = null;
+          activeAccountPhoneNumber = null;
+        }
+        challenge = null;
+        challengeDeletionRevision = null;
+        try {
+          await dependencies.authRepository.logout(session);
+        } catch {
+          // The deletion path may already have revoked this unbound session.
+        }
+        throw error instanceof WebAccountEpochError
+          ? error
+          : new Error('手机号验证后的账户建立没有安全完成。', {
+              cause: error,
+            });
+      }
       challenge = null;
       challengeDeletionRevision = null;
       try {
         return await loadAuthenticatedState();
       } catch (error) {
+        let accountAuthorityChanged = error instanceof WebAccountEpochError;
+        if (!accountAuthorityChanged) {
+          try {
+            const currentDeletionState = await readStableDeletionState();
+            accountAuthorityChanged =
+              currentDeletionState.state !== null ||
+              currentDeletionState.revision !== sessionDeletionRevision ||
+              getAuthSessionScopeKey(
+                dependencies.authSessionCoordinator.getCurrentSession(),
+              ) !== getAuthSessionScopeKey(session);
+          } catch {
+            accountAuthorityChanged = true;
+          }
+        }
+        if (accountAuthorityChanged) {
+          const rejectedSessionScopeKey = getAuthSessionScopeKey(session);
+          const rejectedSessionIsCurrent =
+            getAuthSessionScopeKey(
+              dependencies.authSessionCoordinator.getCurrentSession(),
+            ) === rejectedSessionScopeKey;
+          if (rejectedSessionIsCurrent) {
+            dependencies.stopAudio?.();
+            try {
+              await dependencies.authSessionCoordinator.invalidate();
+            } catch {
+              // Epoch rejection remains authoritative over memory cleanup errors.
+            }
+            dependencies.setAccountWriteRevision?.(null);
+            sessionDeletionRevision = null;
+            activeAccountPhoneNumber = null;
+          }
+          try {
+            await dependencies.authRepository.logout(session);
+          } catch {
+            // The deletion path may already have revoked this session.
+          }
+          throw error instanceof WebAccountEpochError
+            ? error
+            : new WebAccountEpochError(undefined, {cause: error});
+        }
         throw new WebRemotePostAuthError(error);
       }
     },
