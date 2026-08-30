@@ -200,53 +200,76 @@ test('uses fixed 44dp hierarchy targets at the 393x852 phone viewport', () => {
 
 test('short phone Space scrolls intrinsic content instead of clipping the primary return action', () => {
   expect(isShortSpaceViewport(393, 700)).toBe(true);
-  Dimensions.set({
-    screen: {fontScale: 1, height: 700, scale: 1, width: 393},
-    window: {fontScale: 1, height: 700, scale: 1, width: 393},
+  const consoleErrors: unknown[][] = [];
+  const consoleError = jest.spyOn(console, 'error').mockImplementation(
+    (...args: unknown[]) => {
+      consoleErrors.push(args);
+    },
+  );
+  ReactTestRenderer.act(() => {
+    Dimensions.set({
+      screen: {fontScale: 1, height: 700, scale: 1, width: 393},
+      window: {fontScale: 1, height: 700, scale: 1, width: 393},
+    });
   });
   const session = createLocalLearningSession('cet4');
   let tree: ReactTestRenderer.ReactTestRenderer;
 
-  ReactTestRenderer.act(() => {
-    tree = ReactTestRenderer.create(
-      <SpaceSurface
-        cardStateById={{}}
-        currentLearningCard={session.catalogCards[0]}
-        deviceClass="phone"
-        onReturnToLearning={jest.fn()}
-        onToggleFavoriteTag={jest.fn()}
-        onToggleSleepState={jest.fn()}
-        palette={palette}
-        spaceCards={session.catalogCards}
-      />,
-    );
-  });
+  try {
+    ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(
+        <SpaceSurface
+          cardStateById={{}}
+          currentLearningCard={session.catalogCards[0]}
+          deviceClass="phone"
+          onReturnToLearning={jest.fn()}
+          onToggleFavoriteTag={jest.fn()}
+          onToggleSleepState={jest.fn()}
+          palette={palette}
+          spaceCards={session.catalogCards}
+        />,
+      );
+    });
 
-  const root = tree!.root;
-  const scroll = root.findByProps({testID: 'space-scroll-viewport'});
-  expect(StyleSheet.flatten(scroll.props.contentContainerStyle).flexGrow).toBe(
-    1,
-  );
-  expect(
-    StyleSheet.flatten(
-      root.findByProps({testID: 'space-shelf-desk'}).props.style,
-    ).flex,
-  ).toBe(0);
-  expect(
-    StyleSheet.flatten(
-      root.findByProps({testID: 'space-current-box-tray'}).props.style,
-    ).overflow,
-  ).toBe('visible');
-  expect(
-    StyleSheet.flatten(
-      root.findByProps({testID: 'space-open-box-deck'}).props.style,
-    ).flex,
-  ).toBe(0);
-  expect(
-    StyleSheet.flatten(
-      root.findByProps({testID: 'space-return-learning'}).props.style,
-    ).minHeight,
-  ).toBeGreaterThanOrEqual(44);
+    const root = tree!.root;
+    const scroll = root.findByProps({testID: 'space-scroll-viewport'});
+    expect(StyleSheet.flatten(scroll.props.contentContainerStyle).flexGrow).toBe(
+      1,
+    );
+    expect(
+      StyleSheet.flatten(
+        root.findByProps({testID: 'space-shelf-desk'}).props.style,
+      ).flex,
+    ).toBe(0);
+    expect(
+      StyleSheet.flatten(
+        root.findByProps({testID: 'space-current-box-tray'}).props.style,
+      ).overflow,
+    ).toBe('visible');
+    expect(
+      StyleSheet.flatten(
+        root.findByProps({testID: 'space-open-box-deck'}).props.style,
+      ).flex,
+    ).toBe(0);
+    expect(
+      StyleSheet.flatten(
+        root.findByProps({testID: 'space-return-learning'}).props.style,
+      ).minHeight,
+    ).toBeGreaterThanOrEqual(44);
+  } finally {
+    ReactTestRenderer.act(() => {
+      tree?.unmount();
+    });
+    ReactTestRenderer.act(() => {
+      Dimensions.set({
+        screen: {fontScale: 1, height: 852, scale: 1, width: 393},
+        window: {fontScale: 1, height: 852, scale: 1, width: 393},
+      });
+    });
+    consoleError.mockRestore();
+  }
+
+  expect(consoleErrors).toEqual([]);
 });
 
 test('uses contained skeleton slots while Space cards are loading', () => {
