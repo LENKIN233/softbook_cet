@@ -72,6 +72,11 @@ import {
   createWebAccountDeletionStateStore,
   type WebAccountDeletionStateStore,
 } from './webAccountDeletionState';
+import {
+  createWebAccountDeletionRecoveryRepository,
+  type WebAccountDeletionRecoveryChallenge,
+  type WebAccountDeletionRecoveryRepository,
+} from './webAccountDeletionRecovery';
 
 type RemoteWebRuntime = Extract<WebRuntime, {mode: 'remote'}>;
 
@@ -104,7 +109,13 @@ export type WebRemoteSnapshot = {
 
 export type WebAccountDeletionOutcome =
   | {
-      status: 'accepted' | 'cleanup_required' | 'none' | 'unknown';
+      status:
+        | 'accepted'
+        | 'cleanup_required'
+        | 'none'
+        | 'registration_cleanup_required'
+        | 'registration_ready'
+        | 'unknown';
     }
   | {
       phoneNumber: string;
@@ -114,6 +125,7 @@ export type WebAccountDeletionOutcome =
 export type WebLearningCompletionSync = WebRemoteSnapshot['learningSync'];
 
 type RemoteRuntimeDependencies = {
+  accountDeletionRecoveryRepository?: WebAccountDeletionRecoveryRepository;
   accountDeletionRepository?: AccountDeletionRepository;
   accountDeletionStateStore?: WebAccountDeletionStateStore;
   accountBootstrapRepository: AccountBootstrapRepository;
@@ -135,6 +147,9 @@ type RemoteRuntimeDependencies = {
     sessionScopeKey: string,
     active: boolean,
   ) => void;
+  subscribeAudioStatus?: (
+    listener: (status: 'error' | 'idle') => void,
+  ) => () => void;
   track: LearningTrack;
 };
 
@@ -158,8 +173,11 @@ export type WebRemoteRuntimeController = {
   ) => Promise<'paused' | 'playing' | 'ready'>;
   requestSmsCode: (phoneNumber: string) => Promise<AuthChallenge>;
   requestAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
-  requestAccountDeletionRecoverySmsCode: () => Promise<AuthChallenge>;
+  requestAccountDeletionRecoverySmsCode: () => Promise<WebAccountDeletionRecoveryChallenge>;
   resumeAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
+  subscribeAudioStatus: (
+    listener: (status: 'error' | 'idle') => void,
+  ) => () => void;
   verifyAccountDeletionRecoverySmsCode: (
     smsCode: string,
   ) => Promise<WebAccountDeletionOutcome>;
@@ -214,6 +232,11 @@ export function createWebRemoteRuntime(
     fetchImpl,
     headers: createSoftbookClientHeaders('web'),
   });
+  const accountDeletionRecoveryRepository =
+    createWebAccountDeletionRecoveryRepository({
+      baseUrl: runtime.baseUrl,
+      fetchImpl,
+    });
   const accountDeletionStateStore = createWebAccountDeletionStateStore(
     browserStorage,
   );
@@ -280,7 +303,11 @@ export function createWebRemoteRuntime(
     status: 'paused' | 'playing' | 'ready';
     stop: () => void;
   } | null = null;
+  const audioStatusListeners = new Set<
+    (status: 'error' | 'idle') => void
+  >();
   return createWebRemoteRuntimeController({
+    accountDeletionRecoveryRepository,
     accountDeletionRepository,
     accountDeletionStateStore,
     accountBootstrapRepository,
@@ -310,9 +337,17 @@ export function createWebRemoteRuntime(
         contentManifest: session.contentManifest,
         dependencies: {
           fetchImpl,
-          onPlaybackTerminated() {
+          onPlaybackTerminated(reason) {
             if (activeAudio?.cardToken === cardToken) {
               activeAudio = null;
+            }
+            const status = reason === 'error' ? 'error' : 'idle';
+            for (const listener of audioStatusListeners) {
+              try {
+                listener(status);
+              } catch {
+                // One view listener cannot block playback cleanup.
+              }
             }
           },
         },
@@ -328,6 +363,10 @@ export function createWebRemoteRuntime(
       if (active) deletionQuarantinedSessionScopes.add(sessionScopeKey);
       else deletionQuarantinedSessionScopes.delete(sessionScopeKey);
     },
+    subscribeAudioStatus(listener) {
+      audioStatusListeners.add(listener);
+      return () => audioStatusListeners.delete(listener);
+    },
     track: runtime.track,
   });
 }
@@ -336,6 +375,8 @@ export function createWebRemoteRuntimeController(
   dependencies: RemoteRuntimeDependencies,
 ): WebRemoteRuntimeController {
   let challenge: AuthChallenge | null = null;
+  let deletionRecoveryChallenge: WebAccountDeletionRecoveryChallenge | null =
+    null;
   let activeAccountPhoneNumber: string | null = null;
   let currentBootstrap: AccountBootstrapSnapshot | null = null;
   let currentLearningSession: LearningSession | null = null;
@@ -343,6 +384,7 @@ export function createWebRemoteRuntimeController(
   let persistedSelectionId: string | null = null;
   let sessionDeletionRevision: number | null = null;
   let acceptedDeletionPhoneNumber: string | null = null;
+  let registrationReadyPhoneNumber: string | null = null;
   let bootstrapGeneration = 0;
   const now = dependencies.now ?? (() => new Date());
   const runtimeSessionId =
@@ -411,6 +453,7 @@ export function createWebRemoteRuntimeController(
       throw new Error('退出后的本地待同步状态未能完整清理。');
     }
     challenge = null;
+    deletionRecoveryChallenge = null;
     activeAccountPhoneNumber = null;
     currentBootstrap = null;
     currentLearningSession = null;
@@ -440,19 +483,66 @@ export function createWebRemoteRuntimeController(
     }
   };
 
+  const finishRegistrationReady = async (
+    phoneNumber: string,
+  ): Promise<WebAccountDeletionOutcome> => {
+    const stateStore = dependencies.accountDeletionStateStore;
+    if (stateStore === undefined) {
+      throw new Error('Web account deletion state store is unavailable.');
+    }
+    activeAccountPhoneNumber = phoneNumber;
+    try {
+      if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
+        await dependencies.authSessionCoordinator.invalidate();
+      }
+      await clearDurableAccountState();
+      await stateStore.clear();
+      registrationReadyPhoneNumber = null;
+      return {status: 'registration_ready'};
+    } catch {
+      return {status: 'registration_cleanup_required'};
+    }
+  };
+
   const submitAccountDeletionRequest = async (): Promise<
     WebAccountDeletionOutcome
   > => {
     const repository = dependencies.accountDeletionRepository;
     const stateStore = dependencies.accountDeletionStateStore;
-    if (repository === undefined || stateStore === undefined) {
-      throw new Error('Web account deletion runtime is unavailable.');
+    if (stateStore === undefined) {
+      throw new Error('Web account deletion state store is unavailable.');
     }
     const revisionBefore = await stateStore.getRevision();
     const persisted = await stateStore.load();
     const revisionAfter = await stateStore.getRevision();
+    if (registrationReadyPhoneNumber !== null) {
+      if (persisted === null) {
+        registrationReadyPhoneNumber = null;
+        return {status: 'registration_ready'};
+      }
+      if (persisted.phoneNumber !== registrationReadyPhoneNumber) {
+        return {status: 'registration_cleanup_required'};
+      }
+      if (persisted.phase === 'requesting') {
+        try {
+          await stateStore.mark(
+            registrationReadyPhoneNumber,
+            'registration_ready',
+          );
+        } catch {
+          return {status: 'registration_cleanup_required'};
+        }
+      }
+      return finishRegistrationReady(registrationReadyPhoneNumber);
+    }
     if (persisted?.phase === 'accepted') {
       return finishAcceptedAccountDeletion(persisted.phoneNumber);
+    }
+    if (persisted?.phase === 'registration_ready') {
+      return finishRegistrationReady(persisted.phoneNumber);
+    }
+    if (repository === undefined) {
+      throw new Error('Web account deletion runtime is unavailable.');
     }
     if (acceptedDeletionPhoneNumber !== null) {
       try {
@@ -904,9 +994,11 @@ export function createWebRemoteRuntimeController(
     },
 
     async requestAccountDeletionRecoverySmsCode() {
+      const recoveryRepository =
+        dependencies.accountDeletionRecoveryRepository;
       const stateStore = dependencies.accountDeletionStateStore;
-      if (stateStore === undefined) {
-        throw new Error('Web account deletion state store is unavailable.');
+      if (recoveryRepository === undefined || stateStore === undefined) {
+        throw new Error('Web account deletion recovery is unavailable.');
       }
       const persisted = await stateStore.load();
       if (persisted?.phase !== 'requesting') {
@@ -915,23 +1007,22 @@ export function createWebRemoteRuntimeController(
       if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
         throw new Error('当前删除申请仍可在本页面继续确认。');
       }
-      challenge = await dependencies.authRepository.requestSmsCode(
+      deletionRecoveryChallenge = await recoveryRepository.requestCode(
         persisted.phoneNumber,
       );
-      if (
-        challenge.mode !== 'remote' ||
-        challenge.phoneNumber !== persisted.phoneNumber
-      ) {
-        challenge = null;
-        throw new Error('删除恢复验证码未绑定到原手机号。');
-      }
-      return challenge;
+      return deletionRecoveryChallenge;
     },
 
     async resumeAccountDeletion() {
       const stateStore = dependencies.accountDeletionStateStore;
       if (stateStore === undefined) {
         throw new Error('Web account deletion state store is unavailable.');
+      }
+      if (
+        acceptedDeletionPhoneNumber !== null ||
+        registrationReadyPhoneNumber !== null
+      ) {
+        return submitAccountDeletionRequest();
       }
       const persisted = await stateStore.load();
       if (persisted === null) {
@@ -940,6 +1031,9 @@ export function createWebRemoteRuntimeController(
       activeAccountPhoneNumber = persisted.phoneNumber;
       if (persisted.phase === 'accepted') {
         return finishAcceptedAccountDeletion(persisted.phoneNumber);
+      }
+      if (persisted.phase === 'registration_ready') {
+        return finishRegistrationReady(persisted.phoneNumber);
       }
       const session = dependencies.authSessionCoordinator.getCurrentSession();
       return session?.mode === 'remote' &&
@@ -952,37 +1046,54 @@ export function createWebRemoteRuntimeController(
     },
 
     async verifyAccountDeletionRecoverySmsCode(smsCode) {
+      const recoveryRepository =
+        dependencies.accountDeletionRecoveryRepository;
       const stateStore = dependencies.accountDeletionStateStore;
-      if (stateStore === undefined) {
-        throw new Error('Web account deletion state store is unavailable.');
+      if (recoveryRepository === undefined || stateStore === undefined) {
+        throw new Error('Web account deletion recovery is unavailable.');
       }
       const persisted = await stateStore.load();
       if (persisted?.phase !== 'requesting') {
         throw new Error('当前没有需要重新验证的删除申请。');
       }
       if (
-        challenge === null ||
-        challenge.mode !== 'remote' ||
-        challenge.phoneNumber !== persisted.phoneNumber
+        deletionRecoveryChallenge === null ||
+        deletionRecoveryChallenge.phoneNumber !== persisted.phoneNumber
       ) {
         throw new Error('请先向原手机号获取验证码。');
       }
-      const session = await dependencies.authRepository.verifySmsCode({
-        challenge,
-        phoneNumber: persisted.phoneNumber,
+      const recovery = await recoveryRepository.verifyCode({
+        challenge: deletionRecoveryChallenge,
         smsCode,
       });
-      if (
-        session.mode !== 'remote' ||
-        session.phoneNumber !== persisted.phoneNumber
-      ) {
-        throw new Error('删除恢复只接受原手机号的远端会话。');
+      deletionRecoveryChallenge = null;
+      if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
+        throw new Error('删除恢复不得创建通用登录会话。');
       }
-      await dependencies.authSessionCoordinator.establish(session);
-      activeAccountPhoneNumber = session.phoneNumber;
-      sessionDeletionRevision = await stateStore.getRevision();
-      challenge = null;
-      return submitAccountDeletionRequest();
+      if (recovery.state === 'pending') {
+        acceptedDeletionPhoneNumber = persisted.phoneNumber;
+        try {
+          await stateStore.mark(persisted.phoneNumber, 'accepted');
+        } catch {
+          return {status: 'cleanup_required'};
+        }
+        return finishAcceptedAccountDeletion(persisted.phoneNumber);
+      }
+
+      registrationReadyPhoneNumber = persisted.phoneNumber;
+      try {
+        await stateStore.mark(
+          persisted.phoneNumber,
+          'registration_ready',
+        );
+      } catch {
+        return {status: 'registration_cleanup_required'};
+      }
+      return finishRegistrationReady(persisted.phoneNumber);
+    },
+
+    subscribeAudioStatus(listener) {
+      return dependencies.subscribeAudioStatus?.(listener) ?? (() => undefined);
     },
 
     async verifySmsCode(phoneNumber, smsCode) {

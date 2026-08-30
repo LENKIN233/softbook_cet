@@ -173,6 +173,39 @@ function readAccountDeletionOwner(storage: BrowserStorage): string | null {
       throw new Error('invalid deletion marker');
     }
     const record = parsed as Record<string, unknown>;
+    if (record.schema_version === 'web-account-deletion-envelope.v2') {
+      if (
+        Object.keys(record).sort().join(',') !==
+          'revision,schema_version,state' ||
+        !Number.isSafeInteger(record.revision) ||
+        (record.revision as number) < 0
+      ) {
+        throw new Error('invalid deletion envelope');
+      }
+      if (record.state === null) {
+        return null;
+      }
+      if (
+        typeof record.state !== 'object' ||
+        record.state === null ||
+        Array.isArray(record.state)
+      ) {
+        throw new Error('invalid deletion envelope');
+      }
+      const state = record.state as Record<string, unknown>;
+      if (
+        Object.keys(state).sort().join(',') !==
+          'owner_phone_number,phase' ||
+        (state.phase !== 'requesting' &&
+          state.phase !== 'accepted' &&
+          state.phase !== 'registration_ready') ||
+        typeof state.owner_phone_number !== 'string' ||
+        !/^1\d{10}$/.test(state.owner_phone_number)
+      ) {
+        throw new Error('invalid deletion envelope');
+      }
+      return state.owner_phone_number;
+    }
     if (
       (record.phase !== 'requesting' && record.phase !== 'accepted') ||
       typeof record.owner_phone_number !== 'string' ||

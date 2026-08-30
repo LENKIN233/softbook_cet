@@ -242,7 +242,7 @@ export function createMutationQueueRepository(options: {
 
           if (context && !isSameReplayContext(context, entry)) {
             console.warn(
-              `[MutationQueue] Dropping stale queued mutation ${entry.id} for a different auth context.`,
+              `[MutationQueue] Dropping stale ${entry.type} mutation (count 1) for a different auth context.`,
             );
             await queue.removeIfUnchanged(entry);
             continue;

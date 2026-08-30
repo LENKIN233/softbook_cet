@@ -206,6 +206,7 @@ describe('Web persistence boundary', () => {
     localStorage.setItem('__softbook_mutation_queue', '{broken');
     localStorage.setItem('__softbook_mutation_queue:quarantine', '{broken');
     const deletionStore = createWebAccountDeletionStateStore(localStorage);
+    await deletionStore.mark('13800138000', 'requesting');
     await deletionStore.mark('13800138000', 'accepted');
     const outbox = createOutbox('webdevice_cleanup_corrupt');
     const queue = createMutationQueue();

@@ -767,7 +767,7 @@ describe('authenticated Web remote orchestration', () => {
       authSessionStore: createMemoryOnlyAuthSessionStore(),
     });
     let persistedDeletionState: {
-      phase: 'accepted' | 'requesting';
+      phase: 'accepted' | 'registration_ready' | 'requesting';
       phoneNumber: string;
     } | null = null;
     const requestDeletion = vi
@@ -858,21 +858,34 @@ describe('authenticated Web remote orchestration', () => {
     expect(operations.at(-1)).toBe('deletion-marker-clear');
   });
 
-  it('recovers a refreshed requesting marker only through same-phone SMS and retries deletion', async () => {
+  it('recovers pending deletion through dedicated SMS without creating a session', async () => {
     const operations: string[] = [];
     const authRepository = createSimpleAuthRepository();
+    const authRequestCode = vi.spyOn(authRepository, 'requestSmsCode');
+    const authVerifyCode = vi.spyOn(authRepository, 'verifySmsCode');
     const authSessionCoordinator = createAuthSessionCoordinator({
       authRepository,
       authSessionStore: createMemoryOnlyAuthSessionStore(),
     });
     let persistedDeletionState: {
-      phase: 'accepted' | 'requesting';
+      phase: 'accepted' | 'registration_ready' | 'requesting';
       phoneNumber: string;
     } | null = {phase: 'requesting', phoneNumber: PHONE};
-    const requestDeletion = vi.fn(async () => ({
-      id: 'delete_recovered1234',
-      requestedAt: '2026-08-29T12:00:00.000Z',
-      status: 'queued' as const,
+    const requestRecoveryCode = vi.fn(async () => ({
+      challengeId: 'challenge_recovery_1234567890',
+      delivery: 'sms',
+      expiresAt: '2026-08-29T12:05:00.000Z',
+      phoneNumber: PHONE,
+      retryAfterSeconds: 0,
+    }));
+    const verifyRecoveryCode = vi.fn(async () => ({
+      deletionRequest: {
+        id: 'delete_recovered1234',
+        requestedAt: '2026-08-29T12:00:00.000Z',
+        status: 'processing' as const,
+      },
+      safeToRegister: false as const,
+      state: 'pending' as const,
     }));
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {
@@ -880,7 +893,10 @@ describe('authenticated Web remote orchestration', () => {
           throw new Error('recovery must not hydrate account data');
         },
       },
-      accountDeletionRepository: {requestDeletion},
+      accountDeletionRecoveryRepository: {
+        requestCode: requestRecoveryCode,
+        verifyCode: verifyRecoveryCode,
+      },
       accountDeletionStateStore: {
         async clear() {
           operations.push('deletion-marker-clear');
@@ -930,13 +946,118 @@ describe('authenticated Web remote orchestration', () => {
       controller.verifyAccountDeletionRecoverySmsCode('123456'),
     ).resolves.toEqual({status: 'accepted'});
 
-    expect(requestDeletion).toHaveBeenCalledTimes(1);
-    expect(requestDeletion).toHaveBeenCalledWith({
-      accessToken: 'access-simple',
-      tokenType: 'Bearer',
+    expect(requestRecoveryCode).toHaveBeenCalledWith(PHONE);
+    expect(verifyRecoveryCode).toHaveBeenCalledWith({
+      challenge,
+      smsCode: '123456',
     });
+    expect(authRequestCode).not.toHaveBeenCalled();
+    expect(authVerifyCode).not.toHaveBeenCalled();
     expect(operations).toEqual([
       'deletion-marker-accepted',
+      `events-clear:${PHONE}`,
+      'mutation-clear',
+      'deletion-marker-clear',
+    ]);
+    expect(controller.isAuthenticated()).toBe(false);
+    expect(persistedDeletionState).toBeNull();
+  });
+
+  it('maps dedicated recovery none to safe registration without accepted copy', async () => {
+    const operations: string[] = [];
+    let mutationClearAttempts = 0;
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    let persistedDeletionState: {
+      phase: 'accepted' | 'registration_ready' | 'requesting';
+      phoneNumber: string;
+    } | null = {phase: 'requesting', phoneNumber: PHONE};
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          throw new Error('recovery must not hydrate account data');
+        },
+      },
+      accountDeletionRecoveryRepository: {
+        async requestCode(phoneNumber) {
+          return {
+            challengeId: 'challenge_recovery_1234567890',
+            delivery: 'sms',
+            expiresAt: '2026-08-29T12:05:00.000Z',
+            phoneNumber,
+            retryAfterSeconds: 0,
+          };
+        },
+        async verifyCode() {
+          return {
+            deletionRequest: null,
+            safeToRegister: true,
+            state: 'none',
+          };
+        },
+      },
+      accountDeletionStateStore: {
+        async clear() {
+          operations.push('deletion-marker-clear');
+          persistedDeletionState = null;
+        },
+        async getRevision() {
+          return 0;
+        },
+        async load() {
+          return persistedDeletionState;
+        },
+        async mark(phoneNumber, phase) {
+          operations.push(`deletion-marker-${phase}`);
+          persistedDeletionState = {phase, phoneNumber};
+        },
+      },
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: {
+        ...createEmptyEventSyncRepository(),
+        async clearAccount(phoneNumber) {
+          operations.push(`events-clear:${phoneNumber}`);
+        },
+      },
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          throw new Error('recovery must not load a learning session');
+        },
+      },
+      mutationQueueRepository: {
+        ...createMutationRepository(operations),
+        async clear() {
+          mutationClearAttempts += 1;
+          operations.push('mutation-clear');
+          if (mutationClearAttempts === 1) {
+            throw new Error('injected local cleanup failure');
+          }
+        },
+      },
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestAccountDeletionRecoverySmsCode();
+    await expect(
+      controller.verifyAccountDeletionRecoverySmsCode('123456'),
+    ).resolves.toEqual({status: 'registration_cleanup_required'});
+    expect(persistedDeletionState).toEqual({
+      phase: 'registration_ready',
+      phoneNumber: PHONE,
+    });
+    await expect(controller.resumeAccountDeletion()).resolves.toEqual({
+      status: 'registration_ready',
+    });
+    expect(operations).toEqual([
+      'deletion-marker-registration_ready',
+      `events-clear:${PHONE}`,
+      'mutation-clear',
       `events-clear:${PHONE}`,
       'mutation-clear',
       'deletion-marker-clear',

@@ -268,9 +268,7 @@ export class MutationQueueManager {
       await this.persistCandidate(candidate);
 
       if (entry.retryCount === MAX_MUTATION_RETRIES) {
-        console.warn(
-          `[MutationQueue] Mutation ${id} reached retry threshold; keeping it queued until remote ack.`,
-        );
+        warnRetryThreshold(entry);
       }
     });
   }
@@ -288,9 +286,7 @@ export class MutationQueueManager {
       await this.persistCandidate(candidate);
 
       if (candidate[0].retryCount === MAX_MUTATION_RETRIES) {
-        console.warn(
-          `[MutationQueue] Mutation ${candidate[0].id} reached retry threshold; keeping it queued until remote ack.`,
-        );
+        warnRetryThreshold(candidate[0]);
       }
       return true;
     });
@@ -459,6 +455,12 @@ export class MutationQueueManager {
     await this.storage.setItem(this.key, JSON.stringify(candidate));
     this.entries = candidate;
   }
+}
+
+function warnRetryThreshold(entry: MutationQueueEntry) {
+  console.warn(
+    `[MutationQueue] ${entry.type} reached retry count ${entry.retryCount}; keeping it queued until remote ack.`,
+  );
 }
 
 function isExactEmptyPersistedArray(value: string | null): boolean {

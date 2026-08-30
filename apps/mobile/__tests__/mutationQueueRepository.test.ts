@@ -151,6 +151,10 @@ describe('MutationQueueRepository', () => {
     });
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('binds a mismatch refresh to its exact track while allowing daily vectors to reset', () => {
     const baselineContext = createSpaceReplayContext();
     const baseline = {
@@ -808,6 +812,7 @@ describe('MutationQueueRepository', () => {
   });
 
   it('drops stale entries for a different auth context before replaying current user mutations', async () => {
+    const warning = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const repository = createMutationQueueRepository({
       membershipRepository: mockMembershipRepository as never,
       progressSyncRepository: mockProgressSyncRepository as never,
@@ -852,6 +857,11 @@ describe('MutationQueueRepository', () => {
       stalePayload.context,
       stalePayload.dayKey,
     );
+    const warningText = JSON.stringify(warning.mock.calls);
+    expect(warningText).toContain('check_in_daily_progress');
+    expect(warningText).toContain('count 1');
+    expect(warningText).not.toContain('13800138000');
+    expect(warningText).not.toContain('13800138888');
     await expect(repository.getQueueSize()).resolves.toBe(0);
   });
 

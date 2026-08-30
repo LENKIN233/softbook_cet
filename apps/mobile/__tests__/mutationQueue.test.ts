@@ -569,19 +569,29 @@ describe('MutationQueueManager', () => {
 
   it('keeps entries after reaching retry threshold', async () => {
     const manager = createIsolatedMutationQueueManager();
+    const warning = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    await manager.enqueue('apply_space_action', createSpacePayload());
-    const entryId = 'space-action:13800138000:space_action_0001';
+    try {
+      await manager.enqueue('apply_space_action', createSpacePayload());
+      const entryId = 'space-action:13800138000:space_action_0001';
 
-    for (let index = 0; index <= MAX_MUTATION_RETRIES; index += 1) {
-      await manager.incrementRetry(entryId);
+      for (let index = 0; index <= MAX_MUTATION_RETRIES; index += 1) {
+        await manager.incrementRetry(entryId);
+      }
+
+      await expect(manager.size()).resolves.toBe(1);
+      await expect(manager.peek()).resolves.toMatchObject({
+        id: entryId,
+        retryCount: MAX_MUTATION_RETRIES + 1,
+      });
+      const warningText = JSON.stringify(warning.mock.calls);
+      expect(warningText).toContain('apply_space_action');
+      expect(warningText).toContain(`retry count ${MAX_MUTATION_RETRIES}`);
+      expect(warningText).not.toContain('13800138000');
+      expect(warningText).not.toContain(entryId);
+    } finally {
+      warning.mockRestore();
     }
-
-    await expect(manager.size()).resolves.toBe(1);
-    await expect(manager.peek()).resolves.toMatchObject({
-      id: entryId,
-      retryCount: MAX_MUTATION_RETRIES + 1,
-    });
   });
 
   it('keeps the active head when durable quarantine persistence fails', async () => {

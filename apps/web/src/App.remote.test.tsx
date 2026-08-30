@@ -366,6 +366,111 @@ describe('PC Web remote UI authority', () => {
     expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
   });
 
+  it('opens fresh registration after exact recovery none without claiming acceptance', async () => {
+    const controller = createController(createSnapshot('premium'), {
+      resumeAccountDeletion: vi.fn(async () => ({
+        phoneNumber: PHONE,
+        status: 'reauthentication_required' as const,
+      })),
+      verifyAccountDeletionRecoverySmsCode: vi.fn(async () => ({
+        status: 'registration_ready' as const,
+      })),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: '向原手机号获取验证码',
+      }),
+    );
+    fireEvent.change(await screen.findByLabelText('短信验证码'), {
+      target: {value: '123456'},
+    });
+    fireEvent.click(
+      screen.getByRole('button', {name: '验证并继续确认删除'}),
+    );
+
+    expect(
+      await screen.findByText('现在可以重新验证手机号'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/不表示此前删除申请已接收或已经完成/)).toBeInTheDocument();
+    expect(screen.queryByText('删除申请已提交')).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '返回手机号验证'}));
+    expect(await screen.findByLabelText('手机号')).toHaveValue('');
+  });
+
+  it('retries registration-ready local cleanup without another SMS', async () => {
+    const resumeAccountDeletion = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: 'registration_cleanup_required' as const,
+      })
+      .mockResolvedValueOnce({status: 'registration_ready' as const});
+    const controller = createController(createSnapshot('premium'), {
+      resumeAccountDeletion,
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+
+    expect(
+      await screen.findByText('重新验证前还要完成本机清理'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/不证明此前申请已接收或完成/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '重试本机清理'}));
+
+    expect(
+      await screen.findByText('现在可以重新验证手机号'),
+    ).toBeInTheDocument();
+    expect(resumeAccountDeletion).toHaveBeenCalledTimes(2);
+    expect(
+      controller.requestAccountDeletionRecoverySmsCode,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('updates the audio action after ended and error events', async () => {
+    const snapshot = createSnapshot('premium');
+    const audioCard = {
+      ...snapshot.learningSession.cards[0],
+      audio: {
+        asset_id: 'cet4.000001.prompt',
+        duration_ms: 1_000,
+        sha256: `sha256:${'ab'.repeat(32)}`,
+      },
+    };
+    snapshot.learningSession.cards = [audioCard];
+    snapshot.learningSession.catalogCards = [
+      audioCard,
+      ...snapshot.learningSession.catalogCards.slice(1),
+    ];
+    let audioListener: ((status: 'error' | 'idle') => void) | null = null;
+    const controller = createController(snapshot, {
+      playCardAudio: vi
+        .fn()
+        .mockResolvedValueOnce('ready')
+        .mockResolvedValueOnce('playing'),
+      subscribeAudioStatus: vi.fn(listener => {
+        audioListener = listener;
+        return () => undefined;
+      }),
+    });
+    await authenticateRemote(controller);
+
+    fireEvent.click(screen.getByRole('button', {name: '准备卡片音频'}));
+    fireEvent.click(
+      await screen.findByRole('button', {name: '播放已校验音频'}),
+    );
+    expect(
+      await screen.findByRole('button', {name: '暂停卡片音频'}),
+    ).toBeInTheDocument();
+
+    act(() => audioListener?.('idle'));
+    expect(
+      screen.getByRole('button', {name: '准备卡片音频'}),
+    ).toBeInTheDocument();
+    act(() => audioListener?.('error'));
+    expect(
+      screen.getByRole('button', {name: '重试卡片音频'}),
+    ).toBeInTheDocument();
+  });
+
   it.each(['premium', 'trial'] as const)(
     'shows the full multi-card Space and enables writes for %s',
     async stage => {
@@ -428,12 +533,13 @@ function createController(
     requestAccountDeletion: vi.fn(async () => ({status: 'none' as const})),
     requestAccountDeletionRecoverySmsCode: vi.fn(async () => ({
       challengeId: 'challenge-deletion-recovery',
+      delivery: 'sms',
       expiresAt: '2026-08-29T12:05:00.000Z',
-      mode: 'remote' as const,
       phoneNumber: PHONE,
       retryAfterSeconds: 0,
     })),
     resumeAccountDeletion: vi.fn(async () => ({status: 'none' as const})),
+    subscribeAudioStatus: vi.fn(() => () => undefined),
     verifyAccountDeletionRecoverySmsCode: vi.fn(async () => ({
       status: 'unknown' as const,
     })),
