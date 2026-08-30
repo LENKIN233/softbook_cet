@@ -200,9 +200,16 @@ Implemented mapping:
   context and exposes `回到当前卡盒` whenever manual browsing steps away from
   the current card address.
 - Entering box inspection starts on the exact current Learning card, including
-  when that card is not the first sibling in source order.
+  when that card is not the first sibling in source order. At a completed
+  server round, Space follows the receipt-bound `spaceCardId` instead of losing
+  continuity because the active selection is empty.
 - Space hierarchy, inspection, paging, state, and recovery actions expose
   assistive roles/state and use at least `44 x 44dp` touch regions.
+- Manually browsed boxes use selected-box address, card-position, and sleep copy;
+  `同盒` and `当前` language is reserved for the current Learning card's box.
+- Accessibility-size Space cards and inspection surfaces leave long exam
+  prompts unbounded by `numberOfLines`, while the surrounding scroll ownership
+  keeps the full prompt and actions reachable.
 - Phone Space uses an intrinsic vertical scroll container because the shell
   consumes part of the raw window height; accessibility-size phone layouts
   delegate scrolling to the shell, while accessibility-size tablet Space owns
@@ -212,6 +219,13 @@ Implemented mapping:
   pseudonymous installation device ID, and product interaction data that the
   authenticated mobile runtime actually sends for account and learning
   functionality; none is declared for tracking.
+- Native private-audio downloads add a JS wall-clock deadline around the native
+  transfer task, cancel a body-stalled task, and clean its partial file even
+  when the Android transport's body read timeout does not fire.
+- Learning-session membership fields remain a consistency observation only.
+  Stage or trial-clock drift forces a fresh revisioned Bootstrap read; the
+  session never writes an unrevisioned trial projection into global membership
+  state and a stale session cannot extend the canonical trial.
 
 Implementation-only gaps and evidence boundary:
 

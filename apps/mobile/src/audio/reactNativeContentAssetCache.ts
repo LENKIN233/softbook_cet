@@ -1,4 +1,7 @@
-import ReactNativeBlobUtil from 'react-native-blob-util';
+import ReactNativeBlobUtil, {
+  type FetchBlobResponse,
+  type StatefulPromise,
+} from 'react-native-blob-util';
 
 import {
   assertContentAssetCredentialFreeHttps,
@@ -34,12 +37,17 @@ const fileSystem: ContentAssetCacheFileSystem = {
         throw new Error('Native content asset download timed out.');
       }
 
-      const response = await ReactNativeBlobUtil.config({
+      const task = ReactNativeBlobUtil.config({
         followRedirect: false,
         overwrite: false,
         path: destinationPath,
         timeout: remainingTimeoutMs,
       }).fetch('GET', requestUrl, {Accept: 'audio/mpeg'});
+      const response = await waitForNativeDownloadTask({
+        destinationPath,
+        task,
+        timeoutMs: remainingTimeoutMs,
+      });
       const info = response.info();
 
       if (!REDIRECT_STATUSES.has(info.status)) {
@@ -85,6 +93,60 @@ const fileSystem: ContentAssetCacheFileSystem = {
 export const reactNativeContentAssetCache = createContentAssetCache({
   fileSystem,
 });
+
+function waitForNativeDownloadTask({
+  destinationPath,
+  task,
+  timeoutMs,
+}: {
+  destinationPath: string;
+  task: StatefulPromise<FetchBlobResponse>;
+  timeoutMs: number;
+}) {
+  return new Promise<FetchBlobResponse>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      try {
+        task.cancel(() => {
+          removeNativePartialFile(destinationPath).catch(() => undefined);
+        });
+      } catch {
+        // The wall-clock rejection and outer cache cleanup remain authoritative.
+      }
+      reject(new Error('Native content asset download timed out.'));
+    }, timeoutMs);
+
+    task.then(
+      response => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        resolve(response);
+      },
+      error => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+async function removeNativePartialFile(path: string) {
+  if (await ReactNativeBlobUtil.fs.exists(path)) {
+    await ReactNativeBlobUtil.fs.unlink(path);
+  }
+}
 
 function readRedirectLocation(headers: unknown) {
   if (typeof headers !== 'object' || headers === null || Array.isArray(headers)) {

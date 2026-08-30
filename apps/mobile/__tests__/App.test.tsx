@@ -2037,6 +2037,76 @@ test('refreshes canonical membership when learning-session starts the trial', as
   expect(JSON.stringify(tree!.toJSON())).toContain('试用还剩 3 天');
 });
 
+test('rejects a stale learning session that tries to extend the canonical trial clock', async () => {
+  let bootstrapRequestCount = 0;
+  const staleTrialSession = {
+    ...createLocalLearningSession('cet4'),
+    contentVersion: TEST_CONTENT_VERSION,
+    membershipStage: 'trial' as const,
+    membershipTrialExpiresAt: '2026-08-15T08:00:00.000Z',
+    membershipTrialRemainingSeconds: 259200,
+    membershipTrialStartedAt: '2026-08-10T08:00:00.000Z',
+  };
+
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {
+      progressSync: 'local',
+      spaceState: 'local',
+    },
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createRemoteAuthSessionResponse();
+    }
+    if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
+      bootstrapRequestCount += 1;
+      const payload = createAccountBootstrapPayload(staleTrialSession, 'trial');
+      payload.data.generated_at = '2026-08-12T08:00:01.000Z';
+      payload.data.membership.trial_expires_at =
+        staleTrialSession.membershipTrialExpiresAt;
+      payload.data.membership.trial_remaining_seconds = 259199;
+      payload.data.membership.trial_started_at =
+        staleTrialSession.membershipTrialStartedAt;
+      return createJsonResponse(payload);
+    }
+
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<App />);
+  });
+  const root = tree!.root;
+  await authenticateIntoLearningBootstrap(root);
+  await resolveLearningBootstrap(staleTrialSession);
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await ReactTestRenderer.act(async () => {
+      await flushAsyncEffects();
+    });
+    if (
+      root.findAllByProps({testID: 'learning-bootstrap-retry-button'}).length >
+      0
+    ) {
+      break;
+    }
+  }
+
+  expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
+  expect(root.findAllByProps({testID: 'learning-flip-button'})).toHaveLength(0);
+  expect(
+    root.findAllByProps({testID: 'learning-bootstrap-retry-button'}).length,
+  ).toBeGreaterThan(0);
+  await openRoute(root, 'mine');
+  expect(JSON.stringify(tree!.toJSON())).toContain('试用还剩 3 天');
+  expectNoUserVisibleMetadataLeakage(tree!);
+});
+
 test('fails closed when refreshed bootstrap still disagrees with learning-session membership', async () => {
   let bootstrapRequestCount = 0;
   const trialSession = {
@@ -2306,6 +2376,10 @@ test('continues an exact controlled-pilot round before requesting another server
   });
   await authenticateIntoLearningBootstrap(tree!.root);
   await resolveLearningBootstrap(roundSession);
+  await openRoute(tree!.root, 'space');
+  const roundSpaceText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(roundSpaceText).toContain(baseSession.catalogCards[4].front.prompt);
+  await openRoute(tree!.root, 'learning');
   const continueButton = tree!.root.findByProps({
     testID: 'learning-continue-round-button',
   });

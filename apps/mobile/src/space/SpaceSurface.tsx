@@ -947,8 +947,10 @@ export function SpaceSurface({
 
               <View style={styles.overviewHeroRow}>
                 <View style={styles.statusCopy}>
-                  <Text style={[styles.eyebrow, { color: palette.textMuted }]}>
-                    当前盒桌
+                  <Text
+                    style={[styles.eyebrow, { color: palette.textMuted }]}
+                  >
+                    {selectedBoxIsCurrent ? '当前盒桌' : '浏览盒桌'}
                   </Text>
                   <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
                     打开卡盒
@@ -956,13 +958,17 @@ export function SpaceSurface({
                   <Text
                     style={[styles.locationText, { color: palette.textMuted }]}
                   >
-                    {currentCardPath
+                    {selectedBoxIsCurrent
                       ? '同盒卡片都在这里'
-                      : '学习卡位置会随进度归位'}
+                      : '正在查看所选卡盒的卡片'}
                   </Text>
                 </View>
                 <Pressable
-                  accessibilityLabel="查看当前卡盒里的卡片"
+                  accessibilityLabel={
+                    selectedBoxIsCurrent
+                      ? '查看当前卡盒里的卡片'
+                      : '查看所选卡盒里的卡片'
+                  }
                   accessibilityRole="button"
                   onPress={onOpenCardList ?? noop}
                   style={[
@@ -1013,7 +1019,7 @@ export function SpaceSurface({
                   <Text
                     style={[styles.openBoxLidTitle, { color: palette.text }]}
                   >
-                    同盒卡片
+                    {selectedBoxIsCurrent ? '同盒卡片' : '所选盒内卡片'}
                   </Text>
                   <Text
                     style={[
@@ -1107,7 +1113,9 @@ export function SpaceSurface({
                             : '盒内';
                           const cardPositionLabel = isCurrent
                             ? '当前卡位'
-                            : '同盒卡位';
+                            : selectedBoxIsCurrent
+                            ? '同盒卡位'
+                            : '所选盒卡位';
 
                           return (
                             <View
@@ -1161,7 +1169,13 @@ export function SpaceSurface({
                                 </Text>
                               </View>
                               <Text
-                                numberOfLines={index === 0 ? 3 : 2}
+                                numberOfLines={
+                                  usesAccessibilityLayout
+                                    ? undefined
+                                    : index === 0
+                                    ? 3
+                                    : 2
+                                }
                                 style={[
                                   styles.deckCardPrompt,
                                   { color: palette.text },
@@ -1226,7 +1240,9 @@ export function SpaceSurface({
                     </View>
 
                     <Pressable
-                      accessibilityLabel={`查看同盒休眠卡，${selectedSleepingCards.length} 张`}
+                      accessibilityLabel={`查看${
+                        selectedBoxIsCurrent ? '同盒' : '所选盒'
+                      }休眠卡，${selectedSleepingCards.length} 张`}
                       accessibilityRole="button"
                       onPress={onOpenCardList ?? noop}
                       style={[
@@ -1247,7 +1263,7 @@ export function SpaceSurface({
                               { color: palette.text },
                             ]}
                           >
-                            同盒休眠
+                            {selectedBoxIsCurrent ? '同盒休眠' : '所选盒休眠'}
                           </Text>
                           <Text
                             style={[
@@ -1410,7 +1426,7 @@ export function SpaceSurface({
                     <Text
                       style={[styles.browseTrayTitle, { color: palette.text }]}
                     >
-                      当前卡盒
+                      {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
                     </Text>
                     <Text
                       numberOfLines={1}
@@ -1419,9 +1435,9 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      {currentCardPath
+                      {selectedBoxIsCurrent
                         ? '正在查看同盒卡片'
-                        : '学习卡位置会随学习更新'}
+                        : '正在查看所选卡盒'}
                     </Text>
                   </View>
                   <View
@@ -1464,7 +1480,7 @@ export function SpaceSurface({
                         { color: selectedTone.accent },
                       ]}
                     >
-                      当前位置
+                      {selectedBoxIsCurrent ? '当前位置' : '所选位置'}
                     </Text>
                     <Text
                       style={[
@@ -1573,7 +1589,7 @@ export function SpaceSurface({
                                 { color: palette.textMuted },
                               ]}
                             >
-                              同盒卡片
+                              {selectedBoxIsCurrent ? '同盒卡片' : '所选盒卡片'}
                             </Text>
                             <Text
                               style={[
@@ -1608,7 +1624,9 @@ export function SpaceSurface({
                           testID="space-browse-card-face"
                         >
                           <Text
-                            numberOfLines={3}
+                            numberOfLines={
+                              usesAccessibilityLayout ? undefined : 3
+                            }
                             style={[
                               styles.cardPrompt,
                               styles.browseCardPrompt,
@@ -1637,7 +1655,11 @@ export function SpaceSurface({
                                   { color: palette.text },
                                 ]}
                               >
-                                {isCurrent ? '当前卡位' : '同盒卡位'}
+                                {isCurrent
+                                  ? '当前卡位'
+                                  : selectedBoxIsCurrent
+                                  ? '同盒卡位'
+                                  : '所选盒卡位'}
                               </Text>
                             </View>
                             <View style={styles.browseCardLocatorItem}>

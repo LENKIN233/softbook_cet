@@ -3374,12 +3374,31 @@ function AppShell({
           return;
         }
 
+        const bootstrapMembership = accountBootstrapSnapshot?.membership.state;
+        const hasServerMembershipProjection =
+          session.schedulingMode === 'server' &&
+          session.membershipStage !== null;
+        const sessionMembershipIdentityDiffers = Boolean(
+          hasServerMembershipProjection &&
+            bootstrapMembership &&
+            (bootstrapMembership.stage !== session.membershipStage ||
+              bootstrapMembership.trialStartedAt !==
+                session.membershipTrialStartedAt ||
+              bootstrapMembership.trialExpiresAt !==
+                session.membershipTrialExpiresAt),
+        );
+        const sessionClaimsMoreTrialTime = Boolean(
+          hasServerMembershipProjection &&
+            bootstrapMembership?.stage === 'trial' &&
+            session.membershipStage === 'trial' &&
+            session.membershipTrialRemainingSeconds >
+              bootstrapMembership.trialRemainingSeconds,
+        );
+
         if (
           runtimeAccountBootstrapMode === 'remote' &&
           accountBootstrapSnapshot !== null &&
-          session.membershipStage !== null &&
-          accountBootstrapSnapshot.membership.state.stage !==
-            session.membershipStage
+          (sessionMembershipIdentityDiffers || sessionClaimsMoreTrialTime)
         ) {
           const bootstrapRefreshed = await retryCanonicalAccountBootstrap({
             forceFresh: true,
@@ -3389,10 +3408,17 @@ function AppShell({
             return;
           }
 
+          const refreshedMembership =
+            accountBootstrapSnapshotRef.current?.membership.state;
           if (
             !bootstrapRefreshed ||
-            accountBootstrapSnapshotRef.current?.membership.state.stage !==
-              session.membershipStage
+            refreshedMembership === undefined ||
+            refreshedMembership.stage !== session.membershipStage ||
+            refreshedMembership.trialStartedAt !==
+              session.membershipTrialStartedAt ||
+            refreshedMembership.trialExpiresAt !==
+              session.membershipTrialExpiresAt ||
+            sessionClaimsMoreTrialTime
           ) {
             throw new Error(
               'Canonical membership did not reconcile with the learning session.',
@@ -3417,24 +3443,6 @@ function AppShell({
           effectiveMembershipState = startMembershipTrial(
             currentMembershipState,
           );
-        } else if (
-          session.schedulingMode === 'server' &&
-          session.membershipStage !== null &&
-          (currentMembershipState.stage !== session.membershipStage ||
-            currentMembershipState.trialStartedAt !==
-              session.membershipTrialStartedAt ||
-            currentMembershipState.trialExpiresAt !==
-              session.membershipTrialExpiresAt ||
-            currentMembershipState.trialRemainingSeconds !==
-              session.membershipTrialRemainingSeconds)
-        ) {
-          effectiveMembershipState = {
-            ...currentMembershipState,
-            stage: session.membershipStage,
-            trialExpiresAt: session.membershipTrialExpiresAt,
-            trialRemainingSeconds: session.membershipTrialRemainingSeconds,
-            trialStartedAt: session.membershipTrialStartedAt,
-          };
         }
         if (effectiveMembershipState !== currentMembershipState) {
           setMembershipState(effectiveMembershipState);
@@ -5150,7 +5158,7 @@ function AppShell({
   ) : route.key === 'space' ? (
     <SpaceSurface
       cardStateById={spaceCardStateById}
-      currentLearningCard={currentLearningCard}
+      currentLearningCard={activeLearningContextCard}
       deviceClass={deviceClass}
       onBackToOverview={() => setSpaceScreen('overview')}
       onOpenCardList={() => setSpaceScreen('card_list')}

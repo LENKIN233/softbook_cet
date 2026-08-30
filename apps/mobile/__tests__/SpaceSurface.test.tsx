@@ -578,26 +578,29 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
     '相邻书架提示',
   );
   const onReturnToLearning = jest.fn();
+  const spaceCards = [
+    currentCard,
+    siblingBoxCard,
+    siblingGroupCard,
+    siblingLibraryCard,
+  ];
+  const renderSurface = (screen: 'overview' | 'card_list' = 'overview') => (
+    <SpaceSurface
+      cardStateById={{}}
+      currentLearningCard={currentCard}
+      deviceClass="phone"
+      onReturnToLearning={onReturnToLearning}
+      onToggleFavoriteTag={jest.fn()}
+      onToggleSleepState={jest.fn()}
+      palette={palette}
+      screen={screen}
+      spaceCards={spaceCards}
+    />
+  );
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   ReactTestRenderer.act(() => {
-    tree = ReactTestRenderer.create(
-      <SpaceSurface
-        cardStateById={{}}
-        currentLearningCard={currentCard}
-        deviceClass="phone"
-        onReturnToLearning={onReturnToLearning}
-        onToggleFavoriteTag={jest.fn()}
-        onToggleSleepState={jest.fn()}
-        palette={palette}
-        spaceCards={[
-          currentCard,
-          siblingBoxCard,
-          siblingGroupCard,
-          siblingLibraryCard,
-        ]}
-      />,
-    );
+    tree = ReactTestRenderer.create(renderSurface());
   });
 
   const root = tree!.root;
@@ -612,6 +615,10 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
   let renderedText = collectRenderedText(tree!.toJSON()).join(' ');
   expect(renderedText).toContain('因果关系');
   expect(renderedText).toContain('相邻卡盒提示');
+  expect(renderedText).toContain('浏览盒桌');
+  expect(renderedText).toContain('正在查看所选卡盒的卡片');
+  expect(renderedText).toContain('所选盒内卡片');
+  expect(renderedText).toContain('所选盒休眠');
   expect(root.findByProps({testID: 'space-follow-current-box'})).toBeTruthy();
 
   ReactTestRenderer.act(() => {
@@ -627,6 +634,20 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
   renderedText = collectRenderedText(tree!.toJSON()).join(' ');
   expect(renderedText).toContain('仔细阅读');
   expect(renderedText).toContain('相邻书架提示');
+
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface('card_list'));
+  });
+  renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain('所选卡盒');
+  expect(renderedText).toContain('正在查看所选卡盒');
+  expect(renderedText).toContain('所选位置');
+  expect(renderedText).toContain('所选盒卡片');
+  expect(renderedText).toContain('所选盒卡位');
+
+  ReactTestRenderer.act(() => {
+    tree!.update(renderSurface());
+  });
 
   ReactTestRenderer.act(() => {
     root.findByProps({testID: 'space-follow-current-box'}).props.onPress();
@@ -646,7 +667,14 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
 
 test('stacks Space objects instead of overlapping them at accessibility font sizes', () => {
   const session = createLocalLearningSession('cet4');
-  const currentCard = session.catalogCards[0];
+  const longPrompt =
+    '这是一段需要在辅助功能字号下完整展示、不能因卡片层级而被截断的较长四六级题干。';
+  const accessibleCards = session.catalogCards.map((card, index) =>
+    index === 0
+      ? {...card, front: {...card.front, prompt: longPrompt}}
+      : card,
+  );
+  const currentCard = accessibleCards[0];
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   ReactTestRenderer.act(() => {
@@ -659,7 +687,7 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
         onToggleFavoriteTag={jest.fn()}
         onToggleSleepState={jest.fn()}
         palette={palette}
-        spaceCards={session.catalogCards}
+        spaceCards={accessibleCards}
         usesAccessibilityLayout
       />,
     );
@@ -693,6 +721,31 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
     flexDirection: 'column',
   });
   expect(viewportStyle.flex).toBe(0);
+  const overviewPromptNodes = root.findAllByProps({children: longPrompt});
+  expect(overviewPromptNodes.length).toBeGreaterThan(0);
+  overviewPromptNodes.forEach(node => {
+    expect(node.props.numberOfLines).toBeUndefined();
+  });
+
+  ReactTestRenderer.act(() => {
+    tree!.update(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        screen="card_list"
+        spaceCards={accessibleCards}
+        usesAccessibilityLayout
+      />,
+    );
+  });
+  expect(
+    tree!.root.findByProps({children: longPrompt}).props.numberOfLines,
+  ).toBeUndefined();
 });
 
 test('keeps accessibility-size tablet Space intrinsically scrollable', () => {

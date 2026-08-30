@@ -3545,7 +3545,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   lockChoicePill: {
+    alignItems: 'center',
     borderRadius: 14,
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: 44,
     paddingHorizontal: 6,
     paddingVertical: 5,
   },
@@ -3584,7 +3588,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   eliminationCard: {
-    minWidth: '47%',
+    flexBasis: '47%',
+    minHeight: 44,
+    minWidth: 44,
     flexGrow: 1,
     borderWidth: 1,
     borderRadius: 20,

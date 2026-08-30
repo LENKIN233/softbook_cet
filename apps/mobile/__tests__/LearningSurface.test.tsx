@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import {Dimensions, StyleSheet, Text} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
 import {
@@ -496,6 +496,92 @@ test('lock rows unlock in order, keep wrong rows retryable, and submit only when
     submitButton.props.onPress();
   });
   expect(onSubmitCurrentCard).toHaveBeenCalledTimes(1);
+});
+
+test('lock and elimination pressables keep 44x44 targets in standard and compact layouts', () => {
+  const session = createLocalLearningSession('cet4');
+  const lockCard = session.cards.find(card => card.interaction_id === 'lock');
+  const eliminationCard = session.cards.find(
+    card => card.interaction_id === 'elimination',
+  );
+  if (!lockCard || lockCard.interaction_id !== 'lock' || !eliminationCard || eliminationCard.interaction_id !== 'elimination') {
+    throw new Error('Expected lock and elimination cards in the local session.');
+  }
+  const renderCard = (card: typeof lockCard | typeof eliminationCard) => (
+    <LearningSurface
+      completedResults={[]}
+      currentCard={card}
+      currentCardState={createLearningCardState(card)}
+      currentIndex={0}
+      currentResult={null}
+      onAdvanceCard={jest.fn()}
+      onFlip={jest.fn()}
+      onRestartDeck={jest.fn()}
+      onSelectOption={jest.fn()}
+      onSelectSwipeState={jest.fn()}
+      onSetFlipConfidence={jest.fn()}
+      onSetLockSelection={jest.fn()}
+      onSubmitCurrentCard={jest.fn()}
+      onToggleEliminationItem={jest.fn()}
+      onToggleFavorite={jest.fn()}
+      onToggleHint={jest.fn()}
+      onTogglePeek={jest.fn()}
+      palette={palette}
+      phase="learning"
+      reviewCandidateCount={0}
+      sessionCards={session.cards}
+      sessionLabel={session.sourceLabel}
+    />
+  );
+
+  try {
+    for (const viewport of [
+      {height: 1133, width: 744},
+      {height: 700, width: 393},
+    ]) {
+      ReactTestRenderer.act(() => {
+        Dimensions.set({
+          screen: {fontScale: 1, scale: 1, ...viewport},
+          window: {fontScale: 1, scale: 1, ...viewport},
+        });
+      });
+      let lockTree: ReactTestRenderer.ReactTestRenderer;
+      let eliminationTree: ReactTestRenderer.ReactTestRenderer;
+      ReactTestRenderer.act(() => {
+        lockTree = ReactTestRenderer.create(renderCard(lockCard));
+        eliminationTree = ReactTestRenderer.create(renderCard(eliminationCard));
+      });
+
+      const firstLockSlot = lockCard.lock_slots[0];
+      const lockTargetStyle = StyleSheet.flatten(
+        lockTree!.root.findByProps({
+          accessibilityLabel: `${firstLockSlot.label}，${firstLockSlot.options[0]}`,
+        }).props.style,
+      );
+      const eliminationTargetStyle = StyleSheet.flatten(
+        eliminationTree!.root.findByProps({
+          testID: `learning-elimination-${eliminationCard.elimination_items[0].id}`,
+        }).props.style,
+      );
+      expect(lockTargetStyle).toMatchObject({minHeight: 44, minWidth: 44});
+      expect(eliminationTargetStyle).toMatchObject({
+        minHeight: 44,
+        minWidth: 44,
+      });
+
+      ReactTestRenderer.act(() => {
+        lockTree!.unmount();
+        eliminationTree!.unmount();
+      });
+    }
+  } finally {
+    ReactTestRenderer.act(() => {
+      Dimensions.set({
+        screen: {fontScale: 1, height: 852, scale: 1, width: 393},
+        window: {fontScale: 1, height: 852, scale: 1, width: 393},
+      });
+    });
+  }
 });
 
 test('swipe choices stay compact enough for the one-screen phone action plane', () => {
