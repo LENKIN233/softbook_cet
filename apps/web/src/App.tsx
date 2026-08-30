@@ -1,4 +1,4 @@
-import {useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 
 import type {
   LearningCard,
@@ -153,7 +153,7 @@ export function App({
   ].filter((fact): fact is string => fact !== null);
   const genericSyncStatus = runtime.mode === 'remote'
     ? remoteSyncFacts.join('；') || '服务端已确认'
-    : '本机开发状态';
+    : '当前设备可继续';
   const remoteCleanupPending =
     runtime.mode === 'remote' &&
     authStage === 'authenticated' &&
@@ -623,7 +623,10 @@ export function App({
         <section className="auth-object" aria-labelledby="auth-title">
           <div className="brand-lockup"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
           <p className="eyebrow">同一账户 · 连续学习</p>
-          <h1 id="auth-title">验证后开始今天的学习</h1>
+          <h1 id="auth-title" className="auth-title">
+            <span>验证后开始</span>
+            <span>今天的学习</span>
+          </h1>
           <p className="lede">手机号用于建立同一学习账户；已有进度会在验证后读取，新用户会从第一张卡开始。</p>
           <div className="field-stack">
             <label htmlFor="phone">手机号</label>
@@ -895,7 +898,21 @@ type LearningSurfaceProps = {
 
 function LearningSurface(props: LearningSurfaceProps) {
   const {card, cardState, resolved} = props;
-  const {onContinue, onState} = props;
+  const {onContinue, onResolve, onState} = props;
+  const resultRef = useRef<HTMLElement | null>(null);
+
+  useLayoutEffect(() => {
+    const resultNode = resultRef.current;
+    if (!resolved || !resultNode || typeof resultNode.scrollIntoView !== 'function') {
+      return;
+    }
+    resultNode.scrollIntoView({
+      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth',
+      block: 'nearest',
+    });
+  }, [resolved]);
 
   useLayoutEffect(() => {
     function handleKeyboard(event: KeyboardEvent) {
@@ -923,16 +940,16 @@ function LearningSurface(props: LearningSurfaceProps) {
       }
       if (card.interaction_id === 'swipe' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
         const option = card.swipe_states[event.key === 'ArrowLeft' ? 0 : 1];
-        if (option) {
+        if (option && cardState) {
           event.preventDefault();
-          onState(previous => previous ? {...previous, swipeSelection: option.id} : previous);
+          onResolve({...cardState, swipeSelection: option.id});
         }
       }
     }
 
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [card, onContinue, onState, props.busy, resolved]);
+  }, [card, cardState, onContinue, onResolve, onState, props.busy, resolved]);
 
   if (!card || !cardState) {
     return <main className="workbench"><p className="notice">当前没有可用学习卡。</p></main>;
@@ -951,7 +968,7 @@ function LearningSurface(props: LearningSurfaceProps) {
           </div>
           <span className="counter">{props.serverSequenced ? '当前' : `${props.currentIndex + 1} / ${props.total}`}</span>
         </div>
-        <article className={`learning-card interaction-${card.interaction_id}`}>
+        <article className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
           <p className="eyebrow">{card.front.eyebrow}</p>
           <h2>{card.front.prompt}</h2>
           <p className="support">{card.front.support}</p>
@@ -965,6 +982,10 @@ function LearningSurface(props: LearningSurfaceProps) {
               ...cardState,
               isFlipped: true,
               flipConfidence: value,
+            })}
+            onResolveSwipe={value => props.onResolve({
+              ...cardState,
+              swipeSelection: value,
             })}
           />
           {props.queuedResult ? (
@@ -983,13 +1004,13 @@ function LearningSurface(props: LearningSurfaceProps) {
               >重新读取服务端进度</button>
             </section>
           ) : null}
-          {!resolved && !props.queuedResult && card.interaction_id !== 'flip' ? (
-            <button className="primary" disabled={props.busy || !canSubmitLearningCard(card, cardState)} onClick={() => props.onResolve()}>
+          {!resolved && !props.queuedResult && card.interaction_id !== 'flip' && card.interaction_id !== 'swipe' ? (
+            <button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => props.onResolve()}>
               提交判断
             </button>
           ) : null}
           {resolved ? (
-            <section className={`result-slip ${resultTone(resolved)}`} aria-live="polite">
+            <section ref={resultRef} className={`result-slip ${resultTone(resolved)}`} aria-live="polite">
               <p className="result-label">{resultLabel(resolved)}</p>
               <h3>{card.analysis.title}</h3>
               <p>{card.analysis.summary}</p>
@@ -1056,7 +1077,7 @@ function LearningSurface(props: LearningSurfaceProps) {
   );
 }
 
-function Interaction({card, state, patch, disabled, onResolveFlip}: {card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void}) {
+function Interaction({card, state, patch, disabled, onResolveFlip, onResolveSwipe}: {card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
   switch (card.interaction_id) {
     case 'flip':
       return (
@@ -1077,12 +1098,180 @@ function Interaction({card, state, patch, disabled, onResolveFlip}: {card: Learn
     case 'multiple_choice':
       return <div className="interaction choice-grid" role="group" aria-label="四选一选项">{card.options.map(option => <button key={option.id} className={state.selectedOptionId === option.id ? 'choice selected' : 'choice'} aria-pressed={state.selectedOptionId === option.id} disabled={disabled} onClick={() => patch({selectedOptionId: option.id})}><span>{option.label}</span>{option.text}</button>)}</div>;
     case 'lock':
-      return <div className="interaction lock-list">{card.lock_slots.map(slot => <label key={slot.id}><span>{slot.label}</span><select disabled={disabled} value={state.lockSelections[slot.id] ?? ''} onChange={event => patch({lockSelections: {...state.lockSelections, [slot.id]: event.target.value}})}><option value="">选择槽位内容</option>{slot.options.map(option => <option key={option}>{option}</option>)}</select></label>)}</div>;
+      return (
+        <div className="interaction lock-list" role="group" aria-label="开锁槽位">
+          {card.lock_slots.map((slot, slotIndex) => {
+            const selectedValue = state.lockSelections[slot.id];
+            const expectedValue = card.answer_key.lock_pattern[slotIndex];
+            const isUnlocked = selectedValue === expectedValue;
+            const currentSlotIndex = card.lock_slots.findIndex(
+              (candidate, candidateIndex) =>
+                state.lockSelections[candidate.id] !==
+                card.answer_key.lock_pattern[candidateIndex],
+            );
+            const isAvailable = currentSlotIndex === slotIndex;
+            const statusLabel = isUnlocked
+              ? '已开锁'
+              : selectedValue !== null && isAvailable
+              ? '再试一次'
+              : isAvailable
+              ? '当前锁位'
+              : '等待上一行';
+
+            return (
+              <div
+                key={slot.id}
+                className={`lock-row${isUnlocked ? ' unlocked' : ''}${isAvailable ? ' available' : ''}`}
+                role="group"
+                aria-label={`${slot.label}锁位`}
+              >
+                <span className="lock-glyph" aria-hidden="true">
+                  {isUnlocked ? '开' : '锁'}
+                </span>
+                <div className="lock-body">
+                  <div className="lock-heading">
+                    <strong>{slot.label}</strong>
+                    <span aria-live="polite">{statusLabel}</span>
+                  </div>
+                  {isAvailable ? (
+                    <div className="lock-options" role="group" aria-label={`${slot.label}选项`}>
+                      {slot.options.map(option => (
+                        <button
+                          key={option}
+                          type="button"
+                          className={selectedValue === option ? 'lock-option selected' : 'lock-option'}
+                          aria-pressed={selectedValue === option}
+                          disabled={disabled}
+                          onClick={() => patch({
+                            lockSelections: {
+                              ...state.lockSelections,
+                              [slot.id]: option,
+                            },
+                          })}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className={isUnlocked ? 'lock-answer' : 'lock-placeholder'}>
+                      {isUnlocked ? selectedValue : '完成上一行后继续'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
     case 'elimination':
       return <div className="interaction elimination-list" role="group" aria-label="选择要删除的干扰成分">{card.elimination_items.map(item => {const active = state.eliminatedItemIds.includes(item.id); return <button key={item.id} className={active ? 'elimination selected' : 'elimination'} aria-pressed={active} disabled={disabled} onClick={() => patch({eliminatedItemIds: toggle(state.eliminatedItemIds, item.id)})}>{item.text}</button>;})}</div>;
     case 'swipe':
-      return <div className="interaction swipe-choices">{card.swipe_states.map((item, index) => <button key={item.id} className={state.swipeSelection === item.id ? 'swipe-choice selected' : 'swipe-choice'} aria-pressed={state.swipeSelection === item.id} disabled={disabled} onClick={() => patch({swipeSelection: item.id})}><span aria-hidden="true">{index === 0 ? '←' : '→'}</span><strong>{item.label}</strong><small>{item.description}</small></button>)}</div>;
+      return (
+        <SwipeInteraction
+          card={card}
+          state={state}
+          disabled={disabled}
+          onCommit={onResolveSwipe}
+        />
+      );
   }
+}
+
+function canSubmitVisibleLearningCard(
+  card: LearningCard,
+  state: LearningCardState,
+) {
+  if (card.interaction_id === 'lock') {
+    return card.lock_slots.every(
+      (slot, index) =>
+        state.lockSelections[slot.id] === card.answer_key.lock_pattern[index],
+    );
+  }
+  return canSubmitLearningCard(card, state);
+}
+
+function SwipeInteraction({
+  card,
+  state,
+  disabled,
+  onCommit,
+}: {
+  card: Extract<LearningCard, {interaction_id: 'swipe'}>;
+  state: LearningCardState;
+  disabled: boolean;
+  onCommit: (value: string) => void;
+}) {
+  const [dragX, setDragX] = useState(0);
+  const pointerStart = useRef<number | null>(null);
+  const selectedState = card.swipe_states.find(
+    item => item.id === state.swipeSelection,
+  );
+
+  function settleFromPointer(event: React.PointerEvent<HTMLDivElement>) {
+    if (pointerStart.current === null) return;
+    const distance = event.clientX - pointerStart.current;
+    pointerStart.current = null;
+    setDragX(0);
+    if (disabled || Math.abs(distance) < 72) return;
+    const nextState = card.swipe_states[distance < 0 ? 0 : 1];
+    if (nextState) onCommit(nextState.id);
+  }
+
+  return (
+    <div className="interaction swipe-stage" role="group" aria-label="左右滑动判断">
+      <div className="swipe-deck">
+        <span className="swipe-ghost swipe-ghost-back" aria-hidden="true" />
+        <span className="swipe-ghost swipe-ghost-middle" aria-hidden="true" />
+        <div
+          className={`swipe-top-card${selectedState ? ' selected' : ''}${dragX !== 0 ? ' dragging' : ''}`}
+          role="group"
+          aria-label="当前滑动卡，可拖动或使用左右选项"
+          tabIndex={disabled ? -1 : 0}
+          style={{
+            transform: `translateX(${dragX}px) rotate(${dragX / 28}deg)`,
+          }}
+          onPointerDown={event => {
+            if (disabled) return;
+            pointerStart.current = event.clientX;
+            event.currentTarget.setPointerCapture?.(event.pointerId);
+          }}
+          onPointerMove={event => {
+            if (pointerStart.current === null || disabled) return;
+            const distance = event.clientX - pointerStart.current;
+            setDragX(Math.max(-140, Math.min(140, distance)));
+          }}
+          onPointerUp={settleFromPointer}
+          onPointerCancel={() => {
+            pointerStart.current = null;
+            setDragX(0);
+          }}
+        >
+          <span className="swipe-card-kicker">当前判断</span>
+          <strong>{selectedState?.label ?? '向左或向右完成归类'}</strong>
+          <p>{selectedState?.description ?? '拖动卡片，或使用下方两个方向选项。'}</p>
+        </div>
+      </div>
+      <div className="swipe-trails">
+        {card.swipe_states.map((item, index) => (
+          <button
+            key={item.id}
+            type="button"
+            className={state.swipeSelection === item.id ? 'swipe-trail selected' : 'swipe-trail'}
+            aria-pressed={state.swipeSelection === item.id}
+            disabled={disabled}
+            onClick={() => onCommit(item.id)}
+          >
+            <span aria-hidden="true">{index === 0 ? '←' : '→'}</span>
+            <span>
+              <strong>{item.label}</strong>
+              <small>{item.description}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 type SpaceBox = {
@@ -1107,8 +1296,69 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, favorites, sleepin
   return (
     <>
       <main className="space-workbench" aria-labelledby="space-title">
+        <section className="box-object">
+          <div className="space-address-shelf" aria-label="当前空间地址">
+            <p className="eyebrow">空间地址</p>
+            <div className="space-address-path">
+              <span>{selectedBox?.library ?? '当前馆'}</span>
+              <i aria-hidden="true">›</i>
+              <span>{selectedBox?.group ?? '当前组'}</span>
+              <i aria-hidden="true">›</i>
+              <strong>{selectedBox?.box ?? '当前盒'}</strong>
+            </div>
+          </div>
+          <section
+            className="box-tray"
+            aria-label={`当前卡盒 ${selectedBox?.box ?? '暂无'}`}
+          >
+            <div className="workbench-heading">
+              <div>
+                <p className="eyebrow">打开的当前盒</p>
+                <h1 id="space-title">{selectedBox?.box ?? '当前没有卡盒'}</h1>
+                <p className="box-description">卡片仍属于原来的盒；喜欢和休眠只改变卡片状态。</p>
+              </div>
+              <span className="counter">{selectedBox?.cards.length ?? 0} 张</span>
+            </div>
+            <div className="contained-cards" aria-label="盒内卡片">
+              {selectedBox?.cards.map(card => {
+                const isSelected = selected?.card_id === card.card_id;
+                const isSleeping = sleeping.includes(card.card_id);
+                const isFavorite = favorites.includes(card.card_id);
+                return (
+                  <button
+                    key={card.card_id}
+                    className={`${isSelected ? 'contained-card selected' : 'contained-card'}${isSleeping ? ' sleeping' : ''}`}
+                    aria-pressed={isSelected}
+                    onClick={() => setSelectedId(card.card_id)}
+                  >
+                    <span className="contained-card-kind">{INTERACTION_LABELS[card.interaction_id]}</span>
+                    <strong>{card.front.prompt}</strong>
+                    <span className="contained-card-tags">
+                      {isFavorite ? <small className="favorite-tag">喜欢</small> : null}
+                      <small>{isSleeping ? '休眠中' : isSelected ? '当前学习' : '同盒卡'}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <section className="sleep-region" aria-label="盒内休眠区">
+              <div>
+                <p className="eyebrow">盒内休眠区</p>
+                <p>
+                  {sleepingInSelectedBox
+                    ? `${sleepingInSelectedBox} 张卡暂时离开学习流，仍归属于“${selectedBox?.box}”。`
+                    : '这里暂时是空的；休眠卡仍会保留在当前盒中。'}
+                </p>
+              </div>
+              <span className="sleep-count">{sleepingInSelectedBox}</span>
+            </section>
+          </section>
+          <button className="secondary space-return-strip" onClick={onReturn}>
+            回到当前学习卡
+          </button>
+        </section>
         <section className="space-tree" aria-label="知识空间层级">
-          <p className="eyebrow">空间路径</p><h2>知识空间</h2>
+          <p className="eyebrow">父级与相邻位置</p><h2>相邻书架</h2>
           <ul className="space-library-list">{libraries.map(library => <li key={library}>
             <strong>{library}</strong>
             <ul>{unique(boxes.filter(box => box.library === library).map(box => box.group)).map(group => <li key={`${library}-${group}`}>
@@ -1125,11 +1375,6 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, favorites, sleepin
               </li>)}</ul>
             </li>)}</ul>
           </li>)}</ul>
-        </section>
-        <section className="box-object">
-          <div className="workbench-heading"><div><p className="eyebrow">{selectedBox ? `${selectedBox.library} / ${selectedBox.group}` : '当前容器'}</p><h1 id="space-title">{selectedBox?.box ?? '当前没有卡盒'}</h1></div><span className="counter">{selectedBox?.cards.length ?? 0} 张</span></div>
-          <div className="contained-cards">{selectedBox?.cards.map(card => <button key={card.card_id} className={`${selected?.card_id === card.card_id ? 'contained-card selected' : 'contained-card'} ${sleeping.includes(card.card_id) ? 'sleeping' : ''}`} onClick={() => setSelectedId(card.card_id)}><span>{INTERACTION_LABELS[card.interaction_id]}</span><strong>{card.front.prompt}</strong><small>{favorites.includes(card.card_id) ? '喜欢 · ' : ''}{sleeping.includes(card.card_id) ? '休眠中' : '学习中'}</small></button>)}</div>
-          {sleepingInSelectedBox ? <section className="sleep-region"><p className="eyebrow">盒内休眠区</p><p>{sleepingInSelectedBox} 张卡暂时离开学习流，仍归属于“{selectedBox?.box}”。</p></section> : null}
         </section>
       </main>
       <aside className="context-rail inspector" aria-label="所选对象检查器">
