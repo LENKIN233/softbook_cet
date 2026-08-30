@@ -219,9 +219,12 @@ Implemented mapping:
   pseudonymous installation device ID, and product interaction data that the
   authenticated mobile runtime actually sends for account and learning
   functionality; none is declared for tracking.
-- Native private-audio downloads add a JS wall-clock deadline around the native
-  transfer task, cancel a body-stalled task, and clean its partial file even
-  when the Android transport's body read timeout does not fire.
+- Native private-audio downloads use one monotonic outer deadline across every
+  redirect, native transfer, and redirect-boundary filesystem cleanup. The
+  deadline cancels the current body-stalled task and routes timeout, late task,
+  cancel-callback, and outer-cache cleanup through one serialized idempotent
+  partial-file owner, so an Android body read stall cannot leak a partial file
+  or replace the original timeout with a missing-file cleanup race.
 - Learning-session membership fields remain a consistency observation only.
   Stage or trial-clock drift forces a fresh revisioned Bootstrap read; the
   session never writes an unrevisioned trial projection into global membership
