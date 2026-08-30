@@ -1,5 +1,8 @@
 const crypto = require('node:crypto');
 const {
+  normalizeAccountDeletionTask,
+} = require('./account-deletion-worker-v1');
+const {
   normalizeCloudBaseDocuments,
 } = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
@@ -13,6 +16,14 @@ function createMemoryAuthStateStore() {
   return {
     kind: 'memory',
     consumeAuthRateLimit: async input => {
+      const deletionStatus = challengeDeletionFenceStatus(
+        accountDeletions.get(input.accountKey) ?? null,
+        input.allowAccountDeletionPending === true,
+        input.accountKey,
+        input.phoneNumber,
+      );
+      if (deletionStatus !== 'accepted') return deletionStatus;
+
       const documentId = `${input.key}:${input.windowStartedAt}`;
       const current = authRateLimits.get(documentId) ?? {
         count: 0,
@@ -22,25 +33,26 @@ function createMemoryAuthStateStore() {
       };
 
       if (current.count >= input.limit) {
-        return false;
+        return 'rate_limited';
       }
 
       authRateLimits.set(documentId, {...current, count: current.count + 1});
-      return true;
+      return 'accepted';
     },
     createAuthChallenge: async input => {
-      if (
-        accountDeletions.has(input.accountKey) &&
-        input.allowAccountDeletionPending !== true
-      ) {
-        return false;
-      }
+      const deletionStatus = challengeDeletionFenceStatus(
+        accountDeletions.get(input.accountKey) ?? null,
+        input.allowAccountDeletionPending === true,
+        input.accountKey,
+        input.challenge.phone_number,
+      );
+      if (deletionStatus !== 'accepted') return deletionStatus;
 
       authChallenges.set(
         input.challenge.challenge_id,
         clone(input.challenge),
       );
-      return true;
+      return 'accepted';
     },
     markAuthChallengeDelivery: async (challengeId, status, updatedAt) => {
       const challenge = authChallenges.get(challengeId);
@@ -171,6 +183,18 @@ function createCloudBaseAuthStateStore(db, collections) {
     kind: 'cloudbase',
     consumeAuthRateLimit: input =>
       db.runTransaction(async transaction => {
+        const deletion = await getDocument(
+          transaction.collection(names.accountDeletions),
+          input.accountKey,
+        );
+        const deletionStatus = challengeDeletionFenceStatus(
+          deletion,
+          input.allowAccountDeletionPending === true,
+          input.accountKey,
+          input.phoneNumber,
+        );
+        if (deletionStatus !== 'accepted') return deletionStatus;
+
         const collection = transaction.collection(names.authRateLimits);
         const documentId = hashValue(`${input.key}:${input.windowStartedAt}`);
         const current = (await getDocument(collection, documentId)) ?? {
@@ -181,7 +205,7 @@ function createCloudBaseAuthStateStore(db, collections) {
         };
 
         if (current.count >= input.limit) {
-          return false;
+          return 'rate_limited';
         }
 
         await setDocument(collection, documentId, {
@@ -189,7 +213,7 @@ function createCloudBaseAuthStateStore(db, collections) {
           count: current.count + 1,
           updated_at: input.now,
         });
-        return true;
+        return 'accepted';
       }),
     createAuthChallenge: input =>
       db.runTransaction(async transaction => {
@@ -197,16 +221,20 @@ function createCloudBaseAuthStateStore(db, collections) {
           transaction.collection(names.accountDeletions),
           input.accountKey,
         );
-        if (deletion && input.allowAccountDeletionPending !== true) {
-          return false;
-        }
+        const deletionStatus = challengeDeletionFenceStatus(
+          deletion,
+          input.allowAccountDeletionPending === true,
+          input.accountKey,
+          input.challenge.phone_number,
+        );
+        if (deletionStatus !== 'accepted') return deletionStatus;
 
         await setDocument(
           transaction.collection(names.authChallenges),
           input.challenge.challenge_id,
           input.challenge,
         );
-        return true;
+        return 'accepted';
       }),
     markAuthChallengeDelivery: (challengeId, status, updatedAt) =>
       db.runTransaction(async transaction => {
@@ -362,6 +390,32 @@ function createCloudBaseAuthStateStore(db, collections) {
         return task;
       }),
   };
+}
+
+function challengeDeletionFenceStatus(
+  deletion,
+  allowPending,
+  accountKey,
+  phoneNumber,
+) {
+  if (deletion === null || deletion === undefined) return 'accepted';
+  if (!allowPending) return 'account_deletion_pending';
+  if (deletion.status === 'finalizing') {
+    return 'account_deletion_finalizing';
+  }
+  try {
+    const task = normalizeAccountDeletionTask(deletion);
+    if (
+      task.account_key === accountKey &&
+      task.phone_number === phoneNumber &&
+      (task.status === 'queued' || task.status === 'processing')
+    ) {
+      return 'accepted';
+    }
+  } catch {
+    return 'account_deletion_state_invalid';
+  }
+  return 'account_deletion_state_invalid';
 }
 
 function verifyChallengeRecord(challenge, input) {

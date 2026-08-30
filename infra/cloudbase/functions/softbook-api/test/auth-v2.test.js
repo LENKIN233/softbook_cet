@@ -526,6 +526,8 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
 
   const challengeCountBeforeBlockedRequest =
     store.snapshot().authChallenges.size;
+  const rateLimitCountBeforeBlockedRequest =
+    store.snapshot().authRateLimits.size;
   const challengeAfterDeletion = await issueChallenge(
     api,
     PHONE_NUMBER,
@@ -539,6 +541,10 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
   assert.equal(
     store.snapshot().authChallenges.size,
     challengeCountBeforeBlockedRequest,
+  );
+  assert.equal(
+    store.snapshot().authRateLimits.size,
+    rateLimitCountBeforeBlockedRequest,
   );
   assert.equal(
     [...store.snapshot().authSessions.values()].some(
@@ -732,6 +738,265 @@ test('deletion recovery challenges report strict task state without creating an 
   assert.equal(JSON.stringify(none.body).includes('accepted'), false);
   assert.equal(JSON.stringify(none.body).includes('completed'), false);
   assert.equal(store.snapshot().authSessions.size, 0);
+});
+
+test('deletion recovery confirms an exact processing task without minting a session', async () => {
+  const {api, store} = createV2TestApi({
+    ipRequestLimit: 100,
+    phoneRequestLimit: 100,
+  });
+  const session = await issueSession(api, {clientIp: '203.0.113.108'});
+  const deletion = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  const [accountKey, task] = [
+    ...store.snapshot().accountDeletions.entries(),
+  ][0];
+  store.snapshot().accountDeletions.set(accountKey, {
+    ...task,
+    attempt_count: 1,
+    last_attempt_at: '2026-07-20T08:00:00.000Z',
+    lease_expires_at: '2026-07-20T08:05:00.000Z',
+    lease_id: `lease_${'p'.repeat(24)}`,
+    status: 'processing',
+  });
+  const challenge = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.109',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  const sessionsBefore = store.snapshot().authSessions.size;
+  const recovery = await request(api, {
+    body: {
+      challenge_id: challenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+
+  assert.equal(recovery.statusCode, 200);
+  assert.deepEqual(recovery.body.data, {
+    deletion_request: {
+      ...deletion.body.data.deletion_request,
+      status: 'processing',
+    },
+    safe_to_register: false,
+    schema_version: 'account-deletion-recovery.v1',
+    state: 'pending',
+  });
+  assert.equal(store.snapshot().authSessions.size, sessionsBefore);
+});
+
+test('finalizing deletion blocks ordinary and recovery request material until clean registration', async () => {
+  const {api, sms, store} = createV2TestApi({
+    ipRequestLimit: 100,
+    phoneRequestLimit: 100,
+  });
+  const session = await issueSession(api, {
+    clientIp: '203.0.113.110',
+    deviceId: 'finalizing-origin',
+  });
+  const deletion = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  assert.equal(deletion.statusCode, 202);
+  const queuedRecovery = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.111',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  assert.equal(queuedRecovery.statusCode, 200);
+
+  const [accountKey, task] = [
+    ...store.snapshot().accountDeletions.entries(),
+  ][0];
+  store.snapshot().accountDeletions.set(accountKey, {
+    ...task,
+    attempt_count: 1,
+    last_attempt_at: '2026-07-20T08:00:00.000Z',
+    lease_expires_at: '2026-07-20T08:05:00.000Z',
+    lease_id: `lease_${'f'.repeat(24)}`,
+    status: 'finalizing',
+  });
+  const materialBefore = {
+    challenges: store.snapshot().authChallenges.size,
+    deliveries: sms.deliveries.length,
+    rateLimits: store.snapshot().authRateLimits.size,
+    sessions: store.snapshot().authSessions.size,
+  };
+
+  const repeatedDeletion = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  assert.equal(repeatedDeletion.statusCode, 202);
+  assert.deepEqual(repeatedDeletion.body.data.deletion_request, {
+    ...deletion.body.data.deletion_request,
+    status: 'processing',
+  });
+
+  const ordinary = await issueChallenge(
+    api,
+    PHONE_NUMBER,
+    '203.0.113.112',
+  );
+  assert.equal(ordinary.statusCode, 403);
+  assert.equal(ordinary.body.error.code, 'account_deletion_pending');
+  const recovery = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.113',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  assert.equal(recovery.statusCode, 409);
+  assert.deepEqual(recovery.body.error, {
+    code: 'account_deletion_finalizing',
+    message: 'Account deletion is finalizing. Retry recovery after cleanup.',
+  });
+  assert.deepEqual(
+    {
+      challenges: store.snapshot().authChallenges.size,
+      deliveries: sms.deliveries.length,
+      rateLimits: store.snapshot().authRateLimits.size,
+      sessions: store.snapshot().authSessions.size,
+    },
+    materialBefore,
+  );
+
+  const verifyDuringFinalizing = await request(api, {
+    body: {
+      challenge_id: queuedRecovery.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+  assert.equal(verifyDuringFinalizing.statusCode, 409);
+  assert.equal(
+    verifyDuringFinalizing.body.error.code,
+    'account_deletion_finalizing',
+  );
+  assert.equal(store.snapshot().authChallenges.size, materialBefore.challenges);
+  assert.equal(store.snapshot().authRateLimits.size, materialBefore.rateLimits);
+  assert.equal(store.snapshot().authSessions.size, materialBefore.sessions);
+
+  store.snapshot().accountDeletions.delete(accountKey);
+  const afterCompletion = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.114',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  assert.equal(afterCompletion.statusCode, 200);
+  const none = await request(api, {
+    body: {
+      challenge_id: afterCompletion.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+  assert.deepEqual(none.body.data, {
+    deletion_request: null,
+    safe_to_register: true,
+    schema_version: 'account-deletion-recovery.v1',
+    state: 'none',
+  });
+  const registered = await issueSession(api, {
+    clientIp: '203.0.113.115',
+    deviceId: 'after-finalizing',
+  });
+  assert.equal(typeof registered.access_token, 'string');
+});
+
+test('missing finalizing lease TTL remains a material-creation fence', async () => {
+  const {api, sms, store} = createV2TestApi({
+    ipRequestLimit: 100,
+    phoneRequestLimit: 100,
+  });
+  const session = await issueSession(api, {clientIp: '203.0.113.116'});
+  await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  const [accountKey, task] = [
+    ...store.snapshot().accountDeletions.entries(),
+  ][0];
+  store.snapshot().accountDeletions.set(accountKey, {
+    ...task,
+    attempt_count: 1,
+    last_attempt_at: '2026-07-20T08:00:00.000Z',
+    lease_expires_at: null,
+    lease_id: `lease_${'m'.repeat(24)}`,
+    status: 'finalizing',
+  });
+  const before = {
+    challenges: store.snapshot().authChallenges.size,
+    deliveries: sms.deliveries.length,
+    rateLimits: store.snapshot().authRateLimits.size,
+  };
+
+  const response = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.117',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  assert.equal(response.statusCode, 409);
+  assert.equal(response.body.error.code, 'account_deletion_finalizing');
+  assert.deepEqual(
+    {
+      challenges: store.snapshot().authChallenges.size,
+      deliveries: sms.deliveries.length,
+      rateLimits: store.snapshot().authRateLimits.size,
+    },
+    before,
+  );
+});
+
+test('missing processing lease TTL fails recovery closed before material creation', async () => {
+  const {api, sms, store} = createV2TestApi({
+    ipRequestLimit: 100,
+    phoneRequestLimit: 100,
+  });
+  const session = await issueSession(api, {clientIp: '203.0.113.120'});
+  await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  const [accountKey, task] = [
+    ...store.snapshot().accountDeletions.entries(),
+  ][0];
+  store.snapshot().accountDeletions.set(accountKey, {
+    ...task,
+    attempt_count: 1,
+    last_attempt_at: '2026-07-20T08:00:00.000Z',
+    lease_expires_at: null,
+    lease_id: `lease_${'t'.repeat(24)}`,
+    status: 'processing',
+  });
+  const before = {
+    challenges: store.snapshot().authChallenges.size,
+    deliveries: sms.deliveries.length,
+    rateLimits: store.snapshot().authRateLimits.size,
+  };
+
+  const response = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.121',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+
+  assert.equal(response.statusCode, 500);
+  assert.equal(response.body.error.code, 'account_deletion_state_invalid');
+  assert.deepEqual(
+    {
+      challenges: store.snapshot().authChallenges.size,
+      deliveries: sms.deliveries.length,
+      rateLimits: store.snapshot().authRateLimits.size,
+    },
+    before,
+  );
 });
 
 test('v2 deletion task blocks refresh even when account-wide revocation is interrupted', async () => {
@@ -934,6 +1199,50 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
   );
 });
 
+test('CloudBase finalizing fence rejects request-code before any durable material write', async () => {
+  const db = createFakeCloudBaseDb();
+  const sms = createSmsProvider();
+  const store = createCloudBaseStore({db});
+  const {api} = createV2TestApi({sms, store});
+  const accountKey = crypto
+    .createHmac('sha256', TOKEN_SECRET)
+    .update(`account:${PHONE_NUMBER}`)
+    .digest('hex');
+  await db.collection('softbook_account_deletions').doc(accountKey).set({
+    account_key: accountKey,
+    attempt_count: 1,
+    deletion_id: 'delete_cloudbase_finalizing',
+    last_attempt_at: '2026-07-20T08:00:00.000Z',
+    last_failure_code: null,
+    lease_expires_at: '2026-07-20T08:05:00.000Z',
+    lease_id: `lease_${'c'.repeat(24)}`,
+    phone_number: PHONE_NUMBER,
+    phone_rate_key: `phone:${'d'.repeat(64)}`,
+    requested_at: '2026-07-20T07:59:00.000Z',
+    schema_version: 'account-deletion-task.v1',
+    status: 'finalizing',
+  });
+
+  const recovery = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.118',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  const ordinary = await issueChallenge(
+    api,
+    PHONE_NUMBER,
+    '203.0.113.119',
+  );
+
+  assert.equal(recovery.statusCode, 409);
+  assert.equal(recovery.body.error.code, 'account_deletion_finalizing');
+  assert.equal(ordinary.statusCode, 403);
+  assert.equal(ordinary.body.error.code, 'account_deletion_pending');
+  assert.equal(sms.deliveries.length, 0);
+  assert.equal(db.snapshot().has('softbook_auth_rate_limits'), false);
+  assert.equal(db.snapshot().has('softbook_auth_challenges'), false);
+});
+
 test('non-development runtimes do not expose an unaudited client purchase grant', async () => {
   for (const runtimeMode of ['production', 'controlled_pilot']) {
     const store = createMemoryStore();
@@ -1003,7 +1312,10 @@ test('v2 request-code keeps CloudBase collection failures fatal', async () => {
     response.body.error.code,
     'DATABASE_COLLECTION_NOT_EXIST',
   );
-  assert.equal(db.snapshot().get('softbook_auth_rate_limits').size, 0);
+  assert.equal(
+    db.snapshot().get('softbook_auth_rate_limits')?.size ?? 0,
+    0,
+  );
   assert.equal(db.snapshot().has('softbook_auth_challenges'), false);
 });
 

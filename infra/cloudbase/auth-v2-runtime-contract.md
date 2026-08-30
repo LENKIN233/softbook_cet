@@ -83,13 +83,13 @@ Success returns `challenge_id`, `delivery`, `expires_at`, and
 `retry_after_seconds`. It never returns the SMS code or its digest. The service
 applies independent, persistent ten-minute counters per HMAC-keyed phone number
 and trusted client IP. Defaults are five requests per phone and twenty per IP;
-the raw values and enumerable bare hashes are not used as counter keys.
-Sign-in challenge persistence derives the canonical account key and
-transactionally checks the account-deletion task in the same store operation.
-While the task exists, `/v2/auth/request-code` returns
-`account_deletion_pending` and cannot leave a sign-in challenge that survives
-worker completion. The separately purpose-bound deletion-recovery route below
-is the only challenge-creation exception to that login fence.
+the raw values and enumerable bare hashes are not used as counter keys. Every
+rate-counter increment and challenge persistence transaction derives the
+canonical account key and reads the account-deletion task. While any task
+exists, `/v2/auth/request-code` returns `account_deletion_pending` before adding
+a rate counter or challenge. The separately purpose-bound deletion-recovery
+route below is the only challenge-creation exception while the task is exactly
+`queued` or `processing`; it is not an exception once finalization begins.
 
 ### Verify a challenge
 
@@ -175,7 +175,9 @@ Authorization: Bearer <access_token>
 
 The route creates or returns one queued deletion task for the account, revokes
 all of that phone number's sessions, and returns `202`. Retrying with the same
-still-valid signed access token returns the same task. Session creation checks
+still-valid signed access token returns the same task; an internal `finalizing`
+task remains conservatively projected as `processing` on this already-accepted
+route so clients never receive a new deletion-request status. Session creation checks
 the durable deletion task in the same persistence transaction and rejects new
 login with `account_deletion_pending`; refresh rotation and the shared active
 session guard independently check the same task. Every future protected `/v2`
@@ -209,6 +211,15 @@ persisted purpose is cryptographically included in the code digest and checked
 transactionally on verify. Neither a sign-in challenge nor a recovery
 challenge can be verified through the other purpose's endpoint.
 
+Both recovery rate-counter transactions and challenge persistence re-read the
+deletion task. A valid `queued` or `processing` task permits recovery. Once the
+worker atomically changes the task to `finalizing`, a new recovery request
+returns HTTP `409` with `account_deletion_finalizing` before adding a rate
+counter, calling the SMS provider, or persisting a challenge. The code is a
+strict retry signal: it does not mean accepted, completed, safe to register, or
+absent. A recovery challenge created before that transition may also observe
+`account_deletion_finalizing` during verification and still mints no session.
+
 ```http
 POST /v2/account/deletion/recovery/verify-code
 content-type: application/json
@@ -237,8 +248,9 @@ When the exact account task exists, verification returns:
 }
 ```
 
-`status` is `queued` or `processing`. If no task currently exists, the exact
-projection is `state: none`, `safe_to_register: true`, and
+`status` is `queued` or `processing`. `finalizing` is deliberately not projected
+as `pending`; it returns the retry signal above. If no task currently exists,
+the exact projection is `state: none`, `safe_to_register: true`, and
 `deletion_request: null`. Because the worker intentionally retains no
 tombstone, `none` never claims that a prior request was accepted or completed.
 Recovery verification returns no access token, refresh token, or session ID
@@ -265,13 +277,17 @@ The independently deployed `softbook-account-deletion-worker` runs
 `index.accountDeletionWorkerMain` from the same tested artifact on the
 `account-deletion-every-minute` timer. Each `account-deletion-task.v1` stores
 the account key, phone, exact derived phone-rate key, retry fields and a random
-claim-bound five-minute lease. A stale worker cannot complete or requeue a task
-owned by another lease.
+claim-bound five-minute lease. Its status is `queued`, `processing`, or durable
+`finalizing`. A stale worker cannot mutate the wrong phase, complete, or release
+a task owned by another lease.
 
-Queued tasks and expired processing leases are queried independently, merged by
-`requested_at`, and then capped by the worker run limit. Older live processing
-leases therefore cannot occupy a pre-filter page and starve queued deletion
-requests.
+Queued tasks, expired processing leases, unleased finalizing retries, and
+expired finalizing leases are queried independently, merged by `requested_at`,
+and then capped by the worker run limit. Older live leases therefore cannot
+occupy a pre-filter page and starve queued deletion requests or final cleanup.
+A processing task requires a complete lease ID/expiry pair. A finalizing task
+has either the complete live pair or neither field while ready to retry;
+one-sided or missing live-lease TTL state fails closed.
 
 Receiver deployment rereads the worker function name, handler, runtime, timeout,
 empty custom environment-variable set, and exact timer configuration. The
@@ -285,16 +301,20 @@ Learning Event/cursor/sequence/migration/session/state, pilot-round continuation
 and Space action/lineage/revision/state records; phone-filtered SMS challenges
 plus retained legacy daily-progress, learning-state and Space-state records;
 phone-keyed base membership, membership revision, beta entitlement and pilot
-entitlement; and only the phone rate-limit key. It repeats the phone challenge
-sweep as the final guarded data mutation immediately before task completion.
+entitlement. It then atomically changes the task from `processing` to
+`finalizing`, which fences both ordinary and recovery request-code material,
+and performs the final task-bound phone rate-limit plus phone challenge sweep
+immediately before task completion.
 Shared IP rate limits and global content releases remain untouched. Every
 individual erasure runs in a transaction that re-reads the account-deletion
-task and requires the current lease ID before deleting. A stale worker therefore
-cannot continue after a newer worker owns or removes the task and cannot erase
-data written by a clean post-completion re-registration. Every deletion is
-idempotently re-read or re-queried, the task is removed last, partial failure
-returns the same live lease to queued, and a completed task leaves no tombstone
-so a clean re-registration is allowed.
+task and requires the current phase plus lease ID before deleting. A stale
+worker therefore cannot continue after a newer worker owns or removes the task
+and cannot erase data written by a clean post-completion re-registration. Every
+deletion is idempotently re-read or re-queried and the task is removed last. A failure before
+finalizing releases the same live lease to `queued`; a failure after finalizing
+releases it only to an unleased `finalizing` retry and never reopens challenge
+creation. A completed task leaves no tombstone, so clean re-registration is
+allowed.
 
 Before production deployment, infrastructure work must add collection TTL
 policies for expired rate-limit and challenge records, least-privilege access,
@@ -319,6 +339,7 @@ Expected client-actionable codes include:
 - `revoked_auth_session`
 - `client_ip_unavailable`
 - `account_deletion_pending`
+- `account_deletion_finalizing`
 
 Server errors keep a stable code but use the generic public message from the
 existing API error envelope.

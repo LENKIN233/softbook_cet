@@ -100,16 +100,25 @@ async function requestCode(config, request, purpose) {
       config.rateLimitWindowSeconds *
       1000,
   );
+  const accountKey = deriveAccountKey(config.indexSecret, phoneNumber);
+  const allowAccountDeletionPending =
+    purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE;
 
   await consumeRateLimit(config, {
+    accountKey,
+    allowAccountDeletionPending,
     key: `ip:${keyedHash(config.indexSecret, 'rate-ip', clientIp)}`,
     limit: config.ipRequestLimit,
+    phoneNumber,
     requestedAt,
     windowStartedAt,
   });
   await consumeRateLimit(config, {
+    accountKey,
+    allowAccountDeletionPending,
     key: `phone:${keyedHash(config.indexSecret, 'rate-phone', phoneNumber)}`,
     limit: config.phoneRequestLimit,
+    phoneNumber,
     requestedAt,
     windowStartedAt,
   });
@@ -169,19 +178,12 @@ async function requestCode(config, request, purpose) {
   };
 
   const challengeCreated = await config.store.createAuthChallenge({
-    accountKey: deriveAccountKey(config.indexSecret, phoneNumber),
-    allowAccountDeletionPending:
-      purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE,
+    accountKey,
+    allowAccountDeletionPending,
     challenge,
   });
 
-  if (!challengeCreated) {
-    throw authError(
-      403,
-      'account_deletion_pending',
-      'Account deletion is already pending.',
-    );
-  }
+  assertChallengeMaterialAllowed(challengeCreated);
 
   try {
     if (!providerOwnsChallenge) {
@@ -345,6 +347,13 @@ async function readAccountDeletionRecoveryState(config, phoneNumber) {
       'Account deletion state is invalid.',
     );
   }
+  if (task.status === 'finalizing') {
+    throw authError(
+      409,
+      'account_deletion_finalizing',
+      'Account deletion is finalizing. Retry recovery after cleanup.',
+    );
+  }
 
   return {
     deletion_request: {
@@ -449,7 +458,10 @@ async function requestAccountDeletion(config, request) {
     deletion_request: {
       id: deletionTask.deletion_id,
       requested_at: deletionTask.requested_at,
-      status: deletionTask.status,
+      status:
+        deletionTask.status === 'finalizing'
+          ? 'processing'
+          : deletionTask.status,
     },
   };
 }
@@ -648,25 +660,62 @@ function sessionResponse(accessToken, refreshToken, session, expiresIn) {
 
 async function consumeRateLimit(
   config,
-  {key, limit, requestedAt, windowStartedAt},
+  {
+    accountKey,
+    allowAccountDeletionPending,
+    key,
+    limit,
+    phoneNumber,
+    requestedAt,
+    windowStartedAt,
+  },
 ) {
-  const accepted = await config.store.consumeAuthRateLimit({
+  const status = await config.store.consumeAuthRateLimit({
+    accountKey,
+    allowAccountDeletionPending,
     expiresAt: new Date(
       windowStartedAt.getTime() + config.rateLimitWindowSeconds * 1000 * 2,
     ).toISOString(),
     key,
     limit,
     now: requestedAt.toISOString(),
+    phoneNumber,
     windowStartedAt: windowStartedAt.toISOString(),
   });
 
-  if (!accepted) {
-    throw authError(
+  assertChallengeMaterialAllowed(status);
+}
+
+function assertChallengeMaterialAllowed(status) {
+  const errors = {
+    account_deletion_finalizing: [
+      409,
+      'account_deletion_finalizing',
+      'Account deletion is finalizing. Retry recovery after cleanup.',
+    ],
+    account_deletion_pending: [
+      403,
+      'account_deletion_pending',
+      'Account deletion is already pending.',
+    ],
+    account_deletion_state_invalid: [
+      500,
+      'account_deletion_state_invalid',
+      'Account deletion state is invalid.',
+    ],
+    rate_limited: [
       429,
       'sms_rate_limited',
       'SMS request rate limit exceeded.',
-    );
-  }
+    ],
+  };
+  if (status === 'accepted') return;
+  const [statusCode, code, message] = errors[status] ?? [
+    500,
+    'auth_store_error',
+    'Auth store returned an invalid state.',
+  ];
+  throw authError(statusCode, code, message);
 }
 
 function assertChallengeVerified(status) {

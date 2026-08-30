@@ -1,14 +1,19 @@
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const test = require('node:test');
 
 const {
   ACCOUNT_KEY_COLLECTIONS,
+  FINAL_CHALLENGE_COLLECTION,
   PHONE_DOCUMENT_COLLECTIONS,
   PHONE_FILTER_COLLECTIONS,
   RATE_LIMIT_COLLECTION,
   createAccountDeletionWorkerV1,
   createCloudBaseAccountDeletionRepository,
+  createMemoryAccountDeletionRepository,
 } = require('../account-deletion-worker-v1');
+const {createMemoryAuthStateStore} = require('../auth-v2-store');
+const {createAuthV2Service} = require('../auth-v2');
 
 const ACCOUNT_KEY = 'a'.repeat(64);
 const PHONE = '13800138000';
@@ -32,6 +37,11 @@ test('worker clears every current account collection and removes the login lock 
     repository.calls.at(-2),
     'where:softbook_auth_challenges:phone_number',
   );
+  assert.equal(
+    repository.calls.at(-3),
+    `where:${RATE_LIMIT_COLLECTION}:key`,
+  );
+  assert.match(repository.calls.at(-4), /^finalizing:/);
   assert.deepEqual(
     repository.calls.filter(call => call.startsWith('where:')).sort(),
     [
@@ -76,6 +86,42 @@ test('partial failure keeps the login lock and a retry finishes idempotently', a
   assert.equal(repository.taskAttemptCount(), 2);
 });
 
+test('final sweep failure stays durably finalizing and retries only the final sweep', async () => {
+  const repository = createRepository({
+    failOnceWhereCollection: FINAL_CHALLENGE_COLLECTION,
+  });
+  const worker = createWorker(repository);
+  const first = await worker.run();
+
+  assert.equal(first.completed_count, 0);
+  assert.equal(first.results[0].status, 'retry_finalizing');
+  assert.equal(repository.task().status, 'finalizing');
+  assert.equal(repository.task().lease_id, null);
+  assert.equal(repository.task().lease_expires_at, null);
+  const bulkCallsAfterFirstRun = repository.calls.filter(
+    call =>
+      call.startsWith('document:') ||
+      (call.startsWith('where:') &&
+        !call.includes(RATE_LIMIT_COLLECTION) &&
+        !call.includes(FINAL_CHALLENGE_COLLECTION)),
+  ).length;
+
+  const second = await worker.run();
+  assert.equal(second.completed_count, 1);
+  assert.equal(repository.taskExists(), false);
+  assert.equal(repository.taskAttemptCount(), 2);
+  assert.equal(
+    repository.calls.filter(
+      call =>
+        call.startsWith('document:') ||
+        (call.startsWith('where:') &&
+          !call.includes(RATE_LIMIT_COLLECTION) &&
+          !call.includes(FINAL_CHALLENGE_COLLECTION)),
+    ).length,
+    bulkCallsAfterFirstRun,
+  );
+});
+
 test('a lost lease cannot remove or requeue a task claimed by another worker', async () => {
   const repository = createRepository({loseLeaseBeforeComplete: true});
   const worker = createWorker(repository);
@@ -84,7 +130,7 @@ test('a lost lease cannot remove or requeue a task claimed by another worker', a
   assert.equal(report.completed_count, 0);
   assert.equal(report.results[0].status, 'lease_lost');
   assert.equal(repository.taskExists(), true);
-  assert.equal(repository.task().status, 'processing');
+  assert.equal(repository.task().status, 'finalizing');
   assert.equal(repository.task().lease_id, `lease_${'z'.repeat(24)}`);
 });
 
@@ -113,6 +159,125 @@ test('an expired processing lease is reclaimed and completed with a new owner', 
   assert.equal(report.completed_count, 1);
   assert.equal(repository.taskExists(), false);
   assert.equal(repository.taskAttemptCount(), 2);
+});
+
+test('an expired finalizing lease is reclaimed without rerunning account erasure', async () => {
+  const repository = createRepository({expiredFinalizingLease: true});
+  const worker = createWorker(repository);
+  const report = await worker.run();
+
+  assert.equal(report.completed_count, 1);
+  assert.equal(repository.taskExists(), false);
+  assert.equal(repository.taskAttemptCount(), 2);
+  assert.deepEqual(
+    repository.calls.filter(call => call.startsWith('where:')),
+    [
+      `where:${RATE_LIMIT_COLLECTION}:key`,
+      `where:${FINAL_CHALLENGE_COLLECTION}:phone_number`,
+    ],
+  );
+  assert.equal(
+    repository.calls.some(call => call.startsWith('document:')),
+    false,
+  );
+});
+
+test('a finalizing task with a missing lease TTL fails closed', async () => {
+  const repository = createRepository({missingFinalizingTtl: true});
+  const worker = createWorker(repository);
+
+  await assert.rejects(() => worker.run(), /task is invalid/);
+  assert.equal(repository.calls.length, 0);
+  assert.equal(repository.taskExists(), true);
+});
+
+test('a lease stolen after finalizing prevents every stale final sweep mutation', async () => {
+  const repository = createRepository({stealLeaseAfterFinalizing: true});
+  const worker = createWorker(repository);
+  const report = await worker.run();
+
+  assert.equal(report.completed_count, 0);
+  assert.equal(report.results[0].status, 'lease_lost');
+  assert.equal(repository.task().status, 'finalizing');
+  assert.equal(repository.task().lease_id, `lease_${'z'.repeat(24)}`);
+  assert.equal(repository.hasPhoneRateLimit(), true);
+  assert.equal(repository.hasPhoneChallenge(), true);
+});
+
+test('the finalizing transition linearizes before recovery can create challenge material', async () => {
+  const indexSecret = 'finalizing-race-index-secret';
+  const authStore = createMemoryAuthStateStore();
+  const authState = authStore.snapshotAuth();
+  const service = createAuthV2Service({
+    codeGenerator: () => '654321',
+    indexSecret,
+    now: () => new Date(NOW),
+    smsProvider: {
+      delivery: 'test_sms',
+      kind: 'test',
+      sendCode: async () => undefined,
+    },
+    store: authStore,
+    tokenSecret: 'finalizing-race-token-secret',
+  });
+  const accountKey = service.deriveAccountKey(PHONE);
+  authState.accountDeletions.set(accountKey, {
+    ...taskFixture({accountKey}),
+    phone_rate_key: `phone:${crypto
+      .createHmac('sha256', indexSecret)
+      .update(`rate-phone:${PHONE}`)
+      .digest('hex')}`,
+  });
+  const repository = createMemoryAccountDeletionRepository(
+    createMemoryDeletionState(authState),
+  );
+  const beginFinalizingTask = repository.beginFinalizingTask;
+  let raceObserved = false;
+  repository.beginFinalizingTask = async input => {
+    const transitioned = await beginFinalizingTask(input);
+    assert.equal(transitioned, true);
+    const rateCount = authState.authRateLimits.size;
+    const challengeCount = authState.authChallenges.size;
+
+    await assert.rejects(
+      () =>
+        service.requestCode({
+          body: {phone_number: PHONE},
+          clientIp: '203.0.113.100',
+        }),
+      error => error.code === 'account_deletion_pending',
+    );
+    await assert.rejects(
+      () =>
+        service.requestDeletionRecoveryCode({
+          body: {phone_number: PHONE},
+          clientIp: '203.0.113.101',
+        }),
+      error => error.code === 'account_deletion_finalizing',
+    );
+    assert.equal(authState.authRateLimits.size, rateCount);
+    assert.equal(authState.authChallenges.size, challengeCount);
+    raceObserved = true;
+    return true;
+  };
+  const worker = createAccountDeletionWorkerV1({
+    now: () => new Date(NOW),
+    randomBytes: size => Buffer.alloc(size, 8),
+    repository,
+  });
+
+  const report = await worker.run();
+  assert.equal(raceObserved, true);
+  assert.equal(report.completed_count, 1);
+  assert.equal(authState.accountDeletions.has(accountKey), false);
+
+  const afterCompletion = await service.requestDeletionRecoveryCode({
+    body: {phone_number: PHONE},
+    clientIp: '203.0.113.102',
+  });
+  assert.equal(afterCompletion.purpose, 'account_deletion_recovery');
+  assert.equal(authState.authChallenges.size, 1);
+  assert.equal(authState.authRateLimits.size, 2);
 });
 
 test('invalid deletion tasks fail closed before any account mutation', async () => {
@@ -205,7 +370,7 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
       leaseId: leaseA,
       now: NOW.toISOString(),
     }),
-    true,
+    'processing',
   );
   await tasks.doc(ACCOUNT_KEY).remove();
   await db.collection('softbook_auth_sessions').doc('re-registered').set({
@@ -217,7 +382,7 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
     await repository.removeWhereIfLease(
       'softbook_auth_sessions',
       {account_key: ACCOUNT_KEY},
-      {accountKey: ACCOUNT_KEY, leaseId: leaseA},
+      {accountKey: ACCOUNT_KEY, leaseId: leaseA, status: 'processing'},
     ),
     false,
   );
@@ -258,6 +423,52 @@ test('queued CloudBase tasks are not starved by older live processing leases', a
   assert.equal(runnable[0].account_key, queuedAccount);
 });
 
+test('CloudBase selects ready and expired finalizing work without live-lease starvation', async () => {
+  const db = createFakeCloudBaseDb();
+  const tasks = db.collection('softbook_account_deletions');
+  for (let index = 0; index < 120; index += 1) {
+    const accountKey = index.toString(16).padStart(64, '0');
+    await tasks.doc(accountKey).set({
+      ...taskFixture({accountKey}),
+      attempt_count: 1,
+      last_attempt_at: '2026-08-01T07:50:00.000Z',
+      lease_expires_at: '2026-08-01T09:00:00.000Z',
+      lease_id: `lease_${String(index).padStart(24, 'l')}`,
+      requested_at: '2026-07-01T00:00:00.000Z',
+      status: 'finalizing',
+    });
+  }
+  const readyAccount = 'e'.repeat(64);
+  const expiredAccount = 'f'.repeat(64);
+  await tasks.doc(readyAccount).set({
+    ...taskFixture({accountKey: readyAccount}),
+    requested_at: '2026-07-02T00:00:00.000Z',
+    status: 'finalizing',
+  });
+  await tasks.doc(expiredAccount).set({
+    ...taskFixture({accountKey: expiredAccount}),
+    attempt_count: 1,
+    last_attempt_at: '2026-08-01T07:50:00.000Z',
+    lease_expires_at: '2026-08-01T07:55:00.000Z',
+    lease_id: `lease_${'x'.repeat(24)}`,
+    requested_at: '2026-07-03T00:00:00.000Z',
+    status: 'finalizing',
+  });
+  const repository = createCloudBaseAccountDeletionRepository(db, {
+    accountDeletions: 'softbook_account_deletions',
+  });
+
+  const runnable = await repository.listRunnableTasks({
+    limit: 2,
+    now: NOW.toISOString(),
+  });
+
+  assert.deepEqual(
+    runnable.map(task => task.account_key),
+    [readyAccount, expiredAccount],
+  );
+});
+
 function createWorker(repository) {
   return createAccountDeletionWorkerV1({
     now: () => new Date(NOW),
@@ -283,30 +494,69 @@ function taskFixture({accountKey = ACCOUNT_KEY} = {}) {
   };
 }
 
+function createMemoryDeletionState(authState) {
+  return {
+    ...authState,
+    betaEntitlements: new Map(),
+    dailyCheckIns: new Map(),
+    dailyProgress: new Map(),
+    learningEventCursors: new Map(),
+    learningEvents: new Map(),
+    learningEventSequences: new Map(),
+    learningMigrationRevisions: new Map(),
+    learningSessions: new Map(),
+    learningStates: new Map(),
+    memberships: new Map(),
+    membershipRevisions: new Map(),
+    pilotEntitlements: new Map(),
+    pilotRoundContinuations: new Map(),
+    spaceActionLineages: new Map(),
+    spaceActions: new Map(),
+    spaceStateRevisions: new Map(),
+    spaceStates: new Map(),
+  };
+}
+
 function createRepository({
   completeAndReregisterBeforeFirstMutation = false,
   expiredLease = false,
+  expiredFinalizingLease = false,
   failOnceCollection = null,
+  failOnceWhereCollection = null,
   invalidTask = false,
   loseLeaseBeforeComplete = false,
+  missingFinalizingTtl = false,
+  stealLeaseAfterFinalizing = false,
 } = {}) {
   const calls = [];
   let failed = false;
   let replacedBeforeMutation = false;
-  let attempts = expiredLease ? 1 : 0;
+  let attempts = expiredLease || expiredFinalizingLease ? 1 : 0;
+  const initialFinalizing = expiredFinalizingLease || missingFinalizingTtl;
   let task = {
     account_key: invalidTask ? 'invalid' : ACCOUNT_KEY,
-    attempt_count: expiredLease ? 1 : 0,
+    attempt_count: expiredLease || expiredFinalizingLease ? 1 : 0,
     deletion_id: 'delete_account_worker_0001',
-    last_attempt_at: expiredLease ? '2026-08-01T07:50:00.000Z' : null,
+    last_attempt_at:
+      expiredLease || expiredFinalizingLease || missingFinalizingTtl
+        ? '2026-08-01T07:50:00.000Z'
+        : null,
     last_failure_code: null,
-    lease_expires_at: expiredLease ? '2026-08-01T07:55:00.000Z' : null,
-    lease_id: expiredLease ? `lease_${'x'.repeat(24)}` : null,
+    lease_expires_at:
+      expiredLease || expiredFinalizingLease
+        ? '2026-08-01T07:55:00.000Z'
+        : null,
+    lease_id:
+      expiredLease || initialFinalizing ? `lease_${'x'.repeat(24)}` : null,
     phone_number: PHONE,
     phone_rate_key: PHONE_RATE_KEY,
     requested_at: '2026-08-01T07:59:00.000Z',
     schema_version: 'account-deletion-task.v1',
-    status: expiredLease ? 'processing' : 'queued',
+    status: initialFinalizing
+      ? 'finalizing'
+      : expiredLease
+        ? 'processing'
+        : 'queued',
   };
   const filters = new Map();
   for (const collection of ACCOUNT_KEY_COLLECTIONS) {
@@ -338,6 +588,14 @@ function createRepository({
       (filters.get('softbook_auth_sessions') ?? []).some(
         row => row.generation === 'new',
       ),
+    hasPhoneChallenge: () =>
+      (filters.get(FINAL_CHALLENGE_COLLECTION) ?? []).some(
+        row => row.phone_number === PHONE,
+      ),
+    hasPhoneRateLimit: () =>
+      (filters.get(RATE_LIMIT_COLLECTION) ?? []).some(
+        row => row.key === PHONE_RATE_KEY,
+      ),
     remainingAccountDocuments: () =>
       [...filters.values()].reduce(
         (sum, rows) =>
@@ -357,7 +615,10 @@ function createRepository({
         !(
           task.status === 'queued' ||
           (task.status === 'processing' &&
-            task.lease_expires_at <= input.now)
+            task.lease_expires_at <= input.now) ||
+          (task.status === 'finalizing' &&
+            ((task.lease_id === null && task.lease_expires_at === null) ||
+              task.lease_expires_at <= input.now))
         )
       ) {
         return false;
@@ -370,8 +631,23 @@ function createRepository({
         last_failure_code: null,
         lease_expires_at: input.leaseExpiresAt,
         lease_id: input.leaseId,
-        status: 'processing',
+        status: task.status === 'finalizing' ? 'finalizing' : 'processing',
       };
+      return task.status;
+    },
+    beginFinalizingTask: async input => {
+      calls.push(`finalizing:${input.accountKey}:${input.leaseId}`);
+      if (
+        !task ||
+        task.status !== 'processing' ||
+        input.leaseId !== task.lease_id
+      ) {
+        return false;
+      }
+      task = {...task, status: 'finalizing'};
+      if (stealLeaseAfterFinalizing) {
+        task = {...task, lease_id: `lease_${'z'.repeat(24)}`};
+      }
       return true;
     },
     removeWhereIfLease: async (collection, filter, lease) => {
@@ -390,7 +666,17 @@ function createRepository({
           id: 're-registered-session',
         });
       }
-      if (!task || task.lease_id !== lease.leaseId) return false;
+      if (
+        !task ||
+        task.lease_id !== lease.leaseId ||
+        task.status !== lease.status
+      ) {
+        return false;
+      }
+      if (collection === failOnceWhereCollection && !failed) {
+        failed = true;
+        throw new Error('simulated final sweep interruption');
+      }
       const rows = filters.get(collection) ?? [];
       filters.set(
         collection,
@@ -402,7 +688,13 @@ function createRepository({
     },
     removeDocumentIfLease: async (collection, id, lease) => {
       calls.push(`document:${collection}:${id}`);
-      if (!task || task.lease_id !== lease.leaseId) return false;
+      if (
+        !task ||
+        task.lease_id !== lease.leaseId ||
+        task.status !== lease.status
+      ) {
+        return false;
+      }
       if (collection === failOnceCollection && !failed) {
         failed = true;
         throw new Error('simulated delete interruption');
@@ -420,6 +712,7 @@ function createRepository({
       }
       if (
         !task ||
+        task.status !== 'finalizing' ||
         input.accountKey !== ACCOUNT_KEY ||
         input.leaseId !== task.lease_id
       ) {
@@ -429,16 +722,19 @@ function createRepository({
       return true;
     },
     releaseTask: async input => {
-      if (!task || input.leaseId !== task.lease_id) return false;
+      if (!task || input.leaseId !== task.lease_id) return null;
+      const retryStatus =
+        task.status === 'finalizing' ? 'retry_finalizing' : 'retry_queued';
       task = {
         ...task,
         last_attempt_at: input.now,
         last_failure_code: input.failureCode,
         lease_expires_at: null,
         lease_id: null,
-        status: 'queued',
+        status:
+          retryStatus === 'retry_finalizing' ? 'finalizing' : 'queued',
       };
-      return true;
+      return retryStatus;
     },
   };
 }
