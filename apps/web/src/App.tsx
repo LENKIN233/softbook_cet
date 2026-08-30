@@ -40,6 +40,7 @@ type AccountDeletionStage =
   | 'registration_ready'
   | 'recovery_code'
   | 'recovery_phone'
+  | 'session_cleanup_required'
   | 'submitting'
   | 'unknown';
 
@@ -172,12 +173,21 @@ export function App({
     accountDeletionStage === 'recovery_code' ||
     accountDeletionStage === 'recovery_phone' ||
     accountDeletionStage === 'registration_cleanup_required' ||
+    accountDeletionStage === 'session_cleanup_required' ||
     accountDeletionStage === 'cleanup_required';
   const productBusy =
     remoteBusy ||
     remoteCleanupPending ||
     accountDeletionLocksAccount ||
     learningSync?.status === 'queued';
+
+  useEffect(() => {
+    if (remoteController === null) {
+      return;
+    }
+    remoteController.start();
+    return () => remoteController.dispose();
+  }, [remoteController]);
 
   useEffect(() => {
     let active = true;
@@ -220,6 +230,8 @@ export function App({
             ? 'registration_cleanup_required'
             : outcome.status === 'registration_ready'
             ? 'registration_ready'
+            : outcome.status === 'session_cleanup_required'
+            ? 'session_cleanup_required'
             : 'none',
         );
         if (outcome.status === 'reauthentication_required') {
@@ -496,6 +508,10 @@ export function App({
       setAccountDeletionStage('registration_ready');
       return;
     }
+    if (outcome.status === 'session_cleanup_required') {
+      setAccountDeletionStage('session_cleanup_required');
+      return;
+    }
     setAccountDeletionStage('none');
   }
 
@@ -509,6 +525,13 @@ export function App({
         try {
           const deletionOutcome =
             await remoteController.resumeAccountDeletion();
+          if (
+            deletionOutcome.status === 'none' &&
+            !remoteController.isAuthenticated()
+          ) {
+            resetAccountState();
+            return;
+          }
           if (deletionOutcome.status !== 'none') {
             applyAccountDeletionOutcome(deletionOutcome);
             return;
@@ -705,9 +728,13 @@ export function App({
     setRemoteBusy(true);
     setAuthError('');
     try {
-      applyAccountDeletionOutcome(
-        await remoteController.resumeAccountDeletion(),
-      );
+      const outcome = await remoteController.resumeAccountDeletion();
+      if (outcome.status === 'none' && !remoteController.isAuthenticated()) {
+        resetAccountState();
+        setAccountDeletionStage('none');
+        return;
+      }
+      applyAccountDeletionOutcome(outcome);
     } catch (error) {
       setAuthError(
         getUserFacingErrorMessage(error, '账户状态暂时无法安全恢复。'),
@@ -766,6 +793,7 @@ export function App({
       'cleanup_required',
       'registration_cleanup_required',
       'registration_ready',
+      'session_cleanup_required',
     ].includes(accountDeletionStage) ||
       (accountDeletionStage === 'unknown' &&
         authStage !== 'authenticated'))
@@ -780,6 +808,7 @@ export function App({
           | 'cleanup_required'
           | 'registration_cleanup_required'
           | 'registration_ready'
+          | 'session_cleanup_required'
           | 'unknown'}
         onReturn={() => setAccountDeletionStage('none')}
         onRetry={() => void retryAccountDeletionRecoveryState()}
@@ -1755,6 +1784,7 @@ function AccountDeletionStatusSurface({
     | 'cleanup_required'
     | 'registration_cleanup_required'
     | 'registration_ready'
+    | 'session_cleanup_required'
     | 'unknown';
 }) {
   const content = {
@@ -1787,6 +1817,12 @@ function AccountDeletionStatusSurface({
       detail:
         '服务端当前没有待处理的删除申请，可以安全建立新的登录；这不表示此前删除申请已接收或已经完成。',
     },
+    session_cleanup_required: {
+      eyebrow: '本机清理',
+      title: '退出前的本机记录还在清理',
+      detail:
+        '登录已经关闭；待同步学习与空间记录全部清理完成前，不会重新开放手机号验证。',
+    },
     unknown: {
       eyebrow: '结果尚未确认',
       title: '删除结果暂时未知',
@@ -1814,7 +1850,8 @@ function AccountDeletionStatusSurface({
             {busy
               ? '正在重试'
               : stage === 'cleanup_required' ||
-                stage === 'registration_cleanup_required'
+                stage === 'registration_cleanup_required' ||
+                stage === 'session_cleanup_required'
               ? '重试本机清理'
               : '重试确认'}
           </button>

@@ -8,7 +8,7 @@ const ENVELOPE_SCHEMA_VERSION = 'web-account-deletion-envelope.v2';
 const LEGACY_STATE_SCHEMA_VERSION = 'web-account-deletion.v1';
 
 export type WebAccountDeletionState = {
-  phase: 'accepted' | 'registration_ready' | 'requesting';
+  phase: 'accepted' | 'local_cleanup' | 'registration_ready' | 'requesting';
   phoneNumber: string;
 };
 
@@ -20,7 +20,10 @@ type WebAccountDeletionEnvelope = {
 type BrowserStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 
 export type WebAccountDeletionStateStore = {
-  advanceNullRevision?: (expectedRevision: number) => Promise<number>;
+  beginLocalCleanup?: (
+    phoneNumber: string,
+    expectedRevision: number,
+  ) => Promise<number>;
   clear: () => Promise<void>;
   getRevision: () => Promise<number>;
   load: () => Promise<WebAccountDeletionState | null>;
@@ -49,12 +52,13 @@ export function createWebAccountDeletionStateStore(
   };
 
   return {
-    advanceNullRevision(expectedRevision) {
+    beginLocalCleanup(phoneNumber, expectedRevision) {
       return runExclusive(() =>
         runWebStorageExclusive(
           storage,
           WEB_ACCOUNT_DELETION_STORAGE_KEY,
           async () => {
+            assertPhoneNumber(phoneNumber);
             const envelope = readEnvelope(storage);
             if (
               envelope.state !== null ||
@@ -66,7 +70,7 @@ export function createWebAccountDeletionStateStore(
             }
             const nextEnvelope = {
               revision: incrementRevision(envelope.revision),
-              state: null,
+              state: {phase: 'local_cleanup' as const, phoneNumber},
             };
             persistEnvelope(storage, nextEnvelope);
             observedRevision = nextEnvelope.revision;
@@ -86,6 +90,7 @@ export function createWebAccountDeletionStateStore(
             assertObservedRevision(observedRevision, envelope.revision);
             if (
               envelope.state?.phase !== 'accepted' &&
+              envelope.state?.phase !== 'local_cleanup' &&
               envelope.state?.phase !== 'registration_ready'
             ) {
               throw new Error(
@@ -342,6 +347,9 @@ function assertTransition(
   if (current.phase === 'accepted' && phase !== 'accepted') {
     throw new Error('Web account deletion marker cannot regress.');
   }
+  if (current.phase === 'local_cleanup' && phase !== 'local_cleanup') {
+    throw new Error('Web local cleanup marker cannot change purpose.');
+  }
   if (
     current.phase === 'registration_ready' &&
     phase !== 'registration_ready'
@@ -392,6 +400,7 @@ function assertPhase(
 ): asserts value is WebAccountDeletionState['phase'] {
   if (
     value !== 'accepted' &&
+    value !== 'local_cleanup' &&
     value !== 'registration_ready' &&
     value !== 'requesting'
   ) {

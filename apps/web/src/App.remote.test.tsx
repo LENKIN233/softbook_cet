@@ -1,4 +1,5 @@
 import {act, fireEvent, render, screen} from '@testing-library/react';
+import {StrictMode} from 'react';
 
 import type {LearningCard, LearningSession} from '../../mobile/src/learning/model';
 import {
@@ -7,6 +8,7 @@ import {
 } from '../../mobile/src/membership/localMembership';
 import {App} from './App';
 import type {
+  WebAccountDeletionOutcome,
   WebRemoteRuntimeController,
   WebRemoteSnapshot,
 } from './remoteRuntime';
@@ -74,29 +76,31 @@ describe('PC Web remote UI authority', () => {
     expect(screen.getByRole('button', {name: '有把握'})).toBeEnabled();
   });
 
-  it('does not present logged-out UI when durable cleanup fails', async () => {
+  it('keeps login closed on durable logout cleanup failure and resumes it', async () => {
     const snapshot = createSnapshot('premium');
     const controller = createController(snapshot);
     let authenticated = true;
     vi.mocked(controller.isAuthenticated).mockImplementation(
       () => authenticated,
     );
-    vi.mocked(controller.logout)
-      .mockImplementationOnce(async () => {
-        authenticated = false;
-        throw new Error('injected cleanup failure');
-      })
-      .mockResolvedValueOnce();
+    vi.mocked(controller.logout).mockImplementationOnce(async () => {
+      authenticated = false;
+      throw new Error('injected cleanup failure');
+    });
+    vi.mocked(controller.resumeAccountDeletion)
+      .mockResolvedValueOnce({status: 'none'})
+      .mockResolvedValueOnce({status: 'session_cleanup_required'})
+      .mockResolvedValueOnce({status: 'none'});
     await authenticateRemote(controller);
 
     fireEvent.click(screen.getByRole('button', {name: '退出'}));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '本地待同步记录尚未安全清理',
-    );
-    expect(screen.getByRole('navigation', {name: '主要导航'})).toBeInTheDocument();
+    expect(
+      await screen.findByText('退出前的本机记录还在清理'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
     expect(screen.queryByLabelText('手机号')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', {name: '退出'}));
+    fireEvent.click(screen.getByRole('button', {name: '重试本机清理'}));
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
   });
 
@@ -425,6 +429,27 @@ describe('PC Web remote UI authority', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it('keeps ordinary login closed while a reloaded session cleanup retries', async () => {
+    const resumeAccountDeletion = vi
+      .fn()
+      .mockResolvedValueOnce({status: 'session_cleanup_required' as const})
+      .mockResolvedValueOnce({status: 'none' as const});
+    const controller = createController(createSnapshot('premium'), {
+      resumeAccountDeletion,
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+
+    expect(
+      await screen.findByText('退出前的本机记录还在清理'),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('手机号')).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '重试本机清理'}));
+
+    expect(await screen.findByLabelText('手机号')).toHaveValue('');
+    expect(resumeAccountDeletion).toHaveBeenCalledTimes(2);
+    expect(controller.requestSmsCode).not.toHaveBeenCalled();
+  });
+
   it('updates the audio action after ended and error events', async () => {
     const snapshot = createSnapshot('premium');
     const audioCard = {
@@ -490,6 +515,50 @@ describe('PC Web remote UI authority', () => {
       ).toBeEnabled();
     },
   );
+
+  it('restarts controller listeners under StrictMode and disposes on remount', () => {
+    const strictControllers: WebRemoteRuntimeController[] = [];
+    const firstRender = render(
+      <StrictMode>
+        <App
+          remoteRuntimeFactory={() => {
+            const controller = createController(createSnapshot('premium'), {
+              resumeAccountDeletion: vi.fn(
+                () => new Promise<WebAccountDeletionOutcome>(() => undefined),
+              ),
+            });
+            strictControllers.push(controller);
+            return controller;
+          }}
+        />
+      </StrictMode>,
+    );
+
+    expect(strictControllers).toHaveLength(2);
+    const first = strictControllers.find(
+      controller => vi.mocked(controller.start).mock.calls.length > 0,
+    )!;
+    const discarded = strictControllers.find(
+      controller => controller !== first,
+    )!;
+    expect(discarded.start).not.toHaveBeenCalled();
+    expect(discarded.dispose).not.toHaveBeenCalled();
+    expect(first.start).toHaveBeenCalledTimes(2);
+    expect(first.dispose).toHaveBeenCalledTimes(1);
+    firstRender.unmount();
+    expect(first.dispose).toHaveBeenCalledTimes(2);
+
+    const second = createController(createSnapshot('premium'), {
+      resumeAccountDeletion: vi.fn(
+        () => new Promise<WebAccountDeletionOutcome>(() => undefined),
+      ),
+    });
+    const secondRender = render(<App remoteRuntimeFactory={() => second} />);
+    expect(second.start).toHaveBeenCalledTimes(1);
+    expect(first.start).toHaveBeenCalledTimes(2);
+    secondRender.unmount();
+    expect(second.dispose).toHaveBeenCalledTimes(1);
+  });
 });
 
 async function authenticateRemote(controller: WebRemoteRuntimeController) {
@@ -519,6 +588,7 @@ function createController(
       status: 'confirmed' as const,
     })),
     continueServerRound: vi.fn(async () => snapshot),
+    dispose: vi.fn(),
     isAuthenticated: vi.fn(() => true),
     loadAuthenticatedState: vi.fn(async () => snapshot),
     logout: vi.fn(async () => undefined),
@@ -539,6 +609,7 @@ function createController(
       retryAfterSeconds: 0,
     })),
     resumeAccountDeletion: vi.fn(async () => ({status: 'none' as const})),
+    start: vi.fn(),
     subscribeAudioStatus: vi.fn(() => () => undefined),
     verifyAccountDeletionRecoverySmsCode: vi.fn(async () => ({
       status: 'unknown' as const,

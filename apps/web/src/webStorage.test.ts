@@ -210,7 +210,7 @@ describe('Web persistence boundary', () => {
     ).rejects.toThrow('不能写入新的账户操作');
 
     await deletionStore.mark('13800138000', 'accepted');
-    await staleFence.runDeletionCleanup(
+    await staleFence.runAccountCleanup(
       {
         ownerPhoneNumber: '13800138000',
         revision: await deletionStore.getRevision(),
@@ -238,7 +238,7 @@ describe('Web persistence boundary', () => {
     const outbox = createOutbox('webdevice_cleanup_corrupt', cleanupFence);
     const queue = createMutationQueue(cleanupFence);
 
-    await cleanupFence.runDeletionCleanup(
+    await cleanupFence.runAccountCleanup(
       {
         ownerPhoneNumber: '13800138000',
         revision: await deletionStore.getRevision(),
@@ -271,7 +271,7 @@ describe('Web persistence boundary', () => {
       cleanupFence,
     );
     const cleanupQueue = createMutationQueue(cleanupFence);
-    await cleanupFence.runDeletionCleanup(
+    await cleanupFence.runAccountCleanup(
       {
         ownerPhoneNumber: '13800138000',
         revision: await deletionStore.getRevision(),
@@ -307,17 +307,41 @@ describe('Web persistence boundary', () => {
     await Promise.all([staleOutbox.hydrate(), staleQueue.hydrate()]);
     const terminalStore = createWebAccountDeletionStateStore(localStorage);
 
-    await expect(terminalStore.advanceNullRevision?.(0)).resolves.toBe(1);
+    await expect(
+      terminalStore.beginLocalCleanup?.('13800138000', 0),
+    ).resolves.toBe(1);
 
     await expect(
       staleOutbox.enqueueCompletion(
         createCompletion('13800138000', '000001', 'sel_1234567890abcdef'),
       ),
-    ).rejects.toThrow('账户隔离版本已变化');
+    ).rejects.toThrow('本机账户清理期间');
     await expect(
       staleQueue.enqueue(
         'apply_space_action',
         createSpaceMutation('13800138000', '000001', 'space_web_logout1'),
+      ),
+    ).rejects.toThrow('本机账户清理期间');
+    const cleanupFence = createBoundAccountWriteFence();
+    const cleanupOutbox = createOutbox(
+      'webdevice_terminal_cleanup',
+      cleanupFence,
+    );
+    const cleanupQueue = createMutationQueue(cleanupFence);
+    await cleanupFence.runAccountCleanup(
+      {ownerPhoneNumber: '13800138000', revision: 1},
+      async () => {
+        await Promise.all([
+          cleanupOutbox.clearAccount('13800138000'),
+          cleanupQueue.clear(),
+        ]);
+        await terminalStore.clear();
+      },
+    );
+    await expect(
+      staleQueue.enqueue(
+        'apply_space_action',
+        createSpaceMutation('13800138000', '000001', 'space_web_logout2'),
       ),
     ).rejects.toThrow('账户隔离版本已变化');
   });

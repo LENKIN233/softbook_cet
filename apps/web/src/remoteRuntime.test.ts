@@ -173,6 +173,7 @@ describe('authenticated Web remote orchestration', () => {
       track: 'cet4',
     });
 
+    controller.start();
     await controller.requestSmsCode(PHONE);
     const snapshot = await controller.verifySmsCode(PHONE, '123456');
 
@@ -317,6 +318,7 @@ describe('authenticated Web remote orchestration', () => {
       track: 'cet4',
     });
 
+    controller.start();
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
     staleEventPresent = true;
@@ -352,7 +354,7 @@ describe('authenticated Web remote orchestration', () => {
     expect(staleEventPresent).toBe(false);
   });
 
-  it('advances the shared null epoch for logout and terminal auth cleanup', async () => {
+  it('persists and resolves local cleanup for logout and terminal auth cleanup', async () => {
     localStorage.clear();
     const authRepository = createSimpleAuthRepository();
     const authSessionCoordinator = createAuthSessionCoordinator({
@@ -385,13 +387,100 @@ describe('authenticated Web remote orchestration', () => {
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
     await controller.logout();
-    await expect(deletionStateStore.getRevision()).resolves.toBe(1);
+    await expect(deletionStateStore.getRevision()).resolves.toBe(2);
 
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
     await authSessionCoordinator.invalidate();
     await controller.cleanupInvalidatedSession();
-    await expect(deletionStateStore.getRevision()).resolves.toBe(2);
+    await expect(deletionStateStore.getRevision()).resolves.toBe(4);
+  });
+
+  it('keeps login closed and resumes failed local cleanup without a session after reload', async () => {
+    localStorage.clear();
+    let mutationClearAttempts = 0;
+    const firstAuthRepository = createSimpleAuthRepository();
+    const firstAuthCoordinator = createAuthSessionCoordinator({
+      authRepository: firstAuthRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const firstStateStore = createWebAccountDeletionStateStore(localStorage);
+    const firstController = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore: firstStateStore,
+      authRepository: firstAuthRepository,
+      authSessionCoordinator: firstAuthCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: {
+        ...createMutationRepository([]),
+        async clear() {
+          mutationClearAttempts += 1;
+          throw new Error('injected cleanup failure');
+        },
+      },
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await firstController.requestSmsCode(PHONE);
+    await firstController.verifySmsCode(PHONE, '123456');
+    await expect(firstController.logout()).rejects.toThrow(
+      '本地待同步状态未能完整清理',
+    );
+    expect(firstController.isAuthenticated()).toBe(false);
+    await expect(firstStateStore.load()).resolves.toEqual({
+      phase: 'local_cleanup',
+      phoneNumber: PHONE,
+    });
+    await expect(firstController.requestSmsCode(PHONE)).rejects.toThrow(
+      '恢复入口',
+    );
+
+    const secondAuthRepository = createSimpleAuthRepository();
+    const secondAuthCoordinator = createAuthSessionCoordinator({
+      authRepository: secondAuthRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const secondController = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          throw new Error('local cleanup recovery must not bootstrap');
+        },
+      },
+      accountDeletionStateStore:
+        createWebAccountDeletionStateStore(localStorage),
+      authRepository: secondAuthRepository,
+      authSessionCoordinator: secondAuthCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          throw new Error('local cleanup recovery must not load learning');
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await expect(secondController.resumeAccountDeletion()).resolves.toEqual({
+      status: 'none',
+    });
+    expect(mutationClearAttempts).toBe(1);
+    await expect(
+      createWebAccountDeletionStateStore(localStorage).load(),
+    ).resolves.toBeNull();
+    await expect(secondController.requestSmsCode(PHONE)).resolves.toBeDefined();
   });
 
   it('retains a durably enqueued Learning event as queued after network ack failure', async () => {
@@ -810,7 +899,7 @@ describe('authenticated Web remote orchestration', () => {
       authSessionStore: createMemoryOnlyAuthSessionStore(),
     });
     let persistedDeletionState: {
-      phase: 'accepted' | 'registration_ready' | 'requesting';
+      phase: 'accepted' | 'local_cleanup' | 'registration_ready' | 'requesting';
       phoneNumber: string;
     } | null = null;
     const requestDeletion = vi
@@ -917,7 +1006,7 @@ describe('authenticated Web remote orchestration', () => {
       authSessionStore: createMemoryOnlyAuthSessionStore(),
     });
     let persistedDeletionState: {
-      phase: 'accepted' | 'registration_ready' | 'requesting';
+      phase: 'accepted' | 'local_cleanup' | 'registration_ready' | 'requesting';
       phoneNumber: string;
     } | null = {phase: 'requesting', phoneNumber: PHONE};
     const requestRecoveryCode = vi.fn(async () => ({
@@ -1021,7 +1110,7 @@ describe('authenticated Web remote orchestration', () => {
       authSessionStore: createMemoryOnlyAuthSessionStore(),
     });
     let persistedDeletionState: {
-      phase: 'accepted' | 'registration_ready' | 'requesting';
+      phase: 'accepted' | 'local_cleanup' | 'registration_ready' | 'requesting';
       phoneNumber: string;
     } | null = {phase: 'requesting', phoneNumber: PHONE};
     const controller = createWebRemoteRuntimeController({
@@ -1394,11 +1483,16 @@ describe('authenticated Web remote orchestration', () => {
         accountEpochListener = listener;
         return () => undefined;
       },
+      subscribeSessionScopeChanges(listener) {
+        return authSessionCoordinator.subscribeSessionScope(() => listener());
+      },
       track: 'cet4',
     });
 
+    controller.start();
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
+    stopAudio.mockClear();
     await expect(controller.playCardAudio(card)).resolves.toBe('ready');
     expect(playAudio).toHaveBeenCalledWith(
       card,
@@ -1424,6 +1518,77 @@ describe('authenticated Web remote orchestration', () => {
     expect(accountEpochListener).not.toBeNull();
     (accountEpochListener as unknown as () => void)();
     expect(stopAudio).toHaveBeenCalledTimes(2);
+    await authSessionCoordinator.invalidate();
+    expect(stopAudio).toHaveBeenCalledTimes(3);
+  });
+
+  it('disposes and restarts epoch/session listeners without leaking across controller creation', () => {
+    const epochListeners = new Set<() => void>();
+    const sessionListeners = new Set<() => void>();
+    const createController = (stopAudio: () => void) => {
+      const authRepository = createSimpleAuthRepository();
+      return createWebRemoteRuntimeController({
+        accountBootstrapRepository: {
+          async load() {
+            return createBootstrapFixture(createInitialMembershipState());
+          },
+        },
+        authRepository,
+        authSessionCoordinator: createAuthSessionCoordinator({
+          authRepository,
+          authSessionStore: createMemoryOnlyAuthSessionStore(),
+        }),
+        learningEventSyncRepository: createEmptyEventSyncRepository(),
+        learningSessionRepository: {
+          continueRound: async () => undefined,
+          async loadSession() {
+            return createLearningSessionFixture(null);
+          },
+        },
+        mutationQueueRepository: createMutationRepository([]),
+        playAudio: async () => 'ready',
+        stopAudio,
+        subscribeAccountEpochChanges(listener) {
+          epochListeners.add(listener);
+          return () => epochListeners.delete(listener);
+        },
+        subscribeSessionScopeChanges(listener) {
+          sessionListeners.add(listener);
+          return () => sessionListeners.delete(listener);
+        },
+        track: 'cet4',
+      });
+    };
+    const firstStop = vi.fn();
+    const secondStop = vi.fn();
+    const first = createController(firstStop);
+    expect(epochListeners.size).toBe(0);
+    expect(sessionListeners.size).toBe(0);
+    first.start();
+    expect(epochListeners.size).toBe(1);
+    expect(sessionListeners.size).toBe(1);
+
+    const second = createController(secondStop);
+    second.start();
+    expect(epochListeners.size).toBe(2);
+    expect(sessionListeners.size).toBe(2);
+    first.dispose();
+    expect(epochListeners.size).toBe(1);
+    expect(sessionListeners.size).toBe(1);
+    const firstStopCount = firstStop.mock.calls.length;
+
+    for (const listener of epochListeners) listener();
+    for (const listener of sessionListeners) listener();
+    expect(firstStop).toHaveBeenCalledTimes(firstStopCount);
+    expect(secondStop).toHaveBeenCalledTimes(2);
+
+    second.dispose();
+    expect(epochListeners.size).toBe(0);
+    expect(sessionListeners.size).toBe(0);
+    second.start();
+    expect(epochListeners.size).toBe(1);
+    expect(sessionListeners.size).toBe(1);
+    second.dispose();
   });
 
   it('persists explicit check-in before reporting server confirmation', async () => {

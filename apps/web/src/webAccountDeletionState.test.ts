@@ -151,16 +151,23 @@ describe('Web account deletion durable state', () => {
     });
   });
 
-  it('advances a null-state epoch so an old tab cannot start new work', async () => {
+  it('persists local cleanup before returning to a newer null epoch', async () => {
     const staleStore = createWebAccountDeletionStateStore(localStorage);
     const terminalStore = createWebAccountDeletionStateStore(localStorage);
 
-    await expect(terminalStore.advanceNullRevision?.(0)).resolves.toBe(1);
+    await expect(
+      terminalStore.beginLocalCleanup?.('13800138000', 0),
+    ).resolves.toBe(1);
+    await expect(terminalStore.load()).resolves.toEqual({
+      phase: 'local_cleanup',
+      phoneNumber: '13800138000',
+    });
     await expect(
       staleStore.mark('13800138000', 'requesting'),
     ).rejects.toThrow('changed in another tab');
+    await terminalStore.clear();
     await expect(terminalStore.load()).resolves.toBeNull();
-    await expect(terminalStore.getRevision()).resolves.toBe(1);
+    await expect(terminalStore.getRevision()).resolves.toBe(2);
   });
 
   it('holds the Web Lock across final null-epoch authority commit', async () => {

@@ -17,7 +17,7 @@ const inProcessStorageTails = new WeakMap<
 
 type WebAccountDeletionStorageState = {
   ownerPhoneNumber: string;
-  phase: 'accepted' | 'registration_ready' | 'requesting';
+  phase: 'accepted' | 'local_cleanup' | 'registration_ready' | 'requesting';
 };
 
 type WebAccountDeletionStorageEnvelope = {
@@ -28,7 +28,7 @@ type WebAccountDeletionStorageEnvelope = {
 export type WebAccountWriteFence = {
   bindSessionRevision: (revision: number | null) => void;
   isWriteQuarantined: () => boolean;
-  runDeletionCleanup: <Result>(
+  runAccountCleanup: <Result>(
     scope: {ownerPhoneNumber: string; revision: number},
     operation: () => Promise<Result>,
   ) => Promise<Result>;
@@ -64,7 +64,7 @@ export function createWebAccountWriteFence(
       );
     },
 
-    async runDeletionCleanup(scope, operation) {
+    async runAccountCleanup(scope, operation) {
       assertPhoneNumber(scope.ownerPhoneNumber);
       if (!Number.isSafeInteger(scope.revision) || scope.revision < 0) {
         throw new Error('Web account deletion cleanup revision is invalid.');
@@ -78,6 +78,7 @@ export function createWebAccountWriteFence(
         envelope.state === null ||
         envelope.state.ownerPhoneNumber !== scope.ownerPhoneNumber ||
         (envelope.state.phase !== 'accepted' &&
+          envelope.state.phase !== 'local_cleanup' &&
           envelope.state.phase !== 'registration_ready')
       ) {
         throw new Error('Web account deletion cleanup authority is stale.');
@@ -121,13 +122,17 @@ export function createWebAccountWriteFence(
         return;
       }
 
+      const cleanupLabel =
+        envelope.state.phase === 'local_cleanup'
+          ? '本机账户清理期间'
+          : '删除结果确认期间';
       if (key === '__softbook_learning_event_outbox_v2') {
-        throw new Error('删除结果确认期间不能写入新的学习记录。');
+        throw new Error(`${cleanupLabel}不能写入新的学习记录。`);
       }
       if (key.startsWith('__softbook_mutation_queue')) {
-        throw new Error('删除结果确认期间不能写入新的账户操作。');
+        throw new Error(`${cleanupLabel}不能写入新的账户操作。`);
       }
-      throw new Error('删除结果确认期间不能写入新的账户记录。');
+      throw new Error(`${cleanupLabel}不能写入新的账户记录。`);
     },
   };
 }
@@ -242,6 +247,7 @@ async function writeStorage(
     if (
       error instanceof Error &&
       (error.message.startsWith('删除结果确认期间') ||
+        error.message.startsWith('本机账户清理期间') ||
         error.message.startsWith('删除状态异常') ||
         error.message.startsWith('账户隔离版本'))
     ) {
@@ -318,6 +324,7 @@ function readAccountDeletionEnvelope(
           'owner_phone_number,phase' ||
         (state.phase !== 'requesting' &&
           state.phase !== 'accepted' &&
+          state.phase !== 'local_cleanup' &&
           state.phase !== 'registration_ready') ||
         typeof state.owner_phone_number !== 'string' ||
         !/^1\d{10}$/.test(state.owner_phone_number)
