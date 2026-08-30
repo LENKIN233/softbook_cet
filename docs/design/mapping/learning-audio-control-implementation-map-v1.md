@@ -25,6 +25,7 @@
 - Expiring download URLs never enter visible state or durable UI storage.
 - The selection authority is the exact server `selection_id` or an explicit local attempt identity, so a same-card next selection invalidates earlier preparation and playback.
 - Every new prepare receives a controller-instance-scoped playback nonce. Native ended, error, and interruption events may change the chip only when that exact nonce is current; pause/resume inside the same selection keeps the nonce.
+- Backgrounding while cache resolution, native prepare, or initial native play is pending invalidates that generation and nonce, stops native work, returns the chip to ready, and requires another explicit tap; a quick foreground retry cannot be overwritten by the cancelled completion.
 - Native/internal errors map to a bounded domain error before reaching visible copy.
 - No autoplay, background resume, global mini-player, waveform, or speed control.
 

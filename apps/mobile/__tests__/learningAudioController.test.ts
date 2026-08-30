@@ -62,6 +62,20 @@ function readPreparedPlaybackToken(
   return token;
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>(nextResolve => {
+    resolve = nextResolve;
+  });
+
+  return { promise, resolve };
+}
+
+async function flushPlaybackMicrotasks() {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 function createCache(
   resolve: ContentAssetCache['resolve'] = jest
     .fn()
@@ -285,6 +299,142 @@ test('same-card new selection authority cancels the old preparation', async () =
 
   expect(engine.prepare).toHaveBeenCalledTimes(1);
   expect(engine.play).toHaveBeenCalledTimes(1);
+  expect(controller.getState()).toEqual({ status: 'playing' });
+});
+
+test('backgrounding during cache resolution cancels autoplay and isolates a quick foreground retry', async () => {
+  const staleCache = createDeferred<{ path: string; uri: string }>();
+  const pendingStop = createDeferred<void>();
+  const resolve = jest
+    .fn()
+    .mockImplementationOnce(() => staleCache.promise)
+    .mockResolvedValue({
+      path: '/verified/current-audio.mp3',
+      uri: 'file:///verified/current-audio.mp3',
+    });
+  const { engine } = createEngine();
+  const controller = new LearningAudioController({
+    cache: createCache(resolve),
+    engine,
+  });
+  controller.select(selection);
+  (engine.stop as jest.MockedFunction<LearningAudioEngine['stop']>)
+    .mockClear()
+    .mockImplementationOnce(() => pendingStop.promise);
+  const stalePress = controller.press();
+
+  const interruption = controller.pauseForInterruption();
+  expect(controller.getState()).toEqual({ status: 'idle' });
+  expect(engine.stop).toHaveBeenCalledTimes(1);
+
+  const currentPress = controller.press();
+  await currentPress;
+  expect(controller.getState()).toEqual({ status: 'playing' });
+
+  pendingStop.resolve();
+  await interruption;
+  staleCache.resolve({
+    path: '/verified/stale-audio.mp3',
+    uri: 'file:///verified/stale-audio.mp3',
+  });
+  await stalePress;
+
+  expect(engine.prepare).toHaveBeenCalledTimes(1);
+  expect(engine.prepare).toHaveBeenCalledWith(
+    '/verified/current-audio.mp3',
+    expect.stringMatching(/^learning-audio-/),
+  );
+  expect(engine.play).toHaveBeenCalledTimes(1);
+  expect(controller.getState()).toEqual({ status: 'playing' });
+});
+
+test('backgrounding during native prepare invalidates its completion before a quick foreground retry', async () => {
+  const stalePrepare = createDeferred<void>();
+  const { engine } = createEngine();
+  (engine.prepare as jest.MockedFunction<LearningAudioEngine['prepare']>)
+    .mockImplementationOnce(() => stalePrepare.promise)
+    .mockResolvedValue(undefined);
+  const controller = new LearningAudioController({
+    cache: createCache(),
+    engine,
+  });
+  controller.select(selection);
+  const stalePress = controller.press();
+  await flushPlaybackMicrotasks();
+  expect(engine.prepare).toHaveBeenCalledTimes(1);
+
+  const interruption = controller.pauseForInterruption();
+  expect(controller.getState()).toEqual({ status: 'idle' });
+  const currentPress = controller.press();
+  await Promise.all([interruption, currentPress]);
+  expect(controller.getState()).toEqual({ status: 'playing' });
+
+  stalePrepare.resolve();
+  await stalePress;
+
+  expect(engine.prepare).toHaveBeenCalledTimes(2);
+  expect(readPreparedPlaybackToken(engine, 1)).not.toBe(
+    readPreparedPlaybackToken(engine, 0),
+  );
+  expect(engine.play).toHaveBeenCalledTimes(1);
+  expect(controller.getState()).toEqual({ status: 'playing' });
+});
+
+test('backgrounding during initial native play prevents its late completion from restoring playback', async () => {
+  const stalePlay = createDeferred<void>();
+  const { engine } = createEngine();
+  (engine.play as jest.MockedFunction<LearningAudioEngine['play']>)
+    .mockImplementationOnce(() => stalePlay.promise)
+    .mockResolvedValue(undefined);
+  const controller = new LearningAudioController({
+    cache: createCache(),
+    engine,
+  });
+  controller.select(selection);
+  const stalePress = controller.press();
+  await flushPlaybackMicrotasks();
+  expect(engine.play).toHaveBeenCalledTimes(1);
+
+  const interruption = controller.pauseForInterruption();
+  expect(controller.getState()).toEqual({ status: 'idle' });
+  const currentPress = controller.press();
+  await Promise.all([interruption, currentPress]);
+  expect(controller.getState()).toEqual({ status: 'playing' });
+
+  stalePlay.resolve();
+  await stalePress;
+
+  expect(engine.prepare).toHaveBeenCalledTimes(2);
+  expect(engine.play).toHaveBeenCalledTimes(2);
+  expect(controller.getState()).toEqual({ status: 'playing' });
+});
+
+test('native interruption during initial play uses the same pending cancellation boundary', async () => {
+  const stalePlay = createDeferred<void>();
+  const { emit, engine } = createEngine();
+  (engine.play as jest.MockedFunction<LearningAudioEngine['play']>)
+    .mockImplementationOnce(() => stalePlay.promise)
+    .mockResolvedValue(undefined);
+  const controller = new LearningAudioController({
+    cache: createCache(),
+    engine,
+  });
+  controller.select(selection);
+  const stalePress = controller.press();
+  await flushPlaybackMicrotasks();
+  const stalePlaybackToken = readPreparedPlaybackToken(engine);
+  (engine.stop as jest.MockedFunction<LearningAudioEngine['stop']>).mockClear();
+
+  emit({ playbackToken: stalePlaybackToken, type: 'interruption' });
+  expect(controller.getState()).toEqual({ status: 'idle' });
+  expect(engine.stop).toHaveBeenCalledTimes(1);
+
+  const currentPress = controller.press();
+  await currentPress;
+  stalePlay.resolve();
+  await stalePress;
+
+  expect(engine.play).toHaveBeenCalledTimes(2);
   expect(controller.getState()).toEqual({ status: 'playing' });
 });
 

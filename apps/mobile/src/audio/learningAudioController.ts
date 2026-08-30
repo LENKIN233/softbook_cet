@@ -69,6 +69,11 @@ export class LearningAudioController {
         return;
       }
 
+      if (event.type === 'interruption' && this.state.status === 'loading') {
+        this.cancelPendingPlayback().catch(() => undefined);
+        return;
+      }
+
       this.playbackRevision += 1;
 
       if (event.type === 'ended') {
@@ -205,6 +210,11 @@ export class LearningAudioController {
   }
 
   async pauseForInterruption() {
+    if (this.state.status === 'loading') {
+      await this.cancelPendingPlayback();
+      return;
+    }
+
     const selection = this.selection;
     const generation = this.generation;
     const playbackToken = this.activePlaybackToken;
@@ -317,6 +327,19 @@ export class LearningAudioController {
   private createPlaybackToken() {
     this.playbackSequence += 1;
     return `${this.controllerInstanceToken}-${this.playbackSequence.toString(36)}`;
+  }
+
+  private async cancelPendingPlayback() {
+    this.generation += 1;
+    this.playbackRevision += 1;
+    this.activePlaybackToken = null;
+    this.setState({ status: 'idle' });
+
+    try {
+      await this.dependencies.engine.stop();
+    } catch {
+      // The cancelled generation remains invalid even if native cleanup fails.
+    }
   }
 
   private isCurrentSelection(generation: number, authorityToken: string) {
