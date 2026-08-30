@@ -34,6 +34,7 @@ const REQUIRED_CORE_INTERACTIONS = [
   'multiple_choice',
   'swipe',
 ];
+const CLOUDBASE_READ_RETRY_DELAYS_MS = [250, 750];
 
 if (!baseUrl) {
   fail('SOFTBOOK_CET_REMOTE_BASE_URL is required.');
@@ -1149,10 +1150,51 @@ function parseEntitlement(payload, label) {
 }
 
 async function get(path) {
-  return fetch(`${baseUrl}${path}`, {
-    headers: remoteHeaders,
-    method: 'GET',
-  });
+  for (
+    let attempt = 0;
+    attempt <= CLOUDBASE_READ_RETRY_DELAYS_MS.length;
+    attempt += 1
+  ) {
+    const response = await fetch(`${baseUrl}${path}`, {
+      headers: remoteHeaders,
+      method: 'GET',
+    });
+    if (
+      attempt === CLOUDBASE_READ_RETRY_DELAYS_MS.length ||
+      !(await isExactTransientCloudBaseReadFailure(response))
+    ) {
+      return response;
+    }
+    await wait(CLOUDBASE_READ_RETRY_DELAYS_MS[attempt]);
+  }
+  fail('CloudBase read retry is unreachable.');
+}
+
+async function isExactTransientCloudBaseReadFailure(response) {
+  if (response.status !== 500 || typeof response.clone !== 'function') {
+    return false;
+  }
+  try {
+    const payload = await response.clone().json();
+    return (
+      payload &&
+      typeof payload === 'object' &&
+      !Array.isArray(payload) &&
+      Object.keys(payload).length === 1 &&
+      payload.error &&
+      typeof payload.error === 'object' &&
+      !Array.isArray(payload.error) &&
+      JSON.stringify(Object.keys(payload.error).sort()) ===
+        JSON.stringify(['code', 'message']) &&
+      payload.error.code === 'DATABASE_TRANSACTION_FAIL'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function wait(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
 async function postJson(path, body, headers = authHeaders) {
