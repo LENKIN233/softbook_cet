@@ -199,10 +199,19 @@ Implemented mapping:
 - Space continuity region keeps `回学习` bound to the unchanged Learning
   context and exposes `回到当前卡盒` whenever manual browsing steps away from
   the current card address.
-- Space hierarchy step controls and the current-box recovery action use real
-  `44 x 44dp` minimum touch regions. Short phone or state-rail layouts use an
-  intrinsic vertical scroll container so the open box and `回学习` action stay
-  reachable instead of being clipped by the one-screen workbench.
+- Entering box inspection starts on the exact current Learning card, including
+  when that card is not the first sibling in source order.
+- Space hierarchy, inspection, paging, state, and recovery actions expose
+  assistive roles/state and use at least `44 x 44dp` touch regions.
+- Phone Space uses an intrinsic vertical scroll container because the shell
+  consumes part of the raw window height; accessibility-size phone layouts
+  delegate scrolling to the shell, while accessibility-size tablet Space owns
+  its scroll container. The open box and `回学习` action therefore remain
+  reachable instead of being clipped by the workbench.
+- The iOS privacy manifest declares the linked phone number, user ID,
+  pseudonymous installation device ID, and product interaction data that the
+  authenticated mobile runtime actually sends for account and learning
+  functionality; none is declared for tracking.
 
 Implementation-only gaps and evidence boundary:
 

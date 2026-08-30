@@ -199,25 +199,36 @@ export function SpaceSurface({
   const [selectedBoxRef, setSelectedBoxRef] = useState(
     focusedSelection?.boxRef ?? selectedGroup?.boxes[0]?.boxRef ?? '',
   );
-  const [selectedCardIndex, setSelectedCardIndex] = useState(0);
-  const lastFocusedCardIdRef = useRef(focusedSelection?.cardId ?? null);
+  const [selectedCardIndex, setSelectedCardIndex] = useState(
+    focusedSelection?.cardIndex ?? 0,
+  );
+  const focusedSelectionKey = focusedSelection
+    ? [
+        focusedSelection.cardId,
+        focusedSelection.libraryName,
+        focusedSelection.groupName,
+        focusedSelection.boxRef,
+        focusedSelection.cardIndex,
+      ].join('\u0000')
+    : null;
+  const lastFocusedSelectionKeyRef = useRef(focusedSelectionKey);
   useEffect(() => {
-    const focusedCardId = focusedSelection?.cardId ?? null;
-    const didFocusedCardChange = lastFocusedCardIdRef.current !== focusedCardId;
-    lastFocusedCardIdRef.current = focusedCardId;
+    const didFocusedSelectionChange =
+      lastFocusedSelectionKeyRef.current !== focusedSelectionKey;
+    lastFocusedSelectionKeyRef.current = focusedSelectionKey;
 
     if (!focusedSelection) {
       return;
     }
 
-    if (selectionMode === 'follow_current' && didFocusedCardChange) {
+    if (selectionMode === 'follow_current' && didFocusedSelectionChange) {
       setSelectionMode('follow_current');
       setSelectedLibraryName(focusedSelection.libraryName);
       setSelectedGroupName(focusedSelection.groupName);
       setSelectedBoxRef(focusedSelection.boxRef);
       setSelectedCardIndex(focusedSelection.cardIndex);
     }
-  }, [focusedSelection, selectionMode]);
+  }, [focusedSelection, focusedSelectionKey, selectionMode]);
   const selectedBox =
     selectedGroup?.boxes.find(box => box.boxRef === selectedBoxRef) ??
     selectedGroup?.boxes[0];
@@ -368,8 +379,9 @@ export function SpaceSurface({
   const hasStateRail = Boolean(
     spaceGateRail || spaceSyncRail || spaceStatusRail,
   );
-  const usesScrollableViewport =
-    !usesAccessibilityLayout && (usesShortViewport || hasStateRail);
+  const usesScrollableViewport = usesAccessibilityLayout
+    ? deviceClass === 'tablet'
+    : deviceClass === 'phone' || usesShortViewport || hasStateRail;
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     const emptyTone = currentLearningCard
@@ -950,6 +962,8 @@ export function SpaceSurface({
                   </Text>
                 </View>
                 <Pressable
+                  accessibilityLabel="查看当前卡盒里的卡片"
+                  accessibilityRole="button"
                   onPress={onOpenCardList ?? noop}
                   style={[
                     styles.overviewInspectButton,
@@ -1212,6 +1226,8 @@ export function SpaceSurface({
                     </View>
 
                     <Pressable
+                      accessibilityLabel={`查看同盒休眠卡，${selectedSleepingCards.length} 张`}
+                      accessibilityRole="button"
                       onPress={onOpenCardList ?? noop}
                       style={[
                         styles.sleepAlcove,
@@ -1267,6 +1283,8 @@ export function SpaceSurface({
               </View>
 
               <Pressable
+                accessibilityLabel="回到当前学习卡"
+                accessibilityRole="button"
                 onPress={onReturnToLearning}
                 style={[
                   styles.returnContinuity,
@@ -1666,6 +1684,11 @@ export function SpaceSurface({
                           ) : (
                             <>
                               <Pressable
+                                accessibilityLabel={
+                                  isFavorited ? '取消收藏当前卡' : '收藏当前卡'
+                                }
+                                accessibilityRole="checkbox"
+                                accessibilityState={{checked: isFavorited}}
                                 onPress={() => {
                                   setSelectionMode('manual');
                                   onToggleFavoriteTag(card.cardId);
@@ -1714,6 +1737,13 @@ export function SpaceSurface({
                               </Pressable>
 
                               <Pressable
+                                accessibilityLabel={
+                                  isSleeping
+                                    ? '将当前卡移出休眠区'
+                                    : '将当前卡放入休眠区'
+                                }
+                                accessibilityRole="switch"
+                                accessibilityState={{checked: isSleeping}}
                                 onPress={() => {
                                   setSelectionMode('manual');
                                   onToggleSleepState(card.cardId);
@@ -1841,6 +1871,8 @@ export function SpaceSurface({
                           testID="space-browse-card-continuity"
                         >
                           <Pressable
+                            accessibilityLabel="回到当前学习卡"
+                            accessibilityRole="button"
                             onPress={onReturnToLearning}
                             style={[
                               styles.browseContinuityPrimary,
@@ -1872,6 +1904,8 @@ export function SpaceSurface({
                             </Text>
                           </Pressable>
                           <Pressable
+                            accessibilityLabel="回到当前卡盒概览"
+                            accessibilityRole="button"
                             onPress={onBackToOverview ?? noop}
                             style={[
                               styles.browseContinuitySecondary,
@@ -1926,7 +1960,6 @@ function SpaceViewport({
 }) {
   const baseStyle = [
     styles.content,
-    usesAccessibilityLayout ? styles.contentAccessible : null,
     deviceClass === 'tablet' ? styles.contentTablet : null,
   ];
 
@@ -1945,7 +1978,11 @@ function SpaceViewport({
 
   return (
     <View
-      style={[...baseStyle, styles.contentOneScreen]}
+      style={[
+        ...baseStyle,
+        styles.contentOneScreen,
+        usesAccessibilityLayout ? styles.contentAccessible : null,
+      ]}
       testID="space-fixed-viewport"
     >
       {children}
@@ -2059,6 +2096,8 @@ function ActionChip({
 }) {
   return (
     <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
       accessibilityState={disabled ? { disabled: true } : undefined}
       disabled={disabled}
       onPress={onPress}
@@ -2755,6 +2794,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 0,
     gap: 3,
+    minHeight: 44,
     minWidth: 96,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -3324,6 +3364,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 16,
     borderWidth: 1,
+    minHeight: 44,
     minWidth: 58,
     paddingHorizontal: 11,
     paddingVertical: 8,
@@ -3471,7 +3512,7 @@ const styles = StyleSheet.create({
   },
   browseCompactStateButton: {
     borderRadius: 14,
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },

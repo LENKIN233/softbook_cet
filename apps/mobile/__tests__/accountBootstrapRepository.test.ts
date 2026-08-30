@@ -553,7 +553,7 @@ test('allows the server-derived trial countdown to decrease at the same membersh
   ).not.toThrow();
 });
 
-test('rejects a same-revision trial countdown increase at a later observation', () => {
+test('rejects a same-revision trial observation-time regression', () => {
   const previousPayload = createBootstrapPayload();
   previousPayload.data.generated_at = '2026-07-20T10:00:00.000Z';
   previousPayload.data.membership.stage = 'trial';
@@ -568,16 +568,16 @@ test('rejects a same-revision trial countdown increase at a later observation', 
     DAY_KEY,
   );
   const nextPayload = structuredClone(previousPayload);
-  nextPayload.data.generated_at = '2026-07-20T10:00:01.000Z';
+  nextPayload.data.generated_at = '2026-07-20T09:59:59.000Z';
   nextPayload.data.membership.trial_remaining_seconds = 428401;
   const next = parseAccountBootstrapPayload(nextPayload, 'cet4', DAY_KEY);
 
   expect(() =>
     assertAccountBootstrapRevisionTransition(previous, next),
-  ).toThrow(/remaining time increased without a new revision/);
+  ).toThrow(/observation time regressed without a new revision/);
 });
 
-test('rejects a same-revision trial countdown drop that exceeds elapsed server time', () => {
+test('rejects a trial countdown that does not match the response observation time', () => {
   const previousPayload = createBootstrapPayload();
   previousPayload.data.generated_at = '2026-07-20T10:00:00.000Z';
   previousPayload.data.membership.stage = 'trial';
@@ -594,11 +594,23 @@ test('rejects a same-revision trial countdown drop that exceeds elapsed server t
   const nextPayload = JSON.parse(JSON.stringify(previousPayload));
   nextPayload.data.generated_at = '2026-07-20T10:00:01.000Z';
   nextPayload.data.membership.trial_remaining_seconds = 428398;
-  const next = parseAccountBootstrapPayload(nextPayload, 'cet4', DAY_KEY);
-
   expect(() =>
-    assertAccountBootstrapRevisionTransition(previous, next),
-  ).toThrow(/decreased faster than the server clock/);
+    parseAccountBootstrapPayload(nextPayload, 'cet4', DAY_KEY),
+  ).toThrow(/remaining seconds do not match its server observation time/);
+  expect(previous.membership.state.trialRemainingSeconds).toBe(428400);
+});
+
+test('rejects an active trial observed at or after its expiry', () => {
+  const payload = createBootstrapPayload();
+  payload.data.generated_at = '2026-07-25T09:00:00.000Z';
+  payload.data.membership.stage = 'trial';
+  payload.data.membership.trial_started_at = '2026-07-20T09:00:00.000Z';
+  payload.data.membership.trial_expires_at = '2026-07-25T09:00:00.000Z';
+  payload.data.membership.trial_remaining_seconds = 1;
+
+  expect(() => parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY)).toThrow(
+    /remaining seconds do not match its server observation time/,
+  );
 });
 
 test('rejects a newer Learning vector that rolls back an existing card sequence', () => {

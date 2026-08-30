@@ -141,7 +141,7 @@ test('keeps a physical Space outline when no cards are visible', () => {
   expect(output).not.toContain('空间地图还没有可展示的数据');
 });
 
-test('uses fixed 44dp hierarchy targets at the 393x852 phone viewport', () => {
+test('keeps 44dp hierarchy targets reachable in a scroll viewport at 393x852', () => {
   expect(isShortSpaceViewport(393, 852)).toBe(false);
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];
@@ -163,10 +163,8 @@ test('uses fixed 44dp hierarchy targets at the 393x852 phone viewport', () => {
   });
 
   const root = tree!.root;
-  expect(root.findByProps({testID: 'space-fixed-viewport'})).toBeTruthy();
-  expect(
-    root.findAllByProps({testID: 'space-scroll-viewport'}),
-  ).toHaveLength(0);
+  expect(root.findByProps({testID: 'space-scroll-viewport'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'space-fixed-viewport'})).toHaveLength(0);
   for (const level of ['library', 'group', 'box']) {
     const rowStyle = StyleSheet.flatten(
       root.findByProps({testID: `space-${level}-row`}).props.style,
@@ -196,6 +194,11 @@ test('uses fixed 44dp hierarchy targets at the 393x852 phone viewport', () => {
       root.findByProps({testID: 'space-return-learning'}).props.style,
     ).minHeight,
   ).toBeGreaterThanOrEqual(44);
+  const inspectButton = root.findByProps({testID: 'space-open-card-list'});
+  expect(
+    StyleSheet.flatten(inspectButton.props.style).minHeight,
+  ).toBeGreaterThanOrEqual(44);
+  expect(inspectButton.props.accessibilityRole).toBe('button');
 });
 
 test('short phone Space scrolls intrinsic content instead of clipping the primary return action', () => {
@@ -421,6 +424,15 @@ test('uses a compact address clue instead of selector controls in the card list 
     root.findByProps({ testID: 'space-browse-card-pager' }).props.style,
   );
   expect(browsePagerStyle.marginTop).toBeUndefined();
+  for (const testID of ['space-card-prev', 'space-card-next']) {
+    const control = root
+      .findAllByProps({testID})
+      .find(candidate => candidate.props.style !== undefined)!;
+    expect(
+      StyleSheet.flatten(control.props.style).minHeight,
+    ).toBeGreaterThanOrEqual(44);
+    expect(control.props.accessibilityRole).toBe('button');
+  }
   const browseStateTrayStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-browse-card-state-tray' }).props.style,
   );
@@ -449,6 +461,17 @@ test('uses a compact address clue instead of selector controls in the card list 
   expect(renderedText).not.toContain('卡片列表');
   expect(renderedText).not.toContain('切换位置');
   expect(renderedText).not.toContain('相邻对象');
+  expect(
+    root.findByProps({testID: 'space-favorite-1'}).props.accessibilityRole,
+  ).toBe('checkbox');
+  expect(
+    root.findByProps({testID: 'space-sleep-1'}).props.accessibilityRole,
+  ).toBe('switch');
+  expect(
+    root.findAllByProps({testID: 'space-return-learning'}).some(
+      candidate => candidate.props.accessibilityRole === 'button',
+    ),
+  ).toBe(true);
 });
 
 test('defaults Space first-read focus to the current learning card box', () => {
@@ -652,6 +675,9 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
   const returnStyle = StyleSheet.flatten(
     root.findByProps({ testID: 'space-return-learning' }).props.style,
   );
+  const viewportStyle = StyleSheet.flatten(
+    root.findByProps({testID: 'space-fixed-viewport'}).props.style,
+  );
 
   expect(openBoxDeckStyle).toMatchObject({ flex: 0, overflow: 'visible' });
   expect(cardStyles.length).toBeGreaterThan(1);
@@ -666,6 +692,76 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
     alignItems: 'stretch',
     flexDirection: 'column',
   });
+  expect(viewportStyle.flex).toBe(0);
+});
+
+test('keeps accessibility-size tablet Space intrinsically scrollable', () => {
+  const session = createLocalLearningSession('cet4');
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={session.catalogCards[0]}
+        deviceClass="tablet"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        spaceCards={session.catalogCards}
+        usesAccessibilityLayout
+      />,
+    );
+  });
+
+  expect(
+    tree!.root.findByProps({testID: 'space-scroll-viewport'}),
+  ).toBeTruthy();
+});
+
+test('opens card inspection on the current learning card instead of the first sibling', () => {
+  const session = createLocalLearningSession('cet4');
+  const currentCard = session.catalogCards.find((candidate, index, cards) =>
+    cards
+      .slice(0, index)
+      .some(
+        sibling =>
+          sibling.space_metadata.box_ref === candidate.space_metadata.box_ref,
+      ),
+  );
+
+  expect(currentCard).toBeDefined();
+  const siblingCards = session.catalogCards.filter(
+    card => card.space_metadata.box_ref === currentCard!.space_metadata.box_ref,
+  );
+  const currentSiblingIndex = siblingCards.findIndex(
+    card => card.card_id === currentCard!.card_id,
+  );
+  expect(currentSiblingIndex).toBeGreaterThan(0);
+  let tree: ReactTestRenderer.ReactTestRenderer;
+
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <SpaceSurface
+        cardStateById={{}}
+        currentLearningCard={currentCard!}
+        deviceClass="phone"
+        onReturnToLearning={jest.fn()}
+        onToggleFavoriteTag={jest.fn()}
+        onToggleSleepState={jest.fn()}
+        palette={palette}
+        screen="card_list"
+        spaceCards={session.catalogCards}
+      />,
+    );
+  });
+
+  const renderedText = collectRenderedText(tree!.toJSON()).join(' ');
+  expect(renderedText).toContain(currentCard!.front.prompt);
+  expect(renderedText).toContain(
+    `${currentSiblingIndex + 1}/${siblingCards.length}`,
+  );
 });
 
 test('resyncs Space focus when the current learning card changes after render', () => {

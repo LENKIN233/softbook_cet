@@ -13,6 +13,7 @@ import {
   resolveSoftbookClientKind,
   type SoftbookClientKind,
 } from '../runtime/remoteClient';
+import { assertServerDerivedTrialRemainingSeconds } from '../membership/membershipRepository';
 
 const LEARNING_SESSION_SCHEMA_VERSION = 'learning-session.v1';
 const CONTENT_VERSION_PATTERN = /^sha256:[a-f0-9]{64}$/;
@@ -244,6 +245,15 @@ export function parseRemoteLearningSessionPayload(
   ) {
     throw new Error('Remote learning session trial clock is invalid.');
   }
+  assertServerDerivedTrialRemainingSeconds(
+    {
+      stage: membershipStage,
+      trialExpiresAt: membershipTrialExpiresAt,
+      trialRemainingSeconds: membershipTrialRemainingSeconds,
+    },
+    generatedAt,
+    'Remote learning session',
+  );
   const algorithm = parseAlgorithm(data.algorithm);
   const access = parseAccess(data.access);
 

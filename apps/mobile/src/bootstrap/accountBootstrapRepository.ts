@@ -1,6 +1,9 @@
 import type { LearningCardResult, LearningTrack } from '../learning/model';
 import type { MembershipState } from '../membership/localMembership';
-import { parseSoftbookRemoteMembershipPayload } from '../membership/membershipRepository';
+import {
+  assertServerDerivedTrialRemainingSeconds,
+  parseSoftbookRemoteMembershipPayload,
+} from '../membership/membershipRepository';
 import { RemoteHttpError } from '../runtime/remoteHttpError';
 import {
   assertInstalledClientVersionAtLeast,
@@ -288,6 +291,11 @@ export function parseAccountBootstrapPayload(
   const componentRevisions = parseComponentRevisions(data.component_revisions);
   const learning = parseLearning(data.learning, expectedTrack);
   const membership = parseMembership(data.membership);
+  assertServerDerivedTrialRemainingSeconds(
+    membership.state,
+    generatedAt,
+    'Bootstrap membership',
+  );
   const progress = parseProgress(data.progress, expectedDayKey);
   const space = parseSpace(
     data.space,

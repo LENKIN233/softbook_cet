@@ -416,6 +416,12 @@ function assertTrialRemainingPresentationTransition(
   const previousGeneratedAt = Date.parse(previous.generatedAt);
   const nextGeneratedAt = Date.parse(next.generatedAt);
 
+  if (nextGeneratedAt < previousGeneratedAt) {
+    throw new Error(
+      'Bootstrap membership observation time regressed without a new revision.',
+    );
+  }
+
   if (
     nextGeneratedAt >= previousGeneratedAt &&
     nextState.trialRemainingSeconds > previousState.trialRemainingSeconds

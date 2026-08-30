@@ -1985,6 +1985,7 @@ test('refreshes canonical membership when learning-session starts the trial', as
         bootstrapRequestCount === 1 ? 'trial_available' : 'trial',
       );
       if (bootstrapRequestCount > 1) {
+        payload.data.generated_at = '2026-08-12T08:00:01.000Z';
         payload.data.membership.trial_expires_at =
           trialSession.membershipTrialExpiresAt;
         payload.data.membership.trial_remaining_seconds =
@@ -5601,7 +5602,7 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
-test('keeps phone primary surfaces inside one-screen app panels', async () => {
+test('keeps phone primary surfaces bounded while Space remains scroll-reachable', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5615,7 +5616,7 @@ test('keeps phone primary surfaces inside one-screen app panels', async () => {
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
 
   await openRoute(root, 'space');
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findAllByType(ScrollView)).toHaveLength(1);
 
   await openRoute(root, 'statistics');
   expect(root.findAllByType(ScrollView)).toHaveLength(1);
