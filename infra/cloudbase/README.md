@@ -596,8 +596,9 @@ numbers and must not be committed or included in a release bundle.
 Apply additionally opens the command once and parses only those same stable
 regular-file bytes. Every path component must be non-symlink and outside this
 repository; hardlinks, exact-HEAD tracked blobs, byte-identical outside copies
-and untracked in-repository paths fail before any receiver request. Actor,
-campaign, grant and event IDs remove all non-digits before phone detection.
+and untracked in-repository paths fail before any receiver request. All blob
+modes, LFS target SHA-256/size and gitlinks are inspected fail-closed. Actor,
+campaign, grant and event IDs apply NFKC then remove all non-digits before phone detection.
 Every stored audit hash is recomputed from
 its event plus the document phone owner, so a cross-phone transplant is invalid.
 
@@ -676,7 +677,9 @@ never reuses the formal closed-beta grant. Create an untracked
 the exact same command only from clean `main`. Apply reads and parses one stable
 opened regular file: every path component must be non-symlink and outside the
 repository, while hardlinks, exact-HEAD blobs, byte-identical outside copies and
-in-repository paths fail before receiver access:
+in-repository paths fail before receiver access. LFS pointer targets are bound
+by SHA-256/size and any gitlink fails closed; the checked HEAD is matched again
+immediately before invoke:
 
 ```bash
 node infra/cloudbase/manage-pilot-entitlement.mjs \
@@ -698,7 +701,7 @@ also requires a command-bound HMAC from the receiver-only
 `SOFTBOOK_PILOT_OPERATOR_SECRET`, reads base membership plus beta and pilot overlays, rederives the claimed
 stages, and commits the audit and active overlay in one database transaction.
 The CLI then independently rereads the audit event before reporting success.
-Pilot, event and actor IDs remove every non-digit before phone-number detection.
+Pilot, event and actor IDs apply NFKC and remove every non-digit before phone-number detection.
 Stored audit hashes are recomputed with the owning document phone, so
 a cross-phone transplant cannot become canonical access.
 

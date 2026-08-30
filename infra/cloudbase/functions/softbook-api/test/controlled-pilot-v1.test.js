@@ -248,6 +248,14 @@ test('controlled-pilot public identifiers reject phone-number material', () => {
       );
     }
   }
+  assert.throws(
+    () =>
+      pilot.validatePilotEntitlementCommand({
+        ...command,
+        actor: 'service:１３８００１３８０００',
+      }),
+    /phone-number material/,
+  );
 });
 
 test('pilot outcome report derives thresholds and rejects an unsupported advance decision', () => {

@@ -65,15 +65,20 @@ export function parsePilotEntitlementArguments(argv) {
 
 export async function executePilotEntitlementCommand(options, dependencies = {}) {
   const profile = validateControlledPilotProfile(readJson(options.profilePath));
-  const commandBytes = options.apply
+  const commandRead = options.apply
     ? readPrivateOperatorCommandBytes(options.commandPath, {
         beforeRead: dependencies.beforeOperatorCommandRead ?? null,
         createError: message => new PilotEntitlementError(message),
+        git: dependencies.operatorCommandGit ?? execFileSync,
+        headMaterialProbe: dependencies.operatorHeadMaterialProbe ?? null,
         repositoryRoot: REPOSITORY_ROOT,
       })
-    : readFileSync(resolve(options.commandPath));
+    : {
+        bytes: readFileSync(resolve(options.commandPath)),
+        checkedHead: null,
+      };
   const command = validatePilotEntitlementCommand(
-    parseCommandBytes(commandBytes),
+    parseCommandBytes(commandRead.bytes),
   );
   const now = dependencies.now ?? new Date();
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
@@ -94,8 +99,14 @@ export async function executePilotEntitlementCommand(options, dependencies = {})
     );
   }
   const runner = dependencies.runner ?? createCloudBaseCommandRunner({cwd: REPOSITORY_ROOT});
-  const repository = dependencies.repository ?? readRepositoryState();
+  const repositoryStateReader =
+    dependencies.repositoryStateReader ??
+    (() => dependencies.repository ?? readRepositoryState());
+  const repository = repositoryStateReader();
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
+  if (options.apply) {
+    assertCheckedRepositoryHead(repository, commandRead.checkedHead);
+  }
   const preflight = await inspectReceiver({profile, runner});
   const writeSafety = inspectWriteSafety({nodeVersion, repository});
   const base = {
@@ -124,6 +135,15 @@ export async function executePilotEntitlementCommand(options, dependencies = {})
       throw new PilotEntitlementError(
         'SOFTBOOK_PILOT_OPERATOR_SECRET must be a strong receiver-only secret.',
       );
+    }
+    const finalRepository = repositoryStateReader();
+    assertCheckedRepositoryHead(finalRepository, commandRead.checkedHead);
+    const finalWriteSafety = inspectWriteSafety({
+      nodeVersion,
+      repository: finalRepository,
+    });
+    if (!finalWriteSafety.ok) {
+      throw new PilotEntitlementError(finalWriteSafety.errors.join('; '));
     }
     const applied = await invokePilotEntitlement({
       command,
@@ -360,6 +380,18 @@ function readRepositoryState() {
     head: git(['rev-parse', 'HEAD']),
     originMain: git(['rev-parse', 'origin/main']),
   };
+}
+
+function assertCheckedRepositoryHead(repository, checkedHead) {
+  if (
+    !/^[0-9a-f]{40}$/.test(checkedHead ?? '') ||
+    repository?.head !== checkedHead ||
+    repository?.originMain !== checkedHead
+  ) {
+    throw new PilotEntitlementError(
+      'operator command checked HEAD must equal repository HEAD and origin/main.',
+    );
+  }
 }
 
 function git(args) {

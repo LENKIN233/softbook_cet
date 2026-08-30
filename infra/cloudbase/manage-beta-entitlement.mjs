@@ -102,15 +102,20 @@ export async function executeBetaEntitlementCommand(
       'beta entitlement commands require a closed_beta delivery profile.',
     );
   }
-  const commandBytes = options.apply
+  const commandRead = options.apply
     ? readPrivateOperatorCommandBytes(options.commandPath, {
         beforeRead: dependencies.beforeOperatorCommandRead ?? null,
         createError: message => new BetaEntitlementError(message),
+        git: dependencies.operatorCommandGit ?? execFileSync,
+        headMaterialProbe: dependencies.operatorHeadMaterialProbe ?? null,
         repositoryRoot: REPOSITORY_ROOT,
       })
-    : readFileSync(resolve(options.commandPath));
+    : {
+        bytes: readFileSync(resolve(options.commandPath)),
+        checkedHead: null,
+      };
   const command = validateBetaEntitlementCommand(
-    parseJsonBytes(commandBytes, 'operator JSON input'),
+    parseJsonBytes(commandRead.bytes, 'operator JSON input'),
   );
   const completeReport = report => ({
     ...report,
@@ -126,9 +131,15 @@ export async function executeBetaEntitlementCommand(
       cwd: REPOSITORY_ROOT,
       env: operatorCredentialFreeEnvironment(process.env),
     });
-  const repository = dependencies.repository ?? readRepositoryState();
+  const repositoryStateReader =
+    dependencies.repositoryStateReader ??
+    (() => dependencies.repository ?? readRepositoryState());
+  const repository = repositoryStateReader();
   const nodeVersion = dependencies.nodeVersion ?? process.versions.node;
-  if (options.apply) requireApplyIdentity({command, repository});
+  if (options.apply) {
+    assertCheckedRepositoryHead(repository, commandRead.checkedHead);
+    requireApplyIdentity({command, repository});
+  }
   const preflight = await inspectReceiver({profile, runner});
   const backendDeploymentId = buildBackendDeploymentId({
     profile,
@@ -199,6 +210,15 @@ export async function executeBetaEntitlementCommand(
       throw new BetaEntitlementError(
         'SOFTBOOK_BETA_OPERATOR_SECRET must be a strong receiver-only secret.',
       );
+    }
+    const finalRepository = repositoryStateReader();
+    assertCheckedRepositoryHead(finalRepository, commandRead.checkedHead);
+    const finalWriteSafety = receiverDeliveryInternals.inspectWriteSafety({
+      nodeVersion,
+      repository: finalRepository,
+    });
+    if (!finalWriteSafety.ok) {
+      throw new BetaEntitlementError(finalWriteSafety.errors.join('; '));
     }
     const applied = await invokeBetaEntitlement({
       backendDeploymentId,
@@ -281,6 +301,18 @@ function requireApplyIdentity({command, repository}) {
   if (!COMMIT_PATTERN.test(repository.head ?? '')) {
     throw new BetaEntitlementError(
       'apply requires a full lowercase repository commit SHA-1.',
+    );
+  }
+}
+
+function assertCheckedRepositoryHead(repository, checkedHead) {
+  if (
+    !/^[0-9a-f]{40}$/.test(checkedHead ?? '') ||
+    repository?.head !== checkedHead ||
+    repository?.originMain !== checkedHead
+  ) {
+    throw new BetaEntitlementError(
+      'operator command checked HEAD must equal repository HEAD and origin/main.',
     );
   }
 }

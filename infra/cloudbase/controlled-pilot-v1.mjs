@@ -855,7 +855,7 @@ function requirePrivacySafePublicText(value, label) {
 }
 
 function containsPhoneMaterial(value) {
-  return /1\d{10}/.test(value.replace(/\D/g, ''));
+  return /1\d{10}/.test(value.normalize('NFKC').replace(/\D/g, ''));
 }
 
 function requireString(value, label) {

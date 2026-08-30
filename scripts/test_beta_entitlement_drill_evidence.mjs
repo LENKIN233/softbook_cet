@@ -90,6 +90,7 @@ test('beta entitlement drill rejects planned, drifted, non-idempotent and regres
   for (const [field, value] of [
     ['actor_id', 'service:model-138-0013-8000'],
     ['actor_id', 'service:model-138a0013b8000'],
+    ['actor_id', 'service:１３８００１３８０００'],
     ['campaign_id', 'campaign-138-0013-8000'],
     ['event_id', 'event-138-0013-8000'],
     ['grant_id', 'grant-138-0013-8000'],

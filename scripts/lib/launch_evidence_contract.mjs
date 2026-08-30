@@ -5927,7 +5927,7 @@ function requirePattern(value, pattern, label, errors) {
 function rejectPhoneMaterial(value, label, errors) {
   if (
     typeof value === 'string' &&
-    /1\d{10}/.test(value.replace(/\D/g, ''))
+    /1\d{10}/.test(value.normalize('NFKC').replace(/\D/g, ''))
   ) {
     errors.push(`${label} must not contain phone-number material.`);
   }

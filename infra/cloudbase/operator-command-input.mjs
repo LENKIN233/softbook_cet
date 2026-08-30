@@ -1,4 +1,5 @@
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {
   closeSync,
   constants,
@@ -15,6 +16,8 @@ export function readPrivateOperatorCommandBytes(
   {
     beforeRead = null,
     createError = message => new Error(message),
+    git = execFileSync,
+    headMaterialProbe = null,
     repositoryRoot,
   },
 ) {
@@ -23,6 +26,7 @@ export function readPrivateOperatorCommandBytes(
   };
   const resolvedPath = resolve(inputPath);
   const canonicalRepositoryRoot = requireRealPath(repositoryRoot, fail);
+  const checkedHead = readHead(canonicalRepositoryRoot, git, fail);
   assertNoSymlinkComponents(resolvedPath, fail);
   const canonicalPath = requireRealPath(resolvedPath, fail);
   if (isWithin(canonicalRepositoryRoot, canonicalPath)) {
@@ -53,8 +57,30 @@ export function readPrivateOperatorCommandBytes(
     assertStableOpenedFile(before, after, bytes, fail);
     assertNoSymlinkComponents(resolvedPath, fail);
     assertPathStillOwnsDescriptor(resolvedPath, after, fail);
-    rejectExactHeadBlob(bytes, canonicalRepositoryRoot, fail);
-    return bytes;
+    const snapshot =
+      typeof headMaterialProbe === 'function'
+        ? headMaterialProbe({
+            bytes: Buffer.from(bytes),
+            checkedHead,
+            repositoryRoot: canonicalRepositoryRoot,
+          })
+        : readHeadMaterialSnapshot(
+            canonicalRepositoryRoot,
+            checkedHead,
+            git,
+            fail,
+          );
+    rejectTrackedHeadMaterial(
+      bytes,
+      canonicalRepositoryRoot,
+      snapshot,
+      git,
+      fail,
+    );
+    if (readHead(canonicalRepositoryRoot, git, fail) !== checkedHead) {
+      fail('repository HEAD changed while operator command bytes were checked.');
+    }
+    return {bytes, checkedHead};
   } finally {
     closeSync(descriptor);
   }
@@ -121,34 +147,177 @@ function assertStableOpenedFile(before, after, bytes, fail) {
   }
 }
 
-function rejectExactHeadBlob(bytes, repositoryRoot, fail) {
+function readHeadMaterialSnapshot(repositoryRoot, checkedHead, git, fail) {
   let output;
-  let blobId;
   try {
-    output = execFileSync(
+    output = git(
       'git',
-      ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'],
+      ['ls-tree', '-r', '-z', '--full-tree', checkedHead],
       {cwd: repositoryRoot, encoding: 'utf8'},
     );
-    blobId = execFileSync('git', ['hash-object', '--stdin'], {
+  } catch {
+    fail('operator command could not be checked against exact HEAD.');
+  }
+  const entries = [];
+  for (const record of output.split('\0')) {
+    if (!record) continue;
+    const match = /^(\d{6}) (blob|commit) ([0-9a-f]+)\t/.exec(record);
+    if (!match) fail('exact HEAD tree contains an unsupported entry.');
+    entries.push({mode: match[1], oid: match[3], type: match[2]});
+  }
+  const blobIds = [...new Set(
+    entries.filter(entry => entry.type === 'blob').map(entry => entry.oid),
+  )];
+  const lfsPointers = readLfsPointers(
+    repositoryRoot,
+    blobIds,
+    git,
+    fail,
+  );
+  return {entries, lfsPointers};
+}
+
+function rejectTrackedHeadMaterial(
+  bytes,
+  repositoryRoot,
+  snapshot,
+  git,
+  fail,
+) {
+  if (!snapshot || !Array.isArray(snapshot.entries)) {
+    fail('exact HEAD material snapshot is invalid.');
+  }
+  if (
+    snapshot.entries.some(
+      entry => entry?.mode === '160000' || entry?.type === 'commit',
+    )
+  ) {
+    fail('exact HEAD contains a gitlink and cannot authorize operator apply.');
+  }
+  const blobIds = new Set(
+    snapshot.entries
+      .filter(entry => entry?.type === 'blob')
+      .map(entry => entry.oid),
+  );
+  let commandBlobId;
+  try {
+    commandBlobId = git('git', ['hash-object', '--stdin'], {
       cwd: repositoryRoot,
       encoding: 'utf8',
       input: bytes,
     }).trim();
   } catch {
-    fail('operator command could not be checked against exact HEAD.');
+    fail('operator command could not be hashed as a Git blob.');
   }
-  const regularBlobIds = new Set();
-  for (const record of output.split('\0')) {
-    if (!record) continue;
-    const match = /^(100644|100755) blob ([0-9a-f]+)\t/.exec(record);
-    if (match) regularBlobIds.add(match[2]);
-  }
-  if (regularBlobIds.has(blobId)) {
+  if (blobIds.has(commandBlobId)) {
     fail(
-      'operator command bytes must not equal any exact HEAD tracked regular blob.',
+      'operator command bytes must not equal any exact HEAD tracked blob.',
     );
   }
+  const commandSha256 = createHash('sha256').update(bytes).digest('hex');
+  const lfsPointers = Array.isArray(snapshot.lfsPointers)
+    ? snapshot.lfsPointers
+    : [];
+  if (
+    lfsPointers.some(
+      pointer =>
+        pointer?.oid_sha256 === commandSha256 &&
+        pointer?.size === bytes.length,
+    )
+  ) {
+    fail('operator command bytes must not match exact HEAD LFS material.');
+  }
+}
+
+function readLfsPointers(repositoryRoot, blobIds, git, fail) {
+  if (blobIds.length === 0) return [];
+  let checks;
+  try {
+    checks = git(
+      'git',
+      ['cat-file', '--batch-check=%(objectname) %(objecttype) %(objectsize)'],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+        input: `${blobIds.join('\n')}\n`,
+      },
+    );
+  } catch {
+    fail('exact HEAD blobs could not be inspected for LFS pointers.');
+  }
+  const candidateIds = checks
+    .trim()
+    .split('\n')
+    .map(line => /^(\S+) blob (\d+)$/.exec(line))
+    .filter(match => match && Number(match[2]) <= 1024)
+    .map(match => match[1]);
+  if (candidateIds.length === 0) return [];
+  let batch;
+  try {
+    batch = git('git', ['cat-file', '--batch'], {
+      cwd: repositoryRoot,
+      encoding: null,
+      input: `${candidateIds.join('\n')}\n`,
+    });
+  } catch {
+    fail('exact HEAD LFS pointer candidates could not be read.');
+  }
+  return parseLfsBatch(Buffer.from(batch), fail);
+}
+
+function parseLfsBatch(batch, fail) {
+  const pointers = [];
+  let offset = 0;
+  while (offset < batch.length) {
+    const headerEnd = batch.indexOf(0x0a, offset);
+    if (headerEnd < 0) fail('Git blob batch response is truncated.');
+    const header = batch.subarray(offset, headerEnd).toString('utf8');
+    const match = /^\S+ blob (\d+)$/.exec(header);
+    if (!match) fail('Git blob batch response is invalid.');
+    const size = Number(match[1]);
+    const start = headerEnd + 1;
+    const end = start + size;
+    if (!Number.isSafeInteger(size) || end > batch.length) {
+      fail('Git blob batch size is invalid.');
+    }
+    const content = batch.subarray(start, end);
+    const pointer = parseLfsPointer(content, fail);
+    if (pointer) pointers.push(pointer);
+    offset = end;
+    if (batch[offset] === 0x0a) offset += 1;
+  }
+  return pointers;
+}
+
+function parseLfsPointer(bytes, fail) {
+  const text = bytes.toString('utf8');
+  const marker = 'version https://git-lfs.github.com/spec/v1';
+  if (!text.startsWith(marker)) return null;
+  const match = /^version https:\/\/git-lfs\.github\.com\/spec\/v1\noid sha256:([a-f0-9]{64})\nsize (\d+)\n?$/.exec(
+    text,
+  );
+  if (!match) fail('exact HEAD contains a malformed LFS pointer.');
+  const size = Number(match[2]);
+  if (!Number.isSafeInteger(size) || size < 0) {
+    fail('exact HEAD LFS pointer size is invalid.');
+  }
+  return {oid_sha256: match[1], size};
+}
+
+function readHead(repositoryRoot, git, fail) {
+  let head;
+  try {
+    head = git('git', ['rev-parse', 'HEAD'], {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+    }).trim();
+  } catch {
+    fail('repository HEAD could not be read for operator command binding.');
+  }
+  if (!/^[a-f0-9]{40,64}$/.test(head)) {
+    fail('repository HEAD is invalid for operator command binding.');
+  }
+  return head;
 }
 
 function requireRealPath(path, fail) {

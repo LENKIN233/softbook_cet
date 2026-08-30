@@ -1,5 +1,5 @@
 {
-  "version": "vnext-35",
+  "version": "vnext-36",
   "regressions": [
     {
       "id": "HR-01",
@@ -716,8 +716,10 @@
         "stored_beta_revision_audit_count_active_state_and_digest_are_verified",
         "every_stored_audit_reconstructs_full_command_with_document_phone_and_recomputes_SHA256",
         "apply_parses_same_opened_fd_stable_regular_bytes_with_every_path_component_non_symlink",
-        "apply_rejects_in_repo_tracked_HEAD_hardlink_and_outside_byte_identical_HEAD_blob_copy",
-        "public_actor_campaign_grant_and_event_ids_strip_all_non_digits_before_phone_material_rejection",
+        "apply_rejects_in_repo_tracked_HEAD_all_blob_modes_hardlink_and_outside_byte_identical_HEAD_blob_copy",
+        "LFS_pointer_SHA256_and_size_bind_command_bytes_and_gitlink_fails_closed",
+        "helper_checked_HEAD_matches_first_repository_snapshot_and_is_rechecked_pre_invoke",
+        "public_actor_campaign_grant_and_event_ids_apply_NFKC_then_strip_all_non_digits_before_phone_material_rejection",
         "base_membership_before_after_digest_must_be_unchanged",
         "phone_and_command_bytes_are_never_reported",
         "raw_operator_report_gate_eligible_false_and_formal_drill_wrapper_still_required",

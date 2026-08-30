@@ -182,6 +182,14 @@ test('public pilot identifiers reject phones after removing every non-digit', ()
       );
     }
   }
+  assert.throws(
+    () =>
+      pilot.validatePilotEntitlementCommand({
+        ...command('grant', 'free'),
+        actor: 'service:１３８００１３８０００',
+      }),
+    /invalid/,
+  );
 });
 
 function command(action, baseStage) {

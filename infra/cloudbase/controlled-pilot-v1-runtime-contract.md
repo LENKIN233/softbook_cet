@@ -211,8 +211,8 @@ and they do not change any pilot artifact's literal `gate_eligible=false`.
 
 An untracked receiver-operator input contains one idempotent event, pilot,
 phone, `grant|revoke`, actor, reason, UTC occurrence time, previous stage and
-resulting stage. Public pilot, event and actor identifiers remove every
-non-digit character before rejecting phone-number material. Grant must result in
+resulting stage. Public pilot, event and actor identifiers apply NFKC, then
+remove every non-digit character before rejecting phone-number material. Grant must result in
 `pilot_premium`; revoke must restore the canonical base stage. Future mutation
 implementation rederives and atomically verifies those stages while storing
 the event and active overlay, leave base membership unchanged, reject client
@@ -223,7 +223,9 @@ tooling defaults to dry-run and requires an explicit apply flag so the exact
 same command hash can be verified before mutation.
 Apply opens the command once and parses only the same fd's stable regular-file
 bytes. Every path component must be non-symlink and outside the repository;
-hardlinks, exact-HEAD tracked blobs and byte-identical outside copies also fail.
+hardlinks, every exact-HEAD blob mode, byte-identical outside copies and matching
+LFS pointer targets also fail; any gitlink fails closed. The helper's checked
+HEAD must match the first repository snapshot and the final pre-invoke snapshot.
 
 The repository stores the active overlay and append-only audit in one
 `softbook_pilot_entitlements` document keyed by phone, accepts it only when its
