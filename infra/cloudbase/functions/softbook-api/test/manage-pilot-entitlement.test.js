@@ -1,7 +1,11 @@
 const assert = require('node:assert/strict');
 const {
+  copyFileSync,
+  linkSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -16,6 +20,7 @@ let cli;
 let deploymentSafety;
 const temporaryDirectories = [];
 const REPOSITORY_ROOT = resolve(__dirname, '../../../../..');
+const CANONICAL_TMPDIR = realpathSync(tmpdir());
 
 before(async () => {
   cli = await import(
@@ -145,10 +150,10 @@ test('future commands and expired pilot profiles fail before remote reads', asyn
   assert.equal(expiredRunner.callCount(), 0);
 });
 
-test('pilot CLI result parser rejects separator-normalized phone IDs', async () => {
+test('pilot CLI result parser rejects letter-separated phone IDs', async () => {
   const fixture = createFixture();
   const runner = createRunner({
-    responseActorOverride: 'service-138-0013-8000',
+    responseActorOverride: 'service-138a0013b8000',
   });
   const options = cli.parsePilotEntitlementArguments([
     '--profile',
@@ -198,12 +203,75 @@ test('pilot apply rejects tracked, in-repository, and symlink command inputs', a
   );
 
   const symlinkDirectory = mkdtempSync(
-    join(tmpdir(), 'pilot-command-symlink-test-'),
+    join(CANONICAL_TMPDIR, 'pilot-command-symlink-test-'),
   );
   temporaryDirectories.push(symlinkDirectory);
   const symlinkPath = join(symlinkDirectory, 'command.json');
   symlinkSync(fixture.commandPath, symlinkPath);
-  await assertRejectedPath(symlinkPath, /regular non-symlink file/);
+  await assertRejectedPath(symlinkPath, /path components must not be symbolic links/);
+});
+
+test('pilot apply rejects HEAD hardlinks, byte copies, parent symlinks, and path replacement', async () => {
+  const fixture = createFixture();
+  const trackedPath = resolve(REPOSITORY_ROOT, 'spec/membership.json');
+  const outsideDirectory = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'pilot-command-outside-test-'),
+  );
+  temporaryDirectories.push(outsideDirectory);
+
+  const assertRejected = async (commandPath, pattern, dependencyOverrides = {}) => {
+    const runner = createRunner();
+    const options = cli.parsePilotEntitlementArguments([
+      '--profile',
+      fixture.profilePath,
+      '--command',
+      commandPath,
+      '--apply',
+    ]);
+    await assert.rejects(
+      () =>
+        cli.executePilotEntitlementCommand(options, {
+          ...dependencies(runner),
+          ...dependencyOverrides,
+        }),
+      pattern,
+    );
+    assert.equal(runner.callCount(), 0);
+  };
+
+  const hardlinkPath = join(outsideDirectory, 'tracked-hardlink.json');
+  linkSync(trackedPath, hardlinkPath);
+  await assertRejected(hardlinkPath, /must not be a hard link/);
+
+  const copiedPath = join(outsideDirectory, 'tracked-copy.json');
+  copyFileSync(trackedPath, copiedPath);
+  await assertRejected(copiedPath, /must not equal any exact HEAD tracked regular blob/);
+
+  const realParent = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'pilot-command-real-parent-'),
+  );
+  temporaryDirectories.push(realParent);
+  const parentCommandPath = join(realParent, 'command.json');
+  copyFileSync(fixture.commandPath, parentCommandPath);
+  const linkedParent = join(outsideDirectory, 'linked-parent');
+  symlinkSync(realParent, linkedParent, 'dir');
+  await assertRejected(
+    join(linkedParent, 'command.json'),
+    /path components must not be symbolic links/,
+  );
+
+  const raceFixture = createFixture();
+  await assertRejected(
+    raceFixture.commandPath,
+    /(path|bytes) changed while (it was being validated|they were being read)/,
+    {
+      beforeOperatorCommandRead(path) {
+        const openedPath = `${path}.opened`;
+        renameSync(path, openedPath);
+        copyFileSync(openedPath, path);
+      },
+    },
+  );
 });
 
 function createFixture({
@@ -211,7 +279,9 @@ function createFixture({
   occurredAt = '2026-08-10T10:00:00.000Z',
   pilotExpiresAt = '2026-09-01T00:00:00.000Z',
 } = {}) {
-  const directory = mkdtempSync(join(tmpdir(), 'pilot-entitlement-test-'));
+  const directory = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'pilot-entitlement-test-'),
+  );
   temporaryDirectories.push(directory);
   const profilePath = join(directory, 'controlled-pilot-profile.json');
   const commandPath = join(directory, 'pilot-command.json');

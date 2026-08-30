@@ -165,8 +165,12 @@ test('pilot audit hashes reject phone-owner transplants', () => {
   );
 });
 
-test('public pilot identifiers reject literal and separator-normalized phones', () => {
-  for (const value of ['scope-13800138000', 'scope-138-0013-8000']) {
+test('public pilot identifiers reject phones after removing every non-digit', () => {
+  for (const value of [
+    'scope-13800138000',
+    'scope-138-0013-8000',
+    'scope-138a0013b8000',
+  ]) {
     for (const field of ['actor', 'event_id', 'pilot_id']) {
       assert.throws(
         () =>

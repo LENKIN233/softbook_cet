@@ -1,8 +1,12 @@
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const {
+  copyFileSync,
+  linkSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -24,6 +28,7 @@ const TEST_CONTENT_MANIFEST_PRIVATE_KEY_PEM = String(
     type: 'pkcs8',
   }),
 );
+const CANONICAL_TMPDIR = realpathSync(tmpdir());
 
 before(async () => {
   cli = await import(
@@ -316,10 +321,10 @@ test('apply rejects a semantically inconsistent receiver result', async () => {
   );
 });
 
-test('beta CLI result parser rejects separator-normalized phone IDs', async () => {
+test('beta CLI result parser rejects letter-separated phone IDs', async () => {
   const fixture = createFixture();
   const runner = createRunner({
-    responseActiveCampaignOverride: 'campaign-138-0013-8000',
+    responseActiveCampaignOverride: 'campaign-138a0013b8000',
   });
   const options = cli.parseBetaEntitlementArguments([
     '--profile',
@@ -369,12 +374,75 @@ test('apply rejects tracked, in-repository, and symlink command inputs', async (
   );
 
   const symlinkDirectory = mkdtempSync(
-    join(tmpdir(), 'beta-command-symlink-test-'),
+    join(CANONICAL_TMPDIR, 'beta-command-symlink-test-'),
   );
   temporaryDirectories.push(symlinkDirectory);
   const symlinkPath = join(symlinkDirectory, 'command.json');
   symlinkSync(fixture.commandPath, symlinkPath);
-  await assertRejectedPath(symlinkPath, /regular non-symlink file/);
+  await assertRejectedPath(symlinkPath, /path components must not be symbolic links/);
+});
+
+test('beta apply rejects HEAD hardlinks, byte copies, parent symlinks, and path replacement', async () => {
+  const fixture = createFixture();
+  const trackedPath = resolve(REPOSITORY_ROOT, 'spec/membership.json');
+  const outsideDirectory = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'beta-command-outside-test-'),
+  );
+  temporaryDirectories.push(outsideDirectory);
+
+  const assertRejected = async (commandPath, pattern, dependencyOverrides = {}) => {
+    const runner = createRunner();
+    const options = cli.parseBetaEntitlementArguments([
+      '--profile',
+      fixture.profilePath,
+      '--command',
+      commandPath,
+      '--apply',
+    ]);
+    await assert.rejects(
+      () =>
+        cli.executeBetaEntitlementCommand(options, {
+          ...dependencies(runner),
+          ...dependencyOverrides,
+        }),
+      pattern,
+    );
+    assert.equal(runner.invokeCount(), 0);
+  };
+
+  const hardlinkPath = join(outsideDirectory, 'tracked-hardlink.json');
+  linkSync(trackedPath, hardlinkPath);
+  await assertRejected(hardlinkPath, /must not be a hard link/);
+
+  const copiedPath = join(outsideDirectory, 'tracked-copy.json');
+  copyFileSync(trackedPath, copiedPath);
+  await assertRejected(copiedPath, /must not equal any exact HEAD tracked regular blob/);
+
+  const realParent = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'beta-command-real-parent-'),
+  );
+  temporaryDirectories.push(realParent);
+  const parentCommandPath = join(realParent, 'command.json');
+  copyFileSync(fixture.commandPath, parentCommandPath);
+  const linkedParent = join(outsideDirectory, 'linked-parent');
+  symlinkSync(realParent, linkedParent, 'dir');
+  await assertRejected(
+    join(linkedParent, 'command.json'),
+    /path components must not be symbolic links/,
+  );
+
+  const raceFixture = createFixture();
+  await assertRejected(
+    raceFixture.commandPath,
+    /(path|bytes) changed while (it was being validated|they were being read)/,
+    {
+      beforeOperatorCommandRead(path) {
+        const openedPath = `${path}.opened`;
+        renameSync(path, openedPath);
+        copyFileSync(openedPath, path);
+      },
+    },
+  );
 });
 
 test('beta entitlement commands reject a formal production profile', async () => {
@@ -397,7 +465,9 @@ function createFixture(
   runtimeMode = 'closed_beta',
   actorId = 'service:receiver-operator',
 ) {
-  const directory = mkdtempSync(join(tmpdir(), 'beta-entitlement-test-'));
+  const directory = mkdtempSync(
+    join(CANONICAL_TMPDIR, 'beta-entitlement-test-'),
+  );
   temporaryDirectories.push(directory);
   const profilePath = join(directory, 'delivery-profile.json');
   const commandPath = join(directory, 'beta-command.json');

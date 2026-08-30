@@ -15,7 +15,7 @@ import {
 } from './controlled-pilot-v1.mjs';
 import {REQUIRED_DEPLOYMENT_NODE_VERSION, parseTcbJson, redactText} from './deployment-safety.mjs';
 import {inspectReceiver, inspectWriteSafety} from './deliver-release.mjs';
-import {requirePrivateOperatorCommandPath} from './operator-command-input.mjs';
+import {readPrivateOperatorCommandBytes} from './operator-command-input.mjs';
 import {
   PilotEntitlementError,
   pilotEntitlementInternals,
@@ -65,13 +65,16 @@ export function parsePilotEntitlementArguments(argv) {
 
 export async function executePilotEntitlementCommand(options, dependencies = {}) {
   const profile = validateControlledPilotProfile(readJson(options.profilePath));
-  const commandPath = options.apply
-    ? requirePrivateOperatorCommandPath(options.commandPath, {
+  const commandBytes = options.apply
+    ? readPrivateOperatorCommandBytes(options.commandPath, {
+        beforeRead: dependencies.beforeOperatorCommandRead ?? null,
         createError: message => new PilotEntitlementError(message),
         repositoryRoot: REPOSITORY_ROOT,
       })
-    : options.commandPath;
-  const command = validatePilotEntitlementCommand(readJson(commandPath));
+    : readFileSync(resolve(options.commandPath));
+  const command = validatePilotEntitlementCommand(
+    parseCommandBytes(commandBytes),
+  );
   const now = dependencies.now ?? new Date();
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) {
     throw new PilotEntitlementError('operator clock is invalid.');
@@ -368,6 +371,16 @@ function readJson(path) {
     return JSON.parse(readFileSync(resolve(path), 'utf8'));
   } catch (error) {
     throw new PilotEntitlementError(`unable to read JSON input: ${error.message}`);
+  }
+}
+
+function parseCommandBytes(bytes) {
+  try {
+    return JSON.parse(bytes.toString('utf8'));
+  } catch (error) {
+    throw new PilotEntitlementError(
+      `unable to read JSON input: ${error.message}`,
+    );
   }
 }
 

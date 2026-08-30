@@ -593,10 +593,12 @@ and verified beta state without exposing the phone or command bytes. Command
 reports remain `gate_eligible=false` until a registered formal drill wrapper
 revalidates the exact grant/replay/revoke sequence. Command files contain phone
 numbers and must not be committed or included in a release bundle.
-Apply additionally requires a regular non-symlink command file outside this
-repository; tracked and untracked in-repository paths fail before any receiver
-request. Actor, campaign, grant and event IDs cannot contain a literal or
-separator-normalized phone number. Every stored audit hash is recomputed from
+Apply additionally opens the command once and parses only those same stable
+regular-file bytes. Every path component must be non-symlink and outside this
+repository; hardlinks, exact-HEAD tracked blobs, byte-identical outside copies
+and untracked in-repository paths fail before any receiver request. Actor,
+campaign, grant and event IDs remove all non-digits before phone detection.
+Every stored audit hash is recomputed from
 its event plus the document phone owner, so a cross-phone transplant is invalid.
 
 Formal `beta-entitlement-drill` evidence uses one tracked profile and four
@@ -671,8 +673,9 @@ credential-shaped material before the first remote request.
 Controlled-pilot continued access uses a separate receiver-only overlay and
 never reuses the formal closed-beta grant. Create an untracked
 `pilot-entitlement-command.v1`, verify its phone-free dry-run plan, then apply
-the exact same command only from clean `main`. Apply requires a regular
-non-symlink command file outside the repository; tracked and untracked
+the exact same command only from clean `main`. Apply reads and parses one stable
+opened regular file: every path component must be non-symlink and outside the
+repository, while hardlinks, exact-HEAD blobs, byte-identical outside copies and
 in-repository paths fail before receiver access:
 
 ```bash
@@ -695,8 +698,8 @@ also requires a command-bound HMAC from the receiver-only
 `SOFTBOOK_PILOT_OPERATOR_SECRET`, reads base membership plus beta and pilot overlays, rederives the claimed
 stages, and commits the audit and active overlay in one database transaction.
 The CLI then independently rereads the audit event before reporting success.
-Pilot, event and actor IDs reject literal and separator-normalized phone-number
-material. Stored audit hashes are recomputed with the owning document phone, so
+Pilot, event and actor IDs remove every non-digit before phone-number detection.
+Stored audit hashes are recomputed with the owning document phone, so
 a cross-phone transplant cannot become canonical access.
 
 ### Real-provider SMS smoke

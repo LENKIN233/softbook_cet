@@ -855,7 +855,7 @@ function requirePrivacySafePublicText(value, label) {
 }
 
 function containsPhoneMaterial(value) {
-  return /1\d{10}/.test(value.replace(/[^A-Za-z0-9]/g, ''));
+  return /1\d{10}/.test(value.replace(/\D/g, ''));
 }
 
 function requireString(value, label) {

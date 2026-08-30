@@ -37,7 +37,7 @@ closed-beta release candidate campaign used by formal evidence. The exact
 canonical command receives a SHA-256 binding; replaying the same event is
 idempotent, while reusing an event ID for different bytes is rejected. Public
 actor, campaign, grant and event identifiers reject a literal phone number or
-one revealed after separator removal.
+one revealed after removing every non-digit character.
 
 Command files contain personal data. They are operational inputs, not release
 artifacts, and must not be committed, copied into `release-bundle.v1`, or
@@ -79,9 +79,11 @@ validated receiver-owned `delivery-profile.v1`. It performs remote environment
 and collection preflight. Dry-run reads the current base membership and beta
 record and plans locally. Public plans contain campaign, grant, event, actor,
 action and stage identities but no phone-derived identifier. It is dry-run by
-default. Apply accepts the personal-data command only as a regular non-symlink
-file outside the repository; tracked, exact-HEAD and untracked in-repository
-command paths are all rejected before remote access.
+default. Apply opens the personal-data command once and accepts only that same
+fd's stable regular-file bytes from a path outside the repository whose every
+component is non-symlink. Hardlinks plus outside byte-identical copies of any
+exact-HEAD tracked regular blob, tracked paths and untracked in-repository paths
+are all rejected before remote access.
 
 `--apply` additionally requires Node 22.13.0 and a clean `main` exactly equal to
 `origin/main`, plus a dedicated strong `SOFTBOOK_BETA_OPERATOR_SECRET` distinct

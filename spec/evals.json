@@ -1,5 +1,5 @@
 {
-  "version": "vnext-34",
+  "version": "vnext-35",
   "regressions": [
     {
       "id": "HR-01",
@@ -715,8 +715,9 @@
         "receiver_preflight_and_clean_exact_main_write_safety_are_retained",
         "stored_beta_revision_audit_count_active_state_and_digest_are_verified",
         "every_stored_audit_reconstructs_full_command_with_document_phone_and_recomputes_SHA256",
-        "apply_command_is_regular_non_symlink_outside_repository_and_not_tracked_at_HEAD",
-        "public_actor_campaign_grant_and_event_ids_reject_literal_or_separator_normalized_phone_material",
+        "apply_parses_same_opened_fd_stable_regular_bytes_with_every_path_component_non_symlink",
+        "apply_rejects_in_repo_tracked_HEAD_hardlink_and_outside_byte_identical_HEAD_blob_copy",
+        "public_actor_campaign_grant_and_event_ids_strip_all_non_digits_before_phone_material_rejection",
         "base_membership_before_after_digest_must_be_unchanged",
         "phone_and_command_bytes_are_never_reported",
         "raw_operator_report_gate_eligible_false_and_formal_drill_wrapper_still_required",
@@ -1546,7 +1547,7 @@
         "before_and_after_beta_state_transition_digests",
         "stored_audit_full_command_hash_recomputation_prevents_phone_owner_transplant",
         "public_IDs_and_CLI_result_parser_reject_phone_material",
-        "apply_rejects_tracked_in_repository_and_symlink_command_files",
+        "apply_rejects_tracked_in_repository_hardlink_HEAD_copy_parent_symlink_and_TOCTOU_replacement_command_files",
         "verified_beta_state_revision_audit_active_and_digest",
         "base_membership_unchanged_digest",
         "no_phone_command_bytes_or_false_receiver_execution_claim"

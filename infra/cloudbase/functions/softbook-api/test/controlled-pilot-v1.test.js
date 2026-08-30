@@ -205,23 +205,6 @@ test('pilot entitlement command accepts only auditable grant and revoke inputs',
 });
 
 test('controlled-pilot public identifiers reject phone-number material', () => {
-  const phoneMaterial = 'scope-138-0013-8000';
-  assert.throws(
-    () =>
-      pilot.validateControlledPilotProfile({
-        ...profileFixture(),
-        pilot_id: phoneMaterial,
-      }),
-    /phone-number material/,
-  );
-  assert.throws(
-    () =>
-      pilot.validateControlledPilotBundle({
-        ...bundleFixture(),
-        pilot_id: phoneMaterial,
-      }),
-    /phone-number material/,
-  );
   const command = {
     schema_version: 'pilot-entitlement-command.v1',
     event_id: 'pilot-grant-001',
@@ -234,15 +217,36 @@ test('controlled-pilot public identifiers reject phone-number material', () => {
     previous_stage: 'free',
     resulting_stage: 'pilot_premium',
   };
-  for (const field of ['actor', 'event_id', 'pilot_id']) {
+  for (const phoneMaterial of [
+    'scope-138-0013-8000',
+    'scope-138a0013b8000',
+  ]) {
     assert.throws(
       () =>
-        pilot.validatePilotEntitlementCommand({
-          ...command,
-          [field]: phoneMaterial,
+        pilot.validateControlledPilotProfile({
+          ...profileFixture(),
+          pilot_id: phoneMaterial,
         }),
       /phone-number material/,
     );
+    assert.throws(
+      () =>
+        pilot.validateControlledPilotBundle({
+          ...bundleFixture(),
+          pilot_id: phoneMaterial,
+        }),
+      /phone-number material/,
+    );
+    for (const field of ['actor', 'event_id', 'pilot_id']) {
+      assert.throws(
+        () =>
+          pilot.validatePilotEntitlementCommand({
+            ...command,
+            [field]: phoneMaterial,
+          }),
+        /phone-number material/,
+      );
+    }
   }
 });
 

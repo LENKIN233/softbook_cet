@@ -37,7 +37,7 @@ import {
   validateDeliveryProfile,
 } from './release-delivery-v1.mjs';
 import {parseStrictJson} from '../../scripts/lib/strict_json.mjs';
-import {requirePrivateOperatorCommandPath} from './operator-command-input.mjs';
+import {readPrivateOperatorCommandBytes} from './operator-command-input.mjs';
 
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
@@ -102,13 +102,16 @@ export async function executeBetaEntitlementCommand(
       'beta entitlement commands require a closed_beta delivery profile.',
     );
   }
-  const commandPath = options.apply
-    ? requirePrivateOperatorCommandPath(options.commandPath, {
+  const commandBytes = options.apply
+    ? readPrivateOperatorCommandBytes(options.commandPath, {
+        beforeRead: dependencies.beforeOperatorCommandRead ?? null,
         createError: message => new BetaEntitlementError(message),
         repositoryRoot: REPOSITORY_ROOT,
       })
-    : options.commandPath;
-  const command = validateBetaEntitlementCommand(readJson(commandPath));
+    : readFileSync(resolve(options.commandPath));
+  const command = validateBetaEntitlementCommand(
+    parseJsonBytes(commandBytes, 'operator JSON input'),
+  );
   const completeReport = report => ({
     ...report,
     execution: {
@@ -616,16 +619,6 @@ function git(args) {
     cwd: REPOSITORY_ROOT,
     encoding: 'utf8',
   }).trim();
-}
-
-function readJson(path) {
-  try {
-    return parseJsonBytes(readFileSync(resolve(path)), 'operator JSON input');
-  } catch (error) {
-    throw new BetaEntitlementError(
-      `unable to read JSON input: ${error.message}`,
-    );
-  }
 }
 
 function parseJsonBytes(bytes, label) {

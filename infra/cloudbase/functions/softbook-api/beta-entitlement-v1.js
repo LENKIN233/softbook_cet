@@ -516,7 +516,7 @@ function isIdentifier(value, minimumLength, maximumLength) {
 function containsPhoneMaterial(value) {
   return (
     typeof value === 'string' &&
-    /1\d{10}/.test(value.replace(/[^A-Za-z0-9]/g, ''))
+    /1\d{10}/.test(value.replace(/\D/g, ''))
   );
 }
 

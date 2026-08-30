@@ -211,8 +211,8 @@ and they do not change any pilot artifact's literal `gate_eligible=false`.
 
 An untracked receiver-operator input contains one idempotent event, pilot,
 phone, `grant|revoke`, actor, reason, UTC occurrence time, previous stage and
-resulting stage. Public pilot, event and actor identifiers reject literal or
-separator-normalized phone-number material. Grant must result in
+resulting stage. Public pilot, event and actor identifiers remove every
+non-digit character before rejecting phone-number material. Grant must result in
 `pilot_premium`; revoke must restore the canonical base stage. Future mutation
 implementation rederives and atomically verifies those stages while storing
 the event and active overlay, leave base membership unchanged, reject client
@@ -221,8 +221,9 @@ required target for the repository-local account-deletion worker. Dry-run/apply 
 an execution mode outside the immutable command:
 tooling defaults to dry-run and requires an explicit apply flag so the exact
 same command hash can be verified before mutation.
-Apply accepts the command only as a regular non-symlink file outside the
-repository and rejects tracked, exact-HEAD and untracked in-repository inputs.
+Apply opens the command once and parses only the same fd's stable regular-file
+bytes. Every path component must be non-symlink and outside the repository;
+hardlinks, exact-HEAD tracked blobs and byte-identical outside copies also fail.
 
 The repository stores the active overlay and append-only audit in one
 `softbook_pilot_entitlements` document keyed by phone, accepts it only when its
