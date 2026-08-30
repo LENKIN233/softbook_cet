@@ -659,6 +659,9 @@ describe('authenticated Web remote orchestration', () => {
       const controllerStore = createWebAccountDeletionStateStore(localStorage);
       const competingStore = createWebAccountDeletionStateStore(localStorage);
       let raceInjected = false;
+      let racingAuthority:
+        | {phoneNumber: string; revision: number}
+        | undefined;
       const controller = createWebRemoteRuntimeController({
         accountBootstrapRepository: {
           async load() {
@@ -670,9 +673,15 @@ describe('authenticated Web remote orchestration', () => {
           async ensureCleanupAuthority(phoneNumber, expectedRevision) {
             if (!raceInjected) {
               raceInjected = true;
-              await competingStore.mark(phoneNumber, 'requesting');
+              racingAuthority = await competingStore.beginRequesting?.(
+                phoneNumber,
+                expectedRevision,
+              );
               if (racingPhase !== 'requesting') {
-                await competingStore.mark(phoneNumber, racingPhase);
+                await competingStore.resolveRequesting?.(
+                  racingAuthority!,
+                  racingPhase,
+                );
               }
             }
             return controllerStore.ensureCleanupAuthority!(
@@ -703,7 +712,10 @@ describe('authenticated Web remote orchestration', () => {
       expect(remoteLogout).not.toHaveBeenCalled();
       if (racingPhase === 'requesting') {
         expect(controller.isAuthenticated()).toBe(true);
-        await competingStore.mark(PHONE, 'accepted');
+        await competingStore.resolveRequesting?.(
+          racingAuthority!,
+          'accepted',
+        );
         await expect(controllerStore.load()).resolves.toEqual({
           phase: 'accepted',
           phoneNumber: PHONE,
@@ -1229,6 +1241,7 @@ describe('authenticated Web remote orchestration', () => {
       phase: 'accepted' | 'local_cleanup' | 'registration_ready' | 'requesting';
       phoneNumber: string;
     } | null = null;
+    let deletionRevision = 0;
     const requestDeletion = vi
       .fn()
       .mockRejectedValueOnce(new Error('lost response'))
@@ -1250,19 +1263,39 @@ describe('authenticated Web remote orchestration', () => {
       },
       accountDeletionRepository: {requestDeletion},
       accountDeletionStateStore: {
+        async beginRequesting(phoneNumber, expectedNullRevision) {
+          expect(expectedNullRevision).toBe(0);
+          expect(persistedDeletionState).toBeNull();
+          operations.push('deletion-marker-requesting');
+          persistedDeletionState = {phase: 'requesting', phoneNumber};
+          deletionRevision += 1;
+          return {phoneNumber, revision: deletionRevision};
+        },
         async clear() {
           operations.push('deletion-marker-clear');
           persistedDeletionState = null;
+          deletionRevision += 1;
         },
         async getRevision() {
-          return 0;
+          return deletionRevision;
         },
         async load() {
           return persistedDeletionState;
         },
-        async mark(phoneNumber, phase) {
+        async resolveRequesting(authority, phase) {
+          expect(authority).toEqual({phoneNumber: PHONE, revision: 1});
+          expect(persistedDeletionState).toEqual({
+            phase: 'requesting',
+            phoneNumber: PHONE,
+          });
           operations.push(`deletion-marker-${phase}`);
-          persistedDeletionState = {phase, phoneNumber};
+          persistedDeletionState = {phase, phoneNumber: authority.phoneNumber};
+          deletionRevision += 1;
+          return {
+            phase,
+            phoneNumber: authority.phoneNumber,
+            revision: deletionRevision,
+          };
         },
       },
       authRepository,
@@ -1307,7 +1340,7 @@ describe('authenticated Web remote orchestration', () => {
     );
     expect(operations).not.toContain(`events-clear:${PHONE}`);
     await expect(controller.loadAuthenticatedState()).rejects.toThrow(
-      '已暂停新的账户操作',
+      '账户隔离状态已变化',
     );
 
     await expect(controller.requestAccountDeletion()).resolves.toEqual({
@@ -1336,11 +1369,13 @@ describe('authenticated Web remote orchestration', () => {
       phase: 'accepted' | 'local_cleanup' | 'registration_ready' | 'requesting';
       phoneNumber: string;
     } | null = {phase: 'requesting', phoneNumber: PHONE};
-    const requestRecoveryCode = vi.fn(async () => ({
+    let deletionRevision = 0;
+    const requestRecoveryCode = vi.fn(async request => ({
       challengeId: 'challenge_recovery_1234567890',
       delivery: 'sms',
       expiresAt: '2026-08-29T12:05:00.000Z',
-      phoneNumber: PHONE,
+      phoneNumber: request.phoneNumber,
+      requestingRevision: request.requestingRevision,
       retryAfterSeconds: 0,
     }));
     const verifyRecoveryCode = vi.fn(async () => ({
@@ -1366,16 +1401,28 @@ describe('authenticated Web remote orchestration', () => {
         async clear() {
           operations.push('deletion-marker-clear');
           persistedDeletionState = null;
+          deletionRevision += 1;
         },
         async getRevision() {
-          return 0;
+          return deletionRevision;
         },
         async load() {
           return persistedDeletionState;
         },
-        async mark(phoneNumber, phase) {
+        async resolveRequesting(authority, phase) {
+          expect(authority).toEqual({phoneNumber: PHONE, revision: 0});
+          expect(persistedDeletionState).toEqual({
+            phase: 'requesting',
+            phoneNumber: PHONE,
+          });
           operations.push(`deletion-marker-${phase}`);
-          persistedDeletionState = {phase, phoneNumber};
+          persistedDeletionState = {phase, phoneNumber: authority.phoneNumber};
+          deletionRevision += 1;
+          return {
+            phase,
+            phoneNumber: authority.phoneNumber,
+            revision: deletionRevision,
+          };
         },
       },
       authRepository,
@@ -1411,7 +1458,10 @@ describe('authenticated Web remote orchestration', () => {
       controller.verifyAccountDeletionRecoverySmsCode('123456'),
     ).resolves.toEqual({status: 'accepted'});
 
-    expect(requestRecoveryCode).toHaveBeenCalledWith(PHONE);
+    expect(requestRecoveryCode).toHaveBeenCalledWith({
+      phoneNumber: PHONE,
+      requestingRevision: 0,
+    });
     expect(verifyRecoveryCode).toHaveBeenCalledWith({
       challenge,
       smsCode: '123456',
@@ -1440,6 +1490,7 @@ describe('authenticated Web remote orchestration', () => {
       phase: 'accepted' | 'local_cleanup' | 'registration_ready' | 'requesting';
       phoneNumber: string;
     } | null = {phase: 'requesting', phoneNumber: PHONE};
+    let deletionRevision = 0;
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {
         async load() {
@@ -1447,12 +1498,13 @@ describe('authenticated Web remote orchestration', () => {
         },
       },
       accountDeletionRecoveryRepository: {
-        async requestCode(phoneNumber) {
+        async requestCode(request) {
           return {
             challengeId: 'challenge_recovery_1234567890',
             delivery: 'sms',
             expiresAt: '2026-08-29T12:05:00.000Z',
-            phoneNumber,
+            phoneNumber: request.phoneNumber,
+            requestingRevision: request.requestingRevision,
             retryAfterSeconds: 0,
           };
         },
@@ -1468,16 +1520,28 @@ describe('authenticated Web remote orchestration', () => {
         async clear() {
           operations.push('deletion-marker-clear');
           persistedDeletionState = null;
+          deletionRevision += 1;
         },
         async getRevision() {
-          return 0;
+          return deletionRevision;
         },
         async load() {
           return persistedDeletionState;
         },
-        async mark(phoneNumber, phase) {
+        async resolveRequesting(authority, phase) {
+          expect(authority).toEqual({phoneNumber: PHONE, revision: 0});
+          expect(persistedDeletionState).toEqual({
+            phase: 'requesting',
+            phoneNumber: PHONE,
+          });
           operations.push(`deletion-marker-${phase}`);
-          persistedDeletionState = {phase, phoneNumber};
+          persistedDeletionState = {phase, phoneNumber: authority.phoneNumber};
+          deletionRevision += 1;
+          return {
+            phase,
+            phoneNumber: authority.phoneNumber,
+            revision: deletionRevision,
+          };
         },
       },
       authRepository,
@@ -1531,6 +1595,223 @@ describe('authenticated Web remote orchestration', () => {
     expect(persistedDeletionState).toBeNull();
   });
 
+  it('rejects a recovery challenge that returns after the same phone enters a new requesting revision', async () => {
+    localStorage.clear();
+    const lifecycleStore = createWebAccountDeletionStateStore(localStorage);
+    const oldAuthority = await lifecycleStore.beginRequesting?.(PHONE, 0);
+    let releaseRequest: (() => void) | undefined;
+    let markRequestStarted: (() => void) | undefined;
+    const requestGate = new Promise<void>(resolve => {
+      releaseRequest = resolve;
+    });
+    const requestStarted = new Promise<void>(resolve => {
+      markRequestStarted = resolve;
+    });
+    const authRepository = createSimpleAuthRepository();
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: createStaticBootstrapRepository(),
+      accountDeletionRecoveryRepository: {
+        async requestCode(request) {
+          markRequestStarted?.();
+          await requestGate;
+          return {
+            challengeId: 'challenge_recovery_1234567890',
+            delivery: 'sms',
+            expiresAt: '2026-08-29T12:05:00.000Z',
+            phoneNumber: request.phoneNumber,
+            requestingRevision: request.requestingRevision,
+            retryAfterSeconds: 0,
+          };
+        },
+        async verifyCode() {
+          throw new Error('stale recovery challenge must not be verified');
+        },
+      },
+      accountDeletionStateStore:
+        createWebAccountDeletionStateStore(localStorage),
+      authRepository,
+      authSessionCoordinator: createAuthSessionCoordinator({
+        authRepository,
+        authSessionStore: createMemoryOnlyAuthSessionStore(),
+      }),
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        loadSession: async () => createLearningSessionFixture(null),
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    const request = controller.requestAccountDeletionRecoverySmsCode();
+    await requestStarted;
+    await lifecycleStore.resolveRequesting?.(oldAuthority!, 'accepted');
+    await clearCurrentDeletionState(lifecycleStore, 'accepted');
+    const currentAuthority = await lifecycleStore.beginRequesting?.(PHONE, 3);
+    releaseRequest?.();
+
+    await expect(request).rejects.toMatchObject({name: 'WebAccountEpochError'});
+    await expect(lifecycleStore.load()).resolves.toEqual({
+      phase: 'requesting',
+      phoneNumber: PHONE,
+    });
+    expect(currentAuthority?.revision).toBe(4);
+  });
+
+  it('rejects a recovery verification that returns after same-phone cleanup and re-registration', async () => {
+    localStorage.clear();
+    const lifecycleStore = createWebAccountDeletionStateStore(localStorage);
+    const oldAuthority = await lifecycleStore.beginRequesting?.(PHONE, 0);
+    let releaseVerify: (() => void) | undefined;
+    let markVerifyStarted: (() => void) | undefined;
+    const verifyGate = new Promise<void>(resolve => {
+      releaseVerify = resolve;
+    });
+    const verifyStarted = new Promise<void>(resolve => {
+      markVerifyStarted = resolve;
+    });
+    const cleanupOperations: string[] = [];
+    const authRepository = createSimpleAuthRepository();
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: createStaticBootstrapRepository(),
+      accountDeletionRecoveryRepository: {
+        async requestCode(request) {
+          return {
+            challengeId: 'challenge_recovery_1234567890',
+            delivery: 'sms',
+            expiresAt: '2026-08-29T12:05:00.000Z',
+            phoneNumber: request.phoneNumber,
+            requestingRevision: request.requestingRevision,
+            retryAfterSeconds: 0,
+          };
+        },
+        async verifyCode() {
+          markVerifyStarted?.();
+          await verifyGate;
+          return {
+            deletionRequest: {
+              id: 'delete_recovered1234',
+              requestedAt: '2026-08-29T12:00:00.000Z',
+              status: 'processing' as const,
+            },
+            safeToRegister: false as const,
+            state: 'pending' as const,
+          };
+        },
+      },
+      accountDeletionStateStore:
+        createWebAccountDeletionStateStore(localStorage),
+      authRepository,
+      authSessionCoordinator: createAuthSessionCoordinator({
+        authRepository,
+        authSessionStore: createMemoryOnlyAuthSessionStore(),
+      }),
+      learningEventSyncRepository: {
+        ...createEmptyEventSyncRepository(),
+        async clearAccount(phoneNumber) {
+          cleanupOperations.push(`events-clear:${phoneNumber}`);
+        },
+      },
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        loadSession: async () => createLearningSessionFixture(null),
+      },
+      mutationQueueRepository: createMutationRepository(cleanupOperations),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestAccountDeletionRecoverySmsCode();
+    const verification =
+      controller.verifyAccountDeletionRecoverySmsCode('123456');
+    await verifyStarted;
+    await lifecycleStore.resolveRequesting?.(oldAuthority!, 'accepted');
+    await clearCurrentDeletionState(lifecycleStore, 'accepted');
+    const currentAuthority = await lifecycleStore.beginRequesting?.(PHONE, 3);
+    releaseVerify?.();
+
+    await expect(verification).rejects.toMatchObject({
+      name: 'WebAccountEpochError',
+    });
+    expect(cleanupOperations).toEqual([]);
+    await expect(lifecycleStore.load()).resolves.toEqual({
+      phase: 'requesting',
+      phoneNumber: PHONE,
+    });
+    expect(currentAuthority?.revision).toBe(4);
+  });
+
+  it('rejects an old authenticated deletion acceptance after same-phone re-registration', async () => {
+    localStorage.clear();
+    let releaseDeletion: (() => void) | undefined;
+    let markDeletionStarted: (() => void) | undefined;
+    const deletionGate = new Promise<void>(resolve => {
+      releaseDeletion = resolve;
+    });
+    const deletionStarted = new Promise<void>(resolve => {
+      markDeletionStarted = resolve;
+    });
+    const cleanupOperations: string[] = [];
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const controllerStore = createWebAccountDeletionStateStore(localStorage);
+    const lifecycleStore = createWebAccountDeletionStateStore(localStorage);
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: createStaticBootstrapRepository(),
+      accountDeletionRepository: {
+        async requestDeletion() {
+          markDeletionStarted?.();
+          await deletionGate;
+          return {
+            id: 'delete_123456789012',
+            requestedAt: '2026-08-29T12:00:00.000Z',
+            status: 'queued',
+          };
+        },
+      },
+      accountDeletionStateStore: controllerStore,
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: {
+        ...createEmptyEventSyncRepository(),
+        async clearAccount(phoneNumber) {
+          cleanupOperations.push(`events-clear:${phoneNumber}`);
+        },
+      },
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        loadSession: async () => createLearningSessionFixture(null),
+      },
+      mutationQueueRepository: createMutationRepository(cleanupOperations),
+      playAudio: async () => 'ready',
+      setAccountDeletionQuarantine: () => undefined,
+      track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    cleanupOperations.length = 0;
+
+    const deletion = controller.requestAccountDeletion();
+    await deletionStarted;
+    const oldAuthority = {phoneNumber: PHONE, revision: 1};
+    await lifecycleStore.resolveRequesting?.(oldAuthority, 'accepted');
+    await clearCurrentDeletionState(lifecycleStore, 'accepted');
+    const currentAuthority = await lifecycleStore.beginRequesting?.(PHONE, 3);
+    releaseDeletion?.();
+
+    await expect(deletion).rejects.toMatchObject({name: 'WebAccountEpochError'});
+    expect(cleanupOperations).toEqual([]);
+    await expect(lifecycleStore.load()).resolves.toEqual({
+      phase: 'requesting',
+      phoneNumber: PHONE,
+    });
+    expect(currentAuthority?.revision).toBe(4);
+  });
+
   it('quarantines an old tab after another tab completes deletion cleanup', async () => {
     localStorage.clear();
     const cleanupOperations: string[] = [];
@@ -1580,12 +1861,16 @@ describe('authenticated Web remote orchestration', () => {
     await controller.verifySmsCode(PHONE, '123456');
     expect(bootstrapLoads).toBe(1);
     cleanupOperations.length = 0;
-    await otherTabDeletionStore.mark(PHONE, 'requesting');
+    const requestingAuthority =
+      await otherTabDeletionStore.beginRequesting?.(PHONE, 0);
     await expect(controller.logout()).resolves.toEqual({status: 'unknown'});
     expect(controller.isAuthenticated()).toBe(true);
     expect(cleanupOperations).toEqual([]);
-    await otherTabDeletionStore.mark(PHONE, 'accepted');
-    await otherTabDeletionStore.clear();
+    await otherTabDeletionStore.resolveRequesting?.(
+      requestingAuthority!,
+      'accepted',
+    );
+    await clearCurrentDeletionState(otherTabDeletionStore, 'accepted');
 
     await expect(controller.loadAuthenticatedState()).rejects.toThrow(
       '账户隔离状态已变化',
@@ -1647,7 +1932,7 @@ describe('authenticated Web remote orchestration', () => {
     await controller.requestSmsCode(PHONE);
     const verification = controller.verifySmsCode(PHONE, '123456');
     await verificationStarted;
-    await otherTabDeletionStore.mark(PHONE, 'requesting');
+    await otherTabDeletionStore.beginRequesting?.(PHONE, 0);
     continueVerification?.();
 
     await expect(verification).rejects.toThrow('删除恢复入口');
@@ -1705,9 +1990,13 @@ describe('authenticated Web remote orchestration', () => {
     await controller.requestSmsCode(PHONE);
     const verification = controller.verifySmsCode(PHONE, '123456');
     await bootstrapStarted;
-    await competingDeletionStore.mark(PHONE, 'requesting');
-    await competingDeletionStore.mark(PHONE, 'accepted');
-    await competingDeletionStore.clear();
+    const requestingAuthority =
+      await competingDeletionStore.beginRequesting?.(PHONE, 0);
+    await competingDeletionStore.resolveRequesting?.(
+      requestingAuthority!,
+      'accepted',
+    );
+    await clearCurrentDeletionState(competingDeletionStore, 'accepted');
     (releaseBootstrap as unknown as () => void)();
 
     const error = await verification.catch(value => value as Error);
@@ -1770,7 +2059,7 @@ describe('authenticated Web remote orchestration', () => {
     await controller.verifySmsCode(PHONE, '123456');
     const lateSnapshot = controller.loadAuthenticatedState();
     await lateBootstrapStarted;
-    await competingDeletionStore.mark(PHONE, 'requesting');
+    await competingDeletionStore.beginRequesting?.(PHONE, 0);
     releaseLateBootstrap?.();
 
     await expect(lateSnapshot).rejects.toMatchObject({
@@ -1898,6 +2187,87 @@ describe('authenticated Web remote orchestration', () => {
     expect(presentationInvalidated).toHaveBeenCalledTimes(1);
     await expect(verification).rejects.toMatchObject({
       name: 'WebAccountEpochError',
+    });
+  });
+
+  it('reports session-authority loss while the initial authenticated bootstrap is still pending', async () => {
+    localStorage.clear();
+    let markBootstrapStarted: (() => void) | undefined;
+    let releaseBootstrap: (() => void) | undefined;
+    const bootstrapStarted = new Promise<void>(resolve => {
+      markBootstrapStarted = resolve;
+    });
+    const bootstrapGate = new Promise<void>(resolve => {
+      releaseBootstrap = resolve;
+    });
+    const authRepository = createSimpleAuthRepository();
+    const deletionStateStore =
+      createWebAccountDeletionStateStore(localStorage);
+    let accountWriteQuarantined = false;
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+      async beforeSessionInvalidation({session}) {
+        await deletionStateStore.ensureCleanupAuthority?.(
+          session.phoneNumber,
+          0,
+        );
+        accountWriteQuarantined = true;
+      },
+    });
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          markBootstrapStarted?.();
+          await bootstrapGate;
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionStateStore: deletionStateStore,
+      authRepository,
+      authSessionCoordinator,
+      isAccountWriteQuarantined: () => accountWriteQuarantined,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        loadSession: async () => createLearningSessionFixture(null),
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      subscribeSessionScopeChanges(listener) {
+        return authSessionCoordinator.subscribeSessionScope(listener);
+      },
+      track: 'cet4',
+    });
+    const presentationInvalidated = vi.fn();
+    controller.subscribeAccountPresentationInvalidation(
+      presentationInvalidated,
+    );
+    controller.start();
+    await controller.requestSmsCode(PHONE);
+    const verification = controller.verifySmsCode(PHONE, '123456');
+    await bootstrapStarted;
+
+    await authSessionCoordinator.invalidate('authorization_invalidated');
+    await expect(deletionStateStore.load()).resolves.toEqual({
+      phase: 'local_cleanup',
+      phoneNumber: PHONE,
+    });
+    await expect(controller.cleanupInvalidatedSession()).resolves.toEqual({
+      status: 'none',
+    });
+    await expect(deletionStateStore.load()).resolves.toBeNull();
+    releaseBootstrap?.();
+
+    expect(presentationInvalidated).toHaveBeenCalledWith({
+      reason: 'authorization_invalidated',
+      source: 'session_authority',
+    });
+    await expect(verification).rejects.toMatchObject({
+      name: 'WebAccountEpochError',
+    });
+    await expect(controller.requestSmsCode(PHONE)).resolves.toMatchObject({
+      phoneNumber: PHONE,
     });
   });
 
@@ -2226,6 +2596,25 @@ function createBootstrapFixtureWithSpace(
       },
     },
   };
+}
+
+function createStaticBootstrapRepository() {
+  return {
+    async load() {
+      return createBootstrapFixture(createInitialMembershipState());
+    },
+  };
+}
+
+async function clearCurrentDeletionState(
+  store: ReturnType<typeof createWebAccountDeletionStateStore>,
+  phase: 'accepted' | 'local_cleanup' | 'registration_ready',
+) {
+  await store.clear({
+    phase,
+    phoneNumber: PHONE,
+    revision: await store.getRevision(),
+  });
 }
 
 function createLearningSessionFixture(

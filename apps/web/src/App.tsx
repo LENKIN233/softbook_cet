@@ -137,8 +137,39 @@ export function App({
       const generation = accountAuthorityGeneration.current + 1;
       accountAuthorityGeneration.current = generation;
       resetAccountState();
+      setRemoteBusy(false);
+      if (event.source === 'session_authority') {
+        if (
+          event.reason === 'authorization_invalidated' &&
+          remoteController !== null
+        ) {
+          setAccountDeletionStage('checking');
+          void Promise.resolve()
+            .then(() => remoteController.cleanupInvalidatedSession())
+            .then(outcome => {
+              if (accountAuthorityGeneration.current !== generation) {
+                return;
+              }
+              if (outcome !== null && outcome.status !== 'none') {
+                applyAccountDeletionOutcome(outcome);
+                return;
+              }
+              setAccountDeletionStage('none');
+              setAuthError('登录已失效，请重新验证。');
+            })
+            .catch(() => {
+              if (accountAuthorityGeneration.current === generation) {
+                setAccountDeletionStage('session_cleanup_required');
+              }
+            });
+          return;
+        }
+        setAccountDeletionStage('none');
+        setAuthError('登录已失效，请重新验证。');
+        return;
+      }
       setAccountDeletionStage('checking');
-      if (event.source !== 'external_epoch' || remoteController === null) {
+      if (remoteController === null) {
         return;
       }
       void Promise.resolve()
@@ -372,17 +403,26 @@ export function App({
         setAuthError('服务配置尚未完整，请稍后再试。');
         return;
       }
+      const generation = accountAuthorityGeneration.current;
       setRemoteBusy(true);
       setAuthError('');
       try {
         await remoteController.requestSmsCode(phone);
+        if (accountAuthorityGeneration.current !== generation) {
+          return;
+        }
         setAuthStage('code');
       } catch (error) {
+        if (accountAuthorityGeneration.current !== generation) {
+          return;
+        }
         setAuthError(
           getUserFacingErrorMessage(error, '暂时无法发送验证码，请稍后再试。'),
         );
       } finally {
-        setRemoteBusy(false);
+        if (accountAuthorityGeneration.current === generation) {
+          setRemoteBusy(false);
+        }
       }
       return;
     }
@@ -400,21 +440,34 @@ export function App({
         setAuthError('服务配置尚未完整，请稍后再试。');
         return;
       }
+      const generation = accountAuthorityGeneration.current;
       setRemoteBusy(true);
       setAuthError('');
       try {
         const snapshot = await remoteController.verifySmsCode(phone, code);
+        if (accountAuthorityGeneration.current !== generation) {
+          return;
+        }
         setCode('');
         setAuthStage('authenticated');
         applyRemoteSnapshot(snapshot);
       } catch (error) {
+        if (accountAuthorityGeneration.current !== generation) {
+          return;
+        }
         if (error instanceof WebRemotePostAuthError) {
           if (!remoteController.isAuthenticated()) {
             try {
               await remoteController.cleanupInvalidatedSession();
+              if (accountAuthorityGeneration.current !== generation) {
+                return;
+              }
               resetAccountState();
               setAuthError('登录已失效，请重新验证。');
             } catch {
+              if (accountAuthorityGeneration.current !== generation) {
+                return;
+              }
               setCode('');
               setAuthStage('authenticated');
               setRemoteError('登录已失效，本地待同步记录尚未安全清理。请重试退出。');
@@ -430,7 +483,9 @@ export function App({
           );
         }
       } finally {
-        setRemoteBusy(false);
+        if (accountAuthorityGeneration.current === generation) {
+          setRemoteBusy(false);
+        }
       }
       return;
     }
@@ -745,46 +800,67 @@ export function App({
 
   async function submitAccountDeletion() {
     if (runtime.mode !== 'remote' || remoteController === null) return;
+    const generation = accountAuthorityGeneration.current;
     setAccountDeletionStage('submitting');
     setRemoteBusy(true);
     setRemoteError('');
     try {
-      applyAccountDeletionOutcome(
-        await remoteController.requestAccountDeletion(),
-      );
+      const outcome = await remoteController.requestAccountDeletion();
+      if (accountAuthorityGeneration.current !== generation) {
+        return;
+      }
+      applyAccountDeletionOutcome(outcome);
     } catch (error) {
+      if (accountAuthorityGeneration.current !== generation) {
+        return;
+      }
       setAccountDeletionStage('confirming');
       setRemoteError(
         getUserFacingErrorMessage(error, '删除申请暂时无法安全提交。'),
       );
     } finally {
-      setRemoteBusy(false);
+      if (accountAuthorityGeneration.current === generation) {
+        setRemoteBusy(false);
+      }
     }
   }
 
   async function requestAccountDeletionRecoveryCode() {
     if (remoteController === null) return;
+    const generation = accountAuthorityGeneration.current;
     setRemoteBusy(true);
     setAuthError('');
     try {
       await remoteController.requestAccountDeletionRecoverySmsCode();
+      if (accountAuthorityGeneration.current !== generation) {
+        return;
+      }
       setCode('');
       setAccountDeletionStage('recovery_code');
     } catch (error) {
+      if (accountAuthorityGeneration.current !== generation) {
+        return;
+      }
       setAuthError(
         getUserFacingErrorMessage(error, '暂时无法发送验证码，请稍后再试。'),
       );
     } finally {
-      setRemoteBusy(false);
+      if (accountAuthorityGeneration.current === generation) {
+        setRemoteBusy(false);
+      }
     }
   }
 
   async function retryAccountDeletionRecoveryState() {
     if (remoteController === null) return;
+    const generation = accountAuthorityGeneration.current;
     setRemoteBusy(true);
     setAuthError('');
     try {
       const outcome = await remoteController.resumeAccountDeletion();
+      if (accountAuthorityGeneration.current !== generation) {
+        return;
+      }
       if (outcome.status === 'none' && !remoteController.isAuthenticated()) {
         resetAccountState();
         setAccountDeletionStage('none');
@@ -792,11 +868,16 @@ export function App({
       }
       applyAccountDeletionOutcome(outcome);
     } catch (error) {
+      if (accountAuthorityGeneration.current !== generation) {
+        return;
+      }
       setAuthError(
         getUserFacingErrorMessage(error, '账户状态暂时无法安全恢复。'),
       );
     } finally {
-      setRemoteBusy(false);
+      if (accountAuthorityGeneration.current === generation) {
+        setRemoteBusy(false);
+      }
     }
   }
 
@@ -806,19 +887,28 @@ export function App({
       setAuthError('请输入 6 位验证码。');
       return;
     }
+    const generation = accountAuthorityGeneration.current;
     setRemoteBusy(true);
     setAuthError('');
     try {
       const outcome =
         await remoteController.verifyAccountDeletionRecoverySmsCode(code);
+      if (accountAuthorityGeneration.current !== generation) {
+        return;
+      }
       setCode('');
       applyAccountDeletionOutcome(outcome);
     } catch (error) {
+      if (accountAuthorityGeneration.current !== generation) {
+        return;
+      }
       setAuthError(
         getUserFacingErrorMessage(error, '验证码暂时没通过，请稍后再试。'),
       );
     } finally {
-      setRemoteBusy(false);
+      if (accountAuthorityGeneration.current === generation) {
+        setRemoteBusy(false);
+      }
     }
   }
 

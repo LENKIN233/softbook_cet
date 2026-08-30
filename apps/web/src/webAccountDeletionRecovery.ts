@@ -10,7 +10,13 @@ export type WebAccountDeletionRecoveryChallenge = {
   delivery: string;
   expiresAt: string;
   phoneNumber: string;
+  requestingRevision: number;
   retryAfterSeconds: number;
+};
+
+export type WebAccountDeletionRecoveryRequest = {
+  phoneNumber: string;
+  requestingRevision: number;
 };
 
 export type WebAccountDeletionRecoveryResult =
@@ -31,7 +37,7 @@ export type WebAccountDeletionRecoveryResult =
 
 export type WebAccountDeletionRecoveryRepository = {
   requestCode: (
-    phoneNumber: string,
+    request: WebAccountDeletionRecoveryRequest,
   ) => Promise<WebAccountDeletionRecoveryChallenge>;
   verifyCode: (input: {
     challenge: WebAccountDeletionRecoveryChallenge;
@@ -55,15 +61,15 @@ export function createWebAccountDeletionRecoveryRepository(options: {
   };
 
   return {
-    requestCode(phoneNumber) {
-      assertPhoneNumber(phoneNumber);
+    requestCode(request) {
+      assertRecoveryRequest(request);
       return runBoundedRemoteRequest({
         timeoutMs,
         operation: async signal => {
           const response = await fetchImpl(
             `${baseUrl}/v2/account/deletion/recovery/request-code`,
             {
-              body: JSON.stringify({phone_number: phoneNumber}),
+              body: JSON.stringify({phone_number: request.phoneNumber}),
               credentials: 'omit',
               headers,
               method: 'POST',
@@ -72,7 +78,7 @@ export function createWebAccountDeletionRecoveryRepository(options: {
             },
           );
           assertExactSuccess(response, 'request-code');
-          return parseRecoveryChallenge(await response.json(), phoneNumber);
+          return parseRecoveryChallenge(await response.json(), request);
         },
       });
     },
@@ -110,7 +116,7 @@ export function createWebAccountDeletionRecoveryRepository(options: {
 
 function parseRecoveryChallenge(
   payload: unknown,
-  phoneNumber: string,
+  request: WebAccountDeletionRecoveryRequest,
 ): WebAccountDeletionRecoveryChallenge {
   const data = readData(payload);
   assertExactKeys(data, [
@@ -136,7 +142,8 @@ function parseRecoveryChallenge(
     challengeId: data.challenge_id,
     delivery: data.delivery,
     expiresAt: data.expires_at,
-    phoneNumber,
+    phoneNumber: request.phoneNumber,
+    requestingRevision: request.requestingRevision,
     retryAfterSeconds: data.retry_after_seconds as number,
   };
 }
@@ -229,10 +236,24 @@ function assertChallenge(
     !/^[A-Za-z0-9_-]{16,128}$/.test(challenge.challengeId) ||
     challenge.delivery.trim() === '' ||
     !isCanonicalUtcInstant(challenge.expiresAt) ||
+    !Number.isSafeInteger(challenge.requestingRevision) ||
+    challenge.requestingRevision < 0 ||
     !Number.isSafeInteger(challenge.retryAfterSeconds) ||
     challenge.retryAfterSeconds < 0
   ) {
     throw new Error('Deletion recovery challenge is invalid.');
+  }
+}
+
+function assertRecoveryRequest(
+  request: WebAccountDeletionRecoveryRequest,
+) {
+  assertPhoneNumber(request.phoneNumber);
+  if (
+    !Number.isSafeInteger(request.requestingRevision) ||
+    request.requestingRevision < 0
+  ) {
+    throw new Error('Deletion recovery requesting revision is invalid.');
   }
 }
 

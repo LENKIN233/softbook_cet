@@ -112,6 +112,7 @@ export function createAuthenticatedFetch(options: {
           return firstResponse;
         }
 
+        cancelDiscardedResponseBody(firstResponse);
         await options.authSessionCoordinator.forceRefresh();
 
         assertRequestCurrent(isRequestSessionCurrent(), requestAuthority);
@@ -138,7 +139,9 @@ export function createAuthenticatedFetch(options: {
       !shouldPreserveAuthorizationRejection()
     ) {
       assertRequestCurrent(isRequestSessionCurrent(), requestAuthority);
-      await options.authSessionCoordinator.invalidate();
+      await options.authSessionCoordinator.invalidate(
+        'authorization_invalidated',
+      );
     }
 
     if (response.body === null || response.body === undefined) {
@@ -751,6 +754,20 @@ async function cancelResponseStream(
     await stream.cancel();
   } catch {
     // Deadline and session authority remain the request outcome.
+  }
+}
+
+function cancelDiscardedResponseBody(response: Response) {
+  if (response.body === null) {
+    return;
+  }
+
+  try {
+    response.body.cancel().catch(() => {
+      // A discarded authorization response must never delay token refresh.
+    });
+  } catch {
+    // Cancellation is cleanup only; refresh remains the authoritative path.
   }
 }
 

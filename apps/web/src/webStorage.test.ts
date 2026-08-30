@@ -195,7 +195,10 @@ describe('Web persistence boundary', () => {
     await Promise.all([staleOutbox.hydrate(), staleQueue.hydrate()]);
     const deletionStore = createWebAccountDeletionStateStore(localStorage);
 
-    await deletionStore.mark('13800138000', 'requesting');
+    const requestingAuthority = await deletionStore.beginRequesting?.(
+      '13800138000',
+      0,
+    );
 
     await expect(
       staleOutbox.enqueueCompletion(
@@ -209,7 +212,10 @@ describe('Web persistence boundary', () => {
       ),
     ).rejects.toThrow('不能写入新的账户操作');
 
-    await deletionStore.mark('13800138000', 'accepted');
+    await deletionStore.resolveRequesting?.(
+      requestingAuthority!,
+      'accepted',
+    );
     await staleFence.runAccountCleanup(
       {
         ownerPhoneNumber: '13800138000',
@@ -221,7 +227,7 @@ describe('Web persistence boundary', () => {
           staleQueue.clear(),
         ]).then(() => undefined),
     );
-    await deletionStore.clear();
+    await clearCurrentDeletionState(deletionStore, 'accepted');
     expect(await createOutbox('webdevice_reader').getAll()).toEqual([]);
     expect(await createMutationQueue().getAll()).toEqual([]);
   });
@@ -232,8 +238,14 @@ describe('Web persistence boundary', () => {
     localStorage.setItem('__softbook_mutation_queue', '{broken');
     localStorage.setItem('__softbook_mutation_queue:quarantine', '{broken');
     const deletionStore = createWebAccountDeletionStateStore(localStorage);
-    await deletionStore.mark('13800138000', 'requesting');
-    await deletionStore.mark('13800138000', 'accepted');
+    const requestingAuthority = await deletionStore.beginRequesting?.(
+      '13800138000',
+      0,
+    );
+    await deletionStore.resolveRequesting?.(
+      requestingAuthority!,
+      'accepted',
+    );
     const cleanupFence = createBoundAccountWriteFence();
     const outbox = createOutbox('webdevice_cleanup_corrupt', cleanupFence);
     const queue = createMutationQueue(cleanupFence);
@@ -249,7 +261,7 @@ describe('Web persistence boundary', () => {
           queue.clear(),
         ]).then(() => undefined),
     );
-    await deletionStore.clear();
+    await clearCurrentDeletionState(deletionStore, 'accepted');
 
     expect(await createOutbox('webdevice_reader').getAll()).toEqual([]);
     expect(await createMutationQueue().getAll()).toEqual([]);
@@ -263,8 +275,14 @@ describe('Web persistence boundary', () => {
     await Promise.all([staleOutbox.hydrate(), staleQueue.hydrate()]);
 
     const deletionStore = createWebAccountDeletionStateStore(localStorage);
-    await deletionStore.mark('13800138000', 'requesting');
-    await deletionStore.mark('13800138000', 'accepted');
+    const requestingAuthority = await deletionStore.beginRequesting?.(
+      '13800138000',
+      0,
+    );
+    await deletionStore.resolveRequesting?.(
+      requestingAuthority!,
+      'accepted',
+    );
     const cleanupFence = createBoundAccountWriteFence();
     const cleanupOutbox = createOutbox(
       'webdevice_cleanup_epoch',
@@ -282,7 +300,7 @@ describe('Web persistence boundary', () => {
           cleanupQueue.clear(),
         ]).then(() => undefined),
     );
-    await deletionStore.clear();
+    await clearCurrentDeletionState(deletionStore, 'accepted');
 
     await expect(
       staleOutbox.enqueueCompletion(
@@ -309,7 +327,11 @@ describe('Web persistence boundary', () => {
 
     await expect(
       terminalStore.ensureCleanupAuthority?.('13800138000', 0),
-    ).resolves.toEqual({phase: 'local_cleanup', revision: 1});
+    ).resolves.toEqual({
+      phase: 'local_cleanup',
+      phoneNumber: '13800138000',
+      revision: 1,
+    });
 
     await expect(
       staleOutbox.enqueueCompletion(
@@ -335,7 +357,7 @@ describe('Web persistence boundary', () => {
           cleanupOutbox.clearAccount('13800138000'),
           cleanupQueue.clear(),
         ]);
-        await terminalStore.clear();
+        await clearCurrentDeletionState(terminalStore, 'local_cleanup');
       },
     );
     await expect(
@@ -344,6 +366,76 @@ describe('Web persistence boundary', () => {
         createSpaceMutation('13800138000', '000001', 'space_web_logout2'),
       ),
     ).rejects.toThrow('账户隔离版本已变化');
+  });
+
+  it('does not let a stale cleanup erase queues from a re-registered account revision', async () => {
+    localStorage.clear();
+    const staleCleanupFence = createBoundAccountWriteFence();
+    const staleOutbox = createOutbox(
+      'webdevice_stale_cleanup',
+      staleCleanupFence,
+    );
+    const staleQueue = createMutationQueue(staleCleanupFence);
+    await Promise.all([staleOutbox.hydrate(), staleQueue.hydrate()]);
+    const deletionStore = createWebAccountDeletionStateStore(localStorage);
+    const requestingAuthority = await deletionStore.beginRequesting?.(
+      '13800138000',
+      0,
+    );
+    await deletionStore.resolveRequesting?.(
+      requestingAuthority!,
+      'accepted',
+    );
+    let releaseCleanup: (() => void) | undefined;
+    let markCleanupStarted: (() => void) | undefined;
+    const cleanupGate = new Promise<void>(resolve => {
+      releaseCleanup = resolve;
+    });
+    const cleanupStarted = new Promise<void>(resolve => {
+      markCleanupStarted = resolve;
+    });
+    const staleCleanup = staleCleanupFence.runAccountCleanup(
+      {ownerPhoneNumber: '13800138000', revision: 2},
+      async () => {
+        markCleanupStarted?.();
+        await cleanupGate;
+        const results = await Promise.allSettled([
+          staleOutbox.clearAccount('13800138000'),
+          staleQueue.clear(),
+        ]);
+        const failure = results.find(result => result.status === 'rejected');
+        if (failure?.status === 'rejected') {
+          throw failure.reason;
+        }
+      },
+    );
+    await cleanupStarted;
+
+    await clearCurrentDeletionState(deletionStore, 'accepted');
+    staleCleanupFence.bindSessionRevision(3);
+    const currentFence = createBoundAccountWriteFence();
+    const currentOutbox = createOutbox(
+      'webdevice_current_account',
+      currentFence,
+    );
+    const currentQueue = createMutationQueue(currentFence);
+    await Promise.all([currentOutbox.hydrate(), currentQueue.hydrate()]);
+    await currentOutbox.enqueueCompletion(
+      createCompletion('13800138000', '000001', 'sel_1234567890abcdef'),
+    );
+    await currentQueue.enqueue(
+      'apply_space_action',
+      createSpaceMutation(
+        '13800138000',
+        '000001',
+        'space_web_new_account',
+      ),
+    );
+    releaseCleanup?.();
+
+    await expect(staleCleanup).rejects.toThrow('账户清理权限已变化');
+    await expect(createOutbox('webdevice_reader').getAll()).resolves.toHaveLength(1);
+    await expect(createMutationQueue().getAll()).resolves.toHaveLength(1);
   });
 
   it('rechecks the exact null epoch under the Web Lock before remote write dispatch', async () => {
@@ -361,6 +453,17 @@ describe('Web persistence boundary', () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 });
+
+async function clearCurrentDeletionState(
+  store: ReturnType<typeof createWebAccountDeletionStateStore>,
+  phase: 'accepted' | 'local_cleanup' | 'registration_ready',
+) {
+  await store.clear({
+    phase,
+    phoneNumber: '13800138000',
+    revision: await store.getRevision(),
+  });
+}
 
 function createOutbox(
   deviceId: string,

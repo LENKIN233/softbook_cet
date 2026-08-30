@@ -160,6 +160,31 @@ export function createWebAccountWriteFence(
 
     verifyWrite(key, value) {
       const envelope = readAccountDeletionEnvelope(storage);
+      if (deletionCleanupScope !== null) {
+        const cleanupState = envelope.state;
+        const cleanupAuthorityCurrent =
+          cleanupState !== null &&
+          envelope.revision === deletionCleanupScope.revision &&
+          cleanupState.ownerPhoneNumber ===
+            deletionCleanupScope.ownerPhoneNumber &&
+          (cleanupState.phase === 'accepted' ||
+            cleanupState.phase === 'local_cleanup' ||
+            cleanupState.phase === 'registration_ready');
+        if (!cleanupAuthorityCurrent || cleanupState === null) {
+          throw new Error(
+            '账户清理权限已变化，浏览器已停止过期清理写入。',
+          );
+        }
+        if (
+          !candidateContainsAccountData(
+            key,
+            value,
+            cleanupState.ownerPhoneNumber,
+          )
+        ) {
+          return;
+        }
+      }
       if (envelope.state === null) {
         if (
           sessionRevision === null ||
@@ -169,22 +194,6 @@ export function createWebAccountWriteFence(
             '账户隔离版本已变化，浏览器已停止过期页面写入。',
           );
         }
-        return;
-      }
-
-      const cleanupAuthorized =
-        deletionCleanupScope !== null &&
-        deletionCleanupScope.revision === envelope.revision &&
-        deletionCleanupScope.ownerPhoneNumber ===
-          envelope.state.ownerPhoneNumber;
-      if (
-        cleanupAuthorized &&
-        !candidateContainsAccountData(
-          key,
-          value,
-          envelope.state.ownerPhoneNumber,
-        )
-      ) {
         return;
       }
 
@@ -315,7 +324,8 @@ async function writeStorage(
       (error.message.startsWith('删除结果确认期间') ||
         error.message.startsWith('本机账户清理期间') ||
         error.message.startsWith('删除状态异常') ||
-        error.message.startsWith('账户隔离版本'))
+        error.message.startsWith('账户隔离版本') ||
+        error.message.startsWith('账户清理权限'))
     ) {
       throw error;
     }
