@@ -21,6 +21,7 @@ const DAY_KEY = '2026-04-30';
 const PHONE_ONE = '13800138000';
 const PHONE_TWO = '13900139000';
 const CURRENT_SELECTION_ID = 'sel_current_selection_pending';
+const premiumFixturePhonesByApi = new WeakMap();
 
 function createClock() {
   let value = new Date(START_TIME);
@@ -88,6 +89,18 @@ async function authenticatedSession(
 }
 
 async function cardSource(api, session, track = 'cet4') {
+  const preparedPhones = premiumFixturePhonesByApi.get(api) ?? new Set();
+  if (!preparedPhones.has(session.phone_number)) {
+    const purchased = await request(api, {
+      body: {phone_number: session.phone_number},
+      headers: {authorization: `Bearer ${session.access_token}`},
+      method: 'POST',
+      path: '/v1/membership/purchase',
+    });
+    assert.equal(purchased.statusCode, 200);
+    preparedPhones.add(session.phone_number);
+    premiumFixturePhonesByApi.set(api, preparedPhones);
+  }
   const response = await request(api, {
     headers: {authorization: `Bearer ${session.access_token}`},
     method: 'GET',

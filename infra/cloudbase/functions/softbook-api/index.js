@@ -429,9 +429,27 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (
+      method === 'POST' &&
+      path === '/v2/account/deletion/recovery/request-code'
+    ) {
+      return jsonResponse(200, {
+        data: await config.authV2.requestDeletionRecoveryCode(request),
+      });
+    }
+
     if (method === 'POST' && path === '/v2/auth/verify-code') {
       return jsonResponse(200, {
         data: await config.authV2.verifyCode(request),
+      });
+    }
+
+    if (
+      method === 'POST' &&
+      path === '/v2/account/deletion/recovery/verify-code'
+    ) {
+      return jsonResponse(200, {
+        data: await config.authV2.verifyDeletionRecoveryCode(request),
       });
     }
 
@@ -3878,10 +3896,10 @@ function serializeCardSourceResponse(
 
 function resolveAccessibleCardCount(membershipStage, totalCardCount) {
   switch (membershipStage) {
-    case 'trial_available':
     case 'trial':
     case 'premium':
       return totalCardCount;
+    case 'trial_available':
     case 'free':
       return Math.ceil(totalCardCount * FREE_CARD_ACCESS_RATIO);
     default:

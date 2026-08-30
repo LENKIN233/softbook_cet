@@ -39,7 +39,11 @@ test('authenticated v2 card source serves a controlled-pilot release while v1 re
   });
 
   assert.equal(response.statusCode, 200, JSON.stringify(response.body));
-  assert.equal(response.body.data.card_records.length, 120);
+  assert.equal(response.body.data.card_records.length, 60);
+  assert.deepEqual(
+    response.body.data.card_records,
+    cardSource.card_records.slice(0, 60),
+  );
   assert.equal(response.body.data.content_version, cardSource.content_version);
   assert.equal(response.body.data.source.id, cardSource.source.id);
   assert.equal(response.body.data.track, 'cet4');
@@ -73,7 +77,7 @@ test('authenticated v2 card source serves a controlled-pilot release while v1 re
   assert.equal(legacy.body.error.code, 'legacy_api_disabled');
 });
 
-test('card-source enforces the canonical membership card prefix without leaking the full free answer set', async () => {
+test('card-source enforces the canonical membership prefix without leaking inaccessible answers', async () => {
   const readForStage = async stage => {
     const store = createMemoryStore();
     if (stage === 'trial') {
@@ -103,10 +107,15 @@ test('card-source enforces the canonical membership card prefix without leaking 
 
   const premium = await readForStage('premium');
   const trial = await readForStage('trial');
+  const trialAvailable = await readForStage('trial_available');
   const free = await readForStage('free');
   const accessibleCount = Math.ceil(premium.card_records.length * 0.5);
 
   assert.deepEqual(trial.card_records, premium.card_records);
+  assert.deepEqual(
+    trialAvailable.card_records,
+    premium.card_records.slice(0, accessibleCount),
+  );
   assert.equal(free.card_records.length, accessibleCount);
   assert.deepEqual(
     free.card_records,
@@ -115,6 +124,7 @@ test('card-source enforces the canonical membership card prefix without leaking 
   assert.ok(free.card_records.length < premium.card_records.length);
   assert.equal(free.content_version, premium.content_version);
   assert.equal(trial.content_version, premium.content_version);
+  assert.equal(trialAvailable.content_version, premium.content_version);
   const freeCardIds = new Set(free.card_records.map(card => card.card_id));
   for (const inaccessibleCard of premium.card_records.slice(accessibleCount)) {
     assert.equal(freeCardIds.has(inaccessibleCard.card_id), false);

@@ -510,6 +510,12 @@ async function activateAvailableTrial(
   context.membershipStage = activatedStage;
   context.membership = normalizeSessionMembership(activatedMembership);
   context.membershipCheckpoint = activated.checkpoint;
+  context.accessibleCardCount = context.cards.length;
+  context.accessibleCards = context.cards;
+  context.accessibleCardIds = new Set(
+    context.cards.map(card => card.cardId),
+  );
+  context.accessMode = 'full';
   return true;
 }
 
@@ -585,10 +591,12 @@ function normalizeSelectionContext(input) {
     input.track,
   );
   const sleepingCardIds = normalizeSleepingCardIds(input.spaceState);
-  const accessibleCardCount =
-    input.membershipStage === 'free'
-      ? Math.ceil(cards.length * 0.5)
-      : cards.length;
+  const usesStablePrefix =
+    input.membershipStage === 'free' ||
+    input.membershipStage === 'trial_available';
+  const accessibleCardCount = usesStablePrefix
+    ? Math.ceil(cards.length * 0.5)
+    : cards.length;
   const accessibleCards = cards.slice(0, accessibleCardCount);
   const accessibleCardIds = new Set(
     accessibleCards.map(card => card.cardId),
@@ -599,7 +607,7 @@ function normalizeSelectionContext(input) {
     accessibleCardCount,
     accessibleCardIds,
     accessibleCards,
-    accessMode: input.membershipStage === 'free' ? 'free_subset' : 'full',
+    accessMode: usesStablePrefix ? 'free_subset' : 'full',
     cards,
     cardIdSet,
     contentVersion,

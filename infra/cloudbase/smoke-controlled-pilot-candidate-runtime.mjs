@@ -138,19 +138,20 @@ export async function smokeControlledPilotCandidateRuntime(options) {
   });
   const auth = await authenticate(api);
   const headers = {authorization: `Bearer ${auth.access_token}`};
-  const cardSource = await expectOk(
+  let cardSource = await expectOk(
     api,
     {headers, method: 'GET', path: '/v2/learning/card-source', query: {track: TRACK}},
     'v2 card source',
   );
-  assert.equal(cardSource.card_records.length, EXPECTED_CARD_COUNT);
+  const trialAvailableCardCount = Math.ceil(EXPECTED_CARD_COUNT * 0.5);
+  assert.equal(cardSource.card_records.length, trialAvailableCardCount);
   assert.equal(cardSource.content_version, candidate.content_version);
-  assert.equal(
-    sameStringSet(
-      cardSource.card_records.map(card => card.card_id),
-      approvalRecord.value.card_ids,
-    ),
-    true,
+  assert.deepEqual(
+    cardSource.card_records.map(card => card.card_id),
+    approvalRecord.value.card_ids.slice(0, trialAvailableCardCount),
+  );
+  const trialAvailableCardIds = new Set(
+    cardSource.card_records.map(card => card.card_id),
   );
   const entitlement = await expectOk(
     api,
@@ -170,6 +171,30 @@ export async function smokeControlledPilotCandidateRuntime(options) {
     );
     if (firstScheduled === null) firstScheduled = scheduled;
     assert.notEqual(scheduled.selection, null);
+    if (index === 0) {
+      assert.equal(
+        trialAvailableCardIds.has(scheduled.selection.card_id),
+        true,
+      );
+      cardSource = await expectOk(
+        api,
+        {
+          headers,
+          method: 'GET',
+          path: '/v2/learning/card-source',
+          query: {track: TRACK},
+        },
+        'v2 card source after Trial activation',
+      );
+      assert.equal(cardSource.card_records.length, EXPECTED_CARD_COUNT);
+      assert.equal(
+        sameStringSet(
+          cardSource.card_records.map(card => card.card_id),
+          approvalRecord.value.card_ids,
+        ),
+        true,
+      );
+    }
     assert.equal(scheduled.membership_stage, 'trial');
     assert.equal(scheduled.trial_started_at, checkedAt.toISOString());
     assert.equal(

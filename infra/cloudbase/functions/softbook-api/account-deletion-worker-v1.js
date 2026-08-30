@@ -578,4 +578,5 @@ module.exports = {
   createAccountDeletionWorkerV1,
   createCloudBaseAccountDeletionRepository,
   createMemoryAccountDeletionRepository,
+  normalizeAccountDeletionTask: normalizeTask,
 };

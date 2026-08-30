@@ -196,6 +196,7 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
     .snapshot()
     .authChallenges.get(challenge.body.data.challenge_id);
   assert.equal(persisted.code_digest.length, 64);
+  assert.equal(persisted.purpose, 'sign_in');
   assert.equal(JSON.stringify(persisted).includes(SMS_CODE), false);
 
   const invalid = await request(api, {
@@ -597,6 +598,140 @@ test('deletion worker clears current account data and permits clean re-registrat
     store.snapshot().authSessions.get(registeredAgain.session_id).status,
     'active',
   );
+});
+
+test('deletion recovery challenges report strict task state without creating an auth session', async () => {
+  const {api, store} = createV2TestApi({
+    ipRequestLimit: 10,
+    phoneRequestLimit: 10,
+  });
+  const signInOnlyChallenge = await issueChallenge(
+    api,
+    PHONE_NUMBER,
+    '203.0.113.90',
+  );
+  const session = await issueSession(api, {
+    clientIp: '203.0.113.91',
+    deviceId: 'deletion-recovery-origin',
+  });
+  const deletion = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    path: '/v2/account/deletion',
+  });
+  assert.equal(deletion.statusCode, 202);
+  const sessionCountAfterDeletion = store.snapshot().authSessions.size;
+
+  const signInChallengeOnRecoveryRoute = await request(api, {
+    body: {
+      challenge_id: signInOnlyChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+  assert.equal(signInChallengeOnRecoveryRoute.statusCode, 401);
+  assert.equal(
+    signInChallengeOnRecoveryRoute.body.error.code,
+    'invalid_sms_code',
+  );
+
+  const recoveryChallenge = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.92',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  assert.equal(recoveryChallenge.statusCode, 200);
+  assert.deepEqual(
+    Object.keys(recoveryChallenge.body.data).sort(),
+    [
+      'challenge_id',
+      'delivery',
+      'expires_at',
+      'purpose',
+      'retry_after_seconds',
+    ],
+  );
+  assert.equal(
+    recoveryChallenge.body.data.purpose,
+    'account_deletion_recovery',
+  );
+  assert.equal(
+    store
+      .snapshot()
+      .authChallenges.get(recoveryChallenge.body.data.challenge_id).purpose,
+    'account_deletion_recovery',
+  );
+
+  const recoveryChallengeOnSignInRoute = await request(api, {
+    body: {
+      challenge_id: recoveryChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/auth/verify-code',
+  });
+  assert.equal(recoveryChallengeOnSignInRoute.statusCode, 401);
+  assert.equal(
+    recoveryChallengeOnSignInRoute.body.error.code,
+    'invalid_sms_code',
+  );
+  assert.equal(store.snapshot().authSessions.size, sessionCountAfterDeletion);
+
+  const pending = await request(api, {
+    body: {
+      challenge_id: recoveryChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+  assert.equal(pending.statusCode, 200, JSON.stringify(pending.body));
+  assert.deepEqual(pending.body.data, {
+    deletion_request: deletion.body.data.deletion_request,
+    safe_to_register: false,
+    schema_version: 'account-deletion-recovery.v1',
+    state: 'pending',
+  });
+  assert.equal(store.snapshot().authSessions.size, sessionCountAfterDeletion);
+  assert.equal(Object.hasOwn(pending.body.data, 'access_token'), false);
+  assert.equal(Object.hasOwn(pending.body.data, 'refresh_token'), false);
+
+  const protectedResponse = await request(api, {
+    headers: {
+      authorization: `Bearer ${pending.body.data.access_token ?? ''}`,
+    },
+    method: 'GET',
+    path: '/v2/bootstrap',
+    query: {day_key: '2026-07-20', track: 'cet4'},
+  });
+  assert.equal(protectedResponse.statusCode, 401);
+
+  const report = await store.runAccountDeletionWorkerForTest();
+  assert.equal(report.completed_count, 1);
+  const completedChallenge = await request(api, {
+    body: {phone_number: PHONE_NUMBER},
+    clientIp: '203.0.113.93',
+    path: '/v2/account/deletion/recovery/request-code',
+  });
+  assert.equal(completedChallenge.statusCode, 200);
+  const none = await request(api, {
+    body: {
+      challenge_id: completedChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/account/deletion/recovery/verify-code',
+  });
+  assert.equal(none.statusCode, 200, JSON.stringify(none.body));
+  assert.deepEqual(none.body.data, {
+    deletion_request: null,
+    safe_to_register: true,
+    schema_version: 'account-deletion-recovery.v1',
+    state: 'none',
+  });
+  assert.equal(JSON.stringify(none.body).includes('accepted'), false);
+  assert.equal(JSON.stringify(none.body).includes('completed'), false);
+  assert.equal(store.snapshot().authSessions.size, 0);
 });
 
 test('v2 deletion task blocks refresh even when account-wide revocation is interrupted', async () => {

@@ -199,6 +199,12 @@ test('learning session is authenticated, strict, starts trial, and persists one 
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api);
   const source = await cardSource(api, session);
+  const canonicalSource = await store.getCardSource('cet4');
+  assert.equal(
+    source.card_records.length,
+    Math.ceil(canonicalSource.card_records.length * 0.5),
+  );
+  assert.ok(source.card_records.length < canonicalSource.card_records.length);
   const missingAuth = await request(api, {
     method: 'GET',
     path: '/v2/learning/session',
@@ -239,17 +245,24 @@ test('learning session is authenticated, strict, starts trial, and persists one 
   assert.equal(first.body.data.trial_remaining_seconds, 432000);
   assert.deepEqual(first.body.data.access, {
     mode: 'full',
-    accessible_card_count: source.card_records.length,
-    total_card_count: source.card_records.length,
+    accessible_card_count: canonicalSource.card_records.length,
+    total_card_count: canonicalSource.card_records.length,
   });
-  assert.equal(
-    first.body.data.selection.card_id,
-    source.card_records[0].card_id,
+  assert.ok(
+    source.card_records.some(
+      card => card.card_id === first.body.data.selection.card_id,
+    ),
   );
   assert.equal(first.body.data.selection.phase, 'learning');
   assert.equal(first.body.data.selection.reason, 'catalog_new');
   assert.equal(first.body.data.selection.due_at, null);
   assert.match(first.body.data.selection.selection_id, /^sel_/);
+
+  const sourceAfterTrialActivation = await cardSource(api, session);
+  assert.deepEqual(
+    sourceAfterTrialActivation.card_records,
+    canonicalSource.card_records,
+  );
 
   const resumed = await learningSession(api, session);
   assert.equal(resumed.statusCode, 200);
@@ -409,6 +422,7 @@ test('free access uses the canonical half-prefix and sleeping cards never enter 
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api, '127.0.0.3');
   const source = await cardSource(api, session);
+  const canonicalSource = await store.getCardSource('cet4');
   const initialMembership = await store.getMembership(PHONE);
   const {acknowledged_at: ignored, ...entitlement} = initialMembership;
   store.snapshot().memberships.set(PHONE, {
@@ -429,8 +443,8 @@ test('free access uses the canonical half-prefix and sleeping cards never enter 
   assert.equal(first.statusCode, 200, JSON.stringify(first.body));
   assert.deepEqual(first.body.data.access, {
     mode: 'free_subset',
-    accessible_card_count: Math.ceil(source.card_records.length * 0.5),
-    total_card_count: source.card_records.length,
+    accessible_card_count: source.card_records.length,
+    total_card_count: canonicalSource.card_records.length,
   });
   assert.equal(
     first.body.data.selection.card_id,
@@ -466,9 +480,10 @@ test('free access uses the canonical half-prefix and sleeping cards never enter 
     exhausted.body.data.next_due_at,
     '2026-04-30T12:10:00.000Z',
   );
-  assert.notEqual(
-    source.card_records[3].card_id,
-    exhausted.body.data.selection?.card_id,
+  assert.ok(
+    canonicalSource.card_records
+      .slice(source.card_records.length)
+      .every(card => card.card_id !== exhausted.body.data.selection?.card_id),
   );
 });
 
@@ -477,6 +492,8 @@ test('an initial empty selection persists a valid revision before confirmation',
   const {api} = createTestApi({store});
   const session = await authenticatedSession(api, '127.0.0.18');
   const source = await cardSource(api, session);
+  const canonicalSource = await store.getCardSource('cet4');
+  assert.ok(source.card_records.length < canonicalSource.card_records.length);
   await submitSpaceActions(
     api,
     session,

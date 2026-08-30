@@ -29,7 +29,10 @@ function createMemoryAuthStateStore() {
       return true;
     },
     createAuthChallenge: async input => {
-      if (accountDeletions.has(input.accountKey)) {
+      if (
+        accountDeletions.has(input.accountKey) &&
+        input.allowAccountDeletionPending !== true
+      ) {
         return false;
       }
 
@@ -70,6 +73,8 @@ function createMemoryAuthStateStore() {
     },
     getAuthSession: async sessionId =>
       clone(authSessions.get(sessionId) ?? null),
+    getAccountDeletionTask: async accountKey =>
+      clone(accountDeletions.get(accountKey) ?? null),
     getActiveAuthSession: async (sessionId, checkedAt) => {
       const session = authSessions.get(sessionId);
 
@@ -192,7 +197,7 @@ function createCloudBaseAuthStateStore(db, collections) {
           transaction.collection(names.accountDeletions),
           input.accountKey,
         );
-        if (deletion) {
+        if (deletion && input.allowAccountDeletionPending !== true) {
           return false;
         }
 
@@ -251,6 +256,8 @@ function createCloudBaseAuthStateStore(db, collections) {
       }),
     getAuthSession: sessionId =>
       getDocument(db.collection(names.authSessions), sessionId),
+    getAccountDeletionTask: accountKey =>
+      getDocument(db.collection(names.accountDeletions), accountKey),
     getActiveAuthSession: (sessionId, checkedAt) =>
       db.runTransaction(async transaction => {
         const collection = transaction.collection(names.authSessions);
@@ -383,6 +390,7 @@ function verifyChallengeRecord(challenge, input) {
   }
 
   if (
+    next.purpose !== input.purpose ||
     next.phone_number !== input.phoneNumber ||
     !safeEqual(next.code_digest, input.codeDigest)
   ) {

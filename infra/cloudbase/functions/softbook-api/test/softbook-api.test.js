@@ -311,6 +311,13 @@ test('learning card source requires auth and covers each core interaction', asyn
   const headers = {
     authorization: `Bearer ${token}`,
   };
+  const purchased = await request(api, {
+    body: {phone_number: '13800138000'},
+    headers,
+    method: 'POST',
+    path: '/v1/membership/purchase',
+  });
+  assert.equal(purchased.statusCode, 200);
 
   for (const track of ['cet4', 'cet6']) {
     const catalogEntries = catalogEntriesByRef(track);

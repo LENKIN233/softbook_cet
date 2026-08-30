@@ -1,4 +1,7 @@
 const crypto = require('node:crypto');
+const {
+  normalizeAccountDeletionTask,
+} = require('./account-deletion-worker-v1');
 
 const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 const CHALLENGE_TTL_SECONDS = 5 * 60;
@@ -8,6 +11,8 @@ const PHONE_REQUEST_LIMIT = 5;
 const IP_REQUEST_LIMIT = 20;
 const VERIFY_ATTEMPT_LIMIT = 5;
 const EXTERNAL_PROVIDER_VERIFIED_CODE = 'external-provider-verified';
+const SIGN_IN_CHALLENGE_PURPOSE = 'sign_in';
+const DELETION_RECOVERY_CHALLENGE_PURPOSE = 'account_deletion_recovery';
 
 function createAuthV2Service(options) {
   const runtimeMode = options.runtimeMode ?? 'development';
@@ -54,9 +59,25 @@ function createAuthV2Service(options) {
     logout: request => logout(config, request),
     refresh: request => refresh(config, request),
     requestAccountDeletion: request => requestAccountDeletion(config, request),
-    requestCode: request => requestCode(config, request),
+    requestCode: request =>
+      requestCode(config, request, SIGN_IN_CHALLENGE_PURPOSE),
+    requestDeletionRecoveryCode: async request => ({
+      ...(await requestCode(
+        config,
+        request,
+        DELETION_RECOVERY_CHALLENGE_PURPOSE,
+      )),
+      purpose: DELETION_RECOVERY_CHALLENGE_PURPOSE,
+    }),
     requireActiveSession: request => requireActiveSession(config, request),
-    verifyCode: request => verifyCode(config, request),
+    verifyCode: request =>
+      verifyCode(config, request, SIGN_IN_CHALLENGE_PURPOSE),
+    verifyDeletionRecoveryCode: request =>
+      verifyCode(
+        config,
+        request,
+        DELETION_RECOVERY_CHALLENGE_PURPOSE,
+      ),
   };
 }
 
@@ -68,7 +89,7 @@ function createDevelopmentSmsProvider() {
   };
 }
 
-async function requestCode(config, request) {
+async function requestCode(config, request, purpose) {
   const body = requireObject(request.body, 'request body');
   const phoneNumber = requirePhoneNumber(body.phone_number);
   const clientIp = resolveClientIp(config, request);
@@ -135,6 +156,7 @@ async function requestCode(config, request) {
       config.tokenSecret,
       challengeId,
       phoneNumber,
+      purpose,
       code,
     ),
     consumed_at: null,
@@ -142,10 +164,13 @@ async function requestCode(config, request) {
     delivery_status: 'pending',
     expires_at: expiresAt.toISOString(),
     phone_number: phoneNumber,
+    purpose,
   };
 
   const challengeCreated = await config.store.createAuthChallenge({
     accountKey: keyedHash(config.indexSecret, 'account', phoneNumber),
+    allowAccountDeletionPending:
+      purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE,
     challenge,
   });
 
@@ -188,7 +213,7 @@ async function requestCode(config, request) {
   };
 }
 
-async function verifyCode(config, request) {
+async function verifyCode(config, request, purpose) {
   const body = requireObject(request.body, 'request body');
   const challengeId = requireOpaqueId(body.challenge_id, 'challenge_id');
   const phoneNumber = requirePhoneNumber(body.phone_number);
@@ -210,11 +235,13 @@ async function verifyCode(config, request) {
           config.tokenSecret,
           challengeId,
           phoneNumber,
+          purpose,
           `provider-rejected:${smsCode}`,
         ),
         maxAttempts: config.verifyAttemptLimit,
         now: verifiedAt.toISOString(),
         phoneNumber,
+        purpose,
       });
       assertChallengeVerified(failedVerification.status);
       throw authError(401, 'invalid_sms_code', 'SMS code is invalid.');
@@ -226,14 +253,20 @@ async function verifyCode(config, request) {
       config.tokenSecret,
       challengeId,
       phoneNumber,
+      purpose,
       codeForStore,
     ),
     maxAttempts: config.verifyAttemptLimit,
     now: verifiedAt.toISOString(),
     phoneNumber,
+    purpose,
   });
 
   assertChallengeVerified(verification.status);
+
+  if (purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE) {
+    return readAccountDeletionRecoveryState(config, phoneNumber);
+  }
 
   const sessionId = randomBase64Url(config.randomBytes, 24);
   const refreshToken = createRefreshToken(config, sessionId, 0);
@@ -276,6 +309,52 @@ async function verifyCode(config, request) {
     session,
     config.accessTokenTtlSeconds,
   );
+}
+
+async function readAccountDeletionRecoveryState(config, phoneNumber) {
+  const accountKey = keyedHash(config.indexSecret, 'account', phoneNumber);
+  const storedTask = await config.store.getAccountDeletionTask(accountKey);
+
+  if (storedTask === null) {
+    return {
+      deletion_request: null,
+      safe_to_register: true,
+      schema_version: 'account-deletion-recovery.v1',
+      state: 'none',
+    };
+  }
+
+  let task;
+  try {
+    task = normalizeAccountDeletionTask(storedTask);
+  } catch {
+    throw authError(
+      500,
+      'account_deletion_state_invalid',
+      'Account deletion state is invalid.',
+    );
+  }
+  if (
+    task.account_key !== accountKey ||
+    task.phone_number !== phoneNumber
+  ) {
+    throw authError(
+      500,
+      'account_deletion_state_invalid',
+      'Account deletion state is invalid.',
+    );
+  }
+
+  return {
+    deletion_request: {
+      id: task.deletion_id,
+      requested_at: task.requested_at,
+      status: task.status,
+    },
+    safe_to_register: false,
+    schema_version: 'account-deletion-recovery.v1',
+    state: 'pending',
+  };
 }
 
 async function refresh(config, request) {
@@ -663,6 +742,7 @@ function validateServiceConfig(config) {
     'markAuthChallengeDelivery',
     'verifyAuthChallenge',
     'createAuthSession',
+    'getAccountDeletionTask',
     'getAuthSession',
     'getActiveAuthSession',
     'rotateAuthSession',
@@ -852,10 +932,10 @@ function generateSixDigitCode() {
   return String(crypto.randomInt(100000, 1000000));
 }
 
-function digestSmsCode(secret, challengeId, phoneNumber, code) {
+function digestSmsCode(secret, challengeId, phoneNumber, purpose, code) {
   return crypto
     .createHmac('sha256', secret)
-    .update(`${challengeId}:${phoneNumber}:${code}`)
+    .update(`${purpose}:${challengeId}:${phoneNumber}:${code}`)
     .digest('hex');
 }
 

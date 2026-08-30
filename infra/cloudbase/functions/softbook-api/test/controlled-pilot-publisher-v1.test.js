@@ -859,6 +859,14 @@ async function developmentCardSource() {
     path: '/v2/auth/verify-code',
     query: {},
   });
+  const purchased = await api.handleHttpRequest({
+    body: {phone_number: '13800138000'},
+    headers: {authorization: `Bearer ${verified.body.data.access_token}`},
+    method: 'POST',
+    path: '/v1/membership/purchase',
+    query: {},
+  });
+  assert.equal(purchased.statusCode, 200);
   const response = await api.handleHttpRequest({
     headers: {authorization: `Bearer ${verified.body.data.access_token}`},
     method: 'GET',
