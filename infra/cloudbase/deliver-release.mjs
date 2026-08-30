@@ -877,6 +877,10 @@ export function buildReceiverRuntimeEnvironment(
     SOFTBOOK_LEARNING_EVENTS_BATCH_LIMIT: '9',
     SOFTBOOK_LEARNING_EVENTS_FUTURE_SKEW_SECONDS: '300',
     SOFTBOOK_LEARNING_EVENTS_RETENTION_DAYS: '90',
+    SOFTBOOK_RELEASE_CLASS:
+      profile.schema_version === 'controlled-pilot-profile.v1'
+        ? 'controlled_pilot'
+        : profile.runtime_mode,
     SOFTBOOK_RUNTIME_MODE: runtimeMode,
     SOFTBOOK_SMS_PROVIDER: inspection.provider,
     SOFTBOOK_STORE_MODE: 'cloudbase',
@@ -1008,11 +1012,18 @@ export async function inspectApiFunction({
     profile?.schema_version === 'controlled-pilot-profile.v1'
       ? 'controlled_pilot'
       : 'production';
+  const expectedReleaseClass =
+    profile?.schema_version === 'controlled-pilot-profile.v1'
+      ? 'controlled_pilot'
+      : profile?.runtime_mode;
   if (values.get('SOFTBOOK_CONTENT_MANIFEST_KEY_ID') !== profile?.signing_key_id) {
     errors.push('content manifest signing key ID mismatch');
   }
   if (values.get('SOFTBOOK_RUNTIME_MODE') !== expectedRuntimeMode) {
     errors.push('runtime mode mismatch');
+  }
+  if (values.get('SOFTBOOK_RELEASE_CLASS') !== expectedReleaseClass) {
+    errors.push('release class mismatch');
   }
   if (values.get('SOFTBOOK_STORE_MODE') !== 'cloudbase') {
     errors.push('store mode mismatch');
@@ -1033,6 +1044,12 @@ export async function inspectApiFunction({
       error => `receiver runtime secret validation failed: ${error}`,
     ),
   );
+  if (
+    expectedReleaseClass !== 'closed_beta' &&
+    values.has('SOFTBOOK_BETA_OPERATOR_SECRET')
+  ) {
+    errors.push('beta operator secret is forbidden outside closed beta');
+  }
   return {
     errors,
     ok: errors.length === 0,
@@ -1041,6 +1058,7 @@ export async function inspectApiFunction({
         deploymentValues.length === 1 ? deploymentValues[0] : null,
       function_name: data?.FunctionName ?? null,
       handler: data?.Handler ?? null,
+      release_class: values.get('SOFTBOOK_RELEASE_CLASS') ?? null,
       runtime: data?.Runtime ?? null,
       runtime_mode: values.get('SOFTBOOK_RUNTIME_MODE') ?? null,
       signing_key_id:

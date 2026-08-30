@@ -13,6 +13,7 @@ const {after, before, test} = require('node:test');
 
 let cli;
 let beta;
+let deliveryCli;
 let deploymentSafety;
 const temporaryDirectories = [];
 
@@ -22,6 +23,9 @@ before(async () => {
   );
   beta = await import(
     pathToFileURL(resolve(__dirname, '../../../beta-entitlement-v1.mjs'))
+  );
+  deliveryCli = await import(
+    pathToFileURL(resolve(__dirname, '../../../deliver-release.mjs'))
   );
   deploymentSafety = await import(
     pathToFileURL(resolve(__dirname, '../../../deployment-safety.mjs'))
@@ -56,6 +60,8 @@ test('beta entitlement CLI is dry-run by default and never reports a phone numbe
   assert.equal(report.writes_performed, false);
   assert.equal(report.plan.resulting_stage, 'premium');
   assert.equal(report.command.campaign_id, 'cet4-beta-campaign-001');
+  assert.equal(report.command.command_hmac_sha256, null);
+  assert.equal(Object.hasOwn(report.command, 'command_sha256'), false);
   assert.match(report.profile.profile_sha256, /^sha256:[0-9a-f]{64}$/);
   assert.equal(report.base_membership.unchanged, true);
   assert.equal(report.beta_state.active, true);
@@ -64,6 +70,21 @@ test('beta entitlement CLI is dry-run by default and never reports a phone numbe
   assert.equal(Object.hasOwn(report.command, 'account_fingerprint'), false);
   assert.equal(Object.hasOwn(report.plan, 'account_fingerprint'), false);
   assert.equal(runner.updateCount(), 0);
+});
+
+test('CloudBase preflight subprocess receives no Softbook runtime secrets', () => {
+  const sanitized =
+    cli.betaEntitlementCliInternals.operatorCredentialFreeEnvironment({
+      CLOUDBASE_CLI: '/opt/tcb',
+      TENCENTCLOUD_SECRET_ID: 'iam-id',
+      SOFTBOOK_AUTH_TOKEN_SECRET: 'auth-secret',
+      SOFTBOOK_BETA_OPERATOR_SECRET: 'beta-secret',
+      SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM: 'private-key',
+    });
+  assert.deepEqual(sanitized, {
+    CLOUDBASE_CLI: '/opt/tcb',
+    TENCENTCLOUD_SECRET_ID: 'iam-id',
+  });
 });
 
 test('apply writes and verifies one auditable grant while exact replay is idempotent', async () => {
@@ -86,6 +107,23 @@ test('apply writes and verifies one auditable grant while exact replay is idempo
   );
 
   assert.equal(first.status, 'passed');
+  assert.equal(first.preflight.backend_deployment_verified, true);
+  assert.equal(
+    first.preflight.backend_deployment.release_class,
+    'closed_beta',
+  );
+  assert.equal(
+    first.preflight.backend_deployment.variable_names.includes(
+      'SOFTBOOK_BETA_OPERATOR_SECRET',
+    ),
+    true,
+  );
+  assert.match(first.command.command_hmac_sha256, /^hmac-sha256:[0-9a-f]{64}$/);
+  assert.match(
+    first.backend_deployment_id,
+    /^backend-deployment:sha256:[0-9a-f]{64}$/,
+  );
+  assert.equal(first.beta_state_before.revision, 0);
   assert.equal(first.writes_performed, true);
   assert.equal(first.repository_commit, 'a'.repeat(40));
   assert.equal(first.execution.operator, 'service:receiver-operator');
@@ -121,8 +159,8 @@ test('apply refuses topic branches even when receiver preflight passes', async (
         repository: {
           branch: 'infra/beta-entitlement-audit',
           dirty: false,
-          head: 'same',
-          originMain: 'same',
+          head: 'a'.repeat(40),
+          originMain: 'a'.repeat(40),
         },
       }),
     /writes require branch main/,
@@ -219,6 +257,57 @@ test('apply rejects a weak or missing beta operator secret before invocation', a
   assert.equal(runner.invokeCount(), 0);
 });
 
+test('apply blocks before invocation when remote backend or beta secret drifts', async () => {
+  const fixture = createFixture();
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+  const backendDrift = createRunner({
+    remoteBackendDeploymentId: `backend-deployment:sha256:${'d'.repeat(64)}`,
+  });
+  const backendReport = await cli.executeBetaEntitlementCommand(
+    options,
+    dependencies(backendDrift),
+  );
+  assert.equal(backendReport.status, 'blocked');
+  assert.equal(backendReport.preflight.backend_deployment_verified, false);
+  assert.match(backendReport.preflight.errors.join(';'), /backend deployment ID mismatch/);
+  assert.equal(backendDrift.invokeCount(), 0);
+
+  const missingSecret = createRunner({includeBetaSecret: false});
+  const secretReport = await cli.executeBetaEntitlementCommand(
+    options,
+    dependencies(missingSecret),
+  );
+  assert.equal(secretReport.status, 'blocked');
+  assert.equal(secretReport.preflight.backend_deployment_verified, false);
+  assert.match(
+    secretReport.preflight.errors.join(';'),
+    /beta operator secret is missing or weak/,
+  );
+  assert.equal(missingSecret.invokeCount(), 0);
+});
+
+test('apply rejects a semantically inconsistent receiver result', async () => {
+  const fixture = createFixture();
+  const runner = createRunner({responseActionOverride: 'revoke'});
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile',
+    fixture.profilePath,
+    '--command',
+    fixture.commandPath,
+    '--apply',
+  ]);
+  await assert.rejects(
+    () => cli.executeBetaEntitlementCommand(options, dependencies(runner)),
+    /invocation result is invalid/,
+  );
+});
+
 test('beta entitlement commands reject a formal production profile', async () => {
   const fixture = createFixture('production');
   const options = cli.parseBetaEntitlementArguments([
@@ -295,13 +384,32 @@ function dependencies(runner) {
   };
 }
 
-function createRunner({mutateMembershipAfterInvocation = false} = {}) {
+function createRunner({
+  includeBetaSecret = true,
+  mutateMembershipAfterInvocation = false,
+  remoteBackendDeploymentId = null,
+  responseActionOverride = null,
+} = {}) {
   const collections = new Map([
     ['softbook_beta_entitlements', new Map()],
     ['softbook_memberships', new Map()],
   ]);
   let updates = 0;
   let invocations = 0;
+  const backendDeploymentId = deliveryCli.buildBackendDeploymentId({
+    profile: {
+      schema_version: 'delivery-profile.v1',
+      profile_id: 'receiver-closed-beta',
+      environment_id: 'receiver-cet4-beta',
+      region: 'ap-shanghai',
+      api_base_url: 'https://receiver.example/softbook-api',
+      runtime_mode: 'closed_beta',
+      enabled_tracks: ['cet4'],
+      minimum_client_versions: {ios: '1.0.0', android: '1.0.0'},
+      signing_key_id: 'receiver-signing-key-v1',
+    },
+    repositoryCommit: 'a'.repeat(40),
+  });
   return {
     invokeCount: () => invocations,
     updateCount: () => updates,
@@ -325,6 +433,49 @@ function createRunner({mutateMembershipAfterInvocation = false} = {}) {
             Tables: deploymentSafety.REQUIRED_COLLECTIONS.map(TableName => ({
               TableName,
             })),
+          },
+        });
+      }
+      if (args[0] === '-e' && args.includes('fn') && args.includes('detail')) {
+        return JSON.stringify({
+          data: {
+            FunctionName: 'softbook-api',
+            Handler: 'index.main',
+            Runtime: 'Nodejs20.19',
+            Timeout: 10,
+            Environment: {
+              Variables: [
+                {
+                  Key: 'SOFTBOOK_BACKEND_DEPLOYMENT_ID',
+                  Value: remoteBackendDeploymentId ?? backendDeploymentId,
+                },
+                {
+                  Key: 'SOFTBOOK_CONTENT_MANIFEST_KEY_ID',
+                  Value: 'receiver-signing-key-v1',
+                },
+                {Key: 'SOFTBOOK_RUNTIME_MODE', Value: 'production'},
+                {Key: 'SOFTBOOK_RELEASE_CLASS', Value: 'closed_beta'},
+                {Key: 'SOFTBOOK_STORE_MODE', Value: 'cloudbase'},
+                {Key: 'SOFTBOOK_SMS_PROVIDER', Value: 'webhook'},
+                {
+                  Key: 'SOFTBOOK_AUTH_INDEX_SECRET',
+                  Value: 'index-secret-0123456789-ABCDEFGHIJK',
+                },
+                {
+                  Key: 'SOFTBOOK_AUTH_TOKEN_SECRET',
+                  Value: 'token-secret-9876543210-ZYXWVUTSRQP',
+                },
+                ...(includeBetaSecret
+                  ? [
+                      {
+                        Key: 'SOFTBOOK_BETA_OPERATOR_SECRET',
+                        Value:
+                          'beta-operator-secret-0123456789-ABCDEFG',
+                      },
+                    ]
+                  : []),
+              ],
+            },
           },
         });
       }
@@ -354,6 +505,7 @@ function createRunner({mutateMembershipAfterInvocation = false} = {}) {
           readFileSync(dataArgument.slice(1), 'utf8'),
         );
         assert.deepEqual(Object.keys(invocation).sort(), [
+          'backend_deployment_id',
           'command',
           'schema_version',
           'signature',
@@ -362,6 +514,7 @@ function createRunner({mutateMembershipAfterInvocation = false} = {}) {
           invocation.schema_version,
           'beta-entitlement-operator-invoke.v1',
         );
+        assert.equal(invocation.backend_deployment_id, backendDeploymentId);
         const canonicalCommand = beta.validateBetaEntitlementCommand(
           invocation.command,
         );
@@ -370,7 +523,13 @@ function createRunner({mutateMembershipAfterInvocation = false} = {}) {
             'sha256',
             'beta-operator-secret-0123456789-ABCDEFG',
           )
-          .update(beta.betaEntitlementInternals.stableStringify(canonicalCommand))
+          .update(
+            beta.betaEntitlementInternals.stableStringify({
+              schema_version: 'beta-entitlement-operator-signature.v1',
+              backend_deployment_id: backendDeploymentId,
+              command: canonicalCommand,
+            }),
+          )
           .digest('hex')}`;
         assert.equal(invocation.signature, expectedSignature);
         const current =
@@ -398,13 +557,18 @@ function createRunner({mutateMembershipAfterInvocation = false} = {}) {
         });
         const result = {
           schema_version: 'beta-entitlement-operator-result.v1',
+          backend_deployment_id: backendDeploymentId,
           base_membership_sha256: baseMembershipSha256,
+          beta_state_before: beta.publicBetaEntitlementState(current),
           beta_state: beta.publicBetaEntitlementState(plan.document),
           gate_eligible: false,
           result: beta.publicBetaEntitlementPlan(plan),
           status: 'passed',
           writes_performed: plan.changed,
         };
+        if (responseActionOverride !== null) {
+          result.result.action = responseActionOverride;
+        }
         if (mutateMembershipAfterInvocation && plan.changed) {
           collections.get('softbook_memberships').set(
             canonicalCommand.phone_number,

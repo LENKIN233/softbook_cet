@@ -70,7 +70,10 @@ function planBetaEntitlementMutation(
   ) {
     throw new BetaEntitlementError('beta entitlement account identity is invalid.');
   }
-  const baseEntitlement = cloneEntitlement(baseEntitlementInput ?? createInitialMembership());
+  const baseEntitlement = resolveBaseEntitlementAt(
+    baseEntitlementInput ?? createInitialMembership(),
+    command.occurred_at,
+  );
   const commandHash = hashCanonical(command);
   const duplicate = current.audit.find(event => event.event_id === command.event_id);
 
@@ -252,8 +255,17 @@ function normalizeBetaEntitlementDocument(input) {
   assertPlainObject(input, 'beta entitlement document');
   const document = structuredClone(input);
   delete document._id;
+  assertExactKeys(
+    document,
+    ['active_grant', 'audit', 'phone_number', 'revision', 'updated_at'],
+    'beta entitlement document',
+  );
   const audit = document.audit ?? [];
-  if (!Array.isArray(audit) || audit.some(event => !isStoredAuditEvent(event))) {
+  if (
+    !Array.isArray(audit) ||
+    audit.length > BETA_ENTITLEMENT_HISTORY_LIMIT ||
+    audit.some(event => !isStoredAuditEvent(event))
+  ) {
     throw new BetaEntitlementError('beta entitlement audit is invalid.');
   }
   const revision = document.revision ?? 0;
@@ -274,8 +286,10 @@ function normalizeBetaEntitlementDocument(input) {
   let openCampaignId = null;
   let openGrantId = null;
   let previousTimestamp = null;
+  const eventIds = new Set();
   for (const event of audit) {
     if (
+      eventIds.has(event.event_id) ||
       (previousTimestamp !== null && event.occurred_at < previousTimestamp) ||
       (event.action === 'grant' &&
         (openGrantId !== null || event.resulting_stage !== 'premium')) ||
@@ -286,6 +300,7 @@ function normalizeBetaEntitlementDocument(input) {
     ) {
       throw new BetaEntitlementError('beta entitlement audit sequence is invalid.');
     }
+    eventIds.add(event.event_id);
     openCampaignId = event.action === 'grant' ? event.campaign_id : null;
     openGrantId = event.action === 'grant' ? event.grant_id : null;
     previousTimestamp = event.occurred_at;
@@ -324,6 +339,8 @@ function cloneEntitlement(input) {
     recovery_prompt_visible: input.recovery_prompt_visible,
     stage: input.stage,
     trial_duration_days: input.trial_duration_days,
+    trial_expires_at: input.trial_expires_at ?? null,
+    trial_started_at: input.trial_started_at ?? null,
     trial_started_at_entry_count: input.trial_started_at_entry_count,
   };
   if (
@@ -339,11 +356,36 @@ function cloneEntitlement(input) {
       value.trial_started_at_entry_count === null ||
       (Number.isSafeInteger(value.trial_started_at_entry_count) &&
         value.trial_started_at_entry_count > 0)
-    )
+    ) ||
+    ((value.trial_started_at === null) !==
+      (value.trial_expires_at === null)) ||
+    (value.trial_started_at !== null &&
+      (!isCanonicalIsoTimestamp(value.trial_started_at) ||
+        !isCanonicalIsoTimestamp(value.trial_expires_at) ||
+        Date.parse(value.trial_expires_at) -
+          Date.parse(value.trial_started_at) !==
+          value.trial_duration_days * 24 * 60 * 60 * 1000)) ||
+    (value.stage === 'trial' && value.trial_started_at === null)
   ) {
     throw new BetaEntitlementError('membership entitlement is invalid.');
   }
   return value;
+}
+
+function resolveBaseEntitlementAt(input, occurredAt) {
+  const base = cloneEntitlement(input);
+  if (
+    base.stage === 'trial' &&
+    Date.parse(occurredAt) >= Date.parse(base.trial_expires_at)
+  ) {
+    return {
+      ...base,
+      last_experience_ended_by: 'trial',
+      recovery_prompt_visible: true,
+      stage: 'free',
+    };
+  }
+  return base;
 }
 
 function createInitialMembership() {
@@ -353,13 +395,31 @@ function createInitialMembership() {
     recovery_prompt_visible: false,
     stage: 'trial_available',
     trial_duration_days: 5,
+    trial_expires_at: null,
+    trial_started_at: null,
     trial_started_at_entry_count: null,
   };
 }
 
 function isStoredAuditEvent(value) {
+  const keys = value && typeof value === 'object' ? Object.keys(value).sort() : [];
+  const expectedKeys = [
+    'action',
+    'actor_id',
+    'campaign_id',
+    'command_sha256',
+    'event_id',
+    'grant_id',
+    'occurred_at',
+    'previous_stage',
+    'reason',
+    'resulting_stage',
+    'schema_version',
+  ].sort();
   return (
     value &&
+    keys.length === expectedKeys.length &&
+    keys.every((key, index) => key === expectedKeys[index]) &&
     value.schema_version === BETA_ENTITLEMENT_AUDIT_SCHEMA &&
     ACTIONS.has(value.action) &&
     isIdentifier(value.actor_id, 3, 96) &&
@@ -375,8 +435,21 @@ function isStoredAuditEvent(value) {
 }
 
 function isActiveBetaEntitlement(value) {
+  const keys = value && typeof value === 'object' ? Object.keys(value).sort() : [];
+  const expectedKeys = [
+    'actor_id',
+    'campaign_id',
+    'command_sha256',
+    'grant_event_id',
+    'grant_id',
+    'granted_at',
+    'reason',
+    'schema_version',
+  ].sort();
   return (
     value &&
+    keys.length === expectedKeys.length &&
+    keys.every((key, index) => key === expectedKeys[index]) &&
     value.schema_version === BETA_ENTITLEMENT_STATE_SCHEMA &&
     isIdentifier(value.actor_id, 3, 96) &&
     isIdentifier(value.campaign_id, 3, 96) &&

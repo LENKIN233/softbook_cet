@@ -97,6 +97,19 @@ test('revoke removes only the matching grant and resolves current base membershi
   );
 });
 
+test('grant records an expired canonical trial as free without rewriting base input', () => {
+  const base = {
+    ...membership('trial'),
+    trial_started_at: '2026-07-20T10:00:00.000Z',
+    trial_expires_at: '2026-07-25T10:00:00.000Z',
+  };
+  const grant = beta.planBetaEntitlementMutation(command('grant'), null, base);
+
+  assert.equal(grant.previousStage, 'free');
+  assert.equal(grant.document.audit[0].previous_stage, 'free');
+  assert.equal(base.stage, 'trial');
+});
+
 test('command schema rejects extra fields, invalid phones, and noncanonical time', () => {
   assert.throws(
     () => beta.validateBetaEntitlementCommand({...command('grant'), secret: 'no'}),
@@ -116,6 +129,42 @@ test('command schema rejects extra fields, invalid phones, and noncanonical time
   );
 });
 
+test('stored beta entitlement rejects unknown fields and active campaign drift', () => {
+  const grant = beta.planBetaEntitlementMutation(
+    command('grant'),
+    null,
+    membership('free'),
+  );
+  const malformedDocuments = [
+    {...grant.document, unregistered_authority: true},
+    {
+      ...grant.document,
+      audit: [{...grant.document.audit[0], unregistered_authority: true}],
+    },
+    {
+      ...grant.document,
+      active_grant: {
+        ...grant.document.active_grant,
+        unregistered_authority: true,
+      },
+    },
+    {
+      ...grant.document,
+      active_grant: {
+        ...grant.document.active_grant,
+        campaign_id: 'cet4-beta-campaign-other',
+      },
+    },
+  ];
+
+  for (const document of malformedDocuments) {
+    assert.throws(
+      () => beta.betaEntitlementInternals.normalizeBetaEntitlementDocument(document),
+      /(fields are invalid|audit is invalid|active beta grant)/,
+    );
+  }
+});
+
 function command(action) {
   return {
     schema_version: 'beta-entitlement-command.v1',
@@ -131,12 +180,15 @@ function command(action) {
 }
 
 function membership(stage) {
+  const hasTrialClock = stage === 'trial';
   return {
     counted_entry_count: stage === 'trial_available' ? 0 : 1,
     last_experience_ended_by: null,
     recovery_prompt_visible: false,
     stage,
     trial_duration_days: 5,
+    trial_expires_at: hasTrialClock ? '2026-08-02T10:00:00.000Z' : null,
+    trial_started_at: hasTrialClock ? '2026-07-28T10:00:00.000Z' : null,
     trial_started_at_entry_count: stage === 'trial_available' ? null : 1,
   };
 }

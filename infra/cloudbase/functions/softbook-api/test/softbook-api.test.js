@@ -21,8 +21,11 @@ const {
   prepareSpaceActionCommit,
 } = require('../space-actions-v2');
 const {stableJsonStringify} = require('../content-manifest-v1');
+const {betaEntitlementInternals} = require('../beta-entitlement-v1');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
+const BETA_BACKEND_DEPLOYMENT_ID =
+  `backend-deployment:sha256:${'b'.repeat(64)}`;
 const CORE_INTERACTIONS = [
   'elimination',
   'flip',
@@ -3009,22 +3012,32 @@ test('beta entitlement operator invocation reads base revision and commits one t
   });
   const invocation = {
     schema_version: 'beta-entitlement-operator-invoke.v1',
+    backend_deployment_id: BETA_BACKEND_DEPLOYMENT_ID,
     command,
-    signature: createBetaOperatorSignature(command),
+    signature: createBetaOperatorSignature(
+      command,
+      BETA_BACKEND_DEPLOYMENT_ID,
+    ),
   };
 
   const first = await handleBetaEntitlementOperatorInvoke(invocation, {
     operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+    backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+    releaseClass: 'closed_beta',
     runtimeMode: 'production',
     store,
   });
   const replay = await handleBetaEntitlementOperatorInvoke(invocation, {
     operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+    backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+    releaseClass: 'closed_beta',
     runtimeMode: 'production',
     store,
   });
 
   assert.equal(first.writes_performed, true);
+  assert.equal(first.backend_deployment_id, BETA_BACKEND_DEPLOYMENT_ID);
+  assert.equal(first.beta_state_before.revision, 0);
   assert.equal(first.result.resulting_stage, 'premium');
   assert.equal(replay.writes_performed, false);
   assert.equal(replay.result.idempotent, true);
@@ -3056,8 +3069,12 @@ test('beta entitlement operator invocation rejects unauthenticated input and rol
   const command = createBetaOperatorCommand();
   const invocation = {
     schema_version: 'beta-entitlement-operator-invoke.v1',
+    backend_deployment_id: BETA_BACKEND_DEPLOYMENT_ID,
     command,
-    signature: createBetaOperatorSignature(command),
+    signature: createBetaOperatorSignature(
+      command,
+      BETA_BACKEND_DEPLOYMENT_ID,
+    ),
   };
   let storeCalled = false;
   await assert.rejects(
@@ -3066,6 +3083,8 @@ test('beta entitlement operator invocation rejects unauthenticated input and rol
         {...invocation, extra: true},
         {
           operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+          releaseClass: 'closed_beta',
           runtimeMode: 'production',
           store: {
             applyBetaEntitlementCommand: async () => {
@@ -3082,6 +3101,8 @@ test('beta entitlement operator invocation rejects unauthenticated input and rol
         {...invocation, schema_version: 'beta-entitlement-operator-invoke.v2'},
         {
           operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+          releaseClass: 'closed_beta',
           runtimeMode: 'production',
           store: {
             applyBetaEntitlementCommand: async () => {
@@ -3098,6 +3119,8 @@ test('beta entitlement operator invocation rejects unauthenticated input and rol
         {...invocation, signature: `hmac-sha256:${'0'.repeat(64)}`},
         {
           operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+          backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+          releaseClass: 'closed_beta',
           runtimeMode: 'production',
           store: {
             applyBetaEntitlementCommand: async () => {
@@ -3108,6 +3131,21 @@ test('beta entitlement operator invocation rejects unauthenticated input and rol
       ),
     /authentication failed/,
   );
+  await assert.rejects(
+    () =>
+      handleBetaEntitlementOperatorInvoke(invocation, {
+        operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+        backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+        releaseClass: 'production',
+        runtimeMode: 'production',
+        store: {
+          applyBetaEntitlementCommand: async () => {
+            storeCalled = true;
+          },
+        },
+      }),
+    /outside the receiver closed beta runtime/,
+  );
   assert.equal(storeCalled, false);
 
   db.failNextTransactionSet('softbook_beta_entitlements');
@@ -3115,6 +3153,8 @@ test('beta entitlement operator invocation rejects unauthenticated input and rol
     () =>
       handleBetaEntitlementOperatorInvoke(invocation, {
         operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+        backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+        releaseClass: 'closed_beta',
         runtimeMode: 'production',
         store,
       }),
@@ -3699,8 +3739,12 @@ function createBetaOperatorCommand() {
   };
 }
 
-function createBetaOperatorSignature(command) {
-  const canonical = JSON.stringify(command, Object.keys(command).sort());
+function createBetaOperatorSignature(command, backendDeploymentId) {
+  const canonical = betaEntitlementInternals.stableStringify({
+    schema_version: 'beta-entitlement-operator-signature.v1',
+    backend_deployment_id: backendDeploymentId,
+    command,
+  });
   return `hmac-sha256:${crypto
     .createHmac('sha256', 'beta-operator-secret-0123456789-ABCDEFG')
     .update(canonical)

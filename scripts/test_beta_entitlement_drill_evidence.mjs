@@ -58,6 +58,23 @@ test('beta entitlement drill rejects planned, drifted, non-idempotent and regres
     'beta-event-revoke-other';
   assertInvalid(eventDrift, /revoke event measurement/);
 
+  const crossAccountSplice = createFixture();
+  crossAccountSplice.loaded.revokeReport.beta_state_before.state_sha256 =
+    digest('another-account-grant-state');
+  assertInvalid(crossAccountSplice, /revoke input chain\.state_sha256/);
+
+  const backendDrift = createFixture();
+  backendDrift.loaded.grantReport.preflight.backend_deployment.backend_deployment_id =
+    `backend-deployment:sha256:${hash('other-backend')}`;
+  assertInvalid(backendDrift, /backend_deployment\.backend_deployment_id/);
+
+  const missingRemoteSecret = createFixture();
+  missingRemoteSecret.loaded.grantReport.preflight.backend_deployment.variable_names =
+    missingRemoteSecret.loaded.grantReport.preflight.backend_deployment.variable_names.filter(
+      name => name !== 'SOFTBOOK_BETA_OPERATOR_SECRET',
+    );
+  assertInvalid(missingRemoteSecret, /must bind the beta secret and release class/);
+
   const legacyFingerprint = createFixture();
   legacyFingerprint.artifact.measurements.account_fingerprint =
     `sha256:${hash('legacy-phone-derived-value').slice(0, 16)}`;
@@ -170,6 +187,7 @@ function createFixture() {
   const campaignId = 'cet4-beta-campaign-001';
   const grantId = 'cet4-beta-grant-0001';
   const operator = 'service:receiver-beta-operator';
+  const backendDeploymentId = `backend-deployment:sha256:${hash('backend')}`;
   const profile = {
     schema_version: 'delivery-profile.v1',
     profile_id: 'receiver-cet4-beta',
@@ -188,6 +206,7 @@ function createFixture() {
     profileHash,
     profileId: profile.profile_id,
     campaignId,
+    backendDeploymentId,
     grantId,
     operator,
   };
@@ -195,8 +214,12 @@ function createFixture() {
     action: 'grant',
     active: true,
     auditCount: 3,
+    beforeActive: false,
+    beforeAuditCount: 2,
+    beforeRevision: 2,
+    beforeStateHash: digest('pre-grant-state'),
     changed: true,
-    commandHash: digest('grant-command'),
+    commandHmac: hmacDigest('grant-command'),
     completedAt: '2026-08-23T09:01:00.000Z',
     eventId: 'beta-event-grant-0001',
     idempotent: false,
@@ -211,8 +234,12 @@ function createFixture() {
     action: 'grant',
     active: true,
     auditCount: 3,
+    beforeActive: true,
+    beforeAuditCount: 3,
+    beforeRevision: 3,
+    beforeStateHash: digest('grant-state'),
     changed: false,
-    commandHash: digest('grant-command'),
+    commandHmac: hmacDigest('grant-command'),
     completedAt: '2026-08-23T09:03:00.000Z',
     eventId: 'beta-event-grant-0001',
     idempotent: true,
@@ -227,8 +254,12 @@ function createFixture() {
     action: 'revoke',
     active: false,
     auditCount: 4,
+    beforeActive: true,
+    beforeAuditCount: 3,
+    beforeRevision: 3,
+    beforeStateHash: digest('grant-state'),
     changed: true,
-    commandHash: digest('revoke-command'),
+    commandHmac: hmacDigest('revoke-command'),
     completedAt: '2026-08-23T09:05:00.000Z',
     eventId: 'beta-event-revoke-0001',
     idempotent: false,
@@ -243,8 +274,12 @@ function createFixture() {
     action: 'revoke',
     active: false,
     auditCount: 4,
+    beforeActive: false,
+    beforeAuditCount: 4,
+    beforeRevision: 4,
+    beforeStateHash: digest('revoke-state'),
     changed: false,
-    commandHash: digest('revoke-command'),
+    commandHmac: hmacDigest('revoke-command'),
     completedAt: '2026-08-23T09:07:00.000Z',
     eventId: 'beta-event-revoke-0001',
     idempotent: true,
@@ -275,7 +310,13 @@ function createFixture() {
       hash(`${JSON.stringify(value, null, 2)}\n`),
     ]),
   );
-  const candidate = createCandidate({commit, profile, profileHash, campaignId});
+  const candidate = createCandidate({
+    backendDeploymentId,
+    campaignId,
+    commit,
+    profile,
+    profileHash,
+  });
   const policyHash = hash(
     fs.readFileSync(path.join(ROOT, 'spec/cet4-closed-beta-readiness.json')),
   );
@@ -379,8 +420,12 @@ function createPhaseReport(
     action,
     active,
     auditCount,
+    beforeActive,
+    beforeAuditCount,
+    beforeRevision,
+    beforeStateHash,
     changed,
-    commandHash,
+    commandHmac,
     completedAt,
     eventId,
     idempotent,
@@ -396,13 +441,14 @@ function createPhaseReport(
     action,
     actor_id: common.operator,
     campaign_id: common.campaignId,
-    command_sha256: commandHash,
+    command_hmac_sha256: commandHmac,
     event_id: eventId,
     grant_id: common.grantId,
   };
   return {
     schema_version: 'beta-entitlement-report.v3',
     applied: true,
+    backend_deployment_id: common.backendDeploymentId,
     gate_eligible: false,
     repository_commit: common.commit,
     profile: {
@@ -412,7 +458,28 @@ function createPhaseReport(
       runtime_mode: 'closed_beta',
     },
     command,
-    preflight: {errors: [], required_collections_present: true},
+    preflight: {
+      backend_deployment: {
+        backend_deployment_id: common.backendDeploymentId,
+        function_name: 'softbook-api',
+        handler: 'index.main',
+        release_class: 'closed_beta',
+        runtime: 'Nodejs20.19',
+        runtime_mode: 'production',
+        signing_key_id: 'receiver-signing-key-v1',
+        sms_provider: 'webhook',
+        store_mode: 'cloudbase',
+        timeout: 10,
+        variable_names: [
+          'SOFTBOOK_BACKEND_DEPLOYMENT_ID',
+          'SOFTBOOK_BETA_OPERATOR_SECRET',
+          'SOFTBOOK_RELEASE_CLASS',
+        ],
+      },
+      backend_deployment_verified: true,
+      errors: [],
+      required_collections_present: true,
+    },
     write_safety: {
       errors: [],
       ok: true,
@@ -426,6 +493,14 @@ function createPhaseReport(
       before_sha256: digest('base-membership'),
       after_sha256: digest('base-membership'),
       unchanged: true,
+    },
+    beta_state_before: {
+      active: beforeActive,
+      active_campaign_id: beforeActive ? common.campaignId : null,
+      active_grant_id: beforeActive ? common.grantId : null,
+      audit_event_count: beforeAuditCount,
+      revision: beforeRevision,
+      state_sha256: beforeStateHash,
     },
     beta_state: {
       active,
@@ -457,7 +532,13 @@ function createPhaseReport(
   };
 }
 
-function createCandidate({commit, profile, profileHash, campaignId}) {
+function createCandidate({
+  backendDeploymentId,
+  commit,
+  profile,
+  profileHash,
+  campaignId,
+}) {
   return {
     schema_version: 'cet4-closed-beta-release-candidate.v1',
     repository: 'LENKIN233/softbook_cet',
@@ -477,7 +558,7 @@ function createCandidate({commit, profile, profileHash, campaignId}) {
       parent_release_id: 'cet4-release-a',
       content_version: digest('content-version'),
       bundle_sha256: hash('bundle'),
-      backend_deployment_id: `backend-deployment:sha256:${hash('backend')}`,
+      backend_deployment_id: backendDeploymentId,
     },
     content: {
       track: 'cet4',
@@ -558,4 +639,8 @@ function hash(value) {
 
 function digest(value) {
   return `sha256:${hash(value)}`;
+}
+
+function hmacDigest(value) {
+  return `hmac-sha256:${hash(value)}`;
 }

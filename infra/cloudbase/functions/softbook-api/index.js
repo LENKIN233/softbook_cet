@@ -87,6 +87,8 @@ const DEFAULT_SMS_CODE = '2468';
 const FREE_CARD_ACCESS_RATIO = 0.5;
 const BETA_OPERATOR_PATTERN =
   /^(model|agent|service|oidc):[A-Za-z0-9_.-]+$/;
+const BACKEND_DEPLOYMENT_ID_PATTERN =
+  /^backend-deployment:sha256:[a-f0-9]{64}$/;
 const RUNTIME_MODES = new Set([
   'controlled_pilot',
   'development',
@@ -165,10 +167,11 @@ async function main(event, context) {
 async function handleBetaEntitlementOperatorInvoke(event, options = {}) {
   const actualKeys = Object.keys(event ?? {}).sort();
   if (
-    actualKeys.length !== 3 ||
-    actualKeys[0] !== 'command' ||
-    actualKeys[1] !== 'schema_version' ||
-    actualKeys[2] !== 'signature' ||
+    actualKeys.length !== 4 ||
+    actualKeys[0] !== 'backend_deployment_id' ||
+    actualKeys[1] !== 'command' ||
+    actualKeys[2] !== 'schema_version' ||
+    actualKeys[3] !== 'signature' ||
     event.schema_version !== 'beta-entitlement-operator-invoke.v1'
   ) {
     throw new BetaEntitlementError(
@@ -176,12 +179,28 @@ async function handleBetaEntitlementOperatorInvoke(event, options = {}) {
     );
   }
   const runtimeMode = resolveRuntimeMode(options.runtimeMode);
+  const releaseClass =
+    options.releaseClass ?? process.env.SOFTBOOK_RELEASE_CLASS ?? null;
+  const backendDeploymentId =
+    options.backendDeploymentId ??
+    process.env.SOFTBOOK_BACKEND_DEPLOYMENT_ID ??
+    null;
   const operatorSecret =
     options.operatorSecret ?? process.env.SOFTBOOK_BETA_OPERATOR_SECRET ?? null;
+  const observedAt = (options.now ?? (() => new Date()))().toISOString();
   const command = validateBetaEntitlementCommand(event.command);
-  assertBetaOperatorSignature(command, event.signature, operatorSecret);
+  assertBetaOperatorSignature(
+    command,
+    event.backend_deployment_id,
+    event.signature,
+    operatorSecret,
+  );
   if (
     runtimeMode !== 'production' ||
+    releaseClass !== 'closed_beta' ||
+    !BACKEND_DEPLOYMENT_ID_PATTERN.test(backendDeploymentId ?? '') ||
+    event.backend_deployment_id !== backendDeploymentId ||
+    command.occurred_at > observedAt ||
     !BETA_OPERATOR_PATTERN.test(command.actor_id)
   ) {
     throw new BetaEntitlementError(
@@ -197,7 +216,9 @@ async function handleBetaEntitlementOperatorInvoke(event, options = {}) {
   const applied = await store.applyBetaEntitlementCommand(command);
   return {
     schema_version: 'beta-entitlement-operator-result.v1',
+    backend_deployment_id: backendDeploymentId,
     base_membership_sha256: applied.baseMembershipSha256,
+    beta_state_before: applied.betaStateBefore,
     beta_state: applied.betaState,
     gate_eligible: false,
     result: applied.result,
@@ -206,7 +227,12 @@ async function handleBetaEntitlementOperatorInvoke(event, options = {}) {
   };
 }
 
-function assertBetaOperatorSignature(command, signature, secret) {
+function assertBetaOperatorSignature(
+  command,
+  backendDeploymentId,
+  signature,
+  secret,
+) {
   if (
     typeof secret !== 'string' ||
     secret.length < 32 ||
@@ -220,7 +246,13 @@ function assertBetaOperatorSignature(command, signature, secret) {
   }
   const expected = `hmac-sha256:${crypto
     .createHmac('sha256', secret)
-    .update(betaEntitlementInternals.stableStringify(command))
+    .update(
+      betaEntitlementInternals.stableStringify({
+        schema_version: 'beta-entitlement-operator-signature.v1',
+        backend_deployment_id: backendDeploymentId,
+        command,
+      }),
+    )
     .digest('hex')}`;
   if (
     !crypto.timingSafeEqual(
@@ -1110,11 +1142,15 @@ function createMemoryStore() {
           betaEntitlements.get(command.phone_number) ?? null,
           base.entitlement,
         );
+        const betaStateBefore = publicBetaEntitlementState(
+          betaEntitlements.get(command.phone_number) ?? null,
+        );
         if (plan.changed) {
           betaEntitlements.set(command.phone_number, cloneJson(plan.document));
         }
         return {
           baseMembershipSha256: createBetaOperatorBaseDigest(base),
+          betaStateBefore,
           betaState: publicBetaEntitlementState(plan.document),
           result: publicBetaEntitlementPlan(plan),
           writesPerformed: plan.changed,
@@ -1869,6 +1905,7 @@ function createCloudBaseStore(options = {}) {
           current,
           base.entitlement,
         );
+        const betaStateBefore = publicBetaEntitlementState(current);
         if (plan.changed) {
           await setCloudBaseDocument(
             transactionBetaEntitlements,
@@ -1878,6 +1915,7 @@ function createCloudBaseStore(options = {}) {
         }
         return {
           baseMembershipSha256: createBetaOperatorBaseDigest(base),
+          betaStateBefore,
           betaState: publicBetaEntitlementState(plan.document),
           result: publicBetaEntitlementPlan(plan),
           writesPerformed: plan.changed,
@@ -3870,80 +3908,20 @@ function assertPilotEntitlementDocument(document, phoneNumber, pilotId) {
 }
 
 function assertBetaEntitlementDocument(document, phoneNumber) {
-  const audit = document.audit;
-  const active = document.active_grant ?? null;
   const invalid = () =>
     httpError(
       500,
       'invalid_beta_entitlement',
       'Canonical beta entitlement is invalid.',
     );
-  if (
-    document.phone_number !== phoneNumber ||
-    !Number.isSafeInteger(document.revision) ||
-    document.revision <= 0 ||
-    !Array.isArray(audit) ||
-    audit.length !== document.revision ||
-    document.updated_at !== audit.at(-1)?.occurred_at
-  ) {
+  let normalized;
+  try {
+    normalized =
+      betaEntitlementInternals.normalizeBetaEntitlementDocument(document);
+  } catch {
     throw invalid();
   }
-  let openGrantId = null;
-  let previousTimestamp = null;
-  for (const event of audit) {
-    if (
-      event?.schema_version !== 'beta-entitlement-audit.v1' ||
-      !['grant', 'revoke'].includes(event.action) ||
-      typeof event.actor_id !== 'string' ||
-      !/^sha256:[a-f0-9]{64}$/.test(event.command_sha256 ?? '') ||
-      typeof event.event_id !== 'string' ||
-      typeof event.grant_id !== 'string' ||
-      !isCanonicalIsoTimestamp(event.occurred_at) ||
-      typeof event.reason !== 'string' ||
-      !['trial_available', 'trial', 'free', 'premium'].includes(
-        event.previous_stage,
-      ) ||
-      !['trial_available', 'trial', 'free', 'premium'].includes(
-        event.resulting_stage,
-      ) ||
-      (previousTimestamp !== null && event.occurred_at < previousTimestamp)
-    ) {
-      throw invalid();
-    }
-    if (event.action === 'grant') {
-      if (openGrantId !== null || event.resulting_stage !== 'premium') {
-        throw invalid();
-      }
-      openGrantId = event.grant_id;
-    } else {
-      if (
-        openGrantId !== event.grant_id ||
-        event.previous_stage !== 'premium'
-      ) {
-        throw invalid();
-      }
-      openGrantId = null;
-    }
-    previousTimestamp = event.occurred_at;
-  }
-  const latest = audit.at(-1);
-  if (active === null) {
-    if (openGrantId !== null || latest.action !== 'revoke') throw invalid();
-    return;
-  }
-  if (
-    latest.action !== 'grant' ||
-    openGrantId !== latest.grant_id ||
-    active.schema_version !== 'beta-entitlement.v1' ||
-    active.actor_id !== latest.actor_id ||
-    active.command_sha256 !== latest.command_sha256 ||
-    active.grant_event_id !== latest.event_id ||
-    active.grant_id !== latest.grant_id ||
-    active.granted_at !== latest.occurred_at ||
-    active.reason !== latest.reason
-  ) {
-    throw invalid();
-  }
+  if (normalized.phone_number !== phoneNumber) throw invalid();
 }
 
 function isCanonicalIsoTimestamp(value) {

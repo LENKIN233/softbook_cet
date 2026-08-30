@@ -97,6 +97,7 @@ test('receiver runtime contains production adapters and never includes a fixed c
   });
 
   assert.equal(runtime.SOFTBOOK_RUNTIME_MODE, 'production');
+  assert.equal(runtime.SOFTBOOK_RELEASE_CLASS, 'closed_beta');
   assert.equal(runtime.SOFTBOOK_BACKEND_DEPLOYMENT_ID, backendDeploymentId);
   assert.equal(runtime.SOFTBOOK_SMS_PROVIDER, 'webhook');
   assert.equal(runtime.SOFTBOOK_CONTENT_MANIFEST_KEY_ID, profile.signing_key_id);
@@ -172,12 +173,14 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
   assert.equal(exact.ok, true);
   assert.equal(exact.public.backend_deployment_id, expectedDeploymentId);
   assert.equal(exact.public.signing_key_id, 'receiver-signing-key-v1');
+  assert.equal(exact.public.release_class, 'closed_beta');
   assert.equal(exact.public.runtime_mode, 'production');
   assert.equal(exact.public.sms_provider, 'webhook');
   const secretEnvironment = receiverEnvironment();
   for (const name of [
     'SOFTBOOK_AUTH_INDEX_SECRET',
     'SOFTBOOK_AUTH_TOKEN_SECRET',
+    'SOFTBOOK_BETA_OPERATOR_SECRET',
     'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
     'SOFTBOOK_SMS_WEBHOOK_SECRET',
   ]) {
@@ -201,6 +204,17 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
   assert.match(
     missingSecret.errors.join(';'),
     /SOFTBOOK_AUTH_INDEX_SECRET is missing/,
+  );
+
+  const missingBetaSecret = await inspect(
+    expectedDeploymentId,
+    'receiver-signing-key-v1',
+    'SOFTBOOK_BETA_OPERATOR_SECRET',
+  );
+  assert.equal(missingBetaSecret.ok, false);
+  assert.match(
+    missingBetaSecret.errors.join(';'),
+    /SOFTBOOK_BETA_OPERATOR_SECRET is missing/,
   );
 });
 
@@ -329,6 +343,7 @@ test('formal production runtime does not require or receive the beta operator se
   });
 
   assert.equal(inspection.ok, true, inspection.errors.join('; '));
+  assert.equal(runtime.SOFTBOOK_RELEASE_CLASS, 'production');
   assert.equal(Object.hasOwn(runtime, 'SOFTBOOK_BETA_OPERATOR_SECRET'), false);
 });
 

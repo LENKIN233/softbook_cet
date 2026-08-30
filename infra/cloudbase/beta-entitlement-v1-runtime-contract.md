@@ -47,7 +47,9 @@ Each stored audit event binds action, event ID, campaign ID, grant ID, actor,
 reason, timestamp, previous stage, resulting stage, and command hash. Grant
 requires no other active beta grant. Revoke requires the exact active campaign
 and grant ID. Revision and audit length advance together in the same
-beta-entitlement document update.
+beta-entitlement document update. Planning resolves an expired canonical Trial
+at the command timestamp without rewriting the base membership, so audit stages
+cannot preserve an already elapsed Trial.
 
 The runtime fails closed on malformed active evidence. Inactive historical
 records do not change membership. Account/smoke lifecycle cleanup treats the
@@ -76,16 +78,24 @@ default.
 
 `--apply` additionally requires Node 22.13.0 and a clean `main` exactly equal to
 `origin/main`, plus a dedicated strong `SOFTBOOK_BETA_OPERATOR_SECRET` distinct
-from auth secrets. Apply sends one strict
-`beta-entitlement-operator-invoke.v1` command-bound HMAC invocation to the
-receiver function. That function reads base membership plus its revision,
+from auth secrets. Before invocation it re-observes the receiver function and
+requires the exact profile-and-commit-derived backend deployment ID, explicit
+`closed_beta` release class and deployed beta-secret configuration. Apply sends
+one strict `beta-entitlement-operator-invoke.v1` HMAC invocation bound to both
+the command and that backend deployment ID. The receiver rejects every other
+release class or deployment identity. That function reads base membership plus its revision,
 plans the mutation, and writes the beta entitlement in one database
 transaction. The CLI never performs the beta write directly; afterward it
 re-reads and verifies the normalized beta audit against the function result.
 Its privacy-safe `beta-entitlement-report.v3`
-binds the repository commit, profile bytes, environment, campaign, command
-hash, identified operator, execution window, receiver preflight, write safety,
+binds the repository commit, profile bytes, environment, campaign, a
+report-domain keyed command HMAC, identified operator, execution window,
+receiver preflight, write safety,
 unchanged base-membership digest and verified beta revision/audit/active state.
+The report records privacy-safe before and after beta-state digests. Grant,
+replay, revoke and replay must form one continuous transition chain; this binds
+the lifecycle to one account without emitting a phone-derived account
+identifier and makes cross-account report splicing fail closed.
 It is `gate_eligible=false` on its own and never emits the phone number or
 command bytes. Repository tests do not
 constitute a real receiver grant, remote device verification, or launch
@@ -95,8 +105,9 @@ The closed-beta evidence loader registers `beta-entitlement-drill` only over
 five distinct tracked strict-JSON roles: one exact delivery profile plus applied
 grant, idempotent grant replay, applied revoke and idempotent revoke replay
 reports. It rehashes every raw file and requires one commit/profile/environment,
-candidate campaign, grant, distinct grant/revoke event identities, identified
-operator and unchanged base-membership digest. Grant must move a non-premium base stage to
+candidate campaign, exact backend deployment, grant, distinct grant/revoke
+event identities, identified operator, unchanged base-membership digest and a
+continuous before/after beta-state chain. Grant must move a non-premium base stage to
 premium; revoke must restore it; revision/audit state advances exactly once per
 mutation and remains byte-identical on both replays. A planned or isolated raw
 report cannot pass the drill.
