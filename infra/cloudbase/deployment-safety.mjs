@@ -862,6 +862,14 @@ export function nodeVersionAtLeast(version, minimumVersion = "20.19.0") {
 
 export function redactText(value) {
   return String(value ?? "")
+    .replace(
+      /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
+      "<redacted-private-key>"
+    )
+    .replace(
+      /("Key"\s*:\s*"[^"]*(?:secret|token|authorization|api[_-]?key|private[_-]?key)[^"]*"\s*,\s*"Value"\s*:\s*")[^"]*(")/gi,
+      "$1<redacted>$2"
+    )
     .replace(/\b1\d{10}\b/g, "<redacted-phone>")
     .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]{12,}\b/gi, "$1<redacted-token>")
     .replace(

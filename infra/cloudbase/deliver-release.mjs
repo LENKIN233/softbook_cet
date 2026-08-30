@@ -1018,6 +1018,15 @@ export async function inspectApiFunction({
   ) {
     errors.push('SMS provider mismatch');
   }
+  const remoteSecretInspection = inspectReceiverSecrets(
+    profile,
+    Object.fromEntries(entries.map(variable => [variable.Key, variable.Value])),
+  );
+  errors.push(
+    ...remoteSecretInspection.errors.map(
+      error => `receiver runtime secret validation failed: ${error}`,
+    ),
+  );
   return {
     errors,
     ok: errors.length === 0,

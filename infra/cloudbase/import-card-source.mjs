@@ -5,7 +5,10 @@ import {resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {validateCardSourceCatalogMapping} from './card-source-catalog.mjs';
-import {assertDevelopmentCardSourceImport} from './card-source-import-policy.mjs';
+import {
+  assertDevelopmentCardSourceImport,
+  DEVELOPMENT_CARD_SOURCE_ENV_ID,
+} from './card-source-import-policy.mjs';
 import {
   CARD_SOURCE_COLLECTION,
   CARD_SOURCE_VERSION_COLLECTION,
@@ -17,20 +20,19 @@ import {
 const require = createRequire(import.meta.url);
 const {validateCardSourceForImport} = require('./functions/softbook-api');
 
-const DEFAULT_ENV_ID = 'test-d2gzcyxr9f7e80972';
 const APPLY_TIMEOUT_MILLISECONDS = 60_000;
 const QUERY_TIMEOUT_MILLISECONDS = 30_000;
 
 function printUsage() {
-  console.log(`Usage: node infra/cloudbase/import-card-source.mjs --file <card-source.json> [--track cet4|cet6] [--env <env-id>] [--apply]
+  console.log(`Usage: node infra/cloudbase/import-card-source.mjs --file <card-source.json> [--track cet4|cet6] [--apply]
 
-Dry-run is the default. Pass --apply only after the validated summary matches the intended import.`);
+Dry-run is the default. This development-only importer is pinned to ${DEVELOPMENT_CARD_SOURCE_ENV_ID}. Pass --apply only after the validated summary matches the intended import.`);
 }
 
 function parseArgs(argv) {
   const options = {
     apply: false,
-    envId: process.env.CLOUDBASE_ENV_ID || DEFAULT_ENV_ID,
+    envId: DEVELOPMENT_CARD_SOURCE_ENV_ID,
     file: null,
     track: null,
   };
@@ -41,10 +43,6 @@ function parseArgs(argv) {
     switch (arg) {
       case '--apply':
         options.apply = true;
-        break;
-      case '--env':
-        options.envId = requireNextValue(argv, index, arg);
-        index += 1;
         break;
       case '--file':
         options.file = requireNextValue(argv, index, arg);
@@ -193,7 +191,7 @@ function main() {
     const cardSource = validateCardSourceCatalogMapping(
       validateCardSourceForImport(payload, track),
     );
-    assertDevelopmentCardSourceImport(cardSource);
+    assertDevelopmentCardSourceImport(cardSource, {envId: options.envId});
     const interactions = interactionSummary(cardSource.card_records);
 
     console.log(

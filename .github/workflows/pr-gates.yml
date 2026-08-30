@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+    types: [opened, synchronize, reopened, edited]
   push:
     branches:
       - main
@@ -135,6 +136,20 @@ jobs:
       - name: Test model-owned acceptance contract
         run: node --test scripts/test_model_acceptance_contract.mjs
 
+      - name: Test exact-head model review gate
+        run: node --test scripts/test_validate_model_review.mjs
+
+      - name: Validate exact-head model review record
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          PR_BODY="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .body)"
+          export PR_BODY
+          node scripts/validate_model_review.mjs --head "$PR_HEAD_SHA"
+
       - name: Test CloudBase smoke record lifecycle
         run: node --test infra/cloudbase/test-smoke-record-lifecycle.mjs
 
@@ -143,6 +158,9 @@ jobs:
 
       - name: Test learning-events contract regressions
         run: python3 scripts/test_learning_events_contract.py
+
+      - name: Test learning-scheduler contract regressions
+        run: python3 scripts/test_learning_scheduler_contract.py
 
       - name: Test local quality-gate runner
         run: python3 scripts/test_run_local_gates.py

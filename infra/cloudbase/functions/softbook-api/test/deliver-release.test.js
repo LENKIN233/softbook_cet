@@ -137,6 +137,7 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
   const inspect = (
     deploymentId,
     signingKeyId = 'receiver-signing-key-v1',
+    omittedName = null,
   ) =>
     deliveryCli.inspectApiFunction({
       envId: 'receiver-cet4-beta',
@@ -151,17 +152,16 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
               Runtime: 'Nodejs20.19',
               Timeout: 10,
               Environment: {
-                Variables: [
-                  {Key: 'SOFTBOOK_BACKEND_DEPLOYMENT_ID', Value: deploymentId},
-                  {
-                    Key: 'SOFTBOOK_CONTENT_MANIFEST_KEY_ID',
-                    Value: signingKeyId,
-                  },
-                  {Key: 'SOFTBOOK_RUNTIME_MODE', Value: 'production'},
-                  {Key: 'SOFTBOOK_SMS_PROVIDER', Value: 'webhook'},
-                  {Key: 'SOFTBOOK_STORE_MODE', Value: 'cloudbase'},
-                  {Key: 'SOFTBOOK_AUTH_TOKEN_SECRET', Value: 'do-not-expose-this-secret'},
-                ],
+                Variables: Object.entries({
+                  ...deliveryCli.buildReceiverRuntimeEnvironment(
+                    profileFixture(),
+                    receiverEnvironment(),
+                    {backendDeploymentId: deploymentId},
+                  ),
+                  SOFTBOOK_CONTENT_MANIFEST_KEY_ID: signingKeyId,
+                })
+                  .filter(([name]) => name !== omittedName)
+                  .map(([Key, Value]) => ({Key, Value})),
               },
             },
           }),
@@ -174,7 +174,15 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
   assert.equal(exact.public.signing_key_id, 'receiver-signing-key-v1');
   assert.equal(exact.public.runtime_mode, 'production');
   assert.equal(exact.public.sms_provider, 'webhook');
-  assert.equal(JSON.stringify(exact.public).includes('do-not-expose-this-secret'), false);
+  const secretEnvironment = receiverEnvironment();
+  for (const name of [
+    'SOFTBOOK_AUTH_INDEX_SECRET',
+    'SOFTBOOK_AUTH_TOKEN_SECRET',
+    'SOFTBOOK_CONTENT_MANIFEST_PRIVATE_KEY_PEM',
+    'SOFTBOOK_SMS_WEBHOOK_SECRET',
+  ]) {
+    assert.equal(JSON.stringify(exact.public).includes(secretEnvironment[name]), false);
+  }
 
   const drifted = await inspect(`backend-deployment:sha256:${'d'.repeat(64)}`);
   assert.equal(drifted.ok, false);
@@ -183,6 +191,17 @@ test('receiver API inspection binds exact deployment ID without exposing secret 
   const signingDrift = await inspect(expectedDeploymentId, 'receiver-signing-key-v2');
   assert.equal(signingDrift.ok, false);
   assert.match(signingDrift.errors.join(';'), /signing key ID mismatch/);
+
+  const missingSecret = await inspect(
+    expectedDeploymentId,
+    'receiver-signing-key-v1',
+    'SOFTBOOK_AUTH_INDEX_SECRET',
+  );
+  assert.equal(missingSecret.ok, false);
+  assert.match(
+    missingSecret.errors.join(';'),
+    /SOFTBOOK_AUTH_INDEX_SECRET is missing/,
+  );
 });
 
 test('formal verify reports only an exact verified retained rollback target', () => {

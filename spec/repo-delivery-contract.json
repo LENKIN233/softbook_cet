@@ -195,6 +195,14 @@
         "command": "python3 scripts/test_learning_events_contract.py"
       },
       {
+        "id": "learning_scheduler_contract_regressions",
+        "command": "python3 scripts/test_learning_scheduler_contract.py"
+      },
+      {
+        "id": "exact_head_model_review_record",
+        "command": "node scripts/validate_model_review.mjs --head <head_sha>"
+      },
+      {
         "id": "launch_readiness_governance",
         "command": "node --test scripts/test_validate_launch_readiness.mjs && node scripts/validate_launch_readiness.mjs"
       },

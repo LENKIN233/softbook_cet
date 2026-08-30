@@ -236,8 +236,8 @@ class LearningSchedulerContractTests(unittest.TestCase):
             "",
         )
         promoted = self.runtime_text.replace(
-            "This backend and the mobile binding are repository-local and not deployed.",
-            "This backend and the mobile binding are deployed.",
+            "This backend plus native and PC Web bindings are repository-local and not deployed.",
+            "This backend plus native and PC Web bindings are deployed.",
         )
         non_atomic_membership = self.runtime_text.replace(
             "dismissal cannot overwrite a premium purchase.",
