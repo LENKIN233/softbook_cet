@@ -22,7 +22,7 @@ class SoftbookAudioPlayerModule(
   private var player: ExoPlayer? = null
   private var preparePromise: Promise? = null
   private var playbackToken: String? = null
-  private var hasStartedPlayback = false
+  private var hasRequestedPlayback = false
   private var listenerCount = 0
 
   init {
@@ -49,7 +49,7 @@ class SoftbookAudioPlayerModule(
 
       val newPlayer = ExoPlayer.Builder(reactContext).build()
       playbackToken = token
-      hasStartedPlayback = false
+      hasRequestedPlayback = false
       preparePromise = promise
       player = newPlayer
       newPlayer.setAudioAttributes(
@@ -109,7 +109,7 @@ class SoftbookAudioPlayerModule(
       }
 
       currentPlayer.play()
-      hasStartedPlayback = true
+      hasRequestedPlayback = true
       promise.resolve(null)
     }
   }
@@ -148,12 +148,16 @@ class SoftbookAudioPlayerModule(
   override fun onHostResume() = Unit
 
   override fun onHostPause() {
-    if (player?.isPlaying == true) {
+    if (
+      player != null &&
+        playbackToken != null &&
+        hasRequestedPlayback
+    ) {
       player?.pause()
       sendEvent("interruption")
     } else if (
       preparePromise != null ||
-        (playbackToken != null && !hasStartedPlayback)
+        (playbackToken != null && !hasRequestedPlayback)
     ) {
       cancelPendingOrReadyPlaybackForInterruption()
     }
@@ -175,7 +179,7 @@ class SoftbookAudioPlayerModule(
     player?.release()
     player = null
     playbackToken = null
-    hasStartedPlayback = false
+    hasRequestedPlayback = false
   }
 
   private fun sendEvent(type: String) {
@@ -202,7 +206,7 @@ class SoftbookAudioPlayerModule(
     val interruptedPlayer = player
     player = null
     playbackToken = null
-    hasStartedPlayback = false
+    hasRequestedPlayback = false
     interruptedPlayer?.release()
     sendEvent("interruption", interruptedToken, true)
     interruptedPreparePromise?.reject(

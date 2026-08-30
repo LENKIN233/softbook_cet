@@ -31,20 +31,31 @@ test('play and pause require the exact prepared playback token', () => {
   );
 
   expect(play).toContain('playbackToken != token');
-  expect(play).toContain('hasStartedPlayback = true');
+  expect(play).toContain('hasRequestedPlayback = true');
   expect(pause).toContain('playbackToken != token');
 });
 
-test('host pause preserves started playback but cancels pending or ready-before-play authority', () => {
+test('host pause pauses every play-requested token including buffering or focus-waiting playback', () => {
   const hostPause = sourceBetween(
     'override fun onHostPause()',
     'override fun onHostDestroy()',
   );
 
-  expect(hostPause).toContain('player?.isPlaying == true');
+  expect(hostPause).toContain('playbackToken != null');
+  expect(hostPause).toContain('hasRequestedPlayback');
   expect(hostPause).toContain('player?.pause()');
+  expect(hostPause).toContain('sendEvent("interruption")');
+  expect(hostPause).not.toContain('isPlaying');
+});
+
+test('host pause cancels pending or ready-before-play authority', () => {
+  const hostPause = sourceBetween(
+    'override fun onHostPause()',
+    'override fun onHostDestroy()',
+  );
+
   expect(hostPause).toContain('preparePromise != null');
-  expect(hostPause).toContain('playbackToken != null && !hasStartedPlayback');
+  expect(hostPause).toContain('playbackToken != null && !hasRequestedPlayback');
   expect(hostPause).toContain('cancelPendingOrReadyPlaybackForInterruption()');
 });
 
@@ -64,7 +75,7 @@ test('pending or ready cancellation emits the exact stop-required token before r
   expect(cancellation).toContain('preparePromise = null');
   expect(cancellation).toContain('player = null');
   expect(cancellation).toContain('playbackToken = null');
-  expect(cancellation).toContain('hasStartedPlayback = false');
+  expect(cancellation).toContain('hasRequestedPlayback = false');
   expect(cancellation).toContain('interruptedPlayer?.release()');
   expect(emitIndex).toBeGreaterThan(0);
   expect(rejectIndex).toBeGreaterThan(emitIndex);
