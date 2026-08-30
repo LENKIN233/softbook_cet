@@ -55,7 +55,9 @@ async function readBootstrap(config, input) {
   }
 
   const [membership, learning, space] = await Promise.all([
-    config.store.getMembership(input.phoneNumber, generatedAt),
+    config.store.getMembership(input.phoneNumber, generatedAt, {
+      accountKey: input.accountKey,
+    }),
     config.store.getLearningState(
       input.phoneNumber,
       input.dayKey,

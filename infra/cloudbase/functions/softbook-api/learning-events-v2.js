@@ -1,5 +1,8 @@
 const crypto = require('node:crypto');
 const {
+  isAccountDeletionPendingError,
+} = require('./account-write-fence');
+const {
   isContentReleaseValidForRuntime,
 } = require('./content-release-runtime');
 
@@ -102,7 +105,10 @@ async function submitLearningEvents(config, input) {
         validateNewEvents(config, events, readContentVersion, now),
     });
   } catch (error) {
-    if (isLearningEventsError(error)) {
+    if (
+      isLearningEventsError(error) ||
+      isAccountDeletionPendingError(error)
+    ) {
       throw error;
     }
 

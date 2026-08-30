@@ -97,7 +97,9 @@ async function readLearningSession(config, input) {
           track,
           {accountKey: input.accountKey, includeSchedulerState: true},
         ),
-        config.store.getMembership(input.phoneNumber, generatedAtIso),
+        config.store.getMembership(input.phoneNumber, generatedAtIso, {
+          accountKey: input.accountKey,
+        }),
         config.store.getSpaceState(input.phoneNumber, dayKey, {
           accountKey: input.accountKey,
           acknowledgedAt: generatedAtIso,
@@ -292,7 +294,9 @@ async function canonicalMembershipMatchesSelectionContext(
 
   try {
     latestMembership = normalizeCanonicalMembershipProjection(
-      await config.store.getMembership(phoneNumber, observedAt),
+      await config.store.getMembership(phoneNumber, observedAt, {
+        accountKey: context.accountKey,
+      }),
     );
   } catch (error) {
     if (Number.isInteger(error.statusCode)) {
@@ -335,7 +339,9 @@ async function continuePilotRound(config, input) {
       accountKey: input.accountKey,
       includeSchedulerState: true,
     }),
-    config.store.getMembership(input.phoneNumber, generatedAtIso),
+    config.store.getMembership(input.phoneNumber, generatedAtIso, {
+      accountKey: input.accountKey,
+    }),
     config.store.getSpaceState(input.phoneNumber, dayKey, {
       accountKey: input.accountKey,
       acknowledgedAt: generatedAtIso,

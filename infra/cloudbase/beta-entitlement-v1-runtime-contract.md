@@ -99,6 +99,10 @@ release class or deployment identity. That function reads base membership plus i
 plans the mutation, and writes the beta entitlement in one database
 transaction. The CLI never performs the beta write directly; afterward it
 re-reads and verifies the normalized beta audit against the function result.
+The receiver transaction also derives and reads the account-keyed deletion
+task before base-membership reconciliation or beta mutation. Any present task
+fails closed with `account_deletion_pending`, including when deletion begins
+after invocation authentication but before the transaction starts.
 Its privacy-safe `beta-entitlement-report.v3`
 binds the repository commit, profile bytes, environment, campaign, a
 report-domain keyed command HMAC, identified operator, execution window,

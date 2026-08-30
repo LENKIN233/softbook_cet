@@ -50,6 +50,8 @@ Controlled-pilot rounds are server gates, not client counters. `completed_count`
 The primary “继续下一轮” action calls authenticated `POST /v2/learning/round/continue` with an exact `pilot-round-continue.v1` command containing only schema version, CET4, content version, receipt ID and completed count. The server rederives the account, pilot, active release, canonical count and receipt, requires a positive multiple of five, then writes one exact `pilot-round-continue-ack.v1` record. Exact replay is idempotent; account, pilot, content, count or receipt drift fails closed. Only after this acknowledgement may a later Learning Session select the next card.
 
 The account-scoped continuation record is stored in `softbook_pilot_round_continuations`, validated exactly on every read, included in receiver provisioning/preflight/lifecycle cleanup and removed by account deletion. Duplicate learning events, offline replay, app restart and cross-device reads cannot increment, skip or acknowledge a boundary. Formal beta/production runtime does not expose the endpoint or apply this pilot gate.
+The continuation write transaction reads the account-keyed deletion task and
+rejects task presence before it can persist the acknowledgement.
 
 The exact `pilot-round-completion.v1` receipt returned as
 `learning-session.v1.round_completion` contains only:
@@ -243,6 +245,11 @@ identity without a phone-derived fingerprint. Stored pilot audits reconstruct
 every complete command with the document phone owner before recomputing its
 hash, so a cross-phone transplant fails closed. These repository guarantees
 remain undeployed until receiver execution is completed.
+
+The operator transaction derives and reads the account-keyed deletion task
+before entitlement planning or writes. Queued, processing, future finalizing,
+or malformed task presence fails closed with `account_deletion_pending`, so an
+invocation authenticated before deletion cannot recreate the pilot overlay.
 
 ## Account deletion (repository implementation; not yet deployed)
 

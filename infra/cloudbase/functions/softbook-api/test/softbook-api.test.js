@@ -1174,6 +1174,207 @@ test('CloudBase canonical check-in survives separate function instances', async 
   assert.equal(restored.body.data.progress.pending_review_count, 0);
 });
 
+test('a check-in authenticated before deletion cannot write after the task is queued', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({
+    authIndexSecret: 'test-secret',
+    db,
+  });
+  const pause = pauseStoreMethod(store, 'checkInDailyProgress');
+  const api = createTestApi({
+    authV2IndexSecret: 'test-secret',
+    store,
+  });
+  const session = await authenticatedV2Session(api);
+  const headers = {authorization: `Bearer ${session.access_token}`};
+  const pendingCheckIn = request(api, {
+    body: {day_key: '2026-04-30'},
+    headers,
+    method: 'POST',
+    path: '/v2/progress/check-in',
+  });
+
+  await pause.entered;
+  const accountKey = deriveTestAccountKey('test-secret', '13800138000');
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set({status: 'queued'});
+  pause.release();
+
+  const checkIn = await pendingCheckIn;
+  assert.equal(checkIn.statusCode, 403, JSON.stringify(checkIn.body));
+  assert.equal(checkIn.body.error.code, 'account_deletion_pending');
+  assert.equal(
+    db.snapshot().get('softbook_daily_check_ins')?.size ?? 0,
+    0,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_account_deletions')?.size ?? 0,
+    1,
+  );
+});
+
+test('every account product mutation reads the deletion fence in its commit transaction', async () => {
+  const db = createFakeCloudBaseDb();
+  const authIndexSecret = 'operator-index-secret-0123456789-ABCDEFG';
+  const phoneNumber = '13800138000';
+  const accountKey = deriveTestAccountKey(authIndexSecret, phoneNumber);
+  const pilotId = 'cet4-pilot-2026';
+  const store = createCloudBaseStore({
+    authIndexSecret,
+    db,
+    pilotExpiresAt: '2026-09-01T00:00:00.000Z',
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  });
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set({status: 'queued'});
+  const timestamp = fixedNow.toISOString();
+  const attempts = [
+    [
+      'membership projection and expiry mutation',
+      () => store.getMembership(phoneNumber, timestamp, {accountKey}),
+    ],
+    [
+      'legacy trial activation',
+      () => store.startTrial(phoneNumber, timestamp, {accountKey}),
+    ],
+    [
+      'development purchase',
+      () => store.purchase(phoneNumber, timestamp, {accountKey}),
+    ],
+    [
+      'recovery dismissal',
+      () => store.dismissRecovery(phoneNumber, timestamp, {accountKey}),
+    ],
+    [
+      'learning-session Trial activation',
+      () =>
+        store.activateTrialForLearningSession({
+          accountKey,
+          acknowledgedAt: timestamp,
+          expectedMembership: {},
+          phoneNumber,
+          selectionId: 'sel_deletion_fence',
+          track: 'cet4',
+        }),
+    ],
+    [
+      'learning-session cursor confirmation',
+      () =>
+        store.confirmLearningSessionCursor({
+          accountKey,
+          expectedLearningAcknowledgedAt: null,
+          expectedLearningServerSequence: 0,
+          expectedRevision: 0,
+          track: 'cet4',
+        }),
+    ],
+    [
+      'learning-session cursor write',
+      () =>
+        store.saveLearningSessionCursor({
+          accountKey,
+          cursor: null,
+          expectedRevision: 0,
+          learningAcknowledgedAt: null,
+          learningServerSequence: 0,
+          track: 'cet4',
+          updatedAt: timestamp,
+        }),
+    ],
+    [
+      'pilot round continuation',
+      () =>
+        store.savePilotRoundContinuation({
+          accountKey,
+          acknowledgedAt: timestamp,
+          completedCount: 5,
+          contentVersion: `sha256:${'a'.repeat(64)}`,
+          pilotId,
+          receiptId: 'prc_deletion_fence',
+          track: 'cet4',
+        }),
+    ],
+    [
+      'daily check-in',
+      () =>
+        store.checkInDailyProgress(
+          phoneNumber,
+          '2026-04-30',
+          timestamp,
+          {accountKey},
+        ),
+    ],
+    [
+      'learning event and state projection',
+      () =>
+        store.commitLearningEvents({
+          accountKey,
+          acknowledgedAt: timestamp,
+          events: [],
+          phoneNumber,
+          track: 'cet4',
+          validateNewEvents: async () => undefined,
+        }),
+    ],
+    [
+      'Space state migration or checkpoint',
+      () =>
+        store.getSpaceState(phoneNumber, '2026-04-30', {
+          accountKey,
+          acknowledgedAt: timestamp,
+        }),
+    ],
+    [
+      'Space action commit',
+      () =>
+        store.commitSpaceActions({
+          accountKey,
+          acknowledgedAt: timestamp,
+          actions: [],
+          phoneNumber,
+        }),
+    ],
+    [
+      'beta operator entitlement',
+      () =>
+        store.applyBetaEntitlementCommand(
+          {phone_number: phoneNumber},
+          {accountKey},
+        ),
+    ],
+    [
+      'pilot operator entitlement',
+      () =>
+        store.applyPilotEntitlementCommand(
+          {phone_number: phoneNumber},
+          {accountKey},
+        ),
+    ],
+  ];
+
+  for (const [label, attempt] of attempts) {
+    await assert.rejects(
+      attempt,
+      error => error.code === 'account_deletion_pending',
+      label,
+    );
+  }
+
+  const nonDeletionDocumentCount = [...db.snapshot().entries()]
+    .filter(([name]) => name !== 'softbook_account_deletions')
+    .reduce((count, [, documents]) => count + documents.size, 0);
+  assert.equal(nonDeletionDocumentCount, 0);
+  assert.equal(
+    db.snapshot().get('softbook_account_deletions').has(accountKey),
+    true,
+  );
+});
+
 test('CloudBase learning-session cursor survives separate function instances', async () => {
   const db = createFakeCloudBaseDb();
   const firstApi = createTestApi({store: createCloudBaseStore({db})});
@@ -2619,7 +2820,7 @@ test('CloudBase space action storage accepts only system ids beyond exact busine
   assert.equal(corruptState.body.error.code, 'space_state_invalid');
 });
 
-test('maximum CloudBase space action batch stays within 64 transaction operations', async () => {
+test('maximum CloudBase space action batch stays within 65 transaction operations', async () => {
   const db = createFakeCloudBaseDb();
   const api = createTestApi({store: createCloudBaseStore({db})});
   const session = await authenticatedV2Session(api);
@@ -2637,7 +2838,7 @@ test('maximum CloudBase space action batch stays within 64 transaction operation
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.body.data.results.length, 20);
-  assert.equal(db.transactionOperationCounts().at(-1), 64);
+  assert.equal(db.transactionOperationCounts().at(-1), 65);
 });
 
 test('space action ids and canonical state stay isolated between accounts', async () => {
@@ -3099,6 +3300,60 @@ test('beta entitlement operator invocation reads base revision and commits one t
   );
 });
 
+test('beta operator transaction rejects deletion queued after invocation validation', async () => {
+  const db = createFakeCloudBaseDb();
+  const authIndexSecret = 'operator-index-secret-0123456789-ABCDEFG';
+  const store = createCloudBaseStore({
+    authIndexSecret,
+    db,
+    runtimeMode: 'production',
+  });
+  const pause = pauseStoreMethod(store, 'applyBetaEntitlementCommand');
+  const command = createBetaOperatorCommand();
+  const invocation = {
+    schema_version: 'beta-entitlement-operator-invoke.v1',
+    backend_deployment_id: BETA_BACKEND_DEPLOYMENT_ID,
+    command,
+    signature: createBetaOperatorSignature(
+      command,
+      BETA_BACKEND_DEPLOYMENT_ID,
+    ),
+  };
+  const pending = handleBetaEntitlementOperatorInvoke(invocation, {
+    authIndexSecret,
+    backendDeploymentId: BETA_BACKEND_DEPLOYMENT_ID,
+    now: () => fixedNow,
+    operatorSecret: 'beta-operator-secret-0123456789-ABCDEFG',
+    releaseClass: 'closed_beta',
+    runtimeMode: 'production',
+    store,
+  });
+
+  await pause.entered;
+  const accountKey = deriveTestAccountKey(
+    authIndexSecret,
+    command.phone_number,
+  );
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set({status: 'processing'});
+  pause.release();
+
+  await assert.rejects(
+    pending,
+    error => error.code === 'account_deletion_pending',
+  );
+  assert.equal(
+    db.snapshot().get('softbook_beta_entitlements')?.size ?? 0,
+    0,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_membership_revisions')?.size ?? 0,
+    0,
+  );
+});
+
 test('beta entitlement operator invocation rejects unauthenticated input and rolls back transaction failure', async () => {
   const db = createFakeCloudBaseDb();
   const store = createCloudBaseStore({db, runtimeMode: 'production'});
@@ -3261,6 +3516,73 @@ test('pilot entitlement operator invocation rederives and commits grant atomical
   assert.equal(
     db.snapshot().get('softbook_memberships')?.has(command.phone_number) ?? false,
     false,
+  );
+});
+
+test('pilot operator transaction rejects finalizing deletion after invocation validation', async () => {
+  const db = createFakeCloudBaseDb();
+  const authIndexSecret = 'operator-index-secret-0123456789-ABCDEFG';
+  const pilotId = 'cet4-pilot-2026';
+  const pilotExpiresAt = '2026-09-01T00:00:00.000Z';
+  const store = createCloudBaseStore({
+    authIndexSecret,
+    db,
+    pilotExpiresAt,
+    pilotId,
+    runtimeMode: 'controlled_pilot',
+  });
+  const pause = pauseStoreMethod(store, 'applyPilotEntitlementCommand');
+  const command = {
+    schema_version: 'pilot-entitlement-command.v1',
+    event_id: 'pilot-event-deletion-race-0001',
+    pilot_id: pilotId,
+    phone_number: '13800138000',
+    action: 'grant',
+    actor: 'receiver-operator',
+    reason: 'controlled_pilot_continued_access',
+    occurred_at: fixedNow.toISOString(),
+    previous_stage: 'trial_available',
+    resulting_stage: 'pilot_premium',
+  };
+  const pending = handlePilotEntitlementOperatorInvoke(
+    {
+      schema_version: 'pilot-entitlement-operator-invoke.v1',
+      command,
+      signature: createPilotOperatorSignature(command),
+    },
+    {
+      authIndexSecret,
+      now: () => new Date('2026-04-30T12:00:01.000Z'),
+      operatorSecret: 'pilot-operator-secret-0123456789-ABCDEFG',
+      pilotExpiresAt,
+      pilotId,
+      runtimeMode: 'controlled_pilot',
+      store,
+    },
+  );
+
+  await pause.entered;
+  const accountKey = deriveTestAccountKey(
+    authIndexSecret,
+    command.phone_number,
+  );
+  await db
+    .collection('softbook_account_deletions')
+    .doc(accountKey)
+    .set({status: 'finalizing'});
+  pause.release();
+
+  await assert.rejects(
+    pending,
+    error => error.code === 'account_deletion_pending',
+  );
+  assert.equal(
+    db.snapshot().get('softbook_pilot_entitlements')?.size ?? 0,
+    0,
+  );
+  assert.equal(
+    db.snapshot().get('softbook_memberships')?.size ?? 0,
+    0,
   );
 });
 
@@ -3723,6 +4045,36 @@ function createFakeCloudBaseDb() {
     transactionCount: () => transactionCount,
     transactionOperationCounts: () => [...transactionOperationCounts],
   };
+}
+
+function pauseStoreMethod(store, methodName) {
+  const original = store[methodName].bind(store);
+  let markEntered;
+  let resume;
+  const entered = new Promise(resolve => {
+    markEntered = resolve;
+  });
+  const released = new Promise(resolve => {
+    resume = resolve;
+  });
+
+  store[methodName] = async (...args) => {
+    markEntered();
+    await released;
+    return original(...args);
+  };
+
+  return {
+    entered,
+    release: () => resume(),
+  };
+}
+
+function deriveTestAccountKey(indexSecret, phoneNumber) {
+  return crypto
+    .createHmac('sha256', indexSecret)
+    .update(`account:${phoneNumber}`)
+    .digest('hex');
 }
 
 function cloneCollectionMaps(collections) {

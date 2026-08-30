@@ -28,6 +28,7 @@
   "account_deletion": {
     "classification": "implementation_hypothesis",
     "request_rule": "POST /v2/account/deletion derives account and phone identity only from the signed active session, persists one exact account-deletion-task.v1 before account-wide session revocation, and blocks login, refresh, protected access, and ordinary sign-in challenge creation while that task exists; sign-in request-code derives the same account key and atomically refuses challenge persistence when the task is present",
+    "account_write_fence_rule": "every account product-state mutation reads the account-keyed deletion task inside the same final storage transaction before writing; any present queued, processing, future finalizing, or malformed task fails closed with account_deletion_pending, covering learning event/state projections, learning-session cursor confirmation and writes, round continuation, Trial activation, check-in, Space migration/state/actions, base membership mutation or expiry reconciliation, and beta/pilot operator entitlements, so a request authorized before deletion cannot recreate data after the worker has swept it",
     "task_rule": "the account-keyed task stores deletion_id, phone, derived phone-only rate-limit key, attempt count, last attempt, failure code, lease ID, lease expiry, requested time, and queued or processing status; unknown or malformed worker fields fail closed",
     "worker_rule": "the separately deployed softbook-account-deletion-worker claims at most 50 queued or expired-lease tasks with a random claim-bound five-minute lease, transactionally rechecks the current task lease inside every erasure mutation, erases all current account-keyed and phone-keyed user collections idempotently, performs its final phone challenge sweep immediately before completion, and removes the login-blocking task last",
     "queue_selection_rule": "query oldest queued tasks and lease_expires_at <= now processing tasks independently before merging by requested_at and applying the run limit, so older live processing leases cannot starve queued work",
@@ -211,6 +212,7 @@
       "action_collection": "softbook_space_actions",
       "state_revision_collection": "softbook_space_state_revisions",
       "action_lineage_collection": "softbook_space_action_lineages",
+      "cloudbase_worst_case_transaction_operations": 65,
       "state_identity": "hash_of_account_key",
       "action_identity": "hash_of_account_key_and_action_id",
       "state_integrity": "stored space-state.v2 business fields and each dimension clock/action pair are validated exactly on every canonical read and write; current writes keep the previous package's exact business schema and CloudBase system _id is the only removable adapter field, while a briefly unreleased inline revision is accepted only as a migration floor and stripped on rewrite",
@@ -424,7 +426,7 @@
       "selection_conflict_rule": "a missing, stale, cross-account, cross-track, or mismatched selection binding rejects the entire request with HTTP 409 before writes",
       "validation_atomicity": "any malformed, unauthorized, unknown-content, or conflicting event rejects the entire request before writes",
       "transaction_atomicity": "current selection validation, one new immutable event, account server sequence, derived learning and FSRS projections, all migrated-track learning-session projection watermarks, exact input-track selection clearing, and daily progress commit in one transaction; failure leaves no partial acceptance",
-      "cloudbase_atomic_batch_rule": "the repository-local CloudBase adapter accepts at most 9 input events but at most one may be unseen; the maximum successful fixture of 8 distinct exact duplicates plus one current-selection event uses 29 operations, and the first-event all-track migration fixture uses no more than 29, below the platform limit of 100 operations per transaction",
+      "cloudbase_atomic_batch_rule": "the repository-local CloudBase adapter accepts at most 9 input events but at most one may be unseen; the maximum successful fixture of 8 distinct exact duplicates plus one current-selection event uses 30 operations, including the same-transaction account-deletion fence, and the first-event all-track migration fixture uses no more than 30, below the platform limit of 100 operations per transaction",
       "cloudbase_transaction_query_rule": "CloudBase transactions use deterministic document reads and writes only; bounded legacy learning queries run before the transaction and a transactionally written account revision fence forces a retry when a v1 write changes that snapshot"
     },
     "server_authority": {

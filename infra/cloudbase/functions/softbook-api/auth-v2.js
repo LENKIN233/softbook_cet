@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const {deriveAccountKey} = require('./account-write-fence');
 const {
   normalizeAccountDeletionTask,
 } = require('./account-deletion-worker-v1');
@@ -55,7 +56,7 @@ function createAuthV2Service(options) {
 
   return {
     deriveAccountKey: phoneNumber =>
-      keyedHash(config.indexSecret, 'account', phoneNumber),
+      deriveAccountKey(config.indexSecret, phoneNumber),
     logout: request => logout(config, request),
     refresh: request => refresh(config, request),
     requestAccountDeletion: request => requestAccountDeletion(config, request),
@@ -168,7 +169,7 @@ async function requestCode(config, request, purpose) {
   };
 
   const challengeCreated = await config.store.createAuthChallenge({
-    accountKey: keyedHash(config.indexSecret, 'account', phoneNumber),
+    accountKey: deriveAccountKey(config.indexSecret, phoneNumber),
     allowAccountDeletionPending:
       purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE,
     challenge,
@@ -277,7 +278,7 @@ async function verifyCode(config, request, purpose) {
     verifiedAt.getTime() + config.refreshTokenTtlSeconds * 1000,
   );
   const session = {
-    account_key: keyedHash(config.indexSecret, 'account', phoneNumber),
+    account_key: deriveAccountKey(config.indexSecret, phoneNumber),
     access_expires_at: accessExpiresAt.toISOString(),
     created_at: verifiedAt.toISOString(),
     device_id: optionalBoundedString(body.device_id, 'device_id', 128),
@@ -312,7 +313,7 @@ async function verifyCode(config, request, purpose) {
 }
 
 async function readAccountDeletionRecoveryState(config, phoneNumber) {
-  const accountKey = keyedHash(config.indexSecret, 'account', phoneNumber);
+  const accountKey = deriveAccountKey(config.indexSecret, phoneNumber);
   const storedTask = await config.store.getAccountDeletionTask(accountKey);
 
   if (storedTask === null) {
@@ -496,7 +497,7 @@ function hasCanonicalAccountKey(config, session) {
 
   return safeEqual(
     session.account_key,
-    keyedHash(config.indexSecret, 'account', session.phone_number),
+    deriveAccountKey(config.indexSecret, session.phone_number),
   );
 }
 

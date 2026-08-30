@@ -1,5 +1,10 @@
 const crypto = require('node:crypto');
 const {
+  assertCloudBaseAccountWriteAllowed,
+  assertMemoryAccountWriteAllowed,
+  isAccountDeletionPendingError,
+} = require('./account-write-fence');
+const {
   normalizeCloudBaseDocuments,
 } = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
@@ -42,6 +47,10 @@ function createMemoryLearningEventsCommitter(options) {
 
   return input =>
     runTransaction(async () => {
+      assertMemoryAccountWriteAllowed(
+        options.accountDeletions,
+        input.accountKey,
+      );
       const staged = cloneMemoryState(state);
       const adapter = createMemoryAdapter(options, staged, input);
       const results = await commitLearningEventsTransaction(adapter, input);
@@ -77,6 +86,11 @@ function createCloudBaseLearningEventsCommitter(options) {
         );
 
         return await options.db.runTransaction(async transaction => {
+          await assertCloudBaseAccountWriteAllowed(
+            transaction,
+            options.collections.accountDeletions,
+            input.accountKey,
+          );
           const adapter = createCloudBaseAdapter(
             options,
             transaction,
@@ -93,7 +107,10 @@ function createCloudBaseLearningEventsCommitter(options) {
           continue;
         }
 
-        if (isLearningEventsError(error)) {
+        if (
+          isLearningEventsError(error) ||
+          isAccountDeletionPendingError(error)
+        ) {
           throw error;
         }
 

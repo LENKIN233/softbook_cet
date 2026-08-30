@@ -1282,7 +1282,7 @@
         "transactional_membership_mutations_cannot_downgrade_premium",
         "trial_and_premium_full_access_free_ceil_half_canonical_prefix",
         "production_content_release_fails_closed",
-        "cloudbase_worst_case_transaction_operations_is_29",
+        "cloudbase_worst_case_transaction_operations_is_30",
         "cloudbase_learning_sessions_collection_is_provisioned",
         "memory_and_cloudbase_concurrency_rollback_and_cross_instance_tests",
         "bootstrap_exposes_only_sanitized_cursor_identity",

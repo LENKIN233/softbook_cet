@@ -182,6 +182,14 @@ session guard independently check the same task. Every future protected `/v2`
 route must use that guard, so an interrupted account-wide revocation cannot
 restore either token rotation or API access.
 
+The active-session guard is not the final write authority. Every account
+product-state mutation also reads the account-keyed deletion task inside the
+same storage transaction that would commit the mutation. Any present task—
+including queued, processing, a future finalizing state, or malformed state—
+fails closed with `account_deletion_pending`. This prevents work that passed
+authentication immediately before deletion from recreating Learning,
+Progress, Space, membership, beta, or pilot data after a worker sweep.
+
 ### Recover an unknown deletion request
 
 PC Web may recover a durable credential-free `requesting` marker without

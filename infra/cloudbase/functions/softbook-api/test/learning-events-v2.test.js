@@ -656,7 +656,7 @@ test('maximum replay batch with one unseen selection retains CloudBase headroom'
     response.body.data.results.map(result => result.status),
     [...Array(8).fill('duplicate'), 'accepted'],
   );
-  assert.equal(db.lastTransactionOperations(), 29);
+  assert.equal(db.lastTransactionOperations(), 30);
 });
 
 test('learning-events v2 rejects a stored session whose account key no longer matches its phone', async () => {
