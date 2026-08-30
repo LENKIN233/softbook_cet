@@ -1,9 +1,12 @@
 import type {RemoteAuthSession} from '../../mobile/src/auth/authSession';
+import {LearningEventOutbox} from '../../mobile/src/sync/learningEventOutbox';
 import {MutationQueueManager} from '../../mobile/src/sync/mutationQueue';
+import {createWebAccountDeletionStateStore} from './webAccountDeletionState';
 import {
   createMemoryOnlyAuthSessionStore,
   createWebLearningEventStorage,
   createWebMutationQueueStorage,
+  runWebStorageExclusive,
 } from './webStorage';
 
 describe('Web persistence boundary', () => {
@@ -48,6 +51,24 @@ describe('Web persistence boundary', () => {
     expect(await eventStorage.getItem('event-key')).toBeNull();
   });
 
+  it('fails closed when native storage has no cross-tab lock authority', () => {
+    const lockManager = navigator.locks;
+    Object.defineProperty(navigator, 'locks', {
+      configurable: true,
+      value: undefined,
+    });
+    try {
+      expect(() =>
+        runWebStorageExclusive(localStorage, 'queue', async () => undefined),
+      ).toThrow('不支持安全的多页面待同步记录');
+    } finally {
+      Object.defineProperty(navigator, 'locks', {
+        configurable: true,
+        value: lockManager,
+      });
+    }
+  });
+
   it('strips replay credentials before a Space mutation reaches localStorage', async () => {
     localStorage.clear();
     const queue = new MutationQueueManager({
@@ -72,4 +93,185 @@ describe('Web persistence boundary', () => {
     );
     expect(Object.values(localStorage).join('')).toContain('13800138000');
   });
+
+  it('merges writes from two already-hydrated Web queue instances', async () => {
+    localStorage.clear();
+    const firstOutbox = createOutbox('webdevice_first');
+    const secondOutbox = createOutbox('webdevice_second');
+    const firstQueue = createMutationQueue();
+    const secondQueue = createMutationQueue();
+    await Promise.all([
+      firstOutbox.hydrate(),
+      secondOutbox.hydrate(),
+      firstQueue.hydrate(),
+      secondQueue.hydrate(),
+    ]);
+
+    await Promise.all([
+      firstOutbox.enqueueCompletion(
+        createCompletion('13800138000', '000001', 'sel_1234567890abcdef'),
+      ),
+      secondOutbox.enqueueCompletion(
+        createCompletion('13900139000', '000002', 'sel_fedcba0987654321'),
+      ),
+      firstQueue.enqueue(
+        'apply_space_action',
+        createSpaceMutation('13800138000', '000001', 'space_web_first1'),
+      ),
+      secondQueue.enqueue(
+        'apply_space_action',
+        createSpaceMutation('13900139000', '000002', 'space_web_second'),
+      ),
+    ]);
+
+    const persistedEvents = await createOutbox('webdevice_reader').getAll();
+    const persistedMutations = await createMutationQueue().getAll();
+    expect(persistedEvents.map(entry => entry.event.card_id).sort()).toEqual([
+      '000001',
+      '000002',
+    ]);
+    expect(
+      persistedEvents.map(entry => entry.event.device_cursor.sequence).sort(),
+    ).toEqual([1, 2]);
+    expect(persistedMutations.map(entry => entry.id).sort()).toEqual([
+      'space-action:13800138000:space_web_first1',
+      'space-action:13900139000:space_web_second',
+    ]);
+  });
+
+  it('does not let a stale Web instance resurrect logout-cleared queues', async () => {
+    localStorage.clear();
+    const staleOutbox = createOutbox('webdevice_stale');
+    const cleanupOutbox = createOutbox('webdevice_cleanup');
+    const staleQueue = createMutationQueue();
+    const cleanupQueue = createMutationQueue();
+    await Promise.all([
+      staleOutbox.hydrate(),
+      cleanupOutbox.hydrate(),
+      staleQueue.hydrate(),
+      cleanupQueue.hydrate(),
+    ]);
+
+    const event = await staleOutbox.enqueueCompletion(
+      createCompletion('13800138000', '000001', 'sel_1234567890abcdef'),
+    );
+    const mutation = await staleQueue.enqueue(
+      'apply_space_action',
+      createSpaceMutation('13800138000', '000001', 'space_web_stale1'),
+    );
+    await Promise.all([
+      cleanupOutbox.clearAccount('13800138000'),
+      cleanupQueue.clear(),
+    ]);
+
+    await staleOutbox.incrementRetry('13800138000', [event.event.event_id]);
+    await staleQueue.incrementRetry(mutation.id);
+
+    expect(await createOutbox('webdevice_reader').getAll()).toEqual([]);
+    expect(await createMutationQueue().getAll()).toEqual([]);
+  });
+
+  it('quarantines writes from another tab after deletion starts', async () => {
+    localStorage.clear();
+    const staleOutbox = createOutbox('webdevice_deletion_stale');
+    const staleQueue = createMutationQueue();
+    await Promise.all([staleOutbox.hydrate(), staleQueue.hydrate()]);
+    const deletionStore = createWebAccountDeletionStateStore(localStorage);
+
+    await deletionStore.mark('13800138000', 'requesting');
+
+    await expect(
+      staleOutbox.enqueueCompletion(
+        createCompletion('13800138000', '000001', 'sel_1234567890abcdef'),
+      ),
+    ).rejects.toThrow('不能写入新的学习记录');
+    await expect(
+      staleQueue.enqueue(
+        'apply_space_action',
+        createSpaceMutation('13800138000', '000001', 'space_web_blocked'),
+      ),
+    ).rejects.toThrow('不能写入新的账户操作');
+
+    await deletionStore.mark('13800138000', 'accepted');
+    await staleOutbox.clearAccount('13800138000');
+    await staleQueue.clear();
+    await deletionStore.clear();
+    expect(await createOutbox('webdevice_reader').getAll()).toEqual([]);
+    expect(await createMutationQueue().getAll()).toEqual([]);
+  });
+
+  it('can clear malformed durable data while deletion quarantine is active', async () => {
+    localStorage.clear();
+    localStorage.setItem('__softbook_learning_event_outbox_v2', '{broken');
+    localStorage.setItem('__softbook_mutation_queue', '{broken');
+    localStorage.setItem('__softbook_mutation_queue:quarantine', '{broken');
+    const deletionStore = createWebAccountDeletionStateStore(localStorage);
+    await deletionStore.mark('13800138000', 'accepted');
+    const outbox = createOutbox('webdevice_cleanup_corrupt');
+    const queue = createMutationQueue();
+
+    await expect(outbox.clearAccount('13800138000')).resolves.toBeUndefined();
+    await expect(queue.clear()).resolves.toBeUndefined();
+    await deletionStore.clear();
+
+    expect(await createOutbox('webdevice_reader').getAll()).toEqual([]);
+    expect(await createMutationQueue().getAll()).toEqual([]);
+  });
 });
+
+function createOutbox(deviceId: string) {
+  return new LearningEventOutbox({
+    createDeviceId: () => deviceId,
+    now: () => '2026-08-29T12:00:00.000Z',
+    storage: createWebLearningEventStorage(localStorage),
+  });
+}
+
+function createMutationQueue() {
+  return new MutationQueueManager({
+    now: () => '2026-08-29T12:00:00.000Z',
+    storage: createWebMutationQueueStorage(localStorage),
+  });
+}
+
+function createCompletion(
+  accountPhoneNumber: string,
+  cardId: string,
+  selectionId: string,
+) {
+  return {
+    accountPhoneNumber,
+    contentVersion: `sha256:${'12'.repeat(32)}`,
+    phase: 'learning' as const,
+    result: {
+      cardId,
+      completedAt: '2026-08-29T12:00:00.000Z',
+      interactionId: 'flip' as const,
+      isFavorited: false,
+      outcome: 'confident' as const,
+      usedHint: false,
+      usedPeek: false,
+    },
+    selectionId,
+    track: 'cet4' as const,
+  };
+}
+
+function createSpaceMutation(
+  phoneNumber: string,
+  cardId: string,
+  actionId: string,
+) {
+  return {
+    action: {
+      actionId,
+      cardId,
+      clientOccurredAt: '2026-08-29T12:00:00.000Z',
+      dimension: 'favorite' as const,
+      value: true,
+    },
+    contentVersion: `sha256:${'12'.repeat(32)}`,
+    context: {authToken: 'memory-only', phoneNumber},
+    track: 'cet4' as const,
+  };
+}

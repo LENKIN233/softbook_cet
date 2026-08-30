@@ -64,8 +64,9 @@ Future mobile implementation must bind the request to the active signed session,
 - Confirmation, submitting, and recoverable unknown stay attached to the account object in the center workbench. They are not browser-native alerts and do not move the action into an unrelated settings route.
 - Accepted deletion removes the authenticated route rail and renders the existing phone-verification identity-gate silhouette with truthful cleanup-in-progress copy.
 - Keyboard focus enters the confirmation heading, consequence copy, safe secondary action, then destructive action. It never relies on hover or color alone.
-- Implemented in `apps/web/src/App.tsx#MineSurface` and `AccountDeletionStatusSurface`; accepted removes the authenticated route rail, while unknown and cleanup-required remain explicit retry surfaces.
-- `apps/web/src/remoteRuntime.ts` plus `apps/web/src/webAccountDeletionState.ts` bind requesting/accepted marker phases, same-session quarantine, exact 202 acceptance, durable queue cleanup, and marker removal.
+- Implemented in `apps/web/src/App.tsx#MineSurface`, `AccountDeletionStatusSurface`, and the same identity-gate silhouette used by `AccountDeletionRecoverySurface`; accepted removes the authenticated route rail, while unknown and cleanup-required remain explicit retry surfaces.
+- A refreshed requesting marker never opens ordinary login. Its bounded recovery action sends SMS only to the marker-owned phone and uses the recovered memory session only to retry the same deletion intent; it neither replays account queues nor claims completion before exact acceptance.
+- `apps/web/src/remoteRuntime.ts`, `apps/web/src/webAccountDeletionState.ts`, and `apps/web/src/webStorage.ts` bind requesting/accepted marker phases, same-session quarantine, exact 202 acceptance, cross-tab transactional durable queue cleanup, and marker removal.
 
 ## Accessibility and containment
 

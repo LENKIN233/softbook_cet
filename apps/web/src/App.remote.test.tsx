@@ -53,6 +53,27 @@ describe('PC Web remote UI authority', () => {
     expect(screen.queryByRole('button', {name: '已标记喜欢'})).toBeNull();
   });
 
+  it('preserves an unsubmitted card draft across an auxiliary snapshot', async () => {
+    const initial = createSnapshot('premium');
+    const afterFavorite = createSnapshot('premium');
+    afterFavorite.favorites = ['000001'];
+    const controller = createController(initial, {
+      applySpaceState: vi.fn(async () => afterFavorite),
+    });
+    await authenticateRemote(controller);
+
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
+
+    expect(
+      await screen.findByRole('button', {name: '已标记喜欢'}),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: '翻面看答案'})).toBeNull();
+    expect(screen.getByRole('button', {name: '有把握'})).toBeEnabled();
+  });
+
   it('does not present logged-out UI when durable cleanup fails', async () => {
     const snapshot = createSnapshot('premium');
     const controller = createController(snapshot);
@@ -301,6 +322,50 @@ describe('PC Web remote UI authority', () => {
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
   });
 
+  it('recovers a refreshed unknown deletion only with the original phone', async () => {
+    const snapshot = createSnapshot('premium');
+    const controller = createController(snapshot, {
+      resumeAccountDeletion: vi.fn(async () => ({
+        phoneNumber: PHONE,
+        status: 'reauthentication_required' as const,
+      })),
+      verifyAccountDeletionRecoverySmsCode: vi.fn(async () => ({
+        status: 'accepted' as const,
+      })),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '重新验证手机号，继续确认删除',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/138 \*\*\*\* 8000/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('手机号')).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', {name: '向原手机号获取验证码'}),
+    );
+
+    const code = await screen.findByLabelText('短信验证码');
+    expect(
+      screen.getByRole('button', {name: '重新获取验证码'}),
+    ).toBeEnabled();
+    fireEvent.change(code, {target: {value: '123456'}});
+    fireEvent.click(
+      screen.getByRole('button', {name: '验证并继续确认删除'}),
+    );
+
+    expect(await screen.findByText('删除申请已提交')).toBeInTheDocument();
+    expect(
+      controller.requestAccountDeletionRecoverySmsCode,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      controller.verifyAccountDeletionRecoverySmsCode,
+    ).toHaveBeenCalledWith('123456');
+    expect(controller.verifySmsCode).not.toHaveBeenCalled();
+    expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
+  });
+
   it.each(['premium', 'trial'] as const)(
     'shows the full multi-card Space and enables writes for %s',
     async stage => {
@@ -361,7 +426,17 @@ function createController(
       retryAfterSeconds: 0,
     })),
     requestAccountDeletion: vi.fn(async () => ({status: 'none' as const})),
+    requestAccountDeletionRecoverySmsCode: vi.fn(async () => ({
+      challengeId: 'challenge-deletion-recovery',
+      expiresAt: '2026-08-29T12:05:00.000Z',
+      mode: 'remote' as const,
+      phoneNumber: PHONE,
+      retryAfterSeconds: 0,
+    })),
     resumeAccountDeletion: vi.fn(async () => ({status: 'none' as const})),
+    verifyAccountDeletionRecoverySmsCode: vi.fn(async () => ({
+      status: 'unknown' as const,
+    })),
     verifySmsCode: vi.fn(async () => snapshot),
     ...overrides,
   };

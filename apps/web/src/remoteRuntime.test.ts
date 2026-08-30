@@ -12,6 +12,7 @@ import {
 import {createMutationQueueRepository} from '../../mobile/src/sync/mutationQueueRepository';
 import {createProgressSyncRepository} from '../../mobile/src/sync/progressSyncRepository';
 import {createMemoryOnlyAuthSessionStore} from './webStorage';
+import {createWebAccountDeletionStateStore} from './webAccountDeletionState';
 import {
   createWebRemoteRuntime,
   createWebRemoteRuntimeController,
@@ -794,6 +795,9 @@ describe('authenticated Web remote orchestration', () => {
           operations.push('deletion-marker-clear');
           persistedDeletionState = null;
         },
+        async getRevision() {
+          return 0;
+        },
         async load() {
           return persistedDeletionState;
         },
@@ -840,6 +844,9 @@ describe('authenticated Web remote orchestration', () => {
       operations.indexOf('deletion-marker-requesting'),
     );
     expect(operations).not.toContain(`events-clear:${PHONE}`);
+    await expect(controller.loadAuthenticatedState()).rejects.toThrow(
+      '已暂停新的账户操作',
+    );
 
     await expect(controller.requestAccountDeletion()).resolves.toEqual({
       status: 'accepted',
@@ -849,6 +856,149 @@ describe('authenticated Web remote orchestration', () => {
     expect(operations).toContain(`events-clear:${PHONE}`);
     expect(operations).toContain('mutation-clear');
     expect(operations.at(-1)).toBe('deletion-marker-clear');
+  });
+
+  it('recovers a refreshed requesting marker only through same-phone SMS and retries deletion', async () => {
+    const operations: string[] = [];
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    let persistedDeletionState: {
+      phase: 'accepted' | 'requesting';
+      phoneNumber: string;
+    } | null = {phase: 'requesting', phoneNumber: PHONE};
+    const requestDeletion = vi.fn(async () => ({
+      id: 'delete_recovered1234',
+      requestedAt: '2026-08-29T12:00:00.000Z',
+      status: 'queued' as const,
+    }));
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          throw new Error('recovery must not hydrate account data');
+        },
+      },
+      accountDeletionRepository: {requestDeletion},
+      accountDeletionStateStore: {
+        async clear() {
+          operations.push('deletion-marker-clear');
+          persistedDeletionState = null;
+        },
+        async getRevision() {
+          return 0;
+        },
+        async load() {
+          return persistedDeletionState;
+        },
+        async mark(phoneNumber, phase) {
+          operations.push(`deletion-marker-${phase}`);
+          persistedDeletionState = {phase, phoneNumber};
+        },
+      },
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: {
+        ...createEmptyEventSyncRepository(),
+        async clearAccount(phoneNumber) {
+          operations.push(`events-clear:${phoneNumber}`);
+        },
+      },
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          throw new Error('recovery must not load a learning session');
+        },
+      },
+      mutationQueueRepository: createMutationRepository(operations),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await expect(controller.resumeAccountDeletion()).resolves.toEqual({
+      phoneNumber: PHONE,
+      status: 'reauthentication_required',
+    });
+    await expect(controller.requestSmsCode(PHONE)).rejects.toThrow(
+      '删除恢复入口',
+    );
+    const challenge =
+      await controller.requestAccountDeletionRecoverySmsCode();
+    expect(challenge.phoneNumber).toBe(PHONE);
+    await expect(
+      controller.verifyAccountDeletionRecoverySmsCode('123456'),
+    ).resolves.toEqual({status: 'accepted'});
+
+    expect(requestDeletion).toHaveBeenCalledTimes(1);
+    expect(requestDeletion).toHaveBeenCalledWith({
+      accessToken: 'access-simple',
+      tokenType: 'Bearer',
+    });
+    expect(operations).toEqual([
+      'deletion-marker-accepted',
+      `events-clear:${PHONE}`,
+      'mutation-clear',
+      'deletion-marker-clear',
+    ]);
+    expect(controller.isAuthenticated()).toBe(false);
+    expect(persistedDeletionState).toBeNull();
+  });
+
+  it('quarantines an old tab after another tab completes deletion cleanup', async () => {
+    localStorage.clear();
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository,
+      authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const controllerDeletionStore =
+      createWebAccountDeletionStateStore(localStorage);
+    const otherTabDeletionStore =
+      createWebAccountDeletionStateStore(localStorage);
+    let bootstrapLoads = 0;
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {
+        async load() {
+          bootstrapLoads += 1;
+          return createBootstrapFixture(createInitialMembershipState());
+        },
+      },
+      accountDeletionRepository: {
+        async requestDeletion() {
+          throw new Error('stale tab must not reach deletion transport');
+        },
+      },
+      accountDeletionStateStore: controllerDeletionStore,
+      authRepository,
+      authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {
+        continueRound: async () => undefined,
+        async loadSession() {
+          return createLearningSessionFixture(null);
+        },
+      },
+      mutationQueueRepository: createMutationRepository([]),
+      playAudio: async () => 'ready',
+      track: 'cet4',
+    });
+
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    expect(bootstrapLoads).toBe(1);
+    await otherTabDeletionStore.mark(PHONE, 'requesting');
+    await otherTabDeletionStore.mark(PHONE, 'accepted');
+    await otherTabDeletionStore.clear();
+
+    await expect(controller.loadAuthenticatedState()).rejects.toThrow(
+      '账户隔离状态已变化',
+    );
+    expect(bootstrapLoads).toBe(1);
+    await expect(controller.requestAccountDeletion()).rejects.toThrow(
+      'changed in another tab',
+    );
+    await expect(controllerDeletionStore.load()).resolves.toBeNull();
   });
 
   it('persists explicit check-in before reporting server confirmation', async () => {

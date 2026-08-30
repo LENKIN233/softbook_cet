@@ -117,6 +117,114 @@ describe('Web private audio boundary', () => {
     ).rejects.toThrow('音频文件大小与已签名清单不一致。');
     expect(createObjectUrl).not.toHaveBeenCalled();
   });
+
+  it('stops reading as soon as actual bytes exceed the signed size', async () => {
+    const createObjectUrl = vi.fn();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('ab'));
+        controller.enqueue(new TextEncoder().encode('cd'));
+        controller.close();
+      },
+    });
+
+    await expect(
+      prepareVerifiedCardAudio({
+        card,
+        contentManifest: manifest,
+        dependencies: {
+          createObjectUrl,
+          fetchImpl: async () =>
+            new Response(stream, {
+              headers: {'content-length': '3'},
+              status: 200,
+            }),
+          now: () => new Date('2026-08-29T00:00:00.000Z'),
+        },
+      }),
+    ).rejects.toThrow('音频文件大小与已签名清单不一致。');
+    expect(createObjectUrl).not.toHaveBeenCalled();
+  });
+
+  it('bounds response streaming with the same audio deadline', async () => {
+    vi.useFakeTimers();
+    try {
+      const assertion = expect(
+        prepareVerifiedCardAudio({
+          card,
+          contentManifest: manifest,
+          dependencies: {
+            fetchImpl: async () =>
+              new Response(
+                new ReadableStream<Uint8Array>({
+                  start() {
+                    // The server sent headers but never produced body bytes.
+                  },
+                }),
+                {status: 200},
+              ),
+            now: () => new Date('2026-08-29T00:00:00.000Z'),
+            timeoutMs: 25,
+          },
+        }),
+      ).rejects.toThrow('Remote request timed out.');
+
+      await vi.advanceTimersByTimeAsync(26);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each(['ended', 'error'] as const)(
+    'releases %s playback state so the card can be prepared again',
+    async eventName => {
+      const listeners: Partial<Record<'ended' | 'error', () => void>> = {};
+      const onPlaybackTerminated = vi.fn();
+      const revokeObjectUrl = vi.fn();
+      const dependencies = {
+        createAudio() {
+          return {
+            addEventListener(
+              type: 'ended' | 'error',
+              listener: () => void,
+            ) {
+              listeners[type] = listener;
+            },
+            pause: vi.fn(),
+            play: vi.fn(async () => undefined),
+          };
+        },
+        createObjectUrl: vi.fn(() => 'blob:verified-audio'),
+        digest: async () => hexBytes(SHA256_ABC).buffer,
+        fetchImpl: async () =>
+          new Response(new TextEncoder().encode('abc'), {status: 200}),
+        now: () => new Date('2026-08-29T00:00:00.000Z'),
+        onPlaybackTerminated,
+        revokeObjectUrl,
+      };
+      const playback = await prepareVerifiedCardAudio({
+        card,
+        contentManifest: manifest,
+        dependencies,
+      });
+
+      listeners[eventName]?.();
+
+      expect(onPlaybackTerminated).toHaveBeenCalledWith(eventName);
+      expect(revokeObjectUrl).toHaveBeenCalledWith('blob:verified-audio');
+      expect(() => playback.play()).toThrow(
+        '音频已结束，请重新准备后播放。',
+      );
+      await expect(
+        prepareVerifiedCardAudio({
+          card,
+          contentManifest: manifest,
+          dependencies,
+        }),
+      ).resolves.toBeDefined();
+    },
+  );
 });
 
 function hexBytes(value: string) {

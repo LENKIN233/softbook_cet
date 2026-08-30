@@ -102,9 +102,14 @@ export type WebRemoteSnapshot = {
   };
 };
 
-export type WebAccountDeletionOutcome = {
-  status: 'accepted' | 'cleanup_required' | 'none' | 'unknown';
-};
+export type WebAccountDeletionOutcome =
+  | {
+      status: 'accepted' | 'cleanup_required' | 'none' | 'unknown';
+    }
+  | {
+      phoneNumber: string;
+      status: 'reauthentication_required';
+    };
 
 export type WebLearningCompletionSync = WebRemoteSnapshot['learningSync'];
 
@@ -153,7 +158,11 @@ export type WebRemoteRuntimeController = {
   ) => Promise<'paused' | 'playing' | 'ready'>;
   requestSmsCode: (phoneNumber: string) => Promise<AuthChallenge>;
   requestAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
+  requestAccountDeletionRecoverySmsCode: () => Promise<AuthChallenge>;
   resumeAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
+  verifyAccountDeletionRecoverySmsCode: (
+    smsCode: string,
+  ) => Promise<WebAccountDeletionOutcome>;
   verifySmsCode: (
     phoneNumber: string,
     smsCode: string,
@@ -299,7 +308,14 @@ export function createWebRemoteRuntime(
       const playback = await prepareVerifiedCardAudio({
         card,
         contentManifest: session.contentManifest,
-        dependencies: {fetchImpl},
+        dependencies: {
+          fetchImpl,
+          onPlaybackTerminated() {
+            if (activeAudio?.cardToken === cardToken) {
+              activeAudio = null;
+            }
+          },
+        },
       });
       activeAudio = {...playback, cardToken, status: 'ready'};
       return 'ready';
@@ -325,6 +341,7 @@ export function createWebRemoteRuntimeController(
   let currentLearningSession: LearningSession | null = null;
   let persistedLearningResult: LearningCardResult | null = null;
   let persistedSelectionId: string | null = null;
+  let sessionDeletionRevision: number | null = null;
   let acceptedDeletionPhoneNumber: string | null = null;
   let bootstrapGeneration = 0;
   const now = dependencies.now ?? (() => new Date());
@@ -335,6 +352,44 @@ export function createWebRemoteRuntimeController(
     const session = dependencies.authSessionCoordinator.getCurrentSession();
     if (session === null || session.mode !== 'remote') {
       throw new Error('需要先完成手机号验证。');
+    }
+    const deletionStateStore = dependencies.accountDeletionStateStore;
+    const revisionBefore =
+      deletionStateStore === undefined
+        ? null
+        : await deletionStateStore.getRevision();
+    if (sessionDeletionRevision === null) {
+      sessionDeletionRevision = revisionBefore;
+    }
+    if (revisionBefore !== sessionDeletionRevision) {
+      const sessionScopeKey = getAuthSessionScopeKey(session);
+      if (sessionScopeKey !== null) {
+        dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+      }
+      throw new Error('账户隔离状态已变化，请完成当前恢复操作。');
+    }
+    const deletionState = await deletionStateStore?.load();
+    const revisionAfter =
+      deletionStateStore === undefined
+        ? null
+        : await deletionStateStore.getRevision();
+    if (revisionAfter !== sessionDeletionRevision) {
+      const sessionScopeKey = getAuthSessionScopeKey(session);
+      if (sessionScopeKey !== null) {
+        dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+      }
+      throw new Error('账户隔离状态已变化，请完成当前恢复操作。');
+    }
+    if (deletionState !== undefined && deletionState !== null) {
+      if (deletionState.phoneNumber !== session.phoneNumber) {
+        throw new Error('删除状态属于另一个 Web 账户。');
+      }
+      const sessionScopeKey = getAuthSessionScopeKey(session);
+      if (sessionScopeKey === null) {
+        throw new Error('Web account deletion session scope is invalid.');
+      }
+      dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+      throw new Error('删除结果确认期间已暂停新的账户操作。');
     }
     activeAccountPhoneNumber = session.phoneNumber;
     return {
@@ -361,6 +416,7 @@ export function createWebRemoteRuntimeController(
     currentLearningSession = null;
     persistedLearningResult = null;
     persistedSelectionId = null;
+    sessionDeletionRevision = null;
   };
 
   const finishAcceptedAccountDeletion = async (
@@ -382,6 +438,80 @@ export function createWebRemoteRuntimeController(
     } catch {
       return {status: 'cleanup_required'};
     }
+  };
+
+  const submitAccountDeletionRequest = async (): Promise<
+    WebAccountDeletionOutcome
+  > => {
+    const repository = dependencies.accountDeletionRepository;
+    const stateStore = dependencies.accountDeletionStateStore;
+    if (repository === undefined || stateStore === undefined) {
+      throw new Error('Web account deletion runtime is unavailable.');
+    }
+    const revisionBefore = await stateStore.getRevision();
+    const persisted = await stateStore.load();
+    const revisionAfter = await stateStore.getRevision();
+    if (persisted?.phase === 'accepted') {
+      return finishAcceptedAccountDeletion(persisted.phoneNumber);
+    }
+    if (acceptedDeletionPhoneNumber !== null) {
+      try {
+        await stateStore.mark(acceptedDeletionPhoneNumber, 'accepted');
+      } catch {
+        return {status: 'cleanup_required'};
+      }
+      return finishAcceptedAccountDeletion(acceptedDeletionPhoneNumber);
+    }
+
+    const session = dependencies.authSessionCoordinator.getCurrentSession();
+    if (session === null || session.mode !== 'remote') {
+      return {status: persisted === null ? 'none' : 'unknown'};
+    }
+    if (sessionDeletionRevision === null) {
+      sessionDeletionRevision = revisionAfter;
+    }
+    if (
+      persisted === null &&
+      (revisionBefore !== revisionAfter ||
+        revisionAfter !== sessionDeletionRevision)
+    ) {
+      throw new Error('Web account deletion marker changed in another tab.');
+    }
+    if (
+      persisted !== null &&
+      persisted.phoneNumber !== session.phoneNumber
+    ) {
+      throw new Error('删除状态属于另一个 Web 账户。');
+    }
+    activeAccountPhoneNumber = session.phoneNumber;
+    const sessionScopeKey = getAuthSessionScopeKey(session);
+    if (sessionScopeKey === null) {
+      throw new Error('Web account deletion session scope is invalid.');
+    }
+    dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
+    if (persisted === null) {
+      try {
+        await stateStore.mark(session.phoneNumber, 'requesting');
+      } catch (error) {
+        dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, false);
+        throw error;
+      }
+    }
+    try {
+      await repository.requestDeletion({
+        accessToken: session.accessToken,
+        tokenType: 'Bearer',
+      });
+    } catch {
+      return {status: 'unknown'};
+    }
+    acceptedDeletionPhoneNumber = session.phoneNumber;
+    try {
+      await stateStore.mark(session.phoneNumber, 'accepted');
+    } catch {
+      return {status: 'cleanup_required'};
+    }
+    return finishAcceptedAccountDeletion(session.phoneNumber);
   };
 
   const loadBootstrap = async (forceFresh: boolean) => {
@@ -742,6 +872,7 @@ export function createWebRemoteRuntimeController(
     },
 
     async playCardAudio(card) {
+      await requireAuthenticatedContext();
       if (currentLearningSession === null) {
         throw new Error('当前没有经过验证的学习内容。');
       }
@@ -749,6 +880,13 @@ export function createWebRemoteRuntimeController(
     },
 
     async requestSmsCode(phoneNumber) {
+      const deletionState =
+        await dependencies.accountDeletionStateStore?.load();
+      if (deletionState !== undefined && deletionState !== null) {
+        throw new Error(
+          '请先通过删除恢复入口确认原账户状态。',
+        );
+      }
       if (
         activeAccountPhoneNumber !== null &&
         dependencies.authSessionCoordinator.getCurrentSession() === null
@@ -762,72 +900,32 @@ export function createWebRemoteRuntimeController(
     },
 
     async requestAccountDeletion() {
-      const repository = dependencies.accountDeletionRepository;
+      return submitAccountDeletionRequest();
+    },
+
+    async requestAccountDeletionRecoverySmsCode() {
       const stateStore = dependencies.accountDeletionStateStore;
-      if (repository === undefined || stateStore === undefined) {
-        throw new Error('Web account deletion runtime is unavailable.');
+      if (stateStore === undefined) {
+        throw new Error('Web account deletion state store is unavailable.');
       }
       const persisted = await stateStore.load();
-      if (persisted?.phase === 'accepted') {
-        return finishAcceptedAccountDeletion(persisted.phoneNumber);
+      if (persisted?.phase !== 'requesting') {
+        throw new Error('当前没有需要重新验证的删除申请。');
       }
-      if (acceptedDeletionPhoneNumber !== null) {
-        try {
-          await stateStore.mark(
-            acceptedDeletionPhoneNumber,
-            'accepted',
-          );
-        } catch {
-          return {status: 'cleanup_required'};
-        }
-        return finishAcceptedAccountDeletion(acceptedDeletionPhoneNumber);
+      if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
+        throw new Error('当前删除申请仍可在本页面继续确认。');
       }
-
-      const session = dependencies.authSessionCoordinator.getCurrentSession();
-      if (session === null || session.mode !== 'remote') {
-        return {status: persisted === null ? 'none' : 'unknown'};
-      }
+      challenge = await dependencies.authRepository.requestSmsCode(
+        persisted.phoneNumber,
+      );
       if (
-        persisted !== null &&
-        persisted.phoneNumber !== session.phoneNumber
+        challenge.mode !== 'remote' ||
+        challenge.phoneNumber !== persisted.phoneNumber
       ) {
-        throw new Error('删除状态属于另一个 Web 账户。');
+        challenge = null;
+        throw new Error('删除恢复验证码未绑定到原手机号。');
       }
-      activeAccountPhoneNumber = session.phoneNumber;
-      const sessionScopeKey = getAuthSessionScopeKey(session);
-      if (sessionScopeKey === null) {
-        throw new Error('Web account deletion session scope is invalid.');
-      }
-      dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, true);
-      if (persisted === null) {
-        try {
-          await stateStore.mark(
-            session.phoneNumber,
-            'requesting',
-          );
-        } catch (error) {
-          dependencies.setAccountDeletionQuarantine?.(sessionScopeKey, false);
-          throw error;
-        }
-      }
-      try {
-        await repository.requestDeletion({
-          accessToken: session.accessToken,
-          tokenType: 'Bearer',
-        });
-      } catch {
-        return {status: 'unknown'};
-      }
-      acceptedDeletionPhoneNumber = session.phoneNumber;
-      try {
-        await stateStore.mark(
-          session.phoneNumber,
-          'accepted',
-        );
-      } catch {
-        return {status: 'cleanup_required'};
-      }
-      return finishAcceptedAccountDeletion(session.phoneNumber);
+      return challenge;
     },
 
     async resumeAccountDeletion() {
@@ -840,12 +938,61 @@ export function createWebRemoteRuntimeController(
         return {status: 'none'};
       }
       activeAccountPhoneNumber = persisted.phoneNumber;
-      return persisted.phase === 'accepted'
-        ? finishAcceptedAccountDeletion(persisted.phoneNumber)
-        : {status: 'unknown'};
+      if (persisted.phase === 'accepted') {
+        return finishAcceptedAccountDeletion(persisted.phoneNumber);
+      }
+      const session = dependencies.authSessionCoordinator.getCurrentSession();
+      return session?.mode === 'remote' &&
+        session.phoneNumber === persisted.phoneNumber
+        ? {status: 'unknown'}
+        : {
+            phoneNumber: persisted.phoneNumber,
+            status: 'reauthentication_required',
+          };
+    },
+
+    async verifyAccountDeletionRecoverySmsCode(smsCode) {
+      const stateStore = dependencies.accountDeletionStateStore;
+      if (stateStore === undefined) {
+        throw new Error('Web account deletion state store is unavailable.');
+      }
+      const persisted = await stateStore.load();
+      if (persisted?.phase !== 'requesting') {
+        throw new Error('当前没有需要重新验证的删除申请。');
+      }
+      if (
+        challenge === null ||
+        challenge.mode !== 'remote' ||
+        challenge.phoneNumber !== persisted.phoneNumber
+      ) {
+        throw new Error('请先向原手机号获取验证码。');
+      }
+      const session = await dependencies.authRepository.verifySmsCode({
+        challenge,
+        phoneNumber: persisted.phoneNumber,
+        smsCode,
+      });
+      if (
+        session.mode !== 'remote' ||
+        session.phoneNumber !== persisted.phoneNumber
+      ) {
+        throw new Error('删除恢复只接受原手机号的远端会话。');
+      }
+      await dependencies.authSessionCoordinator.establish(session);
+      activeAccountPhoneNumber = session.phoneNumber;
+      sessionDeletionRevision = await stateStore.getRevision();
+      challenge = null;
+      return submitAccountDeletionRequest();
     },
 
     async verifySmsCode(phoneNumber, smsCode) {
+      const deletionState =
+        await dependencies.accountDeletionStateStore?.load();
+      if (deletionState !== undefined && deletionState !== null) {
+        throw new Error(
+          '请先通过删除恢复入口确认原账户状态。',
+        );
+      }
       if (challenge === null) {
         throw new Error('请先获取短信验证码。');
       }
@@ -859,6 +1006,10 @@ export function createWebRemoteRuntimeController(
       }
       await dependencies.authSessionCoordinator.establish(session);
       activeAccountPhoneNumber = session.phoneNumber;
+      sessionDeletionRevision =
+        dependencies.accountDeletionStateStore === undefined
+          ? null
+          : await dependencies.accountDeletionStateStore.getRevision();
       challenge = null;
       try {
         return await loadAuthenticatedState();

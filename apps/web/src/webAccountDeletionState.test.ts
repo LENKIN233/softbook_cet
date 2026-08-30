@@ -13,6 +13,7 @@ describe('Web account deletion durable state', () => {
       phase: 'requesting',
       phoneNumber: '13800138000',
     });
+    await expect(store.clear()).rejects.toThrow('requires accepted state');
     await store.mark('13800138000', 'accepted');
     await expect(store.load()).resolves.toEqual({
       phase: 'accepted',
@@ -38,5 +39,20 @@ describe('Web account deletion durable state', () => {
     await expect(broken.mark('13800138000', 'requesting')).rejects.toThrow(
       'verification failed',
     );
+  });
+
+  it('prevents a stale tab from recreating a marker after accepted cleanup', async () => {
+    localStorage.clear();
+    const staleStore = createWebAccountDeletionStateStore(localStorage);
+    const completingStore = createWebAccountDeletionStateStore(localStorage);
+
+    await completingStore.mark('13800138000', 'requesting');
+    await completingStore.mark('13800138000', 'accepted');
+    await completingStore.clear();
+
+    await expect(
+      staleStore.mark('13800138000', 'requesting'),
+    ).rejects.toThrow('changed in another tab');
+    await expect(completingStore.load()).resolves.toBeNull();
   });
 });
