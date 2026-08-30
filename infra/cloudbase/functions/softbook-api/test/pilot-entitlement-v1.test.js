@@ -197,6 +197,7 @@ function command(action, baseStage) {
     schema_version: 'pilot-entitlement-command.v1',
     event_id:
       action === 'grant' ? 'pilot-event-grant-0001' : 'pilot-event-revoke-0001',
+    expected_account_instance_id: `account_${'a'.repeat(24)}`,
     pilot_id: 'cet4-pilot-2026',
     phone_number: '13800138000',
     action,

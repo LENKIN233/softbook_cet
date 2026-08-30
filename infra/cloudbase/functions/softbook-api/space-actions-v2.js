@@ -107,6 +107,7 @@ function createSpaceActionsV2Service(options) {
         accountKey: session.accountKey,
         actions: command.actions,
         phoneNumber: session.phoneNumber,
+        sessionAuthority: session,
       });
 
       return serializeSpaceActionsAck({

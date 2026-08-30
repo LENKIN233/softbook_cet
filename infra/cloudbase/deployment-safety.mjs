@@ -28,6 +28,7 @@ export const EXPECTED_FUNCTION_CONFIG = Object.freeze({
 
 export const REQUIRED_COLLECTIONS = Object.freeze([
   "softbook_account_deletions",
+  "softbook_accounts",
   "softbook_auth_challenges",
   "softbook_auth_rate_limits",
   "softbook_auth_sessions",
@@ -71,6 +72,11 @@ const IDENTITY_PROBES = Object.freeze([
     collection: "softbook_account_deletions",
     filter: {account_key: {$exists: true}},
     id: "account_deletions",
+  },
+  {
+    collection: "softbook_accounts",
+    filter: {account_key: {$exists: true}},
+    id: "accounts",
   },
   {
     collection: "softbook_auth_challenges",
@@ -871,6 +877,10 @@ export function redactText(value) {
       "$1<redacted>$2"
     )
     .replace(/\b1\d{10}\b/g, "<redacted-phone>")
+    .replace(
+      /\baccount_[A-Za-z0-9_-]{24,128}\b/g,
+      "<redacted-account-instance>"
+    )
     .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]{12,}\b/gi, "$1<redacted-token>")
     .replace(
       /((?:[A-Za-z0-9_-]*(?:secret|token|authorization|api[_-]?key)[A-Za-z0-9_-]*)["']?\s*[=:]\s*["']?)[^"'\s,;}]+/gi,

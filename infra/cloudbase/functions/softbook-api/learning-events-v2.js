@@ -100,6 +100,7 @@ async function submitLearningEvents(config, input) {
       acknowledgedAt,
       events: parsed.events,
       phoneNumber: session.phoneNumber,
+      sessionAuthority: session,
       track: parsed.track,
       validateNewEvents: (events, readContentVersion) =>
         validateNewEvents(config, events, readContentVersion, now),

@@ -251,6 +251,7 @@ export function validatePilotEntitlementCommand(value) {
     [
       'schema_version',
       'event_id',
+      'expected_account_instance_id',
       'pilot_id',
       'phone_number',
       'action',
@@ -266,6 +267,11 @@ export function validatePilotEntitlementCommand(value) {
     command.schema_version,
     SCHEMA.entitlementCommand,
     'schema_version',
+  );
+  const expectedAccountInstanceId = requirePattern(
+    command.expected_account_instance_id,
+    /^account_[A-Za-z0-9_-]{24,128}$/,
+    'expected_account_instance_id',
   );
   const action = requireString(command.action, 'action');
   if (action !== 'grant' && action !== 'revoke') {
@@ -289,6 +295,7 @@ export function validatePilotEntitlementCommand(value) {
   return {
     schema_version: SCHEMA.entitlementCommand,
     event_id: requirePublicIdentifier(command.event_id, 'event_id'),
+    expected_account_instance_id: expectedAccountInstanceId,
     pilot_id: requirePublicIdentifier(command.pilot_id, 'pilot_id'),
     phone_number: requirePattern(command.phone_number, PHONE_PATTERN, 'phone_number'),
     action,

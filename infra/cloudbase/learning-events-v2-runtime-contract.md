@@ -86,9 +86,9 @@ is transactionally written to one deterministic account document.
 
 The CloudBase adapter accepts at most 9 input events per request, but at most
 one may be unseen. The maximum successful fixture of 8 distinct exact
-duplicates plus one current-selection event uses 30 operations after the
-same-transaction account-deletion fence read. The first-event all-track
-migration fixture also stays at or below 30, leaving substantial
+duplicates plus one current-selection event uses 32 operations after the
+same-transaction exact session, account-instance and account-deletion fence
+reads. The first-event all-track migration fixture also remains below 100, leaving substantial
 headroom below CloudBase's 100-operation transaction ceiling. Defaults are
 therefore 9 input events, 90 days of past-event retention, and five minutes of
 future clock skew.

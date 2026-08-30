@@ -187,6 +187,7 @@ test('pilot entitlement command accepts only auditable grant and revoke inputs',
   const command = pilot.validatePilotEntitlementCommand({
     schema_version: 'pilot-entitlement-command.v1',
     event_id: 'pilot-grant-001',
+    expected_account_instance_id: `account_${'a'.repeat(24)}`,
     pilot_id: 'cet4-pilot-2026',
     phone_number: '13800138000',
     action: 'grant',
@@ -208,6 +209,7 @@ test('controlled-pilot public identifiers reject phone-number material', () => {
   const command = {
     schema_version: 'pilot-entitlement-command.v1',
     event_id: 'pilot-grant-001',
+    expected_account_instance_id: `account_${'a'.repeat(24)}`,
     pilot_id: 'cet4-pilot-2026',
     phone_number: '13800138000',
     action: 'grant',

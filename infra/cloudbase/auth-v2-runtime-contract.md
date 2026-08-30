@@ -263,23 +263,38 @@ CloudBase currently uses:
 - `softbook_auth_rate_limits`
 - `softbook_auth_challenges`
 - `softbook_auth_sessions`
+- `softbook_accounts`
 - `softbook_account_deletions`
 
-Challenge verification, rate-counter increments, active-session reads, refresh
-rotation, and single-session revocation run inside CloudBase transactions.
-Every newly created challenge also stores its exact `sign_in` or
-`account_deletion_recovery` purpose; a missing or mismatched purpose fails
-verification.
+`softbook_accounts` stores one strict `account-instance.v1` document keyed by
+the derived account key. It contains only that account key, a random opaque
+`account_instance_id`, canonical creation time, and schema version; it never
+stores the phone number. Every sign-in challenge persists the current expected
+instance ID or exact `null`. Successful sign-in atomically consumes that exact
+challenge, requires its expected generation, creates an instance only for
+`null -> absent`, and writes a session carrying the same instance ID. Thus two
+concurrent accountless challenges cannot both register, and an old challenge
+cannot create a session after deletion or re-registration.
+
+Rate-counter increments, active-session reads, refresh rotation, sign-in
+challenge consumption plus account/session creation, and single-session
+revocation run inside CloudBase transactions. Every protected account read and
+write then performs a final-transaction check of exact active session ID,
+canonical phone-bound account key, current account instance ID, refresh-session
+expiry at request authority time, and deletion-task absence. Legacy sessions
+without an instance ID fail closed and require a new sign-in.
 Account-wide revocation enumerates the phone's sessions after the deletion task
 is durable.
 
 The independently deployed `softbook-account-deletion-worker` runs
 `index.accountDeletionWorkerMain` from the same tested artifact on the
-`account-deletion-every-minute` timer. Each `account-deletion-task.v1` stores
-the account key, phone, exact derived phone-rate key, retry fields and a random
-claim-bound five-minute lease. Its status is `queued`, `processing`, or durable
-`finalizing`. A stale worker cannot mutate the wrong phase, complete, or release
-a task owned by another lease.
+`account-deletion-every-minute` timer. Each `account-deletion-task.v2` stores
+the account key, exact `account_instance_id`, exact `origin_session_id`, phone,
+derived phone-rate key, retry fields and a random claim-bound five-minute lease.
+Task creation is one final transaction over the exact active origin session and
+current instance; a retry matches that same pair. Every worker claim and guarded
+mutation also matches the deletion ID and instance generation. Its status is
+`queued`, `processing`, or durable `finalizing`.
 
 Queued tasks, expired processing leases, unleased finalizing retries, and
 expired finalizing leases are queried independently, merged by `requested_at`,
@@ -296,7 +311,7 @@ Deployment creates a missing timer, preserves an already exact timer without
 duplicate creation, and fails closed on handler, variable, or schedule drift
 before reporting success.
 
-The worker deletes current account-keyed Auth Session, check-in, Progress,
+The worker deletes the current `softbook_accounts` instance, account-keyed Auth Session, check-in, Progress,
 Learning Event/cursor/sequence/migration/session/state, pilot-round continuation,
 and Space action/lineage/revision/state records; phone-filtered SMS challenges
 plus retained legacy daily-progress, learning-state and Space-state records;

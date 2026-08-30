@@ -57,16 +57,21 @@ async function readBootstrap(config, input) {
   const [membership, learning, space] = await Promise.all([
     config.store.getMembership(input.phoneNumber, generatedAt, {
       accountKey: input.accountKey,
+      sessionAuthority: input.sessionAuthority,
     }),
     config.store.getLearningState(
       input.phoneNumber,
       input.dayKey,
       input.track,
-      {accountKey: input.accountKey},
+      {
+        accountKey: input.accountKey,
+        sessionAuthority: input.sessionAuthority,
+      },
     ),
     config.store.getSpaceState(input.phoneNumber, input.dayKey, {
       accountKey: input.accountKey,
       acknowledgedAt: generatedAt,
+      sessionAuthority: input.sessionAuthority,
     }),
   ]);
   // Progress owns the account-wide accepted-event sequence. Read it after the
@@ -75,7 +80,10 @@ async function readBootstrap(config, input) {
   const progress = await config.store.getDailyProgress(
     input.phoneNumber,
     input.dayKey,
-    {accountKey: input.accountKey},
+    {
+      accountKey: input.accountKey,
+      sessionAuthority: input.sessionAuthority,
+    },
   );
   const normalizedSpace = serializeSpaceState(space, {
     accountKey: input.accountKey,

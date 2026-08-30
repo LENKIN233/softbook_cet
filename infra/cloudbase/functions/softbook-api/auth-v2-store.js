@@ -6,9 +6,16 @@ const {
   normalizeCloudBaseDocuments,
 } = require('./cloudbase-documents');
 const {isCloudBaseDocumentMissingError} = require('./cloudbase-errors');
+const {
+  accountInstanceMismatchError,
+  deriveAccountKey,
+  normalizeAccountInstance,
+} = require('./account-write-fence');
 
-function createMemoryAuthStateStore() {
+function createMemoryAuthStateStore(options = {}) {
+  const indexSecret = options.indexSecret ?? 'softbook-cloudbase-dev-secret';
   const accountDeletions = new Map();
+  const accounts = new Map();
   const authChallenges = new Map();
   const authRateLimits = new Map();
   const authSessions = new Map();
@@ -48,10 +55,15 @@ function createMemoryAuthStateStore() {
       );
       if (deletionStatus !== 'accepted') return deletionStatus;
 
-      authChallenges.set(
-        input.challenge.challenge_id,
-        clone(input.challenge),
-      );
+      const account = accounts.get(input.accountKey) ?? null;
+      const expectedAccountInstanceId = account === null
+        ? null
+        : normalizeAccountInstance(account, input.accountKey)
+          .account_instance_id;
+      authChallenges.set(input.challenge.challenge_id, {
+        ...clone(input.challenge),
+        expected_account_instance_id: expectedAccountInstanceId,
+      });
       return 'accepted';
     },
     markAuthChallengeDelivery: async (challengeId, status, updatedAt) => {
@@ -75,13 +87,34 @@ function createMemoryAuthStateStore() {
 
       return {status: result.status};
     },
-    createAuthSession: async session => {
-      if (accountDeletions.has(session.account_key)) {
-        return false;
+    verifyAuthChallengeAndCreateSession: async input => {
+      const challenge = authChallenges.get(input.challengeId);
+      const result = verifyChallengeRecord(challenge, input);
+      if (result.status !== 'verified') {
+        if (result.challenge) {
+          authChallenges.set(input.challengeId, result.challenge);
+        }
+        return {session: null, status: result.status};
       }
-
-      authSessions.set(session.session_id, clone(session));
-      return true;
+      if (accountDeletions.has(input.accountKey)) {
+        return {session: null, status: 'account_deletion_pending'};
+      }
+      const completion = completeVerifiedRegistration({
+        accountCandidate: input.accountCandidate,
+        challenge: result.challenge,
+        currentAccount: accounts.get(input.accountKey) ?? null,
+        session: input.session,
+      });
+      authChallenges.set(input.challengeId, completion.challenge);
+      if (completion.status !== 'verified') {
+        return {session: null, status: completion.status};
+      }
+      accounts.set(input.accountKey, clone(completion.account));
+      authSessions.set(
+        completion.session.session_id,
+        clone(completion.session),
+      );
+      return {session: clone(completion.session), status: 'verified'};
     },
     getAuthSession: async sessionId =>
       clone(authSessions.get(sessionId) ?? null),
@@ -106,6 +139,14 @@ function createMemoryAuthStateStore() {
         return null;
       }
 
+      if (!sessionMatchesCurrentAccount(session, accounts)) {
+        authSessions.set(
+          sessionId,
+          revokeSessionRecord(session, checkedAt, 'account_instance_changed'),
+        );
+        return null;
+      }
+
       return clone(session);
     },
     rotateAuthSession: async input => {
@@ -116,6 +157,16 @@ function createMemoryAuthStateStore() {
           session,
           input.now,
           'account_deletion_requested',
+        );
+        authSessions.set(input.sessionId, revoked);
+        return {session: clone(revoked), status: 'revoked'};
+      }
+
+      if (session && !sessionMatchesCurrentAccount(session, accounts)) {
+        const revoked = revokeSessionRecord(
+          session,
+          input.now,
+          'account_instance_changed',
         );
         authSessions.set(input.sessionId, revoked);
         return {session: clone(revoked), status: 'revoked'};
@@ -142,28 +193,77 @@ function createMemoryAuthStateStore() {
       );
       return true;
     },
-    revokeAuthSessionsByAccount: async (accountKey, revokedAt, reason) => {
+    revokeAuthSessionsByAccount: async (
+      accountKey,
+      deletionId,
+      accountInstanceId,
+      revokedAt,
+      reason,
+    ) => {
+      const task = normalizeAccountDeletionTask(
+        accountDeletions.get(accountKey),
+      );
+      if (
+        task.status !== 'queued' ||
+        task.deletion_id !== deletionId ||
+        task.account_instance_id !== accountInstanceId
+      ) {
+        return false;
+      }
       for (const [sessionId, session] of authSessions.entries()) {
-        if (session.account_key === accountKey) {
+        if (
+          session.account_key === accountKey &&
+          session.account_instance_id === accountInstanceId
+        ) {
           authSessions.set(
             sessionId,
             revokeSessionRecord(session, revokedAt, reason),
           );
         }
       }
+      return true;
     },
     getOrCreateAccountDeletionTask: async task => {
-      const existing = accountDeletions.get(task.account_key);
+      const normalizedTask = normalizeAccountDeletionTask(task);
+      const existing = accountDeletions.get(normalizedTask.account_key);
 
       if (existing) {
-        return clone(existing);
+        const normalizedExisting = normalizeAccountDeletionTask(existing);
+        if (
+          normalizedExisting.account_key !== normalizedTask.account_key ||
+          normalizedExisting.phone_number !== normalizedTask.phone_number ||
+          normalizedExisting.account_instance_id !==
+            normalizedTask.account_instance_id ||
+          normalizedExisting.origin_session_id !==
+            normalizedTask.origin_session_id
+        ) {
+          throw accountInstanceMismatchError();
+        }
+        assertDeletionRetryCurrent(
+          normalizedExisting,
+          accounts,
+          authSessions,
+          indexSecret,
+        );
+        return clone(normalizedExisting);
       }
 
-      accountDeletions.set(task.account_key, clone(task));
-      return clone(task);
+      assertDeletionOriginCurrent(
+        normalizedTask,
+        accounts,
+        authSessions,
+        indexSecret,
+      );
+
+      accountDeletions.set(
+        normalizedTask.account_key,
+        clone(normalizedTask),
+      );
+      return clone(normalizedTask);
     },
     snapshotAuth: () => ({
       accountDeletions,
+      accounts,
       authChallenges,
       authRateLimits,
       authSessions,
@@ -171,9 +271,11 @@ function createMemoryAuthStateStore() {
   };
 }
 
-function createCloudBaseAuthStateStore(db, collections) {
+function createCloudBaseAuthStateStore(db, collections, options = {}) {
+  const indexSecret = options.indexSecret ?? 'softbook-cloudbase-dev-secret';
   const names = {
     accountDeletions: collections.accountDeletions,
+    accounts: collections.accounts,
     authChallenges: collections.authChallenges,
     authRateLimits: collections.authRateLimits,
     authSessions: collections.authSessions,
@@ -229,10 +331,21 @@ function createCloudBaseAuthStateStore(db, collections) {
         );
         if (deletionStatus !== 'accepted') return deletionStatus;
 
+        const account = await getDocument(
+          transaction.collection(names.accounts),
+          input.accountKey,
+        );
+        const expectedAccountInstanceId = account === null
+          ? null
+          : normalizeAccountInstance(account, input.accountKey)
+            .account_instance_id;
         await setDocument(
           transaction.collection(names.authChallenges),
           input.challenge.challenge_id,
-          input.challenge,
+          {
+            ...input.challenge,
+            expected_account_instance_id: expectedAccountInstanceId,
+          },
         );
         return 'accepted';
       }),
@@ -261,26 +374,66 @@ function createCloudBaseAuthStateStore(db, collections) {
 
         return {status: result.status};
       }),
-    createAuthSession: session =>
+    verifyAuthChallengeAndCreateSession: input =>
       db.runTransaction(async transaction => {
+        const challengeCollection = transaction.collection(
+          names.authChallenges,
+        );
+        const challenge = await getDocument(
+          challengeCollection,
+          input.challengeId,
+        );
+        const result = verifyChallengeRecord(challenge, input);
+        if (result.status !== 'verified') {
+          if (result.challenge) {
+            await setDocument(
+              challengeCollection,
+              input.challengeId,
+              result.challenge,
+            );
+          }
+          return {session: null, status: result.status};
+        }
         const deletionCollection = transaction.collection(
           names.accountDeletions,
         );
         const deletion = await getDocument(
           deletionCollection,
-          session.account_key,
+          input.accountKey,
         );
 
         if (deletion) {
-          return false;
+          return {session: null, status: 'account_deletion_pending'};
         }
-
+        const accountsCollection = transaction.collection(names.accounts);
+        const completion = completeVerifiedRegistration({
+          accountCandidate: input.accountCandidate,
+          challenge: result.challenge,
+          currentAccount: await getDocument(
+            accountsCollection,
+            input.accountKey,
+          ),
+          session: input.session,
+        });
+        await setDocument(
+          challengeCollection,
+          input.challengeId,
+          completion.challenge,
+        );
+        if (completion.status !== 'verified') {
+          return {session: null, status: completion.status};
+        }
+        await setDocument(
+          accountsCollection,
+          input.accountKey,
+          completion.account,
+        );
         await setDocument(
           transaction.collection(names.authSessions),
-          session.session_id,
-          session,
+          completion.session.session_id,
+          completion.session,
         );
-        return true;
+        return {session: completion.session, status: 'verified'};
       }),
     getAuthSession: sessionId =>
       getDocument(db.collection(names.authSessions), sessionId),
@@ -301,7 +454,23 @@ function createCloudBaseAuthStateStore(db, collections) {
         );
 
         if (!deletion) {
-          return session;
+          const account = await getDocument(
+            transaction.collection(names.accounts),
+            session.account_key,
+          );
+          if (sessionMatchesAccountDocument(session, account)) {
+            return session;
+          }
+          await setDocument(
+            collection,
+            sessionId,
+            revokeSessionRecord(
+              session,
+              checkedAt,
+              'account_instance_changed',
+            ),
+          );
+          return null;
         }
 
         await setDocument(
@@ -335,6 +504,19 @@ function createCloudBaseAuthStateStore(db, collections) {
             await setDocument(collection, input.sessionId, revoked);
             return {session: revoked, status: 'revoked'};
           }
+          const account = await getDocument(
+            transaction.collection(names.accounts),
+            session.account_key,
+          );
+          if (!sessionMatchesAccountDocument(session, account)) {
+            const revoked = revokeSessionRecord(
+              session,
+              input.now,
+              'account_instance_changed',
+            );
+            await setDocument(collection, input.sessionId, revoked);
+            return {session: revoked, status: 'revoked'};
+          }
         }
 
         const result = rotateSessionRecord(session, input);
@@ -361,35 +543,267 @@ function createCloudBaseAuthStateStore(db, collections) {
         );
         return true;
       }),
-    revokeAuthSessionsByAccount: async (accountKey, revokedAt, reason) => {
+    revokeAuthSessionsByAccount: async (
+      accountKey,
+      deletionId,
+      accountInstanceId,
+      revokedAt,
+      reason,
+    ) => {
       const collection = db.collection(names.authSessions);
       const result = await collection.where({account_key: accountKey}).get();
-      const sessions = normalizeDocuments(result.data);
+      const sessions = normalizeCloudBaseDocuments(result.data);
 
       await Promise.all(
         sessions.map(session =>
-          setDocument(
-            collection,
-            session.session_id ?? session._id,
-            revokeSessionRecord(session, revokedAt, reason),
-          ),
+          db.runTransaction(async transaction => {
+            const task = await getDocument(
+              transaction.collection(names.accountDeletions),
+              accountKey,
+            );
+            let normalizedTask;
+            try {
+              normalizedTask = normalizeAccountDeletionTask(task);
+            } catch {
+              return false;
+            }
+            if (
+              normalizedTask.status !== 'queued' ||
+              normalizedTask.deletion_id !== deletionId ||
+              normalizedTask.account_instance_id !== accountInstanceId
+            ) {
+              return false;
+            }
+            const sessionId = session.session_id ?? session._id;
+            const current = await getDocument(
+              transaction.collection(names.authSessions),
+              sessionId,
+            );
+            if (
+              !current ||
+              current.account_key !== accountKey ||
+              current.account_instance_id !== accountInstanceId
+            ) {
+              return false;
+            }
+            await setDocument(
+              transaction.collection(names.authSessions),
+              sessionId,
+              revokeSessionRecord(current, revokedAt, reason),
+            );
+            return true;
+          }),
         ),
       );
+      return true;
     },
     getOrCreateAccountDeletionTask: task =>
       db.runTransaction(async transaction => {
+        const normalizedTask = normalizeAccountDeletionTask(task);
         const collection = transaction.collection(names.accountDeletions);
-        const documentId = task.account_key;
+        const documentId = normalizedTask.account_key;
         const existing = await getDocument(collection, documentId);
 
         if (existing) {
-          return existing;
+          const normalizedExisting = normalizeAccountDeletionTask(existing);
+          if (
+            normalizedExisting.account_key !== normalizedTask.account_key ||
+            normalizedExisting.phone_number !== normalizedTask.phone_number ||
+            normalizedExisting.account_instance_id !==
+              normalizedTask.account_instance_id ||
+            normalizedExisting.origin_session_id !==
+              normalizedTask.origin_session_id
+          ) {
+            throw accountInstanceMismatchError();
+          }
+          const retrySession = await getDocument(
+            transaction.collection(names.authSessions),
+            normalizedExisting.origin_session_id,
+          );
+          const retryAccount = await getDocument(
+            transaction.collection(names.accounts),
+            normalizedExisting.account_key,
+          );
+          assertDeletionRetryDocuments(
+            normalizedExisting,
+            retryAccount,
+            retrySession,
+            indexSecret,
+          );
+          return normalizedExisting;
         }
 
-        await setDocument(collection, documentId, task);
-        return task;
+        const session = await getDocument(
+          transaction.collection(names.authSessions),
+          normalizedTask.origin_session_id,
+        );
+        const account = await getDocument(
+          transaction.collection(names.accounts),
+          normalizedTask.account_key,
+        );
+        assertDeletionOriginDocuments(
+          normalizedTask,
+          account,
+          session,
+          indexSecret,
+        );
+
+        await setDocument(collection, documentId, normalizedTask);
+        return normalizedTask;
       }),
   };
+}
+
+function completeVerifiedRegistration({
+  accountCandidate,
+  challenge,
+  currentAccount,
+  session,
+}) {
+  const consumedChallenge = clone(challenge);
+  let normalizedCurrent = null;
+  try {
+    if (currentAccount !== null && currentAccount !== undefined) {
+      normalizedCurrent = normalizeAccountInstance(
+        currentAccount,
+        session.account_key,
+      );
+    }
+  } catch {
+    return {
+      challenge: consumedChallenge,
+      session: null,
+      status: 'account_instance_changed',
+    };
+  }
+  const expected = challenge?.expected_account_instance_id;
+  if (
+    (expected === null && normalizedCurrent !== null) ||
+    (expected !== null &&
+      (!normalizedCurrent ||
+        normalizedCurrent.account_instance_id !== expected))
+  ) {
+    return {
+      challenge: consumedChallenge,
+      session: null,
+      status: 'account_instance_changed',
+    };
+  }
+  let account = normalizedCurrent;
+  if (account === null) {
+    account = normalizeAccountInstance(accountCandidate, session.account_key);
+  }
+  return {
+    account,
+    challenge: consumedChallenge,
+    session: {
+      ...clone(session),
+      account_instance_id: account.account_instance_id,
+    },
+    status: 'verified',
+  };
+}
+
+function sessionMatchesCurrentAccount(session, accounts) {
+  return sessionMatchesAccountDocument(
+    session,
+    accounts.get(session.account_key) ?? null,
+  );
+}
+
+function sessionMatchesAccountDocument(session, accountInput) {
+  try {
+    const account = normalizeAccountInstance(accountInput, session.account_key);
+    return (
+      typeof session.account_instance_id === 'string' &&
+      session.account_instance_id === account.account_instance_id
+    );
+  } catch {
+    return false;
+  }
+}
+
+function assertDeletionOriginCurrent(
+  task,
+  accounts,
+  authSessions,
+  indexSecret,
+) {
+  assertDeletionOriginDocuments(
+    task,
+    accounts.get(task.account_key) ?? null,
+    authSessions.get(task.origin_session_id) ?? null,
+    indexSecret,
+  );
+}
+
+function assertDeletionRetryCurrent(task, accounts, authSessions, indexSecret) {
+  assertDeletionRetryDocuments(
+    task,
+    accounts.get(task.account_key) ?? null,
+    authSessions.get(task.origin_session_id) ?? null,
+    indexSecret,
+  );
+}
+
+function assertDeletionRetryDocuments(task, accountInput, session, indexSecret) {
+  let account;
+  try {
+    account = normalizeAccountInstance(accountInput, task.account_key);
+  } catch {
+    throw accountInstanceMismatchError();
+  }
+  if (
+    !session ||
+    !['active', 'revoked'].includes(session.status) ||
+    (session.status === 'revoked' &&
+      session.revoked_reason !== 'account_deletion_requested') ||
+    session.session_id !== task.origin_session_id ||
+    session.account_key !== task.account_key ||
+    session.account_instance_id !== task.account_instance_id ||
+    session.phone_number !== task.phone_number ||
+    account.account_instance_id !== task.account_instance_id ||
+    deriveAccountKey(indexSecret, task.phone_number) !== task.account_key
+  ) {
+    throw accountInstanceMismatchError();
+  }
+}
+
+function assertDeletionOriginDocuments(
+  taskInput,
+  accountInput,
+  session,
+  indexSecret,
+) {
+  const task = normalizeAccountDeletionTask(taskInput);
+  let account;
+  try {
+    account = normalizeAccountInstance(accountInput, task.account_key);
+  } catch {
+    throw accountInstanceMismatchError();
+  }
+  if (
+    !session ||
+    session.status !== 'active' ||
+    session.session_id !== task.origin_session_id ||
+    session.account_key !== task.account_key ||
+    session.account_instance_id !== task.account_instance_id ||
+    session.phone_number !== task.phone_number ||
+    account.account_instance_id !== task.account_instance_id ||
+    deriveAccountKey(indexSecret, task.phone_number) !== task.account_key ||
+    !isSessionActiveAt(session, task.requested_at)
+  ) {
+    throw accountInstanceMismatchError();
+  }
+}
+
+function isSessionActiveAt(session, checkedAt) {
+  const refreshExpiresAt = Date.parse(session?.refresh_expires_at);
+  return (
+    session?.status === 'active' &&
+    Number.isFinite(refreshExpiresAt) &&
+    refreshExpiresAt > Date.parse(checkedAt)
+  );
 }
 
 function challengeDeletionFenceStatus(

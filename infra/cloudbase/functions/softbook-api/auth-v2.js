@@ -1,5 +1,8 @@
 const crypto = require('node:crypto');
-const {deriveAccountKey} = require('./account-write-fence');
+const {
+  deriveAccountKey,
+  requireAccountInstanceId,
+} = require('./account-write-fence');
 const {
   normalizeAccountDeletionTask,
 } = require('./account-deletion-worker-v1');
@@ -250,27 +253,26 @@ async function verifyCode(config, request, purpose) {
       throw authError(401, 'invalid_sms_code', 'SMS code is invalid.');
     }
   }
-  const verification = await config.store.verifyAuthChallenge({
-    challengeId,
-    codeDigest: digestSmsCode(
-      config.tokenSecret,
+  if (purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE) {
+    const verification = await config.store.verifyAuthChallenge({
       challengeId,
+      codeDigest: digestSmsCode(
+        config.tokenSecret,
+        challengeId,
+        phoneNumber,
+        purpose,
+        codeForStore,
+      ),
+      maxAttempts: config.verifyAttemptLimit,
+      now: verifiedAt.toISOString(),
       phoneNumber,
       purpose,
-      codeForStore,
-    ),
-    maxAttempts: config.verifyAttemptLimit,
-    now: verifiedAt.toISOString(),
-    phoneNumber,
-    purpose,
-  });
-
-  assertChallengeVerified(verification.status);
-
-  if (purpose === DELETION_RECOVERY_CHALLENGE_PURPOSE) {
+    });
+    assertChallengeVerified(verification.status);
     return readAccountDeletionRecoveryState(config, phoneNumber);
   }
 
+  const accountKey = deriveAccountKey(config.indexSecret, phoneNumber);
   const sessionId = randomBase64Url(config.randomBytes, 24);
   const refreshToken = createRefreshToken(config, sessionId, 0);
   const accessExpiresAt = new Date(
@@ -280,7 +282,7 @@ async function verifyCode(config, request, purpose) {
     verifiedAt.getTime() + config.refreshTokenTtlSeconds * 1000,
   );
   const session = {
-    account_key: deriveAccountKey(config.indexSecret, phoneNumber),
+    account_key: accountKey,
     access_expires_at: accessExpiresAt.toISOString(),
     created_at: verifiedAt.toISOString(),
     device_id: optionalBoundedString(body.device_id, 'device_id', 128),
@@ -296,20 +298,38 @@ async function verifyCode(config, request, purpose) {
     updated_at: verifiedAt.toISOString(),
   };
 
-  const sessionCreated = await config.store.createAuthSession(session);
-
-  if (!sessionCreated) {
-    throw authError(
-      403,
-      'account_deletion_pending',
-      'Account deletion is already pending.',
-    );
-  }
+  const registration = await config.store.verifyAuthChallengeAndCreateSession({
+    accountCandidate: {
+      account_instance_id: `account_${randomBase64Url(
+        config.randomBytes,
+        24,
+      )}`,
+      account_key: accountKey,
+      created_at: verifiedAt.toISOString(),
+      schema_version: 'account-instance.v1',
+    },
+    accountKey,
+    challengeId,
+    codeDigest: digestSmsCode(
+      config.tokenSecret,
+      challengeId,
+      phoneNumber,
+      purpose,
+      codeForStore,
+    ),
+    maxAttempts: config.verifyAttemptLimit,
+    now: verifiedAt.toISOString(),
+    phoneNumber,
+    purpose,
+    session,
+  });
+  assertChallengeVerified(registration.status);
+  const createdSession = registration.session;
 
   return sessionResponse(
-    createAccessToken(config, session, verifiedAt),
+    createAccessToken(config, createdSession, verifiedAt),
     refreshToken,
-    session,
+    createdSession,
     config.accessTokenTtlSeconds,
   );
 }
@@ -417,6 +437,7 @@ async function requestAccountDeletion(config, request) {
     !persistedSession ||
     persistedSession.phone_number !== access.phone_number ||
     !hasCanonicalAccountKey(config, persistedSession) ||
+    !isBoundAccountSession(persistedSession) ||
     (persistedSession.status !== 'active' &&
       persistedSession.revoked_reason !== 'account_deletion_requested')
   ) {
@@ -424,12 +445,14 @@ async function requestAccountDeletion(config, request) {
   }
 
   const session = {
+    accountInstanceId: persistedSession.account_instance_id,
     accountKey: persistedSession.account_key,
     phoneNumber: persistedSession.phone_number,
     sessionId: persistedSession.session_id,
   };
   const requestedAt = config.now().toISOString();
   const deletionTask = await config.store.getOrCreateAccountDeletionTask({
+    account_instance_id: session.accountInstanceId,
     account_key: session.accountKey,
     attempt_count: 0,
     deletion_id: `delete_${randomBase64Url(config.randomBytes, 18)}`,
@@ -437,6 +460,7 @@ async function requestAccountDeletion(config, request) {
     last_failure_code: null,
     lease_expires_at: null,
     lease_id: null,
+    origin_session_id: session.sessionId,
     phone_number: session.phoneNumber,
     phone_rate_key: `phone:${keyedHash(
       config.indexSecret,
@@ -444,15 +468,26 @@ async function requestAccountDeletion(config, request) {
       session.phoneNumber,
     )}`,
     requested_at: requestedAt,
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
   });
 
-  await config.store.revokeAuthSessionsByAccount(
-    session.accountKey,
-    requestedAt,
-    'account_deletion_requested',
-  );
+  if (deletionTask.status === 'queued') {
+    const sessionsRevoked = await config.store.revokeAuthSessionsByAccount(
+      session.accountKey,
+      deletionTask.deletion_id,
+      session.accountInstanceId,
+      requestedAt,
+      'account_deletion_requested',
+    );
+    if (sessionsRevoked !== true) {
+      throw authError(
+        503,
+        'account_deletion_revocation_incomplete',
+        'Account deletion session revocation is incomplete.',
+      );
+    }
+  }
 
   return {
     deletion_request: {
@@ -468,16 +503,18 @@ async function requestAccountDeletion(config, request) {
 
 async function requireActiveSession(config, request) {
   const access = readSignedAccessToken(config, request);
+  const checkedAt = config.now();
   const session = await config.store.getActiveAuthSession(
     access.session_id,
-    config.now().toISOString(),
+    checkedAt.toISOString(),
   );
 
   if (
     !session ||
     session.status !== 'active' ||
     session.phone_number !== access.phone_number ||
-    !hasCanonicalAccountKey(config, session)
+    !hasCanonicalAccountKey(config, session) ||
+    !isBoundAccountSession(session)
   ) {
     throw authError(401, 'revoked_auth_session', 'Auth session is not active.');
   }
@@ -486,16 +523,27 @@ async function requireActiveSession(config, request) {
 
   if (
     !Number.isFinite(refreshExpiresAt) ||
-    refreshExpiresAt <= config.now().getTime()
+    refreshExpiresAt <= checkedAt.getTime()
   ) {
     throw authError(401, 'expired_auth_session', 'Auth session has expired.');
   }
 
   return {
+    accountInstanceId: session.account_instance_id,
     accountKey: session.account_key,
+    checkedAt: checkedAt.toISOString(),
     phoneNumber: session.phone_number,
     sessionId: session.session_id,
   };
+}
+
+function isBoundAccountSession(session) {
+  try {
+    requireAccountInstanceId(session?.account_instance_id);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function hasCanonicalAccountKey(config, session) {
@@ -720,6 +768,16 @@ function assertChallengeMaterialAllowed(status) {
 
 function assertChallengeVerified(status) {
   const errors = {
+    account_deletion_pending: [
+      403,
+      'account_deletion_pending',
+      'Account deletion is already pending.',
+    ],
+    account_instance_changed: [
+      409,
+      'account_instance_changed',
+      'This SMS challenge belongs to an earlier account instance.',
+    ],
     consumed: [
       409,
       'sms_challenge_consumed',
@@ -791,7 +849,7 @@ function validateServiceConfig(config) {
     'createAuthChallenge',
     'markAuthChallengeDelivery',
     'verifyAuthChallenge',
-    'createAuthSession',
+    'verifyAuthChallengeAndCreateSession',
     'getAccountDeletionTask',
     'getAuthSession',
     'getActiveAuthSession',

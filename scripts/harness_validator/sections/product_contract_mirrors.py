@@ -194,10 +194,11 @@ def validate(context) -> None:
         "spec/account-sync-contract.json#account_deletion",
         deletion_runtime["owner"],
     )
-    for token in ("persists one exact account-deletion-task.v1 before", "blocks login"):
+    for token in ("account-deletion-task.v2", "blocks login"):
         if token not in deletion["request_rule"]:
             errors.append(f"account deletion request boundary missing: {token}")
     for collection in (
+        "softbook_accounts",
         "softbook_auth_sessions",
         "softbook_learning_events",
         "softbook_learning_sessions",
@@ -207,11 +208,11 @@ def validate(context) -> None:
             errors.append(f"account deletion collection coverage missing: {collection}")
     check_equal(
         "account deletion task schema",
-        "account-deletion-task.v1",
+        "account-deletion-task.v2",
         deletion_runtime["task_schema"],
     )
     for token in (
-        "every_erasure_mutation_transactionally_rechecks_current_task_lease",
+        "every_claim_and_erasure_mutation_transactionally_rechecks_exact_deletion_id_account_instance_id",
         "stale_worker_cannot_delete_post_completion_reregistration_data",
         "stale_worker_cannot_complete_or_release_newer_claim",
     ):

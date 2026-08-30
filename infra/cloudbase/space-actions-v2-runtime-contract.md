@@ -48,7 +48,8 @@ Before any migration checkpoint, ledger, lineage, revision, or state write,
 that transaction reads the account-keyed deletion task. Any present task fails
 closed with `account_deletion_pending`, preventing a pre-deletion authorized
 Space request from recreating state after worker erasure.
-The maximum twenty-action fixture therefore uses 65 document operations,
+The maximum twenty-action fixture therefore uses 67 document operations,
+including exact session and account-instance authority reads,
 remaining below CloudBase's 100-operation transaction ceiling.
 
 ## Canonical Projection

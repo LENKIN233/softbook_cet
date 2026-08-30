@@ -147,7 +147,7 @@ test('a stale worker cannot erase data written after a newer lease completed', a
   assert.equal(repository.hasReregisteredDocument(), true);
   assert.deepEqual(
     repository.calls.filter(call => call.startsWith('where:')),
-    ['where:softbook_auth_sessions:account_key'],
+    ['where:softbook_accounts:account_key'],
   );
 });
 
@@ -293,6 +293,7 @@ test('CloudBase repository claims, verifies, and erases the current collection s
   const db = createFakeCloudBaseDb();
   const taskCollection = db.collection('softbook_account_deletions');
   await taskCollection.doc(ACCOUNT_KEY).set({
+    account_instance_id: `account_${'i'.repeat(24)}`,
     account_key: ACCOUNT_KEY,
     attempt_count: 0,
     deletion_id: 'delete_cloudbase_worker_0001',
@@ -300,10 +301,11 @@ test('CloudBase repository claims, verifies, and erases the current collection s
     last_failure_code: null,
     lease_expires_at: null,
     lease_id: null,
+    origin_session_id: 's'.repeat(24),
     phone_number: PHONE,
     phone_rate_key: PHONE_RATE_KEY,
     requested_at: '2026-08-01T07:59:00.000Z',
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
   });
   for (const collection of ACCOUNT_KEY_COLLECTIONS) {
@@ -365,7 +367,9 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
   const leaseA = `lease_${'a'.repeat(24)}`;
   assert.equal(
     await repository.claimTask({
+      accountInstanceId: `account_${'i'.repeat(24)}`,
       accountKey: ACCOUNT_KEY,
+      deletionId: `delete_${ACCOUNT_KEY.slice(0, 16)}`,
       leaseExpiresAt: '2026-08-01T08:05:00.000Z',
       leaseId: leaseA,
       now: NOW.toISOString(),
@@ -382,7 +386,13 @@ test('CloudBase guarded mutation rejects a stale lease before deleting new data'
     await repository.removeWhereIfLease(
       'softbook_auth_sessions',
       {account_key: ACCOUNT_KEY},
-      {accountKey: ACCOUNT_KEY, leaseId: leaseA, status: 'processing'},
+      {
+        accountInstanceId: `account_${'i'.repeat(24)}`,
+        accountKey: ACCOUNT_KEY,
+        deletionId: `delete_${ACCOUNT_KEY.slice(0, 16)}`,
+        leaseId: leaseA,
+        status: 'processing',
+      },
     ),
     false,
   );
@@ -479,6 +489,7 @@ function createWorker(repository) {
 
 function taskFixture({accountKey = ACCOUNT_KEY} = {}) {
   return {
+    account_instance_id: `account_${'i'.repeat(24)}`,
     account_key: accountKey,
     attempt_count: 0,
     deletion_id: `delete_${accountKey.slice(0, 16)}`,
@@ -486,10 +497,11 @@ function taskFixture({accountKey = ACCOUNT_KEY} = {}) {
     last_failure_code: null,
     lease_expires_at: null,
     lease_id: null,
+    origin_session_id: 's'.repeat(24),
     phone_number: PHONE,
     phone_rate_key: PHONE_RATE_KEY,
     requested_at: '2026-08-01T07:59:00.000Z',
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
   };
 }
@@ -534,6 +546,7 @@ function createRepository({
   let attempts = expiredLease || expiredFinalizingLease ? 1 : 0;
   const initialFinalizing = expiredFinalizingLease || missingFinalizingTtl;
   let task = {
+    account_instance_id: `account_${'i'.repeat(24)}`,
     account_key: invalidTask ? 'invalid' : ACCOUNT_KEY,
     attempt_count: expiredLease || expiredFinalizingLease ? 1 : 0,
     deletion_id: 'delete_account_worker_0001',
@@ -548,10 +561,11 @@ function createRepository({
         : null,
     lease_id:
       expiredLease || initialFinalizing ? `lease_${'x'.repeat(24)}` : null,
+    origin_session_id: 's'.repeat(24),
     phone_number: PHONE,
     phone_rate_key: PHONE_RATE_KEY,
     requested_at: '2026-08-01T07:59:00.000Z',
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: initialFinalizing
       ? 'finalizing'
       : expiredLease

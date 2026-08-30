@@ -39,6 +39,7 @@ function createContentManifestV1Service(options) {
         options.store,
         input.accountKey,
         input.phoneNumber,
+        input.sessionAuthority,
         cardSource,
         issuedAt,
       );
@@ -98,6 +99,7 @@ async function resolveContentAccess(
   store,
   accountKey,
   phoneNumber,
+  sessionAuthority,
   cardSource,
   issuedAt,
 ) {
@@ -112,7 +114,7 @@ async function resolveContentAccess(
   const membership = await store.getMembership(
     phoneNumber,
     issuedAt.toISOString(),
-    {accountKey},
+    {accountKey, sessionAuthority},
   );
   const totalCardCount = cardSource.card_records.length;
   let accessibleCardCount;

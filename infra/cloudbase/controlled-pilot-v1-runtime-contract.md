@@ -212,8 +212,13 @@ and they do not change any pilot artifact's literal `gate_eligible=false`.
 ### `pilot-entitlement-command.v1`
 
 An untracked receiver-operator input contains one idempotent event, pilot,
-phone, `grant|revoke`, actor, reason, UTC occurrence time, previous stage and
-resulting stage. Public pilot, event and actor identifiers apply NFKC, then
+phone, `grant|revoke`, actor, reason, UTC occurrence time, previous stage,
+resulting stage and `expected_account_instance_id`. The private command, stored
+audit and HMAC bind the raw instance generation; public plan/report projections
+do not expose it. An instance must already exist, so the user signs in before
+any grant; the CLI requires a strict non-expired active session matching phone,
+account key and instance, and pre-registration or malformed active-shaped
+grants are rejected. Public pilot, event and actor identifiers apply NFKC, then
 remove every non-digit character before rejecting phone-number material. Grant must result in
 `pilot_premium`; revoke must restore the canonical base stage. Future mutation
 implementation rederives and atomically verifies those stages while storing
@@ -247,7 +252,10 @@ hash, so a cross-phone transplant fails closed. These repository guarantees
 remain undeployed until receiver execution is completed.
 
 The operator transaction derives and reads the account-keyed deletion task
-before entitlement planning or writes. Queued, processing, future finalizing,
+and exact current `softbook_accounts` instance before entitlement planning or
+writes. The CLI first requires exactly one matching existing instance, while
+the receiver transaction rederives account key from phone and matches the
+command generation. Queued, processing, future finalizing,
 or malformed task presence fails closed with `account_deletion_pending`, so an
 invocation authenticated before deletion cannot recreate the pilot overlay.
 

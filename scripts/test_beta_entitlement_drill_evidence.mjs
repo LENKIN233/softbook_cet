@@ -664,6 +664,7 @@ function createRuntimeGrantState(phoneNumber) {
     {
       schema_version: 'beta-entitlement-command.v1',
       event_id: 'beta-event-grant-0001',
+      expected_account_instance_id: `account_${'a'.repeat(24)}`,
       action: 'grant',
       phone_number: phoneNumber,
       campaign_id: 'cet4-beta-campaign-001',

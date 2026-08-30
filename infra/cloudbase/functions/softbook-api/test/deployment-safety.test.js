@@ -438,10 +438,11 @@ test("log redaction removes phone, bearer token, and secret assignments", () => 
   const pem =
     "-----BEGIN PRIVATE KEY-----\nVERY-SECRET-PEM-BYTES\n-----END PRIVATE KEY-----";
   const redacted = safety.redactText(
-    `phone=19012345678 Authorization: Bearer abcdefghijklmnopqrstuvwxyz token=very-secret-value "refresh_token":"json-secret-value" SOFTBOOK_AUTH_TOKEN_SECRET=env-secret-value {"Key":"SOFTBOOK_AUTH_INDEX_SECRET","Value":"cloudbase-json-secret"} ${pem}`
+    `phone=19012345678 account_${'a'.repeat(24)} Authorization: Bearer abcdefghijklmnopqrstuvwxyz token=very-secret-value "refresh_token":"json-secret-value" SOFTBOOK_AUTH_TOKEN_SECRET=env-secret-value {"Key":"SOFTBOOK_AUTH_INDEX_SECRET","Value":"cloudbase-json-secret"} ${pem}`
   );
 
   assert.equal(redacted.includes("19012345678"), false);
+  assert.equal(redacted.includes(`account_${'a'.repeat(24)}`), false);
   assert.equal(redacted.includes("abcdefghijklmnopqrstuvwxyz"), false);
   assert.equal(redacted.includes("very-secret-value"), false);
   assert.equal(redacted.includes("json-secret-value"), false);

@@ -34,7 +34,9 @@ The strict operator input contains `event_id`, `action=grant|revoke`,
 `phone_number`, `campaign_id`, `grant_id`, `actor_id`, `reason`, and canonical
 UTC `occurred_at`. Unknown fields fail closed. The campaign must equal the
 closed-beta release candidate campaign used by formal evidence. The exact
-canonical command receives a SHA-256 binding; replaying the same event is
+command also requires `expected_account_instance_id`. The private command,
+stored audit and receiver HMAC bind that raw opaque generation, while public
+plans and reports omit it. The canonical command receives a SHA-256 binding; replaying the same event is
 idempotent, while reusing an event ID for different bytes is rejected. Public
 actor, campaign, grant and event identifiers reject a literal phone number or
 one revealed after NFKC normalization and removing every non-digit character.
@@ -97,7 +99,15 @@ one strict `beta-entitlement-operator-invoke.v1` HMAC invocation bound to both
 the command and that backend deployment ID. The receiver rejects every other
 release class or deployment identity. That function reads base membership plus its revision,
 plans the mutation, and writes the beta entitlement in one database
-transaction. The CLI never performs the beta write directly; afterward it
+transaction. Before dry-run or apply the CLI queries `softbook_accounts` and
+requires exactly the command's existing instance; an absent instance is an
+explicit refusal that tells the user to sign in first. It also requires at
+least one strict current active session whose phone, account key and instance
+match the command and whose refresh lifetime is still valid; an active-shaped
+malformed or expired record fails closed. The receiver transaction
+rederives the account key from the private phone and requires that exact current
+instance plus deletion-task absence, so an A1 command cannot grant A2 after
+deletion and re-registration. The CLI never performs the beta write directly; afterward it
 re-reads and verifies the normalized beta audit against the function result.
 The receiver transaction also derives and reads the account-keyed deletion
 task before base-membership reconciliation or beta mutation. Any present task

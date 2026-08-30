@@ -1,6 +1,8 @@
 const crypto = require('node:crypto');
 const {
+  assertCloudBaseAccountSessionAuthority,
   assertCloudBaseAccountWriteAllowed,
+  assertMemoryAccountSessionAuthority,
   assertMemoryAccountWriteAllowed,
   isAccountDeletionPendingError,
 } = require('./account-write-fence');
@@ -47,10 +49,22 @@ function createMemoryLearningEventsCommitter(options) {
 
   return input =>
     runTransaction(async () => {
-      assertMemoryAccountWriteAllowed(
-        options.accountDeletions,
-        input.accountKey,
-      );
+      if (input.sessionAuthority) {
+        assertMemoryAccountSessionAuthority(
+          {
+            accountDeletions: options.accountDeletions,
+            accounts: options.accounts,
+            authSessions: options.authSessions,
+          },
+          input.sessionAuthority,
+          {indexSecret: options.authIndexSecret, write: true},
+        );
+      } else {
+        assertMemoryAccountWriteAllowed(
+          options.accountDeletions,
+          input.accountKey,
+        );
+      }
       const staged = cloneMemoryState(state);
       const adapter = createMemoryAdapter(options, staged, input);
       const results = await commitLearningEventsTransaction(adapter, input);
@@ -86,11 +100,20 @@ function createCloudBaseLearningEventsCommitter(options) {
         );
 
         return await options.db.runTransaction(async transaction => {
-          await assertCloudBaseAccountWriteAllowed(
-            transaction,
-            options.collections.accountDeletions,
-            input.accountKey,
-          );
+          if (input.sessionAuthority) {
+            await assertCloudBaseAccountSessionAuthority(
+              transaction,
+              options.collections,
+              input.sessionAuthority,
+              {indexSecret: options.authIndexSecret, write: true},
+            );
+          } else {
+            await assertCloudBaseAccountWriteAllowed(
+              transaction,
+              options.collections.accountDeletions,
+              input.accountKey,
+            );
+          }
           const adapter = createCloudBaseAdapter(
             options,
             transaction,

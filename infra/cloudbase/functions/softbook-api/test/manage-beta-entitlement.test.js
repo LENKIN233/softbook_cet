@@ -90,6 +90,50 @@ test('beta entitlement CLI is dry-run by default and never reports a phone numbe
   assert.equal(runner.updateCount(), 0);
 });
 
+test('beta entitlement CLI rejects a preregistration grant without an account instance', async () => {
+  const fixture = createFixture();
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executeBetaEntitlementCommand(
+      options,
+      dependencies(createRunner({includeAccount: false})),
+    ),
+    /must sign in first/,
+  );
+});
+
+test('beta entitlement CLI rejects cross-phone account-instance planning', async () => {
+  const fixture = createFixture();
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executeBetaEntitlementCommand(
+      options,
+      dependencies(createRunner({sessionPhone: '13900139000'})),
+    ),
+    /not bound to this signed-in user/,
+  );
+});
+
+test('beta entitlement CLI rejects an expired active-shaped instance session', async () => {
+  const fixture = createFixture();
+  const options = cli.parseBetaEntitlementArguments([
+    '--profile', fixture.profilePath, '--command', fixture.commandPath,
+  ]);
+  await assert.rejects(
+    () => cli.executeBetaEntitlementCommand(
+      options,
+      dependencies(createRunner({
+        refreshExpiresAt: '2026-08-01T00:00:00.000Z',
+      })),
+    ),
+    /not bound to this signed-in user/,
+  );
+});
+
 test('CloudBase preflight subprocess receives no Softbook runtime secrets', () => {
   const sanitized =
     cli.betaEntitlementCliInternals.operatorCredentialFreeEnvironment({
@@ -641,6 +685,7 @@ function createFixture(
     JSON.stringify({
       schema_version: 'beta-entitlement-command.v1',
       event_id: 'beta-event-grant-0001',
+      expected_account_instance_id: `account_${'a'.repeat(24)}`,
       action: 'grant',
       phone_number: '13800138000',
       campaign_id: 'cet4-beta-campaign-001',
@@ -669,12 +714,44 @@ function dependencies(runner) {
 
 function createRunner({
   includeBetaSecret = true,
+  includeAccount = true,
+  refreshExpiresAt = '2026-09-30T12:00:00.000Z',
+  sessionPhone = '13800138000',
   mutateMembershipAfterInvocation = false,
   remoteBackendDeploymentId = null,
   responseActionOverride = null,
   responseActiveCampaignOverride = null,
 } = {}) {
   const collections = new Map([
+    ['softbook_accounts', new Map(includeAccount ? [[
+      'a'.repeat(64),
+      {
+        account_instance_id: `account_${'a'.repeat(24)}`,
+        account_key: 'a'.repeat(64),
+        created_at: '2026-07-29T09:00:00.000Z',
+        schema_version: 'account-instance.v1',
+      },
+    ]] : [])],
+    ['softbook_auth_sessions', new Map(includeAccount ? [[
+      'session-test-beta-instance',
+      {
+        access_expires_at: '2026-08-30T12:15:00.000Z',
+        account_instance_id: `account_${'a'.repeat(24)}`,
+        account_key: 'a'.repeat(64),
+        created_at: '2026-08-30T12:00:00.000Z',
+        device_id: null,
+        device_name: null,
+        phone_number: sessionPhone,
+        refresh_expires_at: refreshExpiresAt,
+        refresh_rotation: 0,
+        refresh_token_hash: 'b'.repeat(64),
+        revoked_at: null,
+        revoked_reason: null,
+        session_id: 'session-test-beta-instance',
+        status: 'active',
+        updated_at: '2026-08-30T12:00:00.000Z',
+      },
+    ]] : [])],
     ['softbook_beta_entitlements', new Map()],
     ['softbook_memberships', new Map()],
   ]);
@@ -783,12 +860,12 @@ function createRunner({
         const results = commands.map(wrapper => {
           const command = JSON.parse(wrapper.Command);
           if (wrapper.CommandType === 'QUERY') {
-            const document = collections
-              .get(wrapper.TableName)
-              ?.get(command.filter._id);
-            return document
-              ? [{_id: command.filter._id, ...structuredClone(document)}]
-              : [];
+            return [...(collections.get(wrapper.TableName) ?? new Map())]
+              .map(([id, document]) => ({_id: id, ...structuredClone(document)}))
+              .filter(document => Object.entries(command.filter).every(
+                ([field, expected]) => document[field] === expected,
+              ))
+              .slice(0, command.limit ?? 1);
           }
           if (wrapper.CommandType === 'UPDATE') {
             throw new Error('beta apply must not issue a direct database update');

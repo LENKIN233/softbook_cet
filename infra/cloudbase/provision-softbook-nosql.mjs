@@ -26,6 +26,7 @@ const tcb = process.env.CLOUDBASE_CLI || "tcb";
 // prettier-ignore
 const collections = [
   'softbook_account_deletions',
+  'softbook_accounts',
   'softbook_auth_challenges',
   'softbook_auth_rate_limits',
   'softbook_auth_sessions',

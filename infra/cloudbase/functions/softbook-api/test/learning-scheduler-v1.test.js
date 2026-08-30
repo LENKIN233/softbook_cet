@@ -47,6 +47,7 @@ function createTestApi(options = {}) {
 
   return {
     api: createSoftbookApi({
+      authV2IndexSecret: 'softbook-cloudbase-dev-secret',
       learningSchedulerRandomBytes: size => {
         selectionCounter += 1;
         return Buffer.alloc(size, selectionCounter);

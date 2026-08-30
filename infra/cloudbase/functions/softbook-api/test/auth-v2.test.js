@@ -45,7 +45,8 @@ function createV2TestApi(options = {}) {
   const store = options.store ?? createMemoryStore();
   const api = createSoftbookApi({
     authV2CodeGenerator: () => SMS_CODE,
-    authV2IndexSecret: options.indexSecret ?? TOKEN_SECRET,
+    authV2IndexSecret:
+      options.indexSecret ?? 'softbook-cloudbase-dev-secret',
     authV2IpRequestLimit: options.ipRequestLimit,
     authV2PhoneRequestLimit: options.phoneRequestLimit,
     authV2VerifyAttemptLimit: options.verifyAttemptLimit,
@@ -147,11 +148,126 @@ test('v2 SMS challenge stores only a digest and issues a server-backed session',
     .snapshot()
     .authSessions.get(verified.body.data.session_id);
   assert.equal(persistedSession.device_id, 'ios-device-1');
+  const persistedAccount = store.snapshot().accounts.get(
+    persistedSession.account_key,
+  );
+  assert.equal(persistedAccount.schema_version, 'account-instance.v1');
+  assert.match(persistedAccount.account_instance_id, /^account_[A-Za-z0-9_-]{24,}$/);
+  assert.equal(Object.hasOwn(persistedAccount, 'phone_number'), false);
+  assert.equal(
+    persistedSession.account_instance_id,
+    persistedAccount.account_instance_id,
+  );
   assert.equal(persistedSession.refresh_token_hash.length, 64);
   assert.equal(
     JSON.stringify(persistedSession).includes(verified.body.data.refresh_token),
     false,
   );
+});
+
+test('two accountless challenges can create only one account instance', async () => {
+  for (const [kind, store, snapshot] of [
+    [
+      'memory',
+      createMemoryStore(),
+      value => value.snapshot(),
+    ],
+    [
+      'cloudbase',
+      createCloudBaseStore({db: createFakeCloudBaseDb()}),
+      value => value,
+    ],
+  ]) {
+    const {api} = createV2TestApi({store});
+    const firstChallenge = await issueChallenge(api, PHONE_NUMBER, '203.0.113.11');
+    const secondChallenge = await issueChallenge(api, PHONE_NUMBER, '203.0.113.12');
+    const verify = challenge => request(api, {
+      body: {
+        challenge_id: challenge.body.data.challenge_id,
+        phone_number: PHONE_NUMBER,
+        sms_code: SMS_CODE,
+      },
+      path: '/v2/auth/verify-code',
+    });
+
+    const first = await verify(firstChallenge);
+    const second = await verify(secondChallenge);
+
+    assert.equal(first.statusCode, 200, kind);
+    assert.equal(second.statusCode, 409, kind);
+    assert.equal(second.body.error.code, 'account_instance_changed', kind);
+    if (kind === 'memory') {
+      assert.equal(snapshot(store).accounts.size, 1);
+      assert.equal(snapshot(store).authSessions.size, 1);
+    }
+  }
+});
+
+test('old session, challenge, read, and deletion request cannot cross delete and re-registration', async () => {
+  const {api, store} = createV2TestApi();
+  const first = await issueSession(api, {clientIp: '203.0.113.13'});
+  const firstStoredSession = store.snapshot().authSessions.get(first.session_id);
+  const oldChallenge = await issueChallenge(api, PHONE_NUMBER, '203.0.113.14');
+  const oldChallengeRecord = structuredClone(
+    store.snapshot().authChallenges.get(oldChallenge.body.data.challenge_id),
+  );
+  const oldHeaders = {authorization: `Bearer ${first.access_token}`};
+  const deletion = await request(api, {
+    body: {},
+    headers: oldHeaders,
+    path: '/v2/account/deletion',
+  });
+  assert.equal(deletion.statusCode, 202);
+  const worker = await store.runAccountDeletionWorkerForTest();
+  assert.equal(worker.completed_count, 1);
+  const second = await issueSession(api, {clientIp: '203.0.113.15'});
+  const secondStoredSession = store.snapshot().authSessions.get(second.session_id);
+  assert.notEqual(
+    firstStoredSession.account_instance_id,
+    secondStoredSession.account_instance_id,
+  );
+
+  store.snapshot().authChallenges.set(
+    oldChallenge.body.data.challenge_id,
+    oldChallengeRecord,
+  );
+  const staleChallenge = await request(api, {
+    body: {
+      challenge_id: oldChallenge.body.data.challenge_id,
+      phone_number: PHONE_NUMBER,
+      sms_code: SMS_CODE,
+    },
+    path: '/v2/auth/verify-code',
+  });
+  assert.equal(staleChallenge.statusCode, 409);
+  assert.equal(staleChallenge.body.error.code, 'account_instance_changed');
+
+  const staleRead = await request(api, {
+    headers: oldHeaders,
+    method: 'GET',
+    path: '/v2/membership/entitlement',
+  });
+  const staleWrite = await request(api, {
+    body: {day_key: '2026-07-20'},
+    headers: oldHeaders,
+    path: '/v2/progress/check-in',
+  });
+  const staleDeletion = await request(api, {
+    body: {},
+    headers: oldHeaders,
+    path: '/v2/account/deletion',
+  });
+  for (const response of [staleRead, staleWrite, staleDeletion]) {
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.body.error.code, 'revoked_auth_session');
+  }
+
+  const currentWrite = await request(api, {
+    body: {day_key: '2026-07-20'},
+    headers: {authorization: `Bearer ${second.access_token}`},
+    path: '/v2/progress/check-in',
+  });
+  assert.equal(currentWrite.statusCode, 200);
 });
 
 test('v2 delegates provider-owned SMS challenges without storing or generating the code', async () => {
@@ -482,7 +598,7 @@ test('v2 logout is idempotent and account deletion queues once then revokes all 
   assert.equal(store.snapshot().accountDeletions.size, 1);
   assert.equal(
     [...store.snapshot().accountDeletions.values()][0].schema_version,
-    'account-deletion-task.v1',
+    'account-deletion-task.v2',
   );
   assert.deepEqual(
     {
@@ -1037,6 +1153,7 @@ test('v2 active-session guard denies access when a deletion task exists', async 
   const service = createAuthV2Service({
     codeGenerator: () => SMS_CODE,
     developmentSmsCode: SMS_CODE,
+    indexSecret: 'softbook-cloudbase-dev-secret',
     now: clock.now,
     smsProvider: sms.provider,
     store,
@@ -1059,10 +1176,19 @@ test('v2 active-session guard denies access when a deletion task exists', async 
     .snapshot()
     .authSessions.get(session.session_id);
   await store.getOrCreateAccountDeletionTask({
+    account_instance_id: persistedSession.account_instance_id,
     account_key: persistedSession.account_key,
+    attempt_count: 0,
     deletion_id: 'delete_active_guard_test',
+    last_attempt_at: null,
+    last_failure_code: null,
+    lease_expires_at: null,
+    lease_id: null,
+    origin_session_id: persistedSession.session_id,
     phone_number: PHONE_NUMBER,
+    phone_rate_key: `phone:${'d'.repeat(64)}`,
     requested_at: clock.now().toISOString(),
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
   });
 
@@ -1157,10 +1283,19 @@ test('v2 auth state survives separate CloudBase function instances', async () =>
     .get('softbook_auth_sessions')
     .get(verified.body.data.session_id);
   await first.store.getOrCreateAccountDeletionTask({
+    account_instance_id: persistedSession.account_instance_id,
     account_key: persistedSession.account_key,
+    attempt_count: 0,
     deletion_id: 'delete_cloudbase_test',
+    last_attempt_at: null,
+    last_failure_code: null,
+    lease_expires_at: null,
+    lease_id: null,
+    origin_session_id: persistedSession.session_id,
     phone_number: PHONE_NUMBER,
+    phone_rate_key: `phone:${'d'.repeat(64)}`,
     requested_at: '2026-07-20T08:00:00.000Z',
+    schema_version: 'account-deletion-task.v2',
     status: 'queued',
   });
   assert.equal(
@@ -1205,10 +1340,11 @@ test('CloudBase finalizing fence rejects request-code before any durable materia
   const store = createCloudBaseStore({db});
   const {api} = createV2TestApi({sms, store});
   const accountKey = crypto
-    .createHmac('sha256', TOKEN_SECRET)
+    .createHmac('sha256', 'softbook-cloudbase-dev-secret')
     .update(`account:${PHONE_NUMBER}`)
     .digest('hex');
   await db.collection('softbook_account_deletions').doc(accountKey).set({
+    account_instance_id: `account_${'a'.repeat(24)}`,
     account_key: accountKey,
     attempt_count: 1,
     deletion_id: 'delete_cloudbase_finalizing',
@@ -1216,10 +1352,11 @@ test('CloudBase finalizing fence rejects request-code before any durable materia
     last_failure_code: null,
     lease_expires_at: '2026-07-20T08:05:00.000Z',
     lease_id: `lease_${'c'.repeat(24)}`,
+    origin_session_id: 's'.repeat(24),
     phone_number: PHONE_NUMBER,
     phone_rate_key: `phone:${'d'.repeat(64)}`,
     requested_at: '2026-07-20T07:59:00.000Z',
-    schema_version: 'account-deletion-task.v1',
+    schema_version: 'account-deletion-task.v2',
     status: 'finalizing',
   });
 

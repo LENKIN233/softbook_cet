@@ -42,6 +42,7 @@ import {readPrivateOperatorCommandBytes} from './operator-command-input.mjs';
 const CLOUD_BASE_ROOT = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(CLOUD_BASE_ROOT, '../..');
 const MEMBERSHIP_COLLECTION = 'softbook_memberships';
+const ACCOUNT_COLLECTION = 'softbook_accounts';
 const BETA_ENTITLEMENT_COLLECTION = 'softbook_beta_entitlements';
 const FUNCTION_NAME = 'softbook-api';
 const OPERATOR_PATTERN = /^(model|agent|service|oidc):[A-Za-z0-9_.-]+$/;
@@ -200,6 +201,13 @@ export async function executeBetaEntitlementCommand(
     return completeReport({...base, status: 'blocked', writes_performed: false});
   }
 
+  await requireCurrentAccountInstance({
+    command,
+    observedAt: startedAt,
+    profile,
+    runner,
+  });
+
   if (options.apply) {
     if (!writeSafety.ok) {
       throw new BetaEntitlementError(writeSafety.errors.join('; '));
@@ -339,6 +347,108 @@ async function readDocument({collection, command, label, profile, runner}) {
     );
   }
   return results[0] ?? null;
+}
+
+async function requireCurrentAccountInstance({
+  command,
+  observedAt,
+  profile,
+  runner,
+}) {
+  const output = await runner.run(
+    [
+      'db', 'nosql', 'execute', '-e', profile.environment_id, '--command',
+      JSON.stringify([queryByFieldCommand(
+        ACCOUNT_COLLECTION,
+        'account_instance_id',
+        command.expected_account_instance_id,
+      )]),
+      '--json',
+    ],
+    {label: 'verify current account instance'},
+  );
+  const results = parseTcbJson(output)?.data?.results?.[0];
+  if (!Array.isArray(results) || results.length !== 1) {
+    throw new BetaEntitlementError(
+      'The expected account instance does not exist; the user must sign in first.',
+    );
+  }
+  const account = assertCurrentAccountInstance(
+    results[0],
+    command.expected_account_instance_id,
+  );
+  const sessionOutput = await runner.run(
+    [
+      'db', 'nosql', 'execute', '-e', profile.environment_id, '--command',
+      JSON.stringify([queryByFilterCommand('softbook_auth_sessions', {
+        account_instance_id: command.expected_account_instance_id,
+        account_key: account.account_key,
+        phone_number: command.phone_number,
+        status: 'active',
+      })]),
+      '--json',
+    ],
+    {label: 'verify account instance phone binding'},
+  );
+  const sessions = parseTcbJson(sessionOutput)?.data?.results?.[0];
+  if (
+    !Array.isArray(sessions) ||
+    sessions.length === 0 ||
+    sessions.some(session => !isExactActiveSession(
+      session,
+      account,
+      command,
+      observedAt,
+    ))
+  ) {
+    throw new BetaEntitlementError(
+      'The expected account instance is not bound to this signed-in user.',
+    );
+  }
+}
+
+function isExactActiveSession(document, account, command, observedAt) {
+  const value = {...document};
+  const documentId = value._id;
+  delete value._id;
+  const expectedKeys = [
+    'access_expires_at', 'account_instance_id', 'account_key', 'created_at',
+    'device_id', 'device_name', 'phone_number', 'refresh_expires_at',
+    'refresh_rotation', 'refresh_token_hash', 'revoked_at', 'revoked_reason',
+    'session_id', 'status', 'updated_at',
+  ].sort();
+  const keys = Object.keys(value).sort();
+  return (
+    keys.length === expectedKeys.length &&
+    keys.every((key, index) => key === expectedKeys[index]) &&
+    value.session_id === documentId &&
+    value.status === 'active' &&
+    value.revoked_at === null &&
+    value.revoked_reason === null &&
+    value.account_key === account.account_key &&
+    value.account_instance_id === command.expected_account_instance_id &&
+    value.phone_number === command.phone_number &&
+    Number.isFinite(Date.parse(value.refresh_expires_at)) &&
+    Date.parse(value.refresh_expires_at) > Date.parse(observedAt)
+  );
+}
+
+function assertCurrentAccountInstance(document, expectedId) {
+  const value = {...document};
+  const documentId = value._id;
+  delete value._id;
+  if (
+    Object.keys(value).sort().join(',') !==
+      'account_instance_id,account_key,created_at,schema_version' ||
+    value.schema_version !== 'account-instance.v1' ||
+    value.account_instance_id !== expectedId ||
+    value.account_key !== documentId ||
+    !Number.isFinite(Date.parse(value.created_at)) ||
+    Object.hasOwn(value, 'phone_number')
+  ) {
+    throw new BetaEntitlementError('The expected account instance is invalid.');
+  }
+  return value;
 }
 
 async function invokeBetaEntitlement({
@@ -618,6 +728,18 @@ function queryCommand(collection, phoneNumber) {
       filter: {_id: phoneNumber},
       limit: 1,
     }),
+  };
+}
+
+function queryByFieldCommand(collection, field, value) {
+  return queryByFilterCommand(collection, {[field]: value});
+}
+
+function queryByFilterCommand(collection, filter) {
+  return {
+    TableName: collection,
+    CommandType: 'QUERY',
+    Command: JSON.stringify({find: collection, filter, limit: 2}),
   };
 }
 

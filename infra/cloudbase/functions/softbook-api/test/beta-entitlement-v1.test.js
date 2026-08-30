@@ -205,6 +205,7 @@ function command(action) {
   return {
     schema_version: 'beta-entitlement-command.v1',
     event_id: action === 'grant' ? 'beta-event-grant-0001' : 'beta-event-revoke-0001',
+    expected_account_instance_id: `account_${'a'.repeat(24)}`,
     action,
     phone_number: '13800138000',
     campaign_id: 'cet4-beta-campaign-001',
