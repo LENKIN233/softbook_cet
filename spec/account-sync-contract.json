@@ -291,7 +291,7 @@
       "migrated_account_v1_learning_writes": "daily_and_learning_snapshot_routes_disabled_globally_v2_check_in_is_the_only_daily_write",
       "server_scheduler": true,
       "server_scheduler_status": "repository_local_backend_implemented_not_deployed",
-      "server_scheduler_transaction_read_order": "nontransactional_card_source_may_overlap_then_learning_membership_space_and_cursor_reads_execute_serially_to_avoid_live_flexdb_busy_bursts",
+      "server_scheduler_transaction_read_order": "nontransactional_card_source_may_overlap_then_initial_learning_membership_space_and_cursor_snapshot_uses_ordered_direct_reads_while_every_response_requires_final_cursor_session_deletion_revision_confirmation_exact_membership_checkpoint_reread_and_conditional_trial_activation_fence",
       "selection_bound_events": true,
       "mobile_scheduler_session_binding": true,
       "production_deployment": false

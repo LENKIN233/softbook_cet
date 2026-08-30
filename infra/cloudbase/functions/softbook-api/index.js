@@ -2314,9 +2314,11 @@ function createCloudBaseStore(options = {}) {
             );
       assertLearningSessionProjectionWatermark(sessionState, accountState);
 
-      await db.runTransaction(transaction =>
-        assertAccountReadAllowed(transaction, options),
-      );
+      if (options.schedulerSnapshot !== true) {
+        await db.runTransaction(transaction =>
+          assertAccountReadAllowed(transaction, options),
+        );
+      }
 
       return {
         ...state,
@@ -2338,6 +2340,18 @@ function createCloudBaseStore(options = {}) {
       };
     },
     getLearningSessionCursor: async (accountKey, track, options = {}) => {
+      if (options.schedulerSnapshot === true) {
+        const document = await getCloudBaseDocument(
+          learningSessions,
+          createAccountLearningSessionId(accountKey, track),
+        );
+        if (!isObject(document) || !Object.hasOwn(document, '_id')) {
+          return document;
+        }
+        const value = {...document};
+        delete value._id;
+        return value;
+      }
       const document = await db.runTransaction(async transaction => {
         await assertAccountReadAllowed(transaction, options);
         return getCloudBaseDocument(
@@ -2449,6 +2463,37 @@ function createCloudBaseStore(options = {}) {
         return publicPilotEntitlementPlan(plan);
       }),
     getMembership: async (phoneNumber, observedAt, options = {}) => {
+      if (options.schedulerSnapshot === true) {
+        const current = await getCloudBaseMembershipRecord(
+          memberships,
+          membershipRevisions,
+          phoneNumber,
+        );
+        const normalized = expireMembershipIfNeeded(
+          current.entitlement,
+          observedAt,
+        );
+        return createCanonicalMembershipProjection({
+          base: {
+            ...current,
+            entitlement: normalized.entitlement,
+            observedAt: normalized.observedAt,
+            revision: current.revision,
+            updatedAt: current.document?.updated_at ?? null,
+          },
+          betaEntitlement: await getCloudBaseDocument(
+            betaEntitlements,
+            phoneNumber,
+          ),
+          phoneNumber,
+          pilotEntitlement:
+            runtimeMode === 'controlled_pilot'
+              ? await getCloudBaseDocument(pilotEntitlements, phoneNumber)
+              : null,
+          pilotExpiresAt,
+          pilotId,
+        });
+      }
       const {base, betaEntitlement, pilotEntitlement} =
         await db.runTransaction(async transaction => {
           await assertAccountWriteAllowed(
@@ -2906,6 +2951,34 @@ function createCloudBaseStore(options = {}) {
             {phone_number: phoneNumber},
             LEGACY_SPACE_QUERY_MAX_DOCUMENTS,
           );
+      if (options.schedulerSnapshot === true) {
+        const storedRevision = await getCloudBaseDocument(
+          spaceStateRevisions,
+          revisionId,
+        );
+        const state = existing
+          ? normalizeStoredSpaceState(existing, options.accountKey)
+          : migrateLegacySpaceDocuments(
+              legacyDocuments,
+              options.accountKey,
+              options.acknowledgedAt ?? new Date().toISOString(),
+            );
+        const stateExists =
+          existing !== null || hasPersistedSpaceState(state);
+        const snapshot = inspectSpaceRevisionSnapshot({
+          accountKey: options.accountKey,
+          needsStateRewrite:
+            existing !== null
+              ? Object.hasOwn(existing, 'revision')
+              : stateExists,
+          revision: storedRevision,
+          state,
+          stateExists,
+        });
+        if (!snapshot.needsCheckpoint && !snapshot.needsStateRewrite) {
+          return cloneSpaceState(snapshot.state);
+        }
+      }
       return db.runTransaction(async transaction => {
         await assertAccountWriteAllowed(
           transaction,

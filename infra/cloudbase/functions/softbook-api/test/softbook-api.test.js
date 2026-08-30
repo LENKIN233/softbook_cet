@@ -1427,6 +1427,27 @@ test('CloudBase learning-session cursor survives separate function instances', a
   });
 });
 
+test('CloudBase learning-session initial snapshot defers fences to final cursor and membership transactions', async () => {
+  const db = createFakeCloudBaseDb();
+  const api = createTestApi({store: createCloudBaseStore({db})});
+  const session = await authenticatedV2Session(
+    api,
+    '13800138011',
+    '127.0.0.111',
+  );
+  const before = db.transactionCount();
+  const response = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/learning/session',
+    query: {track: 'cet4'},
+  });
+
+  assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+  assert.equal(db.transactionCount() - before, 4);
+  assert.equal(response.body.data.membership_stage, 'trial');
+});
+
 test('CloudBase pilot round acknowledgement survives separate function instances', async () => {
   const db = createFakeCloudBaseDb();
   const firstStore = createCloudBaseStore({db});
