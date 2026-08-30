@@ -28,6 +28,9 @@ function createHarness(
   shouldPreserveAuthorizationRejection?: (
     sessionScopeKey: string,
   ) => boolean,
+  beforeSessionInvalidation?: Parameters<
+    typeof createAuthSessionCoordinator
+  >[0]['beforeSessionInvalidation'],
 ) {
   let persistedSession = restoredSession;
   const authSessionStore: AuthSessionStore = {
@@ -51,12 +54,86 @@ function createHarness(
   const coordinator = createAuthSessionCoordinator({
     authRepository,
     authSessionStore,
+    beforeSessionInvalidation,
     now: () => NOW,
     shouldPreserveAuthorizationRejection,
   });
 
   return {authRepository, authSessionStore, coordinator};
 }
+
+test('pre-invalidation hook failure preserves the current session and store', async () => {
+  const session = createSession();
+  const beforeSessionInvalidation = jest.fn(async () => {
+    throw new Error('marker write failed');
+  });
+  const {authSessionStore, coordinator} = createHarness(
+    null,
+    undefined,
+    beforeSessionInvalidation,
+  );
+  await coordinator.establish(session);
+
+  await expect(coordinator.invalidate()).rejects.toThrow('marker write failed');
+
+  expect(beforeSessionInvalidation).toHaveBeenCalledWith({
+    reason: 'session_changed',
+    session,
+  });
+  expect(coordinator.getCurrentSession()).toEqual(session);
+  expect(authSessionStore.clear).not.toHaveBeenCalled();
+});
+
+test('exactly discards an unbound session without invoking the invalidation hook', async () => {
+  const session = createSession();
+  const beforeSessionInvalidation = jest.fn(async () => {
+    throw new Error('stale epoch cannot write a cleanup marker');
+  });
+  const {authSessionStore, coordinator} = createHarness(
+    null,
+    undefined,
+    beforeSessionInvalidation,
+  );
+  await coordinator.establish(session);
+
+  await expect(
+    coordinator.discardUnboundSessionExactly(
+      'remote:13800138000:replacement-session',
+    ),
+  ).resolves.toBe(false);
+  expect(coordinator.getCurrentSession()).toBe(session);
+  await expect(
+    coordinator.discardUnboundSessionExactly(
+      'remote:13800138000:session-123',
+    ),
+  ).resolves.toBe(true);
+
+  expect(beforeSessionInvalidation).not.toHaveBeenCalled();
+  expect(authSessionStore.clearExactly).toHaveBeenCalledTimes(1);
+  expect(coordinator.getCurrentSession()).toBeNull();
+});
+
+test('pre-invalidation hook completes before the session and store clear', async () => {
+  const order: string[] = [];
+  const session = createSession();
+  const beforeSessionInvalidation = jest.fn(async () => {
+    order.push('marker');
+  });
+  const {authSessionStore, coordinator} = createHarness(
+    null,
+    undefined,
+    beforeSessionInvalidation,
+  );
+  jest.mocked(authSessionStore.clear).mockImplementation(async () => {
+    order.push('store-clear');
+  });
+  await coordinator.establish(session);
+
+  await coordinator.invalidate();
+
+  expect(order).toEqual(['marker', 'store-clear']);
+  expect(coordinator.getCurrentSession()).toBeNull();
+});
 
 test('restore keeps a fresh secure session without refreshing it', async () => {
   const session = createSession();

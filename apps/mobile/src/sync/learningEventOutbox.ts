@@ -33,7 +33,12 @@ type LearningEventOutboxState = {
 
 export type LearningEventOutboxStorage = {
   getItem: (key: string) => Promise<string | null>;
+  isAccountWriteQuarantined?: () => Promise<boolean>;
   removeItem: (key: string) => Promise<void>;
+  runExclusive?: <Result>(
+    key: string,
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
   setItem: (key: string, value: string) => Promise<void>;
 };
 
@@ -87,7 +92,9 @@ export class LearningEventOutbox {
         : options.legacyKey;
     this.now = options.now ?? (() => new Date().toISOString());
     this.storage = options.storage;
-    this.hydrationPromise = this.load();
+    this.hydrationPromise = this.storage.runExclusive
+      ? this.storage.runExclusive(this.key, () => this.load())
+      : this.load();
   }
 
   async hydrate(): Promise<void> {
@@ -303,11 +310,14 @@ export class LearningEventOutbox {
       await this.storage.removeItem(this.legacyKey);
     }
 
+    this.state = await this.readPersistedState();
+  }
+
+  private async readPersistedState(): Promise<LearningEventOutboxState> {
     const stored = await this.storage.getItem(this.key);
 
     if (!stored) {
-      this.state = createEmptyState(this.createDeviceId());
-      return;
+      return createEmptyState(this.createDeviceId());
     }
 
     let sanitized: LearningEventOutboxState;
@@ -319,21 +329,33 @@ export class LearningEventOutbox {
       console.warn(
         '[LearningEventOutbox] Discarded unreadable persisted state.',
       );
-      this.state = createEmptyState(this.createDeviceId());
-      return;
+      return createEmptyState(this.createDeviceId());
     }
 
     if (stored !== JSON.stringify(sanitized)) {
-      await this.storage.setItem(this.key, JSON.stringify(sanitized));
+      const quarantined =
+        (await this.storage.isAccountWriteQuarantined?.()) ?? false;
+      if (!quarantined) {
+        await this.storage.setItem(this.key, JSON.stringify(sanitized));
+      }
     }
 
-    this.state = sanitized;
+    return sanitized;
   }
 
   private runExclusive<T>(operation: () => Promise<T>): Promise<T> {
     const result = this.operationTail
       .then(() => this.hydrationPromise)
-      .then(operation);
+      .then(() => {
+        if (this.storage.runExclusive === undefined) {
+          return operation();
+        }
+
+        return this.storage.runExclusive(this.key, async () => {
+          this.state = await this.readPersistedState();
+          return operation();
+        });
+      });
 
     this.operationTail = result.then(
       () => undefined,

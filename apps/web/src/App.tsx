@@ -1,4 +1,11 @@
-import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import type {
   LearningCard,
@@ -24,6 +31,7 @@ import {
   createWebRemoteRuntime,
   WebRemotePostAuthError,
   type WebAccountDeletionOutcome,
+  type WebAccountPresentationInvalidation,
   type WebRemoteSnapshot,
 } from './remoteRuntime';
 import {resolveWebRuntime} from './runtime';
@@ -36,6 +44,11 @@ type AccountDeletionStage =
   | 'cleanup_required'
   | 'confirming'
   | 'none'
+  | 'registration_cleanup_required'
+  | 'registration_ready'
+  | 'recovery_code'
+  | 'recovery_phone'
+  | 'session_cleanup_required'
   | 'submitting'
   | 'unknown';
 
@@ -117,6 +130,31 @@ export function App({
     useState<AccountDeletionStage>(
       runtime.mode === 'remote' ? 'checking' : 'none',
     );
+  const audioRequestGeneration = useRef(0);
+  const accountAuthorityGeneration = useRef(0);
+  const handleAccountPresentationInvalidation = useEffectEvent(
+    (event: WebAccountPresentationInvalidation) => {
+      const generation = accountAuthorityGeneration.current + 1;
+      accountAuthorityGeneration.current = generation;
+      resetAccountState();
+      setAccountDeletionStage('checking');
+      if (event.source !== 'external_epoch' || remoteController === null) {
+        return;
+      }
+      void Promise.resolve()
+        .then(() => remoteController.resumeAccountDeletion())
+        .then(outcome => {
+          if (accountAuthorityGeneration.current === generation) {
+            applyAccountDeletionOutcome(outcome);
+          }
+        })
+        .catch(() => {
+          if (accountAuthorityGeneration.current === generation) {
+            setAccountDeletionStage('unknown');
+          }
+        });
+    },
+  );
 
   const activeCards = runtime.mode === 'remote'
     ? session?.cards ?? []
@@ -164,12 +202,31 @@ export function App({
   const accountDeletionLocksAccount =
     accountDeletionStage === 'submitting' ||
     accountDeletionStage === 'unknown' ||
+    accountDeletionStage === 'recovery_code' ||
+    accountDeletionStage === 'recovery_phone' ||
+    accountDeletionStage === 'registration_cleanup_required' ||
+    accountDeletionStage === 'session_cleanup_required' ||
     accountDeletionStage === 'cleanup_required';
   const productBusy =
     remoteBusy ||
     remoteCleanupPending ||
     accountDeletionLocksAccount ||
     learningSync?.status === 'queued';
+
+  useEffect(() => {
+    if (remoteController === null) {
+      return;
+    }
+    const unsubscribePresentation =
+      remoteController.subscribeAccountPresentationInvalidation(
+        handleAccountPresentationInvalidation,
+      );
+    remoteController.start();
+    return () => {
+      unsubscribePresentation();
+      remoteController.dispose();
+    };
+  }, [remoteController]);
 
   useEffect(() => {
     let active = true;
@@ -191,6 +248,7 @@ export function App({
 
   useEffect(() => {
     let active = true;
+    const generation = accountAuthorityGeneration.current;
     if (runtime.mode !== 'remote' || remoteController === null) {
       setAccountDeletionStage('none');
       return;
@@ -198,7 +256,9 @@ export function App({
     void remoteController
       .resumeAccountDeletion()
       .then(outcome => {
-        if (!active) return;
+        if (!active || accountAuthorityGeneration.current !== generation) {
+          return;
+        }
         setAccountDeletionStage(
           outcome.status === 'accepted'
             ? 'accepted'
@@ -206,16 +266,45 @@ export function App({
             ? 'cleanup_required'
             : outcome.status === 'unknown'
             ? 'unknown'
+            : outcome.status === 'reauthentication_required'
+            ? 'recovery_phone'
+            : outcome.status === 'registration_cleanup_required'
+            ? 'registration_cleanup_required'
+            : outcome.status === 'registration_ready'
+            ? 'registration_ready'
+            : outcome.status === 'session_cleanup_required'
+            ? 'session_cleanup_required'
             : 'none',
         );
+        if (outcome.status === 'reauthentication_required') {
+          setPhone(outcome.phoneNumber);
+          setCode('');
+        }
       })
       .catch(() => {
-        if (active) setAccountDeletionStage('cleanup_required');
+        if (
+          active &&
+          accountAuthorityGeneration.current === generation
+        ) {
+          setAccountDeletionStage('unknown');
+        }
       });
     return () => {
       active = false;
     };
   }, [remoteController, runtime.mode]);
+
+  useEffect(() => {
+    if (remoteController === null) {
+      return;
+    }
+    return remoteController.subscribeAudioStatus(status => {
+      setAudioStatus(status);
+      if (status === 'error') {
+        setRemoteError('卡片音频播放已中断，请重试。');
+      }
+    });
+  }, [remoteController]);
 
   useEffect(() => {
     window.scrollTo({behavior: 'auto', top: 0});
@@ -224,29 +313,49 @@ export function App({
   function applyRemoteSnapshot(snapshot: WebRemoteSnapshot) {
     const nextSession = snapshot.learningSession;
     const nextCard = nextSession.cards[0] ?? null;
+    const previousSelectionId = session?.serverSelection?.selectionId ?? null;
+    const nextSelectionId = nextSession.serverSelection?.selectionId ?? null;
+    const preservesCurrentCardDraft =
+      previousSelectionId !== null &&
+      previousSelectionId === nextSelectionId &&
+      currentCard !== null &&
+      nextCard?.card_id === currentCard.card_id;
     setSession(nextSession);
     setCurrentIndex(0);
     setLearningPhase(nextSession.serverSelection?.phase ?? 'learning');
     setReviewCards([]);
     setSessionComplete(nextSession.cards.length === 0);
     setResults([...snapshot.learningResults, ...snapshot.reviewResults]);
-    setResolved(null);
+    if (!preservesCurrentCardDraft) {
+      audioRequestGeneration.current += 1;
+      setResolved(null);
+    }
     setFavorites(snapshot.favorites);
     setSleeping(snapshot.sleeping);
     setSpaceSync(snapshot.spaceSync);
     setLearningSync(snapshot.learningSync);
     setCheckInSync(snapshot.checkInSync);
-    setQueuedLearningResult(null);
+    if (!preservesCurrentCardDraft) {
+      setQueuedLearningResult(null);
+    }
     setMembership(snapshot.membership);
-    setCardState(
-      nextCard ? withFavoriteState(nextCard, snapshot.favorites) : null,
-    );
+    setCardState(previous => {
+      if (preservesCurrentCardDraft && previous !== null && nextCard !== null) {
+        return {
+          ...previous,
+          isFavorited: snapshot.favorites.includes(nextCard.card_id),
+        };
+      }
+      return nextCard ? withFavoriteState(nextCard, snapshot.favorites) : null;
+    });
     setRemoteError(
       snapshot.spaceSync.rejectedActionCount > 0
         ? '空间操作未被服务端接受，已停止自动重试。请重新读取后再操作。'
         : '',
     );
-    setAudioStatus('idle');
+    if (!preservesCurrentCardDraft) {
+      setAudioStatus('idle');
+    }
   }
 
   async function requestCode() {
@@ -383,6 +492,7 @@ export function App({
   }
 
   function resetAccountState() {
+    audioRequestGeneration.current += 1;
     setAuthStage('phone');
     setPhone('');
     setCode('');
@@ -413,6 +523,7 @@ export function App({
     setLearningSync(null);
     setCheckInSync(null);
     setQueuedLearningResult(null);
+    setAccountDeletionStage('none');
   }
 
   function applyAccountDeletionOutcome(outcome: WebAccountDeletionOutcome) {
@@ -429,6 +540,26 @@ export function App({
       setAccountDeletionStage('unknown');
       return;
     }
+    if (outcome.status === 'reauthentication_required') {
+      setPhone(outcome.phoneNumber);
+      setCode('');
+      setAuthError('');
+      setAccountDeletionStage('recovery_phone');
+      return;
+    }
+    if (outcome.status === 'registration_cleanup_required') {
+      setAccountDeletionStage('registration_cleanup_required');
+      return;
+    }
+    if (outcome.status === 'registration_ready') {
+      resetAccountState();
+      setAccountDeletionStage('registration_ready');
+      return;
+    }
+    if (outcome.status === 'session_cleanup_required') {
+      setAccountDeletionStage('session_cleanup_required');
+      return;
+    }
     setAccountDeletionStage('none');
   }
 
@@ -436,9 +567,30 @@ export function App({
     if (runtime.mode === 'remote' && remoteController !== null) {
       setRemoteBusy(true);
       try {
-        await remoteController.logout();
+        const outcome = await remoteController.logout();
+        if (outcome !== null && outcome.status !== 'none') {
+          applyAccountDeletionOutcome(outcome);
+          return;
+        }
         resetAccountState();
       } catch {
+        try {
+          const deletionOutcome =
+            await remoteController.resumeAccountDeletion();
+          if (
+            deletionOutcome.status === 'none' &&
+            !remoteController.isAuthenticated()
+          ) {
+            resetAccountState();
+            return;
+          }
+          if (deletionOutcome.status !== 'none') {
+            applyAccountDeletionOutcome(deletionOutcome);
+            return;
+          }
+        } catch {
+          // Preserve the authenticated recovery shell below when state is unreadable.
+        }
         setRemoteError('本地待同步记录尚未安全清理，当前页面不会退出。请重试。');
       } finally {
         setRemoteBusy(false);
@@ -451,7 +603,11 @@ export function App({
   async function handleRemoteFailure(error: unknown, fallback: string) {
     if (remoteController !== null && !remoteController.isAuthenticated()) {
       try {
-        await remoteController.cleanupInvalidatedSession();
+        const outcome = await remoteController.cleanupInvalidatedSession();
+        if (outcome !== null && outcome.status !== 'none') {
+          applyAccountDeletionOutcome(outcome);
+          return;
+        }
         resetAccountState();
         setAuthError('登录已失效，请重新验证。');
       } catch {
@@ -550,10 +706,19 @@ export function App({
     if (runtime.mode !== 'remote' || remoteController === null || !currentCard) {
       return;
     }
+    const requestGeneration = audioRequestGeneration.current + 1;
+    audioRequestGeneration.current = requestGeneration;
+    setRemoteError('');
     setAudioStatus('loading');
     try {
-      setAudioStatus(await remoteController.playCardAudio(currentCard));
+      const status = await remoteController.playCardAudio(currentCard);
+      if (audioRequestGeneration.current === requestGeneration) {
+        setAudioStatus(status);
+      }
     } catch (error) {
+      if (audioRequestGeneration.current !== requestGeneration) {
+        return;
+      }
       setAudioStatus('error');
       await handleRemoteFailure(error, '卡片音频暂时无法播放。');
     }
@@ -597,24 +762,112 @@ export function App({
     }
   }
 
+  async function requestAccountDeletionRecoveryCode() {
+    if (remoteController === null) return;
+    setRemoteBusy(true);
+    setAuthError('');
+    try {
+      await remoteController.requestAccountDeletionRecoverySmsCode();
+      setCode('');
+      setAccountDeletionStage('recovery_code');
+    } catch (error) {
+      setAuthError(
+        getUserFacingErrorMessage(error, '暂时无法发送验证码，请稍后再试。'),
+      );
+    } finally {
+      setRemoteBusy(false);
+    }
+  }
+
+  async function retryAccountDeletionRecoveryState() {
+    if (remoteController === null) return;
+    setRemoteBusy(true);
+    setAuthError('');
+    try {
+      const outcome = await remoteController.resumeAccountDeletion();
+      if (outcome.status === 'none' && !remoteController.isAuthenticated()) {
+        resetAccountState();
+        setAccountDeletionStage('none');
+        return;
+      }
+      applyAccountDeletionOutcome(outcome);
+    } catch (error) {
+      setAuthError(
+        getUserFacingErrorMessage(error, '账户状态暂时无法安全恢复。'),
+      );
+    } finally {
+      setRemoteBusy(false);
+    }
+  }
+
+  async function verifyAccountDeletionRecoveryCode() {
+    if (remoteController === null) return;
+    if (!/^\d{6}$/.test(code)) {
+      setAuthError('请输入 6 位验证码。');
+      return;
+    }
+    setRemoteBusy(true);
+    setAuthError('');
+    try {
+      const outcome =
+        await remoteController.verifyAccountDeletionRecoverySmsCode(code);
+      setCode('');
+      applyAccountDeletionOutcome(outcome);
+    } catch (error) {
+      setAuthError(
+        getUserFacingErrorMessage(error, '验证码暂时没通过，请稍后再试。'),
+      );
+    } finally {
+      setRemoteBusy(false);
+    }
+  }
+
   if (
     runtime.mode === 'remote' &&
-    (['accepted', 'checking', 'cleanup_required'].includes(
-      accountDeletionStage,
-    ) ||
+    (accountDeletionStage === 'recovery_phone' ||
+      accountDeletionStage === 'recovery_code')
+  ) {
+    return (
+      <AccountDeletionRecoverySurface
+        busy={remoteBusy}
+        code={code}
+        errorMessage={authError}
+        onCodeChange={setCode}
+        onRequestCode={() => void requestAccountDeletionRecoveryCode()}
+        onVerifyCode={() => void verifyAccountDeletionRecoveryCode()}
+        phone={phone}
+        stage={accountDeletionStage}
+      />
+    );
+  }
+
+  if (
+    runtime.mode === 'remote' &&
+    ([
+      'accepted',
+      'checking',
+      'cleanup_required',
+      'registration_cleanup_required',
+      'registration_ready',
+      'session_cleanup_required',
+    ].includes(accountDeletionStage) ||
       (accountDeletionStage === 'unknown' &&
         authStage !== 'authenticated'))
   ) {
     return (
       <AccountDeletionStatusSurface
         busy={remoteBusy}
+        errorMessage={authError}
         stage={accountDeletionStage as
           | 'accepted'
           | 'checking'
           | 'cleanup_required'
+          | 'registration_cleanup_required'
+          | 'registration_ready'
+          | 'session_cleanup_required'
           | 'unknown'}
         onReturn={() => setAccountDeletionStage('none')}
-        onRetry={() => void submitAccountDeletion()}
+        onRetry={() => void retryAccountDeletionRecoveryState()}
       />
     );
   }
@@ -1572,14 +1825,23 @@ function MineSurface({
 
 function AccountDeletionStatusSurface({
   busy,
+  errorMessage,
   onRetry,
   onReturn,
   stage,
 }: {
   busy: boolean;
+  errorMessage: string;
   onRetry: () => void;
   onReturn: () => void;
-  stage: 'accepted' | 'checking' | 'cleanup_required' | 'unknown';
+  stage:
+    | 'accepted'
+    | 'checking'
+    | 'cleanup_required'
+    | 'registration_cleanup_required'
+    | 'registration_ready'
+    | 'session_cleanup_required'
+    | 'unknown';
 }) {
   const content = {
     accepted: {
@@ -1599,6 +1861,24 @@ function AccountDeletionStatusSurface({
       detail:
         '登录凭证或待同步记录尚未全部清空；完成前不会重新开放账户入口。',
     },
+    registration_cleanup_required: {
+      eyebrow: '本机恢复',
+      title: '重新验证前还要完成本机清理',
+      detail:
+        '服务端当前没有待处理的删除申请，但这不证明此前申请已接收或完成。本机旧记录清理完成前不会开放普通登录。',
+    },
+    registration_ready: {
+      eyebrow: '账户入口可用',
+      title: '现在可以重新验证手机号',
+      detail:
+        '服务端当前没有待处理的删除申请，可以安全建立新的登录；这不表示此前删除申请已接收或已经完成。',
+    },
+    session_cleanup_required: {
+      eyebrow: '本机清理',
+      title: '退出前的本机记录还在清理',
+      detail:
+        '登录已经关闭；待同步学习与空间记录全部清理完成前，不会重新开放手机号验证。',
+    },
     unknown: {
       eyebrow: '结果尚未确认',
       title: '删除结果暂时未知',
@@ -1612,7 +1892,10 @@ function AccountDeletionStatusSurface({
         <p className="eyebrow">{content.eyebrow}</p>
         <h1>{content.title}</h1>
         <p className="lede">{content.detail}</p>
-        {stage === 'accepted' ? (
+        {errorMessage ? (
+          <p className="notice error" role="alert">{errorMessage}</p>
+        ) : null}
+        {stage === 'accepted' || stage === 'registration_ready' ? (
           <button className="primary wide" onClick={onReturn}>
             返回手机号验证
           </button>
@@ -1620,9 +1903,98 @@ function AccountDeletionStatusSurface({
           <button className="primary wide" disabled>正在确认</button>
         ) : (
           <button className="primary wide" disabled={busy} onClick={onRetry}>
-            {busy ? '正在重试' : '重试确认'}
+            {busy
+              ? '正在重试'
+              : stage === 'cleanup_required' ||
+                stage === 'registration_cleanup_required' ||
+                stage === 'session_cleanup_required'
+              ? '重试本机清理'
+              : '重试确认'}
           </button>
         )}
+      </section>
+    </main>
+  );
+}
+
+function AccountDeletionRecoverySurface({
+  busy,
+  code,
+  errorMessage,
+  onCodeChange,
+  onRequestCode,
+  onVerifyCode,
+  phone,
+  stage,
+}: {
+  busy: boolean;
+  code: string;
+  errorMessage: string;
+  onCodeChange: (value: string) => void;
+  onRequestCode: () => void;
+  onVerifyCode: () => void;
+  phone: string;
+  stage: 'recovery_code' | 'recovery_phone';
+}) {
+  return (
+    <main className="auth-shell">
+      <section className="auth-object" aria-labelledby="deletion-recovery-title">
+        <div className="brand-lockup">
+          <span aria-hidden="true" className="brand-mark">软</span>
+          <span className="wordmark">软书四六级</span>
+        </div>
+        <p className="eyebrow">删除结果尚待确认</p>
+        <h1 id="deletion-recovery-title">重新验证手机号，继续确认删除</h1>
+        <p className="lede">
+          刷新后登录凭证已经失效。这里只验证原账户绑定的 {maskPhone(phone)}，
+          用于继续同一次删除确认；验证成功前不会显示申请已提交，也不会清掉待同步记录。
+        </p>
+        {stage === 'recovery_code' ? (
+          <div className="field-stack">
+            <label htmlFor="deletion-recovery-code">短信验证码</label>
+            <input
+              autoComplete="one-time-code"
+              autoFocus
+              id="deletion-recovery-code"
+              inputMode="numeric"
+              onChange={event =>
+                onCodeChange(
+                  event.target.value.replace(/\D/g, '').slice(0, 6),
+                )
+              }
+              placeholder="6 位验证码"
+              value={code}
+            />
+          </div>
+        ) : null}
+        {errorMessage ? (
+          <p className="notice error" role="alert">{errorMessage}</p>
+        ) : null}
+        <button
+          className="primary wide"
+          disabled={busy}
+          onClick={
+            stage === 'recovery_phone' ? onRequestCode : onVerifyCode
+          }
+        >
+          {busy
+            ? '正在确认…'
+            : stage === 'recovery_phone'
+            ? '向原手机号获取验证码'
+            : '验证并继续确认删除'}
+        </button>
+        {stage === 'recovery_code' ? (
+          <button
+            className="text-button"
+            disabled={busy}
+            onClick={onRequestCode}
+          >
+            重新获取验证码
+          </button>
+        ) : null}
+        <p className="privacy-copy">
+          无法确认的删除结果会继续保持未知，不会被改写成已完成。
+        </p>
       </section>
     </main>
   );

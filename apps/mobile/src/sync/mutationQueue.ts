@@ -68,6 +68,11 @@ export type QuarantinedMutation = {
 
 export type MutationQueueStorage = {
   getItem: (key: string) => Promise<string | null>;
+  isAccountWriteQuarantined?: () => Promise<boolean>;
+  runExclusive?: <Result>(
+    key: string,
+    operation: () => Promise<Result>,
+  ) => Promise<Result>;
   setItem: (key: string, value: string) => Promise<void>;
 };
 
@@ -125,11 +130,18 @@ export class MutationQueueManager {
     const quarantined = sanitizeQuarantinedMutations(
       parsePersistedJson(storedQuarantine),
     );
+    const deferSanitization =
+      (await this.storage.isAccountWriteQuarantined?.()) ?? false;
 
-    if (storedEntries && storedEntries !== JSON.stringify(entries)) {
+    if (
+      !deferSanitization &&
+      storedEntries &&
+      storedEntries !== JSON.stringify(entries)
+    ) {
       await this.storage.setItem(this.key, JSON.stringify(entries));
     }
     if (
+      !deferSanitization &&
       storedQuarantine &&
       storedQuarantine !== JSON.stringify(quarantined)
     ) {
@@ -256,9 +268,7 @@ export class MutationQueueManager {
       await this.persistCandidate(candidate);
 
       if (entry.retryCount === MAX_MUTATION_RETRIES) {
-        console.warn(
-          `[MutationQueue] Mutation ${id} reached retry threshold; keeping it queued until remote ack.`,
-        );
+        warnRetryThreshold(entry);
       }
     });
   }
@@ -276,9 +286,7 @@ export class MutationQueueManager {
       await this.persistCandidate(candidate);
 
       if (candidate[0].retryCount === MAX_MUTATION_RETRIES) {
-        console.warn(
-          `[MutationQueue] Mutation ${candidate[0].id} reached retry threshold; keeping it queued until remote ack.`,
-        );
+        warnRetryThreshold(candidate[0]);
       }
       return true;
     });
@@ -401,7 +409,16 @@ export class MutationQueueManager {
   ): Promise<Result> {
     const result = this.operationTail
       .then(() => this.ensureHydrated())
-      .then(operation);
+      .then(() => {
+        if (this.storage.runExclusive === undefined) {
+          return operation();
+        }
+
+        return this.storage.runExclusive(this.key, async () => {
+          await this.load();
+          return operation();
+        });
+      });
 
     this.operationTail = result.then(
       () => undefined,
@@ -416,7 +433,10 @@ export class MutationQueueManager {
     }
 
     if (this.hydrationPromise === null) {
-      this.hydrationPromise = this.load().then(() => {
+      const hydration = this.storage.runExclusive
+        ? this.storage.runExclusive(this.key, () => this.load())
+        : this.load();
+      this.hydrationPromise = hydration.then(() => {
         this.hydrated = true;
       });
     }
@@ -435,6 +455,12 @@ export class MutationQueueManager {
     await this.storage.setItem(this.key, JSON.stringify(candidate));
     this.entries = candidate;
   }
+}
+
+function warnRetryThreshold(entry: MutationQueueEntry) {
+  console.warn(
+    `[MutationQueue] ${entry.type} reached retry count ${entry.retryCount}; keeping it queued until remote ack.`,
+  );
 }
 
 function isExactEmptyPersistedArray(value: string | null): boolean {
