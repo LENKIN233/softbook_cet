@@ -45,11 +45,11 @@ This implementation hypothesis does not turn repository-local cards into approve
 | Auth object | phone field, code field, validation, safe error copy, and neutral first-time/returning copy that waits for account state before claiming continuity | browser flow and `App.test.tsx` |
 | Flip | reveal, exactly two mint/amber self-assess choices, immediate attached result with no redundant confirmation step | browser flow and tests |
 | Multiple choice | 2 x 2 desktop choice grid, persistent selected state, `1–4` shortcut | browser flow and tests |
-| Lock | three vertical labelled slots with native keyboard-operable selects | browser flow |
+| Lock | one bounded vertical lock rail with leading lock state, answer-bound progressive unlock, retry-in-place for a wrong choice, and keyboard-operable option buttons | browser flow and `App.test.tsx` |
 | Elimination | reversible strike choices and explicit submit | browser flow |
-| Swipe | two directional states, discrete buttons, left/right keyboard equivalence | browser flow and tests |
+| Swipe | one foreground card over a restrained deck, left/right trail choices, thresholded pointer drag, discrete alternatives, and left/right keyboard equivalence; every committed direction resolves immediately | browser flow and tests |
 | Review | answer/analysis/exam-tip slip remains attached; the final card enters an explicit session-complete object and can start a bounded review deck | browser flow and tests |
-| Space | actual library/group/box tree derived from card ownership; free sees the stable accessible prefix as read-only preview, while trial/premium sees and can mutate the complete Space | browser flow and `App.remote.test.tsx` |
+| Space | actual library/group/box tree derived from card ownership; narrow viewports read the address shelf, open current-box tray, contained cards, attached favorite state, sleep alcove, and safe return action before the secondary hierarchy browser; free sees the stable accessible prefix as read-only preview, while trial/premium sees and can mutate the complete Space | browser flow, `App.test.tsx`, and `App.remote.test.tsx` |
 | Statistics | quiet daily ledger with tabular counts | browser flow |
 | Mine/membership | development first entry exercises the local trial; remote mode renders only canonical server entitlement and never starts a client trial; purchase/restore/delete controls remain explicitly disabled | browser flow and tests |
 | Runtime boundary | exact browser-visible profile requires HTTPS base, `clientKind=web`, track and public keyring; access/refresh credentials are memory-only; production artifact excludes development cards | `runtime.test.ts`, `webStorage.test.ts`, build boundary scan |
@@ -69,7 +69,7 @@ This implementation hypothesis does not turn repository-local cards into approve
 | Audio | signed manifest/keyring, private full-byte download, size/SHA-256 verification and explicit Blob playback are connected | inject the real public keyring and prove private browser playback/listening QC |
 | Formal content | development structured cards only | approved `card make` payload, import/audit/smoke and coverage evidence |
 | Account deletion | visible action remains unavailable | remote deletion/recovery flow and policy evidence |
-| Responsive proof | CSS has 1120px and 760px containment modes | dedicated 1024px and 200% zoom screenshots plus no-horizontal-task-loss audit |
+| Responsive proof | PC workbench remains three-column at 1024px; 760px and below preserve the floating route capsule; 393px auth, Learning feedback, lock, swipe, and current-box Space were re-exercised without clipped primary actions | dedicated 200% zoom proof plus repeatable no-horizontal-task-loss audit |
 | Screen reader/manual accessibility | automated axe smoke and semantic DOM pass | named screen-reader and full keyboard completion record |
 | Hosting/security | CSP meta and safe runtime-config template exist | production headers, narrowed connect policy, domain/TLS/deployment/SLO/recovery evidence |
 | Tablet | no implementation | dedicated accepted tablet design and implementation proof |
@@ -83,7 +83,7 @@ This implementation hypothesis does not turn repository-local cards into approve
 - Left-arrow keyboard input selected the left swipe state; automated tests also prove Enter reveal and `1–4` selection.
 - Visual inspection found and corrected light-mode contrast weaknesses for labels, support copy, error copy, self-assessment colors, tree focus, and destructive actions.
 - Visual inspection found and corrected retained scroll position between consecutive cards.
-- The available browser viewport was `1280 x 720`; it is useful implementation evidence but does not satisfy the separate required 1440 x 900, 1024px, or 200% zoom proofs.
+- This quality pass re-exercised `393 x 852`, `1024 x 900`, `1280 x 720`, and `1440 x 900`. It verified the intentional two-line auth title, compact desktop current-card object, answer-bound lock rows, single-card swipe deck, fixed mobile continuation action above the floating route capsule, and current-box-first narrow Space composition. The separate 200% zoom proof remains open.
 
 ## Design Review Checklist Answers
 
@@ -91,11 +91,11 @@ Q1: Coral is the one dominant library accent in Learning and the current Space p
 
 Q2: Every route keeps one first-read focal object: current card, current box, daily ledger, or account object. Navigation and context rails remain secondary.
 
-Q3: Flip, 2 x 2 choice, vertical lock slots, reversible elimination, and two-direction swipe each change the center silhouette. Space retains tree, owning box, contained objects, and inspector.
+Q3: Flip, 2 x 2 choice, progressive vertical lock rail, reversible elimination, and a foreground swipe card with directional trails each change the center silhouette. Space retains tree, owning box, contained objects, sleep alcove, and inspector; narrow viewports promote the current box ahead of the secondary tree.
 
 Q4: Tests scan all operable routes for internal metadata names; visible errors stay user-safe. The build adds a restrictive baseline CSP and keeps secrets out of `runtime-config.js`.
 
-Q5: This is PC Web, not a phone-frame implementation. Desktop browser evidence exists, but 1024px and 200% zoom acceptance remain explicitly open.
+Q5: Browser evidence now covers the reference desktop, 1280px, 1024px, and 393px narrow viewport without horizontal task loss or a primary action hidden behind the route capsule. A dedicated 200% zoom record remains explicitly open.
 
 Q6: Flip exposes exactly two self-assess choices; Statistics stays tabular; Learning remains sequential and never introduces a module picker.
 
