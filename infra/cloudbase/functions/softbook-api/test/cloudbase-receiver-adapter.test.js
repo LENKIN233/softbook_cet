@@ -36,10 +36,12 @@ test('receiver upload re-downloads and verifies the approved bytes', async () =>
   const absolutePath = join(directory, 'asset.mp3');
   writeFileSync(absolutePath, bytes);
   const calls = [];
+  let uploaded = false;
   const runner = {
     async run(args) {
       calls.push(args);
       if (args.includes('upload')) {
+        uploaded = true;
         return [
           '- Loading data...',
           JSON.stringify({
@@ -72,6 +74,7 @@ test('receiver upload re-downloads and verifies the approved bytes', async () =>
         });
       }
       if (args.includes('download')) {
+        if (!uploaded) throw new Error('remote object is missing');
         writeFileSync(args[args.indexOf('download') + 2], bytes);
         return JSON.stringify({data: {ok: true}});
       }
@@ -92,6 +95,16 @@ test('receiver upload re-downloads and verifies the approved bytes', async () =>
     },
     releaseId: 'cet4-beta-1',
   });
+  const reusedFileId = await adapter.uploadAsset({
+    absolutePath,
+    asset: {
+      asset_id: 'cet4.100000.prompt',
+      duration_ms: 1000,
+      sha256: hash(bytes),
+      size_bytes: bytes.length,
+    },
+    releaseId: 'cet4-beta-1',
+  });
 
   assert.equal(
     fileId,
@@ -99,10 +112,13 @@ test('receiver upload re-downloads and verifies the approved bytes', async () =>
       `softbook/releases/cet4-beta-1/audio/${hash(bytes).slice('sha256:'.length)}/` +
       'cet4.100000.prompt.mp3',
   );
-  assert.equal(calls.length, 3);
-  assert.ok(calls[0].includes('upload'));
-  assert.deepEqual(calls[1].slice(0, 2), ['env', 'detail']);
-  assert.ok(calls[2].includes('download'));
+  assert.equal(reusedFileId, fileId);
+  assert.equal(calls.filter(args => args.includes('upload')).length, 1);
+  assert.equal(calls.filter(args => args.includes('download')).length, 3);
+  assert.equal(
+    calls.filter(args => args[0] === 'env' && args[1] === 'detail').length,
+    1,
+  );
 });
 
 test('receiver stages and verifies evidence before changing the active pointer', async () => {

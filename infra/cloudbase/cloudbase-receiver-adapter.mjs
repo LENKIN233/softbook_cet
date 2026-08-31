@@ -133,17 +133,26 @@ export function createCloudBaseReceiverAdapter({
     async uploadAsset({absolutePath, asset, releaseId}) {
       const hashSuffix = asset.sha256.slice('sha256:'.length);
       const cloudPath = `softbook/releases/${releaseId}/audio/${hashSuffix}/${asset.asset_id}.mp3`;
+      storageBucketPromise ??= readReceiverStorageBucket({envId, profile, runner});
+      const bucket = await storageBucketPromise;
+      const canonicalFileId = `cloud://${envId}.${bucket}/${cloudPath}`;
+      try {
+        await verifyRemoteAsset({asset, cloudPath, envId, runner});
+        return canonicalFileId;
+      } catch {
+        // Missing or drifted bytes are replaced by the exact approved asset below.
+      }
       const uploadOutput = await runner.run(
         ['-e', envId, 'storage', 'upload', absolutePath, cloudPath, '--json'],
         {label: `upload ${asset.asset_id}`, timeoutMs: DOWNLOAD_TIMEOUT_MS},
       );
       const uploadPayload = parseTcbJson(uploadOutput);
-      let fileId = findCloudBaseFileId(uploadPayload);
-      if (!fileId) {
+      const returnedFileId = findCloudBaseFileId(uploadPayload);
+      if (returnedFileId && returnedFileId !== canonicalFileId) {
+        throw new ReleaseDeliveryError(`upload ${asset.asset_id} returned a mismatched file ID.`);
+      }
+      if (!returnedFileId) {
         assertUploadSucceeded(uploadPayload, cloudPath, asset.asset_id);
-        storageBucketPromise ??= readReceiverStorageBucket({envId, profile, runner});
-        const bucket = await storageBucketPromise;
-        fileId = `cloud://${envId}.${bucket}/${cloudPath}`;
       }
 
       await verifyRemoteAsset({
@@ -152,7 +161,7 @@ export function createCloudBaseReceiverAdapter({
         envId,
         runner,
       });
-      return fileId;
+      return canonicalFileId;
     },
 
     async stageContent({bundle, cardSource}) {
