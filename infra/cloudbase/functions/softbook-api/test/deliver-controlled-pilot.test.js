@@ -147,7 +147,7 @@ test('controlled-pilot deploy injects controlled_pilot without a development SMS
   });
   assert.deepEqual(processCalls, [
     ['npm', 'ci'],
-    ['npm', 'test'],
+    [process.execPath, '--test'],
   ]);
   const runtime = runner.deployedConfig.functions[0].envVariables;
   assert.equal(runner.deployedConfig.functions.length, 2);
