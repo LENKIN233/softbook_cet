@@ -4027,6 +4027,45 @@ test('CloudBase store reads and seeds card source documents', async () => {
   );
 });
 
+test('CloudBase store resolves a verified immutable active pointer', async () => {
+  const db = createFakeCloudBaseDb();
+  const source = createReleasedCardSource('cet4');
+  const normalized = validateCardSourceForImport(source, 'cet4');
+  const versionId = crypto
+    .createHash('sha256')
+    .update(`card-source-version\0cet4\0${normalized.content_version}`)
+    .digest('hex');
+  await db.collection('softbook_card_source_versions').doc(versionId).set({
+    ...source,
+    content_version: normalized.content_version,
+    release_verification: {
+      schema_version: 'release-stage-verification.v1',
+      verified: true,
+    },
+    retention_status: 'verified',
+  });
+  await db.collection('softbook_card_sources').doc('cet4').set({
+    schema_version: 'card-source-active-pointer.v1',
+    track: 'cet4',
+    version_id: versionId,
+    release_id: source.release.release_id,
+    content_version: normalized.content_version,
+    updated_at: fixedNow.toISOString(),
+  });
+  const api = createTestApi({store: createCloudBaseStore({db})});
+  const session = await authenticatedV2Session(api);
+  const response = await request(api, {
+    headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET',
+    path: '/v2/learning/card-source',
+    query: {track: 'cet4'},
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.data.source.id, 'persisted-cet4-source');
+  assert.equal(response.body.data.content_version, normalized.content_version);
+});
+
 test('CloudBase store rejects invalid persisted card source documents', async () => {
   const db = createFakeCloudBaseDb();
   const invalidSource = createPersistedCardSource('cet4');

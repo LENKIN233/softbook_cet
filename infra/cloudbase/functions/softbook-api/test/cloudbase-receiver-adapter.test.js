@@ -141,6 +141,15 @@ test('receiver stages and verifies evidence before changing the active pointer',
   });
 
   assert.equal(active.content_version, cardSource.content_version);
+  assert.deepEqual(Object.keys(runner.currentPointer()).sort(), [
+    '_id',
+    'content_version',
+    'release_id',
+    'schema_version',
+    'track',
+    'updated_at',
+    'version_id',
+  ]);
   const writes = runner.calls.filter(call => call.kind === 'update');
   assert.deepEqual(
     writes.map(call => call.collection),
@@ -532,7 +541,13 @@ function createDatabaseRunner() {
 
   return {
     calls,
-    current: (track = 'cet4') =>
+    current: (track = 'cet4') => {
+      const current = collections.get('softbook_card_sources').get(track);
+      return current?.schema_version === 'card-source-active-pointer.v1'
+        ? collections.get('softbook_card_source_versions').get(current.version_id)
+        : current;
+    },
+    currentPointer: (track = 'cet4') =>
       collections.get('softbook_card_sources').get(track),
     findVersion(releaseId) {
       return [...collections.get('softbook_card_source_versions').values()].find(

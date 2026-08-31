@@ -128,6 +128,7 @@ const CLOUDBASE_TRANSACTION_COOLDOWN_MS = 25;
 const CLOUDBASE_BUSY_TRANSACTION_MESSAGE =
   'Transaction is busy. Please check your request, but if the problem persists, contact us.';
 const MEMBERSHIP_REVISION_SCHEMA_VERSION = 'membership-revision.v1';
+const CARD_SOURCE_ACTIVE_POINTER_SCHEMA_VERSION = 'card-source-active-pointer.v1';
 const MEMBERSHIP_REVISION_KEYS = [
   'phone_number',
   'revision',
@@ -2057,6 +2058,7 @@ function createCloudBaseStore(options = {}) {
     );
   };
   const cardSources = db.collection(CLOUDBASE_COLLECTIONS.cardSources);
+  const cardSourceVersions = db.collection(CLOUDBASE_COLLECTIONS.cardSourceVersions);
   const betaEntitlements = db.collection(CLOUDBASE_COLLECTIONS.betaEntitlements);
   const pilotEntitlements = db.collection(CLOUDBASE_COLLECTIONS.pilotEntitlements);
   const memberships = db.collection(CLOUDBASE_COLLECTIONS.memberships);
@@ -2142,7 +2144,7 @@ function createCloudBaseStore(options = {}) {
       const existing = await getCloudBaseDocument(cardSources, track);
 
       if (existing) {
-        return normalizeCardSource(existing, track);
+        return resolveCloudBaseCardSource(existing, cardSourceVersions, track);
       }
 
       if (options.allowDevelopmentDefault === false) {
@@ -4397,6 +4399,64 @@ async function getCloudBaseDocument(collection, documentId) {
 
     throw error;
   }
+}
+
+async function resolveCloudBaseCardSource(document, versionCollection, track) {
+  if (document.schema_version !== CARD_SOURCE_ACTIVE_POINTER_SCHEMA_VERSION) {
+    return normalizeCardSource(document, track);
+  }
+  const pointer = {...document};
+  const actualKeys = Object.keys(pointer).sort();
+  const expectedKeys = [
+    '_id',
+    'content_version',
+    'release_id',
+    'schema_version',
+    'track',
+    'updated_at',
+    'version_id',
+  ].sort();
+  if (
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== expectedKeys[index]) ||
+    pointer._id !== track ||
+    pointer.track !== track ||
+    !/^[0-9a-f]{64}$/.test(pointer.version_id ?? '') ||
+    !/^sha256:[0-9a-f]{64}$/.test(pointer.content_version ?? '') ||
+    typeof pointer.release_id !== 'string' ||
+    !isCanonicalIsoTimestamp(pointer.updated_at)
+  ) {
+    throw cardSourceError('active card source pointer is invalid.');
+  }
+  const expectedVersionId = createCloudBaseDocumentId(
+    `card-source-version\0${track}\0${pointer.content_version}`,
+  );
+  if (pointer.version_id !== expectedVersionId) {
+    throw cardSourceError('active card source pointer version identity is invalid.');
+  }
+  const version = await getCloudBaseDocument(versionCollection, pointer.version_id);
+  if (
+    !version ||
+    version.release_verification?.verified !== true ||
+    !['verified', 'retained'].includes(version.retention_status)
+  ) {
+    throw cardSourceError('active card source pointer target is not verified.');
+  }
+  const normalized = normalizeCardSource(version, track);
+  if (
+    normalized.content_version !== pointer.content_version ||
+    normalized.release?.release_id !== pointer.release_id
+  ) {
+    throw cardSourceError('active card source pointer target identity is invalid.');
+  }
+  const expectedVerificationSchema =
+    normalized.release.schema_version === 'pilot-content-release.v1'
+      ? 'pilot-stage-verification.v1'
+      : 'release-stage-verification.v1';
+  if (version.release_verification.schema_version !== expectedVerificationSchema) {
+    throw cardSourceError('active card source pointer verification is invalid.');
+  }
+  return normalized;
 }
 
 async function setCloudBaseDocument(collection, documentId, data) {
