@@ -353,12 +353,12 @@ export function createInMemoryReleaseReceiver({environmentId} = {}) {
               'simulation update command is not exact.',
             );
           }
-          applyUpdate(collection, body);
+          const updated = applyUpdate(collection, body);
           operations.push({
             collection: command.TableName,
             kind: 'database_update',
           });
-          results.push({n: 1, ok: 1});
+          results.push({n: updated, ok: 1});
           continue;
         }
 
@@ -507,21 +507,39 @@ function applyUpdate(collection, body) {
     );
   }
   const update = body.updates[0];
-  if (
-    !update?.upsert ||
-    !update.q ||
-    !update.u ||
-    Object.keys(update.u).length !== 1 ||
-    !update.u.$set
-  ) {
+  const operator = update?.u && Object.keys(update.u);
+  if (!update?.q || operator?.length !== 1) {
     throw new ReleaseDeliveryError(
-      'simulation supports only allowlisted upsert $set updates.',
+      'simulation supports only one allowlisted update operator.',
     );
   }
 
   const existing = [...collection.values()].find(document =>
     matchesFilter(document, update.q),
   );
+  if (operator[0] === '$push') {
+    if (update.upsert !== false || !existing) return 0;
+    const entries = Object.entries(update.u.$push ?? {});
+    if (
+      entries.length !== 1 ||
+      !['assets', 'card_records'].includes(entries[0][0]) ||
+      !Array.isArray(entries[0][1]?.$each) ||
+      entries[0][1].$each.length === 0
+    ) {
+      throw new ReleaseDeliveryError('simulation staged-array push is invalid.');
+    }
+    const [field, operation] = entries[0];
+    collection.set(existing._id, {
+      ...existing,
+      [field]: [...existing[field], ...deepClone(operation.$each)],
+    });
+    return 1;
+  }
+  if (operator[0] !== '$set' || update.upsert !== true || !update.u.$set) {
+    throw new ReleaseDeliveryError(
+      'simulation supports only allowlisted upsert $set updates.',
+    );
+  }
   const id = existing?._id ?? update.q._id;
   if (typeof id !== 'string' || id.length === 0) {
     throw new ReleaseDeliveryError(
@@ -532,6 +550,7 @@ function applyUpdate(collection, body) {
     ...(existing ?? {_id: id}),
     ...deepClone(update.u.$set),
   });
+  return 1;
 }
 
 function assertExactKeys(value, expected, label) {
@@ -555,6 +574,9 @@ function matchesFilter(document, filter) {
     const actual = key
       .split('.')
       .reduce((value, segment) => value?.[segment], document);
+    if (expected && typeof expected === 'object' && '$exists' in expected) {
+      return (actual !== undefined) === expected.$exists;
+    }
     return actual === expected;
   });
 }

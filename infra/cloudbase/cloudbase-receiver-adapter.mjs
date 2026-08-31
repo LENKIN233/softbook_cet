@@ -19,6 +19,7 @@ const {validateCardSourceForImport} = require('./functions/softbook-api');
 
 const COMMAND_TIMEOUT_MS = 120_000;
 const DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
+const STAGED_ARRAY_CHUNK_SIZES = Object.freeze({assets: 100, card_records: 64});
 
 export function createCloudBaseCommandRunner({
   cwd = process.cwd(),
@@ -97,6 +98,37 @@ export function createCloudBaseReceiverAdapter({
     return {document, normalized, versionId};
   }
 
+  async function completeStagedArrays({bundle, cardSource, document, versionId}) {
+    let current = document;
+    assertStagedSourcePrefix(current, bundle, cardSource);
+    for (const field of ['assets', 'card_records']) {
+      const expected = cardSource[field];
+      while (current[field].length < expected.length) {
+        const start = current[field].length;
+        const chunk = expected.slice(start, start + STAGED_ARRAY_CHUNK_SIZES[field]);
+        await executeNoSql(
+          runner,
+          envId,
+          [pushArrayChunkCommand({bundle, cardSource, chunk, field, start, versionId})],
+          `append staged release ${field}`,
+        );
+        const updated = await queryOne(
+          CARD_SOURCE_VERSION_COLLECTION,
+          {_id: versionId},
+          `confirm staged release ${field}`,
+        );
+        if (!updated || updated[field]?.length <= start) {
+          throw new ReleaseDeliveryError(`staged release ${field} did not advance.`);
+        }
+        assertStagedSourcePrefix(updated, bundle, cardSource);
+        current = updated;
+      }
+    }
+    const normalized = normalizeStoredCardSource(current, cardSource.track);
+    assertReleaseIdentity(normalized, bundle.release_id, cardSource.content_version);
+    assertRuntimeSourceEquivalent(normalized, cardSource);
+  }
+
   return {
     async uploadAsset({absolutePath, asset, releaseId}) {
       const hashSuffix = asset.sha256.slice('sha256:'.length);
@@ -135,15 +167,12 @@ export function createCloudBaseReceiverAdapter({
       );
 
       if (existing) {
-        const normalized = normalizeStoredCardSource(existing, cardSource.track);
-        assertReleaseIdentity(normalized, bundle.release_id, cardSource.content_version);
-        assertRuntimeSourceEquivalent(normalized, cardSource);
-        assertVerificationBinding(existing.release_verification, bundle);
+        await completeStagedArrays({bundle, cardSource, document: existing, versionId});
         return;
       }
 
       const stagedAt = now().toISOString();
-      const document = createVersionFields(cardSource, {
+      const document = createVersionFields({...cardSource, assets: [], card_records: []}, {
         retentionStatus: 'staged',
         updatedAt: stagedAt,
         verification: createReleaseVerification(bundle, false, stagedAt),
@@ -154,6 +183,12 @@ export function createCloudBaseReceiverAdapter({
         [upsertCommand(CARD_SOURCE_VERSION_COLLECTION, {_id: versionId}, document)],
         'stage release content',
       );
+      await completeStagedArrays({
+        bundle,
+        cardSource,
+        document: {_id: versionId, ...document},
+        versionId,
+      });
     },
 
     async verifyStaged({bundle, cardSource}) {
@@ -435,6 +470,28 @@ function upsertCommand(collection, filter, fields) {
   };
 }
 
+function pushArrayChunkCommand({bundle, cardSource, chunk, field, start, versionId}) {
+  const filter = {
+    _id: versionId,
+    content_version: cardSource.content_version,
+    'release.release_id': bundle.release_id,
+    [`${field}.${start}`]: {$exists: false},
+  };
+  if (start > 0) {
+    const identityField = field === 'assets' ? 'asset_id' : 'card_id';
+    filter[`${field}.${start - 1}.${identityField}`] =
+      cardSource[field][start - 1][identityField];
+  }
+  return {
+    TableName: CARD_SOURCE_VERSION_COLLECTION,
+    CommandType: 'UPDATE',
+    Command: JSON.stringify({
+      update: CARD_SOURCE_VERSION_COLLECTION,
+      updates: [{q: filter, u: {$push: {[field]: {$each: chunk}}}, upsert: false}],
+    }),
+  };
+}
+
 function createVersionFields(cardSource, options) {
   return {
     ...createCurrentSourceFields(cardSource, options.updatedAt),
@@ -495,6 +552,38 @@ function assertVerificationBinding(value, bundle) {
   }
 }
 
+function assertStagedSourcePrefix(document, bundle, expected) {
+  assertVerificationBinding(document?.release_verification, bundle);
+  assertReleaseIdentity(document, bundle.release_id, expected.content_version);
+  const expectedFields = createCurrentSourceFields(expected, document.updated_at);
+  for (const field of ['imported_via', 'release', 'source', 'track', 'updated_at']) {
+    if (JSON.stringify(document[field]) !== JSON.stringify(expectedFields[field])) {
+      throw new ReleaseDeliveryError(`staged release ${field} does not match publisher input.`);
+    }
+  }
+  for (const field of ['assets', 'card_records']) {
+    const actual = document[field];
+    if (
+      !Array.isArray(actual) ||
+      actual.length > expected[field].length ||
+      JSON.stringify(actual) !== JSON.stringify(expected[field].slice(0, actual.length))
+    ) {
+      throw new ReleaseDeliveryError(`staged release ${field} is not an exact prefix.`);
+    }
+  }
+  const incomplete =
+    document.assets.length < expected.assets.length ||
+    document.card_records.length < expected.card_records.length;
+  if (
+    incomplete &&
+    (document.retention_status !== 'staged' ||
+      document.release_verification.verified !== false ||
+      document.release_verification.verified_at !== null)
+  ) {
+    throw new ReleaseDeliveryError('incomplete staged release has invalid verification state.');
+  }
+}
+
 function validateReceiverProfile(value) {
   if (value?.schema_version === 'controlled-pilot-profile.v1') {
     return validateControlledPilotProfile(value);
@@ -545,6 +634,7 @@ function findCloudBaseFileId(value) {
 export const receiverAdapterInternals = {
   createReleaseVerification,
   findCloudBaseFileId,
+  pushArrayChunkCommand,
   queryCommand,
   upsertCommand,
 };
