@@ -529,7 +529,9 @@ function createDatabaseRunner() {
             matchesFilter(document, body.filter),
           );
           calls.push({kind: 'query', collection: command.TableName});
-          results.push(matches.slice(0, body.limit));
+          results.push(
+            matches.slice(0, body.limit).map(toCloudBaseExtendedJson),
+          );
         } else if (command.CommandType === 'UPDATE') {
           const update = body.updates[0];
           const existing = [...collection.values()].find(document =>
@@ -575,4 +577,13 @@ function matchesFilter(document, filter) {
 
 function hash(bytes) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+}
+
+function toCloudBaseExtendedJson(value) {
+  if (Array.isArray(value)) return value.map(toCloudBaseExtendedJson);
+  if (Number.isSafeInteger(value)) return {$numberInt: String(value)};
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, toCloudBaseExtendedJson(item)]),
+  );
 }
