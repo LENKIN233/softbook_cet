@@ -40,8 +40,35 @@ test('receiver upload re-downloads and verifies the approved bytes', async () =>
     async run(args) {
       calls.push(args);
       if (args.includes('upload')) {
+        return [
+          '- Loading data...',
+          JSON.stringify({
+            data: {
+              cloudPath:
+                'softbook/releases/cet4-beta-1/audio/' +
+                `${hash(bytes).slice('sha256:'.length)}/cet4.100000.prompt.mp3`,
+              failedCount: 0,
+              successCount: 1,
+              totalFiles: 1,
+              type: 'file',
+            },
+          }),
+          '✔ File upload successful!',
+        ].join('\n');
+      }
+      if (args[0] === 'env' && args[1] === 'detail') {
         return JSON.stringify({
-          data: {fileID: 'cloud://receiver-bucket/approved.mp3'},
+          data: {
+            resources: {
+              storages: [
+                {
+                  Bucket: 'receiver-storage-bucket-001',
+                  Region: 'ap-shanghai',
+                  Status: 'NORMAL',
+                },
+              ],
+            },
+          },
         });
       }
       if (args.includes('download')) {
@@ -66,10 +93,16 @@ test('receiver upload re-downloads and verifies the approved bytes', async () =>
     releaseId: 'cet4-beta-1',
   });
 
-  assert.equal(fileId, 'cloud://receiver-bucket/approved.mp3');
-  assert.equal(calls.length, 2);
+  assert.equal(
+    fileId,
+    'cloud://receiver-prod-123.receiver-storage-bucket-001/' +
+      `softbook/releases/cet4-beta-1/audio/${hash(bytes).slice('sha256:'.length)}/` +
+      'cet4.100000.prompt.mp3',
+  );
+  assert.equal(calls.length, 3);
   assert.ok(calls[0].includes('upload'));
-  assert.ok(calls[1].includes('download'));
+  assert.deepEqual(calls[1].slice(0, 2), ['env', 'detail']);
+  assert.ok(calls[2].includes('download'));
 });
 
 test('receiver stages and verifies evidence before changing the active pointer', async () => {

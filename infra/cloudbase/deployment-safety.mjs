@@ -169,23 +169,47 @@ const DEFAULT_MANIFEST_EXCLUDES = Object.freeze([".DS_Store", "result.json"]);
 
 export function parseTcbJson(output) {
   const text = String(output ?? "").trim();
-  const candidates = [];
-
   for (let index = 0; index < text.length; index += 1) {
     if (text[index] === "{" || text[index] === "[") {
-      candidates.push(index);
-    }
-  }
-
-  for (const index of candidates) {
-    try {
-      return JSON.parse(text.slice(index).trim());
-    } catch {
-      // CloudBase CLI may print progress lines before its JSON payload.
+      const parsed = parseJsonContainerAt(text, index);
+      if (parsed !== undefined) return parsed;
     }
   }
 
   throw new Error("CloudBase CLI did not return a valid JSON payload.");
+}
+
+function parseJsonContainerAt(text, start) {
+  const stack = [];
+  let escaped = false;
+  let quoted = false;
+
+  for (let index = start; index < text.length; index += 1) {
+    const character = text[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') quoted = false;
+      continue;
+    }
+    if (character === '"') {
+      quoted = true;
+      continue;
+    }
+    if (character === "{") stack.push("}");
+    else if (character === "[") stack.push("]");
+    else if (character === "}" || character === "]") {
+      if (stack.pop() !== character) return undefined;
+      if (stack.length === 0) {
+        try {
+          return JSON.parse(text.slice(start, index + 1));
+        } catch {
+          return undefined;
+        }
+      }
+    }
+  }
+  return undefined;
 }
 
 export function validateTarget({
