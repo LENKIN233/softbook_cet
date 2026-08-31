@@ -382,7 +382,7 @@ export function createInMemoryReleaseReceiver({environmentId, region = 'ap-shang
               'simulation update command is not exact.',
             );
           }
-          const updated = applyUpdate(collection, body);
+          const updated = applyUpdate(collection, body, command.TableName);
           operations.push({
             collection: command.TableName,
             kind: 'database_update',
@@ -529,7 +529,7 @@ function parseCommandBody(value) {
   }
 }
 
-function applyUpdate(collection, body) {
+function applyUpdate(collection, body, collectionName) {
   if (!Array.isArray(body.updates) || body.updates.length !== 1) {
     throw new ReleaseDeliveryError(
       'simulation supports one exact update at a time.',
@@ -537,6 +537,42 @@ function applyUpdate(collection, body) {
   }
   const update = body.updates[0];
   const operator = update?.u && Object.keys(update.u);
+  const replacement =
+    operator?.length > 0 && operator.every(key => !key.startsWith('$'));
+  if (replacement) {
+    if (!update.q) {
+      throw new ReleaseDeliveryError('simulation replacement filter is required.');
+    }
+    assertExactKeys(update.q, ['_id'], 'replacement filter');
+    assertExactKeys(
+      update.u,
+      [
+        '_id',
+        'content_version',
+        'release_id',
+        'schema_version',
+        'track',
+        'updated_at',
+        'version_id',
+      ],
+      'active pointer replacement',
+    );
+    if (
+      collectionName !== CARD_SOURCE_COLLECTION ||
+      update.upsert !== true ||
+      update.u._id !== update.q._id ||
+      update.u.track !== update.q._id ||
+      update.u.schema_version !== 'card-source-active-pointer.v1' ||
+      !/^[0-9a-f]{64}$/.test(update.u.version_id ?? '') ||
+      !/^sha256:[0-9a-f]{64}$/.test(update.u.content_version ?? '') ||
+      typeof update.u.release_id !== 'string' ||
+      !Number.isFinite(Date.parse(update.u.updated_at ?? ''))
+    ) {
+      throw new ReleaseDeliveryError('simulation active pointer replacement is invalid.');
+    }
+    collection.set(update.u._id, deepClone(update.u));
+    return 1;
+  }
   if (!update?.q || operator?.length !== 1) {
     throw new ReleaseDeliveryError(
       'simulation supports only one allowlisted update operator.',

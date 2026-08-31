@@ -76,13 +76,13 @@ export function createCloudBaseReceiverAdapter({
     return results[0] ? normalizeCloudBaseExtendedJson(results[0]) : null;
   }
 
-  async function readActiveSource(track, label) {
+  async function readActiveSource(track, label, {allowHybridPointer = false} = {}) {
     const document = await queryOne(CARD_SOURCE_COLLECTION, {_id: track}, label);
     if (!document) return null;
     if (document.schema_version !== ACTIVE_POINTER_SCHEMA) {
       return {document, normalized: normalizeStoredCardSource(document, track)};
     }
-    const pointer = validateActivePointer(document, track);
+    const pointer = validateActivePointer(document, track, {allowHybridPointer});
     const version = await queryOne(
       CARD_SOURCE_VERSION_COLLECTION,
       {_id: pointer.version_id},
@@ -100,7 +100,12 @@ export function createCloudBaseReceiverAdapter({
     if (version.release_verification.schema_version !== expectedVerificationSchema) {
       throw new ReleaseDeliveryError('active release verification schema is invalid.');
     }
-    return {document, normalized, pointer};
+    return {
+      document,
+      normalized,
+      pointer,
+      requiresReplacement: Object.keys(document).length !== 7,
+    };
   }
 
   async function requireVerifiedVersion(cardSource, bundle) {
@@ -299,50 +304,53 @@ export function createCloudBaseReceiverAdapter({
 
     async activateRelease({bundle, cardSource}) {
       const verified = await requireVerifiedVersion(cardSource, bundle);
-      const current = await readActiveSource(cardSource.track, 'read active release');
+      const current = await readActiveSource(cardSource.track, 'read active release', {
+        allowHybridPointer: true,
+      });
 
       if (current) {
         const normalizedCurrent = current.normalized;
-        if (normalizedCurrent.release?.release_id === bundle.release_id) {
+        const sameRelease = normalizedCurrent.release?.release_id === bundle.release_id;
+        if (sameRelease) {
           assertReleaseIdentity(normalizedCurrent, bundle.release_id, cardSource.content_version);
           assertRuntimeSourceEquivalent(normalizedCurrent, cardSource);
-          return;
-        }
+          if (!current.requiresReplacement) return;
+        } else {
+          if (controlledPilot) {
+            throw new ReleaseDeliveryError(
+              'controlled pilot activation refuses to replace a different active release.',
+            );
+          }
 
-        if (controlledPilot) {
-          throw new ReleaseDeliveryError(
-            'controlled pilot activation refuses to replace a different active release.',
-          );
-        }
+          const replacingDevelopmentSource =
+            normalizedCurrent.release === null && bundle.parent_release_id === null;
+          if (
+            !replacingDevelopmentSource &&
+            normalizedCurrent.release?.release_id !== bundle.parent_release_id
+          ) {
+            throw new ReleaseDeliveryError(
+              'active release does not match the bundle parent release.',
+            );
+          }
 
-        const replacingDevelopmentSource =
-          normalizedCurrent.release === null && bundle.parent_release_id === null;
-        if (
-          !replacingDevelopmentSource &&
-          normalizedCurrent.release?.release_id !== bundle.parent_release_id
-        ) {
-          throw new ReleaseDeliveryError(
-            'active release does not match the bundle parent release.',
-          );
-        }
-
-        if (!replacingDevelopmentSource) {
-          const previousVersionId = createCardSourceVersionDocumentId(
-            cardSource.track,
-            normalizedCurrent.content_version,
-          );
-          await executeNoSql(
-            runner,
-            envId,
-            [
-              upsertCommand(
-                CARD_SOURCE_VERSION_COLLECTION,
-                {_id: previousVersionId},
-                {retention_status: 'retained', updated_at: now().toISOString()},
-              ),
-            ],
-            'retain previous release',
-          );
+          if (!replacingDevelopmentSource) {
+            const previousVersionId = createCardSourceVersionDocumentId(
+              cardSource.track,
+              normalizedCurrent.content_version,
+            );
+            await executeNoSql(
+              runner,
+              envId,
+              [
+                upsertCommand(
+                  CARD_SOURCE_VERSION_COLLECTION,
+                  {_id: previousVersionId},
+                  {retention_status: 'retained', updated_at: now().toISOString()},
+                ),
+              ],
+              'retain previous release',
+            );
+          }
         }
       } else if (!controlledPilot && bundle.parent_release_id !== null) {
         throw new ReleaseDeliveryError(
@@ -351,11 +359,11 @@ export function createCloudBaseReceiverAdapter({
       }
 
       const activatedAt = now().toISOString();
-      await executeNoSql(
+      const replacement = await executeNoSql(
         runner,
         envId,
         [
-          upsertCommand(
+          replaceCommand(
             CARD_SOURCE_COLLECTION,
             {_id: cardSource.track},
             createActivePointerFields(verified.normalized, verified.versionId, activatedAt),
@@ -363,6 +371,12 @@ export function createCloudBaseReceiverAdapter({
         ],
         'activate release pointer',
       );
+      assertSingleUpdateResult(replacement, 'activate release pointer');
+      const activated = await readActiveSource(cardSource.track, 'confirm active release');
+      if (activated?.pointer?.version_id !== verified.versionId) {
+        throw new ReleaseDeliveryError('active release pointer confirmation failed.');
+      }
+      assertRuntimeSourceEquivalent(activated.normalized, cardSource);
     },
 
     async verifyActiveRelease({contentVersion, releaseId, track = 'cet4'}) {
@@ -412,6 +426,7 @@ export function createCloudBaseReceiverAdapter({
       const current = await readActiveSource(
         cardSource.track,
         'read current release before rollback',
+        {allowHybridPointer: true},
       );
       if (current) {
         const normalizedCurrent = current.normalized;
@@ -433,22 +448,35 @@ export function createCloudBaseReceiverAdapter({
         );
       }
 
-      await executeNoSql(
+      const targetVersionId = createCardSourceVersionDocumentId(
+        cardSource.track,
+        cardSource.content_version,
+      );
+      const replacement = await executeNoSql(
         runner,
         envId,
         [
-          upsertCommand(
+          replaceCommand(
             CARD_SOURCE_COLLECTION,
             {_id: cardSource.track},
             createActivePointerFields(
               cardSource,
-              createCardSourceVersionDocumentId(cardSource.track, cardSource.content_version),
+              targetVersionId,
               now().toISOString(),
             ),
           ),
         ],
         'activate retained release pointer',
       );
+      assertSingleUpdateResult(replacement, 'activate retained release pointer');
+      const activated = await readActiveSource(
+        cardSource.track,
+        'confirm retained release pointer',
+      );
+      if (activated?.pointer?.version_id !== targetVersionId) {
+        throw new ReleaseDeliveryError('retained release pointer confirmation failed.');
+      }
+      assertRuntimeSourceEquivalent(activated.normalized, cardSource);
     },
   };
 }
@@ -534,6 +562,16 @@ async function executeNoSql(runner, envId, commands, label) {
   return parseTcbJson(output);
 }
 
+function assertSingleUpdateResult(payload, label) {
+  const result = payload?.data?.results?.[0];
+  if (
+    normalizeCloudBaseNumber(result?.ok) !== 1 ||
+    normalizeCloudBaseNumber(result?.n) !== 1
+  ) {
+    throw new ReleaseDeliveryError(`${label} did not update exactly one document.`);
+  }
+}
+
 function queryCommand(collection, filter) {
   return {
     TableName: collection,
@@ -549,6 +587,17 @@ function upsertCommand(collection, filter, fields) {
     Command: JSON.stringify({
       update: collection,
       updates: [{q: filter, u: {$set: fields}, upsert: true}],
+    }),
+  };
+}
+
+function replaceCommand(collection, filter, document) {
+  return {
+    TableName: collection,
+    CommandType: 'UPDATE',
+    Command: JSON.stringify({
+      update: collection,
+      updates: [{q: filter, u: document, upsert: true}],
     }),
   };
 }
@@ -602,6 +651,7 @@ function createCurrentSourceFields(cardSource, updatedAt) {
 
 function createActivePointerFields(cardSource, versionId, updatedAt) {
   return {
+    _id: cardSource.track,
     schema_version: ACTIVE_POINTER_SCHEMA,
     track: cardSource.track,
     version_id: versionId,
@@ -611,7 +661,7 @@ function createActivePointerFields(cardSource, versionId, updatedAt) {
   };
 }
 
-function validateActivePointer(document, track) {
+function validateActivePointer(document, track, {allowHybridPointer = false} = {}) {
   const expectedKeys = [
     '_id',
     'schema_version',
@@ -621,15 +671,31 @@ function validateActivePointer(document, track) {
     'content_version',
     'updated_at',
   ];
+  const actualKeys = Object.keys(document).sort();
+  const requiredKeys = expectedKeys.sort();
+  const allowedHybridKeys = new Set([
+    ...requiredKeys,
+    'assets',
+    'card_records',
+    'imported_via',
+    'release',
+    'source',
+  ]);
+  const keysAreValid = allowHybridPointer
+    ? requiredKeys.every(key => actualKeys.includes(key)) &&
+      actualKeys.every(key => allowedHybridKeys.has(key))
+    : actualKeys.join('\0') === requiredKeys.join('\0');
+  const updatedAt = new Date(document.updated_at ?? '');
   if (
-    Object.keys(document).sort().join('\0') !== expectedKeys.sort().join('\0') ||
+    !keysAreValid ||
     document._id !== track ||
     document.schema_version !== ACTIVE_POINTER_SCHEMA ||
     document.track !== track ||
     !/^[0-9a-f]{64}$/.test(document.version_id ?? '') ||
     typeof document.release_id !== 'string' ||
-    typeof document.content_version !== 'string' ||
-    !Number.isFinite(Date.parse(document.updated_at ?? ''))
+    !/^sha256:[0-9a-f]{64}$/.test(document.content_version ?? '') ||
+    !Number.isFinite(updatedAt.getTime()) ||
+    updatedAt.toISOString() !== document.updated_at
   ) {
     throw new ReleaseDeliveryError('active release pointer is invalid.');
   }
@@ -763,5 +829,6 @@ export const receiverAdapterInternals = {
   normalizeCloudBaseExtendedJson,
   pushArrayChunkCommand,
   queryCommand,
+  replaceCommand,
   upsertCommand,
 };
