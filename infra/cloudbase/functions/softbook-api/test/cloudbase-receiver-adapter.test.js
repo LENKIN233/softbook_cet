@@ -126,7 +126,13 @@ test('receiver stages and verifies evidence before changing the active pointer',
   const writes = runner.calls.filter(call => call.kind === 'update');
   assert.deepEqual(
     writes.map(call => call.collection),
-    ['softbook_card_source_versions', 'softbook_card_source_versions', 'softbook_card_sources'],
+    [
+      'softbook_card_source_versions',
+      'softbook_card_source_versions',
+      'softbook_card_source_versions',
+      'softbook_card_source_versions',
+      'softbook_card_sources',
+    ],
   );
   assert.equal(writes.at(-1).collection, 'softbook_card_sources');
   assert.equal(runner.findVersion(bundle.release_id).release_verification.verified, true);
@@ -513,12 +519,21 @@ function createDatabaseRunner() {
           const existing = [...collection.values()].find(document =>
             matchesFilter(document, update.q),
           );
+          if (!existing && update.upsert !== true) {
+            calls.push({kind: 'update', collection: command.TableName});
+            results.push({ok: 1, n: 0});
+            continue;
+          }
           const id = existing?._id ?? update.q._id;
           assert.ok(id);
-          collection.set(id, {
+          const next = {
             ...(existing ?? {_id: id}),
-            ...update.u.$set,
-          });
+            ...(update.u.$set ?? {}),
+          };
+          for (const [field, operation] of Object.entries(update.u.$push ?? {})) {
+            next[field] = [...(next[field] ?? []), ...operation.$each];
+          }
+          collection.set(id, next);
           calls.push({kind: 'update', collection: command.TableName});
           results.push({ok: 1, n: 1});
         } else {
@@ -535,6 +550,9 @@ function createDatabaseRunner() {
 function matchesFilter(document, filter) {
   return Object.entries(filter).every(([key, expected]) => {
     const actual = key.split('.').reduce((value, segment) => value?.[segment], document);
+    if (expected && typeof expected === 'object' && '$exists' in expected) {
+      return (actual !== undefined) === expected.$exists;
+    }
     return actual === expected;
   });
 }
