@@ -555,6 +555,7 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
   const runner = createCloudRunner(deploymentSafety.REQUIRED_COLLECTIONS);
   const processCalls = [];
   const env = fixture.env;
+  env.RECEIVER_TEST_MARKER = 'preserved-validation-environment';
   const report = await deliveryCli.executeDeliveryCommand(
     {
       apply: true,
@@ -571,7 +572,7 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
       env,
       processRunner: {
         async run(command, args, options) {
-          processCalls.push({command, args, cwd: options.cwd});
+          processCalls.push({command, args, cwd: options.cwd, env: options.env});
           return '';
         },
       },
@@ -615,6 +616,13 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
   ]);
   assert.equal(processCalls[1].args.includes('test/softbook-api.test.js'), true);
   assert.equal(processCalls[1].args.includes('test/deliver-release.test.js'), false);
+  for (const call of processCalls) {
+    assert.equal(call.env.RECEIVER_TEST_MARKER, 'preserved-validation-environment');
+    assert.deepEqual(
+      Object.keys(call.env).filter(name => name.startsWith('SOFTBOOK_')),
+      [],
+    );
+  }
   assert.equal(runner.deployedConfig.envId, 'receiver-cet4-beta');
   assert.equal(runner.deployedConfig.functions.length, 2);
   assert.equal(runner.deployedConfig.functions[0].envVariables.SOFTBOOK_RUNTIME_MODE, 'production');

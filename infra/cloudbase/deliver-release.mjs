@@ -574,6 +574,7 @@ export async function deployReceiverFunction({
   const validationWorkspace = join(temporaryDirectory, 'validation-workspace');
   const validationCloudBaseRoot = join(validationWorkspace, 'infra', 'cloudbase');
   const validationFunctionRoot = join(validationCloudBaseRoot, 'functions', FUNCTION_NAME);
+  const validationEnvironment = buildReceiverValidationEnvironment(env);
 
   try {
     cpSync(CLOUD_BASE_ROOT, validationCloudBaseRoot, {
@@ -583,11 +584,13 @@ export async function deployReceiverFunction({
     copyReceiverValidationSpecFiles(validationWorkspace);
     await processRunner.run('npm', ['ci', '--ignore-scripts'], {
       cwd: validationFunctionRoot,
+      env: validationEnvironment,
       label: 'install receiver function dependencies',
       timeoutMs: 10 * 60_000,
     });
     await processRunner.run(process.execPath, ['--test', ...RECEIVER_ARTIFACT_TEST_FILES], {
       cwd: validationFunctionRoot,
+      env: validationEnvironment,
       label: 'test receiver function artifact',
       timeoutMs: 10 * 60_000,
     });
@@ -727,6 +730,12 @@ export function copyReceiverValidationSpecFiles(validationWorkspace) {
     );
   }
   return specTarget;
+}
+
+export function buildReceiverValidationEnvironment(environment) {
+  return Object.fromEntries(
+    Object.entries(environment ?? {}).filter(([name]) => !name.startsWith('SOFTBOOK_')),
+  );
 }
 
 async function ensureAccountDeletionWorker({cwd, envId, runner}) {
@@ -1509,6 +1518,7 @@ export function createProcessRunner({spawn = spawnSync} = {}) {
       const result = spawn(command, args, {
         cwd: options.cwd ?? REPOSITORY_ROOT,
         encoding: 'utf8',
+        env: options.env ?? process.env,
         maxBuffer: 64 * 1024 * 1024,
         timeout: options.timeoutMs ?? 120_000,
       });
