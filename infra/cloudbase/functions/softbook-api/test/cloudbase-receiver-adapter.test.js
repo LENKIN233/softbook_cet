@@ -255,9 +255,50 @@ test('first formal release replaces an unversioned development source', async ()
   await adapter.activateRelease({bundle, cardSource: candidate});
 
   assert.equal(runner.current().release.release_id, 'cet4-beta-first');
+  assert.equal(runner.currentPointer().schema_version, 'card-source-active-pointer.v1');
+  assert.equal(Object.hasOwn(runner.currentPointer(), 'card_records'), false);
+  assert.equal(Object.hasOwn(runner.currentPointer(), 'source'), false);
   assert.equal(
     runner.calls.filter(call => call.kind === 'update').length,
     writesBeforeActivation + 1,
+  );
+});
+
+test('activation repairs only a verified same-release hybrid pointer', async () => {
+  const runner = createDatabaseRunner();
+  const adapter = adapterModule.createCloudBaseReceiverAdapter({
+    profile: profileFixture(),
+    runner,
+  });
+  const candidate = createRuntimeCardSource('cet4-beta-hybrid', null);
+  const bundle = bundleFixture(candidate, null);
+  await adapter.stageContent({bundle, cardSource: candidate});
+  await adapter.verifyStaged({bundle, cardSource: candidate});
+  const versionId = createHash('sha256')
+    .update(`card-source-version\0cet4\0${candidate.content_version}`)
+    .digest('hex');
+  runner.seedCurrent({
+    ...candidate,
+    schema_version: 'card-source-active-pointer.v1',
+    version_id: versionId,
+    release_id: candidate.release.release_id,
+    updated_at: '2026-08-31T02:21:25.188Z',
+  });
+
+  await adapter.activateRelease({bundle, cardSource: candidate});
+
+  assert.deepEqual(Object.keys(runner.currentPointer()).sort(), [
+    '_id',
+    'content_version',
+    'release_id',
+    'schema_version',
+    'track',
+    'updated_at',
+    'version_id',
+  ]);
+  assert.equal(
+    runner.calls.filter(call => call.kind === 'update').at(-1).mode,
+    'replace',
   );
 });
 
@@ -589,15 +630,35 @@ function createDatabaseRunner() {
           }
           const id = existing?._id ?? update.q._id;
           assert.ok(id);
-          const next = {
-            ...(existing ?? {_id: id}),
-            ...(update.u.$set ?? {}),
-          };
-          for (const [field, operation] of Object.entries(update.u.$push ?? {})) {
-            next[field] = [...(next[field] ?? []), ...operation.$each];
+          let next;
+          let mode = 'operator';
+          if (Object.keys(update.u).every(key => !key.startsWith('$'))) {
+            assert.equal(command.TableName, 'softbook_card_sources');
+            assert.deepEqual(Object.keys(update.q), ['_id']);
+            assert.equal(update.upsert, true);
+            assert.deepEqual(Object.keys(update.u).sort(), [
+              '_id',
+              'content_version',
+              'release_id',
+              'schema_version',
+              'track',
+              'updated_at',
+              'version_id',
+            ]);
+            next = structuredClone(update.u);
+            mode = 'replace';
+          } else {
+            next = {
+              ...(existing ?? {_id: id}),
+              ...(update.u.$set ?? {}),
+            };
+            for (const [field, operation] of Object.entries(update.u.$push ?? {})) {
+              next[field] = [...(next[field] ?? []), ...operation.$each];
+            }
           }
+          assert.equal(next._id, id);
           collection.set(id, next);
-          calls.push({kind: 'update', collection: command.TableName});
+          calls.push({kind: 'update', collection: command.TableName, mode});
           results.push({ok: 1, n: 1});
         } else {
           calls.push({kind: 'delete', collection: command.TableName});

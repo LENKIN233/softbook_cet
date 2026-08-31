@@ -273,6 +273,54 @@ test('in-memory receiver detects DELETE fields smuggled into an UPDATE', async (
   );
 });
 
+test('in-memory receiver replacement removes stale source fields only on the active collection', async () => {
+  const environmentId = 'receiver-pointer-replacement';
+  const receiver = simulationModule.createInMemoryReleaseReceiver({environmentId});
+  receiver.seedDocument('softbook_card_sources', {
+    _id: 'cet4',
+    card_records: [{card_id: 'stale'}],
+    source: {id: 'stale', label: 'Stale'},
+  });
+  const pointer = {
+    _id: 'cet4',
+    content_version: `sha256:${'a'.repeat(64)}`,
+    release_id: 'cet4-release-pointer',
+    schema_version: 'card-source-active-pointer.v1',
+    track: 'cet4',
+    updated_at: '2026-08-31T02:21:25.188Z',
+    version_id: 'b'.repeat(64),
+  };
+  const replacement = tableName => ({
+    TableName: tableName,
+    CommandType: 'UPDATE',
+    Command: JSON.stringify({
+      update: tableName,
+      updates: [{q: {_id: 'cet4'}, u: pointer, upsert: true}],
+    }),
+  });
+  const execute = command =>
+    receiver.runner.run([
+      'db',
+      'nosql',
+      'execute',
+      '-e',
+      environmentId,
+      '--command',
+      JSON.stringify([command]),
+      '--json',
+    ]);
+
+  await execute(replacement('softbook_card_sources'));
+  const snapshot = JSON.parse(
+    receiver.snapshotCollections(['softbook_card_sources']),
+  );
+  assert.deepEqual(snapshot[0][1][0], pointer);
+  await assert.rejects(
+    () => execute(replacement('softbook_learning_events')),
+    /active pointer replacement is invalid/,
+  );
+});
+
 function createVerifiedRelease({parentReleaseId, releaseId, salt}) {
   const directory = mkdtempSync(join(tmpdir(), 'release-simulation-'));
   temporaryDirectories.push(directory);
