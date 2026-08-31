@@ -88,6 +88,37 @@ cd apps/mobile
 npm run ios
 ```
 
+### 完整本地产品
+
+普通 `dev` / `ios` / `android` 命令保留为 7 张开发卡的快速行为 demo，不能代表完整产品。
+完整本地产品命令会从 tracked receiver delivery profile 与公开 Ed25519 keyring 生成当前
+commit 的临时公开 runtime profile，连接已经导入 CloudBase 的 1180 张 CET4 卡、108 个盒和
+301 个私有音频，并强制使用封闭内测的邀请资格语义；profile 不包含 token、私钥或凭证。
+命令要求 tracked worktree 干净，避免运行代码与 profile 声明的 commit 不一致。
+
+```bash
+# PC Web：构建正式 Web 产物并在 http://127.0.0.1:4173 预览
+npm --prefix apps/web run product:local
+
+# Android：先启动一个 Android 模拟器或连接设备
+npm --prefix apps/mobile run product:local:android
+
+# iOS：使用明确的已启动 Simulator UDID
+npm --prefix apps/mobile run product:local:ios -- \
+  --device <simulator-udid>
+```
+
+只验证三端启动计划、公开 profile 与内容 key 绑定而不启动应用：
+
+```bash
+node scripts/run_local_product.mjs --target web --check
+node scripts/run_local_product.mjs --target android --check
+node scripts/run_local_product.mjs --target ios --device <simulator-udid> --check
+```
+
+完整本地产品依赖现有 receiver CloudBase；它不是完全离线单机模式。开发 demo 不再提供
+与封闭内测冲突的模拟自助购买入口。
+
 ### 学习卡源 runtime config
 
 `apps/mobile` 现在会在启动时读取 `src/runtime/appRuntimeConfig.ts`，并把配置注入到全局 runtime。

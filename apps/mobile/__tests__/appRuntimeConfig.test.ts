@@ -21,7 +21,7 @@ test('tracked app runtime config stays on the local safe baseline', () => {
     auth: { mode: 'local' },
     learningSource: { mode: 'local' },
     learningState: { mode: 'local' },
-    membership: { mode: 'local' },
+    membership: { mode: 'local', purchaseMode: 'operator_entitlement_only' },
     progressSync: { mode: 'local' },
     spaceState: { mode: 'local' },
   });

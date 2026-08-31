@@ -34,7 +34,8 @@ type SoftbookRuntimeGlobalThis = typeof globalThis & {
   };
 };
 
-// This tracked default keeps local learning as the safe baseline for development.
+// This tracked default is a bounded development demo. Complete local-product
+// runs use scripts/run_local_product.mjs and the receiver-owned formal content.
 export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   accountBootstrap: {
     mode: 'local',
@@ -51,7 +52,7 @@ export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   },
   membership: {
     mode: 'local',
-    purchaseMode: 'client',
+    purchaseMode: 'operator_entitlement_only',
   },
   progressSync: {
     mode: 'local',
