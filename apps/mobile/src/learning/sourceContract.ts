@@ -88,6 +88,30 @@ export function normalizeLearningCardRecords(
 }
 
 export function assertValidLearningCardRecord(record: LearningCardRecord) {
+  const rawRecord = record as unknown;
+
+  if (
+    typeof rawRecord !== 'object' ||
+    rawRecord === null ||
+    Array.isArray(rawRecord)
+  ) {
+    throw new Error('Invalid learning card record: card must be an object.');
+  }
+
+  const interactionId = (rawRecord as {interaction_id?: unknown})
+    .interaction_id;
+  if (
+    interactionId !== 'flip' &&
+    interactionId !== 'multiple_choice' &&
+    interactionId !== 'lock' &&
+    interactionId !== 'elimination' &&
+    interactionId !== 'swipe'
+  ) {
+    throw new Error(
+      'Invalid learning card record: interaction_id is unsupported.',
+    );
+  }
+
   const prefix = `Invalid learning card record ${record.card_id}:`;
   const interactionFields: Record<LearningInteractionId, string[]> = {
     flip: ['back_text'],
@@ -208,6 +232,15 @@ export function assertValidLearningCardRecord(record: LearningCardRecord) {
 
   if (record.audio !== undefined) {
     assertValidLearningAudioResource(record.audio, prefix);
+  }
+
+  if (
+    interactionId !== 'flip' &&
+    (rawRecord as {auto_scoring?: unknown}).auto_scoring !== true
+  ) {
+    throw new Error(
+      `${prefix} ${interactionId} auto_scoring must be true.`,
+    );
   }
 
   switch (record.interaction_id) {

@@ -30,7 +30,15 @@ export function formatSpaceBoxLabel(index: number) {
 export function formatSpaceDisplayName(value: string, fallback: string) {
   const normalizedValue = value.replace(/\s+/g, ' ').trim();
 
-  if (/^(?:raw|internal|test|fixture)[-_]/i.test(normalizedValue)) {
+  if (
+    /^(?:raw|internal|test|fixture|dev|prod|staging|seed|mock)[-_:/]/i.test(
+      normalizedValue,
+    ) ||
+    /^(?:sha256:|[a-z][a-z0-9_]*(?:_id|_ref|_key)[:=])/i.test(
+      normalizedValue,
+    ) ||
+    /^[a-z][a-z0-9]*(?:[-_:/][a-z0-9.]+)+$/i.test(normalizedValue)
+  ) {
     return fallback;
   }
 

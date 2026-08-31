@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -53,4 +53,19 @@ test('Web runtime config derives only the public receiver binding', () => {
   assert.match(output, /softbook-cet-beta-2026-08/);
   assert.doesNotMatch(output, /private_key|token|secret|Bearer|apiKey/i);
   rmSync(directory, {force: true, recursive: true});
+});
+
+test('Web release build fails closed before bundling without a runtime profile', () => {
+  const result = spawnSync(process.execPath, ['scripts/build_web_release.mjs'], {
+    cwd: root,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      SOFTBOOK_WEB_ALLOW_REPOSITORY_FIXTURE: '',
+      SOFTBOOK_WEB_RELEASE_RUNTIME_PROFILE: '',
+    },
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /runtime-profile is required/i);
 });

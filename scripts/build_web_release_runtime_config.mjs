@@ -15,6 +15,7 @@ import {parseStrictJson} from './lib/strict_json.mjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export function buildWebReleaseRuntimeConfig({
+  allowRepositoryFixture = false,
   outputPath,
   profilePath,
   repositoryCommit = readRepositoryCommit(),
@@ -29,13 +30,22 @@ export function buildWebReleaseRuntimeConfig({
   const profileBytes = readFileSync(profilePath);
   const profile = validateMobileReleaseRuntimeProfile(
     parseStrictJson(profileBytes, 'Web release runtime profile'),
-    {expectedCommit: repositoryCommit},
+    allowRepositoryFixture
+      ? {allowRepositoryFixture: true}
+      : {expectedCommit: repositoryCommit},
   );
   if (
-    profile.configuration_class !== 'receiver_release' ||
+    (profile.configuration_class !== 'receiver_release' &&
+      !(
+        allowRepositoryFixture &&
+        profile.configuration_class === 'repository_fixture' &&
+        profile.gate_eligible === false
+      )) ||
     !profileBytes.equals(canonicalJsonBytes(profile))
   ) {
-    throw new Error('Web release requires canonical receiver_release profile bytes.');
+    throw new Error(
+      'Web release requires canonical receiver_release profile bytes.',
+    );
   }
   const publicKeys = Object.fromEntries(
     profile.content_manifest_public_keys.map(item => [
@@ -93,6 +103,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       );
     } else {
       const report = buildWebReleaseRuntimeConfig({
+        allowRepositoryFixture: process.argv.includes(
+          '--allow-repository-fixture',
+        ),
         outputPath: resolve(option('--output') ?? ''),
         profilePath: resolve(option('--profile') ?? ''),
       });

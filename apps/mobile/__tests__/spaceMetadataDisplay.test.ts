@@ -5,6 +5,7 @@
 import {
   formatLearningSessionDisplayLabel,
   formatSpaceBoxLabel,
+  formatSpaceDisplayName,
   formatSpaceGroupLabel,
   formatSpaceLibraryLabel,
   formatSpacePathByIndex,
@@ -60,6 +61,18 @@ test('formats path indexes into anonymous-space labels', () => {
 test('formats learning session labels without exposing tracks', () => {
   expect(formatLearningSessionDisplayLabel('learning')).toBe('本轮学习卡');
   expect(formatLearningSessionDisplayLabel('review')).toBe('本轮回看卡');
+});
+
+test('keeps human space names and suppresses technical identifiers', () => {
+  expect(formatSpaceDisplayName('听力训练书架', '当前书架')).toBe(
+    '听力训练书架',
+  );
+  expect(formatSpaceDisplayName('CET4 高频', '当前分区')).toBe('CET4 高频');
+  expect(formatSpaceDisplayName('library-a', '当前书架')).toBe('当前书架');
+  expect(formatSpaceDisplayName('release_id:beta', '当前分区')).toBe(
+    '当前分区',
+  );
+  expect(formatSpaceDisplayName('sha256:abcd', '当前卡盒')).toBe('当前卡盒');
 });
 
 test('resolves a card to an anonymous index path when available', () => {

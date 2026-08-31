@@ -229,7 +229,19 @@ def build_catalog() -> tuple[GateSpec, ...]:
             dev,
             180,
             False,
-            lambda _: CommandSpec(("npm", "run", "build"), cwd=web),
+            lambda _: CommandSpec(
+                ("npm", "run", "build"),
+                cwd=web,
+                env={
+                    "SOFTBOOK_WEB_ALLOW_REPOSITORY_FIXTURE": "1",
+                    "SOFTBOOK_WEB_RELEASE_RUNTIME_PROFILE": str(
+                        mobile
+                        / "e2e"
+                        / "fixtures"
+                        / "mobile-release-runtime-profile.repository-fixture.json"
+                    ),
+                },
+            ),
         ),
         GateSpec(
             "backend-tests",

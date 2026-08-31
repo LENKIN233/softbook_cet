@@ -174,14 +174,12 @@ iOS 必须通过受控构建器暂存同一份公开 profile。构建器以文�
 `archive` 只使用 Xcode 实际可见的签名配置；缺失账号、证书或 provisioning 时会如实失败，
 不会把 unsigned simulator 结果写成签名或真机证据。
 
-Web Release 从同一份 mobile profile 派生公开且无密钥的 `runtime-config.js`，然后覆盖
-Vite 产物中的占位文件：
+Web Release 使用单一 fail-closed 构建命令，从同一份 mobile profile 派生公开且无密钥的
+`runtime-config.js`。缺失 profile、commit 不匹配或 profile 非 receiver release 时，构建失败：
 
 ```bash
-npm --prefix apps/web run build
-/path/to/node-22.13.0 scripts/build_web_release_runtime_config.mjs \
-  --profile /absolute/path/mobile-release-runtime-profile.json \
-  --output apps/web/dist/runtime-config.js
+SOFTBOOK_WEB_RELEASE_RUNTIME_PROFILE=/absolute/path/mobile-release-runtime-profile.json \
+  npm --prefix apps/web run build
 ```
 
 签名 Release 缺失或无法严格解析该资源时在构建或 App 注册前失败，绝不回退到本地
