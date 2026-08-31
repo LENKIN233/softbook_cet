@@ -156,6 +156,34 @@ SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE=/absolute/path/mobile-release-runtime-pr
   npm --prefix apps/mobile run android:release:signed -- build --state docs/agent-runs/artifacts/android-release.json --apply
 ```
 
+iOS 必须通过受控构建器暂存同一份公开 profile。构建器以文件锁防止并发，
+只在构建窗口内替换 Xcode Resources 使用的仓库 fixture，完成后无论成功或失败都会
+恢复 fixture，并从最终 `.app` / `.xcarchive` 重取、逐字节验证 profile：
+
+```bash
+/path/to/node-22.13.0 scripts/build_ios_release.mjs simulator \
+  --runtime-profile /absolute/path/mobile-release-runtime-profile.json \
+  --derived-data /absolute/path/derived-data
+
+/path/to/node-22.13.0 scripts/build_ios_release.mjs archive \
+  --runtime-profile /absolute/path/mobile-release-runtime-profile.json \
+  --derived-data /absolute/path/derived-data \
+  --archive-path /absolute/path/SoftbookCET.xcarchive
+```
+
+`archive` 只使用 Xcode 实际可见的签名配置；缺失账号、证书或 provisioning 时会如实失败，
+不会把 unsigned simulator 结果写成签名或真机证据。
+
+Web Release 从同一份 mobile profile 派生公开且无密钥的 `runtime-config.js`，然后覆盖
+Vite 产物中的占位文件：
+
+```bash
+npm --prefix apps/web run build
+/path/to/node-22.13.0 scripts/build_web_release_runtime_config.mjs \
+  --profile /absolute/path/mobile-release-runtime-profile.json \
+  --output apps/web/dist/runtime-config.js
+```
+
 签名 Release 缺失或无法严格解析该资源时在构建或 App 注册前失败，绝不回退到本地
 卡片、状态或 feature override。仓库的 unsigned CI 只允许嵌入
 `configuration_class=repository_fixture`、`gate_eligible=false` 的固定测试资源；
