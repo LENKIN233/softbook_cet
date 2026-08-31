@@ -12,7 +12,11 @@ import {
 } from './card-source-import-commands.mjs';
 import {ReleaseDeliveryError, validateDeliveryProfile} from './release-delivery-v1.mjs';
 import {validateControlledPilotProfile} from './controlled-pilot-v1.mjs';
-import {parseTcbJson, redactText} from './deployment-safety.mjs';
+import {
+  normalizeCloudBaseNumber,
+  parseTcbJson,
+  redactText,
+} from './deployment-safety.mjs';
 
 const require = createRequire(import.meta.url);
 const {validateCardSourceForImport} = require('./functions/softbook-api');
@@ -68,7 +72,7 @@ export function createCloudBaseReceiverAdapter({
       throw new ReleaseDeliveryError(`${label} returned an invalid result.`);
     }
 
-    return results[0] ?? null;
+    return results[0] ? normalizeCloudBaseExtendedJson(results[0]) : null;
   }
 
   async function requireVerifiedVersion(cardSource, bundle) {
@@ -430,6 +434,25 @@ function assertUploadSucceeded(payload, cloudPath, assetId) {
   }
 }
 
+function normalizeCloudBaseExtendedJson(value) {
+  if (Array.isArray(value)) return value.map(normalizeCloudBaseExtendedJson);
+  if (!value || typeof value !== 'object') return value;
+  const keys = Object.keys(value);
+  if (
+    keys.length === 1 &&
+    ['$numberDouble', '$numberInt', '$numberLong'].includes(keys[0])
+  ) {
+    const normalized = normalizeCloudBaseNumber(value);
+    if (!Number.isFinite(normalized) || !Number.isSafeInteger(normalized)) {
+      throw new ReleaseDeliveryError('receiver document contains an unsafe numeric value.');
+    }
+    return normalized;
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, normalizeCloudBaseExtendedJson(item)]),
+  );
+}
+
 async function verifyRemoteAsset({asset, cloudPath, envId, runner}) {
   const temporaryDirectory = mkdtempSync(join(tmpdir(), 'softbook-audio-verify-'));
   const downloadPath = join(temporaryDirectory, `${asset.asset_id}.mp3`);
@@ -643,6 +666,7 @@ function findCloudBaseFileId(value) {
 export const receiverAdapterInternals = {
   createReleaseVerification,
   findCloudBaseFileId,
+  normalizeCloudBaseExtendedJson,
   pushArrayChunkCommand,
   queryCommand,
   upsertCommand,
