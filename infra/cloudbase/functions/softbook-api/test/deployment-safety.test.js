@@ -50,10 +50,12 @@ test("maximum auth acknowledgement envelope retains Cloud Function timeout headr
 
 test("CloudBase JSON parsing tolerates CLI progress lines", () => {
   const payload = safety.parseTcbJson(
-    '- Loading data...\nTip: use --yes\n{\n  "data": {"status": "NORMAL"}\n}'
+    '- Loading data...\nTip: use --yes\n{\n  "data": {"status": "NORMAL", "message": "brace } in string"}\n}\n✔ Done!'
   );
 
-  assert.deepEqual(payload, {data: {status: "NORMAL"}});
+  assert.deepEqual(payload, {
+    data: {message: "brace } in string", status: "NORMAL"},
+  });
   assert.throws(
     () => safety.parseTcbJson("- Loading data...\nnot-json"),
     /valid JSON payload/

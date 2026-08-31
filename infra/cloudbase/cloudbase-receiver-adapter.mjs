@@ -57,6 +57,7 @@ export function createCloudBaseReceiverAdapter({
   const profile = validateReceiverProfile(profileInput);
   const controlledPilot = profile.schema_version === 'controlled-pilot-profile.v1';
   const envId = profile.environment_id;
+  let storageBucketPromise = null;
 
   async function queryOne(collection, filter, label) {
     const output = await executeNoSql(runner, envId, [queryCommand(collection, filter)], label);
@@ -104,12 +105,13 @@ export function createCloudBaseReceiverAdapter({
         ['-e', envId, 'storage', 'upload', absolutePath, cloudPath, '--json'],
         {label: `upload ${asset.asset_id}`, timeoutMs: DOWNLOAD_TIMEOUT_MS},
       );
-      const fileId = findCloudBaseFileId(parseTcbJson(uploadOutput));
-
+      const uploadPayload = parseTcbJson(uploadOutput);
+      let fileId = findCloudBaseFileId(uploadPayload);
       if (!fileId) {
-        throw new ReleaseDeliveryError(
-          `upload ${asset.asset_id} did not return a CloudBase file ID.`,
-        );
+        assertUploadSucceeded(uploadPayload, cloudPath, asset.asset_id);
+        storageBucketPromise ??= readReceiverStorageBucket({envId, profile, runner});
+        const bucket = await storageBucketPromise;
+        fileId = `cloud://${envId}.${bucket}/${cloudPath}`;
       }
 
       await verifyRemoteAsset({
@@ -350,6 +352,38 @@ export function createCloudBaseReceiverAdapter({
       );
     },
   };
+}
+
+async function readReceiverStorageBucket({envId, profile, runner}) {
+  const output = await runner.run(['env', 'detail', '-e', envId, '--json'], {
+    label: 'read receiver storage bucket',
+  });
+  const storages = parseTcbJson(output)?.data?.resources?.storages;
+  if (!Array.isArray(storages) || storages.length !== 1) {
+    throw new ReleaseDeliveryError('receiver environment must expose exactly one storage bucket.');
+  }
+  const storage = storages[0];
+  if (
+    storage?.Status !== 'NORMAL' ||
+    storage?.Region !== profile.region ||
+    !/^[a-z0-9][a-z0-9-]{2,127}$/.test(storage?.Bucket ?? '')
+  ) {
+    throw new ReleaseDeliveryError('receiver storage bucket metadata is invalid.');
+  }
+  return storage.Bucket;
+}
+
+function assertUploadSucceeded(payload, cloudPath, assetId) {
+  const data = payload?.data;
+  if (
+    data?.type !== 'file' ||
+    data?.cloudPath !== cloudPath ||
+    data?.totalFiles !== 1 ||
+    data?.successCount !== 1 ||
+    data?.failedCount !== 0
+  ) {
+    throw new ReleaseDeliveryError(`upload ${assetId} returned an invalid result.`);
+  }
 }
 
 async function verifyRemoteAsset({asset, cloudPath, envId, runner}) {
