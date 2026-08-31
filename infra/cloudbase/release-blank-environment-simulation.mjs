@@ -41,6 +41,7 @@ export async function runReleaseBlankEnvironmentSimulation({
 
   const receiver = createInMemoryReleaseReceiver({
     environmentId: releaseA.profile.environment_id,
+    region: releaseA.profile.region,
   });
   const initialSnapshot = receiver.snapshot();
   const initialUserData = receiver.snapshotCollections(USER_DATA_COLLECTIONS);
@@ -195,9 +196,12 @@ export async function runReleaseBlankEnvironmentSimulation({
   };
 }
 
-export function createInMemoryReleaseReceiver({environmentId} = {}) {
+export function createInMemoryReleaseReceiver({environmentId, region = 'ap-shanghai'} = {}) {
   if (typeof environmentId !== 'string' || environmentId.length === 0) {
     throw new ReleaseDeliveryError('simulation environment ID is required.');
+  }
+  if (typeof region !== 'string' || region.length === 0) {
+    throw new ReleaseDeliveryError('simulation region is required.');
   }
 
   const collections = new Map(
@@ -238,6 +242,28 @@ export function createInMemoryReleaseReceiver({environmentId} = {}) {
       }
       requireEnvironment(args);
 
+      if (
+        args.length === 5 &&
+        args[0] === 'env' &&
+        args[1] === 'detail' &&
+        args[2] === '-e' &&
+        args[4] === '--json'
+      ) {
+        return JSON.stringify({
+          data: {
+            resources: {
+              storages: [
+                {
+                  Bucket: 'simulation-storage-bucket',
+                  Region: region,
+                  Status: 'NORMAL',
+                },
+              ],
+            },
+          },
+        });
+      }
+
       const isStorageSurface =
         args[0] === '-e' &&
         args[2] === 'storage';
@@ -260,7 +286,10 @@ export function createInMemoryReleaseReceiver({environmentId} = {}) {
           storage.set(cloudPath, Buffer.from(bytes));
           operations.push({kind: 'storage_upload'});
           return JSON.stringify({
-            data: {fileID: `cloud://simulation-memory/${cloudPath}`},
+            data: {
+              fileID:
+                `cloud://${environmentId}.simulation-storage-bucket/${cloudPath}`,
+            },
           });
         }
         if (operation === 'download') {
