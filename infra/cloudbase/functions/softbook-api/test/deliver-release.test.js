@@ -651,6 +651,20 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
   }
 });
 
+test('receiver validation workspace copies exact authority fixtures', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'receiver-validation-specs-'));
+  temporaryDirectories.push(directory);
+  const target = deliveryCli.copyReceiverValidationSpecFiles(directory);
+
+  for (const filename of ['box-catalog.json', 'membership.json']) {
+    assert.deepEqual(
+      readFileSync(join(target, filename)),
+      readFileSync(resolve(__dirname, '../../../../../spec', filename)),
+      filename,
+    );
+  }
+});
+
 test('receiver deploy rejects a same-ID different Ed25519 private key before any deployment work', async () => {
   const fixture = createProfileFile();
   const runner = createCloudRunner(deploymentSafety.REQUIRED_COLLECTIONS);

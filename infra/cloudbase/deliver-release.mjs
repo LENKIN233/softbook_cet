@@ -564,11 +564,7 @@ export async function deployReceiverFunction({
       filter: path => !path.split(sep).includes('node_modules'),
       recursive: true,
     });
-    mkdirSync(join(validationWorkspace, 'spec'), {recursive: true});
-    cpSync(
-      join(REPOSITORY_ROOT, 'spec', 'box-catalog.json'),
-      join(validationWorkspace, 'spec', 'box-catalog.json'),
-    );
+    copyReceiverValidationSpecFiles(validationWorkspace);
     await processRunner.run('npm', ['ci', '--ignore-scripts'], {
       cwd: validationFunctionRoot,
       label: 'install receiver function dependencies',
@@ -703,6 +699,18 @@ export async function deployReceiverFunction({
   } finally {
     rmSync(temporaryDirectory, {force: true, recursive: true});
   }
+}
+
+export function copyReceiverValidationSpecFiles(validationWorkspace) {
+  const specTarget = join(validationWorkspace, 'spec');
+  mkdirSync(specTarget, {recursive: true});
+  for (const filename of ['box-catalog.json', 'membership.json']) {
+    cpSync(
+      join(REPOSITORY_ROOT, 'spec', filename),
+      join(specTarget, filename),
+    );
+  }
+  return specTarget;
 }
 
 async function ensureAccountDeletionWorker({cwd, envId, runner}) {
