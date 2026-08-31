@@ -31,6 +31,36 @@ test('client card parser rejects prompt and harness fields instead of carrying t
   );
 });
 
+test('client card parser rejects unknown interactions and incomplete scoring contracts', () => {
+  const source = localLearningCardRecords[0];
+  const unknownInteraction = {
+    ...source,
+    interaction_id: 'model_generated_interaction',
+  } as unknown as typeof source;
+  const multipleChoiceRecord = localLearningCardRecords.find(
+    record => record.interaction_id === 'multiple_choice',
+  );
+
+  if (
+    multipleChoiceRecord === undefined ||
+    multipleChoiceRecord.interaction_id !== 'multiple_choice'
+  ) {
+    throw new Error(
+      'Expected a multiple_choice record in localLearningCardRecords.',
+    );
+  }
+
+  expect(() => normalizeLearningCardRecord(unknownInteraction)).toThrow(
+    'interaction_id is unsupported',
+  );
+  expect(() =>
+    normalizeLearningCardRecord({
+      ...multipleChoiceRecord,
+      auto_scoring: false,
+    } as unknown as typeof multipleChoiceRecord),
+  ).toThrow('multiple_choice auto_scoring must be true');
+});
+
 test('card_id must inherit the knowledge_ref prefix', () => {
   const invalidRecord = {
     ...localLearningCardRecords[0],

@@ -8131,6 +8131,18 @@ test('below-minimum login preserves the session and shows an explicit update pat
     await authenticateIntoLearningBootstrap(root);
 
     expect(JSON.stringify(tree!.toJSON())).toContain('当前版本需要更新');
+    expect(root.findByProps({testID: 'auth-error-title'}).props.children).toBe(
+      '需要安装最新版本',
+    );
+    expect(
+      root.findByProps({testID: 'auth-error-detail'}).props.children,
+    ).toContain('安装最新版本后可直接继续');
+    expect(
+      findPressableByTestId(root, 'auth-update-required-button'),
+    ).toBeTruthy();
+    expect(root.findAllByProps({testID: 'auth-error-retry-pill'})).toHaveLength(
+      0,
+    );
     expect(root.findAllByProps({testID: 'auth-code-input'})).toHaveLength(0);
     await openRoute(root, 'mine');
     expect(

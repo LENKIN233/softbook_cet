@@ -264,6 +264,8 @@ jobs:
     timeout-minutes: 15
     env:
       RUN_GATE: ${{ needs.changes.outputs.web }}
+      SOFTBOOK_WEB_ALLOW_REPOSITORY_FIXTURE: "1"
+      SOFTBOOK_WEB_RELEASE_RUNTIME_PROFILE: ${{ github.workspace }}/apps/mobile/e2e/fixtures/mobile-release-runtime-profile.repository-fixture.json
     defaults:
       run:
         working-directory: apps/web

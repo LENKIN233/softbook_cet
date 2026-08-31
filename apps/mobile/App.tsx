@@ -13,6 +13,7 @@ import {
   findNodeHandle,
   InputAccessoryView,
   Keyboard,
+  Linking,
   Modal,
   Pressable,
   Platform,
@@ -308,6 +309,7 @@ type AuthHandlers = {
   onResetPhone: () => void;
   onRequestCode: () => void;
   onSubmitCode: () => void;
+  onOpenUpdate: () => void;
   onLogout: () => Promise<void>;
 };
 
@@ -3898,6 +3900,19 @@ function AppShell({
         stage: 'logged_out',
       }));
     },
+    onOpenUpdate: () => {
+      const updateUrl =
+        Platform.OS === 'ios'
+          ? 'itms-beta://'
+          : 'market://details?id=com.softbook.cet';
+      void Linking.openURL(updateUrl).catch(() => {
+        setAuthState(current => ({
+          ...current,
+          error:
+            '当前版本需要更新；请从原内测分发渠道安装最新版，登录状态会保留。',
+        }));
+      });
+    },
     onRequestCode: () => {
       if (authState.pendingAction !== null) {
         return;
@@ -5209,6 +5224,7 @@ function AppShell({
       error={
         learningBootstrapStatus === 'error' ? learningBootstrapError : null
       }
+      onOpenUpdate={authHandlers.onOpenUpdate}
       onRetry={retryLearningBootstrap}
       palette={palette}
       status={learningBootstrapStatus}
@@ -5414,16 +5430,19 @@ function AppShell({
 
 function LearningBootstrapSurface({
   error,
+  onOpenUpdate,
   onRetry,
   palette,
   status,
 }: {
   error: string | null;
+  onOpenUpdate: () => void;
   onRetry: () => void;
   palette: Palette;
   status: LearningBootstrapStatus;
 }) {
   const isLoading = status === 'idle' || status === 'loading';
+  const isClientUpdateRequired = error === CLIENT_UPDATE_REQUIRED_COPY;
 
   return (
     <View style={styles.stateScreen}>
@@ -5436,12 +5455,24 @@ function LearningBootstrapSurface({
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
           学习准备
         </Text>
-        <Text style={[styles.heroTitle, { color: palette.text }]}>
-          {isLoading ? '正在准备本轮学习' : '本轮学习暂时不可用'}
+        <Text
+          style={[styles.heroTitle, { color: palette.text }]}
+          testID={isClientUpdateRequired ? 'auth-error-title' : undefined}
+        >
+          {isLoading
+            ? '正在准备本轮学习'
+            : isClientUpdateRequired
+            ? '需要安装最新版本'
+            : '本轮学习暂时不可用'}
         </Text>
-        <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
+        <Text
+          style={[styles.heroSummary, { color: palette.textMuted }]}
+          testID={isClientUpdateRequired ? 'auth-error-detail' : undefined}
+        >
           {isLoading
             ? '正在整理本轮要学的卡片，准备好后会直接开始当前卡。'
+            : isClientUpdateRequired
+            ? '登录状态已保留，安装最新版本后可直接继续。'
             : '已登录，但这次没能拿到可用卡片。可以在这里重试。'}
         </Text>
       </View>
@@ -5464,9 +5495,13 @@ function LearningBootstrapSurface({
       />
       {!isLoading ? (
         <Pressable
-          onPress={onRetry}
+          onPress={isClientUpdateRequired ? onOpenUpdate : onRetry}
           style={[styles.primaryButton, { backgroundColor: palette.accent }]}
-          testID="learning-bootstrap-retry-button"
+          testID={
+            isClientUpdateRequired
+              ? 'auth-update-required-button'
+              : 'learning-bootstrap-retry-button'
+          }
         >
           <Text
             style={[
@@ -5474,7 +5509,7 @@ function LearningBootstrapSurface({
               { color: palette.primaryActionText },
             ]}
           >
-            重新加载本轮卡片
+            {isClientUpdateRequired ? '获取更新' : '重新加载本轮卡片'}
           </Text>
         </Pressable>
       ) : (
@@ -8233,7 +8268,10 @@ function PhoneSmsPanel({
   const isPending = authState.pendingAction !== null;
   const hasRequestedCode = authState.stage !== 'logged_out';
   const hasAuthError = authState.error !== null;
-  const hasCodeError = hasAuthError && hasRequestedCode;
+  const isClientUpdateRequired =
+    isAuthenticated && authState.error === CLIENT_UPDATE_REQUIRED_COPY;
+  const hasCodeError =
+    hasAuthError && hasRequestedCode && !isClientUpdateRequired;
   const isPhoneReady = isPhoneNumberReady(authState.phoneNumber);
   const canRequestCode = isPhoneReady && !isPending && !isAuthenticated;
   const canSubmitCode =
@@ -8265,10 +8303,14 @@ function PhoneSmsPanel({
     ? `短码已发送，确认后回到${returnTarget}。`
     : requestDockDetail;
   const requestStatusTone = canRequestCode ? palette.success : palette.accent;
-  const authErrorTitle = hasRequestedCode
+  const authErrorTitle = isClientUpdateRequired
+    ? '需要安装最新版本'
+    : hasRequestedCode
     ? '验证码暂时没通过'
     : '短码暂时没发出';
-  const authErrorDetail = hasRequestedCode
+  const authErrorDetail = isClientUpdateRequired
+    ? '登录状态已保留，更新后可直接继续。'
+    : hasRequestedCode
     ? '检查短码后重试，当前位置不变。'
     : '检查手机号后重试，当前位置不变。';
   const codeActionTone = hasCodeError ? palette.warning : palette.accent;
@@ -8322,7 +8364,12 @@ function PhoneSmsPanel({
           {`${authState.error} ${authErrorDetail}`}
         </Text>
       </View>
-      <View
+      <Pressable
+        accessibilityRole={isClientUpdateRequired ? 'button' : undefined}
+        disabled={!isClientUpdateRequired}
+        onPress={
+          isClientUpdateRequired ? handlers.onOpenUpdate : undefined
+        }
         style={[
           styles.authErrorPill,
           {
@@ -8330,15 +8377,19 @@ function PhoneSmsPanel({
             borderColor: hexToRgba(palette.warning, 0.22),
           },
         ]}
-        testID="auth-error-retry-pill"
+        testID={
+          isClientUpdateRequired
+            ? 'auth-update-required-button'
+            : 'auth-error-retry-pill'
+        }
       >
         <Text
           numberOfLines={1}
           style={[styles.authErrorPillText, { color: palette.warning }]}
         >
-          可重试
+          {isClientUpdateRequired ? '获取更新' : '可重试'}
         </Text>
-      </View>
+      </Pressable>
     </View>
   ) : null;
 

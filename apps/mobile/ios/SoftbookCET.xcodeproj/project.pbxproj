@@ -14,6 +14,7 @@
 		97E2703D04615A976E7478F6 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		A41D10F13C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m in Sources */ = {isa = PBXBuildFile; fileRef = A41D10F03C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m */; };
 		B7A0010236C44F12A7510B02 /* SoftbookAppInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = B7A0010136C44F12A7510B02 /* SoftbookAppInfo.m */; };
+		B7A0030236C44F12A7510B02 /* softbook-release-runtime-profile.json in Resources */ = {isa = PBXBuildFile; fileRef = B7A0030136C44F12A7510B02 /* softbook-release-runtime-profile.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = SoftbookCET/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		A41D10F03C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = SoftbookAudioPlayer.m; path = SoftbookCET/SoftbookAudioPlayer.m; sourceTree = "<group>"; };
 		B7A0010136C44F12A7510B02 /* SoftbookAppInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = SoftbookAppInfo.m; path = SoftbookCET/SoftbookAppInfo.m; sourceTree = "<group>"; };
+		B7A0030136C44F12A7510B02 /* softbook-release-runtime-profile.json */ = {isa = PBXFileReference; explicitFileType = text.json; name = "softbook-release-runtime-profile.json"; path = "SoftbookCET/softbook-release-runtime-profile.json"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -49,6 +51,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				B7A0010136C44F12A7510B02 /* SoftbookAppInfo.m */,
+				B7A0030136C44F12A7510B02 /* softbook-release-runtime-profile.json */,
 				A41D10F03C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
@@ -115,10 +118,10 @@
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
-				B7A0020136C44F12A7510B02 /* [Softbook] Embed Release Runtime Profile */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
 				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
+				B7A0020136C44F12A7510B02 /* [Softbook] Embed Release Runtime Profile */,
 			);
 			buildRules = (
 			);
@@ -165,6 +168,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B7A0030236C44F12A7510B02 /* softbook-release-runtime-profile.json in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				97E2703D04615A976E7478F6 /* PrivacyInfo.xcprivacy in Resources */,
@@ -174,21 +178,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		B7A0020136C44F12A7510B02 /* [Softbook] Embed Release Runtime Profile */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "[Softbook] Embed Release Runtime Profile";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -euo pipefail\n\nif [ \"$CONFIGURATION\" != \"Release\" ]; then\n  exit 0\nfi\n\nPROFILE_PATH=\"${SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE:-}\"\nALLOW_FIXTURE=\"\"\nif [ -z \"$PROFILE_PATH\" ]; then\n  if [ \"${CODE_SIGNING_ALLOWED:-YES}\" = \"NO\" ]; then\n    PROFILE_PATH=\"$SRCROOT/../e2e/fixtures/mobile-release-runtime-profile.repository-fixture.json\"\n    ALLOW_FIXTURE=\"--allow-repository-fixture\"\n  else\n    echo \"error: signed iOS Release requires SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE\" >&2\n    exit 1\n  fi\nfi\n\nOUTPUT_PATH=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/softbook-release-runtime-profile.json\"\nmkdir -p \"$(dirname \"$OUTPUT_PATH\")\"\nNODE_BINARY=\"${NODE_BINARY:-$(command -v node)}\"\n\"$NODE_BINARY\" \"$SRCROOT/../../../scripts/stage_mobile_release_runtime_profile.mjs\" --input \"$PROFILE_PATH\" --output \"$OUTPUT_PATH\" $ALLOW_FIXTURE\n";
-			showEnvVarsInLog = 0;
-		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -220,6 +209,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-SoftbookCET/Pods-SoftbookCET-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B7A0020136C44F12A7510B02 /* [Softbook] Embed Release Runtime Profile */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/softbook-release-runtime-profile.json",
+			);
+			name = "[Softbook] Embed Release Runtime Profile";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\n\nif [ \"$CONFIGURATION\" != \"Release\" ]; then\n  exit 0\nfi\n\nSOURCE_PROFILE=\"$SRCROOT/SoftbookCET/softbook-release-runtime-profile.json\"\nOUTPUT_PROFILE=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/softbook-release-runtime-profile.json\"\nPROFILE_PATH=\"${SOFTBOOK_MOBILE_RELEASE_RUNTIME_PROFILE:-}\"\nALLOW_FIXTURE=\"\"\nif [ -z \"$PROFILE_PATH\" ]; then\n  if [ \"${CODE_SIGNING_ALLOWED:-YES}\" = \"NO\" ]; then\n    PROFILE_PATH=\"$SRCROOT/../e2e/fixtures/mobile-release-runtime-profile.repository-fixture.json\"\n    ALLOW_FIXTURE=\"--allow-repository-fixture\"\n  else\n    echo \"error: signed iOS Release requires the guarded build_ios_release.mjs workflow\" >&2\n    exit 1\n  fi\nfi\n\nif ! /usr/bin/cmp -s \"$SOURCE_PROFILE\" \"$PROFILE_PATH\"; then\n  echo \"error: staged iOS runtime profile does not match the requested profile\" >&2\n  exit 1\nfi\nif ! /usr/bin/cmp -s \"$OUTPUT_PROFILE\" \"$PROFILE_PATH\"; then\n  echo \"error: embedded iOS runtime profile does not match the requested profile\" >&2\n  exit 1\nfi\nNODE_BINARY=\"${NODE_BINARY:-$(command -v node)}\"\n\"$NODE_BINARY\" \"$SRCROOT/../../../scripts/stage_mobile_release_runtime_profile.mjs\" --input \"$PROFILE_PATH\" --output \"$OUTPUT_PROFILE\" $ALLOW_FIXTURE\n";
 			showEnvVarsInLog = 0;
 		};
 		C38B50BA6285516D6DCD4F65 /* [CP] Check Pods Manifest.lock */ = {
@@ -285,6 +291,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
+				EXCLUDED_SOURCE_FILE_NAMES = "softbook-release-runtime-profile.json";
 				INFOPLIST_FILE = SoftbookCET/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
