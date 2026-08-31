@@ -48,6 +48,22 @@ const ACCOUNT_DELETION_TRIGGER_NAME = 'account-deletion-every-minute';
 const ACCOUNT_DELETION_TRIGGER_CRON = '0 */1 * * * * *';
 const FUNCTION_RUNTIME = 'Nodejs20.19';
 const BACKEND_DEPLOYMENT_ID_PREFIX = 'backend-deployment:sha256:';
+const RECEIVER_ARTIFACT_TEST_FILES = Object.freeze([
+  'test/account-deletion-worker-v1.test.js',
+  'test/auth-v2.test.js',
+  'test/beta-entitlement-v1.test.js',
+  'test/bootstrap-v2.test.js',
+  'test/card-source-v2.test.js',
+  'test/cloudbase-documents.test.js',
+  'test/cloudbase-errors.test.js',
+  'test/content-release-runtime.test.js',
+  'test/controlled-pilot-round-v1.test.js',
+  'test/learning-events-v2.test.js',
+  'test/learning-scheduler-v1.test.js',
+  'test/pilot-entitlement-v1.test.js',
+  'test/sms-provider.test.js',
+  'test/softbook-api.test.js',
+]);
 const DELIVERY_OPERATOR_PATTERN =
   /^(model|agent|service|oidc):[A-Za-z0-9][A-Za-z0-9_.@-]{2,127}$/;
 const COMMANDS = new Set(['preflight', 'provision', 'deploy', 'publish', 'verify', 'rollback']);
@@ -570,7 +586,7 @@ export async function deployReceiverFunction({
       label: 'install receiver function dependencies',
       timeoutMs: 10 * 60_000,
     });
-    await processRunner.run('npm', ['test'], {
+    await processRunner.run(process.execPath, ['--test', ...RECEIVER_ARTIFACT_TEST_FILES], {
       cwd: validationFunctionRoot,
       label: 'test receiver function artifact',
       timeoutMs: 10 * 60_000,

@@ -603,13 +603,18 @@ test('receiver deploy validates an isolated artifact and injects secrets only th
     name: 'account-deletion-every-minute',
     type: 'timer',
   });
+  assert.equal(processCalls.length, 2);
   assert.deepEqual(
-    processCalls.map(call => [call.command, call.args[0]]),
-    [
-      ['npm', 'ci'],
-      ['npm', 'test'],
-    ],
+    [processCalls[0].command, processCalls[0].args],
+    ['npm', ['ci', '--ignore-scripts']],
   );
+  assert.equal(processCalls[1].command, process.execPath);
+  assert.deepEqual(processCalls[1].args.slice(0, 2), [
+    '--test',
+    'test/account-deletion-worker-v1.test.js',
+  ]);
+  assert.equal(processCalls[1].args.includes('test/softbook-api.test.js'), true);
+  assert.equal(processCalls[1].args.includes('test/deliver-release.test.js'), false);
   assert.equal(runner.deployedConfig.envId, 'receiver-cet4-beta');
   assert.equal(runner.deployedConfig.functions.length, 2);
   assert.equal(runner.deployedConfig.functions[0].envVariables.SOFTBOOK_RUNTIME_MODE, 'production');
