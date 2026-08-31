@@ -134,6 +134,23 @@ export function createCloudBaseReceiverAdapter({
   }
 
   return {
+    async readVerifiedStaged({bundle}) {
+      const versionId = createCardSourceVersionDocumentId(
+        bundle.track,
+        bundle.content.content_version,
+      );
+      const document = await queryOne(
+        CARD_SOURCE_VERSION_COLLECTION,
+        {_id: versionId},
+        'read resumable verified release',
+      );
+      if (!document || document.release_verification?.verified !== true) return null;
+      const normalized = normalizeStoredCardSource(document, bundle.track);
+      assertReleaseIdentity(normalized, bundle.release_id, bundle.content.content_version);
+      assertVerificationBinding(document.release_verification, bundle);
+      return normalized;
+    },
+
     async uploadAsset({absolutePath, asset, releaseId}) {
       const hashSuffix = asset.sha256.slice('sha256:'.length);
       const cloudPath = `softbook/releases/${releaseId}/audio/${hashSuffix}/${asset.asset_id}.mp3`;
@@ -274,28 +291,35 @@ export function createCloudBaseReceiverAdapter({
           );
         }
 
-        if (normalizedCurrent.release?.release_id !== bundle.parent_release_id) {
+        const replacingDevelopmentSource =
+          normalizedCurrent.release === null && bundle.parent_release_id === null;
+        if (
+          !replacingDevelopmentSource &&
+          normalizedCurrent.release?.release_id !== bundle.parent_release_id
+        ) {
           throw new ReleaseDeliveryError(
             'active release does not match the bundle parent release.',
           );
         }
 
-        const previousVersionId = createCardSourceVersionDocumentId(
-          cardSource.track,
-          normalizedCurrent.content_version,
-        );
-        await executeNoSql(
-          runner,
-          envId,
-          [
-            upsertCommand(
-              CARD_SOURCE_VERSION_COLLECTION,
-              {_id: previousVersionId},
-              {retention_status: 'retained', updated_at: now().toISOString()},
-            ),
-          ],
-          'retain previous release',
-        );
+        if (!replacingDevelopmentSource) {
+          const previousVersionId = createCardSourceVersionDocumentId(
+            cardSource.track,
+            normalizedCurrent.content_version,
+          );
+          await executeNoSql(
+            runner,
+            envId,
+            [
+              upsertCommand(
+                CARD_SOURCE_VERSION_COLLECTION,
+                {_id: previousVersionId},
+                {retention_status: 'retained', updated_at: now().toISOString()},
+              ),
+            ],
+            'retain previous release',
+          );
+        }
       } else if (!controlledPilot && bundle.parent_release_id !== null) {
         throw new ReleaseDeliveryError(
           'bundle declares a parent release but the receiver has no active release.',

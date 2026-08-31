@@ -405,53 +405,60 @@ export function verifyReleaseBundleDirectory({bundlePath, profilePath}) {
 export async function publishVerifiedRelease(verified, adapter) {
   requirePublisherAdapter(adapter);
   const storageByAssetId = new Map();
+  const resumed =
+    typeof adapter.readVerifiedStaged === 'function'
+      ? await adapter.readVerifiedStaged({bundle: verified.bundle})
+      : null;
 
-  for (const asset of verified.audio_manifest.assets) {
-    const absolutePath = resolveBundlePath(
-      verified.bundle_directory,
-      asset.asset_path,
+  let normalizedRuntimeSource = resumed;
+  if (!normalizedRuntimeSource) {
+    for (const asset of verified.audio_manifest.assets) {
+      const absolutePath = resolveBundlePath(
+        verified.bundle_directory,
+        asset.asset_path,
+      );
+      const storageFileId = await adapter.uploadAsset({
+        absolutePath,
+        asset,
+        releaseId: verified.bundle.release_id,
+        track: verified.bundle.track,
+      });
+      storageByAssetId.set(
+        asset.asset_id,
+        requireCloudBaseFileId(storageFileId, `uploaded ${asset.asset_id}`),
+      );
+    }
+
+    const runtimeCardSource = {
+      ...verified.content,
+      assets: verified.content.assets.map(asset => ({
+        asset_id: asset.asset_id,
+        duration_ms: asset.duration_ms,
+        media_type: asset.media_type,
+        sha256: asset.sha256,
+        size_bytes: asset.size_bytes,
+        storage_file_id: storageByAssetId.get(asset.asset_id),
+      })),
+      release: createContentRelease(verified.bundle),
+    };
+    normalizedRuntimeSource = validateCardSourceCatalogMapping(
+      validateCardSourceForImport(runtimeCardSource, verified.bundle.track),
     );
-    const storageFileId = await adapter.uploadAsset({
-      absolutePath,
-      asset,
-      releaseId: verified.bundle.release_id,
-      track: verified.bundle.track,
+    assertEqual(
+      normalizedRuntimeSource.content_version,
+      verified.bundle.content.content_version,
+      'hydrated runtime content version',
+    );
+
+    await adapter.stageContent({
+      bundle: verified.bundle,
+      cardSource: normalizedRuntimeSource,
     });
-    storageByAssetId.set(
-      asset.asset_id,
-      requireCloudBaseFileId(storageFileId, `uploaded ${asset.asset_id}`),
-    );
+    await adapter.verifyStaged({
+      bundle: verified.bundle,
+      cardSource: normalizedRuntimeSource,
+    });
   }
-
-  const runtimeCardSource = {
-    ...verified.content,
-    assets: verified.content.assets.map(asset => ({
-      asset_id: asset.asset_id,
-      duration_ms: asset.duration_ms,
-      media_type: asset.media_type,
-      sha256: asset.sha256,
-      size_bytes: asset.size_bytes,
-      storage_file_id: storageByAssetId.get(asset.asset_id),
-    })),
-    release: createContentRelease(verified.bundle),
-  };
-  const normalizedRuntimeSource = validateCardSourceCatalogMapping(
-    validateCardSourceForImport(runtimeCardSource, verified.bundle.track),
-  );
-  assertEqual(
-    normalizedRuntimeSource.content_version,
-    verified.bundle.content.content_version,
-    'hydrated runtime content version',
-  );
-
-  await adapter.stageContent({
-    bundle: verified.bundle,
-    cardSource: normalizedRuntimeSource,
-  });
-  await adapter.verifyStaged({
-    bundle: verified.bundle,
-    cardSource: normalizedRuntimeSource,
-  });
   await adapter.activateRelease({
     bundle: verified.bundle,
     cardSource: normalizedRuntimeSource,
@@ -460,7 +467,7 @@ export async function publishVerifiedRelease(verified, adapter) {
   return {
     release_id: verified.bundle.release_id,
     content_version: normalizedRuntimeSource.content_version,
-    uploaded_asset_count: storageByAssetId.size,
+    uploaded_asset_count: resumed ? 0 : storageByAssetId.size,
     activated: true,
   };
 }

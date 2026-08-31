@@ -462,6 +462,44 @@ test('publisher activates only after every upload, stage, and verification succe
   assert.equal(calls.indexOf('activate'), calls.length - 1);
 });
 
+test('publisher resumes an exact verified stage without repeating asset work', async () => {
+  const fixture = createValidBundleFixture();
+  const verified = delivery.verifyReleaseBundleDirectory({
+    bundlePath: fixture.bundlePath,
+    profilePath: fixture.profilePath,
+  });
+  let staged = null;
+  await delivery.publishVerifiedRelease(verified, {
+    uploadAsset: async ({asset}) =>
+      `cloud://receiver-bucket/${asset.asset_id}.mp3`,
+    stageContent: async ({cardSource}) => {
+      staged = cardSource;
+    },
+    verifyStaged: async () => {},
+    activateRelease: async () => {},
+  });
+  const calls = [];
+  const resumed = await delivery.publishVerifiedRelease(verified, {
+    readVerifiedStaged: async () => staged,
+    uploadAsset: async () => {
+      throw new Error('asset work must not repeat');
+    },
+    stageContent: async () => {
+      throw new Error('stage work must not repeat');
+    },
+    verifyStaged: async () => {
+      throw new Error('stage verification must not repeat');
+    },
+    activateRelease: async ({cardSource}) => {
+      calls.push('activate');
+      assert.equal(cardSource, staged);
+    },
+  });
+
+  assert.equal(resumed.uploaded_asset_count, 0);
+  assert.deepEqual(calls, ['activate']);
+});
+
 test('publisher selects the higher platform minimum using semantic-version precedence', async () => {
   const fixture = createValidBundleFixture();
   const minimumClientVersions = {

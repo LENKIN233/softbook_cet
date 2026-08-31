@@ -133,6 +133,8 @@ test('receiver stages and verifies evidence before changing the active pointer',
 
   await adapter.stageContent({bundle, cardSource});
   await adapter.verifyStaged({bundle, cardSource});
+  const resumable = await adapter.readVerifiedStaged({bundle});
+  assert.equal(resumable.content_version, cardSource.content_version);
   await adapter.activateRelease({bundle, cardSource});
   const active = await adapter.verifyActiveRelease({
     releaseId: bundle.release_id,
@@ -222,6 +224,32 @@ test('receiver rejects a release whose parent is not currently active', async ()
     /does not match the bundle parent/,
   );
   assert.equal(runner.current().release.release_id, 'cet4-beta-current');
+});
+
+test('first formal release replaces an unversioned development source', async () => {
+  const runner = createDatabaseRunner();
+  const adapter = adapterModule.createCloudBaseReceiverAdapter({
+    profile: profileFixture(),
+    runner,
+  });
+  const development = require('../index').validateCardSourceForImport(
+    {...createRuntimeCardSource('development-placeholder', null), release: null},
+    'cet4',
+  );
+  runner.seedCurrent(development);
+  const candidate = createRuntimeCardSource('cet4-beta-first', null);
+  const bundle = bundleFixture(candidate, null);
+  await adapter.stageContent({bundle, cardSource: candidate});
+  await adapter.verifyStaged({bundle, cardSource: candidate});
+  const writesBeforeActivation = runner.calls.filter(call => call.kind === 'update').length;
+
+  await adapter.activateRelease({bundle, cardSource: candidate});
+
+  assert.equal(runner.current().release.release_id, 'cet4-beta-first');
+  assert.equal(
+    runner.calls.filter(call => call.kind === 'update').length,
+    writesBeforeActivation + 1,
+  );
 });
 
 test('receiver never activates unverified environment-specific storage locators', async () => {
@@ -436,6 +464,8 @@ function bundleFixture(cardSource, parentReleaseId) {
     bundle_id: `bundle-${cardSource.release.release_id}`,
     release_id: cardSource.release.release_id,
     parent_release_id: parentReleaseId,
+    track: cardSource.track,
+    content: {content_version: cardSource.content_version},
     approval: {record_sha256: `sha256:${'a'.repeat(64)}`},
     audit: {report_sha256: `sha256:${'b'.repeat(64)}`},
     audio: {
