@@ -25,6 +25,24 @@ const PODSPECS = [
   },
 ];
 
+const HERMESC_XCODE_SCRIPT = {
+  name: 'Hermesc Xcode environment',
+  path: path.join(
+    ROOT,
+    'apps/mobile/node_modules/react-native/sdks/hermes-engine/utils/build-hermesc-xcode.sh',
+  ),
+  normalize: normalizeHermescXcodeScript,
+};
+
+const HERMES_BUILD_XCODE_SCRIPT = {
+  name: 'Hermes Xcode build cache',
+  path: path.join(
+    ROOT,
+    'apps/mobile/node_modules/react-native/sdks/hermes-engine/utils/build-hermes-xcode.sh',
+  ),
+  normalize: normalizeHermesBuildXcodeScript,
+};
+
 const HERMES_REPLACEMENTS = [
   {
     name: 'prepare_command',
@@ -79,10 +97,62 @@ export function normalizeYogaPodspec(content) {
   return applyReplacements(content, YOGA_REPLACEMENTS, 'Yoga');
 }
 
+export function normalizeHermescXcodeScript(content) {
+  const original = 'env -i \\\n  PATH="$PATH" \\\n  SDKROOT="$SDKROOT" \\';
+  const normalized = 'env -i \\\n  HOME="$HOME" \\\n  PATH="$PATH" \\\n  SDKROOT="$SDKROOT" \\';
+  const normalizedCount = content.split(normalized).length - 1;
+  if (normalizedCount === 2) {
+    return {changed: [], content};
+  }
+  const originalCount = content.split(original).length - 1;
+  if (normalizedCount !== 0 || originalCount !== 2) {
+    throw new Error(
+      'React Native Hermesc Xcode script drifted at isolated environment; review the upstream script before updating the normalizer.',
+    );
+  }
+  return {
+    changed: ['isolated_environment_home'],
+    content: content.replaceAll(original, normalized),
+  };
+}
+
+export function normalizeHermesBuildXcodeScript(content) {
+  const anchor = 'architectures=$( echo "$ARCHS" | tr  " " ";" )\n';
+  const guard = `
+build_directory="\${PODS_ROOT}/hermes-engine/build/\${PLATFORM_NAME}"
+cache_file="\${build_directory}/CMakeCache.txt"
+if [[ -f "$cache_file" ]]; then
+  cached_architectures=$(sed -n 's/^CMAKE_OSX_ARCHITECTURES:STRING=//p' "$cache_file")
+  cached_sysroots=$(sed -n 's/^CMAKE_APPLE_ARCH_SYSROOTS:INTERNAL=//p' "$cache_file")
+  architecture_count=$(awk -F';' '{print NF}' <<< "$architectures")
+  sysroot_count=$(awk -F';' '{print NF}' <<< "$cached_sysroots")
+  if [[ "$cached_architectures" != "$architectures" || -n "$cached_sysroots" && "$sysroot_count" != "$architecture_count" ]]; then
+    rm -f "$cache_file"
+  fi
+fi
+`;
+  if (content.includes(guard)) {
+    return {changed: [], content};
+  }
+  if ((content.split(anchor).length - 1) !== 1) {
+    throw new Error(
+      'React Native Hermes Xcode build script drifted at architecture resolution; review the upstream script before updating the normalizer.',
+    );
+  }
+  return {
+    changed: ['architecture_cache_guard'],
+    content: content.replace(anchor, `${anchor}${guard}`),
+  };
+}
+
 function main() {
   const changed = [];
 
-  for (const podspec of PODSPECS) {
+  for (const podspec of [
+    ...PODSPECS,
+    HERMESC_XCODE_SCRIPT,
+    HERMES_BUILD_XCODE_SCRIPT,
+  ]) {
     if (!fs.existsSync(podspec.path)) {
       throw new Error(
         `${podspec.name} podspec is unavailable at ${podspec.path}; run npm ci first.`,

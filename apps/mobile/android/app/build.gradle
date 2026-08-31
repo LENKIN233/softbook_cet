@@ -93,6 +93,12 @@ def releaseRuntimeProfileFile = configuredReleaseRuntimeProfile ?
     file(configuredReleaseRuntimeProfile) :
     (requireUnsignedRelease ? repositoryFixtureRuntimeProfile : null)
 def generatedReleaseRuntimeAssets = file("$buildDir/generated/softbook/releaseRuntimeProfile")
+def localProductBaseUrl = System.getenv('SOFTBOOK_CET_REMOTE_BASE_URL') ?: ''
+def localProductTrack = System.getenv('SOFTBOOK_CET_LEARNING_TRACK') ?: 'cet4'
+def localProductPublicKeys = System.getenv('SOFTBOOK_CET_CONTENT_MANIFEST_PUBLIC_KEYS') ?: ''
+def buildConfigString = { value ->
+    '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
+}
 
 if (requireSignedRelease && requireUnsignedRelease) {
     throw new GradleException('Android release cannot require signed and unsigned modes together.')
@@ -123,6 +129,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+        buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_BASE_URL", buildConfigString('')
+        buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_TRACK", buildConfigString('cet4')
+        buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_PUBLIC_KEYS", buildConfigString('')
     }
     signingConfigs {
         debug {
@@ -143,6 +152,9 @@ android {
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_BASE_URL", buildConfigString(localProductBaseUrl)
+            buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_TRACK", buildConfigString(localProductTrack)
+            buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_PUBLIC_KEYS", buildConfigString(localProductPublicKeys)
         }
         release {
             if (releaseSigningConfigured) {

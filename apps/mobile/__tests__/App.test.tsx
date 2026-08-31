@@ -43,7 +43,10 @@ const TEST_CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
 test('Mine compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactMineViewport(320, 693)).toBe(true);
   expect(isCompactMineViewport(393, 700)).toBe(true);
-  expect(isCompactMineViewport(393, 850)).toBe(false);
+  expect(isCompactMineViewport(393, 850)).toBe(true);
+  expect(isCompactMineViewport(412, 823)).toBe(true);
+  expect(isCompactMineViewport(393, 852)).toBe(false);
+  expect(isCompactMineViewport(768, 1024)).toBe(false);
 });
 
 test('Mine phone containment mode covers standard iOS and Android phones', () => {

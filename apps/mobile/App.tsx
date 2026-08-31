@@ -8899,7 +8899,7 @@ function getDeviceClass(width: number, height: number): DeviceClass {
 }
 
 export function isCompactMineViewport(width: number, height: number) {
-  return width <= 340 || height <= 720;
+  return width <= 340 || height <= 850;
 }
 
 export function isPhoneMineViewport(width: number, height: number) {
