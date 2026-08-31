@@ -959,223 +959,43 @@ function createRemoteCatalogSession(): LearningSession {
   };
 }
 
-test('renders correctly', async () => {
+test('renders one standalone authentication surface before the product shell', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
     tree = ReactTestRenderer.create(<App />);
   });
 
+  const root = tree!.root;
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习');
-  expect(output).toContain('空间');
-  expect(output).toContain('统计');
-  expect(output).toContain('我的');
-  const routeTabTexts = (
-    ['learning', 'space', 'statistics', 'mine'] as const
-  ).map(
-    route =>
-      tree!.root.findByProps({ testID: `route-tab-label-${route}` }).props
-        .children,
-  );
-  expect(routeTabTexts).toEqual(['学习', '空间', '统计', '我的']);
-  expect(routeTabTexts).not.toEqual(
-    expect.arrayContaining(['练', '位', '记', '我']),
-  );
-  const signedOutAuroraStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'app-aurora-top' }).props.style,
-  );
-  const signedOutLearningTabStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'route-tab-learning' }).props.style,
-  );
-  expect(signedOutAuroraStyle.backgroundColor).toBe(
-    'rgba(255, 138, 61, 0.14)',
-  );
-  expect(signedOutLearningTabStyle.backgroundColor).toBe('#E9E4FF');
+
+  expect(root.findByProps({testID: 'standalone-auth-root'})).toBeTruthy();
+  expect(root.findByProps({testID: 'standalone-auth-screen'})).toBeTruthy();
+  expect(root.findByProps({testID: 'standalone-auth-card'})).toBeTruthy();
+  for (const route of ['learning', 'space', 'statistics', 'mine']) {
+    expect(root.findAllByProps({testID: `route-tab-${route}`})).toHaveLength(0);
+    expect(root.findAllByProps({testID: `route-sidebar-${route}`})).toHaveLength(
+      0,
+    );
+  }
+  expect(root.findAllByProps({testID: 'shell-account-chip'})).toHaveLength(0);
   expect(output).toContain('验证后开始今天的学习');
   expect(output).toContain('学习位置将在验证后确定');
-  expect(output).toContain('已有进度会接上；新账号从系统第一张卡开始');
-  expect(output).toContain('短信验证');
-  expect(output).toContain('输入手机号');
   expect(output).toContain('输入手机号获取短码。');
-  expect(output).toContain('待输入');
-  expect(output).not.toContain('当前卡 · 四选一');
-  expect(output).not.toContain('原位保留');
-  expect(output).not.toContain('登录后保存');
-  const routeObjectScreenStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'auth-route-object-screen' }).props.style,
-  );
-  expect(routeObjectScreenStyle.justifyContent).toBe('flex-start');
-  expect(routeObjectScreenStyle.paddingTop).toBe(2);
-  const routeObjectCardStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'auth-route-object-card' }).props.style,
-  );
-  expect(routeObjectCardStyle.flex).toBeUndefined();
-  expect(routeObjectCardStyle.justifyContent).toBe('flex-start');
-  expect(routeObjectCardStyle.minHeight).toBeUndefined();
-  const actionStack = tree!.root.findByProps({
-    testID: 'auth-gate-action-stack',
-  });
-  expect(
-    actionStack.findByProps({ testID: 'auth-continuity-promise' }),
-  ).toBeTruthy();
-  expect(actionStack.findByProps({ testID: 'auth-sms-panel' })).toBeTruthy();
-  const requestDockStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'auth-request-inline-dock' }).props.style,
-  );
-  expect(requestDockStyle.borderWidth).toBe(0);
-  expect(requestDockStyle.borderRadius).toBe(18);
-  const smsPanelStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'auth-sms-panel' }).props.style,
-  );
-  expect(smsPanelStyle.flex).toBeUndefined();
-  expect(smsPanelStyle.justifyContent).toBeUndefined();
-  expect(
-    tree!.root.findByProps({ testID: 'auth-continuity-promise' }),
-  ).toBeTruthy();
-  expect(
-    findPressableByTestId(tree!.root, 'auth-request-code-button').props
-      .disabled,
-  ).toBe(true);
-  expect(
-    tree!.root.findByProps({ testID: 'auth-phone-input' }).props,
-  ).toMatchObject({
-    accessibilityHint: '输入用于登录软书四六级的十一位手机号',
-    accessibilityLabel: '手机号码',
-    accessibilityState: { disabled: false },
-  });
-});
-
-test('keeps protected route auth gates attached to the selected object', async () => {
-  let tree: ReactTestRenderer.ReactTestRenderer;
-
-  await ReactTestRenderer.act(() => {
-    tree = ReactTestRenderer.create(<App />);
-  });
-
-  const root = tree!.root;
-
-  expect(JSON.stringify(tree!.toJSON())).toContain('验证后开始今天的学习');
-  expect(JSON.stringify(tree!.toJSON())).toContain('学习位置将在验证后确定');
-
-  await openRoute(root, 'space');
-  let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证后打开知识空间');
-  expect(output).toContain('空间状态将在验证后读取');
-  expect(output).toContain('空间');
-  expect(output).toContain('确认手机号后读取这个账户的书架、分区和卡盒');
-  expect(output).not.toContain('空间 · 当前位置');
-  expect(output).not.toContain('库组盒');
-  expect(output).not.toContain('登录后同步');
-  expect(output).not.toContain('验证后开始今天的学习');
-  expect(output).not.toContain('当前学习');
-
-  await openRoute(root, 'statistics');
-  output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证后查看今日进展');
-  expect(output).toContain('今日记录将在验证后读取');
-  expect(output).toContain('统计');
-  expect(output).toContain('确认手机号后读取今天已经发生的完成');
-  expect(output).toContain('已有记录会接上；新账号从空白账页开始。');
-  expect(output).not.toContain('今日进展 · 待同步');
-  expect(output).not.toContain('待同步');
-  expect(output).not.toContain('登录后查看空间');
-  expect(output).not.toContain('当前学习');
-});
-
-test('keeps signed-out mine as an account object instead of a learning gate', async () => {
-  let tree: ReactTestRenderer.ReactTestRenderer;
-
-  await ReactTestRenderer.act(() => {
-    tree = ReactTestRenderer.create(<App />);
-  });
-
-  const root = tree!.root;
-  await openRoute(root, 'mine');
-
-  const output = JSON.stringify(tree!.toJSON());
-  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
-  const mineProfileCardStyle = StyleSheet.flatten(mineProfileCard.props.style);
-  expect(mineProfileCardStyle.flex).toBeUndefined();
-  expect(mineProfileCardStyle.justifyContent).toBe('flex-start');
-  expect(mineProfileCardStyle.minHeight).toBeUndefined();
-  const actionStack = mineProfileCard.findByProps({
-    testID: 'auth-gate-action-stack',
-  });
-  expect(
-    actionStack.findByProps({ testID: 'auth-continuity-promise' }),
-  ).toBeTruthy();
-  expect(actionStack.findByProps({ testID: 'auth-sms-panel' })).toBeTruthy();
-  expect(output).toContain('确认手机号');
-  expect(output).toContain('学习记录、空间位置和会员权益统一归到这个账号。');
-  expect(output).toContain('账号归属待确认');
-  expect(output).toContain('我的');
-  expect(output).toContain('确认手机号');
-  expect(output).toContain('输入手机号获取短码。');
-  expect(output).not.toContain('账号承接');
-  expect(output).not.toContain('确认身份继续学');
-  expect(output).not.toContain('当前学习卡');
+  expect(output).not.toContain('空间状态将在验证后读取');
+  expect(output).not.toContain('今日记录将在验证后读取');
   expectNoUserVisibleMetadataLeakage(tree!);
-  expect(collectRenderedText(tree!.toJSON())).not.toEqual(
-    expect.arrayContaining(['我']),
-  );
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-continuity-promise' }),
-  ).toBeTruthy();
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-continuity-promise-pill' }),
-  ).toBeTruthy();
-  expect(
-    mineProfileCard.findAllByProps({ testID: 'auth-retained-ledger-row' })
-      .length,
-  ).toBe(0);
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-phone-input' }),
-  ).toBeTruthy();
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }),
-  ).toBeTruthy();
-  const requestDockStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-request-inline-dock' }).props
-      .style,
-  );
-  expect(requestDockStyle.borderWidth).toBe(0);
-  const smsPanelStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
-  );
-  expect(smsPanelStyle.flex).toBeUndefined();
-  expect(smsPanelStyle.justifyContent).toBeUndefined();
-  const requestActionRowStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-request-action-row' }).props
-      .style,
-  );
-  expect(requestActionRowStyle.flexDirection).toBe('column');
-  const requestButtonStyle = StyleSheet.flatten(
-    findPressableByTestId(root, 'auth-request-code-button').props.style,
-  );
-  expect(requestButtonStyle.width).toBe('100%');
-  expect(requestButtonStyle.minWidth).toBe(0);
-
-  await ReactTestRenderer.act(() => {
-    root
-      .findByProps({ testID: 'auth-phone-input' })
-      .props.onChangeText('13800138000');
-  });
-
-  const readyOutput = JSON.stringify(tree!.toJSON());
-  expect(readyOutput).toContain('手机号可用');
-  expect(readyOutput).toContain('下一步输入短码。');
-  expect(readyOutput).toContain('可发送');
-  expect(readyOutput).toContain('发送短码');
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-request-readiness-pill' }),
-  ).toBeTruthy();
   expect(
     findPressableByTestId(root, 'auth-request-code-button').props.disabled,
-  ).toBe(false);
+  ).toBe(true);
+  expect(root.findByProps({testID: 'auth-phone-input'}).props).toMatchObject({
+    accessibilityHint: '输入用于登录软书四六级的十一位手机号',
+    accessibilityLabel: '手机号码',
+    accessibilityState: {disabled: false},
+  });
 });
 
-test('keeps mine code-sent state attached to the account object', async () => {
+test('keeps code entry standalone and mounts navigation only after login', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -1183,65 +1003,38 @@ test('keeps mine code-sent state attached to the account object', async () => {
   });
 
   const root = tree!.root;
-  await openRoute(root, 'mine');
-
   await ReactTestRenderer.act(() => {
     root
-      .findByProps({ testID: 'auth-phone-input' })
+      .findByProps({testID: 'auth-phone-input'})
       .props.onChangeText('13800138000');
   });
 
   await ReactTestRenderer.act(async () => {
-    root.findByProps({ testID: 'auth-request-code-button' }).props.onPress();
+    root.findByProps({testID: 'auth-request-code-button'}).props.onPress();
     await flushAsyncEffects();
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   expect(output).toContain('验证码已发');
   expect(output).toContain('输入验证码');
-  expect(output).toContain('已发送');
-  expect(output).toContain('验证码已发送');
-  expect(output).toContain('确认后回到');
-  expect(output).toContain('我的');
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-code-inline-dock' }),
-  ).toBeTruthy();
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-code-input' }),
-  ).toBeTruthy();
-  expect(
-    mineProfileCard.findByProps({ testID: 'auth-code-input' }).props,
-  ).toMatchObject({
-    accessibilityHint: '输入短信中收到的四到六位验证码',
-    accessibilityLabel: '短信验证码',
-    accessibilityState: { disabled: false },
+  expect(root.findByProps({testID: 'standalone-auth-screen'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'route-tab-learning'})).toHaveLength(0);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'auth-code-input'}).props.onChangeText('2468');
   });
-  const inlineDockStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'auth-code-inline-dock' }).props.style,
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'auth-submit-button').props.onPress();
+    await flushAsyncEffects();
+  });
+
+  expect(root.findAllByProps({testID: 'standalone-auth-screen'})).toHaveLength(
+    0,
   );
-  expect(inlineDockStyle.borderWidth).toBe(0);
-  expect(inlineDockStyle.borderRadius).toBe(20);
-  const smsPanelStyle = StyleSheet.flatten(
-    mineProfileCard.findByProps({ testID: 'auth-sms-panel' }).props.style,
-  );
-  expect(smsPanelStyle.flex).toBeUndefined();
-  expect(smsPanelStyle.justifyContent).toBeUndefined();
-  const entryRowStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'auth-code-entry-row' }).props.style,
-  );
-  expect(entryRowStyle.flexDirection).toBe('column');
-  const submitButtonStyle = StyleSheet.flatten(
-    findPressableByTestId(root, 'auth-submit-button').props.style,
-  );
-  expect(submitButtonStyle.width).toBe('100%');
-  expect(submitButtonStyle.minWidth).toBe(0);
-  expect(findPressableByTestId(root, 'auth-submit-button').props.disabled).toBe(
-    true,
-  );
-  expect(output).not.toContain('未登录');
-  expect(output).not.toContain('等待登录');
-  expect(output).not.toContain('待登录');
+  expect(root.findByProps({testID: 'route-tab-learning'})).toBeTruthy();
+  expect(root.findByProps({testID: 'route-tab-space'})).toBeTruthy();
+  expect(root.findByProps({testID: 'route-tab-statistics'})).toBeTruthy();
+  expect(root.findByProps({testID: 'route-tab-mine'})).toBeTruthy();
 });
 
 test('reads installed runtime config when the app mounts', async () => {
@@ -1402,7 +1195,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('已发送到');
   expect(output).toContain('138****8000');
   expect(output).toContain('验证');
-  expect(output).toContain('继续');
+  expect(output).toContain('完成登录');
   expect(output).toContain('确认后回到当前卡。');
   expect(output).toContain('重新发送');
   expect(output).not.toContain('等待登录');

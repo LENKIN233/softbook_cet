@@ -48,9 +48,9 @@ name: ios-mine-screenshot
 - tapOn:
     id: "learning-next-button"
 - assertVisible:
-    id: "learning-option-unclear"
+    id: "learning-option-2"
 - tapOn:
-    id: "learning-option-unclear"
+    id: "learning-option-2"
 - assertVisible:
     id: "learning-submit-button"
 - tapOn:

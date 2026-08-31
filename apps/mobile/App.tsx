@@ -367,7 +367,6 @@ const LIGHT_PALETTE: Palette = {
   danger: '#A7394D',
 };
 
-const PROTECTED_ROUTES: RouteKey[] = ['learning', 'space', 'statistics'];
 const AUTH_KEYBOARD_ACCESSORY_ID = 'auth-keyboard-accessory';
 const SMS_CODE_CELL_COUNT = 6;
 const CLIENT_UPDATE_REQUIRED_COPY =
@@ -1192,13 +1191,16 @@ function AppShell({
   const usesAccessibilityLayout = fontScale >= 1.3;
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
-  const routeRequiresAuth = PROTECTED_ROUTES.includes(route.key);
-  const shouldShowAuthGate = routeRequiresAuth && !isAuthenticated;
   useEffect(() => {
     if (authState.stage === 'authenticated') {
       return;
     }
 
+    startTransition(() => {
+      setActiveRoute('learning');
+      setLearningScreen('practice');
+      setSpaceScreen('overview');
+    });
     setAccountDeletionState(current =>
       current === 'confirmation' ? 'closed' : current,
     );
@@ -5165,15 +5167,7 @@ function AppShell({
         learningEventRecoveryPending),
   };
 
-  const content = shouldShowAuthGate ? (
-    <AuthGate
-      authRepositoryMode={runtimeAuthRepositoryMode}
-      authState={authState}
-      handlers={authHandlers}
-      palette={learningPalette}
-      route={route}
-    />
-  ) : route.key === 'mine' ? (
+  const content = route.key === 'mine' ? (
     <MineSurface
       accountDeletionAvailable={accountDeletionRepository !== null}
       authRepositoryMode={runtimeAuthRepositoryMode}
@@ -5380,7 +5374,7 @@ function AppShell({
             onReturnToVerification={() => {
               setAccountDeletionState('closed');
               startTransition(() => {
-                setActiveRoute('mine');
+                setActiveRoute('learning');
                 setLearningScreen('practice');
                 setSpaceScreen('overview');
               });
@@ -5398,6 +5392,17 @@ function AppShell({
             palette={palette}
             pending={accountDeletionState === 'cleanup_retrying'}
           />
+        ) : !isAuthenticated ? (
+          <View style={styles.standaloneAuthRoot} testID="standalone-auth-root">
+            <AuthGate
+              authRepositoryMode={runtimeAuthRepositoryMode}
+              authState={authState}
+              handlers={authHandlers}
+              palette={palette}
+              route={ROUTES[0]}
+              standalone
+            />
+          </View>
         ) : deviceClass === 'tablet' ? (
           <TabletShell
             activeRoute={activeRoute}
@@ -6670,6 +6675,7 @@ function AuthGate({
   handlers,
   palette,
   route,
+  standalone = false,
 }: {
   authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
@@ -6678,10 +6684,11 @@ function AuthGate({
   handlers: AuthHandlers;
   palette: Palette;
   route: ShellRoute;
+  standalone?: boolean;
 }) {
   const hasSentCode = authState.stage === 'code_sent';
   const isMineAccountGate = embedded && route.key === 'mine';
-  const isRouteObjectGate = route.key !== 'mine';
+  const isRouteObjectGate = !standalone && route.key !== 'mine';
   const isCompactAuthGate = isMineAccountGate || isRouteObjectGate;
   const authGateContent =
     route.key === 'space'
@@ -6734,7 +6741,13 @@ function AuthGate({
         embedded ? styles.authGateScreenEmbedded : null,
         isRouteObjectGate ? styles.authGateScreenRouteObject : null,
       ]}
-      testID={isRouteObjectGate ? 'auth-route-object-screen' : undefined}
+      testID={
+        standalone
+          ? 'standalone-auth-screen'
+          : isRouteObjectGate
+          ? 'auth-route-object-screen'
+          : undefined
+      }
     >
       <View
         style={[
@@ -6746,7 +6759,11 @@ function AuthGate({
         ]}
         testID={
           cardTestID ??
-          (isRouteObjectGate ? 'auth-route-object-card' : undefined)
+          (standalone
+            ? 'standalone-auth-card'
+            : isRouteObjectGate
+            ? 'auth-route-object-card'
+            : undefined)
         }
       >
         <View
@@ -9423,6 +9440,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 18,
+  },
+  standaloneAuthRoot: {
+    flex: 1,
   },
   authGateScreenEmbedded: {
     justifyContent: 'flex-start',

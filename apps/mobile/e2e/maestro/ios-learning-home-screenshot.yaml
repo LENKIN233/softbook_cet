@@ -50,9 +50,9 @@ name: ios-learning-home-screenshot
 - assertVisible:
     id: "learning-card-address-shelf"
 - assertVisible:
-    id: "learning-option-unclear"
+    id: "learning-option-2"
 - tapOn:
-    id: "learning-option-unclear"
+    id: "learning-option-2"
 - assertVisible:
     id: "learning-submit-button"
 - tapOn:
@@ -64,6 +64,6 @@ name: ios-learning-home-screenshot
 - assertVisible:
     id: "learning-current-card"
 - assertVisible:
-    id: "learning-option-unclear"
+    id: "learning-option-2"
 - assertVisible:
     id: "learning-submit-button"
