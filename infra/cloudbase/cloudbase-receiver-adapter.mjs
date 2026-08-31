@@ -563,7 +563,8 @@ async function executeNoSql(runner, envId, commands, label) {
 }
 
 function assertSingleUpdateResult(payload, label) {
-  const result = payload?.data?.results?.[0];
+  const group = payload?.data?.results?.[0];
+  const result = Array.isArray(group) && group.length === 1 ? group[0] : group;
   if (
     normalizeCloudBaseNumber(result?.ok) !== 1 ||
     normalizeCloudBaseNumber(result?.n) !== 1

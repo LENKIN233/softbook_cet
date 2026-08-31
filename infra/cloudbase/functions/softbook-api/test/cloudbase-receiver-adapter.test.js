@@ -659,7 +659,7 @@ function createDatabaseRunner() {
           assert.equal(next._id, id);
           collection.set(id, next);
           calls.push({kind: 'update', collection: command.TableName, mode});
-          results.push({ok: 1, n: 1});
+          results.push(mode === 'replace' ? [{ok: 1, n: 1}] : {ok: 1, n: 1});
         } else {
           calls.push({kind: 'delete', collection: command.TableName});
           throw new Error(`unsupported command ${command.CommandType}`);
