@@ -4223,9 +4223,9 @@ test('does not apply a remote space action when durable mutation storage fails',
     });
 
     expect(
-      root.findByProps({ testID: 'learning-favorite-button' }).findByType(Text)
-        .props.children,
-    ).toBe('收藏');
+      root.findByProps({testID: 'learning-favorite-button'}).props
+        .accessibilityState,
+    ).toEqual({selected: false});
     expect(spaceActionRequests).toHaveLength(0);
   } finally {
     setItemMock.mockImplementation(originalSetItem!);
@@ -4617,9 +4617,9 @@ test('quarantines a removed-card space action and restores canonical state', asy
   });
 
   expect(
-    root.findByProps({ testID: 'learning-favorite-button' }).findByType(Text)
-      .props.children,
-  ).toBe('收藏');
+    root.findByProps({testID: 'learning-favorite-button'}).props
+      .accessibilityState,
+  ).toEqual({selected: false});
 
   await openRoute(root, 'space');
 
@@ -5526,7 +5526,7 @@ test('keeps phone primary surfaces bounded while Space remains scroll-reachable'
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
 
   await loginIntoLearningFlow(root);
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findAllByType(ScrollView)).toHaveLength(1);
 
   await openRoute(root, 'space');
   expect(root.findAllByType(ScrollView)).toHaveLength(1);
@@ -7552,7 +7552,14 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已收藏');
+  expect(
+    root.findByProps({testID: 'learning-favorite-button'}).props
+      .accessibilityState,
+  ).toEqual({selected: true});
+  expect(
+    root.findByProps({testID: 'learning-favorite-button'}).findByType(Text)
+      .props.children,
+  ).toBe('★');
 });
 
 test('starts the local trial automatically on the first authenticated entry', async () => {
