@@ -5,6 +5,16 @@ name: ios-remote-auth-learning-space-statistics-smoke
     visible:
       id: "auth-phone-input"
     timeout: 30000
+- assertVisible:
+    id: "standalone-auth-screen"
+- assertNotVisible:
+    id: "route-tab-learning"
+- assertNotVisible:
+    id: "route-tab-space"
+- assertNotVisible:
+    id: "route-tab-statistics"
+- assertNotVisible:
+    id: "route-tab-mine"
 - tapOn:
     id: "auth-phone-input"
 - inputText: "${SOFTBOOK_CET_MAESTRO_PHONE}"
@@ -18,6 +28,8 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "auth-request-code-button"
 - assertVisible:
     id: "auth-code-input"
+- assertNotVisible:
+    id: "route-tab-learning"
 - tapOn:
     id: "auth-code-input"
 - inputText: "${SOFTBOOK_CET_MAESTRO_CODE}"
@@ -27,6 +39,8 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "auth-submit-button"
 - tapOn:
     id: "auth-submit-button"
+- assertNotVisible:
+    id: "standalone-auth-screen"
 - tapOn:
     id: "route-tab-learning"
 - assertVisible:
@@ -79,9 +93,9 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "learning-next-button"
 
 - assertVisible:
-    id: "learning-option-unclear"
+    id: "learning-option-2"
 - tapOn:
-    id: "learning-option-unclear"
+    id: "learning-option-2"
 - assertVisible:
     id: "learning-submit-button"
 - tapOn:
@@ -92,13 +106,13 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "learning-next-button"
 
 - assertVisible:
-    id: "learning-lock-subject-the-policy"
+    id: "learning-lock-1-1"
 - tapOn:
-    id: "learning-lock-subject-the-policy"
+    id: "learning-lock-1-1"
 - tapOn:
-    id: "learning-lock-verb-reduces"
+    id: "learning-lock-2-3"
 - tapOn:
-    id: "learning-lock-object-test-anxiety"
+    id: "learning-lock-3-2"
 - assertVisible:
     id: "learning-submit-button"
 - tapOn:
@@ -109,13 +123,13 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "learning-next-button"
 
 - assertVisible:
-    id: "learning-elimination-relative_clause"
+    id: "learning-elimination-1"
 - tapOn:
-    id: "learning-elimination-relative_clause"
+    id: "learning-elimination-1"
 - tapOn:
-    id: "learning-elimination-adverb"
+    id: "learning-elimination-2"
 - tapOn:
-    id: "learning-elimination-time_phrase"
+    id: "learning-elimination-4"
 - assertVisible:
     id: "learning-submit-button"
 - tapOn:
@@ -126,9 +140,9 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "learning-next-button"
 
 - assertVisible:
-    id: "learning-swipe-safe"
+    id: "learning-swipe-1"
 - tapOn:
-    id: "learning-swipe-safe"
+    id: "learning-swipe-1"
 - assertVisible:
     id: "learning-next-button"
 - tapOn:
