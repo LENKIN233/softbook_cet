@@ -145,43 +145,163 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      justify-content: flex-start;
       min-height: 0;
     }
 
     .card-object {
       position: relative;
+      height: 572px;
+      min-height: 572px;
+      max-height: 572px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
       border-radius: 28px;
       border: 1px solid var(--line);
       background: rgba(248, 248, 251, .9);
       box-shadow: 0 18px 44px rgba(18, 18, 26, .1);
-      padding: 20px;
+      overflow: visible;
     }
 
     .card-object::before {
       content: "";
       position: absolute;
-      top: 18px;
-      bottom: 18px;
+      top: 24px;
+      bottom: 24px;
       left: 0;
       width: 5px;
       border-radius: 0 999px 999px 0;
       background: var(--surface-accent);
     }
 
-    .stage-label {
-      color: var(--surface-accent);
+    .identity-band {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px 12px;
+    }
+
+    .identity-copy {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+    }
+
+    .identity-copy b {
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    .identity-copy span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .header-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .favorite-tag,
+    .progress-tag,
+    .address-aperture {
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, .66);
+      color: var(--muted);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .favorite-tag,
+    .progress-tag {
+      border-radius: 999px;
+      padding: 7px 10px;
+    }
+
+    .favorite-tag {
+      min-height: 44px;
+    }
+
+    .progress-tag {
+      min-height: 34px;
+    }
+
+    .task-band {
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      padding: 4px 58px 16px 20px;
+    }
+
+    .task-band.short {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 18px;
+      overflow: hidden;
+    }
+
+    .task-band.short .choices {
+      height: 100%;
+      grid-template-rows: 1fr 1fr;
+      margin-top: 0;
+    }
+
+    .task-band.short .choice {
+      display: flex;
+      align-items: center;
+      min-height: 0;
+    }
+
+    .task-band.resolve {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .prompt-block {
+      display: grid;
+      gap: 10px;
+    }
+
+    .action-band {
+      min-height: 72px;
+      display: grid;
+      align-items: center;
+      border-top: 1px solid var(--line);
+      padding: 12px 20px 14px;
+    }
+
+    .edge-hint {
+      position: absolute;
+      z-index: 2;
+      right: -1px;
+      top: 164px;
+      width: 44px;
+      min-width: 44px;
+      min-height: 60px;
+      border: 1px solid rgba(106, 124, 137, .34);
+      border-right: 0;
+      border-radius: 16px 0 0 16px;
+      background: var(--surface-accent-soft);
+      color: #334651;
+      display: grid;
+      place-items: center;
       font-size: 12px;
-      line-height: 1.2;
       font-weight: 900;
-      margin-bottom: 10px;
+      line-height: 1.35;
+      box-shadow: -8px 8px 20px rgba(18, 18, 26, .08);
     }
 
     .prompt {
       font-size: 22px;
       line-height: 1.28;
       font-weight: 800;
-      margin-bottom: 12px;
     }
 
     .copy {
@@ -221,6 +341,10 @@
       padding: 14px;
     }
 
+    .support-layer.active {
+      border-right: 4px solid var(--surface-accent);
+    }
+
     .support-layer h3,
     .analysis h3 {
       color: var(--ink);
@@ -230,44 +354,10 @@
       font-weight: 900;
     }
 
-    .tools {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 9px;
-    }
-
-    .tool {
-      justify-content: center;
-      min-height: 42px;
-      background: rgba(255, 255, 255, .62);
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .tool.active {
-      color: #6b2d00;
-      border-color: rgba(106, 124, 137, .28);
-      background: var(--surface-accent-soft);
-    }
-
-    .address {
-      border-radius: 24px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, .58);
-      padding: 14px;
-      display: grid;
-      gap: 4px;
-    }
-
-    .address b {
-      font-size: 13px;
-    }
-
-    .address span {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.45;
+    .address-aperture {
+      border-radius: 999px;
+      min-height: 44px;
+      padding: 8px 11px;
     }
 
     .analysis {
@@ -322,6 +412,10 @@
       gap: 4px;
     }
 
+    .settle.compact {
+      margin-top: 14px;
+    }
+
     .settle b {
       color: #116547;
       font-size: 13px;
@@ -342,6 +436,10 @@
       font-weight: 900;
       font-size: 14px;
       box-shadow: 0 14px 28px rgba(106, 124, 137, .24);
+    }
+
+    .action-band .cta {
+      width: 100%;
     }
 
     .nav {
@@ -379,6 +477,68 @@
       line-height: 1.6;
     }
 
+    .silhouette-proof {
+      max-width: 1120px;
+      margin: 28px auto 0;
+      padding: 20px;
+      border: 1px dashed rgba(18, 18, 26, .22);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .42);
+    }
+
+    .silhouette-proof h2 {
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .silhouette-proof > p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    .silhouette-rail {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .silhouette {
+      min-height: 142px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(248, 248, 251, .88);
+      padding: 12px;
+      display: grid;
+      align-content: space-between;
+      gap: 8px;
+    }
+
+    .silhouette b {
+      font-size: 11px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .mini-grid i,
+    .mini-row,
+    .mini-card {
+      display: block;
+      min-height: 22px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+
+    .mini-card { min-height: 72px; }
+
+    .mini-strike { text-decoration: line-through; opacity: .48; }
+
     @media (max-width: 460px) {
       body {
         padding: 18px 10px;
@@ -396,13 +556,17 @@
         width: min(393px, calc(100vw - 20px));
         height: 852px;
       }
+
+      .silhouette-rail {
+        grid-template-columns: 1fr 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <header class="proof-header">
     <h1>学习卡节奏</h1>
-    <p>手机画面展示“有地址的学习节奏”：落位 -> 聚焦 -> 支撑 -> 作答 -> 收束 -> 继续。当前学科用匿名当前位置和单一珊瑚强调色表达。</p>
+    <p>手机画面展示稳定的“有地址的学习卡”：外层实体不随内容长短跳动，短内容在任务区内平衡，长内容只滚动任务区；提示附着在卡边，底部只保留当前主行动。</p>
   </header>
 
   <main class="proof-board">
@@ -411,29 +575,29 @@
       <div class="surface">
         <div class="topline">
           <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
-          <div class="quiet-chip">本轮卡组</div>
+          <button class="address-aperture" type="button">位置与题眼</button>
         </div>
         <div class="phone-stage">
           <article class="card-object">
-            <div class="stage-label">PLACE + FOCUS</div>
-            <h2 class="prompt">The phrase "account for" 在题干里最接近哪种关系？</h2>
-            <p class="copy">先判断语义角色，再看选项。系统只递给你当前这一张卡。</p>
-            <div class="choices" aria-label="Multiple choice silhouette">
-              <div class="choice focused">A. explain the reason</div>
-              <div class="choice">B. take responsibility</div>
-              <div class="choice">C. list a number</div>
-              <div class="choice">D. replace a clause</div>
+            <header class="identity-band">
+              <div class="identity-copy"><b>短内容 · 选择</b><span>语义关系</span></div>
+              <div class="header-tags"><button class="favorite-tag" type="button">收藏</button><span class="progress-tag">2 / 5</span></div>
+            </header>
+            <button class="edge-hint" type="button">提<br>示</button>
+            <div class="task-band short">
+              <div class="prompt-block">
+                <h2 class="prompt">“account for” 在题干里最接近哪种关系？</h2>
+                <p class="copy">先判断语义角色，再看选项。</p>
+              </div>
+              <div class="choices" aria-label="Multiple choice silhouette">
+                <div class="choice focused">A. explain the reason</div>
+                <div class="choice">B. take responsibility</div>
+                <div class="choice">C. list a number</div>
+                <div class="choice">D. replace a clause</div>
+              </div>
             </div>
+            <footer class="action-band"><button class="cta" type="button">确认答案</button></footer>
           </article>
-          <div class="tools">
-            <div class="tool">查看线索</div>
-            <div class="tool">标记</div>
-            <div class="tool">看位置</div>
-          </div>
-          <div class="address">
-            <b>位置线索</b>
-            <span>馆 1 / 组 1 / 盒 1</span>
-          </div>
         </div>
         <nav class="nav" aria-label="Top level navigation">
           <span class="current">学习</span>
@@ -449,27 +613,37 @@
       <div class="surface">
         <div class="topline">
           <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
-          <div class="quiet-chip">线索已打开</div>
+          <button class="address-aperture" type="button">位置与题眼</button>
         </div>
         <div class="phone-stage">
           <article class="card-object">
-            <div class="stage-label">SUPPORT</div>
-            <h2 class="prompt">先别急着选。这里考的是"解释原因"而不是"承担责任"。</h2>
-            <p class="copy">线索从当前卡边缘出现，不变成新卡，也不替用户作答。</p>
-            <div class="support-layer">
-              <h3>考点线索</h3>
-              <p class="copy">如果后面接 proportion、rise、failure，常见含义是说明原因或占比。</p>
+            <header class="identity-band">
+              <div class="identity-copy"><b>长内容 · 判断</b><span>定位与推断</span></div>
+              <div class="header-tags"><button class="favorite-tag" type="button">已收藏</button><span class="progress-tag">3 / 5</span></div>
+            </header>
+            <button class="edge-hint" type="button">收<br>起</button>
+            <div class="task-band">
+              <div class="prompt-block">
+                <h2 class="prompt">为什么作者先承认短期成本，随后仍支持长期投入？</h2>
+                <p class="copy">先找转折后的主张，再判断前一句在论证中的作用。长材料继续向下滚动，外层卡片和底部主行动保持不动。</p>
+              </div>
+              <div class="support-layer active">
+                <h3>提示</h3>
+                <p class="copy">注意 although 后的让步只负责承认成本，真正结论通常落在 but / yet 之后。</p>
+              </div>
+              <div class="choices" aria-label="Long multiple choice silhouette">
+                <div class="choice">A. 否定短期影响</div>
+                <div class="choice focused">B. 为长期结论让步</div>
+                <div class="choice">C. 转换讨论对象</div>
+                <div class="choice">D. 补充数据来源</div>
+              </div>
+              <div class="analysis">
+                <h3>材料继续</h3>
+                <p class="copy">这里可继续承载长题干、材料或选项；只有任务区滚动，不会把整张卡向下撑开。</p>
+              </div>
             </div>
+            <footer class="action-band"><button class="cta" type="button">确认答案</button></footer>
           </article>
-          <div class="tools">
-            <div class="tool active">收起线索</div>
-            <div class="tool">标记</div>
-            <div class="tool">看位置</div>
-          </div>
-          <div class="address">
-            <b>Peek 不打开管理页</b>
-            <span>只给当前知识点和空间位置，不暴露来源或内部编号。</span>
-          </div>
         </div>
         <nav class="nav" aria-label="Top level navigation">
           <span class="current">学习</span>
@@ -485,28 +659,33 @@
       <div class="surface">
         <div class="topline">
           <div class="chip"><span class="dot"></span>馆 1 · 本轮</div>
-          <div class="quiet-chip">解析面</div>
+          <button class="address-aperture" type="button">位置与题眼</button>
         </div>
         <div class="phone-stage">
           <article class="card-object">
-            <div class="stage-label">RESOLVE + SETTLE</div>
-            <h2 class="prompt">account for = 解释原因 / 占比说明</h2>
-            <p class="copy">在题目里，它经常用于解释现象背后的原因，不是简单的"负责"。</p>
-            <div class="analysis">
-              <h3>易错点</h3>
-              <p class="copy">遇到抽象名词或比例变化时，先判断它是不是在回答 why / how much。</p>
+            <header class="identity-band">
+              <div class="identity-copy"><b>解析</b><span>语义关系</span></div>
+              <div class="header-tags"><button class="favorite-tag" type="button">收藏</button><span class="progress-tag">2 / 5</span></div>
+            </header>
+            <div class="task-band resolve">
+              <h2 class="prompt">account for = 解释原因 / 占比说明</h2>
+              <p class="copy">在题目里，它经常用于解释现象背后的原因，不是简单的“负责”。</p>
+              <div class="analysis">
+                <h3>易错点</h3>
+                <p class="copy">遇到抽象名词或比例变化时，先判断它是不是在回答 why / how much。</p>
+              </div>
+              <div class="settle compact">
+                <b>已记录本次结果</b>
+                <span>网络恢复后会自动再试；你可以继续下一张。</span>
+              </div>
             </div>
-            <div class="self-assess" aria-label="Flip self assess">
-              <div class="pill mint">有把握</div>
-              <div class="pill amber">再回看</div>
-            </div>
-            <div class="feedback-key">有把握 = mint / confident (#22c58b); 再回看 = amber / review (#f5b100)</div>
+            <footer class="action-band">
+              <div class="self-assess" aria-label="Flip self assess">
+                <div class="pill mint">有把握</div>
+                <div class="pill amber">再回看</div>
+              </div>
+            </footer>
           </article>
-          <div class="settle">
-            <b>已记录本次结果</b>
-            <span>网络恢复后会自动再试；你可以继续下一张。</span>
-          </div>
-          <button class="cta" type="button">继续下一张</button>
         </div>
         <nav class="nav" aria-label="Top level navigation">
           <span class="current">学习</span>
@@ -518,6 +697,18 @@
     </section>
   </main>
 
-  <p class="proof-note">收敛性：每个手机画面保持 393 x 852；横向溢出被隐藏，窄屏规则让画面始终留在屏幕内。界面外壳保持学习取向，不展示内部标签。</p>
+  <aside class="silhouette-proof" aria-label="Reviewer-only five interaction silhouette proof">
+    <h2>五种交互剪影（仅审稿说明）</h2>
+    <p>外层卡片实体保持一致；任务区内部仍能一眼区分五种操作。</p>
+    <div class="silhouette-rail">
+      <div class="silhouette"><b>翻面</b><span class="mini-card"></span><div class="mini-grid"><i></i><i></i></div></div>
+      <div class="silhouette"><b>选择</b><div class="mini-grid"><i></i><i></i><i></i><i></i></div><span class="mini-row"></span></div>
+      <div class="silhouette"><b>解锁</b><span class="mini-row"></span><span class="mini-row"></span><span class="mini-row"></span></div>
+      <div class="silhouette"><b>消除</b><span class="mini-row mini-strike">候选</span><span class="mini-row">候选</span><span class="mini-row mini-strike">候选</span></div>
+      <div class="silhouette"><b>滑动</b><span class="mini-card"></span><div class="mini-grid"><i></i><i></i></div></div>
+    </div>
+  </aside>
+
+  <p class="proof-note">收敛性：每个手机画面保持 393 x 852；卡片实体固定为同一高度，长内容只滚动任务区，提示附着卡边，底部行动锚不移动。横向溢出被隐藏，界面外壳不展示内部标签。</p>
 </body>
 </html>
