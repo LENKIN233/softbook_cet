@@ -23,6 +23,11 @@ This accepts `Direction B: Addressed Object Rhythm`, with two constraints:
 
 - Use `Direction A` for CET prompt and analysis authority.
 - Use `Direction C` for speed and low operation burden.
+- Keep the card's outer object geometry stable across short and long content;
+  content density changes inside the object instead of repeatedly resizing it.
+- Keep support attached to the object: `hint` uses an edge affordance, `peek`
+  lives in the address aperture, and `favorite` is a quiet header tag. They do
+  not form a competing bottom action row.
 
 ## Product Truth
 
@@ -70,6 +75,16 @@ The interaction-specific task becomes first-action clear:
 
 Secondary tools remain visible but quiet.
 
+The object uses three stable internal bands:
+
+- identity band: address, progress, and favorite tag;
+- task band: prompt plus the interaction-specific silhouette;
+- action band: the one primary action for the current state.
+
+The task band absorbs content-length variation. Short content is vertically
+balanced inside it; long content scrolls inside it. The identity and action
+bands do not jump between cards.
+
 ### 3. Support
 
 Support actions help without changing the task:
@@ -77,6 +92,11 @@ Support actions help without changing the task:
 - `hint` reveals an attached layer and never solves the card.
 - `peek` gives a small knowledge/location clue and does not open a management page.
 - `favorite` marks the card as a tag state and does not move it into a box.
+- `hint` is opened from a small card-edge tab, spatially separate from the
+  bottom primary action.
+- `peek` is opened through the compact address aperture rather than another
+  bottom button.
+- `favorite` remains a quiet tag in the identity band.
 
 If support content is absent, do not show a placeholder panel.
 
@@ -155,6 +175,12 @@ A future Learning UI PR is aligned only if:
 - the first read is one current card object, not a module chooser or system panel;
 - primary action is the interaction, not `peek`, stats, sync, source, or Space management;
 - support actions stay secondary and attached to the card object;
+- short and long cards retain one stable outer object height at a given phone
+  viewport, with only the task band scrolling when necessary;
+- the bottom action band contains the current primary action, not a row of
+  hint, peek, favorite, position, and submit controls;
+- `hint`, `peek`, and `favorite` remain reachable through spatially distinct
+  attached affordances;
 - flip uses only `有把握` / `再回看`;
 - auto-scored interactions do not ask for self-assessment;
 - no internal identifiers or data transport terms appear in user-visible copy;

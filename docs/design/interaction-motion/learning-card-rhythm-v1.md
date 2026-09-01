@@ -53,6 +53,9 @@ Required:
 - current library identity is visible through one strong accent;
 - spatial address is a light clue in human language;
 - no user-visible internal ids, content source labels, queue/cache/runtime wording, or mock/seed labels.
+- the outer card object keeps the same resting geometry for every interaction
+  at the same viewport; content length does not animate the object taller or
+  shorter between cards.
 
 Motion:
 
@@ -68,6 +71,8 @@ Required:
 - preserve the canonical silhouette for the card's interaction;
 - keep `peek`, `hint`, `favorite`, Space entry, and progress lighter than the primary operation;
 - do not ask the user to pick a module before acting on the current card.
+- keep identity and primary-action anchors fixed while the task band balances
+  short content or scrolls long content.
 
 Motion:
 
@@ -84,12 +89,17 @@ Required:
 - `peek` gives small context and does not become a management surface;
 - `favorite` is a tag state and not a physical destination;
 - absent support content leaves no placeholder panel.
+- `hint` opens from the card edge and expands inward as an attached layer;
+- `peek` opens from the address aperture and `favorite` remains a header tag;
+  none of these become a bottom toolbar beside the primary action.
 
 Motion:
 
 - attached support appears in 120-200ms;
 - support can close without changing answer state;
 - reduce-motion fallback is inline appearance.
+- the card envelope does not resize during support reveal; the task band
+  reallocates or scrolls inside the stable object.
 
 ### resolve
 
@@ -160,6 +170,21 @@ Motion:
 - `elimination`: `support` must not obscure strike state.
 - `swipe`: ambiguous drag cancels before `resolve`; the rhythm returns to `focus`.
 - `hint_layer`: appears only inside `support`, never as the current card's primary interaction.
+
+## Stable Object Geometry
+
+At a fixed viewport, all five interaction families share one resting outer
+object envelope. Their silhouettes remain different inside the task band:
+
+- flip: front/back plane plus one reveal or two self-assess actions;
+- multiple choice: prompt plus 2x2 option grid;
+- lock: vertical lock rows;
+- elimination: strikeable candidate set;
+- swipe: one top card with directional trails.
+
+Short content uses spacing and type hierarchy to fill the task band without a
+large dead middle. Long content owns an internal vertical scroll region. The
+outer object, address, hint edge, and primary-action anchor remain stationary.
 
 ## Failure And Recovery
 

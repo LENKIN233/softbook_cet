@@ -71,6 +71,17 @@ Any future PR changing user-facing Learning or Space UI must state:
 
 RN should expose one main visual container for the current card object. It must not be decomposed into many equal cards, panels, counters, and modules.
 
+At a fixed phone viewport, the current object keeps one stable resting height
+across short and long content. Inside it:
+
+- the identity band remains fixed;
+- the task band balances short content and owns vertical scrolling for long
+  content;
+- the action band remains fixed and thumb-reachable.
+
+The outer object must not grow and shrink with every prompt, option, support,
+or result transition.
+
 ### Action Plane
 
 RN should branch by interaction type at the shape level:
@@ -87,10 +98,14 @@ Changing only icons or button labels is not enough to satisfy interaction silhou
 
 Tools should be visually lighter than the primary interaction:
 
-- `peek` can be a small object-side affordance.
-- `hint` can reveal a layer attached to the object.
-- `favorite` can be a tag mark.
+- `peek` is reached through the compact address aperture.
+- `hint` uses a small card-edge trigger and reveals inward as an attached layer.
+- `favorite` is a quiet tag mark in the identity band.
 - `sleep` should remain contextual and spatial.
+
+These tools must not be rendered together as a bottom button row beside the
+primary action. The bottom action band belongs to the interaction's one current
+primary action.
 
 ### State Rhythm
 

@@ -37,14 +37,23 @@ place -> focus -> support -> resolve -> settle -> continue
 
 The HTML uses three phone frames:
 
-1. `Place + Focus`: the current addressed card is first read, with multiple-choice 2x2 silhouette.
-2. `Support`: hint and peek remain attached to the same card object and stay secondary.
-3. `Resolve + Settle`: flip back content, `有把握 = mint` / confident and `再回看 = amber` / review self-assess, quiet recorded-result copy, and a next-card continuation.
+1. `Short Content`: the stable current object balances a short prompt and the
+   multiple-choice 2x2 silhouette without leaving a dead half-screen.
+2. `Long Content + Support`: the same outer object keeps its geometry while the
+   task band scrolls; hint opens from the card edge, peek belongs to the address
+   aperture, and favorite remains a header tag.
+3. `Resolve + Settle`: the same object resolves to flip back content,
+   `有把握 = mint` / confident and `再回看 = amber` / review self-assess, quiet
+   recorded-result copy, and a next-card continuation.
+
+The proof also includes a five-interaction silhouette rail. The outer object is
+stable while flip, multiple choice, lock, elimination, and swipe remain
+recognizable by their internal task shape.
 
 ## First-Read Path
 
 ```text
-current library chip -> current card object -> interaction silhouette -> support/reveal -> settle copy -> next-card continuation
+address/progress -> current card task -> interaction silhouette -> primary action -> support/reveal when requested -> settle -> next card
 ```
 
 ## Containment Proof
@@ -53,6 +62,8 @@ current library chip -> current card object -> interaction silhouette -> support
 - The HTML sets `overflow-x: hidden`.
 - A narrow viewport media query keeps frames inside small screens.
 - Bottom navigation is a floating capsule inside the phone frame, not a fixed full-width bar.
+- Each frame uses the same stable object envelope. Short content is balanced;
+  long content scrolls inside the task band without moving the action anchor.
 
 ## Metadata-Leakage Boundary
 
@@ -73,9 +84,15 @@ The proof intentionally avoids user-visible:
 
 Q1: Current library is represented by the anonymous current-library slot, and the display accent is the only strong accent. Mint and amber appear only as flip self-assess feedback colors.
 
-Q2: Focal object is the current addressed CET card. First-read path is current library chip -> current card object -> interaction silhouette -> support/reveal -> settle -> continue.
+Q2: Focal object is the current addressed CET card. First-read path is
+address/progress -> task -> interaction silhouette -> primary action ->
+support/reveal when requested -> settle -> continue. The stable three-band
+object prevents tools or empty space from becoming a competing focal point.
 
-Q3: The first frame uses the multiple-choice silhouette; the support frame keeps hint/peek attached to the current object; the resolve frame uses the flip silhouette with exactly two self-assess pills.
+Q3: The first frame uses the multiple-choice silhouette; the support frame
+keeps hint on the object edge, peek in the address aperture, and favorite in
+the header; the resolve frame uses the flip silhouette with exactly two
+self-assess pills. The silhouette rail confirms all five core families.
 
 Q4: No forbidden design patterns are used: no gradient text, game-progress chrome, full-width bottom tabbar, removed self-assess tokens, or serif typography.
 
