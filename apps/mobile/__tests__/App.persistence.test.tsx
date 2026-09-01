@@ -460,7 +460,7 @@ test('restores remote account state from canonical bootstrap before local use', 
     await openRoute(tree.root, 'mine');
     expect(
       tree.root.findByProps({ testID: 'mine-membership-stage' }).props.children,
-    ).toBe('当前是会员态');
+    ).toBe('会员');
     expect(
       tree.root.findByProps({ testID: 'mine-metric-favorites-value' }).props
         .children,
@@ -1187,7 +1187,7 @@ test('reloads remote membership authority when restoring an auth session', async
 
     expect(
       tree.root.findByProps({ testID: 'mine-membership-stage' }).props.children,
-    ).toBe('当前是会员态');
+    ).toBe('会员');
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.softbook.example/v2/membership/entitlement',
       expect.objectContaining({ method: 'GET' }),
