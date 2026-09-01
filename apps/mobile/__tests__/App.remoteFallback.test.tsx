@@ -178,7 +178,7 @@ test('fails closed when the remote runtime source is unavailable', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮学习暂时不可用');
-  expect(output).toContain('重新加载本轮卡片');
+  expect(output).toContain('重新加载');
   expect(output).not.toContain('however');
   expect(fetchMock).toHaveBeenCalledWith(
     'https://api.softbook.example/v2/learning/card-source?track=cet4',

@@ -113,6 +113,9 @@ type TestRendererNode =
 const USER_VISIBLE_METADATA_PATTERN =
   /knowledge_ref|card_id|box_ref|source_id|source_label|card_records|space_metadata|event_id|selection_id|answer_grade|client_occurred_at|content_version|device_cursor|device_id|server_sequence|learning-events(?:-ack)?\.v2|__softbook_learning_event_outbox_v[12]|action plane|favorite\b|Peek|SINGLE CARD FLOW|REVIEW FLOW|LEARNING SETUP|SLEEP ZONE|PROFILE PAGE|AUTH GATE|LIGHT STATS|SPACE GATE|SPACE SYNC|SPACE STATUS|OPEN BOX TRAY|EMPTY BOX TRAY|LOADING BOX TRAY|library \/ group \/ box|remove-from-flow|Remote|Bootstrap|Canonical|remoteConfig|authToken|accessToken|refreshToken|challengeId|sessionId|endpoint|MutationQueue|mutation|JSON Parse error|Unexpected character|SyntaxError|parse failed|会员矩阵|卡源|队列|缓存|本机缓存|当前设备|当前卡组|本组第|本轮卡组|这一组学习卡|这组回看卡|这一组已经按学习节奏走完|再练一轮这一组|回看这一组|payload|metadata|runtime|repository|SHELL|FLOW|GATE|SETUP|PROFILE|STATUS|SYNC|占位|快照|离线重试|提示层|真实卡池|跨端同步|复杂状态机|按钮堆|说明页|data\.|\bCET[46]\b|训练轨道|学习馆|知识组|原盒位|顶层|入口|最重要|服务核心价值|账户与会员|壳层|页面内部|最小必要信息|首读路径|低成本|轻量|会员边界|主要任务|复杂设置中心|模块选择|复杂大盘|复杂管理器|承接|权限|主路径|单卡流|学习流|已登录\s+138|第\s+\d+\s+张\s+\/\s+共\s+\d+\s+张|馆\s+\d|组\s+\d|盒\s+\d|当前地址|当前学习卡位于|空间地址架|当前盒位|当前空间路径|收藏标签\s+\d|休眠区\s+\d|0\s+张可展示|（[1-5]\d{2}）|\([1-5]\d{2}\)|product_truth|implementation_hypothesis|design artifact|harness|Agent review|PR 描述/i;
 
+const SYNTHETIC_PRODUCT_COPY_PATTERN =
+  /验证后开始|学习位置将在|空间状态将在|今日记录将在|短码|账号归属|系统安排|账户已接上|身份已确认|收好|安静记录|系统带你|正在整理|窄恢复口|答案已归位|留到回看|当前盒桌|同盒卡位|翻开卡背|先翻面看答案/;
+
 function collectRenderedText(node: TestRendererNode, inText = false): string[] {
   if (node === null) {
     return [];
@@ -138,6 +141,14 @@ function expectNoUserVisibleMetadataLeakage(
 ) {
   expect(collectRenderedText(tree.toJSON()).join(' ')).not.toMatch(
     USER_VISIBLE_METADATA_PATTERN,
+  );
+}
+
+function expectNoSyntheticProductCopy(
+  tree: ReactTestRenderer.ReactTestRenderer,
+) {
+  expect(collectRenderedText(tree.toJSON()).join(' ')).not.toMatch(
+    SYNTHETIC_PRODUCT_COPY_PATTERN,
   );
 }
 
@@ -979,12 +990,15 @@ test('renders one standalone authentication surface before the product shell', a
     );
   }
   expect(root.findAllByProps({testID: 'shell-account-chip'})).toHaveLength(0);
-  expect(output).toContain('验证后开始今天的学习');
-  expect(output).toContain('学习位置将在验证后确定');
-  expect(output).toContain('输入手机号获取短码。');
-  expect(output).not.toContain('空间状态将在验证后读取');
-  expect(output).not.toContain('今日记录将在验证后读取');
+  expect(output).toContain('软书四六级');
+  expect(output).toContain('登录');
+  expect(output).toContain('登录后同步学习进度。');
+  expect(output).toContain('获取验证码');
+  expect(output).not.toMatch(
+    /验证后开始|学习位置将在|空间状态将在|今日记录将在|短码|账号归属|系统安排/,
+  );
   expectNoUserVisibleMetadataLeakage(tree!);
+  expectNoSyntheticProductCopy(tree!);
   expect(
     findPressableByTestId(root, 'auth-request-code-button').props.disabled,
   ).toBe(true);
@@ -1054,7 +1068,7 @@ test('reads installed runtime config when the app mounts', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('输入手机号获取短码。');
+  expect(output).toContain('获取验证码');
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
@@ -1089,7 +1103,7 @@ test('uses native initial remote runtime profile before the shell mounts', async
       track: 'cet6',
     },
   });
-  expect(output).toContain('输入手机号获取短码。');
+  expect(output).toContain('获取验证码');
   expect(output).not.toContain('输入验证码即可完成登录。');
 });
 
@@ -1131,13 +1145,12 @@ test('shows remote request-code failure inside the auth gate', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码暂时没发出。');
   expect(output).not.toContain('验证码发送暂时失败（503）。');
   expect(output).not.toContain('（503）');
-  expect(output).toContain('短码暂时没发出');
-  expect(output).toContain('检查手机号后重试，当前位置不变。');
+  expect(output).toContain('验证码发送失败');
+  expect(output).toContain('请检查手机号后重试。');
   expect(output).toContain('可重试');
-  expect(output).toContain('下一步输入短码。');
+  expect(output).not.toContain('短码');
   expect(root.findByProps({ testID: 'auth-error-dock' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-title' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-detail' })).toBeTruthy();
@@ -1196,7 +1209,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('138****8000');
   expect(output).toContain('验证');
   expect(output).toContain('完成登录');
-  expect(output).toContain('确认后回到当前卡。');
+  expect(output).not.toContain('当前卡');
   expect(output).toContain('重新发送');
   expect(output).not.toContain('等待登录');
 
@@ -1206,15 +1219,13 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码暂时没通过。');
   expect(output).not.toContain('验证码校验暂时失败（401）。');
   expect(output).not.toContain('（401）');
-  expect(output).toContain('验证码暂时没通过');
-  expect(output).toContain('验证码待确认');
-  expect(output).toContain('检查短码后重试，当前位置不变。');
+  expect(output).toContain('验证码不正确');
+  expect(output).toContain('请检查验证码后重试。');
   expect(output).toContain('重新验证');
   expect(output).toContain('可重试');
-  expect(output).toContain('4-6 位短码，确认后回到当前卡。');
+  expect(output).not.toContain('短码');
   expect(root.findByProps({ testID: 'auth-error-dock' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-title' })).toBeTruthy();
   expect(root.findByProps({ testID: 'auth-error-detail' })).toBeTruthy();
@@ -1289,8 +1300,8 @@ test('sanitizes remote verify-code parser failures inside the auth gate', async 
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码暂时没通过。');
-  expect(output).toContain('检查短码后重试，当前位置不变。');
+  expect(output).toContain('验证码不正确');
+  expect(output).toContain('请检查验证码后重试。');
   expect(output).toContain('可重试');
   expect(output).not.toContain('JSON Parse error');
   expect(output).not.toContain('Unexpected character');
@@ -1313,7 +1324,7 @@ test('does not expose native credential storage failures inside the auth gate', 
   await authenticateIntoLearningBootstrap(tree!.root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码暂时没通过。');
+  expect(output).toContain('验证码不正确');
   expect(output).not.toContain('TurboModuleRegistry');
   expect(output).not.toContain('RNKeychain');
   expectNoUserVisibleMetadataLeakage(tree!);
@@ -1363,7 +1374,8 @@ test('clears an established session when initial canonical hydration returns ter
 
   const output = JSON.stringify(tree!.toJSON());
   expect(tree!.root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
-  expect(output).toContain('登录已失效，请重新验证手机号。');
+  expect(output).toContain('登录已失效');
+  expect(output).toContain('请重新登录。');
   expect(output).not.toContain('账户，已确认');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
@@ -1407,6 +1419,7 @@ test('clears app and durable account state when resource and refresh both return
   });
   const root = tree!.root;
   await loginIntoLearningFlow(root);
+  expectNoSyntheticProductCopy(tree!);
   await AsyncStorage.setItem(
     USER_STATE_STORAGE_KEY,
     JSON.stringify({
@@ -1430,7 +1443,8 @@ test('clears app and durable account state when resource and refresh both return
   expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
   expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
   expect(root.findAllByProps({testID: 'learning-surface'})).toHaveLength(0);
-  expect(output).toContain('登录已失效，请重新验证手机号。');
+  expect(output).toContain('登录已失效');
+  expect(output).toContain('请重新登录。');
   expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBeNull();
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
   expect(
@@ -1497,7 +1511,7 @@ test('keeps verified remote auth when entitlement bootstrap is unavailable', asy
   const output = JSON.stringify(tree!.toJSON());
   expect(output).not.toContain('学习前先登录');
   expect(output).not.toContain('登录暂时失败。');
-  expect(output).toContain('当前是基础学习态');
+  expect(output).toContain('免费版');
   expect(output).toContain('网络恢复后会自动再试。');
   expectNoUserVisibleMetadataLeakage(tree!);
   expect(
@@ -1833,7 +1847,7 @@ test('refreshes canonical membership when learning-session starts the trial', as
   });
   expect(
     root.findByProps({ testID: 'mine-membership-stage' }).props.children,
-  ).toBe('完整试用进行中');
+  ).toBe('试用中');
   expect(
     root.findAllByProps({ testID: 'membership-start-trial-button' }),
   ).toHaveLength(0);
@@ -2529,7 +2543,8 @@ test('clears authenticated app state when a later bootstrap refresh is forbidden
   const output = JSON.stringify(tree!.toJSON());
   expect(bootstrapRequestCount).toBeGreaterThanOrEqual(2);
   expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
-  expect(output).toContain('登录已失效，请重新验证手机号。');
+  expect(output).toContain('登录已失效');
+  expect(output).toContain('请重新登录。');
   expect(output).not.toContain('账户，已确认');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
@@ -2593,7 +2608,7 @@ test('clears the session and durable learning event when replay is forbidden', a
   );
   expect(outbox.entries).toEqual([]);
   expect(JSON.stringify(tree!.toJSON())).toContain(
-    '登录已失效，请重新验证手机号。',
+    '登录已失效',
   );
   expectNoUserVisibleMetadataLeakage(tree!);
 });
@@ -2646,7 +2661,7 @@ test('clears the session and durable Space action when replay is forbidden', asy
   expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
   expect(JSON.stringify(tree!.toJSON())).toContain(
-    '登录已失效，请重新验证手机号。',
+    '登录已失效',
   );
   expectNoUserVisibleMetadataLeakage(tree!);
 });
@@ -4826,7 +4841,7 @@ test('replays queued membership refresh after network reconnect', async () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前是会员态');
+  expect(output).toContain('会员已开通');
   expect(output).not.toContain('网络恢复后会自动再试');
   expect(
     fetchCalls.filter(
@@ -4890,7 +4905,7 @@ test('remote login never calls the retired direct trial mutation', async () => {
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('转折关系');
-  expect(output).toContain('完整物理空间需要试用或会员');
+  expect(output).toContain('完整空间需要试用或会员');
   expect(
     fetchCalls.filter(
       call =>
@@ -4973,7 +4988,7 @@ test('can unlock gated space after remote purchase', async () => {
   await openRoute(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完整物理空间需要试用或会员');
+  expect(output).toContain('完整空间需要试用或会员');
   expect(output).toContain('转折关系');
   expect(
     root.findAllByProps({ testID: 'space-gate-rail' }).length,
@@ -4989,8 +5004,8 @@ test('can unlock gated space after remote purchase', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('转折关系');
-  expect(output).toContain('当前盒桌');
-  expect(output).toContain('同盒卡片');
+  expect(output).toContain('当前卡盒');
+  expect(output).toContain('查看卡盒中的卡片');
   expect(output).toContain('回学习');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
   expect(
@@ -5320,7 +5335,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前是会员态');
+  expect(output).toContain('会员已开通');
   await openRoute(root, 'space');
 
   await ReactTestRenderer.act(async () => {
@@ -5329,8 +5344,8 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('转折关系');
-  expect(output).toContain('当前盒桌');
-  expect(output).toContain('同盒卡片');
+  expect(output).toContain('当前卡盒');
+  expect(output).toContain('查看卡盒中的卡片');
   expect(output).toContain('回学习');
   expect(
     fetchCalls.filter(
@@ -5395,7 +5410,7 @@ test('refreshes remote entitlement again after leaving mine and reopening it', a
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前是基础学习态');
+  expect(output).toContain('免费版');
 
   await openRoute(root, 'learning');
 
@@ -5410,7 +5425,7 @@ test('refreshes remote entitlement again after leaving mine and reopening it', a
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前是会员态');
+  expect(output).toContain('会员已开通');
   expect(entitlementRequestCount).toBe(3);
 });
 
@@ -5433,8 +5448,8 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('位置已保持');
   expect(output).not.toContain('先读题干');
   expect(output).not.toContain('先判断，再确认解析');
-  expect(output).toContain('账户');
-  expect(output).toContain('已确认');
+  expect(output).toContain('账号');
+  expect(output).toContain('已登录');
   expect(output).not.toContain('已登录 138****8000');
   expect(output).toContain('however');
   expect(
@@ -5447,7 +5462,8 @@ test('can unlock the learning flow after fake sms verification', async () => {
     root.findAllByProps({ testID: 'learning-card-location-strip' }),
   ).toHaveLength(0);
   expect(output).not.toContain('这张在：馆 1 / 组 1 / 盒 1');
-  expect(output).toContain('当前卡 · ');
+  expect(output).toContain('翻面');
+  expect(output).not.toContain('当前卡 · ');
   expect(output).not.toContain('这张练习 · ');
   expect(output).not.toContain('当前卡 · 002001');
   expect(output).not.toContain('CET4');
@@ -5466,7 +5482,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
 
   const accountOutput = JSON.stringify(tree!.toJSON());
   expect(accountOutput).toContain('我的');
-  expect(accountOutput).toContain('学习账户');
+  expect(accountOutput).toContain('账号');
   expect(root.findByProps({ testID: 'mine-profile-card' })).toBeTruthy();
 });
 
@@ -5484,15 +5500,19 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
     root.findByProps({ testID: 'learning-peek-button' }).props.onPress();
   });
   expectNoUserVisibleMetadataLeakage(tree!);
+  expectNoSyntheticProductCopy(tree!);
 
   await openRoute(root, 'space');
   expectNoUserVisibleMetadataLeakage(tree!);
+  expectNoSyntheticProductCopy(tree!);
 
   await openRoute(root, 'statistics');
   expectNoUserVisibleMetadataLeakage(tree!);
+  expectNoSyntheticProductCopy(tree!);
 
   await openRoute(root, 'mine');
   expectNoUserVisibleMetadataLeakage(tree!);
+  expectNoSyntheticProductCopy(tree!);
 });
 
 test('keeps phone primary surfaces bounded while Space remains scroll-reachable', async () => {
@@ -5541,7 +5561,7 @@ test('can boot the app into cet6 through runtime config', async () => {
     'cet6',
   );
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮学习卡');
+  expect(output).toContain('本轮学习');
   expect(output).not.toContain('CET6');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
@@ -5560,7 +5580,7 @@ test('keeps source bootstrap errors inside learning and can retry', async () => 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('本轮学习暂时不可用');
   expect(output).toContain('本轮卡片加载失败。');
-  expect(output).toContain('重新加载本轮卡片');
+  expect(output).toContain('重新加载');
 
   pendingSession = createDeferred<LearningSession>();
 
@@ -5590,8 +5610,8 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   await openRoute(root, 'space');
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('正在整理空间内容');
-  expect(output).toContain('空间当前位置会先保留在原位');
+  expect(output).toContain('正在加载空间');
+  expect(output).toContain('正在加载卡片');
   expect(
     root.findAllByProps({ testID: 'space-status-rail' }).length,
   ).toBeGreaterThan(0);
@@ -5619,7 +5639,7 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('正在整理空间内容');
+  expect(output).toContain('正在加载空间');
 
   await resolveLearningBootstrap();
 
@@ -5646,7 +5666,7 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('先看这张卡的关键点');
+  expect(output).toContain('解题线索');
   expect(output).not.toContain('knowledge_ref');
   expect(output).toContain('给出真正立场');
 
@@ -5702,11 +5722,11 @@ test('can complete the local single-card deck and restart it', async () => {
     root.findByProps({ testID: 'learning-detail-answer-slip' }).props.style,
   );
   expect(detailAnswerSlipStyle.flexGrow).toBe(1);
-  expect(output).toContain('当前卡');
+  expect(output).toContain('回答正确');
   expect(output).toContain('阅读高频词');
   expect(output).not.toContain('结果在当前卡');
-  expect(output).toContain('答案已归位');
-  expect(output).toContain('你的选择和正确答案已对齐');
+  expect(output).toContain('回答正确');
+  expect(output).toContain('你的答案正确');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
   expect(output).toContain('已答对');
@@ -5768,10 +5788,10 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮学习已走完');
+  expect(output).toContain('本轮完成');
   expect(output).toContain('下一步');
-  expect(output).toContain('这一轮已经完成，可以重新练这轮卡。');
-  expect(output).toContain('重新练这轮卡');
+  expect(output).toContain('可以再练一遍。');
+  expect(output).toContain('再练一遍');
   expect(output).not.toContain('当前卡组');
   expect(output).not.toContain('系统顺序');
   expect(output).not.toContain('系统顺序学习');
@@ -5873,9 +5893,9 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('先处理回看');
+  expect(output).toContain('先回看');
   expect(output).toContain('开始回看');
-  expect(output).toContain('统计只提醒。');
+  expect(output).toContain('需要回看。');
   expect(
     findPressableByTestId(root, 'statistics-start-review-button'),
   ).toBeTruthy();
@@ -5909,7 +5929,7 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮回看已走完');
+  expect(output).toContain('回看完成');
   expect(output).toContain('回到首轮重新开始');
 
   await ReactTestRenderer.act(() => {
@@ -5953,15 +5973,15 @@ test('can check in from statistics after making learning progress', async () => 
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('学习在推进');
-  expect(output).toContain('今日节奏');
-  expect(output).toContain('可以收好今天');
+  expect(output).toContain('今天的进度');
+  expect(output).toContain('今日进度');
+  expect(output).toContain('可以签到');
   expect(output).toContain('下一步');
   expect(output).toContain('回到学习');
   expect(output).toContain('继续学习');
-  expect(output).toContain('可收好');
-  expect(output).toContain('已完成学习，点一下收好今天。');
-  expect(output).toContain('收好今天');
+  expect(output).toContain('可签到');
+  expect(output).toContain('完成学习后可以签到。');
+  expect(output).toContain('签到');
   expect(output).not.toContain('今日统计与签到');
   expect(output).not.toContain('练习信号');
   const dayObjectStyle = StyleSheet.flatten(
@@ -6028,9 +6048,9 @@ test('can check in from statistics after making learning progress', async () => 
     root.findAllByProps({ testID: 'statistics-checkin-complete-label' }).length,
   ).toBeGreaterThan(0);
   expect(output).toContain('今日已签到');
-  expect(output).toContain('节奏已收好');
-  expect(output).toContain('今天已签到，记录跟着账号保存。');
-  expect(output).not.toContain('今天收好');
+  expect(output).toContain('今日已签到');
+  expect(output).toContain('今天已签到。');
+  expect(output).not.toContain('收好');
   expect(output).not.toContain('记录完成');
   const statusLedger = root.findByProps({
     testID: 'statistics-status-ledger',
@@ -7221,13 +7241,12 @@ test('mine page keeps profile status and route actions in one screen after login
   const output = JSON.stringify(tree!.toJSON());
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   const mineProfileStyle = StyleSheet.flatten(mineProfileCard.props.style);
-  expect(output).toContain('学习账户');
-  expect(output).toContain('账户已接上');
+  expect(output).toContain('账号');
   expect(output).toContain('138****8000');
   expect(output).toContain('已签到 · 1 张');
   expect(output).toContain('记录已保存');
   expect(output).toContain('继续学习');
-  expect(output).toContain('当前顺序，下一张已准备好');
+  expect(output).toContain('继续下一张');
   expect(output).toContain('空间');
   expect(output).toContain('今日');
   expect(output).not.toContain('继续用完整路线备考');
@@ -7268,13 +7287,13 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(
     root.findAllByProps({ testID: 'membership-access-step' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('完整试用进行中');
   expect(output).toContain('试用中');
-  expect(output).toContain('完整试用 5 天已开启');
+  expect(output).toContain('试用中');
+  expect(output).toContain('已开始 5 天试用');
   expect(output).toContain('完整卡库');
   expect(output).toContain('完整空间');
   expect(output).toContain('智能回看');
-  expect(output).toContain('已开放');
+  expect(output).toContain('可用');
   expect(output).toContain('直接开通会员');
   const purchaseButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'membership-purchase-button').props.style,
@@ -7320,7 +7339,7 @@ test('mine page keeps profile status and route actions in one screen after login
 
   const learningOutput = JSON.stringify(tree!.toJSON());
   expect(root.findAllByProps({ testID: 'mine-profile-card' })).toHaveLength(0);
-  expect(learningOutput).toContain('继续当前卡');
+  expect(learningOutput).toContain('继续学习');
 });
 
 test('can browse the current Space box after login', async () => {
@@ -7351,7 +7370,7 @@ test('can browse the current Space box after login', async () => {
   expect(
     root.findAllByProps({ testID: 'space-return-learning' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('正在查看同盒卡片');
+  expect(output).toContain('查看当前卡盒');
   expect(output).toContain('转折关系');
   expect(output).toContain('当前位置');
   expect(output).toContain('本盒共 2 张');
@@ -7553,10 +7572,10 @@ test('starts the local trial automatically on the first authenticated entry', as
 
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('转折关系');
-  expect(output).not.toContain('完整物理空间需要试用或会员');
-  expect(output).toContain('当前盒桌');
-  expect(output).toContain('同盒卡片');
-  expect(output).toContain('动作');
+  expect(output).not.toContain('完整空间需要试用或会员');
+  expect(output).toContain('当前卡盒');
+  expect(output).toContain('查看卡盒中的卡片');
+  expect(output).toContain('题型');
   expect(output).toContain('回学习');
   expect(
     root.findAllByProps({ testID: 'space-overview-card-object' }).length,
@@ -7628,7 +7647,7 @@ test('keeps the full five-card session after automatic trial entry', async () =>
   expect(
     root.findAllByProps({ testID: 'learning-start-review-button' }),
   ).toHaveLength(0);
-  expect(output).not.toContain('试用待开始');
+  expect(output).not.toContain('可试用');
 });
 
 test('starts review after membership is already unlocked', async () => {
@@ -7715,7 +7734,7 @@ test('starts review after membership is already unlocked', async () => {
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('完成了 5 张卡');
+  expect(output).toContain('完成 5 张卡');
   expect(
     root.findByProps({ testID: 'learning-start-review-button' }),
   ).toBeTruthy();
@@ -7756,14 +7775,14 @@ test('shows recovery reminder after local trial ends and clears it after purchas
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('恢复购买提醒');
-  expect(output).toContain('当前是基础学习态');
+  expect(output).toContain('免费版');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'membership-purchase-button' }).props.onPress();
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('当前是会员态');
+  expect(output).toContain('会员已开通');
   expect(
     root.findAllByProps({ testID: 'membership-dismiss-recovery-button' })
       .length,
@@ -7878,7 +7897,7 @@ test('operator-entitlement runtime removes purchase dead ends', async () => {
   expect(
     root.findAllByProps({testID: 'membership-operator-entitlement-copy'}).length,
   ).toBeGreaterThan(0);
-  expect(JSON.stringify(tree!.toJSON())).toContain('封闭内测权益由邀请开通');
+  expect(JSON.stringify(tree!.toJSON())).toContain('获得内测资格后即可使用');
 });
 
 test('below-minimum login preserves the session and shows an explicit update path', async () => {

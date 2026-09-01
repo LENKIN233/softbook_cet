@@ -96,7 +96,7 @@ test.each(['lock', 'elimination', 'swipe'] as const)(
       tree!.root.findByProps({testID: 'learning-support-layer'}),
     ).toBeTruthy();
     expect(JSON.stringify(tree!.toJSON())).toContain(
-      '先把题干里的信号抓出来',
+      '先找题干中的关键词',
     );
     if (card.hint_layer) {
       expect(JSON.stringify(tree!.toJSON())).toContain(card.hint_layer.content);
@@ -272,7 +272,7 @@ test('does not expose raw space metadata while learning', () => {
   const progressLabel = tree!.root.findByProps({
     testID: 'learning-progress-label',
   });
-  expect(progressLabel.props.children).toContain('本轮学习卡');
+  expect(progressLabel.props.children).toContain('本轮学习');
   expect(
     tree!.root.findByProps({ testID: 'learning-card-address-shelf' }),
   ).toBeTruthy();
@@ -283,7 +283,7 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('共 7 张');
   expect(output).not.toContain('本组第');
   expect(output).not.toContain('学习进度');
-  expect(output).toContain('当前卡');
+  expect(output).toContain('翻面');
   expect(output).not.toContain('先读题干');
   expect(output).not.toContain('先判断，再确认解析');
   expect(output).not.toContain('先做这一张');
@@ -297,7 +297,7 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('位置已保持');
   expect(output).not.toContain('先完成这一张，再继续下一步');
   expect(output).not.toContain('系统递给你当前这一张');
-  expect(output).toContain('本轮学习卡');
+  expect(output).toContain('本轮学习');
   expect(output).not.toContain('LEAK_SENTINEL_INTERNAL_SOURCE_7A');
   expect(output).not.toContain('本组第');
   expect(output).not.toContain('这一组学习卡');
@@ -308,13 +308,13 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('系统顺序');
   expect(output).not.toContain('系统顺序学习');
   expect(output).not.toContain('当前学习会话');
-  expect(output).toContain('翻开卡背');
+  expect(output).toContain('查看答案');
   expect(output).not.toContain('先翻面，看完解析后选有把握或再回看。');
   expect(output).toContain('查看提示');
   expect(output).not.toContain('要一点线索');
   expect(output).not.toContain('收起这点线索');
-  expect(output).toContain('先看这张卡的关键点');
-  expect(output).toContain('先把题干里的信号抓出来，再回到选项或解析确认。');
+  expect(output).toContain('解题线索');
+  expect(output).toContain('先找题干中的关键词，再查看选项或解析。');
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
   expect(output).not.toContain('同盒继续');
@@ -826,7 +826,7 @@ test('controlled-pilot round completion reuses the completion card with one cano
     );
   });
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('五卡一回合');
+  expect(output).toContain('完成 5 张卡');
   expect(output).toContain('5/5');
   expect(output).toContain('回看 2');
   expect(output).not.toContain('卡源');
@@ -930,13 +930,13 @@ test('result detail reads as a resolved card without raw metadata', () => {
     tree!.root.findByProps({testID: 'learning-detail-analysis-tip'}).props
       .numberOfLines,
   ).toBeUndefined();
-  expect(output).toContain('当前卡');
   expect(output).toContain('2/3');
   expect(output).toContain(card.space_metadata.box);
   expect(output).toContain(card.space_metadata.group);
   expect(output).not.toContain('结果在当前卡');
-  expect(output).toContain('答案已归位');
-  expect(output).toContain('你的选择和正确答案已对齐');
+  expect(output).toContain('四选一');
+  expect(output).toContain('回答正确');
+  expect(output).toContain('你的答案正确');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
   expect(output).toContain('B · unclear');

@@ -72,48 +72,48 @@ export function StatisticsSurface({
   const checkInTitle = hasCheckedInToday
     ? '已签到'
     : canCheckInToday
-    ? '可收好'
+    ? '可签到'
     : '待学习';
   const checkInSummary = hasCheckedInToday
-    ? '今天已签到，记录跟着账号保存。'
+    ? '今天已签到。'
     : canCheckInToday
-    ? '已完成学习，点一下收好今天。'
-    : '完成 1 张后再收好今天。';
+    ? '完成学习后可以签到。'
+    : '完成 1 张后可以签到。';
   const reviewStatus =
     reviewCompletedCount > 0
       ? `已回看 ${reviewCompletedCount} · 待回看 ${pendingReviewCount}`
       : pendingReviewCount > 0
       ? `${pendingReviewCount} 张待回看`
       : totalCompletedCount > 0
-      ? '首轮已收口'
+      ? '首轮完成'
       : '暂无今日进展';
   const dailyTitle = hasCheckedInToday
     ? hasLearningProgress
-      ? '今天已收好'
+      ? '今天已完成'
       : '今天已签到'
     : hasLearningProgress
-    ? '学习在推进'
-    : '从第一张开始';
+    ? '今天的进度'
+    : '还没有学习记录';
   const dailySummary = hasCheckedInToday
     ? hasLearningProgress
       ? `完成 ${totalCompletedCount} · 回看 ${reviewCompletedCount}`
-      : '今日记录已收好；继续学习后自动补充进度。'
+      : '还没有学习记录。'
     : pendingReviewCount > 0
-    ? `还有 ${pendingReviewCount} 张卡需要回看，统计只安静记录，不打断学习。`
+    ? `还有 ${pendingReviewCount} 张卡需要回看。`
     : hasLearningProgress
-    ? `完成 ${totalCompletedCount} · 可以收好今天`
-    : '回到学习完成一张卡，这里只记录当天进度。';
+    ? `完成 ${totalCompletedCount} 张`
+    : '完成第一张后，这里会显示进度。';
   const nextStepIsReview = pendingReviewCount > 0;
   const nextStepTitle = nextStepIsReview
-    ? '先处理回看'
+    ? '先回看'
     : hasLearningProgress
     ? '回到学习'
     : '开始第一张';
   const nextStepSummary = nextStepIsReview
-    ? `${pendingReviewCount} 张卡需要再看一次，统计只提醒。`
+    ? `还有 ${pendingReviewCount} 张卡需要回看。`
     : hasLearningProgress
-    ? '继续当前顺序，系统带你往前。'
-    : '先完成第一张，进度会自动收起。';
+    ? '按顺序继续下一张。'
+    : '先完成第一张。';
   const nextStepButtonLabel = nextStepIsReview ? '开始回看' : '继续学习';
   const nextStepButtonTestID = nextStepIsReview
     ? 'statistics-start-review-button'
@@ -145,11 +145,11 @@ export function StatisticsSurface({
     ? `${pendingReviewCount} 张回看待处理`
     : hasCheckedInToday
     ? hasLearningProgress
-      ? '节奏已收好'
+      ? '今日已签到'
       : '今日已签到'
     : canCheckInToday
-    ? '可以收好今天'
-    : '完成一张后点亮';
+    ? '可以签到'
+    : '完成一张后可签到';
   const checkInButtonBackground = hasCheckedInToday
     ? palette.panelStrong
     : canCheckInToday
@@ -249,7 +249,7 @@ export function StatisticsSurface({
               <Text
                 style={[styles.progressEyebrow, { color: dailyRailTone }]}
               >
-                今日节奏
+                今日进度
               </Text>
               <Text
                 numberOfLines={usesAccessibilityLayout ? undefined : 1}
@@ -451,7 +451,7 @@ export function StatisticsSurface({
                     : 'statistics-checkin-ready-label'
                 }
               >
-                {hasCheckedInToday ? '今日已签到' : '收好今天'}
+                {hasCheckedInToday ? '今日已签到' : '签到'}
               </Text>
             </Pressable>
           </View>

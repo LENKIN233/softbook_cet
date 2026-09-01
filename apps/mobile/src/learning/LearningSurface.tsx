@@ -113,7 +113,7 @@ function formatLearningActionCue(
   }
 
   if (card.interaction_id === 'flip') {
-    return '翻开卡背';
+    return '查看答案';
   }
 
   const fallbackLabel = INTERACTION_LABELS[card.interaction_id];
@@ -206,7 +206,7 @@ function formatLearningSubmitDockCopy(
     case 'flip':
     default:
       return {
-        title: '先翻面看答案',
+        title: '查看答案',
         detail: '看完解析后自评',
       };
   }
@@ -331,24 +331,26 @@ export function LearningSurface({
         >
           <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
             {roundCompletion
-              ? '五卡一回合'
+              ? '本轮完成'
               : isReviewPhase
-              ? '回看练习'
-              : '单卡学习'}
+              ? '回看完成'
+              : '本轮完成'}
           </Text>
           <Text style={[styles.heroTitle, { color: palette.text }]}>
             {roundCompletion
-              ? '这一回合已收好'
+              ? '完成 5 张卡'
               : isReviewPhase
-              ? '本轮回看已走完'
-              : '本轮学习已走完'}
+              ? '回看完成'
+              : '本轮完成'}
           </Text>
           <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
             {roundCompletion
-              ? '五张卡已经完成，学习位置和需要再看的卡都已由系统收好。'
+              ? roundCompletion.reviewCardCount > 0
+                ? `完成 5 张卡，${roundCompletion.reviewCardCount} 张需要回看。`
+                : '完成 5 张卡，没有需要回看的卡。'
               : isReviewPhase
-              ? `这轮从${displaySessionLabel}里回看了 ${sessionCards.length} 张卡，把“需要回看”的部分集中处理了一遍。`
-              : `这轮从${displaySessionLabel}里完成了 ${sessionCards.length} 张卡，下一次会继续从需要再看的地方开始。`}
+              ? `完成 ${sessionCards.length} 张回看。`
+              : `完成 ${sessionCards.length} 张卡。`}
           </Text>
           <View style={styles.metricWrap}>
             <MetricPill
@@ -366,10 +368,10 @@ export function LearningSurface({
                 roundCompletion
                   ? roundCompletion.reviewCardCount > 0
                     ? `回看 ${roundCompletion.reviewCardCount}`
-                    : '已收好'
+                    : '无'
                   : !isReviewPhase && reviewCandidateCount > 0
                   ? `回看 ${reviewCandidateCount}`
-                  : '已收好'
+                  : '无'
               }
               palette={palette}
               tone="success"
@@ -392,10 +394,10 @@ export function LearningSurface({
             style={[styles.resultExplanationTitle, { color: palette.text }]}
           >
             {roundCompletion
-              ? '空间位置已收好'
+              ? '本轮完成'
               : isReviewPhase
-              ? '回看已经收好'
-              : '这一轮已经收好'}
+              ? '回看完成'
+              : '本轮完成'}
           </Text>
           <Text
             style={[styles.resultExplanationBody, { color: palette.textMuted }]}
@@ -403,8 +405,8 @@ export function LearningSurface({
             {roundCompletion
               ? `${roundShelf} · ${roundSection} · ${roundContainer}`
               : isReviewPhase
-              ? '仍不稳的点会留在后续学习里自然出现。'
-              : '需要再看的卡已经收进回看，不要求你管理列表。'}
+              ? '之后还会继续练习不熟的内容。'
+              : '需要再看的卡已加入回看。'}
           </Text>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>
             下一步
@@ -414,13 +416,13 @@ export function LearningSurface({
           >
             {roundCompletion
               ? roundCompletion.reviewCardCount > 0
-                ? `系统已留下 ${roundCompletion.reviewCardCount} 张需要再看的卡。确认后继续下一轮。`
-                : '这一回合没有需要再看的卡，确认后继续下一轮。'
+                ? `有 ${roundCompletion.reviewCardCount} 张需要回看。`
+                : '本轮没有需要回看的卡。'
               : isReviewPhase
-              ? '回看已经结束。可以回到首轮重新开始，也可以稍后按学习节奏继续。'
+              ? '本轮回看完成。'
               : reviewCandidateCount > 0
               ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
-              : '这一轮已经完成，可以重新练这轮卡。'}
+              : '可以再练一遍。'}
           </Text>
           {!roundCompletion &&
           !isReviewPhase &&
@@ -483,7 +485,7 @@ export function LearningSurface({
                   : '继续下一轮'
                 : isReviewPhase
                 ? '回到首轮重新开始'
-                : '重新练这轮卡'}
+                : '再练一遍'}
             </Text>
           </Pressable>
         </View>
@@ -511,7 +513,7 @@ export function LearningSurface({
     currentCard.interaction_id === 'elimination' ||
     currentCard.interaction_id === 'swipe';
   const supportLayer = (() => {
-    const peekBody = '先把题干里的信号抓出来，再回到选项或解析确认。';
+    const peekBody = '先找题干中的关键词，再查看选项或解析。';
 
     if (
       currentCardState.isPeeked &&
@@ -519,7 +521,7 @@ export function LearningSurface({
       currentCardState.isHintVisible
     ) {
       return {
-        title: '先看这张卡的关键点',
+        title: '解题线索',
         body: `${peekBody} ${currentCard.hint_layer.content}`,
         tone: palette.text,
       };
@@ -535,7 +537,7 @@ export function LearningSurface({
 
     if (currentCardState.isPeeked) {
       return {
-        title: '先看这张卡的关键点',
+        title: '解题线索',
         body: peekBody,
         tone: palette.text,
       };
@@ -646,7 +648,7 @@ export function LearningSurface({
                   { color: palette.text },
                 ]}
               >
-                当前卡 · {INTERACTION_LABELS[currentCard.interaction_id]}
+                {INTERACTION_LABELS[currentCard.interaction_id]}
               </Text>
             </View>
           </View>
@@ -842,7 +844,7 @@ export function LearningSurface({
                 </Text>
               </View>
             ) : null}
-            {!isDenseInteraction ? (
+            {!isDenseInteraction && currentCard.interaction_id !== 'flip' ? (
               <Text
                 numberOfLines={isAccessibilityText ? undefined : 2}
                 style={[styles.actionCue, { color: palette.textMuted }]}
@@ -1128,7 +1130,7 @@ function InteractionBody({
             </View>
           ) : (
             <Pressable
-              accessibilityLabel="翻面查看答案"
+              accessibilityLabel="查看答案"
               accessibilityRole="button"
               accessibilityState={{ disabled: false }}
               onPress={onFlip}
@@ -1144,7 +1146,7 @@ function InteractionBody({
                   { color: primaryAction.text },
                 ]}
               >
-                先翻面看答案
+                查看答案
               </Text>
             </Pressable>
           )}
@@ -2118,10 +2120,10 @@ export function LearningResultDetailSurface({
     result.outcome === 'correct' || result.outcome === 'confident';
   const primaryAction = getPrimaryActionColors(palette);
   const neutralAction = getNeutralActionSurface(palette);
-  const detailOutcomeTitle = isPositive ? '答案已归位' : '留到回看';
+  const detailOutcomeTitle = isPositive ? '回答正确' : '需要回看';
   const detailOutcomeCaption = isPositive
-    ? '你的选择和正确答案已对齐'
-    : '先保留判断，回看时再确认';
+    ? '你的答案正确'
+    : '这张卡已加入回看';
   const boundedSessionCardCount = Math.max(sessionCardCount, 1);
   const progressOrdinal = Math.min(currentIndex + 1, boundedSessionCardCount);
   const progressPercent = `${Math.max(
@@ -2195,7 +2197,7 @@ export function LearningResultDetailSurface({
                   { color: palette.text },
                 ]}
               >
-                当前卡 · {INTERACTION_LABELS[card.interaction_id]}
+                {INTERACTION_LABELS[card.interaction_id]}
               </Text>
             </View>
           </View>

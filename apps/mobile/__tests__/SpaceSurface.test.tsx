@@ -130,10 +130,10 @@ test('keeps a physical Space outline when no cards are visible', () => {
   expect(
     root.findAllByProps({ testID: 'space-return-learning' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('当前卡盒待整理');
-  expect(output).toContain('当前卡盒暂无可展示卡片');
+  expect(output).toContain('暂无卡片');
+  expect(output).toContain('这里还没有卡片');
   expect(output).toContain('本轮暂时没有符合条件的卡片');
-  expect(output).toContain('当前卡盒已定位');
+  expect(output).toContain('当前卡盒');
   expect(renderedText).not.toContain(currentCard.space_metadata.library);
   expect(renderedText).not.toContain(currentCard.space_metadata.group);
   expect(renderedText).not.toContain(currentCard.space_metadata.box);
@@ -293,10 +293,10 @@ test('uses contained skeleton slots while Space cards are loading', () => {
         screen="card_list"
         spaceCards={[]}
         spaceStatusRail={{
-          detail: '正在整理本轮卡片；空间当前位置会先保留在原位。',
+          detail: '正在加载卡片。',
           label: '加载中',
           state: 'loading',
-          title: '正在整理空间内容',
+          title: '正在加载空间',
         }}
       />,
     );
@@ -305,10 +305,8 @@ test('uses contained skeleton slots while Space cards are loading', () => {
   const root = tree!.root;
   const output = JSON.stringify(tree!.toJSON());
 
-  expect(output).toContain('正在整理卡片');
-  expect(output).toContain('卡片正在整理');
-  expect(output).toContain('正在整理卡片');
-  expect(output).toContain('完成后显示本轮内容');
+  expect(output).toContain('正在加载卡片');
+  expect(output).toContain('加载完成后即可查看');
   expect(
     root.findAllByProps({ testID: 'space-loading-card-skeleton' }).length,
   ).toBeGreaterThan(0);
@@ -503,9 +501,9 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(renderedText).toContain(
     `书架 ${currentCard.space_metadata.library} 分区 ${currentCard.space_metadata.group} 卡盒 ${currentCard.space_metadata.box}`,
   );
-  expect(renderedText).toContain('当前盒桌 打开卡盒');
-  expect(renderedText).toContain('同盒卡片');
-  expect(renderedText).toContain('同盒卡片都在这里');
+  expect(renderedText).toContain(currentCard.space_metadata.box);
+  expect(renderedText).toContain('卡片');
+  expect(renderedText).toContain('查看卡盒中的卡片');
   expect(renderedText).toContain('同盒休眠');
   expect(renderedText).toContain('暂无休眠');
   expect(renderedText).toContain('回学习 回到刚才那张卡');
@@ -621,9 +619,9 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
   let renderedText = collectRenderedText(tree!.toJSON()).join(' ');
   expect(renderedText).toContain('因果关系');
   expect(renderedText).toContain('相邻卡盒提示');
-  expect(renderedText).toContain('浏览盒桌');
-  expect(renderedText).toContain('正在查看所选卡盒的卡片');
-  expect(renderedText).toContain('所选盒内卡片');
+  expect(renderedText).toContain('所选卡盒');
+  expect(renderedText).toContain('查看所选卡盒中的卡片');
+  expect(renderedText).toContain('卡片');
   expect(renderedText).toContain('所选盒休眠');
   expect(renderedText).toContain('所选卡盒');
   expect(root.findByProps({testID: 'space-follow-current-box'})).toBeTruthy();
@@ -647,10 +645,10 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
   });
   renderedText = collectRenderedText(tree!.toJSON()).join(' ');
   expect(renderedText).toContain('所选卡盒');
-  expect(renderedText).toContain('正在查看所选卡盒');
+  expect(renderedText).toContain('查看所选卡盒');
   expect(renderedText).toContain('所选位置');
-  expect(renderedText).toContain('所选盒卡片');
-  expect(renderedText).toContain('所选盒卡位');
+  expect(renderedText).toContain('卡片');
+  expect(renderedText).toContain('所选卡盒');
 
   ReactTestRenderer.act(() => {
     tree!.update(renderSurface());
@@ -869,7 +867,7 @@ test('resyncs Space focus when the current learning card changes after render', 
 
   const updatedText = collectRenderedText(tree!.toJSON()).join(' ');
 
-  expect(updatedText).toContain('同盒卡片都在这里');
+  expect(updatedText).toContain('查看卡盒中的卡片');
   expect(countOccurrences(updatedText, nextCard.front.prompt)).toBeGreaterThan(
     0,
   );

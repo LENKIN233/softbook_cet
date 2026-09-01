@@ -215,8 +215,8 @@ type ShellAccountChipCopy = {
 function getShellAccountChipCopy(authState: AuthState): ShellAccountChipCopy {
   return authState.stage === 'authenticated'
     ? {
-        label: '账户',
-        value: '已确认',
+        label: '账号',
+        value: '已登录',
       }
     : authState.stage === 'code_sent'
     ? {
@@ -232,17 +232,17 @@ function getShellAccountChipCopy(authState: AuthState): ShellAccountChipCopy {
 function getAuthStatusCopy(authState: AuthState): AuthStatusCopy {
   return authState.stage === 'authenticated'
     ? {
-        label: '身份已确认',
+        label: '登录账号',
         value: maskPhoneNumber(authState.phoneNumber),
       }
     : authState.stage === 'code_sent'
     ? {
-        label: '验证码已发',
-        value: '输入验证码',
+        label: '验证码',
+        value: '请输入',
       }
     : {
-        label: '等待登录',
-        value: '手机号验证码',
+        label: '账号',
+        value: '未登录',
       };
 }
 
@@ -501,7 +501,6 @@ function AppShell({
     () => createAccountDeletionCleanupStore(),
     [],
   );
-  const runtimeAuthRepositoryMode = authRepositoryConfig.mode;
   const accountBootstrapRepositoryConfig = useMemo(() => {
     const resolved = resolveAccountBootstrapRepositoryConfig(runtimeConfig);
 
@@ -5085,12 +5084,12 @@ function AppShell({
             </>
           ),
           detail:
-            '当前保留已解锁卡片的空间预览和位置提示；完整卡片浏览、收藏/休眠调整与更多空间操作需要试用或会员。',
+            '可以查看已解锁卡片。收藏、休眠和完整空间需要试用或会员。',
           label:
             membershipPendingAction === 'start_trial'
               ? '正在开通'
-              : '完整空间受限',
-          title: '完整物理空间需要试用或会员',
+              : '需要会员',
+          title: '完整空间需要试用或会员',
         }
       : null;
   const spaceStatusRail: SpaceStatusRail | null =
@@ -5119,16 +5118,14 @@ function AppShell({
             ) : null,
           detail:
             learningBootstrapStatus === 'error'
-              ? `${
-                  learningBootstrapError ?? '空间内容暂时不可用。'
-                } 空间会保留当前位置，重试后再恢复卡片列表。`
-              : '正在整理本轮卡片；空间当前位置会先保留在原位。',
+              ? `${learningBootstrapError ?? '空间内容暂时不可用。'} 请重试。`
+              : '正在加载卡片。',
           label: learningBootstrapStatus === 'error' ? '可重试' : '加载中',
           state: learningBootstrapStatus === 'error' ? 'error' : 'loading',
           title:
             learningBootstrapStatus === 'error'
               ? '空间内容暂时不可用'
-              : '正在整理空间内容',
+              : '正在加载空间',
         }
       : null;
   const spaceSyncRail =
@@ -5170,7 +5167,6 @@ function AppShell({
   const content = route.key === 'mine' ? (
     <MineSurface
       accountDeletionAvailable={accountDeletionRepository !== null}
-      authRepositoryMode={runtimeAuthRepositoryMode}
       authState={authState}
       checkedInDayKey={checkedInDayKey}
       completedCount={dailyProgressSnapshot.totalCompletedCount}
@@ -5395,7 +5391,6 @@ function AppShell({
         ) : !isAuthenticated ? (
           <View style={styles.standaloneAuthRoot} testID="standalone-auth-root">
             <AuthGate
-              authRepositoryMode={runtimeAuthRepositoryMode}
               authState={authState}
               handlers={authHandlers}
               palette={palette}
@@ -5475,7 +5470,7 @@ function LearningBootstrapSurface({
           testID={isClientUpdateRequired ? 'auth-error-detail' : undefined}
         >
           {isLoading
-            ? '正在整理本轮要学的卡片，准备好后会直接开始当前卡。'
+            ? '正在加载本轮卡片。'
             : isClientUpdateRequired
             ? '登录状态已保留，安装最新版本后可直接继续。'
             : '已登录，但这次没能拿到可用卡片。可以在这里重试。'}
@@ -5483,18 +5478,14 @@ function LearningBootstrapSurface({
       </View>
       <InfoCard
         palette={palette}
-        title={isLoading ? '准备中' : '暂时停在这里'}
+        title={isLoading ? '加载中' : '无法开始学习'}
         items={
           isLoading
-            ? [
-                '正在加载本轮卡片。',
-                '学习仍然会按一张卡一张卡推进。',
-                '准备完成后会自动回到当前练习。',
-              ]
+            ? ['正在加载本轮卡片。', '加载完成后自动开始。']
             : [
                 error ?? '本轮卡片加载失败。',
-                '还没有进入答题状态，学习进度不会被错误推进。',
-                '重试后会重新准备本轮学习。',
+                '当前没有答题记录。',
+                '请重新加载。',
               ]
         }
       />
@@ -5514,7 +5505,7 @@ function LearningBootstrapSurface({
               { color: palette.primaryActionText },
             ]}
           >
-            {isClientUpdateRequired ? '获取更新' : '重新加载本轮卡片'}
+            {isClientUpdateRequired ? '获取更新' : '重新加载'}
           </Text>
         </Pressable>
       ) : (
@@ -5564,30 +5555,30 @@ function LearningSleepSurface({
           休眠区
         </Text>
         <Text style={[styles.heroTitle, { color: palette.text }]}>
-          当前学习卡都已进入休眠区
+          所有卡片都在休眠中
         </Text>
         <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
           {canRecoverInPlace
-            ? '当前免费态还不能进入完整空间，但为了保留基础学习，可以先把一张可学习卡移出休眠区，再继续当前学习。'
-            : '按空间里的休眠设置，进入休眠区的卡不会继续出现在当前练习里。先去空间里把需要恢复的卡移出休眠区，再继续当前学习。'}
+            ? '恢复一张卡后即可继续学习。'
+            : '到空间恢复一张卡后即可继续学习。'}
         </Text>
       </View>
       <InfoCard
         palette={palette}
-        title="为什么现在不能继续学习"
+        title="如何继续"
         items={
           canRecoverInPlace
             ? [
-                '休眠会让卡片暂时退出当前练习，不是普通标签。',
-                '免费态仍需保留基础学习，所以这里提供一条窄恢复口，不直接放开完整空间。',
+                '休眠中的卡不会出现在学习中。',
+                '恢复一张卡后即可继续。',
                 recoverableCard
                   ? `下一张可恢复卡：${recoverableCard.front.prompt}`
                   : '当前没有可恢复卡。',
               ]
             : [
-                '休眠会让卡片暂时退出当前练习，不是普通标签。',
-                '进入休眠后，这张卡会先从当前练习里移出。',
-                '恢复后回到学习，就能继续当前练习。',
+                '休眠中的卡不会出现在学习中。',
+                '在空间中恢复一张卡。',
+                '返回学习继续。',
               ]
         }
       />
@@ -6360,12 +6351,12 @@ function PhoneTopBar({
   const accountChipCopy = getShellAccountChipCopy(authState);
   const routeCue =
     route.key === 'learning'
-      ? '继续当前卡'
+      ? '继续学习'
       : route.key === 'space'
-      ? '查看卡片位置'
+      ? '查看卡片'
       : route.key === 'statistics'
       ? '今日进展'
-      : '学习账户';
+      : '账号与会员';
 
   return (
     <View
@@ -6482,7 +6473,7 @@ function TabletShell({
           软书四六级
         </Text>
         <Text style={[styles.brandSummary, { color: palette.textMuted }]}>
-          登录后从当前卡继续；空间、统计和“我的”分别查看位置、进展和个人状态。
+          继续学习，或查看卡片、进度和账号。
         </Text>
         <AuthStatusBadge authState={authState} palette={palette} />
         <View style={styles.sidebarNav}>
@@ -6539,7 +6530,6 @@ function TabletShell({
           onOpenAccount={() => onSelectRoute('mine')}
           palette={palette}
           route={route}
-          deviceClass="tablet"
         />
         {content}
       </View>
@@ -6552,13 +6542,11 @@ function ShellHeader({
   onOpenAccount,
   palette,
   route,
-  deviceClass,
 }: {
   authState: AuthState;
   onOpenAccount: () => void;
   palette: Palette;
   route: ShellRoute;
-  deviceClass: DeviceClass;
 }) {
   const accountChipCopy = getShellAccountChipCopy(authState);
 
@@ -6581,16 +6569,12 @@ function ShellHeader({
         </Text>
         <Text style={[styles.headerSummary, { color: palette.textMuted }]}>
           {route.key === 'learning'
-            ? deviceClass === 'phone'
-              ? '当前卡已经准备好，先完成这一张。'
-              : '左侧保留导航，右侧继续当前卡。'
+            ? '继续今天的学习。'
             : route.key === 'space'
-            ? '从当前位置看卡片、收藏和休眠状态。'
+            ? '查看卡片位置、收藏和休眠。'
             : route.key === 'statistics'
-            ? '看今天完成了什么、还有多少需要回看。'
-            : deviceClass === 'phone'
-            ? '查看账号、试用、会员和个人学习状态。'
-            : '左侧保留导航，右侧查看个人学习状态。'}
+            ? '查看今天的完成和回看。'
+            : '管理账号和会员。'}
         </Text>
       </View>
       <View style={styles.headerMeta}>
@@ -6668,7 +6652,6 @@ function AuthStatusBadge({
 }
 
 function AuthGate({
-  authRepositoryMode,
   authState,
   cardTestID,
   embedded = false,
@@ -6677,7 +6660,6 @@ function AuthGate({
   route,
   standalone = false,
 }: {
-  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   cardTestID?: string;
   embedded?: boolean;
@@ -6690,48 +6672,58 @@ function AuthGate({
   const isMineAccountGate = embedded && route.key === 'mine';
   const isRouteObjectGate = !standalone && route.key !== 'mine';
   const isCompactAuthGate = isMineAccountGate || isRouteObjectGate;
-  const authGateContent =
-    route.key === 'space'
+  const authGateContent = standalone
+    ? {
+        continuityPill: '学习',
+        eyebrow: '软书四六级',
+        gateSummary: hasSentCode
+          ? '输入短信中的验证码。'
+          : '登录后同步学习进度。',
+        gateTitle: hasSentCode ? '输入验证码' : '登录',
+        retainedSummary: '',
+        retainedTitle: '',
+        returnTarget: '学习',
+      }
+    : route.key === 'space'
       ? {
           continuityPill: '空间',
           eyebrow: '空间',
-          gateSummary: '确认手机号后读取这个账户的书架、分区和卡盒。',
-          gateTitle: '验证后打开知识空间',
-          retainedSummary: '已有位置会恢复；新账号会从系统起点建立空间。',
-          retainedTitle: '空间状态将在验证后读取',
+          gateSummary: '登录后同步书架和卡片位置。',
+          gateTitle: '登录后查看空间',
+          retainedSummary: '登录后会恢复上次的位置。',
+          retainedTitle: '保存你的卡片位置',
           returnTarget: '空间',
         }
       : route.key === 'statistics'
       ? {
           continuityPill: '统计',
           eyebrow: '今日进展',
-          gateSummary: '确认手机号后读取今天已经发生的完成、回看和签到。',
-          gateTitle: '验证后查看今日进展',
-          retainedSummary: '已有记录会接上；新账号从空白账页开始。',
-          retainedTitle: '今日记录将在验证后读取',
+          gateSummary: '登录后同步今天的学习记录。',
+          gateTitle: '登录后查看进度',
+          retainedSummary: '登录后会恢复今天的记录。',
+          retainedTitle: '保存今天的进度',
           returnTarget: '今日进展',
         }
       : route.key === 'mine'
       ? {
           continuityPill: '账户',
           eyebrow: '学习账户',
-          gateSummary: '学习记录、空间位置和会员权益统一归到这个账号。',
-          gateTitle: '确认手机号',
+          gateSummary: '登录后同步学习进度和会员信息。',
+          gateTitle: '登录',
           retainedSummary: hasSentCode
-            ? '短码确认后可查看记录与权益。'
-            : '手机号确认后可查看记录与权益。',
-          retainedTitle: '账号归属待确认',
+            ? '输入验证码即可登录。'
+            : '用手机号登录。',
+          retainedTitle: '保存学习进度',
           returnTarget: '我的',
         }
       : {
           continuityPill: '学习',
-          eyebrow: '当前卡',
-          gateSummary:
-            '手机号确认后读取学习进度和权益，再进入系统安排的当前卡。',
-          gateTitle: '验证后开始今天的学习',
-          retainedSummary: '已有进度会接上；新账号从系统第一张卡开始。',
-          retainedTitle: '学习位置将在验证后确定',
-          returnTarget: '当前卡',
+          eyebrow: '软书四六级',
+          gateSummary: '登录后同步学习进度。',
+          gateTitle: '登录',
+          retainedSummary: '登录后继续上次的学习。',
+          retainedTitle: '保存学习进度',
+          returnTarget: '学习',
         };
 
   return (
@@ -6807,7 +6799,7 @@ function AuthGate({
                         { color: palette.text },
                       ]}
                     >
-                      {hasSentCode ? '短码' : '手机'}
+                      {hasSentCode ? '验证码' : '手机'}
                     </Text>
                     <Text
                       style={[
@@ -6844,32 +6836,34 @@ function AuthGate({
                 <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
                   {authGateContent.eyebrow}
                 </Text>
-                <View
-                  style={[
-                    styles.authObjectBadge,
-                    {
-                      backgroundColor: palette.panelStrong,
-                      borderColor: palette.border,
-                    },
-                  ]}
-                >
-                  <Text
+                {!standalone ? (
+                  <View
                     style={[
-                      styles.authObjectBadgeValue,
-                      { color: palette.text },
+                      styles.authObjectBadge,
+                      {
+                        backgroundColor: palette.panelStrong,
+                        borderColor: palette.border,
+                      },
                     ]}
                   >
-                    {hasSentCode ? '短码已发' : '短信验证'}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.authObjectBadgeLabel,
-                      { color: palette.textMuted },
-                    ]}
-                  >
-                    手机号
-                  </Text>
-                </View>
+                    <Text
+                      style={[
+                        styles.authObjectBadgeValue,
+                        { color: palette.text },
+                      ]}
+                    >
+                      {hasSentCode ? '验证码已发' : '短信登录'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.authObjectBadgeLabel,
+                        { color: palette.textMuted },
+                      ]}
+                    >
+                      手机号
+                    </Text>
+                  </View>
+                ) : null}
               </View>
               <Text
                 style={[
@@ -6899,7 +6893,8 @@ function AuthGate({
           ]}
           testID="auth-gate-action-stack"
         >
-          <View
+          {!standalone ? (
+            <View
             style={[
               styles.authRetainedObject,
               isCompactAuthGate ? styles.authRetainedObjectCompact : null,
@@ -6969,26 +6964,20 @@ function AuthGate({
                 </Text>
               </View>
             </View>
-          </View>
+            </View>
+          ) : null}
           <PhoneSmsPanel
             accountDock={isMineAccountGate}
             authState={authState}
             embedded
             handlers={handlers}
+            minimal={standalone}
             palette={palette}
             routeDock={isRouteObjectGate}
             returnTarget={authGateContent.returnTarget}
-            title="手机号验证"
-            summary={
-              authRepositoryMode === 'remote'
-                ? '用短信短码确认身份。'
-                : '输入短码确认身份。'
-            }
-            successMessage={
-              authRepositoryMode === 'remote'
-                ? '已完成短信验证码登录。'
-                : '已完成登录。'
-            }
+            title="手机号登录"
+            summary="输入手机号获取验证码。"
+            successMessage="登录成功。"
           />
         </View>
       </View>
@@ -6998,7 +6987,6 @@ function AuthGate({
 
 function MineSurface({
   accountDeletionAvailable,
-  authRepositoryMode,
   authState,
   checkedInDayKey,
   completedCount,
@@ -7024,7 +7012,6 @@ function MineSurface({
   todayKey,
 }: {
   accountDeletionAvailable: boolean;
-  authRepositoryMode: 'local' | 'remote';
   authState: AuthState;
   checkedInDayKey: string | null;
   completedCount: number;
@@ -7063,11 +7050,11 @@ function MineSurface({
   const profileName = isAuthenticated
     ? maskPhoneNumber(authState.phoneNumber)
     : '待验证';
-  const profileContinuityValue = isAuthenticated ? '当前卡' : profileName;
+  const profileContinuityValue = isAuthenticated ? profileName : '未登录';
   const profileDetail = isAuthenticated
     ? `${checkedInToday ? '已签到' : '未签到'} · ${completedCount} 张`
     : '学习/空间/会员';
-  const profileIdentityLabel = isAuthenticated ? '继续位置' : '身份';
+  const profileIdentityLabel = isAuthenticated ? '手机号' : '身份';
   const profileProgressLabel = isAuthenticated ? '今日' : '同步';
   const syncDetail = isAuthenticated
     ? progressSyncState.state === 'error' ||
@@ -7086,8 +7073,8 @@ function MineSurface({
     ? '验证码已发'
     : '待登录';
   const accountSummary = isAuthenticated
-    ? `${profileName} · ${syncDetail}`
-    : '学习记录、空间位置和会员权益会归到同一账号。';
+    ? syncDetail
+    : '登录后同步学习进度。';
   const mineStatusItems = [
     { label: '完成', testID: 'mine-metric-completed', value: completedCount },
     {
@@ -7111,7 +7098,6 @@ function MineSurface({
         testID="mine-surface"
       >
         <AuthGate
-          authRepositoryMode={authRepositoryMode}
           authState={authState}
           cardTestID="mine-profile-card"
           embedded
@@ -7175,7 +7161,7 @@ function MineSurface({
                   { color: palette.accent },
                 ]}
               >
-                学习账户
+                账号
               </Text>
               <Text
                 numberOfLines={1}
@@ -7185,7 +7171,7 @@ function MineSurface({
                   { color: palette.text },
                 ]}
               >
-                账户已接上
+                {profileName}
               </Text>
               <Text
                 numberOfLines={isCompactPhone ? 1 : 2}
@@ -7339,12 +7325,14 @@ function MineSurface({
               detail={
                 pendingReviewCount > 0
                   ? `${pendingReviewCount} 张卡等待回看`
-                  : '当前顺序，下一张已准备好'
+                  : '继续下一张'
               }
               heroLabel={
-                pendingReviewCount > 0 ? '先回看，再继续前进' : '从这里继续'
+                pendingReviewCount > 0 ? '待回看' : undefined
               }
-              heroValue={pendingReviewCount > 0 ? '回看' : '当前卡'}
+              heroValue={
+                pendingReviewCount > 0 ? `${pendingReviewCount} 张` : '下一张'
+              }
               label="继续学习"
               metaItems={[
                 {
@@ -7379,7 +7367,7 @@ function MineSurface({
               <MineActionCard
                 compact={isCompactPhone}
                 condensed={isPhoneViewport}
-                detail={`${favoriteCount} 收藏 · ${sleepingCount} 休眠`}
+                detail={`收藏 ${favoriteCount} · 休眠 ${sleepingCount}`}
                 label="空间"
                 onPress={onGoToSpace}
                 palette={palette}
@@ -7389,8 +7377,8 @@ function MineSurface({
               <MineActionCard
                 compact={isCompactPhone}
                 condensed={isPhoneViewport}
-                detail={checkedInToday ? '今日已签到' : '今日未签到'}
-                label="今日"
+                detail={checkedInToday ? '已签到' : '未签到'}
+                label="统计"
                 onPress={onGoToStatistics}
                 palette={palette}
                 routeKey="statistics"
@@ -7765,10 +7753,10 @@ function MembershipHostCard({
     focusGate === null
       ? null
       : focusGate === 'review'
-      ? '智能回看当前需要试用或会员。开始试用或升级后，会回到学习继续这轮回看。'
+      ? '回看需要试用或会员。开通后继续本轮回看。'
       : focusGate === 'space'
-      ? '完整知识空间当前需要试用或会员。开始试用或升级后，可以查看完整空间。'
-      : '完整卡库当前需要试用或会员。开始试用或升级后，会放开完整卡片。';
+      ? '完整空间需要试用或会员。'
+      : '完整卡库需要试用或会员。';
 
   return (
     <View
@@ -7863,7 +7851,7 @@ function MembershipHostCard({
                   { color: palette.text },
                 ]}
               >
-                试用随学习开始
+                免费试用
               </Text>
               <View
                 style={[
@@ -7892,7 +7880,7 @@ function MembershipHostCard({
                 { color: palette.textMuted },
               ]}
             >
-              开始后开放空间和回看。
+              开通后可使用完整空间和回看。
             </Text>
           </View>
           <View style={styles.membershipAccessCompactActions}>
@@ -7949,7 +7937,7 @@ function MembershipHostCard({
                 ]}
                 testID="membership-operator-entitlement-copy"
               >
-                封闭内测权益由邀请开通
+                需要内测资格
               </Text>
             )}
           </View>
@@ -8002,7 +7990,7 @@ function MembershipHostCard({
                   { color: item.open ? palette.success : palette.warning },
                 ]}
               >
-                {item.open ? '已开放' : '待开放'}
+                {item.open ? '可用' : '不可用'}
               </Text>
             </View>
           ))}
@@ -8028,7 +8016,7 @@ function MembershipHostCard({
               ? membershipState.lastExperienceEndedBy === 'premium'
                 ? '会员体验结束后，恢复购买可继续保留完整空间、完整卡库和智能回看。'
                 : '完整试用结束后，恢复购买可继续完整空间与智能回看。'
-              : '封闭内测权益由邀请开通；获得资格后会随当前账号自动同步。'}
+                : '获得内测资格后即可使用。'}
           </Text>
           <Pressable
             onPress={handlers.onDismissRecovery}
@@ -8052,10 +8040,10 @@ function MembershipHostCard({
       {membershipPendingAction ? (
         <Text style={[styles.authHint, { color: palette.textMuted }]}>
           {membershipPendingAction === 'start_trial'
-            ? '正在同步完整试用状态。'
+            ? '正在开通试用。'
             : membershipPendingAction === 'purchase'
-            ? '正在同步会员状态。'
-            : '正在更新恢复购买提醒状态。'}
+            ? '正在开通会员。'
+            : '正在更新。'}
         </Text>
       ) : null}
       {membershipError ? (
@@ -8117,7 +8105,7 @@ function MembershipActionGroup({
       ]}
       testID="membership-operator-entitlement-copy"
     >
-      封闭内测权益由邀请开通，获得后会随当前账号自动同步。
+      获得内测资格后即可使用。
     </Text>
   );
 
@@ -8205,9 +8193,7 @@ function MembershipActionGroup({
   ) : membershipState.stage === 'premium' ? (
     <View style={styles.authActions}>
       <Text style={[styles.authSuccess, { color: palette.success }]}>
-        {membershipRepositoryMode === 'remote'
-          ? '会员状态已随账号更新。'
-          : '会员体验已开启。'}
+        会员已开通。
       </Text>
       {showLocalDebugActions ? (
         <Pressable
@@ -8260,6 +8246,7 @@ function PhoneSmsPanel({
   authState,
   embedded = false,
   handlers,
+  minimal = false,
   palette,
   returnTarget,
   routeDock = false,
@@ -8272,6 +8259,7 @@ function PhoneSmsPanel({
   authState: AuthState;
   embedded?: boolean;
   handlers: AuthHandlers;
+  minimal?: boolean;
   palette: Palette;
   returnTarget: string;
   routeDock?: boolean;
@@ -8280,7 +8268,7 @@ function PhoneSmsPanel({
   summary: string;
   successMessage?: string;
 }) {
-  const isDockedPanel = accountDock || routeDock;
+  const isDockedPanel = accountDock || routeDock || minimal;
   const isAuthenticated = authState.stage === 'authenticated';
   const isPending = authState.pendingAction !== null;
   const hasRequestedCode = authState.stage !== 'logged_out';
@@ -8289,6 +8277,10 @@ function PhoneSmsPanel({
     isAuthenticated && authState.error === CLIENT_UPDATE_REQUIRED_COPY;
   const hasCodeError =
     hasAuthError && hasRequestedCode && !isClientUpdateRequired;
+  const isExpiredSessionError =
+    hasAuthError &&
+    !hasRequestedCode &&
+    authState.error?.startsWith('登录已失效');
   const isPhoneReady = isPhoneNumberReady(authState.phoneNumber);
   const canRequestCode = isPhoneReady && !isPending && !isAuthenticated;
   const canSubmitCode =
@@ -8304,7 +8296,7 @@ function PhoneSmsPanel({
       : '待输入';
   const requestDockTitle =
     authState.pendingAction === 'request_code'
-      ? '正在发送短码'
+      ? '正在发送验证码'
       : canRequestCode
       ? '手机号可用'
       : accountDock
@@ -8312,24 +8304,28 @@ function PhoneSmsPanel({
       : '手机号';
   const requestDockDetail =
     authState.pendingAction === 'request_code'
-      ? '短信短码正在发送。'
+      ? '正在发送验证码。'
       : canRequestCode
-      ? '下一步输入短码。'
-      : '输入手机号获取短码。';
+      ? '可以获取验证码。'
+      : '输入手机号获取验证码。';
   const dockSummary = hasRequestedCode
-    ? `短码已发送，确认后回到${returnTarget}。`
+    ? `验证码已发送，登录后返回${returnTarget}。`
     : requestDockDetail;
   const requestStatusTone = canRequestCode ? palette.success : palette.accent;
   const authErrorTitle = isClientUpdateRequired
     ? '需要安装最新版本'
+    : isExpiredSessionError
+    ? '登录已失效'
     : hasRequestedCode
-    ? '验证码暂时没通过'
-    : '短码暂时没发出';
+    ? '验证码不正确'
+    : '验证码发送失败';
   const authErrorDetail = isClientUpdateRequired
     ? '登录状态已保留，更新后可直接继续。'
+    : isExpiredSessionError
+    ? '请重新登录。'
     : hasRequestedCode
-    ? '检查短码后重试，当前位置不变。'
-    : '检查手机号后重试，当前位置不变。';
+    ? '请检查验证码后重试。'
+    : '请检查手机号后重试。';
   const codeActionTone = hasCodeError ? palette.warning : palette.accent;
   const submitCodeButtonBackground = canSubmitCode
     ? codeActionTone
@@ -8378,7 +8374,7 @@ function PhoneSmsPanel({
           style={[styles.authErrorDetail, { color: palette.textMuted }]}
           testID="auth-error-detail"
         >
-          {`${authState.error} ${authErrorDetail}`}
+          {minimal ? authErrorDetail : `${authState.error} ${authErrorDetail}`}
         </Text>
       </View>
       <Pressable
@@ -8466,7 +8462,7 @@ function PhoneSmsPanel({
                 style={[styles.authCodeSentTitle, { color: palette.text }]}
                 testID="auth-code-sent-title"
               >
-                {hasCodeError ? '验证码待确认' : '验证码已发送'}
+                {hasCodeError ? '验证码不正确' : '验证码已发送'}
               </Text>
               <Text
                 numberOfLines={1}
@@ -8512,16 +8508,18 @@ function PhoneSmsPanel({
               </Text>
             </Pressable>
           ) : null}
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.authCodeSentMeta,
-              styles.authCodeReturnText,
-              { color: palette.textMuted },
-            ]}
-          >
-            {`4-6 位短码，确认后回到${returnTarget}。`}
-          </Text>
+          {!minimal ? (
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.authCodeSentMeta,
+                styles.authCodeReturnText,
+                { color: palette.textMuted },
+              ]}
+            >
+              {`输入 4-6 位验证码，登录后返回${returnTarget}。`}
+            </Text>
+          ) : null}
           <View
             style={[
               styles.authCodeEntryRow,
@@ -8666,7 +8664,8 @@ function PhoneSmsPanel({
           ]}
           testID="auth-request-inline-dock"
         >
-          <View style={styles.authRequestStatusLine}>
+          {!minimal ? (
+            <View style={styles.authRequestStatusLine}>
             <View
               pointerEvents="none"
               style={[
@@ -8714,7 +8713,8 @@ function PhoneSmsPanel({
                 {requestReadinessLabel}
               </Text>
             </View>
-          </View>
+            </View>
+          ) : null}
           <View
             style={[
               styles.authRequestActionRow,
@@ -8804,8 +8804,8 @@ function PhoneSmsPanel({
                 {authState.pendingAction === 'request_code'
                   ? '发送中'
                   : canRequestCode
-                  ? '发送短码'
-                  : '获取短码'}
+                  ? '获取验证码'
+                  : '获取验证码'}
               </Text>
             </Pressable>
           </View>
@@ -8942,24 +8942,24 @@ function isSmsCodeReady(smsCode: string) {
 function getMembershipCardTitle(stage: MembershipStage) {
   switch (stage) {
     case 'trial_available':
-      return '试用待开始';
+      return '可试用';
     case 'trial':
-      return '完整试用进行中';
+      return '试用中';
     case 'free':
-      return '当前是基础学习态';
+      return '免费版';
     case 'premium':
-      return '当前是会员态';
+      return '会员';
   }
 }
 
 function getMembershipHostTitle(stage: MembershipStage) {
   switch (stage) {
     case 'trial_available':
-      return '权益通行证';
+      return '免费试用';
     case 'trial':
-      return '完整试用进行中';
+      return '试用';
     case 'free':
-      return '基础学习保留';
+      return '免费版';
     case 'premium':
       return '会员已开通';
   }
@@ -8968,13 +8968,13 @@ function getMembershipHostTitle(stage: MembershipStage) {
 function getMembershipStatusChipLabel(stage: MembershipStage) {
   switch (stage) {
     case 'trial_available':
-      return '基础可用';
+      return '未开始';
     case 'trial':
       return '试用中';
     case 'free':
-      return '基础态';
+      return '免费';
     case 'premium':
-      return '会员态';
+      return '已开通';
   }
 }
 
@@ -9004,19 +9004,17 @@ function getMembershipCardSummary(
 ) {
   switch (membershipState.stage) {
     case 'trial_available':
-      return '首次计入学习时开启试用；完整卡库、完整空间和智能回看会一起放开。';
+      return '开始学习时启用试用，可使用完整卡库、空间和回看。';
     case 'trial':
       return mode === 'remote'
         ? `试用还剩 ${Math.ceil(
             membershipState.trialRemainingSeconds / (24 * 60 * 60),
           )} 天，完整卡库、空间和回看已开启。`
-        : `完整试用 ${membershipState.trialDurationDays} 天已开启，先完整体验路线和空间。`;
+        : `已开始 ${membershipState.trialDurationDays} 天试用。`;
     case 'free':
       return '当前保留基础学习；完整空间、卡库和回看需要会员。';
     case 'premium':
-      return mode === 'remote'
-        ? '会员状态已随账号生效，完整卡库、空间和回看已放开。'
-        : '会员体验已开启，完整卡库、空间和回看已放开。';
+      return '会员已开通，可使用完整卡库、空间和回看。';
   }
 }
 

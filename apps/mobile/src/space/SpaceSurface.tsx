@@ -387,7 +387,7 @@ export function SpaceSurface({
     const emptyTone = currentLearningCard
       ? resolveLibraryTone(currentLearningCard.space_metadata.library)
       : resolveLibraryTone();
-    const emptySelectedPath = currentCardPath ? '当前卡盒已定位' : '位置待同步';
+    const emptySelectedPath = currentCardPath ? '当前卡盒' : '尚未同步';
     const isSpaceLoading = spaceStatusRail?.state === 'loading';
 
     return (
@@ -421,8 +421,8 @@ export function SpaceSurface({
               style={[styles.summary, { color: palette.textMuted }]}
             >
               {isSpaceLoading
-                ? '正在整理本轮卡片；空间先保留当前位置。'
-                : '当前卡盒暂时没有可展示卡片；空间仍保留回到学习的上下文。'}
+                ? '正在加载卡片。'
+                : '这里还没有卡片。'}
             </Text>
             <View style={styles.addressContextRow}>
               <AddressContextPill
@@ -435,12 +435,12 @@ export function SpaceSurface({
               <AddressContextPill
                 label="状态"
                 palette={palette}
-                value={isSpaceLoading ? '整理中' : '待整理'}
+                value={isSpaceLoading ? '加载中' : '空'}
               />
               <AddressContextPill
-                label="连续性"
+                label="下一步"
                 palette={palette}
-                value="回到学习"
+                value="返回学习"
               />
             </View>
             <View
@@ -489,13 +489,13 @@ export function SpaceSurface({
             <View style={styles.boxTrayHeader}>
               <View style={styles.boxTrayCopy}>
                 <Text style={[styles.eyebrow, { color: emptyTone.accent }]}>
-                  {isSpaceLoading ? '正在整理卡片' : '当前卡盒待整理'}
+                  {isSpaceLoading ? '正在加载' : '暂无卡片'}
                 </Text>
                 <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
                   当前卡盒
                 </Text>
                 <Text style={[styles.ruleText, { color: palette.textMuted }]}>
-                  {isSpaceLoading ? '卡片正在整理' : '暂时没有可展示卡片'}
+                  {isSpaceLoading ? '正在加载卡片' : '这里还没有卡片'}
                 </Text>
               </View>
               <View style={styles.headerActionStack}>
@@ -544,7 +544,7 @@ export function SpaceSurface({
             ) : null}
 
             <Text style={[styles.locationText, { color: emptyTone.accent }]}>
-              {currentCardPath ? '当前卡会回到这里' : '空间正在等待本轮卡片。'}
+              {currentCardPath ? '当前学习卡在这里' : '还没有当前学习卡'}
             </Text>
 
             <View style={styles.boxShelf} testID="space-current-position">
@@ -562,10 +562,10 @@ export function SpaceSurface({
                   当前卡盒
                 </Text>
                 <Text style={[styles.boxMeta, { color: palette.textMuted }]}>
-                  {isSpaceLoading ? '正在整理卡片' : '暂无可展示卡片'}
+                  {isSpaceLoading ? '正在加载卡片' : '暂无卡片'}
                 </Text>
                 <Text style={[styles.currentTag, { color: emptyTone.accent }]}>
-                  {isSpaceLoading ? '整理中' : '待整理'}
+                  {isSpaceLoading ? '加载中' : '空'}
                 </Text>
               </View>
             </View>
@@ -584,10 +584,10 @@ export function SpaceSurface({
                 </View>
                 <View style={styles.headerActionStack}>
                   <Text style={[styles.stateTag, { color: palette.warning }]}>
-                    {isSpaceLoading ? '整理中' : '待整理'}
+                    {isSpaceLoading ? '加载中' : '暂无卡片'}
                   </Text>
                   <ActionChip
-                    label="回盒桌"
+                    label="返回卡盒"
                     onPress={onBackToOverview ?? noop}
                     palette={palette}
                     testID="space-card-list-back"
@@ -615,12 +615,12 @@ export function SpaceSurface({
                       <Text
                         style={[styles.cardPrompt, { color: palette.text }]}
                       >
-                        正在整理卡片
+                        正在加载卡片
                       </Text>
                       <Text
                         style={[styles.cardMeta, { color: palette.textMuted }]}
                       >
-                        正在整理卡片；完成后显示本轮内容。
+                        加载完成后即可查看。
                       </Text>
                     </View>
                   ))
@@ -683,7 +683,7 @@ export function SpaceSurface({
                     空间地址
                   </Text>
                   <Text style={[styles.title, { color: palette.text }]}>
-                    盒内卡片
+                    卡片
                   </Text>
                 </View>
                 <View
@@ -707,7 +707,7 @@ export function SpaceSurface({
                   <Text
                     style={[styles.addressPathText, { color: palette.text }]}
                   >
-                    {selectedBoxIsCurrent ? '当前卡盒已定位' : '所选卡盒已定位'}
+                    {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
                   </Text>
                 </View>
               </View>
@@ -725,7 +725,7 @@ export function SpaceSurface({
                   numberOfLines={1}
                   style={[styles.summary, { color: palette.textMuted }]}
                 >
-                  先恢复地址，再回到盒内卡片和休眠区。
+                  重新加载后查看卡片和休眠区。
                 </Text>
                 <View style={styles.addressContextRow}>
                   <AddressContextPill
@@ -748,7 +748,7 @@ export function SpaceSurface({
                   <AddressContextPill
                     label="状态"
                     palette={palette}
-                    value={selectedBox.cards.length > 0 ? '可查看' : '待整理'}
+                    value={selectedBox.cards.length > 0 ? '可查看' : '暂无卡片'}
                   />
                 </View>
               </>
@@ -876,7 +876,7 @@ export function SpaceSurface({
                       { color: selectedTone.accent },
                     ]}
                   >
-                    浏览空间
+                    浏览卡片
                   </Text>
                   {!selectedBoxIsCurrent && focusedSelection ? (
                     <Pressable
@@ -909,7 +909,7 @@ export function SpaceSurface({
                         { color: palette.textMuted },
                       ]}
                     >
-                      当前卡焦点
+                      当前卡盒
                     </Text>
                   )}
                 </View>
@@ -952,17 +952,17 @@ export function SpaceSurface({
                   <Text
                     style={[styles.eyebrow, { color: palette.textMuted }]}
                   >
-                    {selectedBoxIsCurrent ? '当前盒桌' : '浏览盒桌'}
+                    {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
                   </Text>
                   <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
-                    打开卡盒
+                    {visibleContainerName}
                   </Text>
                   <Text
                     style={[styles.locationText, { color: palette.textMuted }]}
                   >
                     {selectedBoxIsCurrent
-                      ? '同盒卡片都在这里'
-                      : '正在查看所选卡盒的卡片'}
+                      ? '查看卡盒中的卡片'
+                      : '查看所选卡盒中的卡片'}
                   </Text>
                 </View>
                 <Pressable
@@ -1021,7 +1021,7 @@ export function SpaceSurface({
                   <Text
                     style={[styles.openBoxLidTitle, { color: palette.text }]}
                   >
-                    {selectedBoxIsCurrent ? '同盒卡片' : '所选盒内卡片'}
+                    卡片
                   </Text>
                   <Text
                     style={[
@@ -1112,12 +1112,12 @@ export function SpaceSurface({
                             ? '休眠'
                             : cardState?.isFavorited
                             ? '标记'
-                            : '盒内';
+                            : '卡片';
                           const cardPositionLabel = isCurrent
-                            ? '当前卡位'
+                            ? '当前学习'
                             : selectedBoxIsCurrent
-                            ? '同盒卡位'
-                            : '所选盒卡位';
+                            ? '卡盒中'
+                            : '所选卡盒';
 
                           return (
                             <View
@@ -1223,7 +1223,7 @@ export function SpaceSurface({
                                       { color: palette.textMuted },
                                     ]}
                                   >
-                                    动作
+                                    题型
                                   </Text>
                                   <Text
                                     numberOfLines={1}
@@ -1438,8 +1438,8 @@ export function SpaceSurface({
                       ]}
                     >
                       {selectedBoxIsCurrent
-                        ? '正在查看同盒卡片'
-                        : '正在查看所选卡盒'}
+                        ? '查看当前卡盒'
+                        : '查看所选卡盒'}
                     </Text>
                   </View>
                   <View
@@ -1591,7 +1591,7 @@ export function SpaceSurface({
                                 { color: palette.textMuted },
                               ]}
                             >
-                              {selectedBoxIsCurrent ? '同盒卡片' : '所选盒卡片'}
+                              卡片
                             </Text>
                             <Text
                               style={[
@@ -1611,7 +1611,7 @@ export function SpaceSurface({
                                 { color: currentTone.accent },
                               ]}
                             >
-                              当前学习卡
+                              当前
                             </Text>
                           ) : null}
                         </View>
@@ -1658,10 +1658,10 @@ export function SpaceSurface({
                                 ]}
                               >
                                 {isCurrent
-                                  ? '当前卡位'
+                                  ? '当前学习'
                                   : selectedBoxIsCurrent
-                                  ? '同盒卡位'
-                                  : '所选盒卡位'}
+                                  ? '卡盒中'
+                                  : '所选卡盒'}
                               </Text>
                             </View>
                             <View style={styles.browseCardLocatorItem}>
@@ -1671,7 +1671,7 @@ export function SpaceSurface({
                                   { color: palette.textMuted },
                                 ]}
                               >
-                                动作
+                                题型
                               </Text>
                               <Text
                                 numberOfLines={1}

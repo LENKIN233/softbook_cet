@@ -59,8 +59,8 @@ test('formats path indexes into anonymous-space labels', () => {
 });
 
 test('formats learning session labels without exposing tracks', () => {
-  expect(formatLearningSessionDisplayLabel('learning')).toBe('本轮学习卡');
-  expect(formatLearningSessionDisplayLabel('review')).toBe('本轮回看卡');
+  expect(formatLearningSessionDisplayLabel('learning')).toBe('本轮学习');
+  expect(formatLearningSessionDisplayLabel('review')).toBe('本轮回看');
 });
 
 test('keeps human space names and suppresses technical identifiers', () => {
