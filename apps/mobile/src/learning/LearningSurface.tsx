@@ -573,13 +573,17 @@ export function LearningSurface({
       return null;
     }
   })();
-  const hasCommittedChoiceSelection =
-    currentCard.interaction_id === 'multiple_choice' &&
-    currentCardState.selectedOptionId !== null;
+  const shouldCenterShortFlip =
+    currentCard.interaction_id === 'flip' &&
+    !currentCardState.isFlipped &&
+    supportLayer === null &&
+    audioSelection === null;
   const shouldShowContextCard =
-    currentResult === null && !isDenseInteraction && supportLayer !== null;
-  const shouldShowUtilityDock =
-    currentResult === null && !hasCommittedChoiceSelection;
+    currentResult === null &&
+    !isDenseInteraction &&
+    (supportLayer !== null ||
+      currentCard.front.support.trim().length > 0 ||
+      currentCard.front.context.trim().length > 0);
 
   return (
     <View
@@ -594,9 +598,6 @@ export function LearningSurface({
           styles.studyCard,
           styles.studyCardOneScreen,
           isCompactPhone ? styles.studyCardOneScreenCompact : null,
-          currentResult === null && currentCard.interaction_id !== 'flip'
-            ? styles.studyCardWorkArea
-            : null,
           styles.glassCard,
           {
             backgroundColor: palette.panel,
@@ -682,374 +683,431 @@ export function LearningSurface({
               />
             </View>
           </View>
-        </View>
-        {!isCompactPhone ? (
           <View
             style={[
-              styles.cardLocationStrip,
-              styles.learningCardLocationHint,
+              styles.cardIdentityTools,
+              isCompactPhone ? styles.cardIdentityToolsCompact : null,
+            ]}
+          >
+            <Pressable
+              accessibilityLabel={
+                currentCardState.isPeeked ? '收起位置与题眼' : '查看位置与题眼'
+              }
+              accessibilityRole="button"
+              accessibilityState={{ expanded: currentCardState.isPeeked }}
+              onPress={onTogglePeek}
+              style={[
+                styles.cardIdentityTool,
+                {
+                  backgroundColor: currentCardState.isPeeked
+                    ? tone.accentSoft
+                    : 'transparent',
+                  borderColor: currentCardState.isPeeked
+                    ? tone.accent
+                    : 'transparent',
+                },
+              ]}
+              testID="learning-peek-button"
+            >
+              <Text
+                style={[
+                  styles.cardIdentityToolLabel,
+                  {
+                    color: currentCardState.isPeeked
+                      ? tone.accent
+                      : palette.textMuted,
+                  },
+                ]}
+              >
+                {currentCardState.isPeeked ? '收起题眼' : '题眼'}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={
+                currentCardState.isFavorited ? '取消收藏' : '收藏当前卡'
+              }
+              accessibilityRole="button"
+              accessibilityState={{ selected: currentCardState.isFavorited }}
+              onPress={onToggleFavorite}
+              style={[
+                styles.cardIdentityTool,
+                {
+                  backgroundColor: currentCardState.isFavorited
+                    ? tone.accentSoft
+                    : 'transparent',
+                  borderColor: currentCardState.isFavorited
+                    ? tone.accent
+                    : 'transparent',
+                },
+              ]}
+              testID="learning-favorite-button"
+            >
+              <Text
+                style={[
+                  styles.cardIdentityToolLabel,
+                  styles.favoriteTagGlyph,
+                  {
+                    color: currentCardState.isFavorited
+                      ? tone.accent
+                      : palette.textMuted,
+                  },
+                ]}
+              >
+                {currentCardState.isFavorited ? '★' : '☆'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+        {currentResult === null && currentCard.hint_layer ? (
+          <Pressable
+            accessibilityLabel={
+              currentCardState.isHintVisible ? '收起提示' : '查看提示'
+            }
+            accessibilityRole="button"
+            accessibilityState={{ expanded: currentCardState.isHintVisible }}
+            onPress={onToggleHint}
+            style={[
+              styles.cardEdgeHint,
+              isCompactPhone ? styles.cardEdgeHintCompact : null,
+              {
+                backgroundColor: currentCardState.isHintVisible
+                  ? tone.accentSoft
+                  : palette.panelStrong,
+                borderColor: currentCardState.isHintVisible
+                  ? tone.accent
+                  : palette.border,
+              },
+            ]}
+            testID="learning-hint-button"
+          >
+            <Text
+              style={[
+                styles.cardEdgeHintLabel,
+                {
+                  color: currentCardState.isHintVisible
+                    ? tone.accent
+                    : palette.textMuted,
+                },
+              ]}
+            >
+              {currentCardState.isHintVisible ? '收\n起' : '提\n示'}
+            </Text>
+          </Pressable>
+        ) : null}
+        <ScrollView
+          contentContainerStyle={[
+            styles.cardTaskBandContent,
+            isCompactPhone ? styles.cardTaskBandContentCompact : null,
+            shouldCenterShortFlip ? styles.cardTaskBandContentCentered : null,
+            currentCard.hint_layer && currentResult === null
+              ? styles.cardTaskBandWithHint
+              : null,
+          ]}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={isAccessibilityText}
+          style={styles.cardTaskBand}
+          testID="learning-card-task-band"
+        >
+          {!isCompactPhone ? (
+            <View
+              style={[
+                styles.cardLocationStrip,
+                styles.learningCardLocationHint,
+                {
+                  backgroundColor: 'transparent',
+                  borderColor: 'transparent',
+                },
+              ]}
+              testID="learning-card-location-strip"
+            >
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.cardLocationDot,
+                  { backgroundColor: hexToRgba(tone.accent, 0.62) },
+                ]}
+              />
+              <View style={styles.cardLocationTextWrap}>
+                <Text
+                  numberOfLines={isAccessibilityText ? undefined : 1}
+                  style={[
+                    styles.cardLocationTitle,
+                    { color: palette.textMuted },
+                  ]}
+                >
+                  {visibleContainerName}
+                </Text>
+                <Text
+                  numberOfLines={isAccessibilityText ? undefined : 1}
+                  style={[
+                    styles.cardLocationMeta,
+                    { color: palette.textMuted },
+                  ]}
+                >
+                  {`${visibleShelfName} / ${visibleSectionName}`}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          <View
+            style={[
+              styles.studyCardTop,
+              isCompactPhone ? styles.studyCardTopCompact : null,
               {
                 backgroundColor: 'transparent',
                 borderColor: 'transparent',
               },
             ]}
-            testID="learning-card-location-strip"
           >
-            <View
-              pointerEvents="none"
-              style={[
-                styles.cardLocationDot,
-                { backgroundColor: hexToRgba(tone.accent, 0.62) },
-              ]}
-            />
-            <View style={styles.cardLocationTextWrap}>
+            <View style={styles.studyTitleWrap}>
+              {!isCompactPhone ? (
+                <Text
+                  style={[styles.cardEyebrow, { color: palette.textMuted }]}
+                >
+                  先读题干
+                </Text>
+              ) : null}
               <Text
-                numberOfLines={isAccessibilityText ? undefined : 1}
-                style={[styles.cardLocationTitle, { color: palette.textMuted }]}
+                style={[
+                  styles.cardPrompt,
+                  styles.cardPromptOneScreen,
+                  isCompactPhone ? styles.cardPromptOneScreenCompact : null,
+                  { color: palette.text },
+                ]}
               >
-                {visibleContainerName}
-              </Text>
-              <Text
-                numberOfLines={isAccessibilityText ? undefined : 1}
-                style={[styles.cardLocationMeta, { color: palette.textMuted }]}
-              >
-                {`${visibleShelfName} / ${visibleSectionName}`}
+                {currentCard.front.prompt}
               </Text>
             </View>
           </View>
-        ) : null}
-        <View
-          style={[
-            styles.studyCardTop,
-            isCompactPhone ? styles.studyCardTopCompact : null,
-            {
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
-            },
-          ]}
-        >
-          <View style={styles.studyTitleWrap}>
-            {!isCompactPhone ? (
-              <Text style={[styles.cardEyebrow, { color: palette.textMuted }]}>
-                先读题干
-              </Text>
-            ) : null}
-            <Text
-              numberOfLines={
-                isAccessibilityText ? undefined : isDenseInteraction ? 2 : 4
-              }
+
+          {audioSelection ? (
+            <View style={styles.audioResourceSlot} testID="learning-audio-slot">
+              <LearningAudioPlayer
+                palette={palette}
+                selection={audioSelection}
+              />
+            </View>
+          ) : null}
+
+          {shouldShowContextCard ? (
+            <View
               style={[
-                styles.cardPrompt,
-                styles.cardPromptOneScreen,
-                isCompactPhone ? styles.cardPromptOneScreenCompact : null,
-                { color: palette.text },
+                styles.contextCard,
+                supportLayer ? styles.contextCardSupportActive : null,
+                {
+                  backgroundColor: palette.panelStrong,
+                  borderColor: palette.border,
+                },
               ]}
-            >
-              {currentCard.front.prompt}
-            </Text>
-          </View>
-        </View>
-
-        {audioSelection ? (
-          <View style={styles.audioResourceSlot} testID="learning-audio-slot">
-            <LearningAudioPlayer palette={palette} selection={audioSelection} />
-          </View>
-        ) : null}
-
-        {shouldShowContextCard ? (
-          <View
-            style={[
-              styles.contextCard,
-              supportLayer ? styles.contextCardSupportActive : null,
-              {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
-              },
-            ]}
-            testID={
-              supportLayer
-                ? 'learning-support-layer'
-                : 'learning-current-card-context'
-            }
-          >
-            <Text
-              numberOfLines={
-                isAccessibilityText ? undefined : supportLayer ? 1 : 2
+              testID={
+                supportLayer
+                  ? 'learning-support-layer'
+                  : 'learning-current-card-context'
               }
-              style={[
-                styles.cardSupport,
-                { color: supportLayer?.tone ?? palette.text },
-              ]}
             >
-              {supportLayer?.title ?? currentCard.front.support}
-            </Text>
-            <Text
-              numberOfLines={
-                isAccessibilityText ? undefined : supportLayer ? 3 : 2
-              }
-              style={[styles.cardContext, { color: palette.textMuted }]}
-            >
-              {supportLayer?.body ?? currentCard.front.context}
-            </Text>
-          </View>
-        ) : null}
-
-        {currentResult ? (
-          onOpenResultDetail ? (
-            <ResultSummaryPanel
-              advanceState={advanceState}
-              card={currentCard}
-              compact={isCompactPhone}
-              palette={palette}
-              result={currentResult}
-              onAdvanceCard={onAdvanceCard}
-              onOpenResultDetail={onOpenResultDetail}
-              isLastCard={currentIndex === sessionCards.length - 1}
-            />
-          ) : (
-            <ResultPanel
-              advanceState={advanceState}
-              card={currentCard}
-              palette={palette}
-              result={currentResult}
-              onAdvanceCard={onAdvanceCard}
-              isLastCard={currentIndex === sessionCards.length - 1}
-            />
-          )
-        ) : (
-          <View
-            style={[
-              styles.interactionCard,
-              styles.interactionCardOneScreen,
-              styles.interactionCardEmbedded,
-              currentCard.interaction_id === 'flip'
-                ? styles.interactionCardNaturalHeight
-                : null,
-              isCompactPhone ? styles.interactionCardOneScreenCompact : null,
-              {
-                backgroundColor: 'transparent',
-                borderColor: hexToRgba(tone.accent, 0.18),
-              },
-            ]}
-          >
-            {isDenseInteraction ? (
-              <View style={styles.interactionTitleRow}>
-                <Text style={[styles.sectionTitle, { color: palette.text }]}>
-                  {INTERACTION_LABELS[currentCard.interaction_id]}
-                </Text>
-                <Text
-                  style={[styles.interactionMeta, { color: palette.textMuted }]}
-                >
-                  现在做
-                </Text>
-              </View>
-            ) : null}
-            {!isDenseInteraction && currentCard.interaction_id !== 'flip' ? (
               <Text
-                numberOfLines={isAccessibilityText ? undefined : 2}
-                style={[styles.actionCue, { color: palette.textMuted }]}
-                testID="learning-action-cue"
+                style={[
+                  styles.cardSupport,
+                  { color: supportLayer?.tone ?? palette.text },
+                ]}
               >
-                {actionCue}
+                {supportLayer?.title ?? currentCard.front.support}
               </Text>
-            ) : null}
-            <InteractionBody
-              card={currentCard}
-              cardState={currentCardState}
-              currentResult={currentResult}
-              palette={palette}
-              onFlip={onFlip}
-              onSetFlipConfidence={onSetFlipConfidence}
-              onSelectOption={onSelectOption}
-              onSetLockSelection={onSetLockSelection}
-              onToggleEliminationItem={onToggleEliminationItem}
-              onSelectSwipeState={onSelectSwipeState}
-              compact={isCompactPhone}
-            />
-            {isDenseInteraction && supportLayer ? (
-              <View
-                style={[
-                  styles.denseSupportLayer,
-                  {
-                    backgroundColor: palette.panelStrong,
-                    borderColor: palette.border,
-                  },
-                ]}
-                testID="learning-support-layer"
-              >
-                <Text style={[styles.denseSupportTitle, {color: supportLayer.tone}]}>
-                  {supportLayer.title}
-                </Text>
-                <Text style={[styles.denseSupportBody, {color: palette.textMuted}]}>
-                  {supportLayer.body}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        )}
+              <Text style={[styles.cardContext, { color: palette.textMuted }]}>
+                {supportLayer?.body ?? currentCard.front.context}
+              </Text>
+            </View>
+          ) : null}
 
-        {!currentResult ? (
-          <View
-            style={[
-              styles.oneScreenDock,
-              styles.oneScreenDockAnchored,
-              isLockInteraction ? styles.oneScreenDockCompact : null,
-              isCompactPhone ? styles.oneScreenDockSmallViewport : null,
-              currentCard.interaction_id === 'flip'
-                ? styles.oneScreenDockNatural
-                : null,
-            ]}
-            testID="learning-action-dock"
-          >
-            {shouldShowUtilityDock ? (
-              <>
-                <View
-                  style={[
-                    styles.actionRow,
-                    isCompactPhone ? styles.actionRowCompact : null,
-                  ]}
-                >
-                  <LightActionButton
-                    compact={isCompactPhone}
-                    label={currentCardState.isPeeked ? '收起线索' : '查看线索'}
-                    onPress={onTogglePeek}
-                    palette={palette}
-                    testID="learning-peek-button"
-                  />
-                  {currentCard.hint_layer ? (
-                    <LightActionButton
-                      compact={isCompactPhone}
-                      label={
-                        currentCardState.isHintVisible ? '收起提示' : '查看提示'
-                      }
-                      onPress={onToggleHint}
-                      palette={palette}
-                      testID="learning-hint-button"
-                    />
-                  ) : null}
-                  <Pressable
-                    onPress={onToggleFavorite}
-                    style={[
-                      styles.favoriteButton,
-                      isCompactPhone ? styles.favoriteButtonCompact : null,
-                      {
-                        backgroundColor: currentCardState.isFavorited
-                          ? tone.accentSoft
-                          : palette.panelStrong,
-                        borderColor: currentCardState.isFavorited
-                          ? tone.accent
-                          : palette.border,
-                      },
-                    ]}
-                    testID="learning-favorite-button"
-                  >
-                    <Text
-                      style={[
-                        styles.favoriteLabel,
-                        {
-                          color: currentCardState.isFavorited
-                            ? tone.accent
-                            : palette.textMuted,
-                        },
-                      ]}
-                    >
-                      {currentCardState.isFavorited ? '已收藏' : '收藏'}
-                    </Text>
-                  </Pressable>
-                </View>
-                {!isCompactPhone ? (
-                  <View
-                    style={[
-                      styles.addressAperture,
-                      {
-                        backgroundColor: palette.panelStrong,
-                        borderColor: palette.border,
-                      },
-                    ]}
-                    testID="learning-address-aperture"
-                  >
-                    <Text
-                      style={[styles.addressText, { color: palette.textMuted }]}
-                    >
-                      同盒继续
-                    </Text>
-                  </View>
-                ) : null}
-              </>
-            ) : null}
-            {currentCard.interaction_id !== 'flip' &&
-            currentCard.interaction_id !== 'swipe' ? (
-              <View
-                style={[
-                  styles.submitActionDock,
-                  isCompactPhone ? styles.submitActionDockCompact : null,
-                  {
-                    backgroundColor: canSubmitCurrentCard
-                      ? neutralAction.surface
-                      : palette.panelStrong,
-                    borderColor: canSubmitCurrentCard
-                      ? neutralAction.border
-                      : palette.border,
-                  },
-                ]}
-                testID="learning-submit-action-dock"
-              >
-                <View style={styles.submitActionTextStack}>
-                  <Text
-                    numberOfLines={isAccessibilityText ? undefined : 1}
-                    style={[
-                      styles.submitActionTitle,
-                      {
-                        color: canSubmitCurrentCard
-                          ? palette.text
-                          : palette.textMuted,
-                      },
-                    ]}
-                  >
-                    {submitDockCopy.title}
+          {currentResult ? (
+            onOpenResultDetail ? (
+              <ResultSummaryPanel
+                advanceState={advanceState}
+                card={currentCard}
+                compact={isCompactPhone}
+                palette={palette}
+                result={currentResult}
+                onAdvanceCard={onAdvanceCard}
+                onOpenResultDetail={onOpenResultDetail}
+                isLastCard={currentIndex === sessionCards.length - 1}
+              />
+            ) : (
+              <ResultPanel
+                advanceState={advanceState}
+                card={currentCard}
+                palette={palette}
+                result={currentResult}
+                onAdvanceCard={onAdvanceCard}
+                isLastCard={currentIndex === sessionCards.length - 1}
+              />
+            )
+          ) : (
+            <View
+              style={[
+                styles.interactionCard,
+                styles.interactionCardOneScreen,
+                styles.interactionCardEmbedded,
+                shouldCenterShortFlip
+                  ? styles.interactionCardNaturalHeight
+                  : null,
+                isCompactPhone ? styles.interactionCardOneScreenCompact : null,
+                {
+                  backgroundColor: 'transparent',
+                  borderColor: hexToRgba(tone.accent, 0.18),
+                },
+              ]}
+            >
+              {isDenseInteraction ? (
+                <View style={styles.interactionTitleRow}>
+                  <Text style={[styles.sectionTitle, { color: palette.text }]}>
+                    {INTERACTION_LABELS[currentCard.interaction_id]}
                   </Text>
                   <Text
-                    numberOfLines={isAccessibilityText ? undefined : 1}
                     style={[
-                      styles.submitActionDetail,
+                      styles.interactionMeta,
                       { color: palette.textMuted },
                     ]}
                   >
-                    {submitDockCopy.detail}
+                    现在做
                   </Text>
                 </View>
-                <Pressable
-                  accessibilityLabel="提交当前答案"
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: !canSubmitCurrentCard }}
-                  disabled={!canSubmitCurrentCard}
-                  onPress={onSubmitCurrentCard}
+              ) : null}
+              {!isDenseInteraction && currentCard.interaction_id !== 'flip' ? (
+                <Text
+                  numberOfLines={isAccessibilityText ? undefined : 2}
+                  style={[styles.actionCue, { color: palette.textMuted }]}
+                  testID="learning-action-cue"
+                >
+                  {actionCue}
+                </Text>
+              ) : null}
+              <InteractionBody
+                card={currentCard}
+                cardState={currentCardState}
+                currentResult={currentResult}
+                palette={palette}
+                onFlip={onFlip}
+                onSetFlipConfidence={onSetFlipConfidence}
+                onSelectOption={onSelectOption}
+                onSetLockSelection={onSetLockSelection}
+                onToggleEliminationItem={onToggleEliminationItem}
+                onSelectSwipeState={onSelectSwipeState}
+                compact={isCompactPhone}
+              />
+              {isDenseInteraction && supportLayer ? (
+                <View
                   style={[
-                    styles.submitActionButton,
+                    styles.denseSupportLayer,
                     {
-                      backgroundColor: canSubmitCurrentCard
-                        ? primaryAction.surface
-                        : palette.tabIdle,
-                      opacity: canSubmitCurrentCard ? 1 : 0.68,
+                      backgroundColor: palette.panelStrong,
+                      borderColor: palette.border,
                     },
                   ]}
-                  testID="learning-submit-button"
+                  testID="learning-support-layer"
                 >
                   <Text
                     style={[
-                      styles.submitActionButtonLabel,
-                      {
-                        color: canSubmitCurrentCard
-                          ? primaryAction.text
-                          : palette.panel,
-                      },
+                      styles.denseSupportTitle,
+                      { color: supportLayer.tone },
                     ]}
                   >
-                    确认答案
+                    {supportLayer.title}
                   </Text>
-                </Pressable>
+                  <Text
+                    style={[
+                      styles.denseSupportBody,
+                      { color: palette.textMuted },
+                    ]}
+                  >
+                    {supportLayer.body}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+        </ScrollView>
+
+        {!currentResult &&
+        currentCard.interaction_id !== 'flip' &&
+        currentCard.interaction_id !== 'swipe' ? (
+          <View
+            style={[
+              styles.oneScreenDock,
+              isLockInteraction ? styles.oneScreenDockCompact : null,
+              isCompactPhone ? styles.oneScreenDockSmallViewport : null,
+            ]}
+            testID="learning-action-dock"
+          >
+            <View
+              style={[
+                styles.submitActionDock,
+                isCompactPhone ? styles.submitActionDockCompact : null,
+                {
+                  backgroundColor: canSubmitCurrentCard
+                    ? neutralAction.surface
+                    : palette.panelStrong,
+                  borderColor: canSubmitCurrentCard
+                    ? neutralAction.border
+                    : palette.border,
+                },
+              ]}
+              testID="learning-submit-action-dock"
+            >
+              <View style={styles.submitActionTextStack}>
+                <Text
+                  numberOfLines={isAccessibilityText ? undefined : 1}
+                  style={[
+                    styles.submitActionTitle,
+                    {
+                      color: canSubmitCurrentCard
+                        ? palette.text
+                        : palette.textMuted,
+                    },
+                  ]}
+                >
+                  {submitDockCopy.title}
+                </Text>
+                <Text
+                  numberOfLines={isAccessibilityText ? undefined : 1}
+                  style={[
+                    styles.submitActionDetail,
+                    { color: palette.textMuted },
+                  ]}
+                >
+                  {submitDockCopy.detail}
+                </Text>
               </View>
-            ) : null}
+              <Pressable
+                accessibilityLabel="提交当前答案"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !canSubmitCurrentCard }}
+                disabled={!canSubmitCurrentCard}
+                onPress={onSubmitCurrentCard}
+                style={[
+                  styles.submitActionButton,
+                  {
+                    backgroundColor: canSubmitCurrentCard
+                      ? primaryAction.surface
+                      : palette.tabIdle,
+                    opacity: canSubmitCurrentCard ? 1 : 0.68,
+                  },
+                ]}
+                testID="learning-submit-button"
+              >
+                <Text
+                  style={[
+                    styles.submitActionButtonLabel,
+                    {
+                      color: canSubmitCurrentCard
+                        ? primaryAction.text
+                        : palette.panel,
+                    },
+                  ]}
+                >
+                  确认答案
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
       </View>
@@ -1116,9 +1174,6 @@ function InteractionBody({
                 翻面结果
               </Text>
               <Text
-                numberOfLines={
-                  isAccessibilityText ? undefined : compact ? 3 : 4
-                }
                 style={[
                   styles.revealText,
                   compact ? styles.revealTextCompact : null,
@@ -1323,10 +1378,7 @@ function InteractionBody({
                       </Text>
                     ) : null}
                   </View>
-                  <Text
-                    numberOfLines={isAccessibilityText ? undefined : 2}
-                    style={[styles.optionText, { color: palette.text }]}
-                  >
+                  <Text style={[styles.optionText, { color: palette.text }]}>
                     {option.text}
                   </Text>
                 </Pressable>
@@ -1350,8 +1402,7 @@ function InteractionBody({
               const selectedValue = cardState.lockSelections[slot.id];
               const expectedValue = card.answer_key.lock_pattern[index];
               const isUnlocked = selectedValue === expectedValue;
-              const hasWrongSelection =
-                selectedValue !== null && !isUnlocked;
+              const hasWrongSelection = selectedValue !== null && !isUnlocked;
               const firstLockedIndex = card.lock_slots.findIndex(
                 (candidateSlot, candidateIndex) =>
                   cardState.lockSelections[candidateSlot.id] !==
@@ -1893,17 +1944,11 @@ function SwipeInteraction({
               >
                 {index === 0 ? '← 左划' : '右划 →'}
               </Text>
-              <Text
-                numberOfLines={isAccessibilityText ? undefined : 1}
-                style={[styles.swipeLabel, { color: palette.text }]}
-              >
+              <Text style={[styles.swipeLabel, { color: palette.text }]}>
                 {state.label}
               </Text>
             </View>
-            <Text
-              numberOfLines={isAccessibilityText ? undefined : 1}
-              style={[styles.swipeText, { color: palette.textMuted }]}
-            >
+            <Text style={[styles.swipeText, { color: palette.textMuted }]}>
               {state.description}
             </Text>
           </Pressable>
@@ -2121,9 +2166,7 @@ export function LearningResultDetailSurface({
   const primaryAction = getPrimaryActionColors(palette);
   const neutralAction = getNeutralActionSurface(palette);
   const detailOutcomeTitle = isPositive ? '回答正确' : '需要回看';
-  const detailOutcomeCaption = isPositive
-    ? '你的答案正确'
-    : '这张卡已加入回看';
+  const detailOutcomeCaption = isPositive ? '你的答案正确' : '这张卡已加入回看';
   const boundedSessionCardCount = Math.max(sessionCardCount, 1);
   const progressOrdinal = Math.min(currentIndex + 1, boundedSessionCardCount);
   const progressPercent = `${Math.max(
@@ -2796,39 +2839,6 @@ function ResultBadge({
   );
 }
 
-function LightActionButton({
-  compact,
-  label,
-  onPress,
-  palette,
-  testID,
-}: {
-  compact: boolean;
-  label: string;
-  onPress: () => void;
-  palette: LearningSurfacePalette;
-  testID: string;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[
-        styles.lightActionButton,
-        compact ? styles.lightActionButtonCompact : null,
-        {
-          backgroundColor: palette.panelStrong,
-          borderColor: palette.border,
-        },
-      ]}
-      testID={testID}
-    >
-      <Text style={[styles.lightActionLabel, { color: palette.text }]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   audioResourceSlot: {
     alignItems: 'flex-start',
@@ -2837,6 +2847,7 @@ const styles = StyleSheet.create({
   oneScreenPage: {
     flex: 1,
     gap: 10,
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
@@ -3180,8 +3191,10 @@ const styles = StyleSheet.create({
   },
   studyCardOneScreen: {
     flexGrow: 0,
-    flexShrink: 1,
+    flexShrink: 0,
     gap: 8,
+    height: '92%',
+    minHeight: 0,
     paddingHorizontal: 17,
     paddingVertical: 14,
   },
@@ -3190,13 +3203,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  studyCardWorkArea: {
-    flexGrow: 1,
-  },
   cardAddressShelf: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 12,
+    flexShrink: 0,
+    gap: 8,
     justifyContent: 'space-between',
   },
   cardAddressShelfCompact: {
@@ -3217,6 +3228,76 @@ const styles = StyleSheet.create({
   },
   cardObjectHeaderTextCompact: {
     gap: 0,
+  },
+  cardIdentityTools: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 0,
+    gap: 6,
+  },
+  cardIdentityToolsCompact: {
+    gap: 4,
+  },
+  cardIdentityTool: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: 5,
+  },
+  cardIdentityToolLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  favoriteTagGlyph: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  cardEdgeHint: {
+    alignItems: 'center',
+    borderBottomLeftRadius: 16,
+    borderTopLeftRadius: 16,
+    borderWidth: 1,
+    borderRightWidth: 0,
+    height: 60,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 0,
+    top: 118,
+    width: 44,
+    zIndex: 2,
+  },
+  cardEdgeHintCompact: {
+    top: 94,
+  },
+  cardEdgeHintLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+  cardTaskBand: {
+    flex: 1,
+    minHeight: 0,
+  },
+  cardTaskBandContent: {
+    flexGrow: 1,
+    gap: 8,
+    paddingBottom: 6,
+  },
+  cardTaskBandContentCompact: {
+    gap: 4,
+    paddingBottom: 2,
+  },
+  cardTaskBandContentCentered: {
+    gap: 18,
+    justifyContent: 'center',
+  },
+  cardTaskBandWithHint: {
+    paddingRight: 48,
   },
   cardObjectLead: {
     fontSize: 16,
@@ -3348,53 +3429,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
-  favoriteButton: {
-    borderWidth: 1,
-    borderRadius: 999,
-    alignItems: 'center',
-    flexGrow: 1,
-    minWidth: 86,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  favoriteButtonCompact: {
-    minHeight: 44,
-    minWidth: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-  },
-  favoriteLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  actionRowCompact: {
-    flexWrap: 'nowrap',
-    gap: 6,
-  },
-  lightActionButton: {
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 999,
-    flexGrow: 1,
-    minWidth: 86,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  lightActionButtonCompact: {
-    minHeight: 44,
-    minWidth: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-  },
-  lightActionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
   attachedLayerPanel: {
     borderLeftWidth: 0,
     marginTop: -8,
@@ -3427,18 +3461,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
   },
-  addressAperture: {
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  addressText: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
   interactionCard: {
     borderWidth: 1,
     borderRadius: 24,
@@ -3450,6 +3472,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     gap: 9,
+    justifyContent: 'center',
     paddingHorizontal: 2,
     paddingVertical: 2,
   },
@@ -3457,13 +3480,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: 1,
   },
-  interactionCardNaturalHeight: {
-    flexGrow: 0,
-    flexShrink: 0,
-  },
   interactionCardEmbedded: {
     borderRadius: 22,
     borderWidth: 0,
+  },
+  interactionCardNaturalHeight: {
+    flexGrow: 0,
+    flexShrink: 0,
   },
   sectionTitle: {
     fontSize: 16,
@@ -3492,7 +3515,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   choiceInteractionBody: {
-    flexGrow: 1,
+    flexGrow: 0,
   },
   revealPanel: {
     borderWidth: 1,
@@ -3552,8 +3575,8 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   optionGridWorkArea: {
-    alignContent: 'stretch',
-    flexGrow: 1,
+    alignContent: 'flex-start',
+    flexGrow: 0,
   },
   optionCard: {
     borderWidth: 1.5,
@@ -3562,7 +3585,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 8,
     alignItems: 'flex-start',
-    minHeight: 76,
+    minHeight: 110,
     minWidth: '47%',
     overflow: 'hidden',
     paddingHorizontal: 14,
@@ -3578,7 +3601,7 @@ const styles = StyleSheet.create({
   },
   optionCardCompact: {
     gap: 4,
-    minHeight: 62,
+    minHeight: 92,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
