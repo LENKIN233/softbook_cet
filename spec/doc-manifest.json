@@ -168,6 +168,28 @@
       "status": "active"
     },
     {
+      "path": "docs/design/interaction-motion/learning-object-theatre-v1.md",
+      "authority": "accepted_interaction_motion_artifact",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_ui_implementation",
+        "core_interaction_design_task",
+        "motion_design_task"
+      ],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/action-surface.json",
+        "spec/interactions.json",
+        "spec/visual-language.json",
+        "docs/design/decisions/learning-interaction-evolution-v1.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/physical-space/README.md",
       "authority": "physical_space_artifact_index",
       "audience": [
@@ -354,6 +376,29 @@
       "status": "active"
     },
     {
+      "path": "docs/design/decisions/learning-interaction-evolution-v1.md",
+      "authority": "accepted_design_decision",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_ui_implementation",
+        "core_interaction_design_task",
+        "design_review_task"
+      ],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/action-surface.json",
+        "spec/card-system.json",
+        "spec/interactions.json",
+        "spec/visual-language.json",
+        "docs/design/search-runs/2026-09-03-learning-interaction-evolution/promotion-record.md"
+      ],
+      "status": "active"
+    },
+    {
       "path": "docs/design/decisions/learning-space-platform-layout-v1.md",
       "authority": "accepted_platform_layout_decision",
       "audience": [
@@ -441,6 +486,7 @@
       ],
       "depends_on": [
         "docs/design/decisions/learning-space-direction-decision-v1.md",
+        "docs/design/decisions/learning-interaction-evolution-v1.md",
         "spec/runtime-boundaries.json"
       ],
       "status": "active"
@@ -525,6 +571,30 @@
         "docs/design/decisions/learning-space-direction-decision-v1.md",
         "docs/design/interaction-motion/learning-core-interactions-v1.md",
         "docs/design/physical-space/space-model-v1.md",
+        "docs/design/mapping/learning-space-implementation-map-v1.md"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/mocks/learning-interaction-evolution-v1.md",
+      "authority": "accepted_rendered_mock_artifact",
+      "audience": [
+        "agent",
+        "designer",
+        "engineer"
+      ],
+      "load_when": [
+        "learning_ui_implementation",
+        "core_surface_visual_artifact_task",
+        "design_review_task"
+      ],
+      "depends_on": [
+        "spec/product-core.json",
+        "spec/action-surface.json",
+        "spec/interactions.json",
+        "spec/visual-language.json",
+        "docs/design/decisions/learning-interaction-evolution-v1.md",
+        "docs/design/interaction-motion/learning-object-theatre-v1.md",
         "docs/design/mapping/learning-space-implementation-map-v1.md"
       ],
       "status": "active"

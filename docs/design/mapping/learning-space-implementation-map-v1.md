@@ -18,10 +18,13 @@
 - `docs/design/directions/learning-card-rhythm-directions-v1.md`
 - `docs/design/decisions/learning-space-direction-decision-v1.md`
 - `docs/design/decisions/learning-card-rhythm-decision-v1.md`
+- `docs/design/decisions/learning-interaction-evolution-v1.md`
 - `docs/design/decisions/learning-space-platform-layout-v1.md`
 - `docs/design/interaction-motion/learning-core-interactions-v1.md`
 - `docs/design/interaction-motion/learning-card-rhythm-v1.md`
+- `docs/design/interaction-motion/learning-object-theatre-v1.md`
 - `docs/design/mocks/learning-card-rhythm-v1.md`
+- `docs/design/mocks/learning-interaction-evolution-v1.md`
 - `docs/design/physical-space/space-model-v1.md`
 - `docs/design/directions/space-surface-visual-directions-v1.md`
 - `docs/design/mocks/learning-space-phone-frames-v1.md`
@@ -82,6 +85,18 @@ across short and long content. Inside it:
 The outer object must not grow and shrink with every prompt, option, support,
 or result transition.
 
+The accepted `Quiet Object Theatre` refinement separates that stable object
+into two visual materials:
+
+- an atmospheric stage that owns address, current-library identity, and fixed
+  interaction anchors;
+- an intrinsic opaque sheet that owns prompt, support, interaction, result,
+  and analysis.
+
+The stage remains stable. The sheet is compact for short content, grows within
+bounded insets for standard content, and becomes internally scrollable for long
+content. Do not turn the whole stable stage into an opaque white slab.
+
 ### Action Plane
 
 RN should branch by interaction type at the shape level:
@@ -106,6 +121,18 @@ Tools should be visually lighter than the primary interaction:
 These tools must not be rendered together as a bottom button row beside the
 primary action. The bottom action band belongs to the interaction's one current
 primary action.
+
+The refined phone mapping uses one task-plane edge disclosure at a time:
+
+- `peek` is the lightweight tappable address aperture with its own callback and
+  sticky usage fact;
+- an authored `hint_layer` alone renders as the `提示` edge handle, retaining
+  its separate callback and sticky usage fact;
+- favorite remains a quiet tag glyph with a full 44pt/48dp hit region.
+
+Correctness and analysis resolve inside the same material sheet before any
+optional deep-detail surface. A shallow next-card edge may appear only during
+settle/continue and must never imply swipe behavior for other interactions.
 
 ### State Rhythm
 
