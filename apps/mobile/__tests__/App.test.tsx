@@ -5681,7 +5681,8 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本次判断已完成');
+  expect(output).toContain('先抓态度转向，再判断答案');
+  expect(output).toContain('转折词时先记');
   expect(output).toContain('继续下一张');
   expectNoUserVisibleMetadataLeakage(tree!);
 
