@@ -72,8 +72,6 @@ name: ios-mine-screenshot
 - assertVisible:
     id: "mine-profile-card"
 - assertVisible:
-    id: "mine-go-learning"
+    id: "mine-account-ledger"
 - assertVisible:
-    id: "mine-go-space"
-- assertVisible:
-    id: "mine-go-statistics"
+    id: "membership-host-card"

@@ -32,7 +32,7 @@ import {
 import {createReactNativeLearningEventOutboxStorage} from '../src/sync/learningEventOutboxStorage.native';
 import {MutationQueueManager} from '../src/sync/mutationQueue';
 import {createReactNativeMutationQueueStorage} from '../src/sync/mutationQueueStorage.native';
-import App, { isCompactMineViewport, isPhoneMineViewport } from '../App';
+import App, { isCompactMineViewport } from '../App';
 
 const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
@@ -47,13 +47,6 @@ test('Mine compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactMineViewport(412, 823)).toBe(true);
   expect(isCompactMineViewport(393, 852)).toBe(false);
   expect(isCompactMineViewport(768, 1024)).toBe(false);
-});
-
-test('Mine phone containment mode covers standard iOS and Android phones', () => {
-  expect(isPhoneMineViewport(320, 693)).toBe(true);
-  expect(isPhoneMineViewport(393, 852)).toBe(true);
-  expect(isPhoneMineViewport(412, 915)).toBe(true);
-  expect(isPhoneMineViewport(768, 1024)).toBe(false);
 });
 
 function createSoftbookRemoteRuntimeConfig(
@@ -3366,10 +3359,11 @@ test('uses canonical Progress counts in Statistics and Mine when retained histor
   expect(readMetricValue(root, 'statistics-metric-review')).toBe('2');
 
   await openRoute(root, 'mine');
-  expect(readMetricValue(root, 'mine-metric-completed')).toBe('6');
-  expect(readMetricValue(root, 'mine-metric-review')).toBe('3');
-  expect(readMetricValue(root, 'mine-metric-favorites')).toBe('2');
-  expect(readMetricValue(root, 'mine-metric-sleeping')).toBe('1');
+  expect(root.findByProps({ testID: 'mine-profile-sync' }).props.children).toBe(
+    '记录已保存',
+  );
+  expect(root.findAllByProps({ testID: 'mine-status-strip' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'mine-go-learning' })).toHaveLength(0);
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -7195,7 +7189,7 @@ test('ignores a stale deletion response after the originating session is replace
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
-test('mine page keeps profile status and route actions in one screen after login', async () => {
+test('mine page stays focused on account and membership after login', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -7242,48 +7236,30 @@ test('mine page keeps profile status and route actions in one screen after login
   const output = JSON.stringify(tree!.toJSON());
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   const mineProfileStyle = StyleSheet.flatten(mineProfileCard.props.style);
-  expect(output).toContain('账号');
+  expect(output).toContain('账号与权益');
+  expect(output).toContain('继续用完整路线备考');
+  expect(output).toContain('会员、购买和登录状态都在这里处理');
   expect(output).toContain('138****8000');
-  expect(output).toContain('已签到 · 1 张');
   expect(output).toContain('记录已保存');
-  expect(output).toContain('继续学习');
-  expect(output).toContain('继续下一张');
-  expect(output).toContain('空间');
-  expect(output).toContain('今日');
-  expect(output).not.toContain('继续用完整路线备考');
+  expect(output).toContain('系统推荐');
   expect(mineProfileStyle.flex).toBe(1);
   expect(mineProfileStyle.minHeight).toBe(0);
   expect(root.findByProps({ testID: 'mine-passport-stack' })).toBeTruthy();
-  const mineRouteDockStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'mine-route-dock' }).props.style,
+  expect(root.findByProps({ testID: 'mine-account-ledger' })).toBeTruthy();
+  expect(root.findByProps({ testID: 'mine-profile-phone' }).props.children).toBe(
+    '138****8000',
   );
-  expect(mineRouteDockStyle.flex).toBe(1);
-  expect(mineRouteDockStyle.justifyContent).toBe('flex-end');
-  const mineActionRailStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'mine-action-rail' }).props.style,
+  expect(root.findByProps({ testID: 'mine-profile-sync' }).props.children).toBe(
+    '记录已保存',
   );
-  expect(mineActionRailStyle.flex).toBe(1);
-  expect(root.findByProps({ testID: 'mine-resume-header' })).toBeTruthy();
-  expect(
-    root.findAllByProps({ testID: 'mine-resume-center' }).length,
-  ).toBeGreaterThan(0);
-  expect(root.findAllByProps({ testID: 'mine-resume-meta-row' })).toHaveLength(
-    0,
+  expect(root.findByProps({ testID: 'mine-profile-route' }).props.children).toBe(
+    '系统推荐',
   );
-  expect(readMetricValue(root, 'mine-metric-completed')).toBe('1');
-  expect(readMetricValue(root, 'mine-metric-review')).toBe('0');
-  expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');
-  expect(readMetricValue(root, 'mine-metric-sleeping')).toBe('0');
-  expect(findPressableByTestId(root, 'mine-go-learning')).toBeTruthy();
-  expect(findPressableByTestId(root, 'mine-go-space')).toBeTruthy();
-  expect(findPressableByTestId(root, 'mine-go-statistics')).toBeTruthy();
-  expect(root.findByProps({ testID: 'mine-action-rail' })).toBeTruthy();
-  expect(
-    root.findByProps({ testID: 'mine-secondary-action-row' }),
-  ).toBeTruthy();
-  expect(collectRenderedText(tree!.toJSON())).not.toEqual(
-    expect.arrayContaining(['练', '位', '记', '我']),
-  );
+  expect(root.findAllByProps({ testID: 'mine-status-strip' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'mine-go-learning' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'mine-go-space' })).toHaveLength(0);
+  expect(root.findAllByProps({ testID: 'mine-go-statistics' })).toHaveLength(0);
+  expect(output).not.toContain('继续下一张');
   expect(root.findByProps({ testID: 'membership-host-card' })).toBeTruthy();
   expect(
     root.findAllByProps({ testID: 'membership-access-step' }).length,
@@ -7315,32 +7291,7 @@ test('mine page keeps profile status and route actions in one screen after login
   expect(output).not.toContain(
     '试用不会在注册时自动起算，而是在第一次计入学习时开始。开始后可以查看完整卡库、完整空间和更完整的回看能力。',
   );
-
-  await ReactTestRenderer.act(() => {
-    findPressableByTestId(root, 'mine-go-space').props.onPress();
-  });
-
-  expect(JSON.stringify(tree!.toJSON())).toContain('阅读高频词');
-
-  await openRoute(root, 'mine');
-
-  await ReactTestRenderer.act(() => {
-    findPressableByTestId(root, 'mine-go-statistics').props.onPress();
-  });
-
-  expect(
-    root.findAllByProps({ testID: 'statistics-metric-completed' }).length,
-  ).toBeGreaterThan(0);
-
-  await openRoute(root, 'mine');
-
-  await ReactTestRenderer.act(() => {
-    findPressableByTestId(root, 'mine-go-learning').props.onPress();
-  });
-
-  const learningOutput = JSON.stringify(tree!.toJSON());
-  expect(root.findAllByProps({ testID: 'mine-profile-card' })).toHaveLength(0);
-  expect(learningOutput).toContain('继续学习');
+  expect(findPressableByTestId(root, 'mine-account-logout-button')).toBeTruthy();
 });
 
 test('can browse the current Space box after login', async () => {
@@ -7482,8 +7433,8 @@ test('preserves favorite and sleep actions completed in one render turn', async 
   expect(JSON.stringify(tree!.toJSON())).toContain('移出休眠');
 
   await openRoute(root, 'mine');
-  expect(readMetricValue(root, 'mine-metric-favorites')).toBe('1');
-  expect(readMetricValue(root, 'mine-metric-sleeping')).toBe('1');
+  expect(root.findAllByProps({ testID: 'mine-status-strip' })).toHaveLength(0);
+  expect(root.findByProps({ testID: 'mine-account-ledger' })).toBeTruthy();
 });
 
 test('keeps completed progress after changing sleep state', async () => {
