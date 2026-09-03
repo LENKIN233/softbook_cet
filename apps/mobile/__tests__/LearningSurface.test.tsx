@@ -108,30 +108,54 @@ test('all five interactions keep one stable card envelope and separated support 
         tree!.root.findByProps({ testID: 'learning-card-task-band' }).props
           .style,
       ),
-    ).toMatchObject({ flex: 1, minHeight: 0 });
+    ).toMatchObject({
+      borderRadius: 24,
+      flexGrow: 0,
+      flexShrink: 1,
+      maxHeight: '100%',
+      minHeight: 0,
+    });
+    expect(
+      tree!.root.findByProps({ testID: 'learning-card-stage-atmosphere' }),
+    ).toBeTruthy();
+    expect(
+      tree!.root.findByProps({ testID: 'learning-material-sheet' }),
+    ).toBeTruthy();
+    expect(
+      StyleSheet.flatten(
+        tree!.root.findByProps({ testID: 'learning-card-task-band' }).props
+          .contentContainerStyle,
+      ).minHeight,
+    ).toBeGreaterThanOrEqual(260);
     expect(
       StyleSheet.flatten(
         tree!.root.findByProps({ testID: 'learning-peek-button' }).props.style,
       ).minHeight,
-    ).toBeGreaterThanOrEqual(44);
+    ).toBeGreaterThanOrEqual(48);
     expect(
       StyleSheet.flatten(
         tree!.root.findByProps({ testID: 'learning-favorite-button' }).props
           .style,
       ).minHeight,
-    ).toBeGreaterThanOrEqual(44);
+    ).toBeGreaterThanOrEqual(48);
 
     const actionDock = tree!.root.findAllByProps({
       testID: 'learning-action-dock',
     });
-    if (interactionId === 'flip' || interactionId === 'swipe') {
+    if (interactionId === 'swipe') {
       expect(actionDock).toHaveLength(0);
     } else {
       expect(actionDock.length).toBeGreaterThan(0);
       const dock = tree!.root.findByProps({ testID: 'learning-action-dock' });
-      expect(
-        dock.findAllByProps({ testID: 'learning-submit-button' }).length,
-      ).toBeGreaterThan(0);
+      if (interactionId === 'flip') {
+        expect(
+          dock.findAllByProps({ testID: 'learning-flip-button' }).length,
+        ).toBeGreaterThan(0);
+      } else {
+        expect(
+          dock.findAllByProps({ testID: 'learning-submit-button' }).length,
+        ).toBeGreaterThan(0);
+      }
       expect(
         dock.findAllByProps({ testID: 'learning-peek-button' }),
       ).toHaveLength(0);
@@ -511,27 +535,27 @@ test('does not expose raw space metadata while learning', () => {
   expect(
     StyleSheet.flatten(
       tree!.root.findByProps({ testID: 'learning-card-task-band' }).props.style,
-    ).flex,
-  ).toBe(1);
+    ).flexGrow,
+  ).toBe(0);
   expect(
-    tree!.root.findAllByProps({ testID: 'learning-action-dock' }),
-  ).toHaveLength(0);
+    tree!.root.findAllByProps({ testID: 'learning-action-dock' }).length,
+  ).toBeGreaterThan(0);
   expect(
     StyleSheet.flatten(
       tree!.root.findByProps({ testID: 'learning-peek-button' }).props.style,
     ).minHeight,
-  ).toBeGreaterThanOrEqual(44);
+  ).toBeGreaterThanOrEqual(48);
   expect(
     StyleSheet.flatten(
       tree!.root.findByProps({ testID: 'learning-favorite-button' }).props
         .style,
     ).minHeight,
-  ).toBeGreaterThanOrEqual(44);
+  ).toBeGreaterThanOrEqual(48);
   expect(
     StyleSheet.flatten(
       tree!.root.findByProps({ testID: 'learning-hint-button' }).props.style,
     ),
-  ).toMatchObject({ height: 60, width: 44 });
+  ).toMatchObject({ height: 56, width: 48 });
   expect(output).not.toContain('馆 1 / 组 1 / 盒 1');
   expect(output).not.toContain(currentCard.space_metadata.library);
   expect(output).not.toContain(currentCard.space_metadata.group);
@@ -615,7 +639,7 @@ test('multiple choice submit is a compact action dock tied to selection state', 
     StyleSheet.flatten(
       tree!.root.findByProps({ testID: 'learning-submit-button' }).props.style,
     ).minHeight,
-  ).toBeGreaterThanOrEqual(44);
+  ).toBeGreaterThanOrEqual(48);
   expect(output).toContain('先选答案');
   expect(output).toContain('选定后再提交');
   expect(output).not.toContain('先选一个答案');
@@ -657,14 +681,92 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(
-    tree!.root.findByProps({ testID: 'learning-submit-button' }).props.disabled,
-  ).toBe(false);
+  const currentTone = resolveLibraryTone(currentCard.space_metadata.library);
+  const enabledSubmit = tree!.root.findByProps({
+    testID: 'learning-submit-button',
+  });
+  expect(enabledSubmit.props.disabled).toBe(false);
+  expect(StyleSheet.flatten(enabledSubmit.props.style).backgroundColor).toBe(
+    currentTone.accent,
+  );
   expect(output).toContain(`${currentCard.options[0].label} 已选`);
   expect(output).toContain('确认后看解析');
   expect(output).not.toContain(`已选 ${currentCard.options[0].label}`);
   expect(output).not.toContain('提交后立即看解析');
   expect(output).not.toContain(currentCard.space_metadata.box_ref);
+});
+
+test('resolved cards keep analysis in the material sheet and continuation in the action rail', () => {
+  const session = createLocalLearningSession('cet4');
+  const card = session.cards.find(
+    candidate => candidate.interaction_id === 'multiple_choice',
+  );
+  if (!card || card.interaction_id !== 'multiple_choice') {
+    throw new Error('Expected a multiple-choice card.');
+  }
+
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <LearningSurface
+        audioAttemptId={null}
+        completedResults={[]}
+        currentCard={card}
+        currentCardState={{
+          ...createLearningCardState(card),
+          selectedOptionId: card.answer_key.correct_option,
+        }}
+        currentIndex={1}
+        currentResult={{
+          cardId: card.card_id,
+          completedAt: '2026-09-03T08:00:00.000Z',
+          interactionId: card.interaction_id,
+          isFavorited: false,
+          outcome: 'correct',
+          usedHint: false,
+          usedPeek: false,
+        }}
+        onAdvanceCard={jest.fn()}
+        onFlip={jest.fn()}
+        onOpenResultDetail={jest.fn()}
+        onRestartDeck={jest.fn()}
+        onSelectOption={jest.fn()}
+        onSelectSwipeState={jest.fn()}
+        onSetFlipConfidence={jest.fn()}
+        onSetLockSelection={jest.fn()}
+        onSubmitCurrentCard={jest.fn()}
+        onToggleEliminationItem={jest.fn()}
+        onToggleFavorite={jest.fn()}
+        onToggleHint={jest.fn()}
+        onTogglePeek={jest.fn()}
+        palette={palette}
+        phase="learning"
+        reviewCandidateCount={0}
+        sessionCards={session.cards}
+        sessionLabel={session.sourceLabel}
+      />,
+    );
+  });
+
+  const sheet = tree!.root.findByProps({ testID: 'learning-material-sheet' });
+  const actionRail = tree!.root.findByProps({ testID: 'learning-action-dock' });
+  expect(
+    sheet.findAllByProps({ testID: 'learning-open-result-detail-button' })
+      .length,
+  ).toBeGreaterThan(0);
+  expect(sheet.findAllByProps({ testID: 'learning-next-button' })).toHaveLength(
+    0,
+  );
+  expect(
+    actionRail.findAllByProps({ testID: 'learning-next-button' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    actionRail.findAllByProps({ testID: 'learning-open-result-detail-button' }),
+  ).toHaveLength(0);
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain(card.analysis.summary);
+  expect(output).toContain(card.analysis.exam_tip);
+  expect(output).not.toContain('解析已准备好');
 });
 
 test('lock rows unlock in order, keep wrong rows retryable, and submit only when all rows match', () => {
@@ -849,10 +951,10 @@ test('lock and elimination pressables keep 44x44 targets in standard and compact
           testID: 'learning-elimination-1',
         }).props.style,
       );
-      expect(lockTargetStyle).toMatchObject({ minHeight: 44, minWidth: 44 });
+      expect(lockTargetStyle).toMatchObject({ minHeight: 48, minWidth: 48 });
       expect(eliminationTargetStyle).toMatchObject({
-        minHeight: 44,
-        minWidth: 44,
+        minHeight: 48,
+        minWidth: 48,
       });
 
       ReactTestRenderer.act(() => {
@@ -926,7 +1028,7 @@ test('swipe choices stay compact enough for the one-screen phone action plane', 
   );
 
   expect(safeChoiceStyle.minWidth).toBe(0);
-  expect(safeChoiceStyle.minHeight).toBe(44);
+  expect(safeChoiceStyle.minHeight).toBe(48);
   expect(safeChoiceStyle.paddingVertical).toBe(4);
   expect(safeChoiceStyle.gap).toBe(3);
   expect(safeChoiceText).toHaveLength(3);
