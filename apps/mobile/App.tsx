@@ -5168,10 +5168,7 @@ function AppShell({
     <MineSurface
       accountDeletionAvailable={accountDeletionRepository !== null}
       authState={authState}
-      checkedInDayKey={checkedInDayKey}
-      completedCount={dailyProgressSnapshot.totalCompletedCount}
       deviceClass={deviceClass}
-      favoriteCount={favoriteCount}
       handlers={authHandlers}
       membershipError={membershipError}
       membershipGate={membershipGate}
@@ -5181,33 +5178,9 @@ function AppShell({
       membershipRepositoryMode={runtimeMembershipRepositoryMode}
       membershipState={membershipState}
       onOpenAccountDeletion={openAccountDeletionConfirmation}
-      onGoToLearning={() => {
-        startTransition(() => {
-          setActiveRoute('learning');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
-      onGoToSpace={() => {
-        startTransition(() => {
-          setActiveRoute('space');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
-      onGoToStatistics={() => {
-        startTransition(() => {
-          setActiveRoute('statistics');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
       palette={learningPalette}
-      pendingReviewCount={dailyProgressSnapshot.pendingReviewCount}
       learningStateSyncState={learningStateSyncState}
       progressSyncState={progressSyncState}
-      sleepingCount={sleepingCount}
-      todayKey={todayKey}
     />
   ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
     <LearningBootstrapSurface
@@ -6988,10 +6961,7 @@ function AuthGate({
 function MineSurface({
   accountDeletionAvailable,
   authState,
-  checkedInDayKey,
-  completedCount,
   deviceClass,
-  favoriteCount,
   handlers,
   learningStateSyncState,
   membershipError,
@@ -7002,21 +6972,12 @@ function MineSurface({
   membershipState,
   purchaseAvailable,
   onOpenAccountDeletion,
-  onGoToLearning,
-  onGoToSpace,
-  onGoToStatistics,
   palette,
-  pendingReviewCount,
   progressSyncState,
-  sleepingCount,
-  todayKey,
 }: {
   accountDeletionAvailable: boolean;
   authState: AuthState;
-  checkedInDayKey: string | null;
-  completedCount: number;
   deviceClass: DeviceClass;
-  favoriteCount: number;
   handlers: AuthHandlers;
   learningStateSyncState: LearningStateSyncState;
   membershipError: string | null;
@@ -7031,31 +6992,17 @@ function MineSurface({
   membershipState: MembershipState;
   purchaseAvailable: boolean;
   onOpenAccountDeletion: () => void;
-  onGoToLearning: () => void;
-  onGoToSpace: () => void;
-  onGoToStatistics: () => void;
   palette: Palette;
-  pendingReviewCount: number;
   progressSyncState: ProgressSyncState;
-  sleepingCount: number;
-  todayKey: string;
 }) {
   const { height: viewportHeight, width: viewportWidth } =
     useWindowDimensions();
   const isCompactPhone = isCompactMineViewport(viewportWidth, viewportHeight);
-  const isPhoneViewport = isPhoneMineViewport(viewportWidth, viewportHeight);
   const isAuthenticated = authState.stage === 'authenticated';
   const hasSentCode = authState.stage === 'code_sent';
-  const checkedInToday = checkedInDayKey === todayKey;
   const profileName = isAuthenticated
     ? maskPhoneNumber(authState.phoneNumber)
     : '待验证';
-  const profileContinuityValue = isAuthenticated ? profileName : '未登录';
-  const profileDetail = isAuthenticated
-    ? `${checkedInToday ? '已签到' : '未签到'} · ${completedCount} 张`
-    : '学习/空间/会员';
-  const profileIdentityLabel = isAuthenticated ? '手机号' : '身份';
-  const profileProgressLabel = isAuthenticated ? '今日' : '同步';
   const syncDetail = isAuthenticated
     ? progressSyncState.state === 'error' ||
       learningStateSyncState.state === 'error'
@@ -7072,21 +7019,6 @@ function MineSurface({
     : hasSentCode
     ? '验证码已发'
     : '待登录';
-  const accountSummary = isAuthenticated
-    ? syncDetail
-    : '登录后同步学习进度。';
-  const mineStatusItems = [
-    { label: '完成', testID: 'mine-metric-completed', value: completedCount },
-    {
-      label: '回看',
-      testID: 'mine-metric-review',
-      tone: pendingReviewCount > 0 ? 'warning' : 'neutral',
-      value: pendingReviewCount,
-    },
-    { label: '收藏', testID: 'mine-metric-favorites', value: favoriteCount },
-    { label: '休眠', testID: 'mine-metric-sleeping', value: sleepingCount },
-  ] as const;
-
   if (!isAuthenticated) {
     return (
       <View
@@ -7133,27 +7065,8 @@ function MineSurface({
           ]}
           testID="mine-passport-stack"
         >
-          <View
-            style={[
-              styles.minePassportHeader,
-              isCompactPhone ? styles.minePassportHeaderCompact : null,
-            ]}
-          >
-            <View
-              style={[
-                styles.mineAvatar,
-                isCompactPhone ? styles.mineAvatarCompact : null,
-                { backgroundColor: palette.accent },
-              ]}
-            >
-              <RouteIcon active color={palette.panel} routeKey="mine" />
-            </View>
-            <View
-              style={[
-                styles.mineAccountHeaderCopy,
-                isCompactPhone ? styles.mineAccountHeaderCopyCompact : null,
-              ]}
-            >
+          <View style={styles.mineAccountTitleRow}>
+            <View style={styles.mineAccountHeaderCopy}>
               <Text
                 style={[
                   styles.mineAccountEyebrow,
@@ -7161,27 +7074,7 @@ function MineSurface({
                   { color: palette.accent },
                 ]}
               >
-                账号
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.mineAccountTitle,
-                  isCompactPhone ? styles.mineAccountTitleCompact : null,
-                  { color: palette.text },
-                ]}
-              >
-                {profileName}
-              </Text>
-              <Text
-                numberOfLines={isCompactPhone ? 1 : 2}
-                style={[
-                  styles.mineAccountSummary,
-                  isCompactPhone ? styles.mineAccountSummaryCompact : null,
-                  { color: palette.textMuted },
-                ]}
-              >
-                {accountSummary}
+                账号与权益
               </Text>
             </View>
             <View
@@ -7205,189 +7098,56 @@ function MineSurface({
               </Text>
             </View>
           </View>
-
-          <View
+          <Text
             style={[
-              styles.mineContinuityDock,
-              isCompactPhone ? styles.mineContinuityDockCompact : null,
+              styles.mineAccountTitle,
+              isCompactPhone ? styles.mineAccountTitleCompact : null,
+              { color: palette.text },
             ]}
           >
-            <View
-              style={[
-                styles.mineIdentityBand,
-                isCompactPhone ? styles.mineIdentityBandCompact : null,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: palette.border,
-                },
-              ]}
-            >
-              <View style={styles.mineIdentityCopy}>
-                <Text
-                  style={[
-                    styles.mineIdentityLabel,
-                    { color: palette.textMuted },
-                  ]}
-                >
-                  {profileIdentityLabel}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.mineIdentityValue, { color: palette.text }]}
-                  testID="mine-profile-phone"
-                >
-                  {profileContinuityValue}
-                </Text>
-              </View>
-              <View style={styles.mineIdentityCopy}>
-                <Text
-                  style={[
-                    styles.mineIdentityLabel,
-                    { color: palette.textMuted },
-                  ]}
-                >
-                  {profileProgressLabel}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.mineIdentityValue, { color: palette.text }]}
-                  testID="mine-profile-today"
-                >
-                  {profileDetail}
-                </Text>
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.mineMetricStrip,
-                deviceClass === 'tablet' ? styles.mineMetricStripTablet : null,
-                isCompactPhone ? styles.mineMetricStripCompact : null,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: hexToRgba(palette.textMuted, 0.08),
-                },
-              ]}
-              testID="mine-status-strip"
-            >
-              {mineStatusItems.map(item => {
-                const valueColor =
-                  'tone' in item && item.tone === 'warning'
-                    ? palette.warning
-                    : palette.text;
-
-                return (
-                  <View
-                    key={item.testID}
-                    style={styles.mineSignalPill}
-                    testID={item.testID}
-                  >
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.mineSignalLabel,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                    <Text
-                      style={[styles.mineSignalValue, { color: valueColor }]}
-                      testID={`${item.testID}-value`}
-                    >
-                      {`${item.value}`}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
+            继续用完整路线备考。
+          </Text>
+          <Text
+            style={[
+              styles.mineAccountSummary,
+              isCompactPhone ? styles.mineAccountSummaryCompact : null,
+              { color: palette.textMuted },
+            ]}
+          >
+            会员、购买和登录状态都在这里处理。
+          </Text>
+          <View
+            style={[
+              styles.mineAccountLedger,
+              {
+                backgroundColor: palette.panelStrong,
+                borderColor: palette.border,
+              },
+            ]}
+            testID="mine-account-ledger"
+          >
+            <MineAccountRow
+              label="手机号"
+              palette={palette}
+              value={profileName}
+              valueTestID="mine-profile-phone"
+            />
+            <MineAccountRow
+              label="学习记录"
+              palette={palette}
+              value={syncDetail}
+              valueTestID="mine-profile-sync"
+            />
+            <MineAccountRow
+              label="学习路线"
+              last
+              palette={palette}
+              value="系统推荐"
+              valueTestID="mine-profile-route"
+            />
           </View>
         </View>
-
-        <View
-          style={[
-            styles.mineRouteDock,
-            isCompactPhone ? styles.mineRouteDockCompact : null,
-          ]}
-          testID="mine-route-dock"
-        >
-          <View
-            style={[
-              styles.mineActionRail,
-              deviceClass === 'tablet' ? styles.mineActionRailTablet : null,
-              isCompactPhone ? styles.mineActionRailCompact : null,
-            ]}
-            testID="mine-action-rail"
-          >
-            <MineActionCard
-              compact={isCompactPhone}
-              condensed={isPhoneViewport}
-              detail={
-                pendingReviewCount > 0
-                  ? `${pendingReviewCount} 张卡等待回看`
-                  : '继续下一张'
-              }
-              heroLabel={
-                pendingReviewCount > 0 ? '待回看' : undefined
-              }
-              heroValue={
-                pendingReviewCount > 0 ? `${pendingReviewCount} 张` : '下一张'
-              }
-              label="继续学习"
-              metaItems={[
-                {
-                  label: '今日',
-                  testID: 'mine-resume-today',
-                  value: profileDetail,
-                },
-                {
-                  label: '回看',
-                  testID: 'mine-resume-review',
-                  value: `${pendingReviewCount} 张`,
-                },
-                {
-                  label: '记录',
-                  testID: 'mine-resume-sync',
-                  value: syncDetail,
-                },
-              ]}
-              onPress={onGoToLearning}
-              palette={palette}
-              routeKey="learning"
-              testID="mine-go-learning"
-              variant="primary"
-            />
-            <View
-              style={[
-                styles.mineSecondaryActionRow,
-                isCompactPhone ? styles.mineSecondaryActionRowCompact : null,
-              ]}
-              testID="mine-secondary-action-row"
-            >
-              <MineActionCard
-                compact={isCompactPhone}
-                condensed={isPhoneViewport}
-                detail={`收藏 ${favoriteCount} · 休眠 ${sleepingCount}`}
-                label="空间"
-                onPress={onGoToSpace}
-                palette={palette}
-                routeKey="space"
-                testID="mine-go-space"
-              />
-              <MineActionCard
-                compact={isCompactPhone}
-                condensed={isPhoneViewport}
-                detail={checkedInToday ? '已签到' : '未签到'}
-                label="统计"
-                onPress={onGoToStatistics}
-                palette={palette}
-                routeKey="statistics"
-                testID="mine-go-statistics"
-              />
-            </View>
-          </View>
-
-          <MembershipHostCard
+        <MembershipHostCard
             compact={isCompactPhone}
             deviceClass={deviceClass}
             focusGate={membershipGate}
@@ -7399,9 +7159,10 @@ function MineSurface({
             palette={palette}
             purchaseAvailable={purchaseAvailable}
           />
-          <View
+        <View
             style={[
               styles.mineAccountPrivacyCard,
+              styles.mineSessionCard,
               isCompactPhone ? styles.mineAccountPrivacyCardCompact : null,
               {
                 backgroundColor: palette.panelStrong,
@@ -7449,7 +7210,7 @@ function MineSurface({
               </Text>
             </Pressable>
           </View>
-          {accountDeletionAvailable ? (
+        {accountDeletionAvailable ? (
             <View
               style={[
                 styles.mineAccountPrivacyCard,
@@ -7505,213 +7266,44 @@ function MineSurface({
                 </Text>
               </Pressable>
             </View>
-          ) : null}
-        </View>
+        ) : null}
       </View>
     </View>
   );
 }
 
-function MineActionCard({
-  compact,
-  condensed,
-  detail,
-  heroLabel,
-  heroValue,
+function MineAccountRow({
   label,
-  metaItems,
-  onPress,
+  last = false,
   palette,
-  routeKey,
-  testID,
-  variant = 'secondary',
+  value,
+  valueTestID,
 }: {
-  compact: boolean;
-  condensed: boolean;
-  detail: string;
-  heroLabel?: string;
-  heroValue?: string;
   label: string;
-  metaItems?: Array<{
-    label: string;
-    testID: string;
-    value: string;
-  }>;
-  onPress: () => void;
+  last?: boolean;
   palette: Palette;
-  routeKey: RouteKey;
-  testID: string;
-  variant?: 'primary' | 'secondary';
+  value: string;
+  valueTestID: string;
 }) {
-  const isPrimary = variant === 'primary';
-  const foregroundColor = isPrimary ? palette.primaryActionText : palette.text;
-  const mutedColor = isPrimary ? palette.primaryActionMuted : palette.textMuted;
-  const glyph = (
+  return (
     <View
       style={[
-        styles.mineActionGlyph,
-        {
-          backgroundColor: isPrimary
-            ? hexToRgba(palette.primaryActionText, 0.12)
-            : palette.accentSoft,
-          borderColor: isPrimary
-            ? hexToRgba(palette.primaryActionText, 0.16)
-            : palette.border,
-        },
+        styles.mineAccountRow,
+        last ? styles.mineAccountRowLast : null,
+        { borderColor: palette.border },
       ]}
     >
-      <RouteIcon
-        active={isPrimary}
-        color={isPrimary ? palette.primaryActionText : palette.accent}
-        routeKey={routeKey}
-      />
-    </View>
-  );
-  const copy = (
-    <View style={styles.mineActionCopy}>
-      <Text
-        numberOfLines={1}
-        style={[
-          styles.mineActionLabel,
-          isPrimary ? styles.mineActionLabelPrimary : null,
-          { color: foregroundColor },
-        ]}
-      >
+      <Text style={[styles.mineAccountRowLabel, { color: palette.textMuted }]}>
         {label}
       </Text>
       <Text
-        numberOfLines={isPrimary ? 1 : 2}
-        style={[
-          styles.mineActionDetail,
-          isPrimary ? styles.mineActionDetailPrimary : null,
-          { color: mutedColor },
-        ]}
+        numberOfLines={1}
+        style={[styles.mineAccountRowValue, { color: palette.text }]}
+        testID={valueTestID}
       >
-        {detail}
+        {value}
       </Text>
     </View>
-  );
-  const arrow = (
-    <Text style={[styles.mineActionArrow, { color: mutedColor }]}>→</Text>
-  );
-  const primaryHeader = (
-    <View style={styles.mineActionPrimaryHeader} testID="mine-resume-header">
-      {glyph}
-      {copy}
-      {arrow}
-    </View>
-  );
-  const primaryCenter =
-    isPrimary && heroValue ? (
-      <View
-        style={[
-          styles.mineActionPrimaryCenter,
-          condensed ? styles.mineActionPrimaryCenterPhone : null,
-        ]}
-        testID="mine-resume-center"
-      >
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.mineActionPrimaryHero,
-            condensed ? styles.mineActionPrimaryHeroPhone : null,
-            { color: palette.primaryActionText },
-          ]}
-          testID="mine-resume-hero"
-        >
-          {heroValue}
-        </Text>
-        {heroLabel ? (
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.mineActionPrimaryHeroLabel,
-              condensed ? styles.mineActionPrimaryHeroLabelPhone : null,
-              { color: mutedColor },
-            ]}
-            testID="mine-resume-hero-label"
-          >
-            {heroLabel}
-          </Text>
-        ) : null}
-      </View>
-    ) : null;
-  const primaryMeta =
-    isPrimary && metaItems?.length ? (
-      <View
-        style={styles.mineActionPrimaryMetaRow}
-        testID="mine-resume-meta-row"
-      >
-        {metaItems.map(item => (
-          <View
-            key={item.testID}
-            style={[
-              styles.mineActionPrimaryMetaPill,
-              {
-                backgroundColor: hexToRgba(palette.primaryActionText, 0.08),
-                borderColor: hexToRgba(palette.primaryActionText, 0.12),
-              },
-            ]}
-            testID={item.testID}
-          >
-            <Text
-              numberOfLines={1}
-              style={[styles.mineActionPrimaryMetaLabel, { color: mutedColor }]}
-            >
-              {item.label}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.mineActionPrimaryMetaValue,
-                { color: foregroundColor },
-              ]}
-              testID={`${item.testID}-value`}
-            >
-              {item.value}
-            </Text>
-          </View>
-        ))}
-      </View>
-    ) : null;
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={[
-        styles.mineActionCard,
-        isPrimary
-          ? styles.mineActionCardPrimary
-          : styles.mineActionCardSecondary,
-        condensed && isPrimary ? styles.mineActionCardPrimaryPhone : null,
-        compact && isPrimary ? styles.mineActionCardPrimaryCompact : null,
-        compact && !isPrimary ? styles.mineActionCardSecondaryCompact : null,
-        {
-          backgroundColor: isPrimary
-            ? palette.primaryActionSurface
-            : palette.panelStrong,
-          borderColor: isPrimary
-            ? palette.primaryActionSurface
-            : palette.border,
-        },
-      ]}
-      testID={testID}
-    >
-      {isPrimary ? (
-        <>
-          {primaryHeader}
-          {compact ? null : primaryCenter}
-          {condensed ? null : primaryMeta}
-        </>
-      ) : (
-        <>
-          {glyph}
-          {copy}
-          {arrow}
-        </>
-      )}
-    </Pressable>
   );
 }
 
@@ -8917,10 +8509,6 @@ function getDeviceClass(width: number, height: number): DeviceClass {
 
 export function isCompactMineViewport(width: number, height: number) {
   return width <= 340 || height <= 850;
-}
-
-export function isPhoneMineViewport(width: number, height: number) {
-  return isCompactMineViewport(width, height) || Math.min(width, height) < 600;
 }
 
 function maskPhoneNumber(phoneNumber: string) {
@@ -10134,9 +9722,6 @@ const styles = StyleSheet.create({
   infoCardHalf: {
     width: '48%',
   },
-  mineMetricStripTablet: {
-    gap: 12,
-  },
   infoCard: {
     borderWidth: 1,
     borderRadius: 22,
@@ -10381,8 +9966,8 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     borderWidth: 0,
     flex: 1,
-    gap: 9,
-    justifyContent: 'space-between',
+    gap: 14,
+    justifyContent: 'flex-start',
     minHeight: 0,
     paddingHorizontal: 15,
     paddingVertical: 13,
@@ -10404,21 +9989,15 @@ const styles = StyleSheet.create({
   minePassportStackCompact: {
     gap: 5,
   },
-  minePassportHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-  },
-  minePassportHeaderCompact: {
-    gap: 7,
-  },
   mineAccountHeaderCopy: {
     flex: 1,
     gap: 3,
     minWidth: 0,
   },
-  mineAccountHeaderCopyCompact: {
-    gap: 1,
+  mineAccountTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   mineAccountEyebrow: {
     fontSize: 12,
@@ -10445,17 +10024,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 17,
   },
-  mineAvatar: {
-    alignItems: 'center',
-    borderRadius: 22,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-  },
-  mineAvatarCompact: {
+  mineAccountLedger: {
     borderRadius: 18,
-    height: 36,
-    width: 36,
+    borderWidth: 0,
+    overflow: 'hidden',
+  },
+  mineAccountRow: {
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  mineAccountRowLast: {
+    borderBottomWidth: 0,
+  },
+  mineAccountRowLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+  },
+  mineAccountRowValue: {
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+    marginLeft: 16,
+    textAlign: 'right',
   },
   mineMembershipPill: {
     borderRadius: 999,
@@ -10474,90 +10071,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
-  mineIdentityBand: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  mineIdentityBandCompact: {
-    minHeight: 44,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  mineContinuityDock: {
-    gap: 6,
-  },
-  mineContinuityDockCompact: {
-    gap: 4,
-  },
-  mineIdentityCopy: {
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
-  mineIdentityLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  mineIdentityValue: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  mineIdentitySync: {
-    fontSize: 11,
-    fontWeight: '700',
-    maxWidth: 88,
-    textAlign: 'right',
-  },
-  mineMetricStrip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 4,
-    paddingVertical: 3,
-  },
-  mineMetricStripCompact: {
-    paddingVertical: 2,
-  },
-  mineSignalPill: {
-    alignItems: 'center',
-    borderRadius: 999,
-    flex: 1,
-    flexDirection: 'row',
-    gap: 4,
-    justifyContent: 'center',
-    minHeight: 26,
-    minWidth: 0,
-    paddingHorizontal: 5,
-  },
-  mineSignalLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 12,
-  },
-  mineSignalValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-    lineHeight: 16,
-  },
-  mineRouteDock: {
-    flex: 1,
-    gap: 8,
-    justifyContent: 'flex-end',
-    minHeight: 0,
-  },
-  mineRouteDockCompact: {
-    flex: 0,
-    gap: 5,
-    justifyContent: 'flex-start',
-  },
   mineAccountPrivacyCard: {
     alignItems: 'center',
     borderRadius: 18,
@@ -10571,6 +10084,9 @@ const styles = StyleSheet.create({
   mineAccountPrivacyCardCompact: {
     minHeight: 44,
     paddingVertical: 4,
+  },
+  mineSessionCard: {
+    marginTop: 'auto',
   },
   mineAccountPrivacyCopy: {
     flex: 1,
@@ -10604,173 +10120,6 @@ const styles = StyleSheet.create({
   },
   mineAccountDeleteButtonLabel: {
     fontSize: 12,
-    fontWeight: '800',
-  },
-  mineActionRail: {
-    flex: 1,
-    gap: 8,
-    justifyContent: 'flex-end',
-    minHeight: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-  },
-  mineActionRailCompact: {
-    flex: 0,
-    gap: 5,
-    justifyContent: 'flex-start',
-  },
-  mineActionRailTablet: {
-    maxWidth: 560,
-  },
-  mineSecondaryActionRow: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 8,
-    minHeight: 0,
-  },
-  mineSecondaryActionRowCompact: {
-    flex: 0,
-    gap: 5,
-    minHeight: 50,
-  },
-  mineActionCard: {
-    alignItems: 'stretch',
-    borderWidth: 0,
-    gap: 8,
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  mineActionCardPrimary: {
-    alignItems: 'stretch',
-    borderRadius: 20,
-    flex: 1.1,
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    minHeight: 76,
-    paddingHorizontal: 15,
-    paddingVertical: 13,
-  },
-  mineActionCardPrimaryPhone: {
-    flex: 0,
-    minHeight: 128,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  mineActionCardPrimaryCompact: {
-    flex: 0,
-    minHeight: 54,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  mineActionCardSecondary: {
-    alignItems: 'center',
-    borderRadius: 17,
-    flex: 1,
-    flexDirection: 'row',
-    minHeight: 66,
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-  },
-  mineActionCardSecondaryCompact: {
-    minHeight: 50,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  mineActionTopRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  mineActionPrimaryHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-  },
-  mineActionPrimaryCenter: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 4,
-    justifyContent: 'center',
-    minHeight: 62,
-  },
-  mineActionPrimaryCenterPhone: {
-    gap: 2,
-    minHeight: 44,
-  },
-  mineActionPrimaryHero: {
-    fontSize: 34,
-    fontWeight: '800',
-    lineHeight: 40,
-  },
-  mineActionPrimaryHeroPhone: {
-    fontSize: 30,
-    lineHeight: 34,
-  },
-  mineActionPrimaryHeroLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 15,
-  },
-  mineActionPrimaryHeroLabelPhone: {
-    lineHeight: 13,
-  },
-  mineActionPrimaryMetaRow: {
-    flexDirection: 'row',
-    gap: 7,
-  },
-  mineActionPrimaryMetaPill: {
-    borderRadius: 15,
-    borderWidth: 0,
-    flex: 1,
-    gap: 2,
-    justifyContent: 'center',
-    minHeight: 45,
-    minWidth: 0,
-    paddingHorizontal: 7,
-    paddingVertical: 6,
-  },
-  mineActionPrimaryMetaLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    lineHeight: 12,
-  },
-  mineActionPrimaryMetaValue: {
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 14,
-  },
-  mineActionCopy: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-  },
-  mineActionGlyph: {
-    alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 0,
-    height: 30,
-    justifyContent: 'center',
-    width: 30,
-  },
-  mineActionLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  mineActionLabelPrimary: {
-    fontSize: 14,
-  },
-  mineActionDetail: {
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 17,
-  },
-  mineActionDetailPrimary: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 17,
-  },
-  mineActionArrow: {
-    fontSize: 14,
     fontWeight: '800',
   },
   membershipHostCard: {

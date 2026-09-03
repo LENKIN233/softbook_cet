@@ -168,15 +168,15 @@ name: ios-remote-auth-learning-space-statistics-smoke
 - assertVisible:
     id: "mine-profile-card"
 - assertVisible:
-    id: "mine-go-learning"
+    id: "mine-account-ledger"
 - assertVisible:
-    id: "mine-go-space"
+    id: "mine-profile-phone"
 - assertVisible:
-    id: "mine-go-statistics"
+    id: "mine-profile-route"
 - assertVisible:
     id: "membership-host-card"
 - tapOn:
-    id: "mine-go-statistics"
+    id: "route-tab-statistics"
 - assertVisible:
     id: "statistics-metric-completed"
 - tapOn:

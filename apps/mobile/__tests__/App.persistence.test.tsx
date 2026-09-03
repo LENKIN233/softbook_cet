@@ -358,14 +358,10 @@ test('restores check-in, learning cursor, favorite, and sleep state', async () =
   ).toBeTruthy();
 
   await openRoute(tree.root, 'mine');
+  expect(tree.root.findByProps({ testID: 'mine-account-ledger' })).toBeTruthy();
   expect(
-    tree.root.findByProps({ testID: 'mine-metric-favorites-value' }).props
-      .children,
-  ).toBe('1');
-  expect(
-    tree.root.findByProps({ testID: 'mine-metric-sleeping-value' }).props
-      .children,
-  ).toBe('1');
+    tree.root.findAllByProps({ testID: 'mine-status-strip' }),
+  ).toHaveLength(0);
 });
 
 test('restores remote account state from canonical bootstrap before local use', async () => {
@@ -462,9 +458,8 @@ test('restores remote account state from canonical bootstrap before local use', 
       tree.root.findByProps({ testID: 'mine-membership-stage' }).props.children,
     ).toBe('会员');
     expect(
-      tree.root.findByProps({ testID: 'mine-metric-favorites-value' }).props
-        .children,
-    ).toBe('1');
+      tree.root.findByProps({ testID: 'mine-profile-route' }).props.children,
+    ).toBe('系统推荐');
     await openRoute(tree.root, 'statistics');
     expect(
       tree.root.findAllByProps({ testID: 'statistics-checkin-complete-label' }),
@@ -1294,9 +1289,9 @@ test('uses bootstrap canonical space state without pushing unqueued restored sta
     await openRoute(tree.root, 'mine');
 
     expect(
-      tree.root.findByProps({ testID: 'mine-metric-favorites-value' }).props
-        .children,
-    ).toBe('1');
+      tree.root.findAllByProps({ testID: 'mine-status-strip' }),
+    ).toHaveLength(0);
+    expect(tree.root.findByProps({ testID: 'mine-account-ledger' })).toBeTruthy();
     expect(
       fetchMock.mock.calls.some(([input]) =>
         input.includes('/v1/space/state-sync'),
