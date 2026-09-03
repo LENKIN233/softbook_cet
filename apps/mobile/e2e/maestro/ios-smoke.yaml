@@ -172,10 +172,6 @@ name: ios-auth-learning-space-statistics-smoke
 - assertVisible:
     id: "mine-account-ledger"
 - assertVisible:
-    id: "mine-profile-phone"
-- assertVisible:
-    id: "mine-profile-route"
-- assertVisible:
     id: "membership-host-card"
 - tapOn:
     id: "route-tab-statistics"

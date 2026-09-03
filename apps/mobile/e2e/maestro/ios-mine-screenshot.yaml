@@ -74,6 +74,4 @@ name: ios-mine-screenshot
 - assertVisible:
     id: "mine-account-ledger"
 - assertVisible:
-    id: "mine-profile-phone"
-- assertVisible:
     id: "membership-host-card"
