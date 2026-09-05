@@ -124,6 +124,9 @@ jobs:
       - name: Test iOS runtime target resolution
         run: node --test infra/cloudbase/test-resolve-ios-simulator.mjs
 
+      - name: Test experience CI failure and startup boundaries
+        run: node --test scripts/test_ios_experience_ci.mjs
+
       - name: Test Android release boundary
         run: node --test scripts/test_android_release_boundary.mjs
 
@@ -508,16 +511,29 @@ jobs:
         if: env.RUN_GATE == 'true'
         run: brew install mobile-dev-inc/tap/maestro
 
+      - name: Prepare experience simulator
+        if: env.RUN_GATE == 'true'
+        timeout-minutes: 5
+        working-directory: ${{ github.workspace }}
+        run: bash scripts/run_ios_experience_ci.sh prepare
+
+      - name: Build and install experience Debug app
+        if: env.RUN_GATE == 'true'
+        timeout-minutes: 30
+        working-directory: ${{ github.workspace }}
+        run: bash scripts/run_ios_experience_ci.sh build
+
       - name: Exercise actual reading and correction pixels
         if: env.RUN_GATE == 'true'
+        timeout-minutes: 12
         working-directory: ${{ github.workspace }}
-        run: bash scripts/run_ios_experience_ci.sh
+        run: bash scripts/run_ios_experience_ci.sh run
 
       - name: Preserve experience captures, calibration and execution logs
         if: always() && env.RUN_GATE == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: native-experience-${{ github.sha }}
+          name: native-experience-${{ github.sha }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/softbook-experience/
             ${{ runner.temp }}/experience-build.log
