@@ -103,3 +103,18 @@ Q4: No gradient text, reward chrome, full-width bottom bar, serif, or four-state
 Q5: The 393x852 proof contains the stage, 48dp edge handle, bounded sheet, action rail, and floating navigation.
 
 Q6: Flip uses exactly `有把握` and `再回看`; Learning never presents module selection or statistics as the primary path.
+
+## Running-product correction: readable material and answers
+
+The 2026-09-05 native journey exposed two failures: dense interaction layouts
+omitted authored front support containing the target sentence, and the stacked
+answer rail allowed the explanation to cover the correct answer. The baseline
+is revised with implementation under machine-acceptance's experience policy.
+
+- Required front material stays in the reading sheet for every interaction.
+- Opening a hint adds help without replacing the original material.
+- Selected and correct answers take their intrinsic height before explanation;
+  the sheet may scroll rather than overlap or hide either answer.
+- Preserve the outer card identity, quiet hint edge and two-state self-assess.
+- Verify actual screenshots with the reading journey, then let a model inspect
+  the resulting states; passing component/style assertions is insufficient.

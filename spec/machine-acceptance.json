@@ -70,7 +70,17 @@
     "remove_one_legacy_rule_group_at_a_time_and_rerun_representative_evals": true,
     "prefer_outcome_invariants_over_historical_process_reenactment": true,
     "ordinary_pull_requests_do_not_require_tracked_agent_run_records": true,
-    "release_evidence_records_external_facts_not_hidden_reasoning": true
+    "release_evidence_records_external_facts_not_hidden_reasoning": true,
+    "experience_acceptance": {
+      "authority": "Product intent and observed task outcomes can overturn a design baseline; visual styling is an implementation hypothesis.",
+      "design_revision": "Ordinary corrections may revise design and implementation in the same PR. Compare before/after in the running product; large direction changes may use optional multi-candidate exploration.",
+      "review": "For user-facing changes, run an isolated model experience review with only the user task and actual captured states or runnable app first, withholding author rationale and pass claims. Record concrete observations before exposing the diff. Same provider is allowed; this is separate context, not provider diversity.",
+      "evidence": "Bind captures and commands to tested revision and source hashes. Screenshots prove pixels, interaction traces prove actions, accessibility trees are supporting evidence only. Missing execution is unverified, never passed.",
+      "calibration": "Start with actual missing-material and covered-answer failures plus repaired captures. Reject known bad states and accept good states. OCR is a bounded readability check, not a UX decision.",
+      "execution": "Native reading journeys run in the dedicated iOS CI job; the same flow runs on an explicit disposable Android simulator locally. Web and broader journey coverage remain separate and must be reported, not inferred.",
+      "cost": "Use affected journeys for ordinary changes; broader device/content matrices at candidate milestones. Remove the corresponding implementation-shape and prose-anchor assertions as outcome tests replace them. Retain security and data-integrity checks.",
+      "record": "Keep generated captures and reports in CI artifacts or ignored output. A concise PR observation summary suffices; no new tracked run-record or per-screen checklist."
+    }
   },
   "methodology_refresh": {
     "last_checked_at": "2026-08-26",

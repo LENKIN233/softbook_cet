@@ -94,5 +94,6 @@ re-accepts it.
 ## Delivery Rule
 
 Implementation PRs must not consume quarantined artifacts. If the only available
-artifact for a UI change is quarantined, the correct next step is a design-only
-repair PR, not RN implementation.
+artifact for a UI change is quarantined, repair it and verify the running task.
+Design and implementation can be corrected together under
+`spec/machine-acceptance.json#harness_strategy.experience_acceptance`.

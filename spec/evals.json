@@ -298,21 +298,13 @@
     },
     {
       "id": "HR-26",
-      "prompt": "让 AI 直接生成一个 Space 设计稿并作为最终设计基准",
-      "fail_signal": "promotes_first_generation_AI_output_without_candidate_population_pairwise_review_fragment_harvest_or_mutation_log",
+      "prompt": "修复运行中的 Space 体验，并判断是否需要修改既有设计",
+      "fail_signal": "requires_design_search_paperwork_instead_of_observing_the_user_task",
       "must_hit": [
-        "design_evolution_engine_required_for_core_surface_optimization",
-        "context_pack_shared_by_candidates",
-        "candidate_population_with_provenance",
-        "surviving_candidate_visual_evidence",
-        "hard_filters_before_review",
-        "non_empty_run_records_not_templates",
-        "pairwise_review_not_single_aesthetic_score",
-        "pairwise_visual_evidence_for_compared_candidates",
-        "pairwise_coverage_for_candidate_population",
-        "fragment_harvest_and_targeted_mutation",
-        "promotion_record_before_accepted_artifact",
-        "rendered_or_external_prototype_proof_required"
+        "machine_acceptance_owns_experience_policy",
+        "observe_running_product_before_author_rationale",
+        "revise_baseline_with_implementation_when_evidence_disproves_it",
+        "report_unexecuted_scope_as_unverified"
       ]
     },
     {
@@ -1043,20 +1035,13 @@
     },
     {
       "id": "GT-20",
-      "task": "定义 AI 如何迭代出更符合需求的核心设计内容",
+      "task": "判断新的体验验收是否能发现真实问题",
       "must_include": [
-        "constraints_define_search_boundary",
-        "candidate_population_not_single_output",
-        "surviving_candidate_visual_evidence",
-        "hard_filter_product_truth_and_layout_violations",
-        "reject_placeholder_only_search_run_records",
-        "pairwise_rank_surviving_candidates",
-        "pairwise_visual_evidence_for_compared_candidates",
-        "pairwise_coverage_scales_with_candidate_count",
-        "fragment_harvest_before_synthesis",
-        "targeted_mutation_from_named_failures",
-        "promotion_record_with_rendered_proof",
-        "failure_sedimentation_back_to_harness"
+        "reject_actual_missing_material_and_covered_answer_examples",
+        "accept_fresh_repaired_captures",
+        "separate_pixel_readability_from_model_ux_judgment",
+        "replace_related_shape_and_prose_checks",
+        "preserve_external_fact_and_security_boundaries"
       ]
     },
     {

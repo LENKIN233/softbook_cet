@@ -51,6 +51,20 @@ def validate(context) -> None:
         if "not only a directory" not in directory_reference_output:
             errors.append("validate_pr_design_gate.py directory-only rejection must explain the concrete file requirement")
 
+    correction_body = directory_reference_body.replace(
+        "Design artifact: docs/design/decisions/",
+        "Design artifact: docs/design/decisions/learning-interaction-evolution-v1.md",
+    ).replace(
+        "Interaction/motion artifact: docs/design/interaction-motion/",
+        "Interaction/motion artifact: docs/design/interaction-motion/learning-core-interactions-v1.md",
+    )
+    correction_case = run_design_gate_case(correction_body, [
+        "apps/mobile/src/learning/LearningSurface.tsx",
+        "docs/design/decisions/learning-interaction-evolution-v1.md",
+    ])
+    if correction_case.returncode != 0:
+        errors.append("same-PR concrete design correction should be allowed: " + correction_case.stdout + correction_case.stderr)
+
     visual_tokens_empty_case = run_design_gate_case("", ["apps/mobile/src/visual/tokens.ts"])
     if visual_tokens_empty_case.returncode == 0:
         errors.append("validate_pr_design_gate.py must treat apps/mobile/src/visual/tokens.ts as design-gated")

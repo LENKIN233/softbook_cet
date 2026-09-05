@@ -7,6 +7,10 @@ import {fileURLToPath} from 'node:url';
 
 import {classifyChangedPaths} from './classify_pr_gate_scope.mjs';
 
+for (const file of ['scripts/run_experience_acceptance.mjs', 'scripts/run_ios_experience_ci.sh', 'scripts/experience_ocr.swift']) {
+  assert.equal(classifyChangedPaths([file]).native, true, `${file} must run native acceptance`);
+}
+
 const gateState = result => ({
   mobile: result.mobile,
   native: result.native,

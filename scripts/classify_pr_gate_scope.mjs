@@ -20,6 +20,9 @@ const FORCE_ALL_FILES = new Set([
   'scripts/test_classify_pr_gate_scope.mjs',
 ]);
 const MOBILE_SUPPORT_FILES = new Set([
+  'scripts/run_experience_acceptance.mjs',
+  'scripts/run_ios_experience_ci.sh',
+  'scripts/experience_ocr.swift',
   'scripts/build_android_signed_release.mjs',
   'scripts/build_mobile_release_runtime_profile.mjs',
   'scripts/inspect_mobile_release_runtime_artifact.mjs',

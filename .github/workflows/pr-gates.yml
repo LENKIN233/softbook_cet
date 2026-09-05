@@ -539,6 +539,33 @@ jobs:
             --format xcarchive \
             --allow-repository-fixture
 
+      - name: Set up Java for native experience runner
+        if: env.RUN_GATE == 'true'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install native experience runner
+        if: env.RUN_GATE == 'true'
+        run: brew install maestro
+
+      - name: Exercise actual reading and correction pixels
+        if: env.RUN_GATE == 'true'
+        working-directory: ${{ github.workspace }}
+        run: bash scripts/run_ios_experience_ci.sh
+
+      - name: Preserve experience captures, calibration and execution logs
+        if: always() && env.RUN_GATE == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-experience-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/softbook-experience/
+            ${{ runner.temp }}/experience-build.log
+            ${{ runner.temp }}/experience-metro.log
+          retention-days: 14
+
   android-release:
     needs: changes
     if: always()
