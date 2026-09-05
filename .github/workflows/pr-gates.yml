@@ -548,7 +548,7 @@ jobs:
 
       - name: Install native experience runner
         if: env.RUN_GATE == 'true'
-        run: brew install maestro
+        run: brew install mobile-dev-inc/tap/maestro
 
       - name: Exercise actual reading and correction pixels
         if: env.RUN_GATE == 'true'
