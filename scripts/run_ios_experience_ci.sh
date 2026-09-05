@@ -6,6 +6,7 @@ cd "$repo_dir"
 output_dir="${RUNNER_TEMP:?}/softbook-experience"
 # Hosted runner devices are disposable; select an available iPhone runtime.
 device_id="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=[x for v in json.load(sys.stdin)["devices"].values() for x in v if x["name"].startswith("iPhone")]; assert d, "No iPhone Simulator available"; print(d[0]["udid"])')"
+echo "SOFTBOOK_EXPERIENCE_DEVICE_ID=$device_id" >> "${GITHUB_ENV:?}"
 xcrun simctl boot "$device_id" || xcrun simctl bootstatus "$device_id" -b
 xcrun simctl bootstatus "$device_id" -b
 npm --prefix apps/mobile start -- --port 8081 > "$RUNNER_TEMP/experience-metro.log" 2>&1 &
@@ -17,9 +18,12 @@ for attempt in {1..60}; do
   sleep 1
 done
 curl --silent --fail http://127.0.0.1:8081/status
+# Keychain requires a simulated application identifier: use local ad-hoc signing.
+# Distribution builds are handled separately by the Release job steps.
 xcodebuild -workspace apps/mobile/ios/SoftbookCET.xcworkspace -scheme SoftbookCET \
   -configuration Debug -destination "id=$device_id" \
-  -derivedDataPath "$RUNNER_TEMP/softbook-experience-derived" CODE_SIGNING_ALLOWED=NO build \
+  -derivedDataPath "$RUNNER_TEMP/softbook-experience-derived" \
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build \
   > "$RUNNER_TEMP/experience-build.log" 2>&1
 xcrun simctl install "$device_id" "$RUNNER_TEMP/softbook-experience-derived/Build/Products/Debug-iphonesimulator/SoftbookCET.app"
 node scripts/run_experience_acceptance.mjs --device "$device_id" --output "$output_dir"
