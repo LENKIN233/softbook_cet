@@ -44,7 +44,7 @@
     "visual_output_rule": "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
     "user_facing_ui_design_gate": {
       "applies_when": "pull_request_changes_user_facing_UI_or_visual_state",
-      "required_before_implementation": true,
+      "required_before_implementation": false,
       "accepted_sources": [
         "docs/design/visual-reference.html",
         "docs/design/canon.md",
@@ -57,7 +57,7 @@
         "docs/design/storyboards/*.md",
         "linked_external_design_file"
       ],
-      "same_pull_request_design_artifact_rule": "design brief, direction, or decision added in the same PR may satisfy design-only work, but cannot satisfy an implementation PR that also changes user-facing UI",
+      "same_pull_request_design_artifact_rule": "Design and implementation may be revised together under spec/machine-acceptance.json#harness_strategy.experience_acceptance; author-written design is not execution evidence.",
       "task_local_design_brief_rule": "task-local design briefs may guide exploration but are not accepted implementation authority",
       "existing_code_is_not_design_authority": true,
       "implementation_without_design_artifact": "delivery_blocker",

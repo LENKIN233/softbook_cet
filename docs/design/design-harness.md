@@ -4,271 +4,66 @@
 
 - `spec/requirement-memory.json`
 - `spec/product-core.json`
-- `spec/action-surface.json`
-- `spec/card-system.json`
-- `spec/interactions.json`
-- `spec/knowledge-map.json`
-- `spec/space-operations.json`
+- `spec/machine-acceptance.json#harness_strategy.experience_acceptance`
 - `spec/visual-language.json`
+- `docs/design/single-card-ux-contract.md`
 
 ## Product Truth
 
-软书四六级不是“好看的学习 App”。它是一个面向 CET4/6 备考的低负担知识操作系统：用户被温和但坚定地带着前进，知识卡有考试价值、空间归属和可操作状态。
-
-设计 harness 的目标不是让 AI 直接生成 UI，而是让 AI 在一个有审美命题、方向竞争、失败沉淀和工程保真的系统里工作。
+用户必须能够读到题目材料、完成当前操作、理解结果并继续学习。
+产品意图属于产品 spec；验收与设计修订权限统一由 machine-acceptance 拥有。
+设计稿是可修订基准，不是运行事实。
 
 ## Implementation Hypothesis
 
-当前 RN 界面只作为行为原型与 smoke harness。任何用户可见 UI 实现都必须来自已接受设计 artifact；实现不能反向定义设计。
+从现有视觉语言和设计基准出发，运行真实任务，依据观察修订设计与实现。
+普通修复可以在同一 PR 修改基准和实现，不要求先合并一份设计文档。
+重大方向变化可以选择比较多个候选；普通修复不要求候选数量、搜索代数或额外晋级记录。
+`docs/design/search-runs/README.md` 保留为选择开展方向探索时的工具，不是普通修复门槛。
 
-## 三层 Harness
+## 用户任务驱动的验收
 
-### Design Quarantine Harness
+1. 先描述用户要完成什么，不规定组件结构或内部样式。
+2. 在受影响的平台运行任务，捕获操作前、反馈后和返回状态。
+3. 模型先看实际页面和任务，再看实现理由；具体程序见 machine-acceptance。
+4. 有问题就修订并重跑对应任务；未运行的平台、内容或外部能力明确标为未验证。
+5. PR 记录发现、修复与执行产物；截图、OCR、操作日志由工具生成并保留为 artifact。
 
-Design Quarantine 负责阻断含元信息泄露或用户不可操作的设计内容。它先于审美判断和实现映射执行。
+### 当前落地范围
 
-隔离规则在 `docs/design/design-quarantine.md`。任何 artifact 如果把 agent、harness、spec、validator、metadata、runtime、mock、prototype、seed、fixture、debug、dev、raw exception、API route、repo path 或 TODO 之类内部语义放入用户可见层，就不能作为 implementation authority。
+`apps/mobile/e2e/experience/reading.yaml` 运行两个真实开发内容样本：
+四选一答错后读取正确答案；消除题读取完整原句，打开提示后仍能读取原句。
 
-隔离状态：
+在 macOS 上，对已安装当前 Debug app、已启动 Metro 的**专用可清空测试模拟器**执行：
 
-- `accepted_authority`：可以被 implementation PR 消费。
-- `candidate_exploration`：可以参考，不能背书实现。
-- `quarantined`：必须先修复和复审。
-- `rejected`：保留为失败资产。
-
-### Single-Card UX Contract Gate
-
-单卡流不是“一屏塞满”。它必须是用户可操作的 focused flow。
-
-合同在 `docs/design/single-card-ux-contract.md`。Learning 或核心交互设计必须声明 current card、primary task、primary action、secondary actions、feedback state、escape or recovery、Learning ↔ Space continuity。
-
-如果一个设计只是一张漂亮但不可操作的一屏展示稿，不能作为用户可见 UI 实现依据。
-
-### Creation Harness
-
-Creation harness 负责产生有差异的方向，不负责批准实现。
-
-输入：
-
-- 产品真相与相关 spec
-- 目标 surface
-- 审美命题
-- 参考类型，不是复制对象
-- 反方向约束
-
-输出：
-
-- surface brief
-- 3 个方向稿
-- 每个方向的世界观、构图骨架、交互隐喻、失败风险
-- rejected directions 初稿
-
-禁止：
-
-- 直接输出 RN 组件树
-- 直接进入 token 微调
-- 把现有 RN 截图当视觉权威
-- 用“现代、简洁、高级”这类空泛词替代设计判断
-
-### Judgment Harness
-
-Judgment harness 负责杀掉平庸方向。
-
-每个方向必须回答：
-
-- 是否一眼知道下一步？
-- 是否降低考试焦虑？
-- 是否像 CET 备考产品，而不是泛英语工具？
-- 是否避免普通背单词卡感？
-- 是否保留物理空间的差异化？
-- 模糊截图后，是否还能认出它属于软书？
-- 是否能扩展到 phone / tablet / pc web？
-- 是否会让后续内容生产变重？
-
-评价顺序：
-
-1. 产品真相
-2. 审美命题
-3. 交互清晰度
-4. 信息负担
-5. 视觉系统一致性
-6. 工程可映射性
-
-### Design Evolution Engine
-
-Design Evolution Engine 负责在核心 surface 进入 accepted artifact 之前，让 AI 通过受约束搜索逼近更符合需求的设计内容。它不替代 Creation / Judgment / Delivery，而是把 Creation 和 Judgment 连接成可迭代的优化循环。
-
-核心循环：
-
-```text
-constraints
-  -> generate candidate population
-  -> hard-filter product and layout violations
-  -> pairwise-rank surviving candidates
-  -> harvest strongest fragments
-  -> apply targeted mutations
-  -> repeat until a candidate beats the accepted baseline
-  -> promote one accepted artifact
-  -> sediment failures back into the harness
+```sh
+node scripts/run_experience_acceptance.mjs --device <device-id> --output <new-output-directory>
 ```
 
-使用条件：
+同一流程支持 iOS 和 Android；OCR 使用系统 Vision，不发送图片到外部服务。
+该命令会清空指定模拟器内测试应用的数据，禁止对用户日常设备执行。
+CI 由独立的 iOS runtime step 自动执行；它不进入纯 `validate_harness.py`。
 
-- 新核心 Learning / Space / interaction / motion / platform surface；
-- 重大 redesign；
-- 现有 artifact 只有单稿或证明不足，不能支撑高信心实现；
-- 需要比较 Codex / Figma Make / Stitch / v0 / external design file 等 AI 设计产出质量。
+输出包含运行版本、源码与截图哈希、已知失败样本校准、实际截图和判定。
+`--calibrate-only` 仅验证故障样本检测器，永远不等于产品通过。
+两项 OCR 可读性通过也不等于整体 UX、正式内容、音频或上线验收通过。
 
-禁止：
+### 模型体验审查任务
 
-- 把第一轮生成稿直接当 accepted artifact；
-- 用单一 aesthetic score 代替 pairwise review；
-- 用 "make it better" 这类空泛 prompt 代替 targeted mutation；
-- 只选 winner 而不记录 borrowable fragments / rejected fragments；
-- 让 search-run 中间稿授权同 PR 用户可见 UI 实现。
+对本轮 UI 变更，启动隔离上下文的 reviewer，先只提供用户任务、截图目录与运行条件。
+不要提供作者的设计理由、既有通过结论或建议发现的问题。
+让 reviewer 写下观察后再提供代码，核对原因。它不需要不同模型提供商。
+审查结论必须说明具体状态、用户影响和证据；不能仅给审美分数。
 
-Design Evolution Engine 的记录格式在 `docs/design/search-runs/README.md`。完整 run 至少需要 context pack、8 个候选、pairwise reviews、fragment harvest、mutation log、promotion record 与 rendered proof / external prototype 证据。
+### 判断验收是否有效
 
-### Delivery Harness
+真实坏截图必须失败，修复后的真实截图必须成功。
+允许字体、间距和合理滚动变化；不把某个 `flex` 值或整张像素快照当产品要求。
+这批验收替换了 design_contracts 的设计流程/UX 句子存在性检查，以及解析页布局样式锁定断言。
+后续按发现率、误报和运行成本扩展，不以规则数量衡量进展。
 
-Delivery harness 负责保真，不负责创造。
+## Design Quarantine Harness
 
-进入 RN 之前必须存在：
-
-- accepted design artifact
-- quarantine status showing the artifact is not blocked
-- implementation mapping
-- unimplemented design gaps
-- single-card UX contract answers for Learning or core interaction UI
-- design review checklist answers
-- token / canon delta if any
-
-同一 PR 中同时提交 design brief 和 RN 实现时，design brief 不应自动视为 accepted artifact。设计-only PR 可以创建 artifact；implementation PR 只能消费已接受 artifact，除非用户明确批准例外。
-
-## 产品能力设计系统
-
-软书设计不能按通用 UI 分类平铺。每个 design artifact 必须说明它服务哪个产品能力系统：
-
-1. Learning 推进系统
-   用户如何被系统带着处理当前卡，而不是自己管理模块、计划或统计。
-
-2. Card / Content 表达系统
-   CET 题干、解析、易错点、hint、音频和背面内容如何成为考试知识卡。
-
-3. Interaction + Motion 系统
-   `flip` / `multiple_choice` / `lock` / `elimination` / `swipe` / `hint_layer` 的操作模型、反馈模型、失败态、小动画和 reduce-motion fallback。
-
-4. Physical Space 系统
-   library / group / box / card 的空间结构、当前卡地址、box inspect、favorite tag、sleep / wake，以及 Learning ↔ Space 连续关系。
-
-5. Surface Experience 系统
-   Learning、Space、Stats、Mine、Paywall、Auth 等页面如何承载上层产品能力。
-
-6. Visual Language 系统
-   Aurora Glass、Law of One、学科色、材料、排版和 forbidden patterns。它统一气质，但不能替代 surface / interaction / space 设计。
-
-7. Platform Adaptation 系统
-   phone / tablet / pc web 的布局、输入和信息架构差异。
-
-8. Implementation Mapping 系统
-   accepted artifact 如何映射到 RN / Web，哪些 gap 未实现。
-
-如果一个 artifact 只描述“好看的界面”，但不能说明它服务哪个产品能力系统，它不合格。
-
-## Design Artifact Lifecycle
-
-1. `briefs/`
-   定义 surface 世界观、用户体验、信息目标、反方向。
-
-2. `directions/`
-   记录多个互相竞争的方向。方向必须真实不同，而不是换配色。
-
-3. `decisions/`
-   记录为什么选一个方向，为什么拒绝其他方向。
-
-4. `search-runs/`
-   保存 Design Evolution Engine 的 context pack、candidate population、pairwise review、fragment harvest、mutation log、promotion record 和 rendered proof。它是 accepted artifact 之前的优化证据，不直接授权 implementation PR。
-
-5. `rejected/`
-   保存失败方向和失败理由。失败资产是 harness 的一部分。
-
-6. `mapping/`
-   把 accepted design artifact 映射到 RN、Web 或其他实现。
-
-7. `interaction-motion/`
-   定义核心交互的操作、反馈、失败态、小动画、可中断性和 reduce-motion fallback。
-
-8. `physical-space/`
-   定义空间模型、层级、位置状态、favorite tag、sleep / wake 和 Learning ↔ Space 连续性。
-
-9. `mocks/`
-   保存核心 surface / state 的可渲染视觉稿或外部设计稿索引。核心 UI 实现不能只靠 prose direction 声称高审美完成。
-
-10. `storyboards/`
-   保存交互、动效、空间转场和状态变化的 storyboard。
-
-11. `design-quarantine.md`
-    定义哪些 artifact 因元信息泄露、用户可见内部术语或不可操作 framing 被隔离。
-
-12. `single-card-ux-contract.md`
-    定义单卡流的可操作结构，防止把 single-card flow 误画成一屏信息海报。
-
-`task-local design brief` 只能作为探索草稿；它不能作为 implementation PR 的正式设计权威。核心 UI implementation PR 必须消费已存在的 accepted artifact，并声明 mapping 与 gap。
-
-## 软书的审美命题
-
-主命题：
-
-> 让考试资料拥有空间感，让知识卡成为可操作物，让学习推进像翻阅一本有生命的备考书。
-
-它同时要求：
-
-- 考试信任：像可信资料，不像游戏或营销页。
-- 低负担推进：下一步明确，不让用户管理系统。
-- 空间差异化：知识不是列表，而是有位置、归属、移动和痕迹。
-- 克制材料感：材料服务内容，不喧宾夺主。
-
-## 方向竞争规则
-
-每个核心 surface 至少产出 3 个方向：
-
-- 一个偏内容权威
-- 一个偏空间物件
-- 一个偏效率操作
-
-方向稿必须包含：
-
-- aesthetic thesis
-- first-read path
-- focal object
-- interaction silhouette
-- state language
-- what it rejects
-- why it can belong to 软书
-
-如果该 surface 进入 Design Evolution Engine，方向竞争升级为 candidate population：至少 8 个候选、同一 context pack、硬约束过滤、pairwise review、fragment harvest 与 targeted mutation。3 个方向仍是最低探索下限，不足以证明重大 redesign 已经逼近最佳方案。
-
-## 创意突破规则
-
-允许突破现有 token 或 canon，但必须写清：
-
-- 为什么现有规则不够
-- 突破只适用于哪个 surface 或状态
-- 如何验证它没有破坏产品真相
-- 回滚条件
-- 是否需要沉淀进 `spec/visual-language.json` 或 `docs/design/canon.md`
-
-没有这些解释的突破只是漂移。
-
-## 合格输出标准
-
-一个 design artifact 合格，不是因为它漂亮，而是因为它让后续判断更少依赖个人口味。
-
-合格 artifact 必须让读者知道：
-
-- 这是什么产品人格
-- 为什么这个 surface 必须长这样
-- 用户第一眼看哪里
-- 用户下一步做什么
-- 哪些方向已经被明确拒绝
-- 实现时哪些偏差会改变设计本意
+`docs/design/design-quarantine.md` 的内容与信息泄露边界仍有效。
+被隔离的 artifact 不能单靠作者声称成为设计依据；先修复并复验具体失败。
+安全、账号隔离、数据完整性与外部事实证据不因设计治理精简而降级。
