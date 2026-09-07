@@ -6,7 +6,7 @@
   "dependencies": {
     "@cloudbase/node-sdk": "^4.0.3",
     "tencentcloud-sdk-nodejs-sms": "4.1.240",
-    "ts-fsrs": "5.4.1"
+    "ts-fsrs": "5.4.2"
   },
   "overrides": {
     "axios": "1.18.1",
