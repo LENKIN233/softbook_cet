@@ -410,7 +410,7 @@
         "mobile-quality",
         "web-quality"
       ],
-      "responsibility": "Runtime behavior is verified by dedicated CI jobs, not by the pure harness layers. validate_harness.py may check that those jobs are wired, but it must not become the runtime smoke runner.",
+      "responsibility": "The ios-release job also runs the bounded reading-journey pixel acceptance and archives captures; its scope is defined in machine-acceptance. Runtime behavior is verified by dedicated CI jobs, not by the pure harness layers. validate_harness.py may check that those jobs are wired, but it must not become the runtime smoke runner.",
       "side_effect_policy": "delegated_to_ci_jobs",
       "allowed_operations": [
         "workflow_wiring_checks"

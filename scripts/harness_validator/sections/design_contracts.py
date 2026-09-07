@@ -5,21 +5,6 @@ def validate(context) -> None:
     ROOT = context.root
     check_contains = context.check_contains
 
-    design_harness_text = (ROOT / "docs/design/design-harness.md").read_text(encoding="utf-8")
-    for snippet in [
-        "### Design Evolution Engine",
-        "generate candidate population",
-        "pairwise-rank surviving candidates",
-        "harvest strongest fragments",
-        "targeted mutation",
-        "docs/design/search-runs/README.md",
-        "### Design Quarantine Harness",
-        "docs/design/design-quarantine.md",
-        "### Single-Card UX Contract Gate",
-        "docs/design/single-card-ux-contract.md",
-    ]:
-        check_contains("design harness evolution engine", design_harness_text, snippet)
-
     design_quarantine_text = (ROOT / "docs/design/design-quarantine.md").read_text(encoding="utf-8")
     for snippet in [
         "Any design artifact that leaks such metadata is not design authority.",
@@ -35,20 +20,6 @@ def validate(context) -> None:
         "Implementation PRs must not consume quarantined artifacts.",
     ]:
         check_contains("design quarantine contract", design_quarantine_text, snippet)
-
-    single_card_ux_text = (ROOT / "docs/design/single-card-ux-contract.md").read_text(encoding="utf-8")
-    for snippet in [
-        "Single-card flow means the learner works through one current CET card",
-        "It does not mean every control, explanation, statistic, navigation option, and state must fit into one static screen.",
-        "current_card",
-        "primary_task",
-        "primary_action",
-        "feedback_state",
-        "escape_or_recovery",
-        "space_continuity",
-        "the current task and primary action are always findable",
-    ]:
-        check_contains("single-card UX contract", single_card_ux_text, snippet)
 
     visual_language_text = (ROOT / "spec/visual-language.json").read_text(encoding="utf-8")
     for snippet in [

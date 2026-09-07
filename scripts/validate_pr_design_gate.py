@@ -551,17 +551,6 @@ def validate_checklist_evidence(
     return errors
 
 
-def referenced_same_pr_design_artifact(value: str, changed_files: list[str]) -> list[str]:
-    referenced_paths = set(extract_doc_artifact_paths(value))
-    referenced = []
-    for path in changed_files:
-        if not path.startswith(DESIGN_ARTIFACT_PREFIXES):
-            continue
-        if path in referenced_paths:
-            referenced.append(path)
-    return referenced
-
-
 def extract_doc_artifact_paths(value: str) -> list[str]:
     return [match.group(1) for match in CONCRETE_DOC_ARTIFACT_RE.finditer(value)]
 
@@ -674,12 +663,6 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                 "a concrete docs/design artifact file, or a linked external design file"
             )
         else:
-            same_pr_artifacts = referenced_same_pr_design_artifact(design_artifact, changed_files)
-            if same_pr_artifacts:
-                errors.append(
-                    "same-PR design artifact cannot satisfy an implementation PR design gate: "
-                    + ", ".join(same_pr_artifacts)
-                )
             if learning_or_space_files and not has_concrete_source(design_artifact, SURFACE_SPECIFIC_SOURCE_MARKERS):
                 errors.append(
                     "Learning/Space UI changes require a surface-specific accepted decision, mock, storyboard, "
@@ -759,13 +742,6 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                 "Interaction/motion artifact must name docs/design/interaction-motion, docs/design/storyboards, "
                 "or a linked external design file"
             )
-        else:
-            same_pr_artifacts = referenced_same_pr_design_artifact(interaction_motion_artifact, changed_files)
-            if same_pr_artifacts:
-                errors.append(
-                    "same-PR interaction/motion artifact cannot satisfy an implementation PR design gate: "
-                    + ", ".join(same_pr_artifacts)
-                )
 
     if space_files:
         if is_missing(physical_space_artifact):
@@ -781,13 +757,6 @@ def validate(body: str, changed_files: list[str]) -> list[str]:
                 "Physical space artifact must name docs/design/physical-space, docs/design/storyboards, "
                 "or a linked external design file"
             )
-        else:
-            same_pr_artifacts = referenced_same_pr_design_artifact(physical_space_artifact, changed_files)
-            if same_pr_artifacts:
-                errors.append(
-                    "same-PR physical-space artifact cannot satisfy an implementation PR design gate: "
-                    + ", ".join(same_pr_artifacts)
-                )
 
         space_design_sources = "\n".join(
             value

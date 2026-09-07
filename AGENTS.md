@@ -99,8 +99,8 @@ status: active
 - 不要把 CET4 受控试点的 120 卡、60 卡 free 子集、pilot profile/bundle/release/entitlement/outcome report 当作正式封闭内测或 launch evidence；当前仓库开发卡源、candidate handoff、dry-run 和 runtime fixture 也不得计入 120 张正式批准卡
 - 不要把 CET4 closed-beta readiness 的 `ready` 当作正式产品 launch readiness；它只覆盖精确 CET4 1,180 卡/108 盒/301 音频与其封闭内测 cohort，不降低 CET6、公开分发、支付、合规或 `docs/release/launch-readiness.v1.json` 的任何 gate
 - 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
-- 不要直接用 RN 代码、截图或 agent 个人审美定义用户可见设计；任何呈现给用户的 screen / component / state / chrome 都必须先有已接受设计稿或等价设计基准，再进入实现
-- 不要用同一 PR 内新增 / 修改的 design brief、direction 或 decision 为同一 PR 的用户可见 UI 实现背书；同 PR 设计稿只适用于 design-only PR
+- 用户可见实现应从现有设计基准出发；真实截图和操作结果可证明基准失败，修订权与验收方式由 `spec/machine-acceptance.json#harness_strategy.experience_acceptance` 统一定义
+- 设计基准可由实际用户任务失败推翻；普通修复允许在同一 PR 修订设计与实现，按 `spec/machine-acceptance.json#harness_strategy.experience_acceptance` 验收运行结果，设计文字不能替代执行证据
 - 不要把 task-local design brief 当作 implementation PR 的正式设计权威；它只能作为探索草稿
 - 不要把核心交互 / 小动效当作 UI 完成后的装饰；Learning 或核心交互实现必须先有 interaction/motion artifact 或 storyboard
 - 不要把物理空间当作普通页面 UI；Space 实现必须先有 spatial model / state transition / Learning ↔ Space 连续性 artifact

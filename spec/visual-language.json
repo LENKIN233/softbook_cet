@@ -30,7 +30,7 @@
         "docs/design/storyboards/*.md",
         "linked_external_design_file"
       ],
-      "same_pull_request_rule": "A design brief or decision added in the same pull request may satisfy design-only work, but must not satisfy an implementation pull request that also changes user-facing UI.",
+      "same_pull_request_rule": "Follow spec/machine-acceptance.json#harness_strategy.experience_acceptance: a baseline may be revised with implementation after observed task failure; assess the running result.",
       "binding": [
         "spec/repo-delivery-contract.json",
         "spec/agent-harness.json",
@@ -287,7 +287,7 @@
         "post_implementation_screenshot_after_coding",
         "agent_or_developer_personal_taste_statement",
         "task_local_design_brief_for_implementation_pr",
-        "same_pull_request_design_brief_when_the_same_pr_also_implements_user_facing_UI",
+        "author_design_claim_without_running_product_evidence",
         "quarantined_design_artifact",
         "artifact_with_user_visible_metadata_leakage",
         "non_operable_one_screen_flow"

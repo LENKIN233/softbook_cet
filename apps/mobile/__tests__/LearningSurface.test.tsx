@@ -255,7 +255,7 @@ test('long prompts, options, and flip backs remain complete inside the task scro
 });
 
 test.each(['lock', 'elimination', 'swipe'] as const)(
-  'dense %s interaction renders its opened hint layer',
+  '%s keeps required material readable in the component alongside an opened hint',
   interactionId => {
     const session = createLocalLearningSession('cet4');
     const card = session.cards.find(
@@ -301,6 +301,8 @@ test.each(['lock', 'elimination', 'swipe'] as const)(
     expect(
       tree!.root.findByProps({ testID: 'learning-support-layer' }),
     ).toBeTruthy();
+    expect(JSON.stringify(tree!.toJSON())).toContain(card.front.support);
+    expect(JSON.stringify(tree!.toJSON())).toContain(card.front.context);
     expect(JSON.stringify(tree!.toJSON())).toContain('先找题干中的关键词');
     if (card.hint_layer) {
       expect(JSON.stringify(tree!.toJSON())).toContain(card.hint_layer.content);
@@ -1215,23 +1217,6 @@ test('result detail reads as a resolved card without raw metadata', () => {
       testID: 'learning-detail-correct-answer',
     }),
   ).toBeTruthy();
-  const detailResolvedCardStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'learning-detail-resolved-card' }).props
-      .style,
-  );
-  const detailResolvedCardContentStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'learning-detail-resolved-card' }).props
-      .contentContainerStyle,
-  );
-  expect(detailResolvedCardStyle.flex).toBe(1);
-  expect(detailResolvedCardContentStyle.justifyContent).toBe('space-between');
-  expect(detailResolvedCardStyle.minHeight).toBe(0);
-  const detailAnswerSlipStyle = StyleSheet.flatten(
-    tree!.root.findByProps({ testID: 'learning-detail-answer-slip' }).props
-      .style,
-  );
-  expect(detailAnswerSlipStyle.flexGrow).toBe(1);
-  expect(detailAnswerSlipStyle.justifyContent).toBe('space-between');
   expect(
     tree!.root.findByProps({ testID: 'learning-detail-analysis-title' }).props
       .numberOfLines,

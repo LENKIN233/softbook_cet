@@ -374,6 +374,7 @@
       "blocked_when": "space_operation_or_knowledge_ownership_change_has_not_been_updated_in_owner_specs"
     },
     "design_search": {
+      "activation": "optional_direction_exploration_not_required_for_ordinary_corrections",
       "inputs": [
         "spec/requirement-memory.json",
         "spec/authority-map.json",
@@ -395,7 +396,7 @@
         "failure_sedimentation_targets"
       ],
       "stop_when": "one_candidate_beats_the_accepted_baseline_or_the_run_records_why_no_candidate_should_be_promoted",
-      "blocked_when": "the_task_tries_to_promote_first_generation_AI_output_without_hard_filters_pairwise_review_fragment_harvest_and_promotion_record"
+      "blocked_when": "claims_product_acceptance_without_executing_the_affected_user_task"
     },
     "review": {
       "inputs": [
@@ -751,8 +752,8 @@
     },
     {
       "id": "AP-31",
-      "name": "promote_first_generation_AI_design_without_search_or_pairwise_review",
-      "correction": "run_design_evolution_with_context_pack_candidate_population_hard_filters_pairwise_review_fragment_harvest_targeted_mutation_and_promotion_record_before_acceptance"
+      "name": "accept_design_paperwork_instead_of_observed_user_outcomes",
+      "correction": "follow_spec_machine_acceptance_experience_acceptance_for_model_review_and_revisable_design_baselines"
     },
     {
       "id": "AP-32",

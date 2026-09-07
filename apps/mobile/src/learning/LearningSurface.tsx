@@ -647,9 +647,7 @@ export function LearningSurface({
     audioSelection === null;
   const shouldShowContextCard =
     currentResult === null &&
-    !isDenseInteraction &&
-    (supportLayer !== null ||
-      currentCard.front.support.trim().length > 0 ||
+    (currentCard.front.support.trim().length > 0 ||
       currentCard.front.context.trim().length > 0);
   const minimumSheetHeight = isCompactPhone
     ? Math.min(320, Math.max(260, Math.round(viewportHeight * 0.32)))
@@ -978,30 +976,25 @@ export function LearningSurface({
                 <View
                   style={[
                     styles.contextCard,
-                    supportLayer ? styles.contextCardSupportActive : null,
                     {
                       backgroundColor: palette.panelStrong,
                       borderColor: palette.border,
                     },
                   ]}
-                  testID={
-                    supportLayer
-                      ? 'learning-support-layer'
-                      : 'learning-current-card-context'
-                  }
+                  testID="learning-current-card-context"
                 >
                   <Text
                     style={[
                       styles.cardSupport,
-                      { color: supportLayer?.tone ?? palette.text },
+                      { color: palette.text },
                     ]}
                   >
-                    {supportLayer?.title ?? currentCard.front.support}
+                    {currentCard.front.support}
                   </Text>
                   <Text
                     style={[styles.cardContext, { color: palette.textMuted }]}
                   >
-                    {supportLayer?.body ?? currentCard.front.context}
+                    {currentCard.front.context}
                   </Text>
                 </View>
               ) : null}
@@ -1081,7 +1074,7 @@ export function LearningSurface({
                     onSelectSwipeState={onSelectSwipeState}
                     compact={isCompactPhone}
                   />
-                  {isDenseInteraction && supportLayer ? (
+                  {supportLayer ? (
                     <View
                       style={[
                         styles.denseSupportLayer,
@@ -3169,7 +3162,7 @@ const styles = StyleSheet.create({
   detailAnswerCellStacked: {
     alignItems: 'center',
     flexDirection: 'row',
-    flexGrow: 0,
+    flex: 0,
     minHeight: 42,
   },
   detailAnswerLabel: {
