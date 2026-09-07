@@ -138,6 +138,10 @@ input + label { margin-top: .75rem; }
 .result-label { font-size: .75rem; font-weight: 800; letter-spacing: .04em; }
 .result-slip.good .result-label { color: var(--success); }
 .result-slip.review .result-label { color: #795500; }
+.answer-comparison { display: grid; gap: .75rem; margin: 1rem 0; }
+.answer-comparison > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem 1rem; }
+.answer-comparison dt { flex: 0 0 5em; color: var(--muted); font-size: .875rem; }
+.answer-comparison dd { flex: 1 1 10em; min-width: 0; margin: 0; font-weight: 700; overflow-wrap: anywhere; }
 .exam-tip { color: var(--ink-2); padding-top: .8rem; border-top: 1px solid var(--line); }
 
 .context-rail { min-width: 0; margin: 18px 18px 18px 0; border: 1px solid rgba(96,71,198,.1); border-radius: 28px; padding: 2rem 1.4rem; background: rgba(255,255,255,.92); box-shadow: var(--shadow-soft); }

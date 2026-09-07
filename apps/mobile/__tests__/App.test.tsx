@@ -6,6 +6,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import {
   AccessibilityInfo,
+  BackHandler,
   NativeModules,
   Platform,
   ScrollView,
@@ -333,6 +334,62 @@ async function openSpaceCardList(root: ReactTestRenderer.ReactTestInstance) {
     await flushAsyncEffects();
   });
 }
+
+test('Android back unwinds detail and space navigation without advancing the card', async () => {
+  const originalPlatform = Object.getOwnPropertyDescriptor(Platform, 'OS')!;
+  Object.defineProperty(Platform, 'OS', {value: 'android', configurable: true});
+  let onBack: (() => boolean | null | undefined) | undefined;
+  const remove = jest.fn();
+  const subscription = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_name, handler) => {
+    onBack = handler;
+    return {remove};
+  });
+  let tree: ReactTestRenderer.ReactTestRenderer | undefined;
+  const back = async () => {
+    expect(onBack).toBeDefined();
+    let consumed: boolean | null | undefined;
+    await ReactTestRenderer.act(() => { consumed = onBack!(); });
+    return consumed;
+  };
+  try {
+    await ReactTestRenderer.act(() => { tree = ReactTestRenderer.create(<App />); });
+    expect(onBack).toBeUndefined();
+    const root = tree!.root;
+    await loginIntoLearningFlow(root);
+    expect(await back()).toBe(false);
+    await ReactTestRenderer.act(() => {
+      findPressableByTestId(root, 'learning-flip-button').props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      findPressableByTestId(root, 'learning-flip-review-button').props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      findPressableByTestId(root, 'learning-open-result-detail-button').props.onPress();
+    });
+    expect(root.findByProps({testID: 'learning-result-detail-screen'})).toBeTruthy();
+    expect(await back()).toBe(true);
+    expect(root.findAllByProps({testID: 'learning-result-detail-screen'})).toHaveLength(0);
+    expect(root.findByProps({testID: 'learning-progress-count'}).props.children).toBe('1/5');
+    expect(root.findByProps({testID: 'learning-result-summary'})).toBeTruthy();
+    await startTrialFromProtectedEntry(root, 'space');
+    expect(root.findByProps({testID: 'space-browse-address-clue'})).toBeTruthy();
+    expect(await back()).toBe(true);
+    expect(root.findByProps({testID: 'space-open-card-list'})).toBeTruthy();
+    expect(await back()).toBe(true);
+    expect(root.findByProps({testID: 'learning-progress-count'}).props.children).toBe('1/5');
+    for (const route of ['statistics', 'mine'] as const) {
+      await openRoute(root, route);
+      expect(await back()).toBe(true);
+      expect(root.findByProps({testID: 'learning-current-card'})).toBeTruthy();
+    }
+    expect(await back()).toBe(false);
+  } finally {
+    await ReactTestRenderer.act(() => { tree?.unmount(); });
+    subscription.mockRestore();
+    Object.defineProperty(Platform, 'OS', originalPlatform);
+  }
+  expect(remove).toHaveBeenCalled();
+});
 
 async function resolveLearningBootstrap(
   session: LearningSession = createLocalLearningSession('cet4'),

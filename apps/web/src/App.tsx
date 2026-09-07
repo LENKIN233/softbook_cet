@@ -1409,6 +1409,22 @@ function LearningSurface(props: LearningSurfaceProps) {
           {resolved ? (
             <section ref={resultRef} className={`result-slip ${resultTone(resolved)}`} aria-live="polite">
               <p className="result-label">{resultLabel(resolved)}</p>
+              {card.interaction_id === 'multiple_choice' ? (
+                <dl className="answer-comparison" aria-label="答案对照">
+                  {[
+                    {label: '你的选择', id: cardState.selectedOptionId},
+                    {label: '正确答案', id: card.answer_key.correct_option},
+                  ].map(row => {
+                    const option = card.options.find(candidate => candidate.id === row.id);
+                    return (
+                      <div key={row.label}>
+                        <dt>{row.label}</dt>
+                        <dd>{option ? `${option.label} · ${option.text}` : '未选择'}</dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+              ) : null}
               <h3>{card.analysis.title}</h3>
               <p>{card.analysis.summary}</p>
               <p className="exam-tip">考试提示 · {card.analysis.exam_tip}</p>

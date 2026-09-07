@@ -57,7 +57,12 @@
       "statistics",
       "mine"
     ],
-    "page_composition_must_adapt_by_device_class": true
+    "page_composition_must_adapt_by_device_class": true,
+    "android_system_back": {
+      "order": ["learning_detail_to_card", "space_card_list_to_overview", "supporting_route_to_learning", "learning_root_uses_system_default"],
+      "preserve_during_in_app_back": ["current_card", "answer_draft", "resolved_result", "pending_sync"],
+      "modal_owner": "Native modal onRequestClose remains authoritative; account recovery and submitting deletion are not navigation shortcuts."
+    }
   },
   "continuity_and_sync": {
     "progress_sync_granularity": "daily_level",
