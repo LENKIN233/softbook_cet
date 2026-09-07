@@ -32,7 +32,7 @@ function run(command, args, log = null) {
   return result.stdout;
 }
 const report = {
-  scope: 'native-development-reading-journeys', status: 'failed',
+  scope: 'native-development-learning-journeys', status: 'failed',
   device: options.device, started_at: new Date().toISOString(),
   head: run('git', ['rev-parse', 'HEAD']).trim(),
   diff_sha256: hash(run('git', ['diff', '--binary', 'HEAD'])),
@@ -56,7 +56,7 @@ try {
     'material': elimination.front.support.replace(/^目标句[：:]\s*/, ''),
     'answer': `${correct.label} ${correct.text}`,
   };
-  report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/src/learning/LearningSurface.tsx',
+  report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'scripts/experience_ocr.swift',
     'scripts/run_experience_acceptance.mjs'].map(path => [path, hash(readFileSync(join(root, path)))]));
   const fixtureRoot = join(root, 'apps/mobile/e2e/experience/known-failures');

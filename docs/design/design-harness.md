@@ -33,6 +33,8 @@
 
 `apps/mobile/e2e/experience/reading.yaml` 运行两个真实开发内容样本：
 四选一答错后读取正确答案；消除题读取完整原句，打开提示后仍能读取原句。
+同一 flow 在 Android 上还执行系统 Back，验证解析返回卡面、盒内列表返回概览、
+辅助页面返回学习。iOS 会跳过这一平台专有分支，不得据此声称 Android 已实测。
 
 在 macOS 上，对已安装当前 Debug app、已启动 Metro 的**专用可清空测试模拟器**执行：
 

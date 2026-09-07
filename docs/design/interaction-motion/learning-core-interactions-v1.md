@@ -35,6 +35,7 @@ Learning 是 system-sequenced single-card flow。核心交互不是按钮装饰�
 
 - Operation model: 顶部题干，下面 2x2 option grid；用户选择一个选项。
 - Feedback model: auto scoring immediately reveals correct / incorrect state and short exam-oriented explanation.
+- Web correction includes an explicitly labelled selected/correct answer comparison; color alone is insufficient.
 - Failure / recovery: 未选择时 CTA 不推进；远端同步失败只进入队列，不回滚本地结果。
 - Motion intent: selected tile 120-180ms settle；correct answer gets restrained accent rim, wrong answer demotes without punishment animation.
 - Interruptibility: reveal 后可以直接进入下一张，不要求额外 mastery 判断。
@@ -77,6 +78,15 @@ Learning 是 system-sequenced single-card flow。核心交互不是按钮装饰�
 - Reduce motion fallback: hint text appears inline under the trigger.
 
 ## Learning Low-Burden Rule
+
+Android system Back returns from result detail to the same resolved card, from
+the Space card list to its overview, and from supporting routes to Learning.
+It does not submit, advance, discard an answer or clear pending sync. At the
+Learning root, use the normal system Back behavior. Native modals retain their
+own close/submission rules. The platform contract owns this order.
+
+Flip feedback keeps 有把握=confident/mint (#22C58B) and
+再回看=review/amber (#F5B100).
 
 - The primary action is always the interaction's own operation.
 - `peek`, `hint`, `favorite`, and contextual `sleep` stay secondary.

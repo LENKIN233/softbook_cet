@@ -10,6 +10,7 @@ import NetInfo from '@react-native-community/netinfo';
 import {
   AccessibilityInfo,
   AppState,
+  BackHandler,
   findNodeHandle,
   InputAccessoryView,
   Keyboard,
@@ -1190,6 +1191,33 @@ function AppShell({
   const usesAccessibilityLayout = fontScale >= 1.3;
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !isAuthenticated) {
+      return;
+    }
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Modal/recovery flows own their close policy and must not be bypassed.
+      if (accountDeletionState !== 'closed') {
+        return false;
+      }
+      if (activeRoute === 'learning' && learningScreen === 'result_detail') {
+        setLearningScreen('practice');
+        return true;
+      }
+      if (activeRoute === 'space' && spaceScreen === 'card_list') {
+        setSpaceScreen('overview');
+        return true;
+      }
+      if (activeRoute !== 'learning') {
+        setActiveRoute('learning');
+        setLearningScreen('practice');
+        setSpaceScreen('overview');
+        return true;
+      }
+      return false;
+    });
+    return () => subscription.remove();
+  }, [accountDeletionState, activeRoute, isAuthenticated, learningScreen, spaceScreen]);
   useEffect(() => {
     if (authState.stage === 'authenticated') {
       return;

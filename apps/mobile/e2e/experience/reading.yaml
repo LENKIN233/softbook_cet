@@ -62,3 +62,45 @@ name: read-material-and-correction
 - tapOn:
     id: learning-hint-button
 - takeScreenshot: material-with-hint
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - tapOn:
+          id: learning-elimination-1
+      - tapOn:
+          id: learning-submit-button
+      - tapOn:
+          id: learning-open-result-detail-button
+      - assertVisible:
+          id: learning-result-detail-screen
+      - takeScreenshot: android-detail-before-back
+      - back
+      - assertVisible:
+          id: learning-current-card
+      - assertNotVisible:
+          id: learning-result-detail-screen
+      - takeScreenshot: android-card-after-back
+      - tapOn:
+          id: route-tab-space
+      - tapOn:
+          id: space-open-card-list
+      - assertVisible:
+          id: space-browse-address-clue
+      - back
+      - assertVisible:
+          id: space-open-card-list
+      - takeScreenshot: android-space-after-back
+      - back
+      - assertVisible:
+          id: learning-current-card
+      - tapOn:
+          id: route-tab-statistics
+      - back
+      - assertVisible:
+          id: learning-current-card
+      - tapOn:
+          id: route-tab-mine
+      - back
+      - assertVisible:
+          id: learning-current-card

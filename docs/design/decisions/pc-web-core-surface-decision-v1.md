@@ -43,6 +43,13 @@ Before authentication, show a calm identity gate with phone SMS verification. Do
 
 The current card owns the center workbench. The center region branches at shape level for flip, multiple choice, lock, elimination, and swipe. Review appears as an attached answer slip on the same object. Audio appears as an attached resource chip with ready, preparing, playing, paused, and recoverable states governed by the existing audio artifact.
 
+For a resolved multiple-choice card, the attached slip explicitly labels the
+learner's choice and the correct answer before the explanation. Show each option
+label and full text; color is supplementary. No correct-answer disclosure appears
+before resolution, and continuing removes the old card's comparison. This
+correction follows the observed case where a wrong selection remained highlighted
+without identifying the correct answer.
+
 ### Space
 
 Space deliberately changes the wide-screen composition: left becomes the library / group tree, center becomes the current box and contained cards, and right becomes the selected-object inspector. Favorite remains a card tag. Sleep/wake remains a physical state region under the owning box.

@@ -24,6 +24,24 @@ function chooseLockOption(slotLabel: string, option: string) {
 }
 
 describe('PC Web core flow', () => {
+  it('shows the selected and correct answers after a wrong choice, then clears the feedback on continue', async () => {
+    await authenticate();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+    expect(screen.queryByLabelText('答案对照')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: /A.*urgent/}));
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    const answers = screen.getByLabelText('答案对照');
+    expect(answers).toHaveTextContent('你的选择');
+    expect(answers).toHaveTextContent('A · urgent');
+    expect(answers).toHaveTextContent('正确答案');
+    expect(answers).toHaveTextContent('B · unclear');
+    expect(screen.getByRole('button', {name: /A.*urgent/})).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+    expect(screen.queryByLabelText('答案对照')).not.toBeInTheDocument();
+    expect(screen.getByRole('group', {name: '开锁槽位'})).toBeInTheDocument();
+  });
   it('keeps Learning first and exposes the canonical route order', async () => {
     await authenticate();
 
