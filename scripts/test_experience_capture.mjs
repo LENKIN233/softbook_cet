@@ -19,8 +19,8 @@ function exercise(durations, failure = null) {
 }
 
 test('slow observed preparation leaves a full reading budget', () => {
-  // Incident: driver startup + clearState consumed ~170 seconds before reading.
-  const result = exercise([170000, 150000]);
+  // Incident: driver startup + clearState + first keyboard input consumed the reading budget.
+  const result = exercise([310000, 150000]);
   assert.ok(result.elapsed > 240000);
   assert.equal(result.error, undefined);
   assert.equal(result.calls.length, 2);
@@ -32,7 +32,7 @@ test('slow observed preparation leaves a full reading budget', () => {
 });
 
 test('preparation timeout never starts a journey', () => {
-  const result = exercise([300001, 1]);
+  const result = exercise([420001, 1]);
   assert.match(result.error.message, /timeout: preparation.log/);
   assert.equal(result.calls.length, 1);
 });
