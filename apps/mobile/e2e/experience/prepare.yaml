@@ -1,0 +1,5 @@
+appId: com.softbook.cet
+name: prepare-reading-device
+---
+# Dedicated disposable device. Preparation has its own bounded budget.
+- clearState

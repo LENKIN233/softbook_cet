@@ -2,7 +2,6 @@ appId: com.softbook.cet
 name: read-material-and-correction
 ---
 # Dedicated development simulator only. No remote SMS or account is used.
-- clearState
 - launchApp
 - extendedWaitUntil:
     visible:
