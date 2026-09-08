@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 import {dirname, resolve, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
+import {captureExperience} from './lib/experience_capture.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const options = {device: null, output: null, calibrateOnly: false};
@@ -25,9 +26,10 @@ const output = resolve(options.output);
 if (existsSync(output) && readdirSync(output).length) throw new Error('Output must be empty; stale screenshots cannot satisfy a run.');
 mkdirSync(output, {recursive: true});
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-function run(command, args, log = null) {
-  const result = spawnSync(command, args, {cwd: root, encoding: 'utf8', timeout: 240000, maxBuffer: 8 * 1024 * 1024});
-  if (log) writeFileSync(join(output, log), `${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+function run(command, args, log = null, timeout = 240000) {
+  const started = Date.now();
+  const result = spawnSync(command, args, {cwd: root, encoding: 'utf8', timeout, maxBuffer: 8 * 1024 * 1024});
+  if (log) writeFileSync(join(output, log), `${result.stdout ?? ''}\n${result.stderr ?? ''}\ncommand=${command} duration_ms=${Date.now() - started} timeout_ms=${timeout} status=${result.status} error=${result.error?.message ?? ''}\n`);
   if (result.error || result.status !== 0) throw new Error(`${command} failed (${result.status}); see ${log ?? 'command output'}: ${result.error?.message ?? result.stdout?.slice(-1000)}`);
   return result.stdout;
 }
@@ -57,7 +59,8 @@ try {
     'answer': `${correct.label} ${correct.text}`,
   };
   report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx',
-    'apps/mobile/e2e/experience/reading.yaml', 'scripts/experience_ocr.swift',
+    'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',
+    'scripts/lib/experience_capture.mjs', 'scripts/experience_ocr.swift',
     'scripts/run_experience_acceptance.mjs'].map(path => [path, hash(readFileSync(join(root, path)))]));
   const fixtureRoot = join(root, 'apps/mobile/e2e/experience/known-failures');
   const fixtures = ['material', 'answer'].map(kind => ({kind, path: join(fixtureRoot, `${kind}.png`)}));
@@ -70,8 +73,7 @@ try {
     rejected: !readable(failedPixels[index], expected[kind])}));
   if (report.calibration.some(item => !item.rejected)) throw new Error('Known bad screenshot was accepted; the evaluator is not calibrated.');
   if (!options.calibrateOnly) {
-    run('maestro', ['--device', options.device, 'test', '--test-output-dir', join(output, 'capture'),
-      'apps/mobile/e2e/experience/reading.yaml'], 'maestro.log');
+    captureExperience({device: options.device, output, run});
     const samples = [['material', 'material'], ['material-with-hint', 'material'], ['answer', 'answer']];
     function capturedFiles(directory) {
       return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {

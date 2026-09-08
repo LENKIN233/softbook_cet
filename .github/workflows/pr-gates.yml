@@ -125,7 +125,7 @@ jobs:
         run: node --test infra/cloudbase/test-resolve-ios-simulator.mjs
 
       - name: Test experience CI failure and startup boundaries
-        run: node --test scripts/test_ios_experience_ci.mjs
+        run: node --test scripts/test_ios_experience_ci.mjs scripts/test_experience_capture.mjs
 
       - name: Test Android release boundary
         run: node --test scripts/test_android_release_boundary.mjs
@@ -525,7 +525,7 @@ jobs:
 
       - name: Exercise actual reading and correction pixels
         if: env.RUN_GATE == 'true'
-        timeout-minutes: 12
+        timeout-minutes: 20
         working-directory: ${{ github.workspace }}
         run: bash scripts/run_ios_experience_ci.sh run
 

@@ -23,6 +23,8 @@ const MOBILE_SUPPORT_FILES = new Set([
   'scripts/run_experience_acceptance.mjs',
   'scripts/run_ios_experience_ci.sh',
   'scripts/test_ios_experience_ci.mjs',
+  'scripts/lib/experience_capture.mjs',
+  'scripts/test_experience_capture.mjs',
   'scripts/experience_ocr.swift',
   'scripts/build_android_signed_release.mjs',
   'scripts/build_mobile_release_runtime_profile.mjs',
