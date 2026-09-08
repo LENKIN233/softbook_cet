@@ -44,7 +44,8 @@ node scripts/run_experience_acceptance.mjs --device <device-id> --output <new-ou
 
 同一流程支持 iOS 和 Android；OCR 使用系统 Vision，不发送图片到外部服务。
 该命令会清空指定模拟器内测试应用的数据，禁止对用户日常设备执行。
-runner 先用独立的 300 秒预算安装驱动并清空应用，再复用驱动执行原有 240 秒阅读流程；
+runner 先用独立的 420 秒预算安装驱动、清空应用并完成开发测试登录，确认学习卡就绪后，
+再复用驱动执行原有 240 秒阅读流程；
 任一阶段失败立即停止，不重试。准备日志与阅读截图分目录保留，不能互相充当证据。
 CI 外层 20 分钟还覆盖 Metro 冷启动、两次 OCR 编译与收尾。
 CI 由独立的 iOS runtime step 自动执行；它不进入纯 `validate_harness.py`。
