@@ -54,6 +54,10 @@ without identifying the correct answer.
 
 Space deliberately changes the wide-screen composition: left becomes the library / group tree, center becomes the current box and contained cards, and right becomes the selected-object inspector. Favorite remains a card tag. Sleep/wake remains a physical state region under the owning box.
 
+The “当前学习” marker follows the Learning session card, independently of Space selection.
+A selected non-current active card is labelled “正在浏览”; selection continues to drive the inspector and its highlight. Browsing another card or box does not change the Learning card, draft answer, resolved feedback, or session position.
+The observed failure was that selecting a sibling moved “当前学习” to that sibling even though returning resumed the original card.
+
 ### Statistics
 
 Statistics uses a quiet daily ledger and tabular numerals. It does not become the default home, achievement wall, or chart dashboard.

@@ -116,6 +116,47 @@ describe('PC Web core flow', () => {
     expect(screen.getByRole('button', {name: '已标记喜欢'})).toBeInTheDocument();
   });
 
+  it('keeps the learning marker on the active card while browsing siblings and other boxes', async () => {
+    await authenticate();
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    const boxCards = screen.getByLabelText('盒内卡片');
+    const current = within(boxCards).getByRole('button', {name: /短对话里听到 however/});
+    const sibling = within(boxCards).getByRole('button', {name: /听到 but \/ however 之后/});
+    fireEvent.click(sibling);
+    expect(sibling).toHaveAttribute('aria-pressed', 'true');
+    expect(current).toHaveTextContent('当前学习');
+    expect(sibling).not.toHaveTextContent('当前学习');
+    expect(sibling).toHaveTextContent('正在浏览');
+    fireEvent.click(screen.getByRole('button', {name: '主谓宾 1 张'}));
+    expect(screen.getByLabelText('盒内卡片')).not.toHaveTextContent('当前学习');
+    fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
+    expect(screen.getByRole('heading', {name: '短对话里听到 however，优先盯哪一半信息？'})).toBeInTheDocument();
+    expect(screen.getByText('1 / 5')).toBeInTheDocument();
+  });
+
+  it('preserves a draft answer and resolved feedback across Space browsing', async () => {
+    await authenticate();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+    fireEvent.click(screen.getByRole('button', {name: /A.*urgent/}));
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    fireEvent.click(within(screen.getByLabelText('盒内卡片')).getByRole('button', {name: /The article offers/}));
+    fireEvent.click(screen.getByRole('button', {name: '转折关系 2 张'}));
+    fireEvent.click(screen.getByRole('button', {name: /^回到学习$/}));
+    expect(screen.getByRole('button', {name: /A.*urgent/})).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('2 / 5')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    fireEvent.click(screen.getByRole('button', {name: '主谓宾 1 张'}));
+    fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
+    expect(screen.getByLabelText('答案对照')).toHaveTextContent('A · urgent');
+    expect(screen.getByLabelText('答案对照')).toHaveTextContent('B · unclear');
+    expect(screen.getByText('2 / 5')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+    expect(screen.getByText('3 / 5')).toBeInTheDocument();
+  });
+
   it('fails closed for an invalid phone number', () => {
     render(<App />);
     fireEvent.change(screen.getByLabelText('手机号'), {target: {value: '123'}});
