@@ -1743,6 +1743,7 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, favorites, sleepin
             <div className="contained-cards" aria-label="盒内卡片">
               {selectedBox?.cards.map(card => {
                 const isSelected = selected?.card_id === card.card_id;
+                const isCurrent = currentCardId === card.card_id;
                 const isSleeping = sleeping.includes(card.card_id);
                 const isFavorite = favorites.includes(card.card_id);
                 return (
@@ -1756,7 +1757,7 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, favorites, sleepin
                     <strong>{card.front.prompt}</strong>
                     <span className="contained-card-tags">
                       {isFavorite ? <small className="favorite-tag">喜欢</small> : null}
-                      <small>{isSleeping ? '休眠中' : isSelected ? '当前学习' : '同盒卡'}</small>
+                      <small>{isSleeping ? '休眠中' : isCurrent ? '当前学习' : isSelected ? '正在浏览' : '同盒卡'}</small>
                     </span>
                   </button>
                 );
