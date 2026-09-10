@@ -27,7 +27,7 @@
     "track": "cet4_or_cet6",
     "knowledge_ref": "library_group_box ownership",
     "interaction_id": "core interaction contract id",
-    "front": "first visible content, using mixed exam context and knowledge-point signaling when needed",
+    "front": "first visible task and authored front material; a runtime handoff must not fill the front from quality metadata, back-side answers or analysis. Exact duplicate text may be displayed once without hiding distinct material.",
     "analysis": "why this matters for passing the exam",
     "audio": "resource medium that can be front content for listening cards and some other cards when needed; it does not autoplay and front-side subtitles are absent by default",
     "hint_layer": "optional enhancement layer",

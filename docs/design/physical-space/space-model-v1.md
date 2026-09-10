@@ -57,6 +57,12 @@ Rendered visual proof for this requirement lives in:
 - `docs/design/mocks/space-surface-shelf-desk-v1.html`
 - `docs/design/mocks/space-surface-shelf-desk-v1.md`
 
+## Current spatial composition
+
+The current library is a shelf containing labelled group regions. Each region contains visible sibling boxes; the selected box opens into its cards. On phone, a compact library strip and the current shelf's group/box map replace three sequential Previous/Next selectors. On Web the same shelf occupies the main surface; card-specific actions attach to the selected card instead of repeating its title in a permanent inspector column.
+
+The current Learning card and a browsed card remain independent. The current marker never follows browsing selection. Return preserves the existing Learning attempt, result and next action. Sleep/favorite semantics do not change.
+
 ## Allowed Operations
 
 - browse library / group / box hierarchy;

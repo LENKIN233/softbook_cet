@@ -959,21 +959,30 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
 
-    fireEvent.click(screen.getByRole('button', {name: '准备卡片音频'}));
+    fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
     fireEvent.click(
-      await screen.findByRole('button', {name: '播放已校验音频'}),
+      await screen.findByRole('button', {name: '播放音频'}),
     );
     expect(
-      await screen.findByRole('button', {name: '暂停卡片音频'}),
+      await screen.findByRole('button', {name: '暂停音频'}),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    expect(await screen.findByText('已记为有把握')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '暂停音频'})).toBeEnabled();
+    vi.mocked(controller.playCardAudio).mockResolvedValueOnce('paused');
+    fireEvent.click(screen.getByRole('button', {name: '暂停音频'}));
+    expect(await screen.findByRole('button', {name: '继续播放'})).toBeEnabled();
+    expect(controller.playCardAudio).toHaveBeenCalledTimes(3);
 
     act(() => audioListener?.('idle'));
     expect(
-      screen.getByRole('button', {name: '准备卡片音频'}),
+      screen.getByRole('button', {name: '播放音频'}),
     ).toBeInTheDocument();
     act(() => audioListener?.('error'));
     expect(
-      screen.getByRole('button', {name: '重试卡片音频'}),
+      screen.getByRole('button', {name: '重试播放'}),
     ).toBeInTheDocument();
   });
 

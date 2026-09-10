@@ -12,6 +12,7 @@ import {
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {
+  buildFront,
   buildCanonicalSpaceMetadata,
   buildCorrectOption,
   buildOptions,
@@ -479,6 +480,18 @@ function testFullTrackCandidateSummary() {
   );
 }
 
+function testFrontDoesNotBorrowAnAnswer() {
+  const source = {card_id: '012101', front: {task_prompt: 'Find the main clause.', text: 'The policy, introduced yesterday, reduces anxiety.'}, quality_metadata: {main_training_goal: 'INTERNAL_GOAL', exam_value: 'ANSWER_FROM_METADATA'}, analysis: {tips: ['ANSWER_FROM_TIP']}, back_content: {explanation: 'ANSWER_FROM_BACK'}};
+  const front = buildFront(source, {library: '阅读', group: '主干', box: '主谓宾'});
+  assert.equal(front.prompt, source.front.task_prompt);
+  assert.equal(front.support, source.front.text);
+  assert.doesNotMatch(JSON.stringify(front), /INTERNAL_GOAL|ANSWER_FROM_/);
+  const textOnly = buildFront({...source, front: {text: 'Original front only.'}}, {group: '主干'});
+  assert.equal(textOnly.prompt, 'Original front only.');
+  assert.doesNotMatch(JSON.stringify(textOnly), /INTERNAL_GOAL|ANSWER_FROM_/);
+}
+
+testFrontDoesNotBorrowAnAnswer();
 assert.deepEqual(roundRobin([['a', 'b'], ['c']]), ['a', 'c', 'b']);
 testBooleanSwipeIdentifiers();
 testLegacyFormOptions();

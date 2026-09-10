@@ -13,10 +13,8 @@
     "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
     "authority_map_domain": "visual_language_anchor"
   },
-
   "product_truth": {
     "note": "Narrow by design. Only claims that, if violated, would corrupt product comprehension or delivery governance (library identity, self-assess semantics, Law of One, design-artifact gate) are product_truth. Everything visual that is merely a stylistic choice lives in implementation_hypothesis.",
-
     "user_facing_ui_requires_design_artifact": {
       "claim": "Every user-facing UI surface, component, state, and visual change must be specified first in an accepted design artifact before React Native or any other implementation layer treats it as shippable. Existing RN screens are behavior prototypes until mapped back to an accepted design artifact.",
       "accepted_artifacts": [
@@ -39,7 +37,6 @@
       ],
       "violation_is": "delivery_blocker"
     },
-
     "user_visible_metadata_leakage_is_blocker": {
       "claim": "Any design artifact or implementation mapping that exposes agent, harness, spec, validator, metadata, runtime, mock, prototype, seed, fixture, debug, dev, raw exception, API route, repo path, or TODO language in user-visible UI is blocked and must be quarantined before implementation.",
       "binding": [
@@ -50,7 +47,6 @@
       ],
       "violation_is": "delivery_blocker"
     },
-
     "single_card_flow_is_operable_focused_flow": {
       "claim": "Single-card flow means a focused current-card task with an identifiable primary action, bounded secondary actions, feedback, recovery, and Learning to Space continuity. It must not be implemented as a dense one-screen poster or dashboard that the learner cannot operate.",
       "binding": [
@@ -61,7 +57,6 @@
       ],
       "violation_is": "product_distortion_risk"
     },
-
     "library_identity_is_visually_distinct": {
       "claim": "Each CET library in spec/knowledge-map.json must be visually identifiable by a stable, learnable identity color so that the user always knows which library they are currently in.",
       "binding": [
@@ -79,7 +74,6 @@
       ],
       "mapping_stability": "Once published to users, a library's assigned hue family must not be reassigned to another library in subsequent releases. The specific hex is implementation; the hue family (indigo / coral / mint / violet / cyan / rose / amber) becomes mnemonic and is therefore sticky."
     },
-
     "law_of_one_current_library": {
       "claim": "At most one library identity color may act as the dominant accent on a single screen. The current library drives CTA, picked, divider, highlight; the other libraries may only appear as small-scale chips or map tiles at ≤20% visual weight.",
       "binding": [
@@ -88,7 +82,6 @@
       ],
       "violation_is": "product_distortion_risk"
     },
-
     "self_assess_feedback_scoped_to_flip": {
       "claim": "The self-assess feedback color family is a 2-level light judgement (confident / review, rendered as 有把握 / 再回看) scoped to spec/interactions.json#flip.scoring_mode=light_self_assess. It must not leak into interactions whose scoring_mode is auto (multiple_choice, lock, elimination, swipe) — those render auto judgement instead. Two levels (not four) is the product_truth: spec/product-core.json#user_cost_minimization explicitly forbids '反复做高成本掌握度判断', and apps/mobile/src/learning/LearningSurface.tsx is the canonical implementation.",
       "binding": [
@@ -98,7 +91,6 @@
       ],
       "violation_is": "product_distortion_risk"
     },
-
     "map_must_visualize_hierarchy": {
       "claim": "The knowledge map surface must render the library → box → card hierarchy as visible spatial structure, not a flat list. This is the physical-space commitment from AP-02.",
       "binding": [
@@ -107,7 +99,6 @@
         "spec/box-catalog.json"
       ]
     },
-
     "interaction_silhouettes_are_distinguishable": {
       "claim": "The five core interactions (flip / multiple_choice / lock / elimination / swipe) must be distinguishable by screen silhouette when blurred — not by a shared card frame with swapped button icons.",
       "binding": [
@@ -116,118 +107,196 @@
       ]
     }
   },
-
   "implementation_hypothesis": {
-    "note": "All values below are stable defaults for agents and designers. They may be adjusted ±5% for individual components or micro-tuned by a design reviewer, but they should not be re-picked from scratch per screen. Concrete renderings live in docs/design/visual-reference.html.",
-
+    "note": "Shared defaults keep one product language. Revise proportions, typography and materials together when actual tasks show a failure, under machine-acceptance experience acceptance; style choices are not immutable product truth.",
     "palette": {
       "library_identity_hex_defaults": {
-        "listening":   "#5B6DF5",
-        "reading":     "#FF8A3D",
-        "cloze":       "#22C58B",
-        "writing":     "#B568F5",
+        "listening": "#5B6DF5",
+        "reading": "#FF8A3D",
+        "cloze": "#22C58B",
+        "writing": "#B568F5",
         "translation": "#18C4E0",
-        "vocabulary":  "#F15B6E",
-        "grammar":     "#F5B100"
+        "vocabulary": "#F15B6E",
+        "grammar": "#F5B100"
       },
       "self_assess_hex_defaults": {
         "_note": "Two levels, not four. 'review' is a warm amber (not red): it means '回来再看一次', not '错了/惩罚'.",
         "confident": "#22C58B",
-        "review":    "#F5B100"
+        "review": "#F5B100"
       },
       "neutral_scale": {
-        "page_day":   "#F5F3EE",
+        "page_day": "#F5F3EE",
         "page_night": "#0B0B12",
-        "ink_1":      "#12121A",
-        "ink_2":      "#2E2E3A",
-        "ink_3":      "#6E6E80",
-        "ink_4":      "#A6A6B5",
-        "ink_n_1":    "#F2F2FA",
-        "ink_n_2":    "#BDBDD0",
-        "glass_day":   "rgba(255,255,255,0.62)",
+        "ink_1": "#20232B",
+        "ink_2": "#41464F",
+        "ink_3": "#69707A",
+        "ink_4": "#A6A6B5",
+        "ink_n_1": "#F2F2FA",
+        "ink_n_2": "#BDBDD0",
+        "glass_day": "rgba(255,255,255,0.96)",
         "glass_night": "rgba(28,28,42,0.72)"
       },
       "usage_constraint": "Feedback hues must not be used as library identity. Library hues must not be used to encode correctness. Keep the two semantic families separate."
     },
-
     "typography": {
-      "display": { "family": "Outfit", "weights": [700, 800, 900], "letter_spacing": "-0.02em to -0.045em at large sizes" },
-      "body_en": { "family": "Inter", "weights": [400, 500], "line_height": 1.6 },
-      "body_cn": { "family": "Noto Sans SC", "weights": [400, 500], "line_height": 1.65 },
-      "mono":    { "family": "JetBrains Mono", "weights": [500], "usage": "captions, specs, uppercase metadata, tabular numerals" },
+      "display": {
+        "family": "Outfit",
+        "weights": [
+          600,
+          700
+        ],
+        "letter_spacing": "natural spacing; tighten only large display headings"
+      },
+      "body_en": {
+        "family": "Inter",
+        "weights": [
+          400,
+          500
+        ],
+        "line_height": 1.6
+      },
+      "body_cn": {
+        "family": "Noto Sans SC",
+        "weights": [
+          400,
+          500
+        ],
+        "line_height": 1.65
+      },
+      "mono": {
+        "family": "JetBrains Mono",
+        "weights": [
+          500
+        ],
+        "usage": "captions, specs, uppercase metadata, tabular numerals"
+      },
       "scale_defaults_px": {
-        "hero":    { "size": 120, "weight": 900 },
-        "h1":      { "size": 72,  "weight": 900 },
-        "section": { "size": 44,  "weight": 800 },
-        "card":    { "size": 28,  "weight": 700 },
-        "body":    { "size": 15,  "weight": 400 },
-        "caption": { "size": 11,  "weight": 500 }
+        "hero": {
+          "size": 36,
+          "weight": 700
+        },
+        "h1": {
+          "size": 28,
+          "weight": 700
+        },
+        "section": {
+          "size": 22,
+          "weight": 600
+        },
+        "card": {
+          "size": 24,
+          "weight": 600
+        },
+        "body": {
+          "size": 16,
+          "weight": 400
+        },
+        "caption": {
+          "size": 12,
+          "weight": 500
+        }
       },
       "italic_accent_policy": "Italic variant is used as editorial emphasis (lede-style), not as decoration. At most one italic run per hierarchy level."
     },
-
     "glass_and_surfaces": {
-      "blur_radius_px": { "day": [40, 60], "night": [48, 72] },
+      "blur_radius_px": {
+        "day": [
+          0,
+          20
+        ],
+        "night": [
+          0,
+          20
+        ]
+      },
       "inner_highlight": "1px inset top rgba(255,255,255,0.18)",
       "edge_rim": "1px rgba(255,255,255,0.08) outer on night, 1px rgba(11,11,20,0.05) outer on day",
-      "grain_opacity": 0.03,
-      "shadow_policy": "Day uses soft drop shadows for lift; night replaces shadows with rim-light dividers (top 1px highlight + bottom 1px lowlight).",
-      "radii_px": { "card": 28, "chip": 999, "tabbar_capsule": 28, "phone_bezel": 46 }
+      "grain_opacity": 0,
+      "shadow_policy": "One restrained shadow for the current paper or box. Nested text, instructions and answers use spacing, not their own raised cards.",
+      "radii_px": {
+        "card": 20,
+        "chip": 999,
+        "tabbar_capsule": 22,
+        "phone_bezel": 46
+      }
     },
-
     "motion": {
       "default_curve": "cubic-bezier(0.22, 1, 0.36, 1)",
       "card_flip_ms": 320,
       "pill_tab_ms": 200,
       "grain_never_animates": true,
-      "aurora_background_pulse_ms": 12000,
-      "reduce_motion_fallback": "disable aurora pulse, replace card flip with crossfade"
+      "aurora_background_pulse_ms": 0,
+      "reduce_motion_fallback": "Keep final content and every action available; disable spatial travel."
     },
-
     "device_frames": {
       "phone_aspect_ratio": "393/852",
-      "dynamic_island_px": { "width": 122, "height": 37, "radius": 22 },
+      "dynamic_island_px": {
+        "width": 122,
+        "height": 37,
+        "radius": 22
+      },
       "rationale": "Matches iPhone 15/16 Pro. Using outdated ratios (390/844) makes mocks look like retro-fit stock templates."
     },
-
     "component_vocabulary_rules": [
-      "Use chips, not tag badges. Chips carry the library identity color in their left dot.",
-      "Tabbar is a floating VisionOS-style capsule; never a full-width bottom bar.",
-      "Progress is a single thin bar with tabular-numeric flanks; never circular dashboards on the main learning surface.",
-      "Dividers prefer spacing over lines; when a line is needed, it is 1px at ink_4 opacity 0.2."
+      "Use one reading paper for the current task; identity is a quiet address and a small current-library accent.",
+      "Keep navigation detached from the learning action zone, with quiet selected states and accessible touch areas.",
+      "Progress is one small count and optional thin line, never a separate dominant object.",
+      "Use spacing and a small number of dividers to distinguish material, action, help and result; do not wrap each paragraph."
     ],
-
     "taste_axes": {
-      "_note": "Six pinned dimensions. These are not scores — they are directions. A design that drifts toward the anti_pole column is wrong by construction, regardless of how 'nice' it looks in isolation.",
-      "restraint_vs_expression":     { "target": "restraint",     "anti_pole": "expression",     "test": "If you removed the decorative element, would the content still be understandable? If yes, remove it." },
-      "material_vs_flat":            { "target": "material",      "anti_pole": "flat",           "test": "Glass surfaces must have measurable thickness: blur + 1px inner highlight + edge rim + 3-4% grain. Pure flat fills are forbidden on primary surfaces." },
-      "editorial_vs_marketing":      { "target": "editorial",     "anti_pole": "marketing",      "test": "No promotional language, no exclamation marks in chrome, no 'limited time' ribbons. Typography carries authority the way a book does, not the way a landing page does." },
-      "quiet_vs_loud":               { "target": "quiet",         "anti_pole": "loud",           "test": "Max one strong accent per screen (Law of One). Max one motion loop visible at a time. No competing animations." },
-      "geometric_vs_organic":        { "target": "geometric",     "anti_pole": "organic",        "test": "Display type is geometric sans (Outfit). No serifs, no handwritten scripts, no wavy dividers. Icons share a single stroke weight and join style." },
-      "sparse_vs_dense":             { "target": "sparse",        "anti_pole": "dense",          "test": "If a screen needs a scroll just to finish the primary action, it is too dense. Whitespace is content." }
+      "_note": "Directions for review, not pass claims. Actual reading, action meaning and spatial comprehension decide the quality of a design.",
+      "restraint_vs_expression": {
+        "target": "restraint",
+        "anti_pole": "expression",
+        "test": "If you removed the decorative element, would the content still be understandable? If yes, remove it."
+      },
+      "material_vs_flat": {
+        "target": "material",
+        "anti_pole": "flat",
+        "test": "The learner can distinguish the current paper, a box and the surface beneath them. An opaque paper is valid; blur, grain and decorative atmosphere are optional."
+      },
+      "editorial_vs_marketing": {
+        "target": "editorial",
+        "anti_pole": "marketing",
+        "test": "No promotional language, no exclamation marks in chrome, no 'limited time' ribbons. Typography carries authority the way a book does, not the way a landing page does."
+      },
+      "quiet_vs_loud": {
+        "target": "quiet",
+        "anti_pole": "loud",
+        "test": "Max one strong accent per screen (Law of One). Max one motion loop visible at a time. No competing animations."
+      },
+      "geometric_vs_organic": {
+        "target": "geometric",
+        "anti_pole": "organic",
+        "test": "Use a consistent readable sans typography and icon language. Shapes follow the card, sentence or box they represent."
+      },
+      "sparse_vs_dense": {
+        "target": "sparse",
+        "anti_pole": "dense",
+        "test": "Keep the task and next action findable. Preserve all reading material and allow purposeful scrolling; do not inflate short content to fill a quota."
+      }
     },
-
     "interaction_silhouettes": {
       "_note": "When blurred, each of the five core interactions must be identifiable by its silhouette alone. These are the canonical shapes; bind to spec/interactions.json interaction ids.",
       "flip": {
-        "shape": "single large centered card occupies ~60% vertical; below it a 2-slot pill row (confident / review); audio + hint live as inline chips on the card, not as separate surfaces.",
+        "shape": "One paper carrying the prompt, a hidden back with genuinely additional content, then exactly two self-assess choices. No fixed percentage of empty stage.",
         "binding": "spec/interactions.json#flip",
         "silhouette_hash": "card_center + pill_row_2_below"
       },
       "multiple_choice": {
-        "shape": "prompt block top ~30%; 4 option tiles in a 2×2 grid below; the option grid is the silhouette — a single scrolling list of options is wrong.",
+        "shape": "Question followed by four comparable options; preserve 2x2 where readable and stack under content or accessibility pressure.",
         "binding": "spec/interactions.json#multiple_choice",
         "silhouette_hash": "prompt_top + 2x2_grid_below"
       },
       "lock": {
-        "shape": "vertical scrolling list of rows; each row has a leading lock icon; progress is implied by count of unlocked rows; no card frame around individual rows.",
+        "shape": "A forming sentence above ordered lock rows; completing the last correct row reveals the result without another confirmation.",
         "binding": "spec/interactions.json#lock",
         "silhouette_hash": "list_rows_with_leading_lock"
       },
       "elimination": {
-        "shape": "grid or column of candidates (3–6); tap to strike through (strike-through is the key affordance); remaining candidates at end are the answer.",
+        "shape": "Selectable spans in the original passage become struck and reversible; the surviving sentence is legible. If exact non-overlapping spans cannot be mapped, preserve the passage with an explicit candidate set.",
         "binding": "spec/interactions.json#elimination",
-        "silhouette_hash": "candidate_set_with_strike_through_state"
+        "silhouette_hash": "original_passage_with_reversible_struck_spans"
       },
       "swipe": {
         "shape": "deck of stacked cards with directional trail hints (left/right); exactly one card visible on top; horizontal motion is the primary affordance.",
@@ -235,29 +304,59 @@
         "silhouette_hash": "single_top_card_with_left_right_trails"
       }
     },
-
     "contrast_floor": {
-      "body_text_on_surface":        { "ratio": 4.5, "standard": "WCAG AA" },
-      "large_text_on_surface":       { "ratio": 3.0, "standard": "WCAG AA large (≥24px regular or ≥19px bold)" },
-      "non_text_ui_on_surface":      { "ratio": 3.0, "standard": "WCAG AA non-text" },
-      "minimum_tap_target_px":       44,
-      "minimum_body_size_px":        13,
+      "body_text_on_surface": {
+        "ratio": 4.5,
+        "standard": "WCAG AA"
+      },
+      "large_text_on_surface": {
+        "ratio": 3.0,
+        "standard": "WCAG AA large (≥24px regular or ≥19px bold)"
+      },
+      "non_text_ui_on_surface": {
+        "ratio": 3.0,
+        "standard": "WCAG AA non-text"
+      },
+      "minimum_tap_target_px": 44,
+      "minimum_body_size_px": 13,
       "reduce_motion_must_be_honored": true,
       "_note": "Day and night both. When a chip/button uses library identity at low alpha, the text color inside must still clear the floor against the computed background, not against the base surface."
     },
-
     "forbidden_design_patterns": {
       "_note": "Machine-checkable blocklist. Scope: any HTML/CSS fragment outside <!-- NEGATIVE --> ... <!-- /NEGATIVE --> blocks in docs/design/visual-reference.html. High-signal patterns only — broad words like 'streak' or raw '#000' are intentionally NOT listed because they have legitimate uses (daily-checkin counter, dynamic island, on-color text).",
       "tokens": [
-        {"id": "FDP-01", "pattern": "-webkit-background-clip:\\s*text",                           "reason": "gradient-text display violates editorial restraint"},
-        {"id": "FDP-02", "pattern": "background:\\s*linear-gradient\\([^)]*\\)\\s*;[^}]*color:\\s*transparent", "reason": "gradient-text display violates editorial restraint"},
-        {"id": "FDP-03", "pattern": "confetti|medal-earned|xp-bar\\b|level-up-toast",              "reason": "gamification chrome forbidden by product-core; daily-checkin counters are fine, chrome is not"},
-        {"id": "FDP-04", "pattern": "position:\\s*fixed[^}]*bottom:\\s*0[^}]*width:\\s*100%",      "reason": "full-width bottom tabbar; use floating capsule"},
-        {"id": "FDP-05", "pattern": "--fb-know|--fb-unsure|--fb-prof\\b|--fb-forgot",              "reason": "removed self-assess tokens; 2-level only (fb-confident / fb-review)"},
-        {"id": "FDP-06", "pattern": "font-family:[^;]*serif",                                      "reason": "serifs forbidden in this product (geometric sans only)"}
+        {
+          "id": "FDP-01",
+          "pattern": "-webkit-background-clip:\\s*text",
+          "reason": "gradient-text display violates editorial restraint"
+        },
+        {
+          "id": "FDP-02",
+          "pattern": "background:\\s*linear-gradient\\([^)]*\\)\\s*;[^}]*color:\\s*transparent",
+          "reason": "gradient-text display violates editorial restraint"
+        },
+        {
+          "id": "FDP-03",
+          "pattern": "confetti|medal-earned|xp-bar\\b|level-up-toast",
+          "reason": "gamification chrome forbidden by product-core; daily-checkin counters are fine, chrome is not"
+        },
+        {
+          "id": "FDP-04",
+          "pattern": "position:\\s*fixed[^}]*bottom:\\s*0[^}]*width:\\s*100%",
+          "reason": "full-width bottom tabbar; use floating capsule"
+        },
+        {
+          "id": "FDP-05",
+          "pattern": "--fb-know|--fb-unsure|--fb-prof\\b|--fb-forgot",
+          "reason": "removed self-assess tokens; 2-level only (fb-confident / fb-review)"
+        },
+        {
+          "id": "FDP-06",
+          "pattern": "font-family:[^;]*serif",
+          "reason": "serifs forbidden in this product (geometric sans only)"
+        }
       ]
     },
-
     "design_artifact_gate": {
       "_note": "This is the implementation-facing gate for the product_truth rule above. It keeps user-facing design decisions out of ad hoc component code.",
       "applies_to": [
@@ -295,22 +394,40 @@
       "required_before": "implementation_that_changes_user_facing_UI",
       "pull_request_must_state": "design_artifact_source_implementation_mapping_and_design_review_checklist"
     },
-
     "design_review_checklist": {
       "_note": "Any agent producing visual output (mock, component, screen, reference HTML) or implementing user-facing UI must answer these before declaring work complete. 4 universal + 2 conditional. Answers go into the PR body or agent output; missing answers = incomplete work.",
       "universal": [
-        {"id": "Q1", "question": "Which library is the current one on this screen, and is the single strong accent bound to it? (Law of One)"},
-        {"id": "Q2", "question": "What is the focal object, and is the first-read path (focal → secondary → chrome) clear when squinted?"},
-        {"id": "Q3", "question": "Does the screen silhouette match the interaction's canonical silhouette in visual-language.json#interaction_silhouettes? If not, which interaction is it and why does the shape differ?"},
-        {"id": "Q4", "question": "Any forbidden_design_patterns present? Gradient text, gamification chrome, full-width tabbar, pure #000/#fff, removed self-assess tokens, serifs?"}
+        {
+          "id": "Q1",
+          "question": "Which library is the current one on this screen, and is the single strong accent bound to it? (Law of One)"
+        },
+        {
+          "id": "Q2",
+          "question": "What is the focal object, and is the first-read path (focal → secondary → chrome) clear when squinted?"
+        },
+        {
+          "id": "Q3",
+          "question": "Does the screen silhouette match the interaction's canonical silhouette in visual-language.json#interaction_silhouettes? If not, which interaction is it and why does the shape differ?"
+        },
+        {
+          "id": "Q4",
+          "question": "Any forbidden_design_patterns present? Gradient text, gamification chrome, full-width tabbar, pure #000/#fff, removed self-assess tokens, serifs?"
+        }
       ],
       "conditional": [
-        {"id": "Q5", "condition": "any rendered phone frame or constrained viewport", "question": "Layout containment: no horizontal overflow, safe-area respected, no clipped CTA or tabbar at target width?"},
-        {"id": "Q6", "condition": "surface is stats/learning/flip", "question": "Surface-specific: flip uses exactly 2 self-assess pills (有把握 / 再回看); stats uses tabular-nums; learning does not expose module-selection as primary path."}
+        {
+          "id": "Q5",
+          "condition": "any rendered phone frame or constrained viewport",
+          "question": "Layout containment: no horizontal overflow, safe-area respected, no clipped CTA or tabbar at target width?"
+        },
+        {
+          "id": "Q6",
+          "condition": "surface is stats/learning/flip",
+          "question": "Surface-specific: flip uses exactly 2 self-assess pills (有把握 / 再回看); stats uses tabular-nums; learning does not expose module-selection as primary path."
+        }
       ]
     }
   },
-
   "anti_patterns": [
     {
       "id": "VL-AP-01",
@@ -368,7 +485,6 @@
       "correction": "design_an_operable_current_card_flow_with_primary_task_primary_action_feedback_recovery_and_space_continuity"
     }
   ],
-
   "agent_usage": {
     "when_to_read": [
       "any_task_that_produces_visual_output_mocks_screens_components_mockups",

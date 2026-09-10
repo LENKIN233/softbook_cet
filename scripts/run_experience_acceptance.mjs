@@ -57,16 +57,20 @@ try {
   const expected = {
     'material': elimination.front.support.replace(/^目标句[：:]\s*/, ''),
     'answer': `${correct.label} ${correct.text}`,
+    'options': choice.options.map(option => option.text),
   };
   report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
+    'apps/mobile/src/learning/presentation.ts', 'apps/mobile/src/learning/EliminationPassageText.tsx',
+    'apps/mobile/src/space/SpaceSurface.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',
     'scripts/lib/experience_capture.mjs', 'scripts/experience_ocr.swift',
     'scripts/run_experience_acceptance.mjs'].map(path => [path, hash(readFileSync(join(root, path)))]));
   const fixtureRoot = join(root, 'apps/mobile/e2e/experience/known-failures');
-  const fixtures = ['material', 'answer'].map(kind => ({kind, path: join(fixtureRoot, `${kind}.png`)}));
+  const fixtures = ['material', 'answer', 'options'].map(kind => ({kind, path: join(fixtureRoot, `${kind}.png`)}));
   const normalize = text => text.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
   function readable(observation, text) {
-    return normalize(observation.lines.map(line => line.text).join(' ')).includes(normalize(text));
+    const visible = normalize(observation.lines.map(line => line.text).join(' '));
+    return (Array.isArray(text) ? text : [text]).every(value => visible.includes(normalize(value)));
   }
   const failedPixels = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...fixtures.map(item => item.path)], 'calibration-ocr.log'));
   report.calibration = fixtures.map(({kind, path}, index) => ({kind, image_sha256: hash(readFileSync(path)),
@@ -74,7 +78,7 @@ try {
   if (report.calibration.some(item => !item.rejected)) throw new Error('Known bad screenshot was accepted; the evaluator is not calibrated.');
   if (!options.calibrateOnly) {
     captureExperience({device: options.device, output, run});
-    const samples = [['material', 'material'], ['material-with-hint', 'material'], ['answer', 'answer']];
+    const samples = [['options', 'options'], ['material', 'material'], ['material-with-hint', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
     function capturedFiles(directory) {
       return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
         const path = join(directory, entry.name);

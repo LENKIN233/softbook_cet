@@ -14,7 +14,7 @@
 
 ## Decision
 
-Accept `Quiet Object Theatre`, the mutated `lie-08` synthesis.
+Adopt the current paper-and-space revision in `docs/design/visual-reference.html`, after the 2026-09-10 review exposed repeated front guidance, weak result hierarchy, oversized nested surfaces and incomplete interaction meaning. The previous theatre proof remains historical comparison, not the current composition.
 
 ## Product Truth
 
@@ -27,82 +27,36 @@ Accept `Quiet Object Theatre`, the mutated `lie-08` synthesis.
 
 ## Implementation Hypothesis
 
-The screen separates the persistent card from its dense readable content:
+One opaque paper owns the current task, with a quiet library/box address and a stable action zone. A warm neutral surface surrounds it. The paper is not wrapped in another tinted stage, and paragraphs are not each separate raised cards.
 
-```text
-stable atmospheric stage
-  -> intrinsic material sheet
-  -> one contextual disclosure
-  -> one action rail
-```
+### First read and help
 
-The stage keeps the card's address, current-library accent, and physical continuity. The sheet holds prompt, support, interaction, correctness, and analysis. Empty stage area is softly tinted material atmosphere, not a giant empty white surface.
+Show the original prompt and distinct front material once. The runtime converter takes only authored front text, never back content or quality metadata. Hint is authored help; peek gives an exam strategy or orientation. Both remain explicit and lightweight, with sticky usage across collapse. Do not show missing audio or normal sync as permanent messages.
 
-## Interaction Hierarchy
+### Result
 
-### First read
+The first result layer shows the correct content and the learner's choice, followed by the key reason. The original question remains readable at lower emphasis. Detailed analysis is optional depth. A generic outcome title must not displace the answer.
 
-The learner sees the material sheet first, then its interaction silhouette, then one primary action. Progress, address, and favorite remain peripheral.
+### Interaction and continuation
 
-### Progressive disclosure
+- Flip reveals additional back content, followed by 有把握 / 再回看.
+- Four options share a clear comparable layout; letter and text stay together.
+- A sentence forms above the lock rows. The last correct lock immediately reveals a result; only Continue remains afterwards.
+- Elimination strikes exact, non-overlapping spans in the original passage. Unmapped/ambiguous source retains its full passage and explicit candidate set.
+- Swipe has a single prompt-bearing movable object and two accessible direction choices, without a duplicated large prompt.
+- Every result uses the existing learning event and remote acknowledgement boundary. Animation never creates extra completion events.
 
-Only one disclosure control is visually present in the task plane:
+### Density and platform
 
-- the address text is the lightweight `题眼` aperture and keeps its own callback;
-- `提示` alone occupies the edge slot when the card has authored hint content;
-- favorite remains a quiet tag glyph in the address region, not another pill button.
+The phone paper and action anchors retain stable outer geometry. Internal layout follows actual reading content; there is no half-stage minimum for short text. Long material scrolls without clipping. At large system text, options can stack while actions remain reachable. Web keeps the card centered and moves secondary tools onto the paper, using a small context area rather than a permanent third column.
 
-Peek and hint remain separate events and sticky usage facts. The address aperture has a full hit region but does not look like a second pill button.
+### Implementation mapping
 
-### Resolve in place
+`apps/mobile/src/learning/LearningSurface.tsx`, `apps/mobile/src/learning/presentation.ts`, `apps/mobile/App.tsx`, `apps/web/src/App.tsx`, `apps/web/src/styles.css`.
 
-Auto-scored interactions replace the task sheet with correctness and analysis inside the same stage. Flip replaces the front sheet with back content and exposes exactly two self-assess actions. A separate report page is optional depth, never the default result transition.
+### Design review
 
-### Continue
-
-A shallow next-card edge may appear only after result settlement. It indicates sequence without teaching swipe behavior to non-swipe interactions.
-
-## Content Density
-
-- Short content: centered sheet with a minimum reading body that includes the
-  authored front signal and exam context; it must occupy at least half of the
-  usable stage above the action rail.
-- Standard content: sheet grows intrinsically within bounded stage insets.
-- Long content: sheet reaches its maximum bound and owns vertical scrolling.
-- The stage, address, edge slot, and action rail do not move between density classes.
-- No prompt, option, back content, hint, or analysis is line-clamped to preserve the composition.
-
-## Platform Strategy
-
-- Phone: 48dp support targets, one vertical stage, thumb-reachable action rail.
-- Tablet: wider sheet and larger side insets; no second dashboard column.
-- PC-Web: compact pointer targets, hover/focus/keyboard states, bounded reading width.
-- Reduce Motion: replace sheet transforms and card travel with short opacity/state changes.
-
-## Acceptance Criteria For Implementation
-
-- Current card stage remains fixed while short/long sheet density changes inside it.
-- Initial phone state has one visually dominant action and no utility-button row.
-- Only hint uses an edge disclosure; peek remains the lightweight address aperture.
-- Favorite remains at least 44pt/48dp hit area while appearing as a lightweight glyph.
-- Answer and analysis appear in the current object before any optional detail surface.
-- Five interaction silhouettes stay distinguishable.
-- Frequent study motion is brief, causal, interruptible, and disabled or reduced when requested.
-- Long actual candidate content remains complete and scroll-reachable.
-
-## Design Review Checklist Answers
-
-Q1: The current library owns the only strong accent on stage, selected state, and action rail.
-
-Q2: The intrinsic material sheet is focal; the first-read path is task -> interaction -> action -> in-place result.
-
-Q3: Five canonical interaction silhouettes remain distinct inside the same stable stage.
-
-Q4: No gradient text, reward chrome, full-width bottom bar, serif, or four-state self-assessment is introduced.
-
-Q5: The 393x852 proof contains the stage, 48dp edge handle, bounded sheet, action rail, and floating navigation.
-
-Q6: Flip uses exactly `有把握` and `再回看`; Learning never presents module selection or statistics as the primary path.
+Q1: shared library tokens across native and Web. Q2: prompt/answer, then action, then help/address. Q3: sentence, paper, option set and moving card have distinct operations. Q4: no reward or decorative motion. Q5: preserve complete material and reachable actions at phone/text-size constraints. Q6: two self-assess choices; system sequence remains primary. These are implementation targets; final acceptance requires actual captures.
 
 ## Running-product correction: readable material and answers
 

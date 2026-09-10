@@ -1,3 +1,5 @@
+import {EliminationPassageText} from './EliminationPassageText';
+import {answerComparison, eliminationPassage, frontMaterial, spaceCardPreview} from './presentation';
 import {useCardMotion, useReducedMotion, MotionView, MotionPresence, MotionPressable, LockMotionGlyph, StrikeText} from './NativeMotion';
 import React from 'react';
 import type { DimensionValue } from 'react-native';
@@ -105,113 +107,7 @@ const DEFAULT_LEARNING_ADVANCE_STATE: LearningAdvanceState = {
 };
 
 
-function formatLearningActionCue(
-  card: LearningCard,
-  currentResult: LearningCardResult | null,
-) {
-  if (currentResult) {
-    return '这张已经完成，可以继续下一张。';
-  }
 
-  if (card.interaction_id === 'flip') {
-    return '查看答案';
-  }
-
-  const fallbackLabel = INTERACTION_LABELS[card.interaction_id];
-  switch (card.interaction_id) {
-    case 'multiple_choice':
-      return '选一个答案';
-    case 'lock':
-      return '补齐锁位';
-    case 'elimination':
-      return '点掉干扰项';
-    case 'swipe':
-      return '选择判断';
-    default:
-      return fallbackLabel;
-  }
-}
-
-function formatLearningSubmitDockCopy(
-  card: LearningCard,
-  cardState: LearningCardState,
-) {
-  switch (card.interaction_id) {
-    case 'multiple_choice': {
-      const selectedOption = card.options.find(
-        option => option.id === cardState.selectedOptionId,
-      );
-
-      return selectedOption
-        ? {
-            title: `${selectedOption.label} 已选`,
-            detail: '确认后看解析',
-          }
-        : {
-            title: '先选答案',
-            detail: '选定后再提交',
-          };
-    }
-    case 'lock': {
-      const unlockedCount = card.lock_slots.filter(
-        (slot, index) =>
-          cardState.lockSelections[slot.id] ===
-          card.answer_key.lock_pattern[index],
-      ).length;
-      const totalCount = card.lock_slots.length;
-      const hasWrongSelection = card.lock_slots.some(
-        (slot, index) =>
-          cardState.lockSelections[slot.id] !== null &&
-          cardState.lockSelections[slot.id] !==
-            card.answer_key.lock_pattern[index],
-      );
-
-      return unlockedCount === totalCount
-        ? {
-            title: '全部开锁',
-            detail: '确认后看解析',
-          }
-        : {
-            title: `${unlockedCount}/${totalCount} 已开`,
-            detail: hasWrongSelection ? '当前锁位需要重试' : '按顺序完成锁位',
-          };
-    }
-    case 'elimination': {
-      const eliminatedCount = cardState.eliminatedItemIds.length;
-
-      return eliminatedCount > 0
-        ? {
-            title: `已排除 ${eliminatedCount}`,
-            detail: '确认后看解析',
-          }
-        : {
-            title: '先排除干扰项',
-            detail: '至少点掉一项',
-          };
-    }
-    case 'swipe': {
-      const selectedState = card.swipe_states.find(
-        state => state.id === cardState.swipeSelection,
-      );
-
-      return selectedState
-        ? {
-            title: `${selectedState.label} 已选`,
-            detail: '确认后看解析',
-          }
-        : {
-            title: '先做判断',
-            detail: '选定后再提交',
-          };
-    }
-    case 'flip':
-    default:
-      return {
-        title: '查看答案',
-        detail: '看完解析后自评',
-      };
-  }
-}
 
 function getPrimaryActionColors(palette: LearningSurfacePalette) {
   return {
@@ -243,7 +139,7 @@ function getLibraryActionColors(
   return {
     muted: palette.textMuted,
     surface: accent,
-    text: contrastWithWhite >= 4.5 ? '#FFFFFF' : palette.text,
+    text: contrastWithWhite >= 4.5 ? '#FFFFFF' : '#0B0B14',
   };
 }
 
@@ -298,13 +194,16 @@ export function LearningSurface({
     width: viewportWidth,
   } = useWindowDimensions();
   const isAccessibilityText = fontScale >= 1.3;
+  const readingScroll = React.useRef<ScrollView>(null);
+  React.useEffect(() => {
+    readingScroll.current?.scrollTo({y: 0, animated: false});
+  }, [currentCard?.card_id, currentResult, currentCardState?.isFlipped]);
   const cardMotion = useCardMotion(currentCard ? `${currentCard.card_id}:${audioAttemptId ?? phase}` : null);
   const isCompactPhone = isCompactLearningViewport(
     viewportWidth,
     viewportHeight,
   );
   const isReviewPhase = phase === 'review';
-  const displaySessionLabel = formatLearningSessionDisplayLabel(phase);
   const visibleShelfName = formatSpaceDisplayName(
     currentCard?.space_metadata.library ?? '',
     '当前书架',
@@ -357,13 +256,6 @@ export function LearningSurface({
           ]}
           testID="learning-complete-summary"
         >
-          <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-            {roundCompletion
-              ? '本轮完成'
-              : isReviewPhase
-              ? '回看完成'
-              : '本轮完成'}
-          </Text>
           <Text style={[styles.heroTitle, { color: palette.text }]}>
             {roundCompletion
               ? '完成 5 张卡'
@@ -419,15 +311,6 @@ export function LearningSurface({
           testID="learning-complete-details"
         >
           <Text
-            style={[styles.resultExplanationTitle, { color: palette.text }]}
-          >
-            {roundCompletion
-              ? '本轮完成'
-              : isReviewPhase
-              ? '回看完成'
-              : '本轮完成'}
-          </Text>
-          <Text
             style={[styles.resultExplanationBody, { color: palette.textMuted }]}
           >
             {roundCompletion
@@ -467,7 +350,7 @@ export function LearningSurface({
               <Text
                 style={[
                   styles.primaryButtonLabel,
-                  { color: primaryAction.text },
+                  { color: '#0B0B14' },
                 ]}
               >
                 开始回看这 {reviewCandidateCount} 张卡
@@ -496,7 +379,7 @@ export function LearningSurface({
             }
             style={[
               styles.primaryButton,
-              { backgroundColor: primaryAction.surface },
+              { backgroundColor: !roundCompletion && !isReviewPhase && reviewCandidateCount > 0 && onStartReview ? palette.panelStrong : primaryAction.surface },
             ]}
             testID={
               roundCompletion
@@ -505,7 +388,7 @@ export function LearningSurface({
             }
           >
             <Text
-              style={[styles.primaryButtonLabel, { color: primaryAction.text }]}
+              style={[styles.primaryButtonLabel, { color: !roundCompletion && !isReviewPhase && reviewCandidateCount > 0 && onStartReview ? palette.textMuted : primaryAction.text }]}
             >
               {roundCompletion
                 ? roundContinuePending
@@ -534,14 +417,8 @@ export function LearningSurface({
     currentIndex + 1,
     sessionCards.length,
   )}/${Math.max(sessionCards.length, 1)}`;
-  const actionCue = formatLearningActionCue(currentCard, currentResult);
-  const isLockInteraction = currentCard.interaction_id === 'lock';
-  const isDenseInteraction =
-    isLockInteraction ||
-    currentCard.interaction_id === 'elimination' ||
-    currentCard.interaction_id === 'swipe';
   const supportLayer = (() => {
-    const peekBody = '先找题干中的关键词，再查看选项或解析。';
+    const peekBody = currentCard.analysis.exam_tip;
 
     if (
       currentCardState.isPeeked &&
@@ -550,7 +427,7 @@ export function LearningSurface({
     ) {
       return {
         title: '解题线索',
-        body: `${peekBody} ${currentCard.hint_layer.content}`,
+        body: [...new Set([peekBody, currentCard.hint_layer.content])].join('\n\n'),
         tone: palette.text,
       };
     }
@@ -577,12 +454,8 @@ export function LearningSurface({
     currentCard,
     currentCardState,
   );
-  const submitDockCopy = formatLearningSubmitDockCopy(
-    currentCard,
-    currentCardState,
-  );
+  const submissionLabel = currentCard.interaction_id === 'elimination' ? '确认句干' : '确认答案';
   const primaryAction = getLibraryActionColors(tone.accent, palette);
-  const neutralAction = getNeutralActionSurface(palette);
   const audioSelection = (() => {
     if (!currentCard.audio || !contentManifest || audioAttemptId === null) {
       return null;
@@ -601,18 +474,11 @@ export function LearningSurface({
       return null;
     }
   })();
-  const shouldCenterShortFlip =
-    currentCard.interaction_id === 'flip' &&
-    !currentCardState.isFlipped &&
-    supportLayer === null &&
-    audioSelection === null;
-  const shouldShowContextCard =
-    currentResult === null &&
-    (currentCard.front.support.trim().length > 0 ||
-      currentCard.front.context.trim().length > 0);
-  const minimumSheetHeight = isCompactPhone
-    ? Math.min(320, Math.max(260, Math.round(viewportHeight * 0.32)))
-    : 320;
+  const passage = currentCard.interaction_id === 'elimination' ? eliminationPassage(currentCard) : null;
+  const material = frontMaterial(currentCard).filter(text => !passage || text !== passage.source);
+  const shouldShowContextCard = currentResult === null && material.length > 0;
+  const shouldCenterShortFlip = false;
+  const minimumSheetHeight = 0;
 
   return (
     <View
@@ -630,22 +496,14 @@ export function LearningSurface({
           isCompactPhone ? styles.studyCardOneScreenCompact : null,
           styles.glassCard,
           {
-            backgroundColor: tone.accentSoft,
+            backgroundColor: palette.panel,
             borderColor: palette.border,
-            borderTopColor: tone.accent,
-            shadowColor: '#46309F',
+            borderTopColor: palette.border,
+            shadowColor: palette.text,
           },
         ]}
         testID="learning-current-card"
       >
-        <View
-          pointerEvents="none"
-          style={[
-            styles.cardStageAtmosphere,
-            { backgroundColor: tone.accentSoft },
-          ]}
-          testID="learning-card-stage-atmosphere"
-        />
         <View
           style={[
             styles.cardAddressShelf,
@@ -653,16 +511,7 @@ export function LearningSurface({
           ]}
           testID="learning-card-address-shelf"
         >
-          <Pressable
-            accessibilityLabel={
-              currentCardState.isPeeked ? '收起位置与题眼' : '查看位置与题眼'
-            }
-            accessibilityRole="button"
-            accessibilityState={{ expanded: currentCardState.isPeeked }}
-            onPress={onTogglePeek}
-            style={styles.heroChipRow}
-            testID="learning-peek-button"
-          >
+          <View style={styles.heroChipRow}>
             <View
               pointerEvents="none"
               style={[
@@ -681,13 +530,7 @@ export function LearningSurface({
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
                 testID="learning-progress-label"
               >
-                {isCompactPhone
-                  ? `${
-                      isReviewPhase ? '本轮回看' : displaySessionLabel
-                    } · ${visibleContainerName}`
-                  : isReviewPhase
-                  ? '本轮回看'
-                  : displaySessionLabel}
+                {`${isReviewPhase ? '回看 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
               </Text>
               <Text
                 style={[
@@ -696,17 +539,17 @@ export function LearningSurface({
                   { color: palette.text },
                 ]}
               >
-                {INTERACTION_LABELS[currentCard.interaction_id]}
+                {visibleContainerName}
               </Text>
             </View>
-          </Pressable>
+          </View>
           <View
             style={[
               styles.cardProgressCluster,
               isCompactPhone ? styles.cardProgressClusterCompact : null,
               {
-                backgroundColor: palette.panelStrong,
-                borderColor: hexToRgba(tone.accent, 0.14),
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
             ]}
           >
@@ -772,42 +615,6 @@ export function LearningSurface({
             </Pressable>
           </View>
         </View>
-        {currentResult === null && currentCard.hint_layer ? (
-          <Pressable
-            accessibilityLabel={
-              currentCardState.isHintVisible ? '收起提示' : '查看提示'
-            }
-            accessibilityRole="button"
-            accessibilityState={{ expanded: currentCardState.isHintVisible }}
-            onPress={onToggleHint}
-            style={[
-              styles.cardEdgeHint,
-              isCompactPhone ? styles.cardEdgeHintCompact : null,
-              {
-                backgroundColor: currentCardState.isHintVisible
-                  ? tone.accentSoft
-                  : palette.panelStrong,
-                borderColor: currentCardState.isHintVisible
-                  ? tone.accent
-                  : palette.border,
-              },
-            ]}
-            testID="learning-hint-button"
-          >
-            <Text
-              style={[
-                styles.cardEdgeHintLabel,
-                {
-                  color: currentCardState.isHintVisible
-                    ? tone.accent
-                    : palette.textMuted,
-                },
-              ]}
-            >
-              {currentCardState.isHintVisible ? '收\n起' : '提\n示'}
-            </Text>
-          </Pressable>
-        ) : null}
         <View style={styles.cardStageBody}>
           <Animated.View
             style={[
@@ -817,6 +624,7 @@ export function LearningSurface({
             testID="learning-material-sheet"
           >
             <ScrollView
+              ref={readingScroll}
               contentContainerStyle={[
                 styles.cardTaskBandContent,
                 isCompactPhone ? styles.cardTaskBandContentCompact : null,
@@ -840,47 +648,7 @@ export function LearningSurface({
               ]}
               testID="learning-card-task-band"
             >
-              {!isCompactPhone ? (
-                <View
-                  style={[
-                    styles.cardLocationStrip,
-                    styles.learningCardLocationHint,
-                    {
-                      backgroundColor: 'transparent',
-                      borderColor: 'transparent',
-                    },
-                  ]}
-                  testID="learning-card-location-strip"
-                >
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      styles.cardLocationDot,
-                      { backgroundColor: hexToRgba(tone.accent, 0.62) },
-                    ]}
-                  />
-                  <View style={styles.cardLocationTextWrap}>
-                    <Text
-                      numberOfLines={isAccessibilityText ? undefined : 1}
-                      style={[
-                        styles.cardLocationTitle,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      {visibleContainerName}
-                    </Text>
-                    <Text
-                      numberOfLines={isAccessibilityText ? undefined : 1}
-                      style={[
-                        styles.cardLocationMeta,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      {`${visibleShelfName} / ${visibleSectionName}`}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
+              {currentResult === null && currentCard.interaction_id !== 'swipe' && !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped) && !(passage && passage.source === currentCard.front.prompt) ? (
               <View
                 style={[
                   styles.studyCardTop,
@@ -912,6 +680,8 @@ export function LearningSurface({
                 </View>
               </View>
 
+              ) : null}
+
               {audioSelection ? (
                 <View
                   style={styles.audioResourceSlot}
@@ -924,37 +694,13 @@ export function LearningSurface({
                 </View>
               ) : null}
 
-              {shouldShowContextCard ? (
-                <View
-                  style={[
-                    styles.contextCard,
-                    {
-                      backgroundColor: palette.panelStrong,
-                      borderColor: palette.border,
-                    },
-                  ]}
-                  testID="learning-current-card-context"
-                >
-                  <Text
-                    style={[
-                      styles.cardSupport,
-                      { color: palette.text },
-                    ]}
-                  >
-                    {currentCard.front.support}
-                  </Text>
-                  <Text
-                    style={[styles.cardContext, { color: palette.textMuted }]}
-                  >
-                    {currentCard.front.context}
-                  </Text>
-                </View>
-              ) : null}
+              {shouldShowContextCard ? <View style={styles.contextCard} testID="learning-current-card-context">{material.map(text => <Text key={text} style={[styles.cardSupport, {color: palette.text}]}>{text}</Text>)}</View> : null}
 
               {currentResult ? (
                 onOpenResultDetail ? (
                   <MotionView motionKey={currentResult.outcome} kind="result" enter><ResultSummaryPanel
                     card={currentCard}
+                    cardState={currentCardState}
                     compact={isCompactPhone}
                     palette={palette}
                     result={currentResult}
@@ -988,33 +734,6 @@ export function LearningSurface({
                     },
                   ]}
                 >
-                  {isDenseInteraction ? (
-                    <View style={styles.interactionTitleRow}>
-                      <Text
-                        style={[styles.sectionTitle, { color: palette.text }]}
-                      >
-                        {INTERACTION_LABELS[currentCard.interaction_id]}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.interactionMeta,
-                          { color: palette.textMuted },
-                        ]}
-                      >
-                        现在做
-                      </Text>
-                    </View>
-                  ) : null}
-                  {!isDenseInteraction &&
-                  currentCard.interaction_id !== 'flip' ? (
-                    <Text
-                      numberOfLines={isAccessibilityText ? undefined : 2}
-                      style={[styles.actionCue, { color: palette.textMuted }]}
-                      testID="learning-action-cue"
-                    >
-                      {actionCue}
-                    </Text>
-                  ) : null}
                   <InteractionBody
                     key={`${currentCard.card_id}:${audioAttemptId ?? phase}`}
                     card={currentCard}
@@ -1027,6 +746,45 @@ export function LearningSurface({
                     onSelectSwipeState={onSelectSwipeState}
                     compact={isCompactPhone}
                   />
+                  <View style={styles.learningHelpTools}>
+        {currentResult === null && currentCard.hint_layer ? (
+          <Pressable
+            accessibilityLabel={
+              currentCardState.isHintVisible ? '收起提示' : '查看提示'
+            }
+            accessibilityRole="button"
+            accessibilityState={{ expanded: currentCardState.isHintVisible }}
+            onPress={onToggleHint}
+            style={[
+              styles.cardEdgeHint,
+              isCompactPhone ? styles.cardEdgeHintCompact : null,
+              {
+                backgroundColor: currentCardState.isHintVisible
+                  ? 'transparent'
+                  : 'transparent',
+                borderColor: currentCardState.isHintVisible
+                  ? 'transparent'
+                  : 'transparent',
+              },
+            ]}
+            testID="learning-hint-button"
+          >
+            <Text
+              style={[
+                styles.cardEdgeHintLabel,
+                {
+                  color: currentCardState.isHintVisible
+                    ? tone.accent
+                    : palette.textMuted,
+                },
+              ]}
+            >
+              {currentCardState.isHintVisible ? '收起提示' : '查看提示'}
+            </Text>
+          </Pressable>
+        ) : null}
+                    <Pressable accessibilityRole="button" accessibilityLabel={currentCardState.isPeeked ? '收起思路' : '解题思路'} accessibilityState={{expanded:currentCardState.isPeeked}} onPress={onTogglePeek} style={styles.helpTextButton} testID="learning-peek-button"><Text style={[styles.helpTextLabel,{color:palette.textMuted}]}>{currentCardState.isPeeked ? '收起思路' : '解题思路'}</Text></Pressable>
+                  </View>
                   <MotionPresence>{supportLayer ? (
                     <View testID="learning-support-layer"
                       style={[
@@ -1170,7 +928,7 @@ export function LearningSurface({
                   <Text
                     style={[
                       styles.choiceLabel,
-                      { color: SELF_ASSESS_COLORS.confident },
+                      { color: '#146047' },
                     ]}
                   >
                     有把握
@@ -1200,7 +958,7 @@ export function LearningSurface({
                   <Text
                     style={[
                       styles.choiceLabel,
-                      { color: SELF_ASSESS_COLORS.review },
+                      { color: '#72530D' },
                     ]}
                   >
                     再回看
@@ -1211,89 +969,10 @@ export function LearningSurface({
           </View>
         ) : null}
 
-        {!currentResult &&
-        currentCard.interaction_id !== 'flip' &&
-        currentCard.interaction_id !== 'swipe' ? (
-          <View
-            style={[
-              styles.oneScreenDock,
-              isLockInteraction ? styles.oneScreenDockCompact : null,
-              isCompactPhone ? styles.oneScreenDockSmallViewport : null,
-            ]}
-            testID="learning-action-dock"
-          >
-            <View
-              style={[
-                styles.submitActionDock,
-                isCompactPhone ? styles.submitActionDockCompact : null,
-                {
-                  backgroundColor: canSubmitCurrentCard
-                    ? neutralAction.surface
-                    : palette.panelStrong,
-                  borderColor: canSubmitCurrentCard
-                    ? neutralAction.border
-                    : palette.border,
-                },
-              ]}
-              testID="learning-submit-action-dock"
-            >
-              <View style={styles.submitActionTextStack}>
-                <Text
-                  numberOfLines={isAccessibilityText ? undefined : 1}
-                  style={[
-                    styles.submitActionTitle,
-                    {
-                      color: canSubmitCurrentCard
-                        ? palette.text
-                        : palette.textMuted,
-                    },
-                  ]}
-                >
-                  {submitDockCopy.title}
-                </Text>
-                <Text
-                  numberOfLines={isAccessibilityText ? undefined : 1}
-                  style={[
-                    styles.submitActionDetail,
-                    { color: palette.textMuted },
-                  ]}
-                >
-                  {submitDockCopy.detail}
-                </Text>
-              </View>
-              <Pressable
-                accessibilityLabel="提交当前答案"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: !canSubmitCurrentCard }}
-                disabled={!canSubmitCurrentCard}
-                onPress={onSubmitCurrentCard}
-                style={[
-                  styles.submitActionButton,
-                  {
-                    backgroundColor: canSubmitCurrentCard
-                      ? primaryAction.surface
-                      : palette.tabIdle,
-                    opacity: canSubmitCurrentCard ? 1 : 0.68,
-                  },
-                ]}
-                testID="learning-submit-button"
-              >
-                <Text
-                  style={[
-                    styles.submitActionButtonLabel,
-                    {
-                      color: canSubmitCurrentCard
-                        ? primaryAction.text
-                        : palette.panel,
-                    },
-                  ]}
-                >
-                  确认答案
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
+        {!currentResult && (currentCard.interaction_id === 'multiple_choice' || currentCard.interaction_id === 'elimination') ? <View style={[styles.oneScreenDock,styles.simpleActionDock,{borderColor:palette.border}]} testID="learning-action-dock">
+          <Pressable accessibilityLabel="提交当前答案" accessibilityRole="button" accessibilityState={{disabled:!canSubmitCurrentCard}} disabled={!canSubmitCurrentCard} onPress={onSubmitCurrentCard} style={[styles.primaryButton,{backgroundColor:canSubmitCurrentCard?primaryAction.surface:palette.panelStrong}]} testID="learning-submit-button"><Text style={[styles.primaryButtonLabel,{color:canSubmitCurrentCard?primaryAction.text:palette.textMuted}]}>{submissionLabel}</Text></Pressable>
+        </View> : null}
+
       </Animated.View>
     </View>
   );
@@ -1320,6 +999,7 @@ function InteractionBody({
   onToggleEliminationItem: (itemId: string) => void;
   onSelectSwipeState: (stateId: string) => void;
 }) {
+  const {fontScale} = useWindowDimensions();
   const libraryTone = resolveLibraryTone(card.space_metadata.library);
   const tone = {
     accent: libraryTone.accent,
@@ -1342,13 +1022,13 @@ function InteractionBody({
               styles.revealPanel,
               compact ? styles.revealPanelCompact : null,
               {
-                backgroundColor: tone.accentSoft,
-                borderColor: tone.accent,
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
             ]}
           >
             <Text style={[styles.revealTitle, { color: tone.accent }]}>
-              翻面结果
+              核对答案
             </Text>
             <Text
               style={[
@@ -1359,6 +1039,7 @@ function InteractionBody({
             >
               {card.back_text}
             </Text>
+            <Text style={[styles.answerQuestion, {color:palette.textMuted,borderColor:palette.border}]}>{card.front.prompt}</Text>
           </View>
         </View>
       ) : null;
@@ -1417,6 +1098,7 @@ function InteractionBody({
                   style={[
                     styles.optionCard,
                     compact ? styles.optionCardCompact : null,
+                    fontScale >= 1.3 ? styles.optionCardAccessible : null,
                     isSelected ? styles.optionCardSelected : null,
                     {
                       backgroundColor: optionStateTint,
@@ -1455,16 +1137,6 @@ function InteractionBody({
                         {option.label}
                       </Text>
                     </View>
-                    {isSelected && !isResolved ? (
-                      <Text
-                        style={[
-                          styles.optionStateLabel,
-                          { color: palette.textMuted },
-                        ]}
-                      >
-                        已选
-                      </Text>
-                    ) : null}
                   </View>
                   <Text style={[styles.optionText, { color: palette.text }]}>
                     {option.text}
@@ -1476,6 +1148,7 @@ function InteractionBody({
         </View>
       );
     case 'lock':
+      const formingSentence = card.lock_slots.map((slot,index) => cardState.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? cardState.lockSelections[slot.id] : '____').join(' ');
       return (
         <View
           style={[
@@ -1486,7 +1159,8 @@ function InteractionBody({
           <View
             style={[styles.lockList, compact ? styles.lockListCompact : null]}
           >
-            {card.lock_slots.map((slot, index) => {
+            <Text style={[styles.formingSentence,{color:palette.text,borderColor:palette.border}]} testID="learning-forming-sentence">{formingSentence}</Text>
+          {card.lock_slots.map((slot, index) => {
               const selectedValue = cardState.lockSelections[slot.id];
               const expectedValue = card.answer_key.lock_pattern[index];
               const isUnlocked = selectedValue === expectedValue;
@@ -1547,7 +1221,7 @@ function InteractionBody({
                       <Text style={[styles.lockLabel, { color: palette.text }]}>
                         {slot.label}
                       </Text>
-                      {!compact ? (
+                      {hasWrongSelection || !compact ? (
                         <Text
                           style={[
                             styles.lockStatus,
@@ -1575,7 +1249,7 @@ function InteractionBody({
                         compact ? styles.lockChoiceWrapCompact : null,
                       ]}
                     >
-                      {slot.options.map((option, optionIndex) => {
+                      {isCurrentRow ? slot.options.map((option, optionIndex) => {
                         const isSelected = selectedValue === option;
 
                         return (
@@ -1632,7 +1306,7 @@ function InteractionBody({
                             </Text>
                           </Pressable>
                         );
-                      })}
+                      }) : <Text style={[styles.lockSettledText,{color:isUnlocked?palette.text:palette.textMuted}]}>{isUnlocked ? selectedValue : '完成上一锁位后继续'}</Text>}
                     </View>
                   </MotionView>
                 </View>
@@ -1641,7 +1315,11 @@ function InteractionBody({
           </View>
         </View>
       );
-    case 'elimination':
+    case 'elimination': {
+      const passage = eliminationPassage(card);
+      const optionOrder = card.elimination_items.map(item => item.id);
+      if (passage) return <EliminationPassageText segments={passage.segments} selectedIds={cardState.eliminatedItemIds} optionOrder={optionOrder} disabled={currentResult !== null} onToggle={onToggleEliminationItem} textColor={palette.text} mutedColor={palette.textMuted} selectionSurface={tone.accentSoft} />;
+
       return (
         <View
           style={[
@@ -1727,6 +1405,7 @@ function InteractionBody({
           </View>
         </View>
       );
+    }
     case 'swipe':
       return (
         <SwipeInteraction
@@ -1959,9 +1638,6 @@ function SwipeInteraction({
           ]}
           testID="learning-swipe-draggable-card"
         >
-          <Text style={[styles.swipePromptLabel, { color: tone.accent }]}>
-            左右滑动判断
-          </Text>
           <Text style={[styles.swipePromptText, { color: palette.text }]}>
             {card.front.prompt}
           </Text>
@@ -2193,6 +1869,7 @@ export function LearningResultDetailSurface({
   sessionCardCount: number;
   sessionLabel: string;
 }) {
+  const isReviewPhase = phase === 'review';
   const {
     fontScale,
     height: viewportHeight,
@@ -2363,7 +2040,7 @@ export function LearningResultDetailSurface({
                 numberOfLines={1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                {`${visibleShelfName} / ${visibleSectionName}`}
+                {`${isReviewPhase ? '回看 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
               </Text>
             </View>
             <Pressable
@@ -2601,76 +2278,25 @@ export function LearningResultDetailSurface({
   );
 }
 
-function ResultSummaryPanel({
-  card,
-  compact,
-  palette,
-  result,
-  onOpenResultDetail,
-}: {
-  card: LearningCard;
-  compact: boolean;
-  palette: LearningSurfacePalette;
-  result: LearningCardResult;
-  onOpenResultDetail: () => void;
+function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetail}: {
+  card: LearningCard; cardState: LearningCardState; compact: boolean;
+  palette: LearningSurfacePalette; result: LearningCardResult; onOpenResultDetail: () => void;
 }) {
-  const borderTone =
-    result.outcome === 'review'
-      ? palette.warning
-      : result.outcome === 'incorrect'
-      ? palette.danger
-      : palette.success;
-  const isPositive =
-    result.outcome === 'correct' || result.outcome === 'confident';
-
-  return (
-    <View
-      style={[
-        styles.resultCard,
-        compact ? styles.resultCardCompact : null,
-        {
-          backgroundColor: palette.panelStrong,
-          borderColor: borderTone,
-        },
-      ]}
-      testID="learning-result-summary"
-    >
-      <View style={styles.resultHeader}>
-        <Text style={[styles.sectionTitle, { color: palette.text }]}>
-          {isPositive ? '这张卡已稳住' : '这张卡需要回看'}
-        </Text>
-        <ResultBadge outcome={result.outcome} palette={palette} />
-      </View>
-      <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
-        {card.analysis.title}
-      </Text>
-      <Text
-        style={[styles.resultExplanationBody, { color: palette.textMuted }]}
-      >
-        {card.analysis.summary}
-      </Text>
-      <Text style={[styles.resultTip, { color: palette.textMuted }]}>
-        过级提醒：{card.analysis.exam_tip}
-      </Text>
-      <View style={styles.resultActionRow}>
-        <Pressable
-          onPress={onOpenResultDetail}
-          style={[
-            styles.secondaryButton,
-            {
-              backgroundColor: palette.panel,
-              borderColor: borderTone,
-            },
-          ]}
-          testID="learning-open-result-detail-button"
-        >
-          <Text style={[styles.secondaryButtonLabel, { color: borderTone }]}>
-            展开完整解析
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
+  const comparison = answerComparison(card, cardState);
+  const answerLabel = card.interaction_id === 'flip' ? '核对答案' : '正确答案';
+  const questionContext = spaceCardPreview(card);
+  return <View style={styles.answerSummary} testID="learning-result-summary">
+    <Text style={[styles.answerEyebrow, {color: palette.success}]}>{answerLabel}</Text>
+    <Text style={[styles.answerHeadline, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
+    {comparison.selected && comparison.selected !== comparison.correct ? <View style={styles.answerSelectionRow}>
+      <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>你的选择</Text>
+      <Text style={[styles.answerSelection, {color: palette.danger}]}>{comparison.selected}</Text>
+    </View> : null}
+    {result.outcome === 'confident' || result.outcome === 'review' ? <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{result.outcome === 'confident' ? '有把握' : '再回看'}</Text> : null}
+    <Text style={[styles.answerQuestion, {color: palette.textMuted, borderColor: palette.border}]}>{[questionContext.title, ...questionContext.detail].join('\n\n')}</Text>
+    <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
+    <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>展开完整解析 →</Text></Pressable>
+  </View>;
 }
 
 function ResultPanel({
@@ -2857,6 +2483,27 @@ function ResultBadge({
 }
 
 const styles = StyleSheet.create({
+  lockSettledText: {fontSize: 16, lineHeight: 24, paddingVertical: 8},
+  simpleActionDock: {borderTopWidth: 1, paddingTop: 12},
+
+  answerSummary: {gap: 12},
+  answerEyebrow: {fontSize: 12, lineHeight: 18, fontWeight: '500'},
+  answerHeadline: {fontSize: 27, lineHeight: 36, fontWeight: '600'},
+  answerSelectionRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', marginBottom: 8},
+  answerSelection: {fontSize: 16, lineHeight: 24, flexShrink: 1},
+  answerQuestion: {fontSize: 15, lineHeight: 24, borderTopWidth: 1, paddingTop: 16, marginTop: 8},
+  answerReason: {fontSize: 16, lineHeight: 27, fontWeight: '400'},
+  analysisLink: {minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', paddingVertical: 8},
+  analysisLinkText: {fontSize: 13, lineHeight: 21},
+  learningHelpTools: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 20, marginTop: 8},
+  helpTextButton: {minHeight: 44, minWidth: 44, justifyContent: 'center', paddingVertical: 8},
+  helpTextLabel: {fontSize: 13, lineHeight: 20},
+  formingSentence: {fontSize: 21, lineHeight: 32, borderBottomWidth: 1, paddingVertical: 12, marginBottom: 8},
+  passageArea: {gap: 14},
+  passageText: {fontSize: 19, lineHeight: 44, fontWeight: '400'},
+  passageCandidate: {fontSize: 19, lineHeight: 44},
+  passageGuidance: {fontSize: 12, lineHeight: 20},
+
   audioResourceSlot: {
     alignItems: 'flex-start',
     flexShrink: 0,
@@ -3106,19 +2753,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   detailExplanationSlip: {
-    borderRadius: 18,
-    borderWidth: 1,
-    flexGrow: 1,
-    gap: 4,
-    justifyContent: 'center',
-    minHeight: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    borderRadius: 0, borderWidth: 0, flexGrow: 0, gap: 10, justifyContent: 'flex-start', minHeight: 0, paddingHorizontal: 0, paddingVertical: 14,
   },
   detailExplanationSlipCompact: {
-    gap: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 10, paddingHorizontal: 0, paddingVertical: 10,
   },
   detailOutcomeTitle: {
     fontSize: 13,
@@ -3157,11 +2795,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardProgressTrack: {
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 7,
-    overflow: 'hidden',
-    width: 54,
+    borderRadius: 2, borderWidth: 0, height: 2, overflow: 'hidden', width: 30,
   },
   progressFill: {
     height: '100%',
@@ -3198,14 +2832,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   studyCard: {
-    borderWidth: 1,
-    borderTopWidth: 8,
-    borderRadius: 30,
-    overflow: 'hidden',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 14,
-    position: 'relative',
+    borderWidth: 1, borderRadius: 20, overflow: 'hidden', paddingHorizontal: 18, paddingVertical: 16, gap: 12, position: 'relative',
   },
   cardStageAtmosphere: {
     borderRadius: 999,
@@ -3217,18 +2844,10 @@ const styles = StyleSheet.create({
     width: 280,
   },
   studyCardOneScreen: {
-    flexGrow: 0,
-    flexShrink: 0,
-    gap: 8,
-    height: '92%',
-    minHeight: 0,
-    paddingHorizontal: 17,
-    paddingVertical: 14,
+    flexGrow: 0, flexShrink: 1, gap: 12, height: '100%', minHeight: 0, paddingHorizontal: 20, paddingVertical: 14,
   },
   studyCardOneScreenCompact: {
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 10, paddingHorizontal: 18, paddingVertical: 10,
   },
   cardAddressShelf: {
     alignItems: 'center',
@@ -3285,95 +2904,49 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   cardEdgeHint: {
-    alignItems: 'center',
-    borderBottomLeftRadius: 16,
-    borderTopLeftRadius: 16,
-    borderWidth: 1,
-    borderRightWidth: 0,
-    height: 56,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 0,
-    top: 118,
-    width: 48,
-    zIndex: 4,
+    alignItems: 'flex-start', borderWidth: 0, minHeight: 44, minWidth: 44, justifyContent: 'center', paddingVertical: 8,
   },
   cardEdgeHintCompact: {
-    top: 94,
+    minHeight: 44,
   },
   cardEdgeHintLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-    textAlign: 'center',
+    fontSize: 13, fontWeight: '400', lineHeight: 20,
   },
   cardStageBody: {
-    flex: 1,
-    justifyContent: 'center',
-    minHeight: 0,
-    zIndex: 1,
+    flex: 1, justifyContent: 'flex-start', minHeight: 0, zIndex: 1,
   },
   cardMaterialSheetFrame: {
-    alignSelf: 'stretch',
-    flexShrink: 1,
-    maxHeight: '100%',
+    alignSelf: 'stretch', flex: 1, minHeight: 0,
   },
   cardTaskBand: {
-    borderRadius: 24,
-    borderWidth: 1,
-    flexGrow: 0,
-    flexShrink: 1,
-    maxHeight: '100%',
-    minHeight: 0,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.1,
-    shadowRadius: 26,
-    elevation: 3,
+    borderRadius: 0, borderWidth: 0, flex: 1, minHeight: 0, shadowOpacity: 0, elevation: 0,
   },
   cardTaskBandContent: {
-    flexGrow: 0,
-    gap: 8,
-    padding: 16,
+    flexGrow: 0, gap: 16, padding: 0, paddingBottom: 16,
   },
   cardTaskBandContentCompact: {
-    gap: 4,
-    padding: 12,
+    gap: 12, padding: 0, paddingBottom: 12,
   },
   cardTaskBandContentCentered: {
-    gap: 18,
-    justifyContent: 'center',
+    gap: 16, justifyContent: 'flex-start',
   },
   cardTaskBandWithHint: {
-    paddingRight: 52,
+    paddingRight: 0,
   },
   cardObjectLead: {
-    fontSize: 16,
-    fontWeight: '800',
-    lineHeight: 20,
+    fontSize: 15, fontWeight: '500', lineHeight: 22,
   },
   cardObjectLeadCompact: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 14, lineHeight: 20,
   },
   cardProgressCluster: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 4,
-    minWidth: 62,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    alignItems: 'center', borderRadius: 0, borderWidth: 0, gap: 4, minWidth: 36, paddingHorizontal: 0, paddingVertical: 4,
   },
   cardProgressClusterCompact: {
-    gap: 2,
-    minWidth: 56,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+    gap: 4, minWidth: 36, paddingHorizontal: 0, paddingVertical: 4,
   },
   cardProgressCount: {
-    fontSize: 16,
-    fontWeight: '800',
-    lineHeight: 19,
+    fontSize: 12, fontWeight: '500', lineHeight: 18,
   },
   cardLocationStrip: {
     alignItems: 'center',
@@ -3428,35 +3001,22 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   cardPrompt: {
-    fontSize: 29,
-    lineHeight: 36,
-    fontWeight: '800',
+    fontSize: 26, lineHeight: 36, fontWeight: '600',
   },
   cardPromptOneScreen: {
-    fontSize: 23,
-    lineHeight: 29,
+    fontSize: 25, lineHeight: 34,
   },
   cardPromptOneScreenCompact: {
-    fontSize: 20,
-    lineHeight: 25,
+    fontSize: 23, lineHeight: 32,
   },
   contextCard: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 14,
-    gap: 8,
+    borderWidth: 0, borderRadius: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 12,
   },
   contextCardSupportActive: {
     borderLeftWidth: 0,
   },
   denseSupportLayer: {
-    borderRadius: 14,
-    borderWidth: 1,
-    flexShrink: 0,
-    gap: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderRadius: 8, borderWidth: 0, borderLeftWidth: 2, paddingHorizontal: 14, paddingVertical: 12, gap: 5,
   },
   denseSupportTitle: {
     fontSize: 12,
@@ -3468,13 +3028,10 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   cardSupport: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
+    fontSize: 17, fontWeight: '400', lineHeight: 28,
   },
   cardContext: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15, fontWeight: '400', lineHeight: 25,
   },
   attachedLayerPanel: {
     borderLeftWidth: 0,
@@ -3565,28 +3122,20 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   revealPanel: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-    gap: 6,
+    borderRadius: 0, borderWidth: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 10,
   },
   revealPanelCompact: {
-    gap: 3,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    gap: 10, paddingHorizontal: 0, paddingVertical: 0,
   },
   revealTitle: {
     fontSize: 13,
     fontWeight: '700',
   },
   revealText: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
+    fontSize: 25, fontWeight: '600', lineHeight: 35,
   },
   revealTextCompact: {
-    fontSize: 14,
-    lineHeight: 19,
+    fontSize: 24, lineHeight: 33,
   },
   confidenceRow: {
     flexDirection: 'row',
@@ -3626,20 +3175,9 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   optionCard: {
-    borderWidth: 1.5,
-    borderRadius: 17,
-    flexBasis: '47%',
-    flexGrow: 1,
-    gap: 8,
-    alignItems: 'flex-start',
-    minHeight: 110,
-    minWidth: '47%',
-    overflow: 'hidden',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    position: 'relative',
-    justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, minHeight: 68, minWidth: 0, paddingHorizontal: 12, paddingVertical: 14, gap: 12, width: '48%',
   },
+  optionCardAccessible: {width: '100%'},
   optionCardSelected: {
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
@@ -3647,17 +3185,13 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   optionCardCompact: {
-    gap: 4,
-    minHeight: 92,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    minHeight: 64, paddingHorizontal: 10, paddingVertical: 12, gap: 10,
   },
   optionHeaderRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
-    justifyContent: 'space-between',
-    width: '100%',
+    flexShrink: 0,
   },
   optionLetterBadge: {
     alignItems: 'center',
@@ -3676,9 +3210,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   optionText: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 18,
+    flex: 1, minWidth: 0, fontSize: 16, fontWeight: '500', lineHeight: 23,
   },
   lockGroup: {
     gap: 10,
@@ -3724,20 +3256,13 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 5,
   },
-  lockBodyCompact: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-  },
+  lockBodyCompact: {gap: 6},
   lockLabelRow: {
     flexDirection: 'row',
     gap: 6,
     justifyContent: 'space-between',
   },
-  lockLabelRowCompact: {
-    flexShrink: 0,
-    width: 28,
-  },
+  lockLabelRowCompact: {flexShrink: 0, flexWrap: 'wrap'},
   lockLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -3770,7 +3295,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   lockChoiceWrap: {
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap',
     gap: 5,
   },
   lockChoiceWrapCompact: {
@@ -3879,9 +3404,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   swipePromptText: {
-    fontSize: 15,
-    lineHeight: 21,
-    fontWeight: '700',
+    fontSize: 23, fontWeight: '600', lineHeight: 33,
   },
   swipeTrailRow: {
     flexDirection: 'row',
@@ -3947,12 +3470,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   primaryButton: {
-    borderRadius: 17,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
+    alignItems: 'center', justifyContent: 'center', borderRadius: 12, minHeight: 48, paddingHorizontal: 16, paddingVertical: 12,
   },
   oneScreenDock: {
     flexShrink: 0,
@@ -4024,8 +3542,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   primaryButtonLabel: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16, fontWeight: '600', lineHeight: 24,
   },
   secondaryButton: {
     alignItems: 'center',
@@ -4040,18 +3557,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   resultCard: {
-    borderWidth: 1,
-    borderRadius: 26,
-    overflow: 'hidden',
-    paddingHorizontal: 19,
-    paddingVertical: 18,
-    gap: 12,
-    position: 'relative',
+    borderRadius: 0, borderWidth: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 12,
   },
   resultCardCompact: {
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 10, paddingHorizontal: 0, paddingVertical: 0,
   },
   completeActionCard: {
     paddingVertical: 16,

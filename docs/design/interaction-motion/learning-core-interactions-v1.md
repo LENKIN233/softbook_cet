@@ -44,7 +44,7 @@ Learning 是 system-sequenced single-card flow。核心交互不是按钮装饰�
 ### lock
 
 - Operation model: 一组 vertical lock rows，用户按顺序解锁或选择 row。
-- Feedback model: unlocked rows expose progressive answer state; completion is auto-scored.
+- Feedback model: accepted phrases form the sentence in place. The final correct slot immediately reveals the answer and original sentence. Continue is the next action; there is no redundant confirmation.
 - Failure / recovery: 选错时保留 row context and allow retry or reveal according to card contract.
 - Motion intent: each unlocked row expands 120-220ms; no per-row card shell.
 - Interruptibility: 未完成时可以离开当前卡，但返回后仍看到 row progress.
@@ -52,7 +52,7 @@ Learning 是 system-sequenced single-card flow。核心交互不是按钮装饰�
 
 ### elimination
 
-- Operation model: 用户从 3-6 个 candidates 中划掉错误项，strike-through 是主 affordance。
+- Operation model: 用户直接划掉原句中的可操作成分，保留文本和划线痕迹；再次点击可撤销。只有源文本匹配唯一且片段不重叠时才原位映射，否则保留完整原句与独立候选项。
 - Feedback model: remaining candidates become the answer set; auto reveal confirms final state.
 - Failure / recovery: 用户可撤销最近一次 strike before submit; submit 后只显示轻量 correction.
 - Motion intent: strike line draws 100-180ms, candidate opacity lowers; no reward burst.
@@ -62,7 +62,7 @@ Learning 是 system-sequenced single-card flow。核心交互不是按钮装饰�
 ### swipe
 
 - Operation model: exactly one top card object visible, with left/right trail hints.
-- Feedback model: direction resolves to the card's two-state answer contract and then advances.
+- Feedback model: direction resolves to the card's two-state answer contract; the answer comparison appears before explicit continuation.
 - Failure / recovery: ambiguous or cancelled drag snaps card back to center; no answer is recorded.
 - Motion intent: drag follows finger/mouse; release settles 180-260ms; next card enters as continuation of the same object stack.
 - Interruptibility: before release, user can return to neutral.

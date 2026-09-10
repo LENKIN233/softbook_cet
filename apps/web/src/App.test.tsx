@@ -13,7 +13,7 @@ async function authenticate() {
     target: {value: '123456'},
   });
   fireEvent.click(screen.getByRole('button', {name: '验证并继续'}));
-  await screen.findByRole('heading', {name: '当前学习卡'});
+  await screen.findByRole('button', {name: '翻面看答案'});
 }
 
 function chooseLockOption(slotLabel: string, option: string) {
@@ -37,7 +37,8 @@ describe('PC Web core flow', () => {
     expect(answers).toHaveTextContent('A · urgent');
     expect(answers).toHaveTextContent('正确答案');
     expect(answers).toHaveTextContent('B · unclear');
-    expect(screen.getByRole('button', {name: /A.*urgent/})).toBeDisabled();
+    expect(screen.getByRole('heading', {name: 'B · unclear'})).toHaveFocus();
+    expect(screen.queryByRole('button', {name: /A.*urgent/})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
     expect(screen.queryByLabelText('答案对照')).not.toBeInTheDocument();
     expect(screen.getByRole('group', {name: '开锁槽位'})).toBeInTheDocument();
@@ -51,8 +52,8 @@ describe('PC Web core flow', () => {
         .getAllByRole('button')
         .map(button => button.textContent),
     ).toEqual(['学习', '空间', '统计', '我的']);
-    expect(screen.getByRole('heading', {name: '当前学习卡'})).toBeInTheDocument();
-    expect(screen.getByText('跨端同步 · 当前设备可继续')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: '短对话里听到 however，优先盯哪一半信息？'})).toBeInTheDocument();
+    expect(screen.queryByText('跨端同步 · 当前设备可继续')).not.toBeInTheDocument();
     expect(document.body.textContent).not.toContain('开发状态');
   });
 
@@ -76,11 +77,11 @@ describe('PC Web core flow', () => {
   it('keeps Peek available and remembers a collapsed hint for learning statistics', async () => {
     await authenticate();
 
-    fireEvent.click(screen.getByRole('button', {name: '查看线索'}));
+    fireEvent.click(screen.getByRole('button', {name: '解题思路'}));
     expect(
-      screen.getByText('先抓题干里的关键信号，再完成当前判断。'),
+      screen.getByText(/听到转折词时先记/),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: '收起线索'}));
+    fireEvent.click(screen.getByRole('button', {name: '收起思路'}));
     fireEvent.click(screen.getByRole('button', {name: '查看提示'}));
     expect(screen.getByText(/先问自己/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '收起提示'}));
@@ -112,7 +113,7 @@ describe('PC Web core flow', () => {
     expect(screen.getByText(/1 张卡暂时离开学习流/)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '取消喜欢'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '唤醒到学习流'})).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: '回到学习'}));
+    fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
     expect(screen.getByRole('button', {name: '已标记喜欢'})).toBeInTheDocument();
   });
 
@@ -127,6 +128,7 @@ describe('PC Web core flow', () => {
     expect(current).toHaveTextContent('当前学习');
     expect(sibling).not.toHaveTextContent('当前学习');
     expect(sibling).toHaveTextContent('正在浏览');
+    fireEvent.click(screen.getByRole('button', {name: '仔细阅读'}));
     fireEvent.click(screen.getByRole('button', {name: '主谓宾 1 张'}));
     expect(screen.getByLabelText('盒内卡片')).not.toHaveTextContent('当前学习');
     fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
@@ -142,12 +144,14 @@ describe('PC Web core flow', () => {
     fireEvent.click(screen.getByRole('button', {name: /A.*urgent/}));
     fireEvent.click(screen.getByRole('button', {name: '空间'}));
     fireEvent.click(within(screen.getByLabelText('盒内卡片')).getByRole('button', {name: /The article offers/}));
+    fireEvent.click(screen.getByRole('button', {name: '听力'}));
     fireEvent.click(screen.getByRole('button', {name: '转折关系 2 张'}));
-    fireEvent.click(screen.getByRole('button', {name: /^回到学习$/}));
+    fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
     expect(screen.getByRole('button', {name: /A.*urgent/})).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('2 / 5')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
     fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    fireEvent.click(screen.getByRole('button', {name: '仔细阅读'}));
     fireEvent.click(screen.getByRole('button', {name: '主谓宾 1 张'}));
     fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
     expect(screen.getByLabelText('答案对照')).toHaveTextContent('A · urgent');
@@ -175,6 +179,7 @@ describe('PC Web core flow', () => {
     fireEvent.click(sibling);
     expect(current).toHaveAttribute('data-learning-current', 'true');
     expect(sibling).not.toHaveAttribute('data-learning-current');
+    fireEvent.click(screen.getByRole('button', {name: '听力'}));
     fireEvent.click(screen.getByRole('button', {name: '转折关系 2 张'}));
     expect(screen.getByLabelText('盒内卡片').querySelector('[data-learning-current]')).toBeNull();
     fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
@@ -265,14 +270,13 @@ describe('PC Web core flow', () => {
     ).toBeEnabled();
     chooseLockOption('谓语', 'reduces');
     chooseLockOption('宾语', 'reduces');
-    expect(screen.getByRole('button', {name: '提交判断'})).toBeDisabled();
+    expect(screen.queryByRole('button', {name: '提交判断'})).not.toBeInTheDocument();
     chooseLockOption('宾语', 'test anxiety');
-    expect(within(lockRows).getAllByText('已开锁')).toHaveLength(3);
-    expect(screen.getByRole('button', {name: '提交判断'})).toBeEnabled();
-    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    expect(screen.getByLabelText('答案对照')).toHaveTextContent('The policy reduces test anxiety');
+    expect(screen.queryByRole('button', {name: '提交判断'})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
 
-    const elimination = screen.getByRole('group', {name: '选择要删除的干扰成分'});
+    const elimination = screen.getByRole('group', {name: '在原句中选择要删除的成分'});
     fireEvent.click(within(elimination).getByRole('button', {name: 'who review in short bursts'}));
     fireEvent.click(within(elimination).getByRole('button', {name: 'usually'}));
     fireEvent.click(within(elimination).getByRole('button', {name: 'before the test'}));
@@ -289,9 +293,9 @@ describe('PC Web core flow', () => {
     fireEvent.pointerDown(swipeCard, {clientX: 120, pointerId: 2});
     fireEvent.pointerMove(swipeCard, {clientX: 20, pointerId: 2});
     fireEvent.pointerUp(swipeCard, {clientX: 20, pointerId: 2});
-    expect(within(swipe).getByRole('button', {name: /可直接套用/})).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('答案对照')).toHaveTextContent('很可能做某事');
     expect(screen.queryByRole('button', {name: '提交判断'})).not.toBeInTheDocument();
-    expect(screen.getByText('判断正确')).toBeInTheDocument();
+    expect(screen.getByLabelText('答案对照')).toHaveTextContent('正确答案');
     fireEvent.click(screen.getByRole('button', {name: '完成本轮'}));
 
     expect(screen.getByRole('heading', {name: '这一轮到这里'})).toBeInTheDocument();
@@ -313,10 +317,10 @@ describe('PC Web core flow', () => {
     chooseLockOption('主语', 'The policy');
     chooseLockOption('谓语', 'reduces');
     chooseLockOption('宾语', 'test anxiety');
-    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    expect(screen.getByLabelText('答案对照')).toHaveTextContent('The policy reduces test anxiety');
     fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
 
-    const elimination = screen.getByRole('group', {name: '选择要删除的干扰成分'});
+    const elimination = screen.getByRole('group', {name: '在原句中选择要删除的成分'});
     fireEvent.click(within(elimination).getByRole('button', {name: 'who review in short bursts'}));
     fireEvent.click(within(elimination).getByRole('button', {name: 'usually'}));
     fireEvent.click(within(elimination).getByRole('button', {name: 'before the test'}));
@@ -324,7 +328,7 @@ describe('PC Web core flow', () => {
     fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
 
     fireEvent.keyDown(document.body, {key: 'ArrowLeft'});
-    expect(screen.getByText('判断正确')).toBeInTheDocument();
+    expect(screen.getByLabelText('答案对照')).toHaveTextContent('正确答案');
     expect(screen.queryByRole('button', {name: '提交判断'})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '完成本轮'}));
     fireEvent.click(screen.getByRole('button', {name: '开始回看 1 张'}));

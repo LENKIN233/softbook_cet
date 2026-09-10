@@ -349,17 +349,17 @@ const ROUTES: ShellRoute[] = [
 const MINE_ROUTE = ROUTES.find(route => route.key === 'mine')!;
 
 const LIGHT_PALETTE: Palette = {
-  background: '#F6F5FF',
+  background: '#F5F3EE',
   panel: '#FFFFFF',
-  panelStrong: '#F8F7FF',
-  border: '#DED9EC',
-  text: '#1C1630',
-  textMuted: '#665D78',
+  panelStrong: '#F7F6F2',
+  border: '#E4E2DD',
+  text: '#20232B',
+  textMuted: '#69707A',
   accent: SHELL_ACCENT,
   accentSoft: BRAND_IDENTITY.soft,
   accentStrong: BRAND_IDENTITY.deep,
-  activeSurface: BRAND_IDENTITY.soft,
-  activeText: BRAND_IDENTITY.deep,
+  activeSurface: '#EAE7DF',
+  activeText: '#20232B',
   primaryActionSurface: SHELL_ACCENT,
   primaryActionText: '#FFFFFF',
   primaryActionMuted: 'rgba(255,255,255,0.76)',
@@ -2873,12 +2873,25 @@ function AppShell({
 
       setLearningIndex(nextIndex);
       setLearningPhase(nextPhase);
-      setLearningCurrentResult(null);
       setReviewSessionCards(shouldStayInReview ? nextReviewCards : []);
+      const nextCard = nextSessionCards[nextIndex];
+      // A state change elsewhere in Space can change the deck's indices while
+      // leaving this same attempt active. Keep its draft and revealed result.
+      if (
+        nextPhase === learningPhase &&
+        nextCard?.card_id === currentLearningCardIdRef.current
+      ) {
+        setLearningCardState(current => current === null ? null : {
+          ...current,
+          isFavorited: stateMap[nextCard.card_id]?.isFavorited ?? false,
+        });
+        return;
+      }
+      setLearningCurrentResult(null);
       setLearningCardState(
-        nextSessionCards[nextIndex]
+        nextCard
           ? createTrackedLearningAttemptState(
-              nextSessionCards[nextIndex],
+              nextCard,
               stateMap,
             )
           : null,
@@ -4546,13 +4559,11 @@ function AppShell({
       }));
     },
     onSetLockSelection: (slotId: string, value: string) => {
-      patchLearningCardState(current => ({
-        ...current,
-        lockSelections: {
-          ...current.lockSelections,
-          [slotId]: value,
-        },
-      }));
+      if (!currentLearningCard || currentLearningCard.interaction_id !== 'lock' || !learningCardState || learningCurrentResult) return;
+      const nextState = {...learningCardState, lockSelections: {...learningCardState.lockSelections, [slotId]: value}};
+      setLearningCardState(nextState);
+      const result = evaluateLearningCard(currentLearningCard, nextState);
+      if (result) {setLearningCurrentResult(result); setLearningScreen('practice');}
     },
     onToggleEliminationItem: (itemId: string) => {
       patchLearningCardState(current => ({
@@ -5422,6 +5433,7 @@ function AppShell({
         ) : (
           <PhoneShell
             activeRoute={activeRoute}
+            readingResetKey={`${currentLearningCard?.card_id ?? 'complete'}:${learningPhase}:${learningScreen}:${Boolean(learningCurrentResult)}:${Boolean(learningCardState?.isFlipped)}`}
             authState={authState}
             content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{content}</Animated.View>}
             onSelectRoute={handleSelectRoute}
@@ -6085,41 +6097,13 @@ function AccountDeletionSheet({
   );
 }
 
-function AppCanvasBackdrop({ palette }: { palette: Palette }) {
-  return (
-    <View
-      pointerEvents="none"
-      style={[
-        styles.appCanvasBackdrop,
-        { backgroundColor: palette.background },
-      ]}
-    >
-      <View
-        style={[
-          styles.appAuroraTop,
-          {
-            backgroundColor: hexToRgba('#FF8A3D', 0.14),
-            shadowColor: '#FF8A3D',
-          },
-        ]}
-        testID="app-aurora-top"
-      />
-      <View
-        style={[
-          styles.appAuroraBottom,
-          {
-            backgroundColor: hexToRgba(palette.accent, 0.1),
-            shadowColor: palette.accent,
-          },
-        ]}
-        testID="app-aurora-bottom"
-      />
-    </View>
-  );
+function AppCanvasBackdrop({palette}: {palette: Palette}) {
+  return <View pointerEvents="none" style={[styles.appCanvasBackdrop, {backgroundColor:palette.background}]} />;
 }
 
 function PhoneShell({
   activeRoute,
+  readingResetKey,
   authState,
   content,
   onSelectRoute,
@@ -6127,6 +6111,7 @@ function PhoneShell({
   route,
 }: {
   activeRoute: RouteKey;
+  readingResetKey: string;
   authState: AuthState;
   content: React.ReactNode;
   onSelectRoute: (route: RouteKey) => void;
@@ -6135,6 +6120,10 @@ function PhoneShell({
 }) {
   const { fontScale } = useWindowDimensions();
   const usesAccessibilityLayout = fontScale >= 1.3;
+  const readingScroll = useRef<ScrollView>(null);
+  useEffect(() => {
+    if (activeRoute === 'learning') readingScroll.current?.scrollTo({y: 0, animated: false});
+  }, [activeRoute, readingResetKey]);
 
   return (
     <View style={styles.shellRoot}>
@@ -6147,6 +6136,7 @@ function PhoneShell({
       <View style={styles.shellContent}>
         {usesAccessibilityLayout ? (
           <ScrollView
+            ref={readingScroll}
             contentContainerStyle={styles.shellAccessibleContent}
             key={activeRoute}
             keyboardShouldPersistTaps="handled"
@@ -6361,14 +6351,6 @@ function PhoneTopBar({
   route: ShellRoute;
 }) {
   const accountChipCopy = getShellAccountChipCopy(authState);
-  const routeCue =
-    route.key === 'learning'
-      ? '继续学习'
-      : route.key === 'space'
-      ? '查看卡片'
-      : route.key === 'statistics'
-      ? '今日进展'
-      : '账号与会员';
 
   return (
     <View
@@ -6379,16 +6361,6 @@ function PhoneTopBar({
       ]}
     >
       <View style={styles.phoneBrandLockup}>
-        <View
-          style={[
-            styles.phoneBrandMark,
-            { backgroundColor: palette.accent, shadowColor: palette.accent },
-          ]}
-        >
-          <Text allowFontScaling={false} style={styles.phoneBrandMarkLabel}>
-            软
-          </Text>
-        </View>
         <View style={styles.phoneTopCopy}>
           <Text
             style={[
@@ -6398,15 +6370,6 @@ function PhoneTopBar({
             ]}
           >
             软书四六级
-          </Text>
-          <Text
-            style={[
-              styles.phoneTopMeta,
-              route.key === 'learning' ? styles.phoneTopMetaLearning : null,
-              { color: palette.textMuted },
-            ]}
-          >
-            {route.label} · {routeCue}
           </Text>
         </View>
       </View>
@@ -6425,22 +6388,7 @@ function PhoneTopBar({
         ]}
         testID="shell-account-chip"
       >
-        <View
-          style={[
-            styles.phoneAccountChipDot,
-            { backgroundColor: palette.textMuted },
-          ]}
-        />
-        <View style={styles.phoneAccountChipCopy}>
-          <Text
-            style={[styles.phoneAccountChipLabel, { color: palette.textMuted }]}
-          >
-            {accountChipCopy.label}
-          </Text>
-          <Text style={[styles.phoneAccountChipValue, { color: palette.text }]}>
-            {accountChipCopy.value}
-          </Text>
-        </View>
+        <Text style={[styles.phoneTopMeta,{color:palette.textMuted}]}>我的</Text>
       </Pressable>
     </View>
   );
@@ -8691,25 +8639,10 @@ const styles = StyleSheet.create({
     minHeight: '100%',
   },
   phoneTopBar: {
-    alignItems: 'center',
-    borderRadius: 0,
-    borderWidth: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginTop: 4,
-    paddingHorizontal: 0,
-    paddingVertical: 8,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0,
-    shadowRadius: 16,
-    elevation: 0,
+    alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 22, paddingVertical: 2, minHeight: 44,
   },
   phoneTopBarLearning: {
-    marginTop: 2,
-    paddingVertical: 7,
-    shadowOpacity: 0,
-    shadowRadius: 14,
+    marginTop: 0, paddingVertical: 0,
   },
   phoneTopCopy: {
     flex: 1,
@@ -8739,11 +8672,10 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   phoneTopTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 15, fontWeight: '600',
   },
   phoneTopTitleLearning: {
-    fontSize: 16,
+    fontSize: 15,
   },
   phoneTopMeta: {
     fontSize: 11,
@@ -8753,14 +8685,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   phoneAccountChip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 6,
-    minWidth: 72,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 0, borderRadius: 0, minWidth: 44, minHeight: 44, paddingHorizontal: 6,
   },
   phoneAccountChipDot: {
     borderRadius: 999,
@@ -10411,35 +10336,16 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   phoneTabBar: {
-    borderWidth: 0,
-    borderRadius: 26,
-    flexDirection: 'row',
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 6,
+    borderWidth: 1, borderRadius: 20, flexDirection: 'row', paddingHorizontal: 4, paddingVertical: 2, shadowOpacity: 0, elevation: 0,
   },
   phoneTabButton: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 3,
-    minHeight: 54,
-    justifyContent: 'center',
-    paddingVertical: 6,
-    borderRadius: 19,
+    flex: 1, alignItems: 'center', gap: 2, minHeight: 48, justifyContent: 'center', paddingVertical: 4, borderRadius: 14,
   },
   phoneTabButtonActive: {
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    elevation: 3,
+    shadowOpacity: 0, elevation: 0,
   },
   phoneTabLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 14,
+    fontSize: 11, fontWeight: '500', lineHeight: 15,
   },
 });
 

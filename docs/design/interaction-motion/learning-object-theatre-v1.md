@@ -10,11 +10,11 @@
 
 ## Purpose
 
-Define causal, brief, and interruptible transitions for the Quiet Object Theatre without adding a new interaction family.
+Define causal, brief, and interruptible transitions for the current paper-and-shelf composition without adding a new interaction family.
 
 ## Stable Regions
 
-The stage, address, favorite tag, edge disclosure slot, and action rail keep their positions. Motion happens inside the material sheet or directly under the user's gesture.
+The paper envelope, address, favorite tag and primary action zone keep their positions. Motion happens inside the material sheet or directly under the user's gesture.
 
 ## Press Feedback
 
@@ -24,7 +24,7 @@ The stage, address, favorite tag, edge disclosure slot, and action rail keep the
 
 ## Support Reveal
 
-- The single edge handle remains fixed.
+- Hint and strategy controls stay attached to the current paper, separate from the primary action.
 - Peek or hint content expands inward inside the material sheet in 120-180ms.
 - Closing support restores the prior task position and does not erase sticky usage.
 - Reduce Motion shows or hides support with opacity only.
@@ -32,21 +32,21 @@ The stage, address, favorite tag, edge disclosure slot, and action rail keep the
 ## Resolve
 
 - Multiple choice: selected option settles, incorrect/correct borders appear, and analysis replaces the option region within 160-240ms.
-- Lock: each correct row opens locally; full analysis appears only after all rows resolve.
-- Elimination: strike follows the tap; resolution reuses the remaining set's location.
+- Lock: each correct row opens locally; the final correct row reveals the answer and key reason without another confirmation.
+- Elimination: strike follows the tapped phrase in the source sentence and can be undone before submission; the remaining sentence appears in the answer comparison.
 - Swipe: the top task card follows the gesture and cancels back to center when ambiguous.
 - Flip: front and back crossfade or rotate within the sheet; Reduce Motion uses a crossfade.
 
 ## Settle And Continue
 
-After the result becomes readable, a shallow next-card edge may rise 8-12px behind the action rail. Activating continue moves the resolved sheet a short distance along the vertical flow and replaces it with the next sheet. Non-swipe interactions never travel horizontally.
+After the result becomes readable, Continue exits the current paper and enters the next identity. A failed remote continuation restores the current paper. No idle next-card motion is required.
 
 ## Accessibility And Interruption
 
 - Every motion has a non-motion state change conveying the same information.
 - Reduce Motion disables depth, rotation, and card travel.
 - A user can trigger the next available action without waiting for decorative completion.
-- VoiceOver/TalkBack focus moves to result heading, then the primary continuation action.
+- Result headings and the primary continuation action retain semantic labels; actual VoiceOver/TalkBack navigation must be verified before claiming assistive-technology acceptance.
 
 ## Design Review Checklist Answers
 
