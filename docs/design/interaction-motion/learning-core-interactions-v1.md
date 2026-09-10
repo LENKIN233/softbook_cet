@@ -106,3 +106,29 @@ Q4: No forbidden patterns are introduced; this is a prose interaction artifact.
 Q5: Not applicable; this artifact contains no rendered phone frame.
 
 Q6: flip uses exactly two self-assess pills, and module selection is not part of the primary learning path.
+
+## Runtime motion implementation — 2026-09
+
+The implementation now follows one cancellable object rhythm. A card exits before
+Continue changes the current card; the next ready card enters from the opposite
+side. An unsuccessful remote continuation restores the current object instead
+of leaving an empty animated surface. Flip uses a short depth turn with the
+answer swap at the hidden midpoint. Selection feedback, opening lock shackles,
+reversible per-line strikes, attached help reveals and result settling are
+separate motions; they do not add scoring events or additional confirmations.
+
+Leaving the route, changing card identity, or enabling reduced motion cancels
+unfinished visual callbacks. Repeated activation during an outgoing motion
+cannot submit or advance twice. Reduced motion applies final state immediately.
+
+Learning → Space pulls back to the containing hierarchy; Space → Learning
+focuses the current object. Web uses shared view-transition identity where the
+browser supports it, with a direct accessible fallback. Native uses a paired
+outgoing/incoming route transition while keeping the navigation chrome fixed.
+Route entrance starts only after the new identity commits; deferred navigation
+keeps the outgoing page hidden, and animation cleanup never restores old pixels.
+Long lock choices wrap inside their row instead of crossing its border; the outer card keeps its resting geometry. Card content, formal audio/content approval and scoring rules are unchanged.
+
+Implementation mapping: `apps/mobile/src/learning/NativeMotion.tsx`,
+`apps/mobile/src/learning/LearningSurface.tsx`, `apps/mobile/App.tsx`,
+`apps/web/src/motion.ts`, `apps/web/src/App.tsx`, and `apps/web/src/styles.css`.

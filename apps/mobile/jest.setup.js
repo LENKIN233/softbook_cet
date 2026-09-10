@@ -20,7 +20,10 @@ jest.mock('react-native-blob-util', () => ({
 }));
 
 beforeEach(async () => {
-  const { Dimensions } = require('react-native');
+  const { AccessibilityInfo, Dimensions } = require('react-native');
+  // Domain regressions use the direct reduced-motion path. Normal-motion
+  // cancellation and single-commit behavior are exercised in NativeMotion.test.
+  jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
   const AsyncStorage =
     require('@react-native-async-storage/async-storage').default;
   const NetInfo = require('@react-native-community/netinfo');

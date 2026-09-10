@@ -157,6 +157,30 @@ describe('PC Web core flow', () => {
     expect(screen.getByText('3 / 5')).toBeInTheDocument();
   });
 
+  it('pairs Space and Learning motion only for the same card identity', async () => {
+    await authenticate();
+    const firstName = screen.getByRole('article').style.getPropertyValue('--learning-object');
+    expect(firstName).not.toBe('');
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+    const currentName = screen.getByRole('article').style.getPropertyValue('--learning-object');
+    expect(currentName).not.toBe(firstName);
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    const cards = screen.getByLabelText('盒内卡片');
+    const current = within(cards).getByRole('button', {name: /The committee/});
+    const sibling = within(cards).getByRole('button', {name: /The article offers/});
+    expect(current.style.getPropertyValue('--learning-object')).toBe(currentName);
+    expect(sibling.style.getPropertyValue('--learning-object')).not.toBe(currentName);
+    fireEvent.click(sibling);
+    expect(current).toHaveAttribute('data-learning-current', 'true');
+    expect(sibling).not.toHaveAttribute('data-learning-current');
+    fireEvent.click(screen.getByRole('button', {name: '转折关系 2 张'}));
+    expect(screen.getByLabelText('盒内卡片').querySelector('[data-learning-current]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
+    expect(screen.getByRole('article').style.getPropertyValue('--learning-object')).toBe(currentName);
+  });
+
   it('fails closed for an invalid phone number', () => {
     render(<App />);
     fireEvent.change(screen.getByLabelText('手机号'), {target: {value: '123'}});
