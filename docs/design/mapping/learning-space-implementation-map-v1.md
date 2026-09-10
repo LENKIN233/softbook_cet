@@ -2,316 +2,96 @@
 
 ## 当前任务引用的 spec
 
+- `spec/requirement-memory.json`
 - `spec/product-core.json`
 - `spec/action-surface.json`
+- `spec/card-system.json`
 - `spec/interactions.json`
 - `spec/knowledge-map.json`
 - `spec/space-operations.json`
 - `spec/runtime-boundaries.json`
 - `spec/visual-language.json`
-
-## Design Artifact Source
-
-- `docs/design/design-harness.md`
-- `docs/design/briefs/learning-space-worldview.md`
-- `docs/design/directions/learning-surface-3-directions.md`
-- `docs/design/directions/learning-card-rhythm-directions-v1.md`
-- `docs/design/decisions/learning-space-direction-decision-v1.md`
-- `docs/design/decisions/learning-card-rhythm-decision-v1.md`
-- `docs/design/decisions/learning-interaction-evolution-v1.md`
-- `docs/design/decisions/learning-space-platform-layout-v1.md`
-- `docs/design/interaction-motion/learning-core-interactions-v1.md`
-- `docs/design/interaction-motion/learning-card-rhythm-v1.md`
-- `docs/design/interaction-motion/learning-object-theatre-v1.md`
-- `docs/design/mocks/learning-card-rhythm-v1.md`
-- `docs/design/mocks/learning-interaction-evolution-v1.md`
-- `docs/design/physical-space/space-model-v1.md`
-- `docs/design/directions/space-surface-visual-directions-v1.md`
-- `docs/design/mocks/learning-space-phone-frames-v1.md`
-- `docs/design/mocks/space-surface-visual-proof-v1.md`
-- `docs/design/mocks/space-surface-visual-refinement-v1.md`
-- `docs/design/mocks/space-surface-shelf-desk-v1.md`
-- `docs/design/physical-space/space-state-baseline-v1.md`
-- `docs/design/mocks/space-state-baseline-v1.html`
-- `docs/design/storyboards/learning-space-motion-prototype-v1.md`
+- `spec/machine-acceptance.json#harness_strategy.experience_acceptance`
 
 ## Product Truth
 
-This map does not authorize implementation by itself. It maps accepted design decisions to code surfaces so future implementation PRs do not invent user-facing design inside RN.
+Learning follows the system's single-card sequence. Space makes each card's
+library, group and owning box inspectable. Browsing a different box never
+reassigns knowledge ownership or changes the active learning card. Favorite is
+a tag; sleep remains a state inside the owning box. Flip alone asks for the two
+self-assess choices 有把握 / 再回看. Account, scheduling and durable-event authority
+remain with their existing contracts.
 
-## Implementation Hypothesis
+## Current Design Artifact Source
 
-Current RN files are behavior prototypes. They can provide interaction and state evidence, but they do not define final user-facing visual design.
+- `docs/design/visual-reference.html` and `docs/design/canon.md`
+- `docs/design/decisions/learning-interaction-evolution-v1.md`
+- `docs/design/decisions/pc-web-core-surface-decision-v1.md`
+- `docs/design/interaction-motion/learning-core-interactions-v1.md`
+- `docs/design/interaction-motion/learning-object-theatre-v1.md`
+- `docs/design/physical-space/space-model-v1.md`
+- `docs/design/physical-space/space-state-baseline-v1.md`
+- `docs/design/design-harness.md`
 
-## Code Surface Ownership
+The September 2026 paper-and-shelf revision replaces the previous theatre and
+shelf-desk composition. Older direction/search/phone mock files are comparison
+artifacts; their stage ratios, nested panels and selector arrows are not current
+implementation requirements. Non-ideal state semantics remain applicable.
 
-| Product Surface | Current Code Surface | Design Obligation |
-|---|---|---|
-| Learning current card | `apps/mobile/src/learning/LearningSurface.tsx` | Render the current card as an addressed exam object, not a generic card shell. |
-| Learning interaction area | `apps/mobile/src/learning/LearningSurface.tsx` | Preserve interaction-specific silhouettes for flip, multiple choice, lock, elimination, and swipe. |
-| Learning state rhythm | `apps/mobile/src/learning/LearningSurface.tsx` and app-level Learning states | Preserve the place -> focus -> support -> resolve -> settle -> continue sequence without exposing implementation metadata. |
-| Learning tools | `apps/mobile/src/learning/LearningSurface.tsx` | Keep `peek`, `hint`, and `favorite` visible but secondary. |
-| Learning address aperture | `apps/mobile/src/learning/LearningSurface.tsx` | Show light library/group/box context without turning module selection into the primary path. |
-| Space hierarchy | `apps/mobile/src/space/SpaceSurface.tsx` | Render library / group / box / card as spatial hierarchy, not flat list or two-box shortcut. |
-| Favorite state | `apps/mobile/src/space/SpaceSurface.tsx` and learning tag affordance | Treat favorite as tag state, never as a physical box. |
-| Sleep state | `apps/mobile/src/space/SpaceSurface.tsx` and contextual learning affordance | Treat sleep as a physical zone affecting learning flow. |
+## Implementation Hypothesis And Component Mapping
 
-## Required Implementation Mapping In Future PRs
+| User task | Native | Web / shared behavior |
+| --- | --- | --- |
+| Read one current question | `LearningSurface.tsx` owns one paper and a fixed outer action envelope; material can scroll | `App.tsx` LearningSurface and `styles.css` use one centered paper, with address above and tools attached |
+| Read original material once | `presentation.ts#frontMaterial` suppresses exact repeats only | The same helper preserves every distinct support/context text; converter `buildFront` uses authored front fields only |
+| Recognize what to remember | `ResultSummaryPanel` puts correct answer and differing selection first, original material and key reason next | `answerComparison` supplies the same comparison; optional details expand in place |
+| Flip and judge | Same-object flip, then two self-assess controls | Mint 有把握 and amber 再回看; pending sync freezes the submitted judgment |
+| Choose one of four | Option label and text remain together; selected state precedes submission | Same answer contract and accessible selected states |
+| Form a sentence | Only the active lock row exposes choices; settled rows show accepted phrases | Last correct slot resolves once, without another confirmation; only Continue advances |
+| Remove sentence components | `EliminationPassageText.tsx` wraps exact source segments with reversible phrase controls and strikes | `eliminationPassage` requires unique non-overlapping spans; otherwise retain full material and separate candidates |
+| Judge left or right | One prompt-bearing draggable object, cancellation restores its neutral position | Accessible direction buttons use the same two-state answer; no duplicated outer prompt |
+| Locate a card in Space | `SpaceSurface.tsx`: library tabs → group tabs → sibling box objects → opened tray | Web shows library/group containment and sibling boxes; card context is attached to the selected object |
+| Inspect a box's contents | Preview uses actual authored front material, then one full-text paper with previous/next controls | `spaceCardPreview` favors the original sentence for lock/elimination and retains all remaining front material in detail |
+| Change a card's state | Favorite and sleep actions target the inspected card ID under existing access gates | State writes retain durable enqueue and account authority; sleep region stays within the box |
+| Return to the current task | Explicit return restores the same Learning card, draft or result | Shared transition identity is applied only to the same card; manual browsing never changes learning progress |
 
-Any future PR changing user-facing Learning or Space UI must state:
+## Surfaces, Color And Motion
 
-- which accepted artifact is being implemented;
-- which component region maps to current object plane;
-- which component region maps to action plane;
-- which component region maps to tool plane;
-- which component region maps to address aperture or Space continuation;
-- which interaction silhouettes are implemented;
-- which design gaps remain.
+The app background is warm neutral; the task paper is opaque. Borders and
+corners distinguish card and box objects rather than every paragraph. Text
+hierarchy follows question/answer, material, action, help and address. All seven
+library identities come from `visual/tokens.ts` on both platforms. Feedback
+colors express outcome; navigation emphasis does not change a library's hue.
 
-## Minimum Visual Contract For Learning
+`NativeMotion.tsx` and Web `motion.ts` retain cancellable card/route transitions.
+Strikes, lock feedback, hint expansion, flip and swipe follow their own object
+operations. Reduced motion applies the same final state without depth or travel.
+Motion never writes a learning record. Audio controls remain available on both
+question and result when the card has audio; explicit playback and authorization
+rules are unchanged. Normal sync and absent-audio notices do not occupy a
+permanent secondary column; pending/error state remains visible when relevant.
 
-### Current Object Plane
+## Non-Ideal States And Evidence Boundary
 
-RN should expose one main visual container for the current card object. It must not be decomposed into many equal cards, panels, counters, and modules.
+Loading, empty, cached error, access gates and sync recovery preserve the known
+Space object. Inspection and long answers use intrinsic text height; previews
+may be shortened only when their full material can be opened. Phone Space
+scrolls within the shell; at accessibility text sizes it follows the shell's
+scroll ownership. Tablet Space owns scrolling to keep long material reachable.
 
-At a fixed phone viewport, the current object keeps one stable resting height
-across short and long content. Inside it:
-
-- the identity band remains fixed;
-- the task band balances short content and owns vertical scrolling for long
-  content;
-- the action band remains fixed and thumb-reachable.
-
-The outer object must not grow and shrink with every prompt, option, support,
-or result transition.
-
-The accepted `Quiet Object Theatre` refinement separates that stable object
-into two visual materials:
-
-- an atmospheric stage that owns address, current-library identity, and fixed
-  interaction anchors;
-- an intrinsic opaque sheet that owns prompt, support, interaction, result,
-  and analysis.
-
-The stage remains stable. The sheet is compact for short content, grows within
-bounded insets for standard content, and becomes internally scrollable for long
-content. Do not turn the whole stable stage into an opaque white slab.
-
-### Action Plane
-
-RN should branch by interaction type at the shape level:
-
-- flip: card object + bottom two-pill self-assess.
-- multiple choice: prompt + 2x2 option grid.
-- lock: vertical lock rows.
-- elimination: candidate set with strike-through affordance.
-- swipe: top card with left/right trail hints.
-
-Changing only icons or button labels is not enough to satisfy interaction silhouette requirements.
-
-### Tool Plane
-
-Tools should be visually lighter than the primary interaction:
-
-- `peek` is reached through the compact address aperture.
-- `hint` uses a small card-edge trigger and reveals inward as an attached layer.
-- `favorite` is a quiet tag mark in the identity band.
-- `sleep` should remain contextual and spatial.
-
-These tools must not be rendered together as a bottom button row beside the
-primary action. The bottom action band belongs to the interaction's one current
-primary action.
-
-The refined phone mapping uses one task-plane edge disclosure at a time:
-
-- `peek` is the lightweight tappable address aperture with its own callback and
-  sticky usage fact;
-- an authored `hint_layer` alone renders as the `提示` edge handle, retaining
-  its separate callback and sticky usage fact;
-- favorite remains a quiet tag glyph with a full 44pt/48dp hit region.
-
-Correctness and analysis resolve inside the same material sheet before any
-optional deep-detail surface. A shallow next-card edge may appear only during
-settle/continue and must never imply swipe behavior for other interactions.
-
-### State Rhythm
-
-Learning implementation should consume `docs/design/interaction-motion/learning-card-rhythm-v1.md`:
-
-- place: one current card object with current library accent and human address cue;
-- focus: interaction silhouette is the primary operation;
-- support: `hint`, `peek`, and `favorite` stay attached and secondary;
-- resolve: auto-scored interactions reveal answer state, while flip alone uses two self-assess pills;
-- settle: result and recovery copy stay study-facing and never expose source, payload, cache, queue, repository, runtime, mock, seed, card id, or box id language;
-- continue: next card or Space continuation appears without forcing module selection.
-
-### Address Aperture
-
-Address context should be visible as a compact spatial clue:
-
-```text
-track / library / group / box
-```
-
-It should not become a module picker.
-
-## Minimum Visual Contract For Space
-
-Space implementation must preserve:
-
-- visible hierarchy;
-- current card or current box focus;
-- box contents;
-- favorite tag state;
-- sleep zone and wake action;
-- return path to Learning.
-
-It must not reduce Space to:
-
-- favorites box + sleep box;
-- flat card list;
-- study statistics board;
-- arbitrary drag-and-drop organizer.
-
-### Space Region Mapping
-
-Future `apps/mobile/src/space/SpaceSurface.tsx` implementation should map the accepted `Box Desk` direction:
-
-- parent context region -> library / group breadcrumb;
-- current object region -> current box focus;
-- contained object region -> card tiles and sibling cards;
-- state region -> favorite tag, sleep zone, and wake action;
-- continuity region -> return to Learning with current context.
-
-For visual fidelity, consume `docs/design/mocks/space-surface-shelf-desk-v1.md` as the current accepted Space rendered baseline. It extends `space-surface-visual-refinement-v1` with the shelf-desk synthesis promoted from design search:
-
-- address shelf -> compact `library / group / box` path plus quiet sibling context, not a module picker;
-- open box tray -> first-read current box object with one reading-coral accent edge;
-- contained card strip -> active and sibling card objects with favorite / sleep tags attached to cards;
-- sleep alcove -> sleep / wake state under the same box;
-- continuity strip -> return to Learning with preserved context;
-- floating tab capsule -> top-level navigation chrome that does not replace Space hierarchy.
-
-For non-ideal Space states, also consume `docs/design/physical-space/space-state-baseline-v1.md` and `docs/design/mocks/space-state-baseline-v1.html`:
-
-- loading -> shelf and box skeletons preserve the current address instead of showing a full-screen spinner;
-- empty box -> empty tray remains under the known parent shelf instead of becoming a blank list or module picker;
-- remote error -> cached Space remains visible with retry or cached-continuation recovery;
-- permission / paywall -> gated depth attaches to the current Space object and does not replace Space with a generic promotion page;
-- sync merge -> local address remains visible while cloud merge status resolves without exposing arbitrary position reassignment.
-
-## Resolved Design Proof Questions
-
-The previous design-proof questions are now closed by accepted artifacts:
-
-- exact phone-frame mock for accepted Learning direction: `docs/design/mocks/learning-space-phone-frames-v1.html`;
-- exact phone-frame mock for accepted Space direction: `docs/design/mocks/learning-space-phone-frames-v1.html`;
-- expanded Space visual direction and state proof: `docs/design/mocks/space-surface-visual-proof-v1.html`;
-- refined accepted Space visual baseline: `docs/design/mocks/space-surface-visual-refinement-v1.html`;
-- accepted Space shelf-desk baseline promoted from search: `docs/design/mocks/space-surface-shelf-desk-v1.html`;
-- accepted Space non-ideal state baseline: `docs/design/mocks/space-state-baseline-v1.html`;
-- tablet layout decision: `docs/design/decisions/learning-space-platform-layout-v1.md`;
-- pc web layout decision: `docs/design/decisions/learning-space-platform-layout-v1.md`;
-- dark-mode rendering proof: `docs/design/mocks/learning-space-phone-frames-v1.md`;
-- accessibility contrast proof for low-alpha library chips: `docs/design/mocks/learning-space-phone-frames-v1.md`;
-- rendered motion prototype for flip / hint reveal / swipe: `docs/design/storyboards/learning-space-motion-prototype-v1.html`.
-- rendered Learning card rhythm phone proof for place / focus / support / resolve / settle / continue: `docs/design/mocks/learning-card-rhythm-v1.html`.
-
-## Mobile Implementation Evidence — 2026-08-30
-
-The mobile integrity implementation consumes the accepted artifacts already
-listed in this map. It does not add design authority or change product truth.
-
-Implemented mapping:
-
-- Learning current object plane remains one addressed card in
-  `apps/mobile/src/learning/LearningSurface.tsx`.
-- Lock action plane now follows the accepted vertical-row silhouette: only the
-  current row is operable, a wrong choice remains in that row for retry,
-  already-correct rows stay open, and submit becomes available only after every
-  row matches `answer_key.lock_pattern`.
-- Core answer controls expose their selected / checked / disabled semantics to
-  assistive technology without adding another visual decision or mastery scale.
-- Space parent-context region now provides compact previous / next browsing for
-  library, group, and sibling box. Changing the browsed address does not mutate
-  the current Learning card or its knowledge ownership.
-- Space current-object region remains the open box tray; contained-card,
-  favorite-tag, and sleep-alcove regions continue to stay under that owning
-  box.
-- Space continuity region keeps `回学习` bound to the unchanged Learning
-  context and exposes `回到当前卡盒` whenever manual browsing steps away from
-  the current card address.
-- Entering box inspection starts on the exact current Learning card, including
-  when that card is not the first sibling in source order. At a completed
-  server round, Space follows the receipt-bound `spaceCardId` instead of losing
-  continuity because the active selection is empty.
-- Space hierarchy, inspection, paging, state, and recovery actions expose
-  assistive roles/state and use at least `44 x 44dp` touch regions.
-- Manually browsed boxes use selected-box address, card-position, and sleep copy;
-  `同盒` and `当前` language is reserved for the current Learning card's box.
-- Accessibility-size Space cards and inspection surfaces leave long exam
-  prompts unbounded by `numberOfLines`, while the surrounding scroll ownership
-  keeps the full prompt and actions reachable.
-- Phone Space uses an intrinsic vertical scroll container because the shell
-  consumes part of the raw window height; accessibility-size phone layouts
-  delegate scrolling to the shell, while accessibility-size tablet Space owns
-  its scroll container. The open box and `回学习` action therefore remain
-  reachable instead of being clipped by the workbench.
-- The iOS privacy manifest declares the linked phone number, user ID,
-  pseudonymous installation device ID, and product interaction data that the
-  authenticated mobile runtime actually sends for account and learning
-  functionality; none is declared for tracking.
-- Native private-audio downloads use one monotonic outer deadline across every
-  redirect, native transfer, and redirect-boundary filesystem cleanup. The
-  deadline cancels the current body-stalled task and routes timeout, late task,
-  cancel-callback, and outer-cache cleanup through one serialized idempotent
-  partial-file owner, so an Android body read stall cannot leak a partial file
-  or replace the original timeout with a missing-file cleanup race.
-- Learning-session membership fields remain a consistency observation only.
-  Stage or trial-clock drift forces a fresh revisioned Bootstrap read; the
-  session never writes an unrevisioned trial projection into global membership
-  state and a stale session cannot extend the canonical trial.
-- `peek` and `hint` remain reachable on every interaction silhouette. Dense
-  lock, elimination, and swipe cards render the opened support layer inside the
-  current interaction object instead of accepting a tap with no visible result.
-- Once the user opens `peek` or `hint`, the attempt keeps a sticky usage fact
-  even if the layer is collapsed before submission; scheduling therefore does
-  not change because of a presentation toggle.
-- The resolved-card detail owns vertical scrolling while keeping the continue
-  action inside the same object. Analysis title, summary, and exam tip are no
-  longer line-clamped on the reference phone or accessibility text sizes.
-- Result continuation now distinguishes completed judgment from durable save.
-  Saving, retained-sync, and failed-save states are visible on the resolved
-  card, and a failed save exposes an explicit retry action.
-- Interaction test selectors use stable ordinal positions rather than card
-  content IDs or answer-derived values.
-
-Implementation-only gaps and evidence boundary:
-
-- This change adds no new Space operation, arbitrary reassignment, motion
-  shape, visual token, or platform layout authority.
-- Tablet and PC Web rendered-proof gaps listed by the accepted Space artifact
-  remain unchanged.
-- Repository tests and native static checks do not prove real-device layout,
-  VoiceOver / TalkBack behavior, private audio playback, or receiver deployment.
-
-## Remaining Implementation Boundary
-
-The original mapping PR was design-only. Mobile now has the scoped implementation
-evidence recorded above; future RN / Web implementation work must still name the
-accepted artifact being consumed, map component regions to this file, declare
-implementation-only gaps, and pass the design gate.
+Design text and component tests are not device evidence. Capture actual
+question, result, hint, box, inspection and return states, then perform the
+model-first-pixels review described in `design-harness.md`. The reading runner
+also checks the answer in the first result layer, not only expanded detail.
+Local development examples and simulated audio tests do not establish formal
+content quality, private audio playback, device, account or deployment facts.
 
 ## Design Review Checklist Answers
 
-Q1: Future PRs must name the current library per screen and prove Law of One. This mapping uses no single rendered library.
-
-Q2: Focal object is the current addressed card for Learning and the current box/card location for Space.
-
-Q3: Mapping requires all five canonical Learning silhouettes and calls out that icon swaps are insufficient.
-
-Q4: Mapping rejects forbidden patterns and does not introduce visual CSS or RN styling.
-
-Q5: Phone-frame containment is resolved by `docs/design/mocks/learning-space-phone-frames-v1.html`.
-
-Q6: Learning and flip constraints are explicitly mapped.
+Q1: Native and Web inherit the same current library hue; semantic feedback has
+its own limited role. Q2: The question/answer and selected box/card are the focal
+objects. Q3: All five operations act on their actual learning object. Q4: No
+reward bursts, idle motion or decorative containers are required. Q5: Stable
+outer card/action positions coexist with complete, scrollable long material;
+actual captures decide acceptance. Q6: Flip has exactly two choices and Space
+browsing leaves the system learning sequence intact.

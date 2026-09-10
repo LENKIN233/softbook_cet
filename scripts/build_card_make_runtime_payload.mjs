@@ -451,35 +451,17 @@ function knowledgeRef(card) {
 }
 
 function buildFront(card, ref) {
-  const metadata = card.quality_metadata || {};
-  const analysis = card.analysis || card.analysis_content || {};
-  const tips = Array.isArray(analysis.tips) ? analysis.tips : [];
-
+  // A handoff preserves authored front material. Teaching goals and answers
+  // stay in analysis/help; they are not substitutes for a missing front.
+  const sourceText = firstText(card.front?.text, card.front_content?.text);
+  const prompt = requiredText(card, 'front.prompt', card.front?.task_prompt, sourceText);
   return {
     eyebrow: `这张练习 | ${ref.group || ref.library || 'CET'}`,
-    prompt: requiredText(
-      card,
-      'front.prompt',
-      card.front?.task_prompt,
-      card.front?.text,
-      card.front_content?.text,
-    ),
-    support: requiredText(
-      card,
-      'front.support',
-      metadata.main_training_goal,
-      tips[0],
-      card.back_content?.explanation,
-      ref.box,
-    ),
-    context: requiredText(
-      card,
-      'front.context',
-      metadata.exam_value,
-      card.back_content?.explanation,
-      analysis.text,
-      ref.box,
-    ),
+    prompt,
+    support: sourceText ?? prompt,
+    // The existing DTO requires four strings. Repeated front text is kept in
+    // transport for compatibility and displayed once by the shared presenter.
+    context: firstText(card.front?.context, card.front_content?.context) ?? prompt,
   };
 }
 
@@ -1205,6 +1187,7 @@ if (resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
 }
 
 export {
+  buildFront,
   buildCanonicalSpaceMetadata,
   buildCorrectOption,
   buildOptions,

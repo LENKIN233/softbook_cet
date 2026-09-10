@@ -30,7 +30,7 @@ The shared PC Web grammar is:
 
 1. Left route rail: Learning / Space / Statistics / Mine in the canonical order.
 2. Center workbench: one route-specific focal object, never a grid of equal tasks.
-3. Right context rail: current address, attached support, recovery, or one secondary action cluster.
+3. Attached context: a quiet address above the paper and contextual help/actions on the object. No permanent right tool column for ordinary Learning or Space.
 4. Material state: review, audio, membership, and errors attach to the affected object rather than replacing the whole product with a generic page.
 
 ## Surface Decisions
@@ -52,7 +52,7 @@ without identifying the correct answer.
 
 ### Space
 
-Space deliberately changes the wide-screen composition: left becomes the library / group tree, center becomes the current box and contained cards, and right becomes the selected-object inspector. Favorite remains a card tag. Sleep/wake remains a physical state region under the owning box.
+Space uses the wide surface as a shelf: a compact library strip, visible group regions containing sibling boxes, then the opened box and its cards. Card actions attach to the selected object without a repeated full-height inspector. Favorite remains a card tag. Sleep/wake remains a physical state region under the owning box.
 
 The “当前学习” marker follows the Learning session card, independently of Space selection.
 A selected non-current active card is labelled “正在浏览”; selection continues to drive the inspector and its highlight. Browsing another card or box does not change the Learning card, draft answer, resolved feedback, or session position.
@@ -109,7 +109,7 @@ Q6: Flip has exactly two self-assess choices, Statistics uses tabular numerals, 
 
 ## Status
 
-Accepted for design-only planning after the completed PC Web design search run. This decision does not authorize same-PR Web implementation.
+The 2026-09-10 review revises this baseline with the current paper-and-shelf composition. Implementation and observed corrections proceed together under machine-acceptance experience acceptance.
 
 ## Interaction motion mapping
 

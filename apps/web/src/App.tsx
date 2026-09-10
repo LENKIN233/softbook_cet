@@ -1,9 +1,10 @@
+import {frontMaterial, eliminationPassage, answerComparison, spaceCardPreview} from '../../mobile/src/learning/presentation';
+import {resolveLibraryTone} from '../../mobile/src/visual/tokens';
 import {useObjectMotion, useRouteMotion, transitionObjectName} from './motion';
 import {
   useCallback,
   useEffect,
   useEffectEvent,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -76,6 +77,13 @@ function RouteIcon({route}: {route: RouteKey}) {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>;
 }
 
+function libraryStyle(library?: string): React.CSSProperties {
+  const tone = resolveLibraryTone(library);
+  const channels = tone.accent.slice(1).match(/../g)!.map(value => parseInt(value, 16) / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  const luminance = channels.reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+  return {'--hall': tone.accent, '--hall-soft': tone.accentSoft, '--hall-deep': '#41464F', '--on-hall': 1.05 / (luminance + 0.05) >= 4.5 ? '#FFFFFF' : '#0B0B14'} as React.CSSProperties;
+}
+
 const PHONE_PATTERN = /^1\d{10}$/;
 
 type AppProps = {
@@ -136,6 +144,7 @@ export function App({
     );
   const routeMotion = useRouteMotion(`${authStage}:${phone}:${accountDeletionStage}`);
   const navigateRoute = (next: RouteKey) => routeMotion(() => setRoute(next));
+  const resolutionInFlight = useRef(false);
   const audioRequestGeneration = useRef(0);
   const accountAuthorityGeneration = useRef(0);
   const handleAccountPresentationInvalidation = useEffectEvent(
@@ -687,13 +696,14 @@ export function App({
 
   async function resolveCurrentCard(stateOverride?: LearningCardState) {
     const stateToResolve = stateOverride ?? cardState;
-    if (!currentCard || !stateToResolve) return;
+    if (!currentCard || !stateToResolve || resolved || queuedLearningResult || resolutionInFlight.current) return;
     const next = evaluateLearningCard(currentCard, stateToResolve);
     if (!next) return;
     setCardState(stateToResolve);
 
     if (runtime.mode === 'remote') {
       if (remoteController === null) return;
+      resolutionInFlight.current = true;
       setRemoteBusy(true);
       try {
         const completionSync =
@@ -708,6 +718,7 @@ export function App({
       } catch (error) {
         await handleRemoteFailure(error, '当前学习结果暂时没有同步。');
       } finally {
+        resolutionInFlight.current = false;
         setRemoteBusy(false);
       }
       return;
@@ -1288,222 +1299,96 @@ type LearningSurfaceProps = {
 };
 
 function LearningSurface(props: LearningSurfaceProps) {
-  const {card, cardState, resolved} = props;
-  const {onResolve, onState} = props;
+  const {card, cardState, resolved, onResolve, onState} = props;
   const cardRef = useRef<HTMLElement | null>(null);
+  const answerRef = useRef<HTMLHeadingElement | null>(null);
   const {perform, busy: motionBusy} = useObjectMotion(props.motionIdentity, cardRef);
   const onContinue = useCallback(() => perform('advance', props.onContinue), [perform, props.onContinue]);
   const onFlip = useCallback(() => perform('flip', () => onState(previous => previous ? {...previous, isFlipped: true} : previous)), [onState, perform]);
-  const resultRef = useRef<HTMLElement | null>(null);
-
-  useLayoutEffect(() => {
-    const resultNode = resultRef.current;
-    if (!resolved || !resultNode || typeof resultNode.scrollIntoView !== 'function') {
-      return;
-    }
-    resultNode.scrollIntoView({
-      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-        ? 'auto'
-        : 'smooth',
-      block: 'nearest',
-    });
+  useEffect(() => {
+    if (!resolved || !answerRef.current) return;
+    answerRef.current.focus({preventScroll: true});
+    answerRef.current.scrollIntoView?.({block: 'start'});
   }, [resolved]);
-
-  useLayoutEffect(() => {
-    function handleKeyboard(event: KeyboardEvent) {
-      if (props.busy) return;
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('button, input, select, textarea')) return;
-
-      if (resolved && event.key === 'Enter') {
-        event.preventDefault();
-        onContinue();
-        return;
-      }
-      if (!card || resolved) return;
-
-      if (card.interaction_id === 'flip' && event.key === 'Enter' && !cardState?.isFlipped) {
-        event.preventDefault();
-        onFlip();
-      }
+  useEffect(() => {
+    const keyboard = (event: KeyboardEvent) => {
+      if (props.busy || motionBusy || (event.target as HTMLElement | null)?.closest('button, input, textarea, select, summary')) return;
+      if (resolved && event.key === 'Enter') {event.preventDefault(); onContinue(); return;}
+      if (!card || !cardState || resolved) return;
+      if (card.interaction_id === 'flip' && event.key === 'Enter' && !cardState.isFlipped) {event.preventDefault(); onFlip();}
       if (card.interaction_id === 'multiple_choice' && /^[1-4]$/.test(event.key)) {
         const option = card.options[Number(event.key) - 1];
-        if (option) {
-          event.preventDefault();
-          onState(previous => previous ? {...previous, selectedOptionId: option.id} : previous);
-        }
+        if (option) {event.preventDefault(); onState(previous => previous ? {...previous, selectedOptionId: option.id} : previous);}
       }
-
-    }
-
-    window.addEventListener('keydown', handleKeyboard);
-    return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [card, cardState, onContinue, onFlip, onResolve, onState, props.busy, resolved]);
-
-  if (!card || !cardState) {
-    return <main className="workbench"><p className="notice">当前没有可用学习卡。</p></main>;
-  }
-
-  const patchState = (patch: Partial<LearningCardState>) =>
-    props.onState(previous => previous ? {...previous, ...patch} : previous);
-  const visibleLibrary = formatSpaceDisplayName(
-    card.space_metadata.library,
-    '当前书架',
-  );
-  const visibleGroup = formatSpaceDisplayName(
-    card.space_metadata.group,
-    '当前分区',
-  );
-  const visibleBox = formatSpaceDisplayName(
-    card.space_metadata.box,
-    '当前卡盒',
-  );
-
-  return (
-    <>
-      <main className="workbench" aria-labelledby="learning-title">
-        <div className="workbench-heading">
-          <div>
-            <p className="eyebrow">{props.phase === 'review' ? '回看顺序' : '系统顺序'} · {INTERACTION_LABELS[card.interaction_id]}</p>
-            <h1 id="learning-title">{props.phase === 'review' ? '当前回看卡' : '当前学习卡'}</h1>
+    };
+    window.addEventListener('keydown', keyboard);
+    return () => window.removeEventListener('keydown', keyboard);
+  }, [card, cardState, motionBusy, onContinue, onFlip, onState, props.busy, resolved]);
+  if (!card || !cardState) return <main className="workbench"><p className="notice">当前没有可用学习卡。</p></main>;
+  const patchState = (patch: Partial<LearningCardState>) => onState(previous => previous ? {...previous, ...patch} : previous);
+  const library = formatSpaceDisplayName(card.space_metadata.library, '当前书架');
+  const group = formatSpaceDisplayName(card.space_metadata.group, '当前分区');
+  const box = formatSpaceDisplayName(card.space_metadata.box, '当前卡盒');
+  const passage = card.interaction_id === 'elimination' ? eliminationPassage(card) : null;
+  const material = frontMaterial(card).filter(text => !passage || text !== passage.source);
+  const comparison = answerComparison(card, cardState);
+  const continueLabel = props.serverSequenced || props.currentIndex < props.total - 1 ? '继续下一张' : '完成本轮';
+  const questionContext = spaceCardPreview(card);
+  const backVisible = card.interaction_id === 'flip' && cardState.isFlipped;
+  const resolveLock = (lockSelections: Record<string, string | null>) => {
+    const next = {...cardState, lockSelections};
+    if (canSubmitLearningCard(card, next)) onResolve(next);
+    else patchState({lockSelections});
+  };
+  const interaction = <Interaction key={props.motionIdentity} card={card} state={cardState} onFlip={onFlip} resolved={false} patch={patchState} disabled={props.busy || motionBusy || Boolean(props.queuedResult)}
+            onResolveLock={resolveLock}
+            onResolveFlip={value => onResolve({...cardState, isFlipped: true, flipConfidence: value})}
+            onResolveSwipe={value => onResolve({...cardState, swipeSelection: value})} />;
+  return <main className="workbench learning-workbench" style={libraryStyle(library)} aria-labelledby="learning-title">
+    <div className="learning-address">
+      <button className="text-button address-button" onClick={props.onOpenSpace}><span className="library-dot" />{library} / {group} / <strong id="learning-title">{box}</strong></button>
+      <span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '回看' : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span>
+    </div>
+    <article ref={cardRef} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
+      <div className="paper-identity"><span>{props.phase === 'review' ? '回看' : INTERACTION_LABELS[card.interaction_id]}</span><button className="card-favorite" aria-label={cardState.isFavorited ? '已标记喜欢' : '标记喜欢'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button></div>
+      <div className="paper-body">
+        {resolved ? <section className={`result-slip ${resultTone(resolved)}`} aria-label="答案对照" aria-live="polite">
+          <p className="result-label">{card.interaction_id === 'flip' ? resultLabel(resolved) : '正确答案'}</p>
+          <h2 ref={answerRef} tabIndex={-1} className="answer-first">{comparison.correct}</h2>
+          {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>你的选择</span> {comparison.selected}</p> : null}
+          <p className="question-context">{questionContext.title}</p>
+          {questionContext.detail.map(text => <p className="question-context" key={text}>{text}</p>)}
+          <p className="answer-reason">{card.analysis.summary}</p>
+          <ResultExplanation card={card} />
+        </section> : <>
+          {card.interaction_id !== 'swipe' ? <h2>{backVisible ? comparison.correct : card.front.prompt}</h2> : null}
+          {backVisible ? <p className="question-context">{card.front.prompt}</p> : null}
+          {!backVisible ? material.map(text => <p className="front-material" key={text}>{text}</p>) : null}
+          {card.interaction_id !== 'flip' ? interaction : null}
+          <div className="learning-tools">
+            {card.hint_layer ? <button className="text-button" aria-expanded={cardState.isHintVisible} onClick={() => patchState({hasUsedHint: true, isHintVisible: !cardState.isHintVisible})}>{cardState.isHintVisible ? '收起提示' : '查看提示'}</button> : null}
+            <button className="text-button" aria-expanded={cardState.isPeeked} onClick={() => patchState({hasUsedPeek: true, isPeeked: !cardState.isPeeked})}>{cardState.isPeeked ? '收起思路' : '解题思路'}</button>
           </div>
-          <span className="counter">{props.serverSequenced ? '当前' : `${props.currentIndex + 1} / ${props.total}`}</span>
-        </div>
-        <article ref={cardRef} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
-          <p className="eyebrow">{card.front.eyebrow}</p>
-          <h2>{card.front.prompt}</h2>
-          <p className="support">{card.front.support}</p>
-          <p className="context">{card.front.context}</p>
-          <Interaction
-            key={props.motionIdentity}
-            card={card}
-            state={cardState}
-            onFlip={onFlip}
-            resolved={Boolean(resolved)}
-            patch={patchState}
-            disabled={Boolean(resolved) || props.busy || motionBusy}
-            onResolveFlip={value => props.onResolve({
-              ...cardState,
-              isFlipped: true,
-              flipConfidence: value,
-            })}
-            onResolveSwipe={value => props.onResolve({
-              ...cardState,
-              swipeSelection: value,
-            })}
-          />
-          {props.queuedResult ? (
-            <section className="result-slip review" aria-live="polite">
-              <p className="result-label">学习结果等待同步</p>
-              <p>已冻结本次答案；服务端确认前不能修改或提交另一份答案。</p>
-              <button
-                className="primary"
-                disabled={props.retryBusy}
-                onClick={props.onRetryQueued}
-              >重试同步当前结果</button>
-              <button
-                className="secondary"
-                disabled={props.retryBusy}
-                onClick={props.onReloadQueued}
-              >重新读取服务端进度</button>
-            </section>
-          ) : null}
-          {!resolved && !props.queuedResult && card.interaction_id !== 'flip' && card.interaction_id !== 'swipe' ? (
-            <button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => props.onResolve()}>
-              提交判断
-            </button>
-          ) : null}
-          {resolved ? (
-            <section ref={resultRef} className={`result-slip ${resultTone(resolved)}`} aria-live="polite">
-              <p className="result-label">{resultLabel(resolved)}</p>
-              {card.interaction_id === 'multiple_choice' ? (
-                <dl className="answer-comparison" aria-label="答案对照">
-                  {[
-                    {label: '你的选择', id: cardState.selectedOptionId},
-                    {label: '正确答案', id: card.answer_key.correct_option},
-                  ].map(row => {
-                    const option = card.options.find(candidate => candidate.id === row.id);
-                    return (
-                      <div key={row.label}>
-                        <dt>{row.label}</dt>
-                        <dd>{option ? `${option.label} · ${option.text}` : '未选择'}</dd>
-                      </div>
-                    );
-                  })}
-                </dl>
-              ) : null}
-              <h3>{card.analysis.title}</h3>
-              <p>{card.analysis.summary}</p>
-              <p className="exam-tip">考试提示 · {card.analysis.exam_tip}</p>
-              <button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>
-                {props.serverSequenced
-                  ? '继续下一张'
-                  : props.currentIndex === props.total - 1
-                  ? '完成本轮'
-                  : '继续下一张'}
-              </button>
-            </section>
-          ) : null}
-        </article>
-      </main>
-      <aside className="context-rail" aria-label="当前卡片工具与位置">
-        <section>
-          <p className="eyebrow">所在位置</p>
-          <h2>{visibleBox}</h2>
-          <p>{visibleLibrary} / {visibleGroup} / {visibleBox}</p>
-          <button className="secondary" onClick={props.onOpenSpace}>在空间中查看</button>
-        </section>
-        <section>
-          <p className="eyebrow">附着工具</p>
-          <button
-            className={cardState.isFavorited ? 'tool active' : 'tool'}
-            aria-pressed={cardState.isFavorited}
-            disabled={props.busy || !props.canMutateSpace}
-            onClick={() => props.onFavorite(card.card_id)}
-          >{cardState.isFavorited ? '已标记喜欢' : '标记喜欢'}</button>
-          {card.hint_layer ? (
-            <button className="tool" aria-expanded={cardState.isHintVisible} onClick={() => patchState({hasUsedHint: true, isHintVisible: !cardState.isHintVisible})}>
-              {cardState.isHintVisible ? '收起提示' : '查看提示'}
-            </button>
-          ) : null}
           {card.hint_layer ? <p className="attached-note" hidden={!cardState.isHintVisible}>{card.hint_layer.content}</p> : null}
-          <button
-            className="tool"
-            aria-expanded={cardState.isPeeked}
-            onClick={() => patchState({hasUsedPeek: true, isPeeked: !cardState.isPeeked})}
-          >{cardState.isPeeked ? '收起线索' : '查看线索'}</button>
-          <p className="attached-note" hidden={!cardState.isPeeked}>先抓题干里的关键信号，再完成当前判断。</p>
-          {card.audio ? (
-            <button
-              className="tool"
-              disabled={props.onPlayAudio === null || props.busy || props.audioStatus === 'loading'}
-              onClick={props.onPlayAudio ?? undefined}
-            >
-              {props.audioStatus === 'loading'
-                ? '正在校验音频…'
-                : props.audioStatus === 'ready'
-                ? '播放已校验音频'
-                : props.audioStatus === 'playing'
-                ? '暂停卡片音频'
-                : props.audioStatus === 'paused'
-                ? '继续播放卡片音频'
-                : props.audioStatus === 'error'
-                ? '重试卡片音频'
-                : props.onPlayAudio === null
-                ? '卡片音频暂不可用'
-                : '准备卡片音频'}
-            </button>
-          ) : <p className="muted">这张卡没有附着音频。</p>}
-          {props.statusMessage ? <p className="notice error" role="alert">{props.statusMessage}</p> : null}
-          <p className="muted">跨端同步 · {props.syncStatus}</p>
-          <p className="shortcut-note">{shortcutLabel(card)}</p>
-        </section>
-      </aside>
-    </>
-  );
+          <p className="attached-note" hidden={!cardState.isPeeked}>{card.analysis.exam_tip}</p>
+        </>}
+        {card.audio ? <div className="learning-tools"><button className="text-button" disabled={props.onPlayAudio === null || props.busy || props.audioStatus === 'loading'} onClick={props.onPlayAudio ?? undefined}>{props.audioStatus === 'loading' ? '正在准备音频' : props.audioStatus === 'playing' ? '暂停音频' : props.audioStatus === 'paused' ? '继续播放' : props.audioStatus === 'error' ? '重试播放' : '播放音频'}</button></div> : null}
+        {props.queuedResult ? <section className="notice" aria-live="polite"><h3>学习结果等待同步</h3><p>答案已保存，确认后即可继续。</p><button className="secondary" disabled={props.retryBusy} onClick={props.onRetryQueued}>重试同步当前结果</button><button className="text-button" disabled={props.retryBusy} onClick={props.onReloadQueued}>重新读取服务端进度</button></section> : null}
+        {props.statusMessage ? <p className="notice error" role="alert">{props.statusMessage}</p> : null}
+        {!['当前设备可继续', '服务端已确认', ''].includes(props.syncStatus) ? <p className="notice" role="status">跨端同步 · {props.syncStatus}</p> : null}
+      </div>
+      {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>{continueLabel}</button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}>提交判断</button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
+    </article>
+    {resolved || !backVisible ? <p className="shortcut-note">{resolved ? `键盘：Enter ${continueLabel}` : shortcutLabel(card)}</p> : null}
+  </main>;
 }
 
-function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveFlip, onResolveSwipe}: {resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
+function ResultExplanation({card}: {card: LearningCard}) {
+  const [open, setOpen] = useState(false);
+  return <details className="full-analysis" onToggle={event => setOpen(event.currentTarget.open)}><summary>{open ? '收起完整解析' : '展开完整解析'}</summary><h3>{card.analysis.title}</h3><p>{card.analysis.exam_tip}</p></details>;
+}
+
+function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveLock, onResolveFlip, onResolveSwipe}: {onResolveLock: (values: Record<string, string | null>) => void; resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
   switch (card.interaction_id) {
     case 'flip':
       return (
@@ -1512,7 +1397,6 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveF
             <button className="reveal" disabled={disabled} onClick={onFlip}>翻面看答案</button>
           ) : (
             <>
-              <p className="back-text">{card.back_text}</p>
               <div className="confidence" role="group" aria-label="自我评估">
                 <button className={state.flipConfidence === 'confident' ? 'confidence-good selected' : 'confidence-good'} aria-pressed={state.flipConfidence === 'confident'} disabled={disabled} onClick={() => onResolveFlip('confident')}>有把握</button>
                 <button className={state.flipConfidence === 'review' ? 'confidence-review selected' : 'confidence-review'} aria-pressed={state.flipConfidence === 'review'} disabled={disabled} onClick={() => onResolveFlip('review')}>再回看</button>
@@ -1526,6 +1410,7 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveF
     case 'lock':
       return (
         <div className="interaction lock-list" role="group" aria-label="开锁槽位">
+          <p className="forming-sentence" aria-label="当前句子主干">{card.lock_slots.map((slot, index) => state.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? state.lockSelections[slot.id] : '____').join(' ')}</p>
           {card.lock_slots.map((slot, slotIndex) => {
             const selectedValue = state.lockSelections[slot.id];
             const expectedValue = card.answer_key.lock_pattern[slotIndex];
@@ -1568,12 +1453,7 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveF
                           className={selectedValue === option ? 'lock-option selected' : 'lock-option'}
                           aria-pressed={selectedValue === option}
                           disabled={disabled}
-                          onClick={() => patch({
-                            lockSelections: {
-                              ...state.lockSelections,
-                              [slot.id]: option,
-                            },
-                          })}
+                          onClick={() => onResolveLock({...state.lockSelections, [slot.id]: option})}
                         >
                           {option}
                         </button>
@@ -1590,8 +1470,11 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveF
           })}
         </div>
       );
-    case 'elimination':
-      return <div className="interaction elimination-list" role="group" aria-label="选择要删除的干扰成分">{card.elimination_items.map(item => {const active = state.eliminatedItemIds.includes(item.id); return <button key={item.id} className={active ? 'elimination selected' : 'elimination'} aria-pressed={active} disabled={disabled} onClick={() => patch({eliminatedItemIds: toggle(state.eliminatedItemIds, item.id)})}><span className="strike-text">{item.text}</span></button>;})}</div>;
+    case 'elimination': {
+      const passage = eliminationPassage(card);
+      return passage ? <div className="interaction passage-interaction" role="group" aria-label="在原句中选择要删除的成分"><p className="interactive-passage">{passage.segments.map((segment, index) => segment.itemId ? <button key={index} className={state.eliminatedItemIds.includes(segment.itemId) ? 'passage-part selected' : 'passage-part'} aria-pressed={state.eliminatedItemIds.includes(segment.itemId)} disabled={disabled} onClick={() => patch({eliminatedItemIds: toggle(state.eliminatedItemIds, segment.itemId!)})}><span className="strike-text">{segment.text}</span></button> : <span key={index}>{segment.text}</span>)}</p><p className="interaction-guidance">轻点成分可划掉，再点可恢复。</p></div>
+        : <div className="interaction elimination-list" role="group" aria-label="选择要删除的干扰成分">{card.elimination_items.map(item => {const active = state.eliminatedItemIds.includes(item.id); return <button key={item.id} className={active ? 'elimination selected' : 'elimination'} aria-pressed={active} disabled={disabled} onClick={() => patch({eliminatedItemIds: toggle(state.eliminatedItemIds, item.id)})}><span className="strike-text">{item.text}</span></button>;})}</div>;
+    }
     case 'swipe':
       return (
         <SwipeInteraction
@@ -1692,9 +1575,9 @@ function SwipeInteraction({
             setDragX(0);
           }}
         >
-          <span className="swipe-card-kicker">当前判断</span>
-          <strong>{resolved ? '已完成本次判断' : '向左或向右完成归类'}</strong>
-          {resolved ? <div className="swipe-comparison"><p>你的选择：{selectedState?.label} · {selectedState?.description}</p><p>正确判断：{card.swipe_states.find(item => item.id === card.answer_key.correct_state)?.description}</p></div> : <p>拖动卡片，或使用下方两个方向选项。</p>}
+
+          <strong>{resolved ? '已完成本次判断' : card.front.prompt}</strong>
+          {resolved ? <div className="swipe-comparison"><p>你的选择：{selectedState?.label} · {selectedState?.description}</p><p>正确判断：{card.swipe_states.find(item => item.id === card.answer_key.correct_state)?.description}</p></div> : <p>向左或向右拖动，也可点下方选项。</p>}
         </div>
       </div>
       <div className="swipe-trails">
@@ -1734,105 +1617,42 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, favorites, sleepin
   const selectedBox = boxes.find(box => box.boxRef === selectedBoxRef) ?? boxes[0];
   const [selectedId, setSelectedId] = useState(currentCardId ?? selectedBox?.cards[0]?.card_id ?? '');
   const selected = selectedBox?.cards.find(card => card.card_id === selectedId) ?? selectedBox?.cards[0];
-  const access = resolveMembershipAccess(membership);
   const libraries = unique(boxes.map(box => box.library));
-  const sleepingInSelectedBox = selectedBox?.cards.filter(card => sleeping.includes(card.card_id)).length ?? 0;
-
-  return (
-    <>
-      <main className="space-workbench" aria-labelledby="space-title">
-        <section className="box-object">
-          <div className="space-address-shelf" aria-label="当前空间地址">
-            <p className="eyebrow">空间地址</p>
-            <div className="space-address-path">
-              <span>{selectedBox?.library ?? '当前馆'}</span>
-              <i aria-hidden="true">›</i>
-              <span>{selectedBox?.group ?? '当前组'}</span>
-              <i aria-hidden="true">›</i>
-              <strong>{selectedBox?.box ?? '当前盒'}</strong>
-            </div>
-          </div>
-          <section
-            className="box-tray"
-            aria-label={`当前卡盒 ${selectedBox?.box ?? '暂无'}`}
-          >
-            <div className="workbench-heading">
-              <div>
-                <p className="eyebrow">打开的当前盒</p>
-                <h1 id="space-title">{selectedBox?.box ?? '当前没有卡盒'}</h1>
-                <p className="box-description">卡片仍属于原来的盒；喜欢和休眠只改变卡片状态。</p>
-              </div>
-              <span className="counter">{selectedBox?.cards.length ?? 0} 张</span>
-            </div>
-            <div className="contained-cards" aria-label="盒内卡片">
-              {selectedBox?.cards.map(card => {
-                const isSelected = selected?.card_id === card.card_id;
-                const isCurrent = currentCardId === card.card_id;
-                const isSleeping = sleeping.includes(card.card_id);
-                const isFavorite = favorites.includes(card.card_id);
-                return (
-                  <button
-                    key={card.card_id}
-                    className={`${isSelected ? 'contained-card selected' : 'contained-card'}${isSleeping ? ' sleeping' : ''}`}
-                    aria-pressed={isSelected}
-                    data-learning-current={isCurrent || undefined}
-                    style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties}
-                    onClick={() => setSelectedId(card.card_id)}
-                  >
-                    <span className="contained-card-kind">{INTERACTION_LABELS[card.interaction_id]}</span>
-                    <strong>{card.front.prompt}</strong>
-                    <span className="contained-card-tags">
-                      {isFavorite ? <small className="favorite-tag">喜欢</small> : null}
-                      <small>{isSleeping ? '休眠中' : isCurrent ? '当前学习' : isSelected ? '正在浏览' : '同盒卡'}</small>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <section className="sleep-region" aria-label="盒内休眠区">
-              <div>
-                <p className="eyebrow">盒内休眠区</p>
-                <p>
-                  {sleepingInSelectedBox
-                    ? `${sleepingInSelectedBox} 张卡暂时离开学习流，仍归属于“${selectedBox?.box}”。`
-                    : '这里暂时是空的；休眠卡仍会保留在当前盒中。'}
-                </p>
-              </div>
-              <span className="sleep-count">{sleepingInSelectedBox}</span>
-            </section>
-          </section>
-          <button className="secondary space-return-strip" onClick={onReturn}>
-            回到当前学习卡
-          </button>
-        </section>
-        <section className="space-tree" aria-label="知识空间层级">
-          <p className="eyebrow">父级与相邻位置</p><h2>相邻书架</h2>
-          <ul className="space-library-list">{libraries.map(library => <li key={library}>
-            <strong>{library}</strong>
-            <ul>{unique(boxes.filter(box => box.library === library).map(box => box.group)).map(group => <li key={`${library}-${group}`}>
-              <span>{group}</span>
-              <ul>{boxes.filter(box => box.library === library && box.group === group).map(box => <li key={box.boxRef}>
-                <button
-                  className={box.boxRef === selectedBox?.boxRef ? 'tree-node selected' : 'tree-node'}
-                  aria-current={box.boxRef === selectedBox?.boxRef ? 'location' : undefined}
-                  onClick={() => {
-                    setSelectedBoxRef(box.boxRef);
-                    setSelectedId(box.cards[0]?.card_id ?? '');
-                  }}
-                >{box.box} <small>{box.cards.length} 张</small></button>
-              </li>)}</ul>
-            </li>)}</ul>
-          </li>)}</ul>
-        </section>
-      </main>
-      <aside className="context-rail inspector" aria-label="所选对象检查器">
-        {selected ? <><section><p className="eyebrow">所选卡片</p><h2>{selected.front.prompt}</h2><p>{selectedBox?.library ?? '当前书架'} · {selectedBox?.group ?? '当前分区'} · {selectedBox?.box ?? '当前卡盒'}</p></section><section><button className="tool" disabled={busy || !canMutate} onClick={() => onFavorite(selected.card_id)}>{favorites.includes(selected.card_id) ? '取消喜欢' : '标记喜欢'}</button><button className="tool" disabled={busy || !canMutate} onClick={() => onSleep(selected.card_id)}>{sleeping.includes(selected.card_id) ? '唤醒到学习流' : '移入盒内休眠区'}</button><button className="secondary" onClick={onReturn}>回到学习</button></section></> : <p>当前卡盒为空。</p>}
-        {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
-        <p className="muted">跨端同步 · {syncStatus}</p>
-        {!access.completePhysicalSpace ? <section className="membership-note"><p className="eyebrow">当前可见范围</p><h2>当前卡盒保持可用</h2><p>体验结束后保留基础空间；完整书架、卡片库与算法属于会员能力。</p></section> : null}
-      </aside>
-    </>
-  );
+  const groups = unique(boxes.filter(box => box.library === selectedBox?.library).map(box => box.group));
+  const selectBox = (box: SpaceBox) => {setSelectedBoxRef(box.boxRef); setSelectedId(box.cards[0]?.card_id ?? '');};
+  const sleepingCards = selectedBox?.cards.filter(card => sleeping.includes(card.card_id)) ?? [];
+  const activeCards = selectedBox?.cards.filter(card => !sleeping.includes(card.card_id)) ?? [];
+  const renderCard = (card: LearningCard) => {
+    const isSelected = selected?.card_id === card.card_id;
+    const isCurrent = card.card_id === currentCardId;
+    const isSleeping = sleeping.includes(card.card_id);
+    const preview = spaceCardPreview(card);
+    return <div className="space-card-object" key={card.card_id}>
+      <button className={`${isSelected ? 'contained-card selected' : 'contained-card'}${isSleeping ? ' sleeping' : ''}`} aria-pressed={isSelected} data-learning-current={isCurrent || undefined}
+        style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} onClick={() => setSelectedId(card.card_id)}>
+        <span className="contained-card-kind">{INTERACTION_LABELS[card.interaction_id]}</span><strong>{preview.title}</strong>
+        {isSelected ? preview.detail.map(text => <span className="card-preview-material" key={text}>{text}</span>) : null}
+        <span className="contained-card-tags">{favorites.includes(card.card_id) ? <small className="favorite-tag">喜欢</small> : null}<small>{isSleeping ? '休眠中' : isCurrent ? '当前学习' : isSelected ? '正在浏览' : '同盒卡'}</small></span>
+      </button>
+      {isSelected ? <div className="object-actions" aria-label="所选卡片操作"><button className="text-button" disabled={busy || !canMutate} onClick={() => onFavorite(card.card_id)}>{favorites.includes(card.card_id) ? '取消喜欢' : '标记喜欢'}</button><button className="text-button" disabled={busy || !canMutate} onClick={() => onSleep(card.card_id)}>{isSleeping ? '唤醒到学习流' : '移入盒内休眠区'}</button></div> : null}
+    </div>;
+  };
+  return <main className="space-workbench" style={libraryStyle(selectedBox?.library)} aria-labelledby="space-title">
+    <div className="space-topline"><span className="space-title">知识空间</span><button className="text-button" onClick={onReturn}>回到当前学习卡</button></div>
+    <section className="shelf-map" aria-label="知识空间层级">
+      <div className="library-tabs" aria-label="书架">{libraries.map(library => <button key={library} className={selectedBox?.library === library ? 'library-tab selected' : 'library-tab'} aria-pressed={selectedBox?.library === library} onClick={() => {const first = boxes.find(box => box.library === library); if (first) selectBox(first);}}><span style={{backgroundColor: resolveLibraryTone(library).accent}} />{library}</button>)}</div>
+      <div className="shelf-groups">{groups.map(group => <section className="shelf-group" key={group} aria-label={group}><h2>{group}</h2><div className="sibling-boxes">{boxes.filter(box => box.library === selectedBox?.library && box.group === group).map(box => <button key={box.boxRef} className={box.boxRef === selectedBox?.boxRef ? 'shelf-box selected' : 'shelf-box'} aria-label={`${box.box} ${box.cards.length} 张`} aria-current={box.boxRef === selectedBox?.boxRef ? 'location' : undefined} onClick={() => selectBox(box)}><strong>{box.box}</strong><small>{box.cards.length} 张</small></button>)}</div></section>)}</div>
+    </section>
+    <section className="box-tray" aria-label={`当前卡盒 ${selectedBox?.box ?? '暂无'}`}>
+      <div className="workbench-heading"><div aria-label="当前空间地址"><p className="eyebrow"><span>{selectedBox?.library}</span> / <span>{selectedBox?.group}</span></p><h1 id="space-title">{selectedBox?.box ?? '当前没有卡盒'}</h1></div><span className="counter">{selectedBox?.cards.length ?? 0} 张</span></div>
+      <div className="box-contents" aria-label="盒内卡片"><div className="contained-cards">{activeCards.map(renderCard)}</div>
+        <section className="sleep-region" aria-label="盒内休眠区"><div className="sleep-heading"><span>休眠区</span><small>{sleepingCards.length ? `${sleepingCards.length} 张卡暂时离开学习流，保留在这个盒中` : '暂时离开学习流，保留在这个盒中'}</small></div>{sleepingCards.length ? <div className="contained-cards">{sleepingCards.map(renderCard)}</div> : <p className="sleep-empty">暂无休眠卡片</p>}</section>
+      </div>
+    </section>
+    {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
+    {!['当前设备可继续', '服务端已确认', ''].includes(syncStatus) ? <p className="notice" role="status">跨端同步 · {syncStatus}</p> : null}
+    {!resolveMembershipAccess(membership).completePhysicalSpace ? <p className="membership-note">当前卡盒保持可用；会员可查看完整书架。</p> : null}
+  </main>;
 }
 
 function StatisticsSurface({

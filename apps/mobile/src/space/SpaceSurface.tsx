@@ -1,3 +1,4 @@
+import { spaceCardPreview } from '../learning/presentation';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
@@ -140,11 +141,9 @@ export function SpaceSurface({
   spaceSyncRail?: SpaceSyncRail | null;
   usesAccessibilityLayout?: boolean;
 }) {
-  const {height: viewportHeight, width: viewportWidth} = useWindowDimensions();
-  const usesShortViewport = isShortSpaceViewport(
-    viewportWidth,
-    viewportHeight,
-  );
+  const { height: viewportHeight, width: viewportWidth } =
+    useWindowDimensions();
+  const usesShortViewport = isShortSpaceViewport(viewportWidth, viewportHeight);
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const focusedSelection = useMemo(() => {
     if (!currentLearningCard) {
@@ -249,9 +248,6 @@ export function SpaceSurface({
     selectedBoxCards.length === 0
       ? 0
       : Math.min(selectedCardIndex, selectedBoxCards.length - 1);
-  const selectedFavoriteCards = selectedBoxCards.filter(
-    card => cardStateById[card.cardId]?.isFavorited,
-  );
   const selectedSleepingCards = selectedBoxCards.filter(
     card => cardStateById[card.cardId]?.isSleeping,
   );
@@ -259,7 +255,6 @@ export function SpaceSurface({
     selectedBoxCards,
     currentLearningCard?.card_id ?? null,
   );
-  const currentCardPosition = focusedSelection?.position ?? null;
   const selectedTone = resolveLibraryTone(selectedLibrary?.libraryName);
   const visibleShelfName = formatSpaceDisplayName(
     selectedLibrary?.libraryName ?? '',
@@ -273,15 +268,8 @@ export function SpaceSurface({
     selectedBox?.boxName ?? '',
     '当前卡盒',
   );
-  const currentLibraryName = currentCardPosition
-    ? seed.libraries[currentCardPosition.libraryIndex - 1]?.libraryName
-    : undefined;
-  const currentTone = resolveLibraryTone(
-    currentLibraryName ?? selectedLibrary?.libraryName,
-  );
   const isDarkSpacePalette =
     palette.background === '#0B0B12' || palette.text === '#F2F1EB';
-  const solidPanel = isDarkSpacePalette ? '#1C1C2A' : '#FFFFFA';
   const solidPanelStrong = isDarkSpacePalette ? '#222434' : '#FFFFFC';
   const neutralObjectSurface = hexToRgba(
     palette.text,
@@ -293,8 +281,6 @@ export function SpaceSurface({
   );
   const primaryActionSurface = palette.primaryActionSurface ?? palette.text;
   const primaryActionText = palette.primaryActionText ?? solidPanelStrong;
-  const primaryActionMuted =
-    palette.primaryActionMuted ?? hexToRgba(primaryActionText, 0.72);
   const currentCardPath = currentLearningCard
     ? formatSpacePathByNames(
         currentLearningCard.space_metadata.library,
@@ -420,9 +406,7 @@ export function SpaceSurface({
               numberOfLines={1}
               style={[styles.summary, { color: palette.textMuted }]}
             >
-              {isSpaceLoading
-                ? '正在加载卡片。'
-                : '这里还没有卡片。'}
+              {isSpaceLoading ? '正在加载卡片。' : '这里还没有卡片。'}
             </Text>
             <View style={styles.addressContextRow}>
               <AddressContextPill
@@ -653,1323 +637,576 @@ export function SpaceSurface({
     );
   }
 
+  const selectedCard = selectedBoxCards[safeSelectedCardIndex];
+  const selectedSource = spaceCards.find(
+    card => card.card_id === selectedCard?.cardId,
+  );
+  const selectedPreview = selectedSource
+    ? spaceCardPreview(selectedSource)
+    : { title: selectedCard?.prompt ?? '暂无卡片', detail: [] };
+  const selectedState = selectedCard
+    ? cardStateById[selectedCard.cardId]
+    : undefined;
+  const inspectedCardIsCurrent =
+    selectedCard?.cardId === currentLearningCard?.card_id;
+  const isFavorited = Boolean(selectedState?.isFavorited);
+  const isSleeping = Boolean(selectedState?.isSleeping);
+  const cardDisplayIndex = safeSelectedCardIndex + 1;
+  const inspectCard = (cardId: string) => {
+    setSelectionMode('manual');
+    setSelectedCardIndex(
+      Math.max(
+        selectedBoxCards.findIndex(card => card.cardId === cardId),
+        0,
+      ),
+    );
+    onOpenCardList?.();
+  };
   return (
     <SpaceViewport
       deviceClass={deviceClass}
       usesAccessibilityLayout={usesAccessibilityLayout}
-      usesShortViewport={usesScrollableViewport}
+      usesShortViewport={usesScrollableViewport || deviceClass === 'tablet'}
     >
-      <View
-        style={[
-          styles.shelfDeskFrame,
-          styles.shelfDeskFrameOneScreen,
-          usesAccessibilityLayout ? styles.shelfDeskFrameAccessible : null,
-          usesScrollableViewport ? styles.shelfDeskFrameShortViewport : null,
-        ]}
-        testID="space-shelf-desk"
-      >
+      <View style={styles.spaceComposition} testID="space-shelf-desk">
         {hasStateRail ? (
-          <SurfaceCard
-            palette={palette}
-            style={[styles.addressShelf, styles.addressShelfOneScreen]}
-            testID="space-address-shelf"
-          >
-            {screen === 'card_list' ? (
-              <View style={styles.addressListBar}>
-                <View style={styles.statusCopy}>
-                  <Text
-                    style={[styles.eyebrow, { color: selectedTone.accent }]}
-                  >
-                    空间地址
-                  </Text>
-                  <Text style={[styles.title, { color: palette.text }]}>
-                    卡片
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.addressPath,
-                    styles.addressPathCompact,
-                    {
-                      backgroundColor: hexToRgba(selectedTone.accent, 0.05),
-                      borderColor: hexToRgba(selectedTone.accent, 0.24),
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.addressPathLabel,
-                      { color: selectedTone.accent },
-                    ]}
-                  >
-                    {selectedBoxIsCurrent ? '当前位置' : '所选位置'}
-                  </Text>
-                  <Text
-                    style={[styles.addressPathText, { color: palette.text }]}
-                  >
-                    {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <>
-                <Text style={[styles.eyebrow, { color: selectedTone.accent }]}>
-                  空间地址
-                </Text>
-                <Text
-                  style={[styles.title, { color: palette.text }]}
-                >
-                  {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.summary, { color: palette.textMuted }]}
-                >
-                  重新加载后查看卡片和休眠区。
-                </Text>
-                <View style={styles.addressContextRow}>
-                  <AddressContextPill
-                    emphasized
-                    label="书架"
-                    palette={palette}
-                    toneColor={selectedTone.accent}
-                    value={visibleShelfName}
-                  />
-                  <AddressContextPill
-                    label="分区"
-                    palette={palette}
-                    value={visibleSectionName}
-                  />
-                  <AddressContextPill
-                    label="卡盒"
-                    palette={palette}
-                    value={visibleContainerName}
-                  />
-                  <AddressContextPill
-                    label="状态"
-                    palette={palette}
-                    value={selectedBox.cards.length > 0 ? '可查看' : '暂无卡片'}
-                  />
-                </View>
-              </>
-            )}
-          </SurfaceCard>
+          <View testID="space-address-shelf">
+            <Text
+              style={[styles.spaceLocation, { color: palette.textMuted }]}
+            >{`${visibleShelfName} / ${visibleSectionName} / ${visibleContainerName}`}</Text>
+          </View>
         ) : null}
-
         {stateRailStack}
-
         {screen === 'overview' ? (
-          <>
-            <View
-              style={[
-                styles.overviewWorkbench,
-                usesAccessibilityLayout
-                  ? styles.overviewWorkbenchAccessible
-                  : null,
-                usesScrollableViewport
-                  ? styles.overviewWorkbenchShortViewport
-                  : null,
-                {
-                  backgroundColor: solidPanel,
-                  borderColor: hexToRgba(selectedTone.accent, 0.14),
-                },
-              ]}
-              testID="space-current-box-tray"
-            >
-              {!hasStateRail ? (
-                <View
-                  style={[
-                    styles.spaceAddressRail,
-                    {
-                      backgroundColor: neutralObjectSurface,
-                      borderColor: neutralObjectBorder,
-                    },
-                  ]}
-                  testID="space-address-shelf"
-                >
-                  <View style={styles.spaceAddressNode}>
-                    <Text
-                      style={[
-                        styles.spaceAddressLabel,
-                        { color: selectedTone.accent },
-                      ]}
-                    >
-                      书架
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.spaceAddressValue,
-                        { color: palette.text },
-                      ]}
-                    >
-                      {visibleShelfName}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.spaceAddressDot,
-                      { backgroundColor: hexToRgba(selectedTone.accent, 0.32) },
-                    ]}
-                  />
-                  <View style={styles.spaceAddressNode}>
-                    <Text
-                      style={[
-                        styles.spaceAddressLabel,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      分区
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.spaceAddressValue,
-                        { color: palette.text },
-                      ]}
-                    >
-                      {visibleSectionName}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.spaceAddressDot,
-                      { backgroundColor: hexToRgba(selectedTone.accent, 0.22) },
-                    ]}
-                  />
-                  <View style={styles.spaceAddressNode}>
-                    <Text
-                      style={[
-                        styles.spaceAddressLabel,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      卡盒
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.spaceAddressValue,
-                        { color: palette.text },
-                      ]}
-                    >
-                      {visibleContainerName}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-
-              <View
-                style={[
-                  styles.hierarchyBrowseRail,
-                  {
-                    backgroundColor: neutralObjectSurface,
-                    borderColor: neutralObjectBorder,
-                  },
-                ]}
-                testID="space-browse-rail"
+          <View style={styles.spaceComposition} testID="space-current-box-tray">
+            <View style={styles.shelfNavigator} testID="space-browse-rail">
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.shelfLibraryRow}
+                testID="space-library-strip"
               >
-                <View style={styles.hierarchyBrowseHeader}>
-                  <Text
-                    style={[
-                      styles.hierarchyBrowseTitle,
-                      { color: selectedTone.accent },
-                    ]}
-                  >
-                    浏览卡片
-                  </Text>
-                  {!selectedBoxIsCurrent && focusedSelection ? (
+                {seed.libraries.map((library, index) => {
+                  const displayName = formatSpaceDisplayName(
+                    library.libraryName,
+                    '书架',
+                  );
+                  return (
                     <Pressable
-                      accessibilityLabel="回到当前学习卡所在卡盒"
-                      accessibilityRole="button"
-                      onPress={followCurrentBox}
+                      key={library.libraryName}
+                      accessibilityRole="tab"
+                      accessibilityLabel={displayName}
+                      accessibilityState={{
+                        selected: index === selectedLibraryIndex,
+                      }}
+                      onPress={() => selectLibraryAt(index)}
                       style={[
-                        styles.followCurrentButton,
+                        styles.shelfLibraryTab,
                         {
-                          backgroundColor: solidPanelStrong,
-                          borderColor: hexToRgba(currentTone.accent, 0.24),
+                          backgroundColor:
+                            index === selectedLibraryIndex
+                              ? solidPanelStrong
+                              : 'transparent',
                         },
                       ]}
-                      testID="space-follow-current-box"
+                      testID={`space-library-choice-${index + 1}`}
                     >
-                      <Text
-                        numberOfLines={1}
+                      <View
                         style={[
-                          styles.followCurrentButtonLabel,
-                          { color: currentTone.accent },
+                          styles.shelfLibraryDot,
+                          {
+                            backgroundColor: resolveLibraryTone(
+                              library.libraryName,
+                            ).accent,
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.shelfLibraryLabel,
+                          {
+                            color:
+                              index === selectedLibraryIndex
+                                ? palette.text
+                                : palette.textMuted,
+                          },
                         ]}
                       >
-                        回到当前卡盒
+                        {displayName}
                       </Text>
                     </Pressable>
-                  ) : (
-                    <Text
+                  );
+                })}
+              </ScrollView>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.shelfGroupTabs}
+                testID="space-group-strip"
+              >
+                {selectedLibrary.groups.map((group, index) => {
+                  const displayName = formatSpaceDisplayName(
+                    group.groupName,
+                    '分区',
+                  );
+                  return (
+                    <Pressable
+                      key={group.groupName}
+                      accessibilityRole="tab"
+                      accessibilityLabel={displayName}
+                      accessibilityState={{
+                        selected: index === selectedGroupIndex,
+                      }}
+                      onPress={() => selectGroupAt(index)}
                       style={[
-                        styles.hierarchyBrowseCurrent,
-                        { color: palette.textMuted },
+                        styles.shelfGroupTab,
+                        {
+                          borderBottomColor:
+                            index === selectedGroupIndex
+                              ? selectedTone.accent
+                              : 'transparent',
+                        },
                       ]}
+                      testID={`space-group-choice-${index + 1}`}
                     >
-                      当前卡盒
-                    </Text>
-                  )}
-                </View>
-                <HierarchyBrowseRow
-                  index={selectedLibraryIndex}
-                  label="书架"
-                  onNext={() => selectLibraryAt(selectedLibraryIndex + 1)}
-                  onPrevious={() =>
-                    selectLibraryAt(selectedLibraryIndex - 1)
-                  }
-                  palette={palette}
-                  testIDPrefix="space-library"
-                  total={seed.libraries.length}
-                  value={visibleShelfName}
-                />
-                <HierarchyBrowseRow
-                  index={selectedGroupIndex}
-                  label="分区"
-                  onNext={() => selectGroupAt(selectedGroupIndex + 1)}
-                  onPrevious={() => selectGroupAt(selectedGroupIndex - 1)}
-                  palette={palette}
-                  testIDPrefix="space-group"
-                  total={selectedLibrary.groups.length}
-                  value={visibleSectionName}
-                />
-                <HierarchyBrowseRow
-                  index={selectedBoxIndex}
-                  label="卡盒"
-                  onNext={() => selectBoxAt(selectedBoxIndex + 1)}
-                  onPrevious={() => selectBoxAt(selectedBoxIndex - 1)}
-                  palette={palette}
-                  testIDPrefix="space-box"
-                  total={selectedGroup.boxes.length}
-                  value={visibleContainerName}
-                />
+                      <Text
+                        style={[
+                          styles.shelfGroupLabel,
+                          {
+                            color:
+                              index === selectedGroupIndex
+                                ? palette.text
+                                : palette.textMuted,
+                          },
+                        ]}
+                      >
+                        {displayName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <View
+                style={[
+                  styles.shelfBoard,
+                  { borderBottomColor: palette.border },
+                ]}
+              >
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.siblingBoxRow}
+                  testID="space-sibling-boxes"
+                >
+                  {selectedGroup.boxes.map((box, index) => {
+                    const displayName = formatSpaceDisplayName(
+                      box.boxName,
+                      '卡盒',
+                    );
+                    const countLabel = `${box.cards.length} 张`;
+                    const accessibleLabel = `${displayName}，${countLabel}`;
+                    return (
+                      <Pressable
+                        key={box.boxRef}
+                        accessibilityRole="button"
+                        accessibilityLabel={accessibleLabel}
+                        accessibilityState={{
+                          selected: index === selectedBoxIndex,
+                        }}
+                        onPress={() => selectBoxAt(index)}
+                        style={[
+                          styles.siblingBox,
+                          {
+                            backgroundColor:
+                              index === selectedBoxIndex
+                                ? selectedTone.accentSoft
+                                : solidPanelStrong,
+                            borderColor: palette.border,
+                            borderTopColor:
+                              index === selectedBoxIndex
+                                ? selectedTone.accent
+                                : palette.border,
+                          },
+                        ]}
+                        testID={`space-box-choice-${index + 1}`}
+                      >
+                        <Text
+                          style={[
+                            styles.siblingBoxName,
+                            { color: palette.text },
+                          ]}
+                        >
+                          {displayName}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.siblingBoxCount,
+                            { color: palette.textMuted },
+                          ]}
+                        >
+                          {countLabel}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
               </View>
-
-              <View style={styles.overviewHeroRow}>
-                <View style={styles.statusCopy}>
+              {!selectedBoxIsCurrent && focusedSelection ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={followCurrentBox}
+                  style={styles.followCurrentLink}
+                  testID="space-follow-current-box"
+                >
                   <Text
-                    style={[styles.eyebrow, { color: palette.textMuted }]}
+                    style={[
+                      styles.followCurrentLinkText,
+                      { color: palette.textMuted },
+                    ]}
                   >
-                    {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
+                    回到当前卡所在位置 →
                   </Text>
-                  <Text style={[styles.boxTrayTitle, { color: palette.text }]}>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <View
+              style={[
+                styles.openTray,
+                {
+                  borderColor: neutralObjectBorder,
+                  backgroundColor: neutralObjectSurface,
+                },
+              ]}
+              testID="space-open-box-deck"
+            >
+              <View style={styles.trayHeading} testID="space-open-box-lid">
+                <View style={styles.trayTitleCopy}>
+                  <Text
+                    style={[styles.spaceSectionTitle, { color: palette.text }]}
+                  >
                     {visibleContainerName}
                   </Text>
                   <Text
-                    style={[styles.locationText, { color: palette.textMuted }]}
-                  >
-                    {selectedBoxIsCurrent
-                      ? '查看卡盒中的卡片'
-                      : '查看所选卡盒中的卡片'}
-                  </Text>
+                    style={[styles.spaceMeta, { color: palette.textMuted }]}
+                  >{`${selectedBoxCards.length} 张${
+                    selectedBoxIsCurrent ? ' · 当前学习所在盒' : ''
+                  }`}</Text>
                 </View>
                 <Pressable
+                  accessibilityRole="button"
                   accessibilityLabel={
                     selectedBoxIsCurrent
                       ? '查看当前卡盒里的卡片'
                       : '查看所选卡盒里的卡片'
                   }
-                  accessibilityRole="button"
                   onPress={onOpenCardList ?? noop}
-                  style={[
-                    styles.overviewInspectButton,
-                    {
-                      backgroundColor: solidPanelStrong,
-                      borderColor: palette.border,
-                    },
-                  ]}
+                  style={styles.quietAction}
                   testID="space-open-card-list"
                 >
                   <Text
-                    style={[
-                      styles.overviewInspectButtonTitle,
-                      { color: palette.text },
-                    ]}
+                    style={[styles.quietActionText, { color: palette.text }]}
                   >
-                    查看卡片
+                    查看卡片 →
                   </Text>
                 </Pressable>
               </View>
-
               <View
-                style={[
-                  styles.openBoxDeck,
-                  styles.openBoxDeckUnified,
-                  usesAccessibilityLayout ? styles.openBoxDeckAccessible : null,
-                  usesScrollableViewport
-                    ? styles.openBoxDeckShortViewport
-                    : null,
-                  {
-                    backgroundColor: neutralObjectSurface,
-                    borderColor: neutralObjectBorder,
-                  },
-                ]}
-                testID="space-open-box-deck"
+                style={styles.previewRow}
+                testID="space-contained-card-strip"
               >
-                <View
-                  style={[
-                    styles.openBoxLid,
-                    {
-                      backgroundColor: 'transparent',
-                      borderColor: 'transparent',
-                    },
-                  ]}
-                  testID="space-open-box-lid"
-                >
-                  <Text
-                    style={[styles.openBoxLidTitle, { color: palette.text }]}
-                  >
-                    卡片
-                  </Text>
-                  <Text
-                    style={[
-                      styles.openBoxLidCount,
-                      { color: palette.textMuted },
-                    ]}
-                  >
-                    {`${selectedBoxCards.length} 张`}
-                  </Text>
-                </View>
-
-                <View
-                  style={[
-                    styles.openBoxDeskBody,
-                    usesAccessibilityLayout
-                      ? styles.openBoxDeskBodyAccessible
-                      : null,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.openBoxTray,
-                      usesAccessibilityLayout
-                        ? styles.openBoxTrayAccessible
-                        : null,
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.deckCardRow,
-                        usesAccessibilityLayout
-                          ? styles.deckCardRowAccessible
-                          : null,
-                      ]}
-                    >
-                      {selectedOverviewDeckCards.length === 0 ? (
-                        <View
-                          style={[
-                            styles.deckCardOverview,
-                            styles.deckCardOverviewPrimary,
-                            usesAccessibilityLayout
-                              ? styles.deckCardOverviewAccessible
-                              : null,
-                            {
-                              backgroundColor: solidPanelStrong,
-                              borderColor: palette.border,
-                            },
-                          ]}
-                          testID="space-empty-box-slot"
-                        >
-                          <Text
-                            style={[
-                              styles.deckCardTag,
-                              { color: selectedTone.accent },
-                            ]}
-                          >
-                            空盒
-                          </Text>
-                          <Text
-                            numberOfLines={3}
-                            style={[
-                              styles.deckCardPrompt,
-                              { color: palette.text },
-                            ]}
-                          >
-                            当前卡盒暂无可展示卡片
-                          </Text>
-                        </View>
-                      ) : null}
-                      {selectedOverviewDeckCards
-                        .slice(0, 3)
-                        .map((card, index) => {
-                          const isCurrent =
-                            currentLearningCard?.card_id === card.cardId;
-                          const cardState = cardStateById[card.cardId];
-                          const cardOrder = selectedBoxCards.findIndex(
-                            item => item.cardId === card.cardId,
-                          );
-                          const cardDisplayIndex =
-                            cardOrder >= 0 ? cardOrder + 1 : index + 1;
-                          const cardCountLabel =
-                            selectedBoxCards.length > 0
-                              ? `${cardDisplayIndex}/${selectedBoxCards.length}`
-                              : '0/0';
-                          const cardStatusLabel = isCurrent
-                            ? '当前'
-                            : cardState?.isSleeping
-                            ? '休眠'
-                            : cardState?.isFavorited
-                            ? '标记'
-                            : '卡片';
-                          const cardPositionLabel = isCurrent
-                            ? '当前学习'
-                            : selectedBoxIsCurrent
-                            ? '卡盒中'
-                            : '所选卡盒';
-
-                          return (
-                            <View
-                              key={card.cardId}
-                              style={[
-                                styles.deckCardOverview,
-                                index === 0
-                                  ? styles.deckCardOverviewPrimary
-                                  : index === 1
-                                  ? styles.deckCardOverviewSecondary
-                                  : styles.deckCardOverviewTertiary,
-                                isCurrent
-                                  ? styles.deckCardOverviewActive
-                                  : null,
-                                usesAccessibilityLayout
-                                  ? styles.deckCardOverviewAccessible
-                                  : null,
-                                {
-                                  backgroundColor: isCurrent
-                                    ? selectedTone.accentSoft
-                                    : solidPanelStrong,
-                                  borderColor: 'transparent',
-                                },
-                              ]}
-                              testID="space-overview-card-object"
-                            >
-                              <View style={styles.deckCardHeader}>
-                                <Text
-                                  style={[
-                                    styles.deckCardTag,
-                                    {
-                                      color: isCurrent
-                                        ? selectedTone.accent
-                                        : cardState?.isSleeping
-                                        ? palette.warning
-                                        : cardState?.isFavorited
-                                        ? palette.accentStrong
-                                        : palette.textMuted,
-                                    },
-                                  ]}
-                                >
-                                  {cardStatusLabel}
-                                </Text>
-                                <Text
-                                  style={[
-                                    styles.deckCardIndex,
-                                    { color: palette.textMuted },
-                                  ]}
-                                >
-                                  {cardCountLabel}
-                                </Text>
-                              </View>
-                              <Text
-                                numberOfLines={
-                                  usesAccessibilityLayout
-                                    ? undefined
-                                    : index === 0
-                                    ? 3
-                                    : 2
-                                }
-                                style={[
-                                  styles.deckCardPrompt,
-                                  { color: palette.text },
-                                ]}
-                              >
-                                {card.prompt}
-                              </Text>
-                              <View
-                                style={[
-                                  styles.deckCardStateRail,
-                                  {
-                                    backgroundColor: hexToRgba(
-                                      selectedTone.accent,
-                                      isCurrent ? 0.09 : 0.055,
-                                    ),
-                                  },
-                                ]}
-                                testID="space-overview-card-state-rail"
-                              >
-                                <View style={styles.deckCardStateLine}>
-                                  <Text
-                                    style={[
-                                      styles.deckCardStateLabel,
-                                      { color: palette.textMuted },
-                                    ]}
-                                  >
-                                    位置
-                                  </Text>
-                                  <Text
-                                    numberOfLines={1}
-                                    style={[
-                                      styles.deckCardStateValue,
-                                      { color: palette.text },
-                                    ]}
-                                  >
-                                    {cardPositionLabel}
-                                  </Text>
-                                </View>
-                                <View style={styles.deckCardStateLine}>
-                                  <Text
-                                    style={[
-                                      styles.deckCardStateLabel,
-                                      { color: palette.textMuted },
-                                    ]}
-                                  >
-                                    题型
-                                  </Text>
-                                  <Text
-                                    numberOfLines={1}
-                                    style={[
-                                      styles.deckCardStateValue,
-                                      { color: palette.text },
-                                    ]}
-                                  >
-                                    {card.interactionLabel}
-                                  </Text>
-                                </View>
-                              </View>
-                            </View>
-                          );
-                        })}
-                    </View>
-
+                {selectedOverviewDeckCards.map(card => {
+                  const source = spaceCards.find(
+                    item => item.card_id === card.cardId,
+                  );
+                  const previewText = source
+                    ? spaceCardPreview(source).title
+                    : card.prompt;
+                  const isCurrent =
+                    currentLearningCard?.card_id === card.cardId;
+                  const status = cardStateById[card.cardId];
+                  return (
                     <Pressable
-                      accessibilityLabel={`查看${
-                        selectedBoxIsCurrent ? '同盒' : '所选盒'
-                      }休眠卡，${selectedSleepingCards.length} 张`}
+                      key={card.cardId}
                       accessibilityRole="button"
-                      onPress={onOpenCardList ?? noop}
+                      accessibilityLabel={`查看卡片，${previewText}`}
+                      onPress={() => inspectCard(card.cardId)}
                       style={[
-                        styles.sleepAlcove,
-                        styles.sleepAlcoveDesk,
+                        styles.previewPaper,
                         {
-                          backgroundColor: neutralObjectSurface,
-                          borderColor: 'transparent',
+                          backgroundColor: solidPanelStrong,
+                          borderColor: neutralObjectBorder,
+                          borderTopColor: isCurrent
+                            ? selectedTone.accent
+                            : neutralObjectBorder,
                         },
                       ]}
-                      testID="space-sleep-alcove"
+                      testID="space-overview-card-object"
                     >
-                      <View style={styles.sleepAlcoveCopy}>
-                        <View style={styles.sleepAlcoveHeader}>
-                          <Text
-                            style={[
-                              styles.sleepAlcoveTitle,
-                              { color: palette.text },
-                            ]}
-                          >
-                            {selectedBoxIsCurrent ? '同盒休眠' : '所选盒休眠'}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.sleepAlcoveActionText,
-                              {
-                                backgroundColor: hexToRgba(
-                                  palette.text,
-                                  isDarkSpacePalette ? 0.08 : 0.055,
-                                ),
-                                color: palette.text,
-                              },
-                            ]}
-                            testID="space-sleep-alcove-action"
-                          >
-                            查看
-                          </Text>
-                        </View>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.sleepAlcoveMeta,
-                            { color: palette.textMuted },
-                          ]}
-                        >
-                          {selectedSleepingCards.length > 0
-                            ? `${selectedSleepingCards.length} 张暂休，仍留在盒内`
-                            : '暂无休眠，继续按盒内顺序学习'}
-                        </Text>
-                      </View>
+                      <Text
+                        style={[styles.spaceMeta, { color: palette.textMuted }]}
+                      >
+                        {[
+                          card.interactionLabel,
+                          isCurrent ? '当前' : '',
+                          status?.isFavorited ? '已收藏' : '',
+                          status?.isSleeping ? '休眠' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Text>
+                      <Text
+                        numberOfLines={usesAccessibilityLayout ? undefined : 4}
+                        style={[styles.previewPrompt, { color: palette.text }]}
+                      >
+                        {previewText}
+                      </Text>
                     </Pressable>
-                  </View>
-                </View>
+                  );
+                })}
+                {selectedBoxCards.length === 0 ? (
+                  <Text
+                    style={[styles.spaceMeta, { color: palette.textMuted }]}
+                    testID="space-empty-box-slot"
+                  >
+                    这个盒里暂无卡片。
+                  </Text>
+                ) : null}
               </View>
-
-              <Pressable
-                accessibilityLabel="回到当前学习卡"
-                accessibilityRole="button"
-                onPress={onReturnToLearning}
-                style={[
-                  styles.returnContinuity,
-                  styles.returnContinuityStrip,
-                  usesAccessibilityLayout
-                    ? styles.returnContinuityAccessible
-                    : null,
-                  {
-                    backgroundColor: primaryActionSurface,
-                    borderColor: primaryActionSurface,
-                  },
-                ]}
-                testID="space-return-learning"
+              <View
+                style={[styles.sleepZone, { borderColor: neutralObjectBorder }]}
+                testID="space-sleep-alcove"
               >
-                <View
-                  style={[
-                    styles.returnContinuityAccent,
-                    usesAccessibilityLayout
-                      ? styles.returnContinuityAccentAccessible
-                      : null,
-                    { backgroundColor: selectedTone.accent },
-                  ]}
-                />
-                <View style={styles.returnContinuityCopy}>
-                  <Text
-                    style={[
-                      styles.returnContinuityTitle,
-                      { color: primaryActionText },
-                    ]}
+                <Text style={[styles.spaceMeta, { color: palette.textMuted }]}>
+                  {selectedSleepingCards.length
+                    ? `休眠区 · ${selectedSleepingCards.length} 张`
+                    : '休眠区 · 暂无休眠'}
+                </Text>
+                {selectedSleepingCards.length ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => inspectCard(selectedSleepingCards[0].cardId)}
+                    style={styles.quietAction}
+                    testID="space-open-sleep"
                   >
-                    回学习
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.returnContinuityMeta,
-                      { color: primaryActionMuted },
-                    ]}
-                  >
-                    回到刚才那张卡。
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.returnContinuityActionPill,
-                    usesAccessibilityLayout
-                      ? styles.returnContinuityActionPillAccessible
-                      : null,
-                    {
-                      backgroundColor: hexToRgba(
-                        primaryActionText,
-                        isDarkSpacePalette ? 0.12 : 0.14,
-                      ),
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.returnContinuityActionText,
-                      { color: primaryActionText },
-                    ]}
-                  >
-                    继续
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.returnContinuityActionMeta,
-                      { color: primaryActionMuted },
-                    ]}
-                  >
-                    保持位置
-                  </Text>
-                </View>
-              </Pressable>
+                    <Text
+                      style={[styles.quietActionText, { color: palette.text }]}
+                    >
+                      查看 →
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
-          </>
-        ) : null}
-
-        {screen === 'card_list' ? (
+          </View>
+        ) : (
           <>
             <View
-              style={[
-                styles.boxBrowseSurface,
-                usesScrollableViewport
-                  ? styles.boxBrowseSurfaceShortViewport
-                  : null,
-                {
-                  backgroundColor: solidPanel,
-                  borderColor: neutralObjectBorder,
-                },
-              ]}
-              testID="space-box-detail"
+              style={styles.inspectionAddress}
+              testID="space-browse-address-clue"
+            >
+              <Text
+                style={[styles.spaceLocation, { color: palette.textMuted }]}
+              >{`${visibleShelfName} / ${visibleSectionName}`}</Text>
+              <Text style={[styles.spaceSectionTitle, { color: palette.text }]}>
+                {visibleContainerName}
+              </Text>
+            </View>
+            <View
+              style={styles.spaceComposition}
+              testID="space-contained-card-strip"
             >
               <View
                 style={[
-                  styles.browseObjectPlane,
-                  styles.browseObjectPlaneDesk,
-                  styles.browseAddressTray,
+                  styles.inspectionPaper,
                   {
                     backgroundColor: solidPanelStrong,
                     borderColor: neutralObjectBorder,
+                    borderTopColor: selectedTone.accent,
                   },
                 ]}
-                testID="space-current-box-tray"
+                testID="space-browse-card-object"
               >
+                <Text style={[styles.spaceMeta, { color: palette.textMuted }]}>
+                  {[
+                    selectedCard?.interactionLabel,
+                    inspectedCardIsCurrent ? '当前' : '',
+                    isFavorited ? '已收藏' : '',
+                    isSleeping ? '休眠' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
                 <View
-                  style={styles.browseHeader}
-                  testID="space-card-list-header"
+                  style={styles.inspectionMaterial}
+                  testID="space-browse-card-face"
                 >
-                  <View
-                    style={[
-                      styles.browseObjectMarker,
-                      { backgroundColor: selectedTone.accent },
-                    ]}
-                  />
-                  <View style={styles.statusCopy}>
+                  <Text
+                    style={[styles.inspectionPrompt, { color: palette.text }]}
+                  >
+                    {selectedPreview.title}
+                  </Text>
+                  {selectedPreview.detail.map(text => (
                     <Text
-                      style={[styles.eyebrow, { color: palette.textMuted }]}
-                    >
-                      盒内浏览
-                    </Text>
-                    <Text
-                      style={[styles.browseTrayTitle, { color: palette.text }]}
-                    >
-                      {selectedBoxIsCurrent ? '当前卡盒' : '所选卡盒'}
-                    </Text>
-                    <Text
-                      numberOfLines={1}
+                      key={text}
                       style={[
-                        styles.locationText,
+                        styles.cardPreviewDetail,
                         { color: palette.textMuted },
                       ]}
                     >
-                      {selectedBoxIsCurrent
-                        ? '查看当前卡盒'
-                        : '查看所选卡盒'}
+                      {text}
                     </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.browseStatusBadge,
-                      {
-                        backgroundColor: neutralObjectSurface,
-                        borderColor: neutralObjectBorder,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.browseStatusBadgeText,
-                        { color: palette.text },
-                      ]}
-                    >
-                      {isGated
-                        ? '待开放'
-                        : selectedFavoriteCards.length > 0
-                        ? '已收藏'
-                        : '浏览中'}
-                    </Text>
-                  </View>
+                  ))}
                 </View>
                 <View
                   style={[
-                    styles.browseAddressClue,
-                    {
-                      backgroundColor: neutralObjectSurface,
-                      borderColor: neutralObjectBorder,
-                    },
+                    styles.stateActionRow,
+                    { borderColor: neutralObjectBorder },
                   ]}
-                  testID="space-address-shelf"
+                  testID="space-browse-card-state-tray"
                 >
-                  <View style={styles.browseAddressClueHeader}>
+                  {isGated ? (
                     <Text
-                      style={[
-                        styles.browseAddressClueTitle,
-                        { color: selectedTone.accent },
-                      ]}
+                      style={[styles.spaceMeta, { color: palette.textMuted }]}
                     >
-                      {selectedBoxIsCurrent ? '当前位置' : '所选位置'}
+                      试用或会员后可调整收藏和休眠状态
                     </Text>
-                    <Text
-                      style={[
-                        styles.browseAddressClueMeta,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      {`本盒共 ${selectedBoxCards.length} 张`}
-                    </Text>
-                  </View>
-                  <View
-                    style={[styles.browseObjectPath, styles.browseAddressLine]}
-                    testID="space-browse-address-clue"
-                  >
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.browseAddressLineText,
-                        { color: selectedTone.accent },
-                      ]}
-                    >
-                      {visibleShelfName}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.browseAddressSeparator,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      /
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.browseAddressLineText,
-                        { color: palette.text },
-                      ]}
-                    >
-                      {visibleSectionName}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.browseAddressSeparator,
-                        { color: palette.textMuted },
-                      ]}
-                    >
-                      /
-                    </Text>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.browseAddressLineText,
-                        { color: palette.text },
-                      ]}
-                    >
-                      {visibleContainerName}
-                    </Text>
-                  </View>
+                  ) : selectedCard ? (
+                    <>
+                      <Pressable
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={
+                          isFavorited ? '取消收藏当前卡' : '收藏当前卡'
+                        }
+                        accessibilityState={{ checked: isFavorited }}
+                        onPress={() => {
+                          setSelectionMode('manual');
+                          onToggleFavoriteTag(selectedCard.cardId);
+                        }}
+                        style={styles.quietAction}
+                        testID={`space-favorite-${cardDisplayIndex}`}
+                      >
+                        <Text
+                          style={[
+                            styles.quietActionText,
+                            { color: palette.text },
+                          ]}
+                          testID={`space-favorite-${
+                            isFavorited ? 'active' : 'inactive'
+                          }-${cardDisplayIndex}`}
+                        >
+                          {isFavorited ? '★ 取消收藏' : '☆ 收藏'}
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="switch"
+                        accessibilityLabel={
+                          isSleeping
+                            ? '将当前卡移出休眠区'
+                            : '将当前卡放入休眠区'
+                        }
+                        accessibilityState={{ checked: isSleeping }}
+                        onPress={() => {
+                          setSelectionMode('manual');
+                          onToggleSleepState(selectedCard.cardId);
+                        }}
+                        style={styles.quietAction}
+                        testID={`space-sleep-${cardDisplayIndex}`}
+                      >
+                        <Text
+                          style={[
+                            styles.quietActionText,
+                            {
+                              color: isSleeping
+                                ? palette.warning
+                                : palette.text,
+                            },
+                          ]}
+                          testID={`space-sleep-${
+                            isSleeping ? 'active' : 'inactive'
+                          }-${cardDisplayIndex}`}
+                        >
+                          {isSleeping ? '移出休眠' : '放入休眠'}
+                        </Text>
+                      </Pressable>
+                    </>
+                  ) : null}
                 </View>
               </View>
-
               <View
-                style={[styles.cardStrip, styles.browseCardStrip]}
-                testID="space-contained-card-strip"
+                style={styles.inspectionPager}
+                testID="space-browse-card-pager"
               >
-                {selectedBoxCards
-                  .slice(safeSelectedCardIndex, safeSelectedCardIndex + 1)
-                  .map((card, visibleIndex) => {
-                    const cardIndex = safeSelectedCardIndex + visibleIndex;
-                    const cardDisplayIndex = cardIndex + 1;
-                    const isCurrent =
-                      currentLearningCard?.card_id === card.cardId;
-                    const isFavorited =
-                      cardStateById[card.cardId]?.isFavorited ?? false;
-                    const isSleeping =
-                      cardStateById[card.cardId]?.isSleeping ?? false;
-                    const canShowPreviousCard = safeSelectedCardIndex > 0;
-                    const canShowNextCard =
-                      safeSelectedCardIndex < selectedBoxCards.length - 1;
-
-                    return (
-                      <View
-                        key={card.cardId}
-                        style={[
-                          styles.cardTile,
-                          styles.inspectCardTile,
-                          styles.browseCardTile,
-                          {
-                            backgroundColor: solidPanelStrong,
-                            borderColor: neutralObjectBorder,
-                          },
-                        ]}
-                        testID="space-browse-card-object"
-                      >
-                        <View
-                          style={[
-                            styles.inspectCardEdge,
-                            { backgroundColor: selectedTone.accent },
-                          ]}
-                        />
-                        <View style={styles.inspectCardHeader}>
-                          <View style={styles.statusCopy}>
-                            <Text
-                              style={[
-                                styles.eyebrow,
-                                { color: palette.textMuted },
-                              ]}
-                            >
-                              卡片
-                            </Text>
-                            <Text
-                              style={[
-                                styles.cardMeta,
-                                { color: palette.textMuted },
-                              ]}
-                            >
-                              {selectedBoxCards.length > 0
-                                ? `${cardDisplayIndex}/${selectedBoxCards.length}`
-                                : '0/0'}
-                            </Text>
-                          </View>
-                          {isCurrent ? (
-                            <Text
-                              style={[
-                                styles.currentTag,
-                                { color: currentTone.accent },
-                              ]}
-                            >
-                              当前
-                            </Text>
-                          ) : null}
-                        </View>
-                        <View
-                          style={[
-                            styles.browseCardFace,
-                            {
-                              backgroundColor: neutralObjectSurface,
-                              borderColor: neutralObjectBorder,
-                            },
-                          ]}
-                          testID="space-browse-card-face"
-                        >
-                          <Text
-                            numberOfLines={
-                              usesAccessibilityLayout ? undefined : 3
-                            }
-                            style={[
-                              styles.cardPrompt,
-                              styles.browseCardPrompt,
-                              { color: palette.text },
-                            ]}
-                          >
-                            {card.prompt}
-                          </Text>
-                          <View
-                            style={styles.browseCardLocatorShelf}
-                            testID="space-browse-card-locator"
-                          >
-                            <View style={styles.browseCardLocatorItem}>
-                              <Text
-                                style={[
-                                  styles.browseCardLocatorLabel,
-                                  { color: palette.textMuted },
-                                ]}
-                              >
-                                位置
-                              </Text>
-                              <Text
-                                numberOfLines={1}
-                                style={[
-                                  styles.browseCardLocatorValue,
-                                  { color: palette.text },
-                                ]}
-                              >
-                                {isCurrent
-                                  ? '当前学习'
-                                  : selectedBoxIsCurrent
-                                  ? '卡盒中'
-                                  : '所选卡盒'}
-                              </Text>
-                            </View>
-                            <View style={styles.browseCardLocatorItem}>
-                              <Text
-                                style={[
-                                  styles.browseCardLocatorLabel,
-                                  { color: palette.textMuted },
-                                ]}
-                              >
-                                题型
-                              </Text>
-                              <Text
-                                numberOfLines={1}
-                                style={[
-                                  styles.browseCardLocatorValue,
-                                  { color: palette.text },
-                                ]}
-                              >
-                                {card.interactionLabel}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                        <View
-                          style={[
-                            styles.cardStateDeck,
-                            styles.browseCardStateDeck,
-                            {
-                              backgroundColor: neutralObjectSurface,
-                              borderColor: neutralObjectBorder,
-                            },
-                          ]}
-                          testID="space-browse-card-state-tray"
-                        >
-                          {isGated ? (
-                            <Text
-                              style={[
-                                styles.lockedActionText,
-                                { color: palette.textMuted },
-                              ]}
-                            >
-                              试用或会员后可调整收藏和休眠状态
-                            </Text>
-                          ) : (
-                            <>
-                              <Pressable
-                                accessibilityLabel={
-                                  isFavorited ? '取消收藏当前卡' : '收藏当前卡'
-                                }
-                                accessibilityRole="checkbox"
-                                accessibilityState={{checked: isFavorited}}
-                                onPress={() => {
-                                  setSelectionMode('manual');
-                                  onToggleFavoriteTag(card.cardId);
-                                }}
-                                style={[
-                                  styles.favoriteTagButton,
-                                  styles.browseCompactStateButton,
-                                  {
-                                    backgroundColor: isFavorited
-                                      ? hexToRgba(selectedTone.accent, 0.1)
-                                      : solidPanelStrong,
-                                    borderColor: isFavorited
-                                      ? hexToRgba(selectedTone.accent, 0.28)
-                                      : neutralObjectBorder,
-                                  },
-                                ]}
-                                testID={`space-favorite-${cardDisplayIndex}`}
-                              >
-                                <Text
-                                  numberOfLines={1}
-                                  style={[
-                                    styles.favoriteTagLabel,
-                                    {
-                                      color: isFavorited
-                                        ? selectedTone.accent
-                                        : palette.text,
-                                    },
-                                  ]}
-                                  testID={
-                                    isFavorited
-                                      ? `space-favorite-active-${cardDisplayIndex}`
-                                      : `space-favorite-inactive-${cardDisplayIndex}`
-                                  }
-                                >
-                                  {isFavorited ? '取消收藏' : '收藏'}
-                                </Text>
-                                <Text
-                                  numberOfLines={1}
-                                  style={[
-                                    styles.favoriteTagMeta,
-                                    { color: palette.textMuted },
-                                  ]}
-                                >
-                                  {isFavorited ? '已收藏' : '保存到收藏'}
-                                </Text>
-                              </Pressable>
-
-                              <Pressable
-                                accessibilityLabel={
-                                  isSleeping
-                                    ? '将当前卡移出休眠区'
-                                    : '将当前卡放入休眠区'
-                                }
-                                accessibilityRole="switch"
-                                accessibilityState={{checked: isSleeping}}
-                                onPress={() => {
-                                  setSelectionMode('manual');
-                                  onToggleSleepState(card.cardId);
-                                }}
-                                style={[
-                                  styles.sleepPocketButton,
-                                  styles.browseCompactStateButton,
-                                  {
-                                    backgroundColor: isSleeping
-                                      ? hexToRgba(palette.warning, 0.1)
-                                      : solidPanelStrong,
-                                    borderColor: isSleeping
-                                      ? hexToRgba(palette.warning, 0.28)
-                                      : neutralObjectBorder,
-                                  },
-                                ]}
-                                testID={`space-sleep-${cardDisplayIndex}`}
-                              >
-                                <View style={styles.sleepPocketHeader}>
-                                  <Text
-                                    numberOfLines={1}
-                                    style={[
-                                      styles.sleepPocketLabel,
-                                      { color: palette.text },
-                                    ]}
-                                  >
-                                    休眠
-                                  </Text>
-                                  <Text
-                                    numberOfLines={1}
-                                    style={[
-                                      styles.sleepPocketAction,
-                                      {
-                                        color: isSleeping
-                                          ? palette.warning
-                                          : palette.text,
-                                      },
-                                    ]}
-                                    testID={
-                                      isSleeping
-                                        ? `space-sleep-active-${cardDisplayIndex}`
-                                        : `space-sleep-inactive-${cardDisplayIndex}`
-                                    }
-                                  >
-                                    {isSleeping ? '移出休眠' : '放入休眠'}
-                                  </Text>
-                                </View>
-                                <Text
-                                  numberOfLines={1}
-                                  style={[
-                                    styles.sleepPocketMeta,
-                                    { color: palette.textMuted },
-                                  ]}
-                                >
-                                  {isSleeping ? '仍留在盒内' : '暂时不练'}
-                                </Text>
-                              </Pressable>
-                            </>
-                          )}
-                        </View>
-                        <View
-                          style={[
-                            styles.boxBrowsePager,
-                            styles.browseCompactPager,
-                            {
-                              backgroundColor: 'transparent',
-                              borderColor: 'transparent',
-                            },
-                          ]}
-                          testID="space-browse-card-pager"
-                        >
-                          <ActionChip
-                            disabled={!canShowPreviousCard}
-                            label="上一张"
-                            onPress={() => {
-                              if (!canShowPreviousCard) {
-                                return;
-                              }
-
-                              setSelectionMode('manual');
-                              setSelectedCardIndex(
-                                Math.max(safeSelectedCardIndex - 1, 0),
-                              );
-                            }}
-                            palette={palette}
-                            testID="space-card-prev"
-                          />
-                          <Text
-                            style={[
-                              styles.boxBrowsePagerMeta,
-                              { color: palette.textMuted },
-                            ]}
-                          >
-                            {selectedBoxCards.length > 0
-                              ? `${safeSelectedCardIndex + 1}/${
-                                  selectedBoxCards.length
-                                }`
-                              : '0/0'}
-                          </Text>
-                          <ActionChip
-                            disabled={!canShowNextCard}
-                            label="下一张"
-                            onPress={() => {
-                              if (!canShowNextCard) {
-                                return;
-                              }
-
-                              setSelectionMode('manual');
-                              setSelectedCardIndex(
-                                Math.min(
-                                  safeSelectedCardIndex + 1,
-                                  Math.max(selectedBoxCards.length - 1, 0),
-                                ),
-                              );
-                            }}
-                            palette={palette}
-                            testID="space-card-next"
-                          />
-                        </View>
-                        <View
-                          style={[
-                            styles.browseContinuityBar,
-                            styles.browseCompactContinuityBar,
-                          ]}
-                          testID="space-browse-card-continuity"
-                        >
-                          <Pressable
-                            accessibilityLabel="回到当前学习卡"
-                            accessibilityRole="button"
-                            onPress={onReturnToLearning}
-                            style={[
-                              styles.browseContinuityPrimary,
-                              {
-                                backgroundColor: primaryActionSurface,
-                                borderColor: primaryActionSurface,
-                                borderLeftColor: selectedTone.accent,
-                                borderLeftWidth: 4,
-                              },
-                            ]}
-                            testID="space-return-learning"
-                          >
-                            <Text
-                              style={[
-                                styles.browseContinuityTitle,
-                                { color: primaryActionText },
-                              ]}
-                            >
-                              回学习
-                            </Text>
-                            <Text
-                              numberOfLines={1}
-                              style={[
-                                styles.browseContinuityMeta,
-                                { color: primaryActionMuted },
-                              ]}
-                            >
-                              {selectedBoxIsCurrent ? '同一地址' : '回到当前地址'}
-                            </Text>
-                          </Pressable>
-                          <Pressable
-                            accessibilityLabel={
-                              selectedBoxIsCurrent
-                                ? '回到当前卡盒概览'
-                                : '回到所选卡盒概览'
-                            }
-                            accessibilityRole="button"
-                            onPress={onBackToOverview ?? noop}
-                            style={[
-                              styles.browseContinuitySecondary,
-                              {
-                                backgroundColor: neutralObjectSurface,
-                                borderColor: 'transparent',
-                              },
-                            ]}
-                            testID="space-card-list-back"
-                          >
-                            <Text
-                              style={[
-                                styles.browseContinuityTitle,
-                                { color: palette.text },
-                              ]}
-                            >
-                              回卡盒
-                            </Text>
-                            <Text
-                              numberOfLines={1}
-                              style={[
-                                styles.browseContinuityMeta,
-                                { color: palette.textMuted },
-                              ]}
-                            >
-                              盒内概览
-                            </Text>
-                          </Pressable>
-                        </View>
-                      </View>
+                <ActionChip
+                  disabled={safeSelectedCardIndex === 0}
+                  label="上一张"
+                  onPress={() => {
+                    setSelectionMode('manual');
+                    setSelectedCardIndex(
+                      Math.max(safeSelectedCardIndex - 1, 0),
                     );
-                  })}
+                  }}
+                  palette={palette}
+                  testID="space-card-prev"
+                />
+                <Text
+                  style={[styles.spaceMeta, { color: palette.textMuted }]}
+                >{`${selectedBoxCards.length ? cardDisplayIndex : 0} / ${
+                  selectedBoxCards.length
+                }`}</Text>
+                <ActionChip
+                  disabled={
+                    safeSelectedCardIndex >= selectedBoxCards.length - 1
+                  }
+                  label="下一张"
+                  onPress={() => {
+                    setSelectionMode('manual');
+                    setSelectedCardIndex(
+                      Math.min(
+                        safeSelectedCardIndex + 1,
+                        Math.max(selectedBoxCards.length - 1, 0),
+                      ),
+                    );
+                  }}
+                  palette={palette}
+                  testID="space-card-next"
+                />
               </View>
             </View>
           </>
-        ) : null}
+        )}
+        <View style={styles.spaceFooter} testID="space-browse-card-continuity">
+          {screen === 'card_list' ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onBackToOverview ?? noop}
+              style={styles.quietAction}
+              testID="space-card-list-back"
+            >
+              <Text
+                style={[styles.quietActionText, { color: palette.textMuted }]}
+              >
+                ← 回卡盒
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="回到当前学习卡"
+            onPress={onReturnToLearning}
+            style={[
+              styles.returnAction,
+              { backgroundColor: primaryActionSurface },
+            ]}
+            testID="space-return-learning"
+          >
+            <Text
+              style={[styles.returnActionText, { color: primaryActionText }]}
+            >
+              回到刚才的学习卡 →
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </SpaceViewport>
   );
@@ -2014,95 +1251,6 @@ function SpaceViewport({
       testID="space-fixed-viewport"
     >
       {children}
-    </View>
-  );
-}
-
-function HierarchyBrowseRow({
-  index,
-  label,
-  onNext,
-  onPrevious,
-  palette,
-  testIDPrefix,
-  total,
-  value,
-}: {
-  index: number;
-  label: string;
-  onNext: () => void;
-  onPrevious: () => void;
-  palette: SpacePalette;
-  testIDPrefix: string;
-  total: number;
-  value: string;
-}) {
-  const canGoPrevious = index > 0;
-  const canGoNext = index < total - 1;
-
-  return (
-    <View style={styles.hierarchyBrowseRow} testID={`${testIDPrefix}-row`}>
-      <Text style={[styles.hierarchyBrowseLabel, { color: palette.textMuted }]}>
-        {label}
-      </Text>
-      <Pressable
-        accessibilityLabel={`上一个${label}`}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canGoPrevious }}
-        disabled={!canGoPrevious}
-        onPress={onPrevious}
-        style={[
-          styles.hierarchyBrowseStep,
-          canGoPrevious ? null : styles.hierarchyBrowseStepDisabled,
-          {
-            backgroundColor: palette.panel,
-            borderColor: palette.border,
-          },
-        ]}
-        testID={`${testIDPrefix}-prev`}
-      >
-        <Text style={[styles.hierarchyBrowseStepLabel, { color: palette.text }]}>
-          ‹
-        </Text>
-      </Pressable>
-      <View
-        accessibilityLabel={`${label}，${value}，${index + 1} / ${total}`}
-        accessibilityRole="text"
-        style={styles.hierarchyBrowseSelection}
-        testID={`${testIDPrefix}-selection`}
-      >
-        <Text
-          numberOfLines={1}
-          style={[styles.hierarchyBrowseValue, { color: palette.text }]}
-        >
-          {value}
-        </Text>
-        <Text
-          style={[styles.hierarchyBrowseCount, { color: palette.textMuted }]}
-        >
-          {`${index + 1}/${total}`}
-        </Text>
-      </View>
-      <Pressable
-        accessibilityLabel={`下一个${label}`}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: !canGoNext }}
-        disabled={!canGoNext}
-        onPress={onNext}
-        style={[
-          styles.hierarchyBrowseStep,
-          canGoNext ? null : styles.hierarchyBrowseStepDisabled,
-          {
-            backgroundColor: palette.panel,
-            borderColor: palette.border,
-          },
-        ]}
-        testID={`${testIDPrefix}-next`}
-      >
-        <Text style={[styles.hierarchyBrowseStepLabel, { color: palette.text }]}>
-          ›
-        </Text>
-      </Pressable>
     </View>
   );
 }
@@ -2455,6 +1603,122 @@ function buildOverviewDeckCards(
 }
 
 const styles = StyleSheet.create({
+  spaceComposition: { gap: 18 },
+  spaceLocation: { fontSize: 12, lineHeight: 20 },
+  spaceSectionTitle: { fontSize: 18, lineHeight: 27, fontWeight: '600' },
+  spaceMeta: { fontSize: 12, lineHeight: 20 },
+  openTray: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 14 },
+  trayHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  trayTitleCopy: { flex: 1, gap: 4 },
+  quietAction: {
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  quietActionText: { fontSize: 13, lineHeight: 21, fontWeight: '500' },
+  previewRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  previewPaper: {
+    flexGrow: 1,
+    flexBasis: 220,
+    borderWidth: 1,
+    borderTopWidth: 3,
+    borderRadius: 7,
+    padding: 16,
+    gap: 12,
+    minHeight: 120,
+  },
+  previewPrompt: { fontSize: 16, lineHeight: 26 },
+  sleepZone: {
+    borderTopWidth: 1,
+    paddingTop: 8,
+    minHeight: 44,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inspectionAddress: { gap: 4 },
+  inspectionPaper: {
+    borderWidth: 1,
+    borderTopWidth: 3,
+    borderRadius: 12,
+    padding: 20,
+    gap: 24,
+  },
+  inspectionMaterial: { gap: 12 },
+  inspectionPrompt: { fontSize: 21, lineHeight: 33, fontWeight: '400' },
+  stateActionRow: {
+    borderTopWidth: 1,
+    paddingTop: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 20,
+  },
+  inspectionPager: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  spaceFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 8,
+  },
+  returnAction: {
+    minHeight: 48,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  returnActionText: { fontSize: 14, lineHeight: 22, fontWeight: '500' },
+
+  cardPreviewDetail: { fontSize: 15, lineHeight: 25, marginTop: 12 },
+  shelfNavigator: { gap: 4, flexShrink: 0 },
+  shelfLibraryRow: { gap: 6, alignItems: 'center', paddingBottom: 8 },
+  shelfLibraryTab: {
+    minHeight: 44,
+    borderRadius: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 10,
+  },
+  shelfLibraryDot: { width: 6, height: 6, borderRadius: 3 },
+  shelfLibraryLabel: { fontSize: 13, fontWeight: '500' },
+  shelfGroupTabs: { gap: 18 },
+  shelfGroupTab: {
+    minHeight: 44,
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+  },
+  shelfGroupLabel: { fontSize: 13, fontWeight: '400' },
+  shelfBoard: { borderBottomWidth: 3, paddingBottom: 8, paddingTop: 8 },
+  siblingBoxRow: { gap: 12, alignItems: 'flex-end' },
+  siblingBox: {
+    width: 140,
+    minHeight: 88,
+    borderWidth: 1,
+    borderTopWidth: 4,
+    borderRadius: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  siblingBoxName: { fontSize: 14, fontWeight: '500', lineHeight: 21 },
+  siblingBoxCount: { fontSize: 12, lineHeight: 18 },
+  followCurrentLink: {
+    minHeight: 44,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+  },
+  followCurrentLinkText: { fontSize: 12, lineHeight: 20 },
+
   content: {
     gap: 14,
     paddingHorizontal: 18,
@@ -2507,21 +1771,6 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
   },
-  addressListBar: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  spaceObjectAddress: {
-    gap: 8,
-  },
-  spaceObjectAddressHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
   addressPath: {
     alignItems: 'center',
     borderWidth: 0,
@@ -2531,11 +1780,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 14,
     paddingVertical: 8,
-  },
-  addressPathCompact: {
-    minWidth: 132,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
   },
   addressPathLabel: {
     fontSize: 11,
@@ -2574,11 +1818,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
   addressContextRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2603,47 +1842,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 16,
   },
-  summaryPill: {
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 2,
-    minWidth: 74,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  summaryValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  summaryLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  sectionGrid: {
-    gap: 8,
-  },
-  sectionGridTablet: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  surfaceCardHalf: {
-    width: '48%',
-  },
   statusCopy: {
     flex: 1,
     gap: 4,
-  },
-  statusTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  statusMeta: {
-    fontSize: 12,
-    lineHeight: 18,
   },
   cardTitle: {
     fontSize: 18,
@@ -2654,705 +1855,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 21,
   },
-  overviewWorkbench: {
-    flex: 1,
-    borderRadius: 28,
-    borderWidth: 0,
-    gap: 8,
-    minHeight: 0,
-    overflow: 'hidden',
-    paddingHorizontal: 13,
-    paddingVertical: 13,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
-    elevation: 3,
-  },
-  overviewWorkbenchAccessible: {
-    flex: 0,
-    minHeight: 0,
-    overflow: 'visible',
-  },
-  overviewWorkbenchShortViewport: {
-    flex: 0,
-    minHeight: 0,
-    overflow: 'visible',
-  },
-  overviewWorkbenchAddress: {
-    gap: 10,
-  },
-  overviewObjectStack: {
-    gap: 8,
-  },
-  overviewObjectPlane: {
-    borderRadius: 25,
-    borderWidth: 1,
-    gap: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-  },
-  spaceAddressRail: {
-    alignItems: 'center',
-    borderRadius: 21,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  spaceAddressNode: {
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
-  spaceAddressDot: {
-    borderRadius: 999,
-    height: 4,
-    opacity: 0.46,
-    width: 4,
-  },
-  spaceAddressLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-    lineHeight: 13,
-  },
-  spaceAddressValue: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-  },
-  hierarchyBrowseRail: {
-    borderRadius: 18,
-    borderWidth: 0,
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-  },
-  hierarchyBrowseHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
-    minHeight: 44,
-  },
-  hierarchyBrowseTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-    lineHeight: 15,
-  },
-  hierarchyBrowseCurrent: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 14,
-  },
-  followCurrentButton: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    maxWidth: '62%',
-    minHeight: 44,
-    minWidth: 44,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
-  },
-  followCurrentButtonLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 14,
-  },
-  hierarchyBrowseRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 5,
-    minHeight: 44,
-  },
-  hierarchyBrowseLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 14,
-    width: 28,
-  },
-  hierarchyBrowseStep: {
-    alignItems: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-  },
-  hierarchyBrowseStepLabel: {
-    fontSize: 20,
-    fontWeight: '700',
-    lineHeight: 22,
-  },
-  hierarchyBrowseStepDisabled: {
-    opacity: 0.46,
-  },
-  hierarchyBrowseSelection: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'space-between',
-    minWidth: 0,
-  },
-  hierarchyBrowseValue: {
-    flex: 1,
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 15,
-  },
-  hierarchyBrowseCount: {
-    fontSize: 10,
-    fontVariant: ['tabular-nums'],
-    fontWeight: '700',
-    lineHeight: 14,
-  },
-  overviewHeroRow: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  overviewInspectButton: {
-    alignItems: 'center',
-    borderRadius: 20,
-    borderWidth: 0,
-    gap: 3,
-    minHeight: 44,
-    minWidth: 96,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  overviewInspectButtonTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  openBoxTrayCard: {
-    gap: 8,
-    paddingBottom: 12,
-  },
-  boxBrowseSurface: {
-    borderRadius: 28,
-    borderWidth: 1,
-    flex: 1,
-    flexDirection: 'column',
-    gap: 7,
-    minHeight: 0,
-    overflow: 'hidden',
-    paddingBottom: 10,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-  },
-  boxBrowseSurfaceShortViewport: {
-    flex: 0,
-    overflow: 'visible',
-  },
   boxTrayHeader: {
     alignItems: 'stretch',
     flexDirection: 'row',
     gap: 14,
-  },
-  browseHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  browseObjectPlane: {
-    borderRadius: 24,
-    borderWidth: 1,
-    gap: 8,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-  },
-  browseObjectPlaneDesk: {
-    gap: 7,
-    overflow: 'hidden',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  browseAddressTray: {
-    borderRadius: 20,
-    marginTop: 2,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  browseObjectMarker: {
-    borderRadius: 999,
-    height: 9,
-    opacity: 0.9,
-    width: 9,
-  },
-  browseStatusBadge: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  browseStatusBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-  },
-  browseObjectPath: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  browseAddressLine: {
-    alignItems: 'center',
-    minHeight: 24,
-    paddingHorizontal: 2,
-  },
-  browseAddressLineText: {
-    flexShrink: 1,
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-  },
-  browseAddressSeparator: {
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 16,
-    opacity: 0.55,
-  },
-  browseAddressClue: {
-    borderRadius: 17,
-    borderWidth: 0,
-    gap: 6,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-  },
-  browseAddressClueHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-  },
-  browseAddressClueTitle: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-    lineHeight: 13,
-  },
-  browseAddressClueMeta: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 13,
-  },
-  browsePathStep: {
-    borderRadius: 13,
-    flex: 1,
-    gap: 2,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-  },
-  browsePathLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.7,
-  },
-  browsePathValue: {
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 15,
-  },
-  browseRail: {
-    borderRadius: 18,
-    borderTopWidth: 0,
-    borderWidth: 1,
-    gap: 6,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
-  },
-  browseRailDesk: {
-    gap: 6,
-  },
-  browseRailTitleRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 2,
-  },
-  browseRailTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    lineHeight: 14,
-  },
-  browseRailHint: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 13,
-  },
-  browseRailShelfRow: {
-    gap: 3,
-  },
-  browseRailLevel: {
-    alignItems: 'stretch',
-    flexDirection: 'column',
-    gap: 4,
-  },
-  browseRailShelfLevel: {
-    alignItems: 'stretch',
-  },
-  browseRailPairRow: {
-    flexDirection: 'row',
-    gap: 7,
-  },
-  browseRailLevelHalf: {
-    flex: 1,
-  },
-  browseRailLevelLabel: {
-    fontSize: 8,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-  },
-  browseRailRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-  },
-  browseRailChip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    minWidth: 56,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  browseRailChipSmall: {
-    minWidth: 54,
-  },
-  browseRailShelfChip: {
-    minWidth: 56,
-    paddingHorizontal: 7,
-  },
-  browseRailChipActive: {
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 9,
-    elevation: 1,
-  },
-  browseRailValue: {
-    fontSize: 9,
-    fontWeight: '800',
-    lineHeight: 12,
-    textAlign: 'center',
   },
   boxTrayCopy: {
     flex: 1,
     gap: 6,
   },
   boxTrayTitle: {
-    fontSize: 25,
-    fontWeight: '800',
-    lineHeight: 32,
-  },
-  browseTrayTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    lineHeight: 18,
+    fontSize: 21,
+    fontWeight: '600',
+    lineHeight: 29,
   },
   boxAccentRail: {
     borderRadius: 999,
     opacity: 0.36,
     width: 3,
   },
-  openBoxDeck: {
-    borderRadius: 25,
-    borderWidth: 0,
-    flex: 1,
-    minHeight: 292,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  openBoxDeckUnified: {
-    marginTop: 0,
-  },
-  openBoxDeckAccessible: {
-    flex: 0,
-    minHeight: 0,
-    overflow: 'visible',
-  },
-  openBoxDeckShortViewport: {
-    flex: 0,
-  },
-  openBoxLid: {
-    alignItems: 'center',
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 21,
-    borderTopRightRadius: 21,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 12,
-    marginTop: 11,
-    paddingHorizontal: 3,
-    paddingVertical: 4,
-  },
-  openBoxLidTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  openBoxLidCount: {
-    fontSize: 14,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-  },
-  openBoxDeskBody: {
-    flex: 1,
-    flexDirection: 'column',
-    gap: 8,
-    minHeight: 0,
-    paddingHorizontal: 11,
-    paddingBottom: 11,
-    paddingTop: 4,
-  },
-  openBoxDeskBodyAccessible: {
-    flex: 0,
-  },
-  openBoxTray: {
-    flex: 1,
-    gap: 10,
-    justifyContent: 'space-between',
-    minWidth: 0,
-  },
-  openBoxTrayAccessible: {
-    flex: 0,
-  },
-  deckCardRow: {
-    height: 208,
-    minHeight: 208,
-    position: 'relative',
-  },
-  deckCardRowAccessible: {
-    gap: 10,
-    height: 'auto',
-    minHeight: 0,
-  },
-  deckCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 5,
-    height: 78,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    position: 'absolute',
-    top: 54,
-    width: 118,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 3,
-  },
-  deckCardOverview: {
-    borderRadius: 23,
-    borderWidth: 0,
-    gap: 7,
-    justifyContent: 'flex-start',
-    minWidth: 0,
-    position: 'absolute',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  deckCardOverviewActive: {
-    shadowOpacity: 0,
-  },
-  deckCardOverviewAccessible: {
-    height: 'auto',
-    left: undefined,
-    minHeight: 244,
-    position: 'relative',
-    right: undefined,
-    top: undefined,
-    width: '100%',
-    zIndex: 0,
-  },
-  deckCardOverviewPrimary: {
-    height: 190,
-    left: 0,
-    top: 8,
-    width: '53%',
-    zIndex: 3,
-  },
-  deckCardOverviewSecondary: {
-    height: 176,
-    right: 0,
-    top: 22,
-    width: '44%',
-    zIndex: 2,
-  },
-  deckCardOverviewTertiary: {
-    height: 150,
-    right: 8,
-    top: 0,
-    width: '40%',
-    zIndex: 1,
-  },
-  openBoxActionDock: {
-    bottom: 10,
-    flexDirection: 'row',
-    gap: 8,
-    left: 12,
-    position: 'absolute',
-    right: 12,
-  },
-  deckCardLeft: {
-    left: 12,
-    transform: [{ rotate: '-2deg' }],
-  },
-  deckCardSolo: {
-    left: '30%',
-    top: 54,
-    transform: [{ rotate: '0deg' }],
-    width: 136,
-  },
-  deckCardPairLeft: {
-    left: 24,
-    top: 54,
-    transform: [{ rotate: '-1deg' }],
-    width: 126,
-  },
-  deckCardPairRight: {
-    right: 24,
-    top: 54,
-    transform: [{ rotate: '1deg' }],
-    width: 126,
-  },
-  deckCardCenter: {
-    left: '31%',
-    top: 54,
-    transform: [{ rotate: '0deg' }],
-    zIndex: 2,
-  },
-  deckCardRight: {
-    right: 12,
-    transform: [{ rotate: '2deg' }],
-  },
-  deckCardTag: {
-    fontSize: 11,
-    fontWeight: '900',
-    lineHeight: 14,
-  },
-  deckCardHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'space-between',
-    minHeight: 15,
-  },
-  deckCardIndex: {
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 13,
-  },
-  deckCardPrompt: {
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 15,
-  },
-  deckCardMeta: {
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 14,
-    marginTop: 'auto',
-  },
-  deckCardStateRail: {
-    borderRadius: 16,
-    gap: 5,
-    marginTop: 'auto',
-    paddingHorizontal: 9,
-    paddingVertical: 8,
-  },
-  deckCardStateLine: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'space-between',
-    minHeight: 13,
-  },
-  deckCardStateLabel: {
-    flexShrink: 0,
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-    lineHeight: 12,
-  },
-  deckCardStateValue: {
-    flexShrink: 1,
-    fontSize: 10,
-    fontWeight: '800',
-    lineHeight: 13,
-    textAlign: 'right',
-  },
   boxTraySkeleton: {
     gap: 8,
     paddingRight: 22,
-  },
-  ruleRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 10,
-  },
-  ruleDot: {
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 8,
-    marginTop: 7,
-    width: 8,
   },
   ruleText: {
     flex: 1,
     fontSize: 14,
     lineHeight: 21,
-  },
-  selectorTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  selectorWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  selectorChip: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 4,
-    minWidth: 124,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  selectorChipCompact: {
-    minWidth: 82,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  selectorHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  selectorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-  },
-  selectorLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  selectorMeta: {
-    fontSize: 12,
-    fontWeight: '500',
   },
   boxShelf: {
     flexDirection: 'row',
@@ -3366,11 +1895,6 @@ const styles = StyleSheet.create({
     minWidth: 132,
     paddingHorizontal: 14,
     paddingVertical: 14,
-  },
-  boxShelfTileCompact: {
-    minWidth: 90,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
   },
   boxName: {
     fontSize: 15,
@@ -3426,9 +1950,6 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     paddingTop: 1,
   },
-  compactSelectorDeck: {
-    gap: 8,
-  },
   cardTile: {
     borderRadius: 24,
     borderWidth: 1,
@@ -3442,203 +1963,6 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 3,
   },
-  inspectCardTile: {
-    gap: 10,
-    minHeight: 0,
-    overflow: 'hidden',
-    paddingLeft: 28,
-    paddingTop: 15,
-    paddingVertical: 13,
-  },
-  browseCardTile: {
-    borderRadius: 24,
-    borderWidth: 1,
-    elevation: 1,
-    flexGrow: 0,
-    gap: 8,
-    minHeight: 0,
-    paddingBottom: 10,
-    paddingHorizontal: 14,
-    paddingLeft: 26,
-    paddingRight: 14,
-    paddingTop: 13,
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-  },
-  inspectCardEdge: {
-    borderRadius: 999,
-    height: 9,
-    opacity: 0.86,
-    position: 'absolute',
-    left: 14,
-    top: 18,
-    width: 9,
-  },
-  inspectCardHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  browseCardFace: {
-    borderRadius: 19,
-    borderWidth: 1,
-    gap: 8,
-    justifyContent: 'space-between',
-    minHeight: 166,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  browseCardPrompt: {
-    fontSize: 18,
-    lineHeight: 25,
-  },
-  browseCardLocatorShelf: {
-    borderRadius: 16,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 2,
-  },
-  browseCardLocatorItem: {
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
-  browseCardLocatorLabel: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-    lineHeight: 13,
-  },
-  browseCardLocatorValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 17,
-  },
-  cardStateDeck: {
-    borderTopWidth: 0,
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 0,
-    paddingTop: 9,
-  },
-  browseCardStateDeck: {
-    borderRadius: 17,
-    borderWidth: 1,
-    gap: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-  },
-  favoriteTagButton: {
-    borderRadius: 14,
-    borderWidth: 1,
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-  },
-  browseCompactStateButton: {
-    borderRadius: 14,
-    minHeight: 44,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  favoriteTagLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 17,
-  },
-  favoriteTagMeta: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 13,
-  },
-  sleepPocketButton: {
-    borderRadius: 14,
-    borderWidth: 1,
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 9,
-  },
-  sleepPocketHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'space-between',
-  },
-  sleepPocketLabel: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 17,
-  },
-  sleepPocketAction: {
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 15,
-  },
-  sleepPocketMeta: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 13,
-  },
-  boxBrowsePager: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  browseCompactPager: {
-    gap: 7,
-    paddingHorizontal: 0,
-    paddingVertical: 1,
-  },
-  boxBrowsePagerMeta: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-  },
-  browseContinuityBar: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  browseCompactContinuityBar: {
-    gap: 8,
-    marginTop: 2,
-  },
-  browseContinuityPrimary: {
-    borderRadius: 20,
-    borderWidth: 1,
-    flex: 1.25,
-    gap: 3,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  browseContinuitySecondary: {
-    borderRadius: 20,
-    borderWidth: 1,
-    flex: 0.75,
-    gap: 3,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-  },
-  browseContinuityTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  browseContinuityMeta: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-  },
   loadingCardSkeleton: {
     borderStyle: 'dashed',
   },
@@ -3650,182 +1974,6 @@ const styles = StyleSheet.create({
   cardMeta: {
     fontSize: 12,
     lineHeight: 17,
-  },
-  lockedActionText: {
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  overviewBottomRow: {
-    flexDirection: 'row',
-    gap: 9,
-  },
-  sleepAlcove: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-  },
-  sleepAlcoveDesk: {
-    alignItems: 'stretch',
-    borderStyle: 'solid',
-    borderWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  sleepAlcoveCompact: {
-    alignItems: 'stretch',
-    flex: 1,
-    flexDirection: 'column',
-    gap: 7,
-    justifyContent: 'center',
-    paddingHorizontal: 11,
-    paddingVertical: 10,
-  },
-  sleepAlcoveCopy: {
-    flex: 1,
-    gap: 6,
-  },
-  sleepAlcoveCopyCompact: {
-    flex: 0,
-  },
-  sleepAlcoveHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'space-between',
-  },
-  sleepAlcoveTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  sleepAlcoveActionText: {
-    borderRadius: 999,
-    overflow: 'hidden',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 14,
-  },
-  sleepAlcoveMeta: {
-    fontSize: 11,
-    lineHeight: 14,
-  },
-  sleepingCard: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  sleepEmptySlot: {
-    borderRadius: 18,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
-  },
-  returnContinuity: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  returnContinuityStrip: {
-    borderRadius: 23,
-    borderWidth: 0,
-    gap: 12,
-    justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingVertical: 11,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 2,
-  },
-  returnContinuityAccessible: {
-    alignItems: 'stretch',
-    flexDirection: 'column',
-  },
-  returnContinuityCopy: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-  },
-  returnContinuityAccent: {
-    borderRadius: 999,
-    height: 34,
-    width: 4,
-  },
-  returnContinuityAccentAccessible: {
-    height: 4,
-    width: '100%',
-  },
-  returnContinuityCompact: {
-    alignItems: 'flex-start',
-    flex: 1,
-    flexDirection: 'column',
-    gap: 3,
-    justifyContent: 'center',
-    minWidth: 104,
-    paddingVertical: 10,
-  },
-  returnContinuityTitle: {
-    flexShrink: 0,
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  returnContinuityMeta: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    opacity: 0.88,
-  },
-  returnContinuityAction: {
-    borderRadius: 999,
-    overflow: 'hidden',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  returnContinuityActionPill: {
-    borderRadius: 19,
-    gap: 1,
-    minWidth: 92,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-  },
-  returnContinuityActionPillAccessible: {
-    minWidth: 0,
-    width: '100%',
-  },
-  returnContinuityActionText: {
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 17,
-    textAlign: 'center',
-  },
-  returnContinuityActionMeta: {
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 13,
-    opacity: 0.9,
-    textAlign: 'center',
   },
   headerActionStack: {
     alignItems: 'flex-end',

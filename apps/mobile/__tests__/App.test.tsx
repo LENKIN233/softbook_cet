@@ -2097,7 +2097,7 @@ test('submits the server review phase with the exact active selection', async ()
 
   expect(
     root.findByProps({ testID: 'learning-progress-label' }).props.children,
-  ).toContain('本轮回看');
+  ).toContain('回看');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
@@ -3141,10 +3141,10 @@ test('space map uses the active learning session catalog', async () => {
   expect(renderedText).toContain('远端专属盒');
 
   await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'space-library-next'}).props.onPress();
+    root.findByProps({testID: 'space-library-choice-2'}).props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'space-library-next'}).props.onPress();
+    root.findByProps({testID: 'space-library-choice-3'}).props.onPress();
   });
   expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain('仔细阅读');
 });
@@ -5056,8 +5056,8 @@ test('can unlock gated space after remote purchase', async () => {
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('转折关系');
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('查看卡盒中的卡片');
-  expect(output).toContain('回学习');
+  expect(output).toContain('查看卡片');
+  expect(output).toContain('回到刚才的学习卡');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
@@ -5396,8 +5396,8 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('转折关系');
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('查看卡盒中的卡片');
-  expect(output).toContain('回学习');
+  expect(output).toContain('查看卡片');
+  expect(output).toContain('回到刚才的学习卡');
   expect(
     fetchCalls.filter(
       call =>
@@ -5513,7 +5513,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
     root.findAllByProps({ testID: 'learning-card-location-strip' }),
   ).toHaveLength(0);
   expect(output).not.toContain('这张在：馆 1 / 组 1 / 盒 1');
-  expect(output).toContain('翻面');
+  expect(root.findByProps({testID: 'learning-flip-button'})).toBeTruthy();
   expect(output).not.toContain('当前卡 · ');
   expect(output).not.toContain('这张练习 · ');
   expect(output).not.toContain('当前卡 · 002001');
@@ -5577,13 +5577,13 @@ test('keeps phone primary surfaces bounded while Space remains scroll-reachable'
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
 
   await loginIntoLearningFlow(root);
-  expect(root.findAllByType(ScrollView)).toHaveLength(1);
+  expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal)).toHaveLength(1);
 
   await openRoute(root, 'space');
-  expect(root.findAllByType(ScrollView)).toHaveLength(1);
+  expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal)).toHaveLength(1);
 
   await openRoute(root, 'statistics');
-  expect(root.findAllByType(ScrollView)).toHaveLength(1);
+  expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal)).toHaveLength(1);
 
   await openRoute(root, 'mine');
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
@@ -5612,7 +5612,7 @@ test('can boot the app into cet6 through runtime config', async () => {
     'cet6',
   );
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮学习');
+  expect(root.findByProps({testID: 'learning-current-card'})).toBeTruthy();
   expect(output).not.toContain('CET6');
   expectNoUserVisibleMetadataLeakage(tree!);
 });
@@ -5732,8 +5732,8 @@ test('can complete the local single-card deck and restart it', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('先抓态度转向，再判断答案');
-  expect(output).toContain('转折词时先记');
+  expect(output).toContain('优先盯转折后的半句');
+  expect(output).toContain('题目里的 however');
   expect(output).toContain('继续下一张');
   expectNoUserVisibleMetadataLeakage(tree!);
 
@@ -5804,10 +5804,8 @@ test('can complete the local single-card deck and restart it', async () => {
       .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
-  });
+  expect(root.findAllByProps({testID: 'learning-submit-button'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'learning-next-button'})).toBeTruthy();
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -5905,10 +5903,8 @@ test('can start a review round from cards that need revisiting', async () => {
       .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
-  });
+  expect(root.findAllByProps({testID: 'learning-submit-button'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'learning-next-button'})).toBeTruthy();
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -5959,7 +5955,7 @@ test('can start a review round from cards that need revisiting', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮回看');
+  expect(output).toContain('回看');
   expect(output).toContain('转折关系');
   expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');
@@ -7368,10 +7364,10 @@ test('can browse the current Space box after login', async () => {
     root.findAllByProps({ testID: 'space-shelf-desk' }).length,
   ).toBeGreaterThan(0);
   expect(
-    root.findAllByProps({ testID: 'space-address-shelf' }).length,
+    root.findAllByProps({ testID: 'space-browse-address-clue' }).length,
   ).toBeGreaterThan(0);
   expect(
-    root.findAllByProps({ testID: 'space-current-box-tray' }).length,
+    root.findAllByProps({ testID: 'space-browse-card-object' }).length,
   ).toBeGreaterThan(0);
   expect(
     root.findAllByProps({ testID: 'space-contained-card-strip' }).length,
@@ -7379,10 +7375,7 @@ test('can browse the current Space box after login', async () => {
   expect(
     root.findAllByProps({ testID: 'space-return-learning' }).length,
   ).toBeGreaterThan(0);
-  expect(output).toContain('查看当前卡盒');
   expect(output).toContain('转折关系');
-  expect(output).toContain('当前位置');
-  expect(output).toContain('本盒共 2 张');
   expect(root.findAllByProps({ testID: 'space-browse-rail' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-library-3' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'space-group-2' })).toHaveLength(0);
@@ -7414,11 +7407,9 @@ test('can browse the current Space box after login', async () => {
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('短对话里听到 however');
-  expect(output).toContain('盒内浏览');
-  expect(output).toContain('保存到收藏');
   expect(output).toContain('休眠');
   expect(
-    root.findByProps({ testID: 'space-browse-card-locator' }),
+    root.findByProps({ testID: 'space-browse-card-face' }),
   ).toBeTruthy();
   expect(output).not.toContain('收藏标签');
   expect(output).not.toContain('卡片列表');
@@ -7492,6 +7483,25 @@ test('preserves favorite and sleep actions completed in one render turn', async 
   await openRoute(root, 'mine');
   expect(root.findAllByProps({ testID: 'mine-status-strip' })).toHaveLength(0);
   expect(root.findByProps({ testID: 'mine-account-ledger' })).toBeTruthy();
+});
+
+test.each([false, true])('preserves the current attempt when another card sleeps and wakes (resolved=%s)', async resolved => {
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  const root = tree!.root;
+  await loginIntoLearningFlow(root);
+  await startTrialFromProtectedEntry(root);
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-button'}).props.onPress();});
+  if (resolved) await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();});
+  await openRoute(root, 'space');
+  await openSpaceCardList(root);
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'space-card-next'}).props.onPress();});
+  await ReactTestRenderer.act(async () => {root.findByProps({testID: 'space-sleep-2'}).props.onPress();await flushAsyncEffects();});
+  await ReactTestRenderer.act(async () => {root.findByProps({testID: 'space-sleep-2'}).props.onPress();await flushAsyncEffects();});
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'space-return-learning'}).props.onPress();});
+  expect(root.findAllByProps({testID: 'learning-flip-button'})).toHaveLength(0);
+  expect(root.findByProps({testID: resolved ? 'learning-correct-answer' : 'learning-flip-confident-button'})).toBeTruthy();
+  expect(JSON.stringify(tree!.toJSON())).toContain('1/5');
 });
 
 test('keeps completed progress after changing sleep state', async () => {
@@ -7590,14 +7600,14 @@ test('starts the local trial automatically on the first authenticated entry', as
   expect(output).toContain('转折关系');
   expect(output).not.toContain('完整空间需要试用或会员');
   expect(output).toContain('当前卡盒');
-  expect(output).toContain('查看卡盒中的卡片');
-  expect(output).toContain('题型');
-  expect(output).toContain('回学习');
+  expect(output).toContain('查看卡片');
+  expect(output).toContain('翻面');
+  expect(output).toContain('回到刚才的学习卡');
   expect(
     root.findAllByProps({ testID: 'space-overview-card-object' }).length,
   ).toBeGreaterThan(0);
   expect(
-    root.findAllByProps({ testID: 'space-overview-card-state-rail' }).length,
+    root.findAllByProps({ testID: 'space-sleep-alcove' }).length,
   ).toBeGreaterThan(0);
 });
 
@@ -7648,10 +7658,8 @@ test('keeps the full five-card session after automatic trial entry', async () =>
       .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
-  });
+  expect(root.findAllByProps({testID: 'learning-submit-button'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'learning-next-button'})).toBeTruthy();
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -7714,10 +7722,8 @@ test('starts review after membership is already unlocked', async () => {
       .findByProps({ testID: 'learning-lock-3-2' })
       .props.onPress();
   });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-submit-button' }).props.onPress();
-  });
+  expect(root.findAllByProps({testID: 'learning-submit-button'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'learning-next-button'})).toBeTruthy();
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -7766,7 +7772,7 @@ test('starts review after membership is already unlocked', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮回看');
+  expect(output).toContain('回看');
   expect(output).toContain('转折关系');
   expect(output).not.toContain('回看卡已在眼前');
   expect(output).not.toContain('需要再看的卡已放到眼前');

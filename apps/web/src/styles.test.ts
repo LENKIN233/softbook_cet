@@ -1,21 +1,14 @@
 import {readFileSync} from 'node:fs';
 
 describe('Web narrow viewport containment', () => {
-  it('keeps focused controls above the fixed route rail at 320 x 568', () => {
+  it('uses the shared navigation clearance for scrolling and keyboard focus', () => {
     const css = readFileSync('src/styles.css', 'utf8');
-    const narrowViewportRules = css.slice(css.indexOf('@media (max-width: 760px)'));
-
-    expect(narrowViewportRules).toContain(
-      '--mobile-navigation-clearance: calc(116px + env(safe-area-inset-bottom))',
-    );
-    expect(narrowViewportRules).toContain(
-      'html, body { scroll-padding-bottom: var(--mobile-navigation-clearance); }',
-    );
-    expect(narrowViewportRules).toContain(
-      'scroll-margin-block: 1rem var(--mobile-navigation-clearance)',
-    );
-    expect(narrowViewportRules).toContain(
-      '.route-rail { position: fixed;',
-    );
+    const marker = /@media\s*\(max-width:\s*760px\)/.exec(css);
+    expect(marker).not.toBeNull();
+    const mobile = css.slice(marker!.index);
+    expect(mobile).toMatch(/--mobile-navigation-clearance:\s*calc\([^;{}]+env\(safe-area-inset-bottom\)\)/);
+    expect(mobile).toMatch(/scroll-padding-bottom:\s*var\(--mobile-navigation-clearance\)/);
+    expect(mobile).toMatch(/scroll-margin-block:[^;{}]*var\(--mobile-navigation-clearance\)/);
+    expect(mobile).toMatch(/\.route-rail\s*\{\s*position:\s*fixed/);
   });
 });

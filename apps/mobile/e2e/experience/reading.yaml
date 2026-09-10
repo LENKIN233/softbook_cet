@@ -13,10 +13,14 @@ name: read-material-and-correction
     id: learning-flip-confident-button
 - tapOn:
     id: learning-next-button
+- takeScreenshot: options
 - tapOn:
     id: learning-option-1
 - tapOn:
     id: learning-submit-button
+- assertVisible:
+    id: learning-correct-answer
+- takeScreenshot: answer-first-layer
 - tapOn:
     id: learning-open-result-detail-button
 - takeScreenshot: answer
@@ -28,13 +32,15 @@ name: read-material-and-correction
     id: learning-lock-2-3
 - tapOn:
     id: learning-lock-3-2
-- tapOn:
-    id: learning-submit-button
+- assertVisible:
+    id: learning-correct-answer
 - tapOn:
     id: learning-next-button
 - takeScreenshot: material
 - tapOn:
     id: learning-hint-button
+- assertVisible:
+    id: learning-support-layer
 - takeScreenshot: material-with-hint
 - runFlow:
     when:

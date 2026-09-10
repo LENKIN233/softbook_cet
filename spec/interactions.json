@@ -1,5 +1,5 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "audio_is_interaction_family": false,
   "interaction_contract_status": "core_content_contract",
   "source_anchors": {
@@ -45,7 +45,10 @@
       "scoring_mode": "light_self_assess",
       "supports_audio": "optional_resource",
       "supports_hint_layer": true,
-      "required_fields": ["front", "analysis"],
+      "required_fields": [
+        "front",
+        "analysis"
+      ],
       "notes": "适合知识点识别与短解释"
     },
     {
@@ -55,7 +58,11 @@
       "scoring_mode": "auto",
       "supports_audio": "optional_resource",
       "supports_hint_layer": true,
-      "required_fields": ["front", "options", "answer_key.correct_option"],
+      "required_fields": [
+        "front",
+        "options",
+        "answer_key.correct_option"
+      ],
       "notes": "适合明确辨析"
     },
     {
@@ -65,8 +72,12 @@
       "scoring_mode": "auto",
       "supports_audio": "optional_resource",
       "supports_hint_layer": true,
-      "required_fields": ["front", "lock_slots", "answer_key.lock_pattern"],
-      "notes": "适合调整多个位置，只有全部正确时才开锁"
+      "required_fields": [
+        "front",
+        "lock_slots",
+        "answer_key.lock_pattern"
+      ],
+      "notes": "适合调整多个位置，只有全部正确时才开锁；最后正确锁位直接呈现结果，不再要求重复确认，继续操作沿用原有单次完成记录边界。"
     },
     {
       "id": "elimination",
@@ -75,8 +86,12 @@
       "scoring_mode": "auto",
       "supports_audio": "optional_resource",
       "supports_hint_layer": true,
-      "required_fields": ["front", "elimination_items", "answer_key.correct_items"],
-      "notes": "适合提取句子主干或剥离干扰内容"
+      "required_fields": [
+        "front",
+        "elimination_items",
+        "answer_key.correct_items"
+      ],
+      "notes": "适合提取句子主干或剥离干扰内容；能与原句唯一对应时直接操作原句成分，保留可撤销的删除痕迹；不能唯一对应时保留原材料与候选集合。"
     },
     {
       "id": "swipe",
@@ -85,7 +100,11 @@
       "scoring_mode": "auto",
       "supports_audio": "optional_resource",
       "supports_hint_layer": true,
-      "required_fields": ["front", "swipe_states", "answer_key.correct_state"],
+      "required_fields": [
+        "front",
+        "swipe_states",
+        "answer_key.correct_state"
+      ],
       "notes": "适合低成本双态判断"
     },
     {
@@ -95,7 +114,10 @@
       "scoring_mode": "none",
       "supports_audio": false,
       "supports_hint_layer": false,
-      "required_fields": ["hint_layer.content", "hint_layer.reveal_gesture"],
+      "required_fields": [
+        "hint_layer.content",
+        "hint_layer.reveal_gesture"
+      ],
       "notes": "附着于其他核心交互，以下滑或扳动卡片露出物理空间的一片提示区域；不能单独作为卡型"
     }
   ],
