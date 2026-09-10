@@ -58,7 +58,7 @@ try {
     'material': elimination.front.support.replace(/^目标句[：:]\s*/, ''),
     'answer': `${correct.label} ${correct.text}`,
   };
-  report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx',
+  report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',
     'scripts/lib/experience_capture.mjs', 'scripts/experience_ocr.swift',
     'scripts/run_experience_acceptance.mjs'].map(path => [path, hash(readFileSync(join(root, path)))]));

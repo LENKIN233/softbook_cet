@@ -113,7 +113,7 @@ input + label { margin-top: .75rem; }
 .lock-answer { color: var(--hall-deep); font-weight: 760; }
 .elimination-list { display: flex; flex-wrap: wrap; gap: .7rem; }
 .elimination { border: 1px solid var(--line); background: var(--surface-soft); border-radius: 15px; padding: .9rem 1rem; cursor: pointer; }
-.elimination.selected { color: var(--muted); text-decoration: line-through 2px var(--amber); border-style: dashed; }
+.elimination.selected { color: var(--muted); border-style: dashed; }
 .swipe-stage { display: grid; gap: 1.25rem; overflow: hidden; padding: .7rem .2rem .2rem; }
 .swipe-deck { width: min(100%, 460px); min-height: 230px; margin: 0 auto; position: relative; }
 .swipe-ghost { position: absolute; inset: 0 18px; border: 1px solid rgba(96,71,198,.12); border-radius: 24px; background: rgba(255,255,255,.5); pointer-events: none; }
@@ -283,4 +283,39 @@ input + label { margin-top: .75rem; }
 
 @media (prefers-reduced-motion: reduce) {
   .swipe-top-card { transform: none !important; }
+}
+
+
+/* Motion is attached to the object whose meaning changes. */
+.learning-card, .contained-card[data-learning-current] { view-transition-name: var(--learning-object); }
+.lock-glyph { position: relative; }
+.lock-shackle { position: absolute; width: 14px; height: 12px; left: 11px; top: 7px; border: 2px solid currentColor; border-bottom: 0; border-radius: 8px 8px 0 0; transform-origin: right bottom; }
+.lock-core { position: absolute; width: 19px; height: 14px; left: 8.5px; top: 17px; border: 2px solid currentColor; border-radius: 4px; }
+.lock-row.unlocked .lock-shackle { transform: translateY(-4px) rotate(-24deg); }
+.strike-text { background: linear-gradient(var(--amber), var(--amber)) left 55% / 0% 2px no-repeat; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.elimination.selected .strike-text { background-size: 100% 2px; }
+.swipe-comparison p { margin-bottom: .6rem; }
+.swipe-comparison p:last-child { color: var(--success); font-weight: 750; }
+.attached-note[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .learning-card { transform-origin: center; backface-visibility: hidden; }
+  .choice.selected { animation: choice-settle 160ms cubic-bezier(.2,.75,.25,1); }
+  .lock-shackle { transition: transform 220ms cubic-bezier(.2,.75,.25,1); }
+  .lock-row.unlocked .lock-answer { display: block; animation: lock-reveal 220ms cubic-bezier(.2,.75,.25,1); }
+  .lock-row.available .lock-options { animation: lock-reveal 180ms ease-out; }
+  .strike-text { transition: background-size 160ms ease-out, opacity 160ms ease-out; }
+  .elimination.selected .strike-text { opacity: .66; }
+  .result-slip { animation: result-settle 220ms cubic-bezier(.2,.75,.25,1); }
+  .attached-note { opacity: 1; transform: none; transition: opacity 180ms ease-out, transform 180ms ease-out, display 180ms allow-discrete; }
+  .attached-note[hidden] { opacity: 0; transform: translateX(10px); }
+  @starting-style { .attached-note:not([hidden]) { opacity: 0; transform: translateX(10px); } }
+  ::view-transition-group(*) { animation-duration: 320ms; animation-timing-function: cubic-bezier(.2,.75,.25,1); }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 160ms; }
+  @keyframes choice-settle { from { transform: scale(.97); } to { transform: scale(1); } }
+  @keyframes lock-reveal { from { opacity: .1; transform: translateY(-5px); clip-path: inset(0 0 100% 0); } to { opacity: 1; transform: none; clip-path: inset(0); } }
+  @keyframes result-settle { from { opacity: 0; transform: translateY(10px) scale(.99); } to { opacity: 1; transform: none; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .learning-card, .contained-card[data-learning-current] { view-transition-name: none; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

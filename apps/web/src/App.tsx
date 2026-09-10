@@ -1,4 +1,6 @@
+import {useObjectMotion, useRouteMotion, transitionObjectName} from './motion';
 import {
+  useCallback,
   useEffect,
   useEffectEvent,
   useLayoutEffect,
@@ -132,6 +134,8 @@ export function App({
     useState<AccountDeletionStage>(
       runtime.mode === 'remote' ? 'checking' : 'none',
     );
+  const routeMotion = useRouteMotion(`${authStage}:${phone}:${accountDeletionStage}`);
+  const navigateRoute = (next: RouteKey) => routeMotion(() => setRoute(next));
   const audioRequestGeneration = useRef(0);
   const accountAuthorityGeneration = useRef(0);
   const handleAccountPresentationInvalidation = useEffectEvent(
@@ -1044,7 +1048,7 @@ export function App({
                 item.id !== 'mine'
               }
               onClick={() => {
-                setRoute(item.id);
+                navigateRoute(item.id);
                 if (session !== null) {
                   setRemoteError('');
                 }
@@ -1087,7 +1091,7 @@ export function App({
             busy={productBusy}
             statusMessage={remoteError}
             syncStatus={genericSyncStatus}
-            onOpenSpace={() => setRoute('space')}
+            onOpenSpace={() => navigateRoute('space')}
             onRestart={() => {
               if (runtime.mode === 'remote') {
                 if (remoteController === null) return;
@@ -1139,6 +1143,7 @@ export function App({
         ) : <LearningSurface
           card={currentCard}
           cardState={cardState}
+          motionIdentity={`${currentCard?.card_id}:${session?.contentVersion}:${session?.serverSelection?.selectionId ?? 'local'}:${learningPhase}:${currentIndex}`}
           currentIndex={currentIndex}
           phase={learningPhase}
           total={activeCards.length}
@@ -1156,7 +1161,7 @@ export function App({
           onPlayAudio={runtime.mode === 'remote' ? () => void playCurrentAudio() : null}
           onReloadQueued={() => void reloadRemoteState()}
           onRetryQueued={() => void retryQueuedLearningResult()}
-          onOpenSpace={() => setRoute('space')}
+          onOpenSpace={() => navigateRoute('space')}
           onFavorite={cardId => void toggleFavorite(cardId)}
           retryBusy={remoteBusy}
         />
@@ -1189,7 +1194,7 @@ export function App({
             }
             setSleeping(items => toggle(items, id));
           }}
-          onReturn={() => setRoute('learning')}
+          onReturn={() => navigateRoute('learning')}
         />
       ) : null}
       {route === 'statistics' ? (
@@ -1257,6 +1262,7 @@ export function App({
 }
 
 type LearningSurfaceProps = {
+  motionIdentity: string;
   audioStatus: 'idle' | 'loading' | 'paused' | 'playing' | 'ready' | 'error';
   busy: boolean;
   canMutateSpace: boolean;
@@ -1283,7 +1289,11 @@ type LearningSurfaceProps = {
 
 function LearningSurface(props: LearningSurfaceProps) {
   const {card, cardState, resolved} = props;
-  const {onContinue, onResolve, onState} = props;
+  const {onResolve, onState} = props;
+  const cardRef = useRef<HTMLElement | null>(null);
+  const {perform, busy: motionBusy} = useObjectMotion(props.motionIdentity, cardRef);
+  const onContinue = useCallback(() => perform('advance', props.onContinue), [perform, props.onContinue]);
+  const onFlip = useCallback(() => perform('flip', () => onState(previous => previous ? {...previous, isFlipped: true} : previous)), [onState, perform]);
   const resultRef = useRef<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
@@ -1312,9 +1322,9 @@ function LearningSurface(props: LearningSurfaceProps) {
       }
       if (!card || resolved) return;
 
-      if (card.interaction_id === 'flip' && event.key === 'Enter') {
+      if (card.interaction_id === 'flip' && event.key === 'Enter' && !cardState?.isFlipped) {
         event.preventDefault();
-        onState(previous => previous ? {...previous, isFlipped: true} : previous);
+        onFlip();
       }
       if (card.interaction_id === 'multiple_choice' && /^[1-4]$/.test(event.key)) {
         const option = card.options[Number(event.key) - 1];
@@ -1323,18 +1333,12 @@ function LearningSurface(props: LearningSurfaceProps) {
           onState(previous => previous ? {...previous, selectedOptionId: option.id} : previous);
         }
       }
-      if (card.interaction_id === 'swipe' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-        const option = card.swipe_states[event.key === 'ArrowLeft' ? 0 : 1];
-        if (option && cardState) {
-          event.preventDefault();
-          onResolve({...cardState, swipeSelection: option.id});
-        }
-      }
+
     }
 
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [card, cardState, onContinue, onResolve, onState, props.busy, resolved]);
+  }, [card, cardState, onContinue, onFlip, onResolve, onState, props.busy, resolved]);
 
   if (!card || !cardState) {
     return <main className="workbench"><p className="notice">当前没有可用学习卡。</p></main>;
@@ -1365,16 +1369,19 @@ function LearningSurface(props: LearningSurfaceProps) {
           </div>
           <span className="counter">{props.serverSequenced ? '当前' : `${props.currentIndex + 1} / ${props.total}`}</span>
         </div>
-        <article className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
+        <article ref={cardRef} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
           <p className="eyebrow">{card.front.eyebrow}</p>
           <h2>{card.front.prompt}</h2>
           <p className="support">{card.front.support}</p>
           <p className="context">{card.front.context}</p>
           <Interaction
+            key={props.motionIdentity}
             card={card}
             state={cardState}
+            onFlip={onFlip}
+            resolved={Boolean(resolved)}
             patch={patchState}
-            disabled={Boolean(resolved) || props.busy}
+            disabled={Boolean(resolved) || props.busy || motionBusy}
             onResolveFlip={value => props.onResolve({
               ...cardState,
               isFlipped: true,
@@ -1428,7 +1435,7 @@ function LearningSurface(props: LearningSurfaceProps) {
               <h3>{card.analysis.title}</h3>
               <p>{card.analysis.summary}</p>
               <p className="exam-tip">考试提示 · {card.analysis.exam_tip}</p>
-              <button className="primary" disabled={props.busy} onClick={props.onContinue}>
+              <button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>
                 {props.serverSequenced
                   ? '继续下一张'
                   : props.currentIndex === props.total - 1
@@ -1459,15 +1466,13 @@ function LearningSurface(props: LearningSurfaceProps) {
               {cardState.isHintVisible ? '收起提示' : '查看提示'}
             </button>
           ) : null}
-          {cardState.isHintVisible && card.hint_layer ? <p className="attached-note">{card.hint_layer.content}</p> : null}
+          {card.hint_layer ? <p className="attached-note" hidden={!cardState.isHintVisible}>{card.hint_layer.content}</p> : null}
           <button
             className="tool"
             aria-expanded={cardState.isPeeked}
             onClick={() => patchState({hasUsedPeek: true, isPeeked: !cardState.isPeeked})}
           >{cardState.isPeeked ? '收起线索' : '查看线索'}</button>
-          {cardState.isPeeked ? (
-            <p className="attached-note">先抓题干里的关键信号，再完成当前判断。</p>
-          ) : null}
+          <p className="attached-note" hidden={!cardState.isPeeked}>先抓题干里的关键信号，再完成当前判断。</p>
           {card.audio ? (
             <button
               className="tool"
@@ -1498,13 +1503,13 @@ function LearningSurface(props: LearningSurfaceProps) {
   );
 }
 
-function Interaction({card, state, patch, disabled, onResolveFlip, onResolveSwipe}: {card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
+function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveFlip, onResolveSwipe}: {resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
   switch (card.interaction_id) {
     case 'flip':
       return (
         <div className="interaction flip-panel">
           {!state.isFlipped ? (
-            <button className="reveal" disabled={disabled} onClick={() => patch({isFlipped: true})}>翻面看答案</button>
+            <button className="reveal" disabled={disabled} onClick={onFlip}>翻面看答案</button>
           ) : (
             <>
               <p className="back-text">{card.back_text}</p>
@@ -1547,7 +1552,7 @@ function Interaction({card, state, patch, disabled, onResolveFlip, onResolveSwip
                 aria-label={`${slot.label}锁位`}
               >
                 <span className="lock-glyph" aria-hidden="true">
-                  {isUnlocked ? '开' : '锁'}
+                  <span className="lock-shackle" /><span className="lock-core" />
                 </span>
                 <div className="lock-body">
                   <div className="lock-heading">
@@ -1586,13 +1591,14 @@ function Interaction({card, state, patch, disabled, onResolveFlip, onResolveSwip
         </div>
       );
     case 'elimination':
-      return <div className="interaction elimination-list" role="group" aria-label="选择要删除的干扰成分">{card.elimination_items.map(item => {const active = state.eliminatedItemIds.includes(item.id); return <button key={item.id} className={active ? 'elimination selected' : 'elimination'} aria-pressed={active} disabled={disabled} onClick={() => patch({eliminatedItemIds: toggle(state.eliminatedItemIds, item.id)})}>{item.text}</button>;})}</div>;
+      return <div className="interaction elimination-list" role="group" aria-label="选择要删除的干扰成分">{card.elimination_items.map(item => {const active = state.eliminatedItemIds.includes(item.id); return <button key={item.id} className={active ? 'elimination selected' : 'elimination'} aria-pressed={active} disabled={disabled} onClick={() => patch({eliminatedItemIds: toggle(state.eliminatedItemIds, item.id)})}><span className="strike-text">{item.text}</span></button>;})}</div>;
     case 'swipe':
       return (
         <SwipeInteraction
           card={card}
           state={state}
           disabled={disabled}
+          resolved={resolved}
           onCommit={onResolveSwipe}
         />
       );
@@ -1616,27 +1622,44 @@ function SwipeInteraction({
   card,
   state,
   disabled,
+  resolved,
   onCommit,
 }: {
+  resolved: boolean;
   card: Extract<LearningCard, {interaction_id: 'swipe'}>;
   state: LearningCardState;
   disabled: boolean;
   onCommit: (value: string) => void;
 }) {
+  const swipeRef = useRef<HTMLDivElement | null>(null);
+  const {perform, busy: motionBusy} = useObjectMotion(card.card_id, swipeRef);
   const [dragX, setDragX] = useState(0);
   const pointerStart = useRef<number | null>(null);
   const selectedState = card.swipe_states.find(
     item => item.id === state.swipeSelection,
   );
 
+  useEffect(() => {
+    const keyboard = (event: KeyboardEvent) => {
+      if (disabled || motionBusy || (event.target as HTMLElement | null)?.closest('button, input, textarea, select')) return;
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      const direction = event.key === 'ArrowLeft' ? 'left' : 'right';
+      const option = card.swipe_states[direction === 'left' ? 0 : 1];
+      if (!option) return;
+      event.preventDefault();
+      perform(direction, () => onCommit(option.id));
+    };
+    window.addEventListener('keydown', keyboard);
+    return () => window.removeEventListener('keydown', keyboard);
+  }, [card.swipe_states, disabled, motionBusy, onCommit, perform]);
+
   function settleFromPointer(event: React.PointerEvent<HTMLDivElement>) {
     if (pointerStart.current === null) return;
     const distance = event.clientX - pointerStart.current;
     pointerStart.current = null;
-    setDragX(0);
-    if (disabled || Math.abs(distance) < 72) return;
+    if (disabled || Math.abs(distance) < 72) {setDragX(0); return;}
     const nextState = card.swipe_states[distance < 0 ? 0 : 1];
-    if (nextState) onCommit(nextState.id);
+    if (nextState) perform(distance < 0 ? 'left' : 'right', () => {setDragX(0); onCommit(nextState.id);});
   }
 
   return (
@@ -1645,6 +1668,7 @@ function SwipeInteraction({
         <span className="swipe-ghost swipe-ghost-back" aria-hidden="true" />
         <span className="swipe-ghost swipe-ghost-middle" aria-hidden="true" />
         <div
+          ref={swipeRef}
           className={`swipe-top-card${selectedState ? ' selected' : ''}${dragX !== 0 ? ' dragging' : ''}`}
           role="group"
           aria-label="当前滑动卡，可拖动或使用左右选项"
@@ -1653,7 +1677,7 @@ function SwipeInteraction({
             transform: `translateX(${dragX}px) rotate(${dragX / 28}deg)`,
           }}
           onPointerDown={event => {
-            if (disabled) return;
+            if (disabled || motionBusy) return;
             pointerStart.current = event.clientX;
             event.currentTarget.setPointerCapture?.(event.pointerId);
           }}
@@ -1669,8 +1693,8 @@ function SwipeInteraction({
           }}
         >
           <span className="swipe-card-kicker">当前判断</span>
-          <strong>{selectedState?.label ?? '向左或向右完成归类'}</strong>
-          <p>{selectedState?.description ?? '拖动卡片，或使用下方两个方向选项。'}</p>
+          <strong>{resolved ? '已完成本次判断' : '向左或向右完成归类'}</strong>
+          {resolved ? <div className="swipe-comparison"><p>你的选择：{selectedState?.label} · {selectedState?.description}</p><p>正确判断：{card.swipe_states.find(item => item.id === card.answer_key.correct_state)?.description}</p></div> : <p>拖动卡片，或使用下方两个方向选项。</p>}
         </div>
       </div>
       <div className="swipe-trails">
@@ -1680,8 +1704,8 @@ function SwipeInteraction({
             type="button"
             className={state.swipeSelection === item.id ? 'swipe-trail selected' : 'swipe-trail'}
             aria-pressed={state.swipeSelection === item.id}
-            disabled={disabled}
-            onClick={() => onCommit(item.id)}
+            disabled={disabled || motionBusy}
+            onClick={() => perform(index === 0 ? 'left' : 'right', () => onCommit(item.id))}
           >
             <span aria-hidden="true">{index === 0 ? '←' : '→'}</span>
             <span>
@@ -1751,6 +1775,8 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, favorites, sleepin
                     key={card.card_id}
                     className={`${isSelected ? 'contained-card selected' : 'contained-card'}${isSleeping ? ' sleeping' : ''}`}
                     aria-pressed={isSelected}
+                    data-learning-current={isCurrent || undefined}
+                    style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties}
                     onClick={() => setSelectedId(card.card_id)}
                   >
                     <span className="contained-card-kind">{INTERACTION_LABELS[card.interaction_id]}</span>

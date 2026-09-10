@@ -1,3 +1,4 @@
+import {NativeMotionProvider, useCardMotion} from './src/learning/NativeMotion';
 import React, {
   startTransition,
   useCallback,
@@ -9,6 +10,7 @@ import React, {
 import NetInfo from '@react-native-community/netinfo';
 import {
   AccessibilityInfo,
+  Animated,
   AppState,
   BackHandler,
   findNodeHandle,
@@ -428,7 +430,7 @@ function App({
 
   return (
     <SafeAreaProvider>
-      <AppShell runtimeConfig={runtimeConfig} />
+      <NativeMotionProvider><AppShell runtimeConfig={runtimeConfig} /></NativeMotionProvider>
     </SafeAreaProvider>
   );
 }
@@ -1191,6 +1193,10 @@ function AppShell({
   const usesAccessibilityLayout = fontScale >= 1.3;
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
+  const routeMotion = useCardMotion(`${isAuthenticated}:${activeRoute}:${learningScreen}:${spaceScreen}`, activeRoute === 'space' && spaceScreen === 'overview' ? 'space' : 'focus');
+  const cancelRouteMotion = routeMotion.cancel;
+  const pendingRoute = useRef<RouteKey | null>(null);
+  useEffect(() => {pendingRoute.current = null;}, [activeRoute, isAuthenticated]);
   useEffect(() => {
     if (Platform.OS !== 'android' || !isAuthenticated) {
       return;
@@ -1199,6 +1205,10 @@ function AppShell({
       // Modal/recovery flows own their close policy and must not be bypassed.
       if (accountDeletionState !== 'closed') {
         return false;
+      }
+      if (pendingRoute.current !== null) {
+        cancelRouteMotion(); pendingRoute.current = null;
+        return true;
       }
       if (activeRoute === 'learning' && learningScreen === 'result_detail') {
         setLearningScreen('practice');
@@ -1217,7 +1227,7 @@ function AppShell({
       return false;
     });
     return () => subscription.remove();
-  }, [accountDeletionState, activeRoute, isAuthenticated, learningScreen, spaceScreen]);
+  }, [accountDeletionState, activeRoute, isAuthenticated, learningScreen, cancelRouteMotion, spaceScreen]);
   useEffect(() => {
     if (authState.stage === 'authenticated') {
       return;
@@ -3877,7 +3887,7 @@ function AppShell({
     setLearningBootstrapError(null);
   };
 
-  const handleSelectRoute = (nextRoute: RouteKey) => {
+  const applySelectedRoute = (nextRoute: RouteKey) => {
     if (
       nextRoute === 'space' &&
       isAuthenticated &&
@@ -3891,6 +3901,13 @@ function AppShell({
       setLearningScreen('practice');
       setSpaceScreen('overview');
     });
+  };
+
+  const handleSelectRoute = (nextRoute: RouteKey) => {
+    if (pendingRoute.current === nextRoute) return;
+    routeMotion.cancel(); pendingRoute.current = nextRoute;
+    if (nextRoute === activeRoute) {pendingRoute.current = null; applySelectedRoute(nextRoute); return;}
+    routeMotion.perform(nextRoute === 'space' ? 'space' : 'focus', () => {pendingRoute.current = null; applySelectedRoute(nextRoute);});
   };
 
   const authHandlers: AuthHandlers = {
@@ -5254,7 +5271,7 @@ function AppShell({
       cardState={learningCardState}
       currentIndex={learningIndex}
       isLastCard={learningIndex === activeSessionCards.length - 1}
-      onAdvanceCard={learningHandlers.onAdvanceCard}
+      onAdvanceCard={() => routeMotion.perform('advance', learningHandlers.onAdvanceCard)}
       onBackToPractice={() => setLearningScreen('practice')}
       palette={palette}
       phase={learningPhase}
@@ -5311,13 +5328,7 @@ function AppShell({
       deviceClass={deviceClass}
       onBackToOverview={() => setSpaceScreen('overview')}
       onOpenCardList={() => setSpaceScreen('card_list')}
-      onReturnToLearning={() => {
-        startTransition(() => {
-          setActiveRoute('learning');
-          setLearningScreen('practice');
-          setSpaceScreen('overview');
-        });
-      }}
+      onReturnToLearning={() => handleSelectRoute('learning')}
       onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
       onToggleSleepState={spaceHandlers.onToggleSleepState}
       palette={palette}
@@ -5403,7 +5414,7 @@ function AppShell({
           <TabletShell
             activeRoute={activeRoute}
             authState={authState}
-            content={content}
+            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{content}</Animated.View>}
             onSelectRoute={handleSelectRoute}
             palette={palette}
             route={route}
@@ -5412,7 +5423,7 @@ function AppShell({
           <PhoneShell
             activeRoute={activeRoute}
             authState={authState}
-            content={content}
+            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{content}</Animated.View>}
             onSelectRoute={handleSelectRoute}
             palette={palette}
             route={route}

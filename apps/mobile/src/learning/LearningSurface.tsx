@@ -1,7 +1,7 @@
+import {useCardMotion, useReducedMotion, MotionView, MotionPresence, MotionPressable, LockMotionGlyph, StrikeText} from './NativeMotion';
 import React from 'react';
 import type { DimensionValue } from 'react-native';
 import {
-  AccessibilityInfo,
   Animated,
   PanResponder,
   Pressable,
@@ -104,27 +104,6 @@ const DEFAULT_LEARNING_ADVANCE_STATE: LearningAdvanceState = {
   needsRetry: false,
 };
 
-function useReduceMotionPreference() {
-  const [enabled, setEnabled] = React.useState(false);
-
-  React.useEffect(() => {
-    let active = true;
-    AccessibilityInfo.isReduceMotionEnabled().then(value => {
-      if (active) setEnabled(value);
-    });
-    const subscription = AccessibilityInfo.addEventListener(
-      'reduceMotionChanged',
-      setEnabled,
-    );
-
-    return () => {
-      active = false;
-      subscription.remove();
-    };
-  }, []);
-
-  return enabled;
-}
 
 function formatLearningActionCue(
   card: LearningCard,
@@ -319,8 +298,7 @@ export function LearningSurface({
     width: viewportWidth,
   } = useWindowDimensions();
   const isAccessibilityText = fontScale >= 1.3;
-  const reduceMotionEnabled = useReduceMotionPreference();
-  const sheetTransition = React.useRef(new Animated.Value(1)).current;
+  const cardMotion = useCardMotion(currentCard ? `${currentCard.card_id}:${audioAttemptId ?? phase}` : null);
   const isCompactPhone = isCompactLearningViewport(
     viewportWidth,
     viewportHeight,
@@ -339,23 +317,6 @@ export function LearningSurface({
     currentCard?.space_metadata.box ?? '',
     '当前卡盒',
   );
-  const currentCardId = currentCard?.card_id ?? null;
-  const currentOutcome = currentResult?.outcome ?? null;
-  React.useEffect(() => {
-    sheetTransition.stopAnimation();
-    if (currentCardId === null || reduceMotionEnabled) {
-      sheetTransition.setValue(1);
-      return;
-    }
-
-    sheetTransition.setValue(0);
-    Animated.timing(sheetTransition, {
-      duration: 180,
-      easing: undefined,
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
-  }, [currentCardId, currentOutcome, reduceMotionEnabled, sheetTransition]);
   if (currentCard === null || currentCardState === null) {
     const summary = summarizeLearningResults(
       completedResults,
@@ -661,8 +622,9 @@ export function LearningSurface({
       ]}
       testID="learning-one-screen-flow"
     >
-      <View
+      <Animated.View
         style={[
+          cardMotion.cardStyle,
           styles.studyCard,
           styles.studyCardOneScreen,
           isCompactPhone ? styles.studyCardOneScreenCompact : null,
@@ -850,17 +812,7 @@ export function LearningSurface({
           <Animated.View
             style={[
               styles.cardMaterialSheetFrame,
-              {
-                opacity: sheetTransition,
-                transform: [
-                  {
-                    translateY: sheetTransition.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: reduceMotionEnabled ? [0, 0] : [8, 0],
-                    }),
-                  },
-                ],
-              },
+              cardMotion.flipStyle,
             ]}
             testID="learning-material-sheet"
           >
@@ -1001,20 +953,20 @@ export function LearningSurface({
 
               {currentResult ? (
                 onOpenResultDetail ? (
-                  <ResultSummaryPanel
+                  <MotionView motionKey={currentResult.outcome} kind="result" enter><ResultSummaryPanel
                     card={currentCard}
                     compact={isCompactPhone}
                     palette={palette}
                     result={currentResult}
                     onOpenResultDetail={onOpenResultDetail}
-                  />
+                  /></MotionView>
                 ) : (
                   <ResultPanel
                     advanceState={advanceState}
                     card={currentCard}
                     palette={palette}
                     result={currentResult}
-                    onAdvanceCard={onAdvanceCard}
+                    onAdvanceCard={() => cardMotion.perform('advance', onAdvanceCard)}
                     isLastCard={currentIndex === sessionCards.length - 1}
                   />
                 )
@@ -1064,6 +1016,7 @@ export function LearningSurface({
                     </Text>
                   ) : null}
                   <InteractionBody
+                    key={`${currentCard.card_id}:${audioAttemptId ?? phase}`}
                     card={currentCard}
                     cardState={currentCardState}
                     currentResult={currentResult}
@@ -1074,8 +1027,8 @@ export function LearningSurface({
                     onSelectSwipeState={onSelectSwipeState}
                     compact={isCompactPhone}
                   />
-                  {supportLayer ? (
-                    <View
+                  <MotionPresence>{supportLayer ? (
+                    <View testID="learning-support-layer"
                       style={[
                         styles.denseSupportLayer,
                         {
@@ -1083,7 +1036,6 @@ export function LearningSurface({
                           borderColor: palette.border,
                         },
                       ]}
-                      testID="learning-support-layer"
                     >
                       <Text
                         style={[
@@ -1102,7 +1054,7 @@ export function LearningSurface({
                         {supportLayer.body}
                       </Text>
                     </View>
-                  ) : null}
+                  ) : null}</MotionPresence>
                 </View>
               )}
             </ScrollView>
@@ -1115,8 +1067,8 @@ export function LearningSurface({
             testID="learning-action-dock"
           >
             <Pressable
-              disabled={advanceState.busy}
-              onPress={onAdvanceCard}
+              disabled={advanceState.busy || cardMotion.busy}
+              onPress={() => cardMotion.perform('advance', onAdvanceCard)}
               style={[
                 styles.primaryButton,
                 { backgroundColor: primaryAction.surface },
@@ -1170,7 +1122,8 @@ export function LearningSurface({
               <Pressable
                 accessibilityLabel="查看答案"
                 accessibilityRole="button"
-                onPress={onFlip}
+                disabled={cardMotion.busy}
+                onPress={() => cardMotion.perform('flip', onFlip)}
                 style={[
                   styles.primaryButton,
                   { backgroundColor: primaryAction.surface },
@@ -1341,7 +1294,7 @@ export function LearningSurface({
             </View>
           </View>
         ) : null}
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -1367,8 +1320,6 @@ function InteractionBody({
   onToggleEliminationItem: (itemId: string) => void;
   onSelectSwipeState: (stateId: string) => void;
 }) {
-  const { fontScale } = useWindowDimensions();
-  const isAccessibilityText = fontScale >= 1.3;
   const libraryTone = resolveLibraryTone(card.space_metadata.library);
   const tone = {
     accent: libraryTone.accent,
@@ -1453,7 +1404,7 @@ function InteractionBody({
                 : primaryAction.surface;
 
               return (
-                <Pressable
+                <MotionPressable motionKey={`${isSelected}:${isCorrect}:${isIncorrectSelection}`}
                   accessibilityLabel={`选项 ${option.label}，${option.text}`}
                   accessibilityRole="radio"
                   accessibilityState={{
@@ -1518,7 +1469,7 @@ function InteractionBody({
                   <Text style={[styles.optionText, { color: palette.text }]}>
                     {option.text}
                   </Text>
-                </Pressable>
+                </MotionPressable>
               );
             })}
           </View>
@@ -1567,33 +1518,21 @@ function InteractionBody({
                   ]}
                 >
                   <View
+                    accessible
+                    accessibilityRole="image"
+                    accessibilityLabel={`${slot.label}，${isUnlocked ? '已开锁' : isCurrentRow ? '当前锁位' : '等待上一行'}`}
                     style={[
                       styles.lockGlyph,
                       compact ? styles.lockGlyphCompact : null,
                       {
-                        backgroundColor: isUnlocked
-                          ? primaryAction.surface
-                          : palette.panelStrong,
-                        borderColor: isUnlocked
-                          ? primaryAction.surface
-                          : palette.border,
+                        backgroundColor: 'transparent',
+                        borderColor: 'transparent',
                       },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.lockGlyphLabel,
-                        {
-                          color: isUnlocked
-                            ? primaryAction.text
-                            : palette.textMuted,
-                        },
-                      ]}
-                    >
-                      {isUnlocked ? '开' : '锁'}
-                    </Text>
+                    <LockMotionGlyph open={isUnlocked} color={isUnlocked ? primaryAction.surface : palette.textMuted} />
                   </View>
-                  <View
+                  <MotionView motionKey={isUnlocked} kind="reveal"
                     style={[
                       styles.lockBody,
                       compact ? styles.lockBodyCompact : null,
@@ -1679,9 +1618,6 @@ function InteractionBody({
                             }`}
                           >
                             <Text
-                              numberOfLines={
-                                isAccessibilityText ? undefined : 1
-                              }
                               style={[
                                 styles.choiceLabel,
                                 styles.lockChoiceLabel,
@@ -1698,7 +1634,7 @@ function InteractionBody({
                         );
                       })}
                     </View>
-                  </View>
+                  </MotionView>
                 </View>
               );
             })}
@@ -1726,7 +1662,7 @@ function InteractionBody({
                 card.answer_key.correct_items.includes(item.id);
 
               return (
-                <Pressable
+                <MotionPressable motionKey={isSelected}
                   accessibilityLabel={`排除候选项，${item.text}`}
                   accessibilityRole="checkbox"
                   accessibilityState={{
@@ -1764,17 +1700,17 @@ function InteractionBody({
                       ]}
                     />
                   ) : null}
-                  <Text
+                  <StrikeText struck={isSelected} color={primaryAction.surface}
                     style={[
                       styles.eliminationText,
-                      isSelected ? styles.eliminationTextStruck : null,
+                      {opacity: isSelected ? 0.66 : 1},
                       {
                         color: palette.text,
                       },
                     ]}
                   >
                     {item.text}
-                  </Text>
+                  </StrikeText>
                   {isSelected ? (
                     <Text
                       style={[
@@ -1785,7 +1721,7 @@ function InteractionBody({
                       已剥离
                     </Text>
                   ) : null}
-                </Pressable>
+                </MotionPressable>
               );
             })}
           </View>
@@ -1843,34 +1779,20 @@ function SwipeInteraction({
   onCommit: (stateId: string) => void;
   palette: LearningSurfacePalette;
 }) {
-  const { fontScale } = useWindowDimensions();
+  const {fontScale} = useWindowDimensions();
   const isAccessibilityText = fontScale >= 1.3;
   const libraryTone = resolveLibraryTone(card.space_metadata.library);
   const tone = { accent: libraryTone.accent };
   const dragX = React.useRef(new Animated.Value(0)).current;
   const cardWidthRef = React.useRef(280);
   const settlingRef = React.useRef(false);
-  const [reduceMotionEnabled, setReduceMotionEnabled] = React.useState(false);
-
+  const reduceMotionEnabled = useReducedMotion();
+  const mountedRef = React.useRef(true);
+  const pendingSwipe = React.useRef<string | null>(null);
   React.useEffect(() => {
-    let mounted = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then(enabled => {
-        if (mounted) {
-          setReduceMotionEnabled(enabled);
-        }
-      })
-      .catch(() => undefined);
-    const subscription = AccessibilityInfo.addEventListener(
-      'reduceMotionChanged',
-      setReduceMotionEnabled,
-    );
-
-    return () => {
-      mounted = false;
-      subscription.remove();
-    };
-  }, []);
+    mountedRef.current = true;
+    return () => {mountedRef.current = false; pendingSwipe.current = null; dragX.stopAnimation();};
+  }, [dragX]);
 
   const settleToCenter = React.useCallback(() => {
     settlingRef.current = true;
@@ -1891,16 +1813,6 @@ function SwipeInteraction({
     });
   }, [dragX, reduceMotionEnabled]);
 
-  const commitStateAtIndex = React.useCallback(
-    (index: number) => {
-      const state = card.swipe_states[index];
-      if (state) {
-        onCommit(state.id);
-      }
-    },
-    [card.swipe_states, onCommit],
-  );
-
   const commitDirection = React.useCallback(
     (direction: Exclude<SwipeGestureDirection, null>) => {
       if (settlingRef.current) {
@@ -1914,10 +1826,13 @@ function SwipeInteraction({
       }
 
       settlingRef.current = true;
+      pendingSwipe.current = state.id;
       const finish = () => {
+        if (!mountedRef.current) return;
         dragX.setValue(0);
         settlingRef.current = false;
-        onCommit(state.id);
+        const selectedId = pendingSwipe.current; pendingSwipe.current = null;
+        if (selectedId) onCommit(selectedId);
       };
 
       if (reduceMotionEnabled) {
@@ -1931,10 +1846,17 @@ function SwipeInteraction({
           (direction === 'left' ? -1 : 1) *
           Math.max(cardWidthRef.current * 1.15, 320),
         useNativeDriver: true,
-      }).start(finish);
+      }).start(({finished}) => {if (finished) finish();});
     },
     [card.swipe_states, dragX, onCommit, reduceMotionEnabled, settleToCenter],
   );
+
+  React.useEffect(() => {
+    if (!reduceMotionEnabled) return;
+    dragX.stopAnimation(); dragX.setValue(0); settlingRef.current = false;
+    const selectedId = pendingSwipe.current; pendingSwipe.current = null;
+    if (selectedId && mountedRef.current) onCommit(selectedId);
+  }, [dragX, onCommit, reduceMotionEnabled]);
 
   const panResponder = React.useMemo(
     () =>
@@ -1946,9 +1868,9 @@ function SwipeInteraction({
         onPanResponderGrant: () => {
           dragX.stopAnimation();
         },
-        onPanResponderMove: Animated.event([null, { dx: dragX }], {
-          useNativeDriver: false,
-        }),
+        onPanResponderMove: (_event, gesture) => {
+          if (!reduceMotionEnabled) dragX.setValue(gesture.dx);
+        },
         onPanResponderRelease: (_event, gesture) => {
           const direction = resolveSwipeGestureDirection({
             cardWidth: cardWidthRef.current,
@@ -1964,7 +1886,7 @@ function SwipeInteraction({
         onPanResponderTerminate: settleToCenter,
         onPanResponderTerminationRequest: () => true,
       }),
-    [commitDirection, dragX, settleToCenter],
+    [commitDirection, dragX, reduceMotionEnabled, settleToCenter],
   );
 
   const rotate = dragX.interpolate({
@@ -2021,9 +1943,9 @@ function SwipeInteraction({
           }}
           onAccessibilityAction={event => {
             if (event.nativeEvent.actionName === 'decrement') {
-              commitStateAtIndex(0);
+              commitDirection('left');
             } else if (event.nativeEvent.actionName === 'increment') {
-              commitStateAtIndex(1);
+              commitDirection('right');
             }
           }}
           style={[
@@ -2062,7 +1984,7 @@ function SwipeInteraction({
               checked: cardState.swipeSelection === state.id,
             }}
             key={state.id}
-            onPress={() => commitStateAtIndex(index)}
+            onPress={() => commitDirection(index === 0 ? 'left' : 'right')}
             style={[
               styles.swipeTrailCard,
               compact ? styles.swipeTrailCardCompact : null,
@@ -3834,6 +3756,9 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   lockChoicePillCompact: {
+    flex: 1,
+    minWidth: 48,
+    maxWidth: '100%',
     paddingHorizontal: 4,
     paddingVertical: 4,
   },
@@ -3842,6 +3767,7 @@ const styles = StyleSheet.create({
   },
   lockChoiceLabel: {
     fontSize: 11,
+    textAlign: 'center',
   },
   lockChoiceWrap: {
     flexWrap: 'nowrap',

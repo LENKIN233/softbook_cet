@@ -110,3 +110,14 @@ Q6: Flip has exactly two self-assess choices, Statistics uses tabular numerals, 
 ## Status
 
 Accepted for design-only planning after the completed PC Web design search run. This decision does not authorize same-PR Web implementation.
+
+## Interaction motion mapping
+
+Card and flip transitions retain the outgoing object until the visual midpoint;
+the real state update occurs once and can never be replayed by an animation.
+Choice settling, lock opening, reversible strike drawing, attached help reveal,
+and result appearance use separate motions. Keyboard and pointer actions share
+the same transition path. Reduced motion and browsers without animation support
+apply the state directly. Learning and its current Space card share visual
+identity during navigation when View Transitions are available; older browsers
+keep the same state and navigation behavior without a snapshot transition.
