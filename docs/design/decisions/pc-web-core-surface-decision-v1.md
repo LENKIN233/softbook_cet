@@ -132,3 +132,6 @@ the same transition path. Reduced motion and browsers without animation support
 apply the state directly. Learning and its current Space card share visual
 identity during navigation when View Transitions are available; older browsers
 keep the same state and navigation behavior without a snapshot transition.
+Only the card object is captured for the shared transition. Navigation and the
+Space return action stay live while that object moves; the document snapshot
+layer must not swallow a quick return click.

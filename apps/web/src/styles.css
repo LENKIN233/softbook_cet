@@ -255,6 +255,8 @@ input + label { margin-top: .75rem; }
 
 
 /* Motion is attached to the object whose meaning changes. */
+:root { view-transition-name: none; }
+::view-transition { pointer-events: none; }
 .learning-card, .contained-card[data-learning-current] { view-transition-name: var(--learning-object); }
 .lock-glyph { position: relative; }
 .lock-shackle { position: absolute; width: 14px; height: 12px; left: 11px; top: 7px; border: 2px solid currentColor; border-bottom: 0; border-radius: 8px 8px 0 0; transform-origin: right bottom; }
