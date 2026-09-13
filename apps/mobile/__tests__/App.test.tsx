@@ -733,12 +733,12 @@ function installAccountDeletionCleanupFailure(
   return () => setItem.mockImplementation(original!);
 }
 
-function createRemoteAuthChallengeResponse() {
+function createRemoteAuthChallengeResponse(retryAfterSeconds = 60) {
   return createJsonResponse({
     data: {
       challenge_id: 'challenge-123',
       expires_at: '2099-07-20T00:05:00.000Z',
-      retry_after_seconds: 60,
+      retry_after_seconds: retryAfterSeconds,
     },
   });
 }
@@ -1260,7 +1260,7 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expect(output).toContain('验证');
   expect(output).toContain('完成登录');
   expect(output).not.toContain('当前卡');
-  expect(output).toContain('重新发送');
+  expect(output).toContain('秒后重发');
   expect(output).not.toContain('等待登录');
 
   await ReactTestRenderer.act(async () => {
@@ -1374,7 +1374,9 @@ test('does not expose native credential storage failures inside the auth gate', 
   await authenticateIntoLearningBootstrap(tree!.root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('验证码不正确');
+  expect(output).toContain('本机暂时无法保存登录状态');
+  expect(output).toContain('重新获取验证码登录');
+  expect(output).not.toContain('验证码不正确');
   expect(output).not.toContain('TurboModuleRegistry');
   expect(output).not.toContain('RNKeychain');
   expectNoUserVisibleMetadataLeakage(tree!);
@@ -2176,7 +2178,7 @@ test('keeps a remote null selection empty without local card or sleep fallback',
   }
 
   expect(
-    root.findAllByProps({ testID: 'learning-complete-summary' }).length,
+    root.findAllByProps({ testID: 'learning-empty-session' }).length,
   ).toBeGreaterThan(0);
   expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
     0,
@@ -2189,7 +2191,7 @@ test('keeps a remote null selection empty without local card or sleep fallback',
   ).toHaveLength(0);
 
   await ReactTestRenderer.act(() => {
-    findPressableByTestId(root, 'learning-restart-button').props.onPress();
+    findPressableByTestId(root, 'learning-refresh-session-button').props.onPress();
   });
   expect(root.findAllByProps({ testID: 'learning-flip-button' })).toHaveLength(
     0,
@@ -2530,14 +2532,8 @@ test('locks writes after canonical owner drift until a valid revision advance', 
 
   await openRoute(root, 'learning');
   await waitForLearningSurface(root);
-  await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
-  });
-  await ReactTestRenderer.act(() => {
-    root
-      .findByProps({testID: 'learning-flip-confident-button'})
-      .props.onPress();
-  });
+  expect(root.findAllByProps({testID: 'learning-flip-button'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'learning-result-summary'})).toBeTruthy();
   await ReactTestRenderer.act(() => {
     root.findByProps({testID: 'learning-next-button'}).props.onPress();
   });
@@ -3857,7 +3853,9 @@ test.each([
     mockFetch.mockImplementation(
       async (input: string, init?: MockFetchInit) => {
         if (input === 'https://api.softbook.example/v2/auth/request-code') {
-          return createRemoteAuthChallengeResponse();
+          // Session cancellation is the subject here; resend timing has its
+          // own real-interval boundary regression in App.accountRecovery.
+          return createRemoteAuthChallengeResponse(0);
         }
 
         if (input === 'https://api.softbook.example/v2/auth/verify-code') {
@@ -6354,7 +6352,8 @@ test('keeps the account shell and local data after a lost deletion response, the
       'account-deletion-return-to-verification',
     ).props.onPress();
   });
-  expect(root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  expect(root.findByProps({testID: 'account-deletion-recovery-screen'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'auth-phone-input'})).toHaveLength(0);
   announce.mockRestore();
 });
 
@@ -6935,7 +6934,7 @@ test('marker readback failure performs zero cleanup and a restart resumes from t
     });
 
     expect(
-      root.findByProps({testID: 'account-deletion-accepted-screen'}),
+      root.findByProps({testID: 'account-deletion-recovery-screen'}),
     ).toBeTruthy();
     expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBeNull();
     expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
@@ -7022,7 +7021,7 @@ test('resumes exact local deletion cleanup from its durable marker after restart
     });
 
     expect(
-      root.findByProps({testID: 'account-deletion-accepted-screen'}),
+      root.findByProps({testID: 'account-deletion-recovery-screen'}),
     ).toBeTruthy();
     expect(
       await AsyncStorage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY),
@@ -7060,6 +7059,19 @@ test('does not replay deleted account outbox or mutation data after clean re-reg
       }
       if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
         return createJsonResponse(createAccountBootstrapPayload());
+      }
+      if (input.endsWith('/account/deletion/recovery/request-code')) {
+        return createJsonResponse({data: {
+          challenge_id: 'challenge_recovery_1234567890',
+          delivery: 'sms', expires_at: new Date(Date.now() + 300_000).toISOString(),
+          purpose: 'account_deletion_recovery', retry_after_seconds: 0,
+        }});
+      }
+      if (input.endsWith('/account/deletion/recovery/verify-code')) {
+        return createJsonResponse({data: {
+          schema_version: 'account-deletion-recovery.v1', state: 'none',
+          safe_to_register: true, deletion_request: null,
+        }});
       }
       if (input === 'https://api.softbook.example/v2/account/deletion') {
         return createAccountDeletionResponse();
@@ -7132,6 +7144,9 @@ test('does not replay deleted account outbox or mutation data after clean re-reg
   ).toEqual([]);
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
 
+  // Opening Mine can legitimately replay queued work before deletion starts.
+  // The invariant is that none of it replays after accepted cleanup.
+  const requestsBeforeRegistration = {learningEventRequestCount, checkInRequestCount};
   await ReactTestRenderer.act(() => {
     tree!.unmount();
   });
@@ -7139,6 +7154,18 @@ test('does not replay deleted account outbox or mutation data after clean re-reg
     tree = ReactTestRenderer.create(<App />);
   });
   root = tree!.root;
+  expect(root.findAllByProps({testID: 'auth-phone-input'})).toHaveLength(0);
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-recovery-request-button').props.onPress();
+    await flushAsyncEffects();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'account-deletion-recovery-code-input'}).props.onChangeText('654321');
+  });
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'account-deletion-recovery-verify-button').props.onPress();
+    for (let attempt = 0; attempt < 8; attempt += 1) await flushAsyncEffects();
+  });
   await authenticateIntoLearningBootstrap(root);
   await waitForLearningSurface(root);
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -7148,15 +7175,15 @@ test('does not replay deleted account outbox or mutation data after clean re-reg
   }
 
   expect(verifiedSessionCount).toBe(2);
-  expect(learningEventRequestCount).toBe(0);
-  expect(checkInRequestCount).toBe(0);
+  expect(learningEventRequestCount).toBe(requestsBeforeRegistration.learningEventRequestCount);
+  expect(checkInRequestCount).toBe(requestsBeforeRegistration.checkInRequestCount);
   expect(
     await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
   ).not.toContain('13800138000');
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).toBe('[]');
 });
 
-test('ignores a stale deletion response after the originating session is replaced', async () => {
+test('prevents ordinary logout from replacing the origin of a pending deletion', async () => {
   const pendingDeletion = createDeferred<ReturnType<typeof createJsonResponse>>();
   let deletionSignal: AbortSignal | undefined;
   let verifiedSessionCount = 0;
@@ -7219,26 +7246,21 @@ test('ignores a stale deletion response after the originating session is replace
     await flushAsyncEffects();
   });
   expect(deletionSignal?.aborted).toBe(false);
-
-  await authenticateIntoLearningBootstrap(root, '13900139000');
-  await openRoute(root, 'mine');
-  await AsyncStorage.setItem(USER_STATE_STORAGE_KEY, 'replacement-state');
+  expect(verifiedSessionCount).toBe(1);
+  expect(root.findAllByProps({testID: 'auth-phone-input'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'account-deletion-submitting'})).toBeTruthy();
 
   pendingDeletion.resolve(createAccountDeletionResponse());
   await ReactTestRenderer.act(async () => {
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
       await flushAsyncEffects();
     }
   });
 
-  const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('139****9000');
-  expect(root.findAllByProps({testID: 'account-deletion-accepted-screen'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'account-deletion-accepted-screen'})).toBeTruthy();
   expect(root.findAllByProps({testID: 'account-deletion-modal'})).toHaveLength(0);
-  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBe(
-    'replacement-state',
-  );
-  expect(root.findByProps({testID: 'route-tab-learning'})).toBeTruthy();
+  expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBeNull();
+  expect(root.findAllByProps({testID: 'route-tab-learning'})).toHaveLength(0);
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 

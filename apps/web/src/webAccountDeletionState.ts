@@ -5,6 +5,7 @@ export const WEB_ACCOUNT_DELETION_STORAGE_KEY =
 const LEGACY_REVISION_KEY =
   'softbook-cet/web-account-deletion-revision/v1';
 const ENVELOPE_SCHEMA_VERSION = 'web-account-deletion-envelope.v2';
+const OUTBOX_CAPABLE_ENVELOPE_SCHEMA_VERSION = 'web-account-deletion-envelope.v3';
 const LEGACY_STATE_SCHEMA_VERSION = 'web-account-deletion.v1';
 
 export type WebAccountDeletionState = {
@@ -30,6 +31,7 @@ export type WebAccountDeletionRequestingAuthority = {
 };
 
 type WebAccountDeletionEnvelope = {
+  schemaVersion: typeof ENVELOPE_SCHEMA_VERSION | typeof OUTBOX_CAPABLE_ENVELOPE_SCHEMA_VERSION;
   revision: number;
   state: WebAccountDeletionState | null;
 };
@@ -37,6 +39,7 @@ type WebAccountDeletionEnvelope = {
 type BrowserStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 
 export type WebAccountDeletionStateStore = {
+  prepareLearningEventStorage?: () => Promise<number>;
   beginRequesting?: (
     phoneNumber: string,
     expectedNullRevision: number,
@@ -73,6 +76,29 @@ export function createWebAccountDeletionStateStore(
   };
 
   return {
+    prepareLearningEventStorage() {
+      return runExclusive(() =>
+        runWebStorageExclusive(storage, WEB_ACCOUNT_DELETION_STORAGE_KEY, async () => {
+          const envelope = readEnvelope(storage);
+          if (envelope.state !== null) {
+            throw new Error('请先通过删除恢复入口确认原账户状态。');
+          }
+          if (envelope.schemaVersion === OUTBOX_CAPABLE_ENVELOPE_SCHEMA_VERSION) {
+            return envelope.revision;
+          }
+          // Commit the incompatible reader fence before any five-field outbox
+          // write. Old JavaScript cannot reauthenticate into this version.
+          const upgraded: WebAccountDeletionEnvelope = {
+            ...envelope,
+            schemaVersion: OUTBOX_CAPABLE_ENVELOPE_SCHEMA_VERSION,
+            revision: incrementRevision(envelope.revision),
+          };
+          persistEnvelope(storage, upgraded);
+          return upgraded.revision;
+        }),
+      );
+    },
+
     beginRequesting(phoneNumber, expectedNullRevision) {
       return runExclusive(() =>
         runWebStorageExclusive(
@@ -98,6 +124,7 @@ export function createWebAccountDeletionStateStore(
               );
             }
             const nextEnvelope = {
+              schemaVersion: envelope.schemaVersion,
               revision: incrementRevision(envelope.revision),
               state: {phase: 'requesting' as const, phoneNumber},
             };
@@ -139,6 +166,7 @@ export function createWebAccountDeletionStateStore(
               );
             }
             const nextEnvelope = {
+              schemaVersion: envelope.schemaVersion,
               revision: incrementRevision(envelope.revision),
               state: {phase: 'local_cleanup' as const, phoneNumber},
             };
@@ -182,6 +210,7 @@ export function createWebAccountDeletionStateStore(
               );
             }
             const nextEnvelope = {
+              schemaVersion: envelope.schemaVersion,
               revision: incrementRevision(envelope.revision),
               state: null,
             };
@@ -242,6 +271,7 @@ export function createWebAccountDeletionStateStore(
               );
             }
             const nextEnvelope = {
+              schemaVersion: envelope.schemaVersion,
               revision: incrementRevision(envelope.revision),
               state: {phase, phoneNumber: authority.phoneNumber},
             };
@@ -289,6 +319,28 @@ export function createWebAccountDeletionStateStore(
   };
 }
 
+export function isCommittedWebLearningStorageUpgrade(
+  storage: BrowserStorage,
+  oldValue: string | null,
+  newValue: string | null,
+  adoptedRevision: number,
+): boolean {
+  try {
+    if (newValue === null || storage.getItem(WEB_ACCOUNT_DELETION_STORAGE_KEY) !== newValue) {
+      return false;
+    }
+    const before: WebAccountDeletionEnvelope = oldValue === null
+      ? {schemaVersion: ENVELOPE_SCHEMA_VERSION, revision: 0, state: null}
+      : parseEnvelope(parseJson(oldValue) as Record<string, unknown>);
+    const after = parseEnvelope(parseJson(newValue) as Record<string, unknown>);
+    return before.schemaVersion === ENVELOPE_SCHEMA_VERSION && before.state === null &&
+      after.schemaVersion === OUTBOX_CAPABLE_ENVELOPE_SCHEMA_VERSION && after.state === null &&
+      after.revision === adoptedRevision && after.revision === before.revision + 1;
+  } catch {
+    return false;
+  }
+}
+
 function readInitialRevision(storage: BrowserStorage): number {
   const value = storage.getItem(WEB_ACCOUNT_DELETION_STORAGE_KEY);
   const legacyRevision = readLegacyRevision(storage);
@@ -307,7 +359,11 @@ function readEnvelope(storage: BrowserStorage): WebAccountDeletionEnvelope {
   const value = storage.getItem(WEB_ACCOUNT_DELETION_STORAGE_KEY);
   const legacyRevision = readLegacyRevision(storage);
   if (value === null) {
-    const envelope = {revision: legacyRevision.value, state: null};
+    const envelope: WebAccountDeletionEnvelope = {
+      schemaVersion: ENVELOPE_SCHEMA_VERSION,
+      revision: legacyRevision.value,
+      state: null,
+    };
     if (legacyRevision.present) {
       persistEnvelope(storage, envelope);
     }
@@ -322,7 +378,8 @@ function readEnvelope(storage: BrowserStorage): WebAccountDeletionEnvelope {
   }
 
   const legacyState = parseLegacyState(parsed);
-  const envelope = {
+  const envelope: WebAccountDeletionEnvelope = {
+    schemaVersion: ENVELOPE_SCHEMA_VERSION,
     revision: incrementRevision(legacyRevision.value),
     state: legacyState,
   };
@@ -336,7 +393,7 @@ function persistEnvelope(
 ) {
   const serialized = JSON.stringify({
     revision: envelope.revision,
-    schema_version: ENVELOPE_SCHEMA_VERSION,
+    schema_version: envelope.schemaVersion,
     state:
       envelope.state === null
         ? null
@@ -357,14 +414,15 @@ function parseEnvelope(
 ): WebAccountDeletionEnvelope {
   assertExactKeys(candidate, ['revision', 'schema_version', 'state']);
   if (
-    candidate.schema_version !== ENVELOPE_SCHEMA_VERSION ||
+    (candidate.schema_version !== ENVELOPE_SCHEMA_VERSION &&
+      candidate.schema_version !== OUTBOX_CAPABLE_ENVELOPE_SCHEMA_VERSION) ||
     !Number.isSafeInteger(candidate.revision) ||
     (candidate.revision as number) < 0
   ) {
     throw new Error('Web account deletion envelope is invalid.');
   }
   if (candidate.state === null) {
-    return {revision: candidate.revision as number, state: null};
+    return {schemaVersion: candidate.schema_version, revision: candidate.revision as number, state: null};
   }
   if (
     typeof candidate.state !== 'object' ||
@@ -377,6 +435,7 @@ function parseEnvelope(
   assertPhoneNumber(state.owner_phone_number);
   assertPhase(state.phase);
   return {
+    schemaVersion: candidate.schema_version,
     revision: candidate.revision as number,
     state: {phase: state.phase, phoneNumber: state.owner_phone_number},
   };
@@ -449,8 +508,8 @@ function isEnvelopeCandidate(value: unknown): value is Record<string, unknown> {
     typeof value === 'object' &&
     value !== null &&
     !Array.isArray(value) &&
-    (value as Record<string, unknown>).schema_version ===
-      ENVELOPE_SCHEMA_VERSION
+    ((value as Record<string, unknown>).schema_version === ENVELOPE_SCHEMA_VERSION ||
+      (value as Record<string, unknown>).schema_version === OUTBOX_CAPABLE_ENVELOPE_SCHEMA_VERSION)
   );
 }
 

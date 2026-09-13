@@ -56,6 +56,59 @@ const manifest: VerifiedContentManifest = {
 };
 
 describe('Web private audio boundary', () => {
+  it.each(['expired', 'object_403'] as const)('renews %s authorization once before verifying and preparing the same audio bytes', async reason => {
+    const currentManifest = structuredClone(manifest);
+    if (reason === 'expired') currentManifest.downloads[0].expires_at = '2026-08-28T00:00:00.000Z';
+    const fresh = {...manifest.downloads[0], url: 'https://private.example.cn/renewed.mp3'};
+    const refreshDownload = vi.fn(async () => fresh);
+    const createObjectUrl = vi.fn(() => 'blob:renewed-verified');
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => String(input) === fresh.url
+      ? new Response(new TextEncoder().encode('abc'), {status: 200})
+      : new Response(null, {status: 403}));
+    const play = vi.fn(async () => undefined);
+    const playback = await prepareVerifiedCardAudio({
+      card, contentManifest: currentManifest, refreshDownload,
+      dependencies: {
+        fetchImpl, now: () => new Date('2026-08-29T00:00:00.000Z'),
+        digest: async () => hexBytes(SHA256_ABC).buffer, createObjectUrl, revokeObjectUrl: vi.fn(),
+        createAudio: () => ({addEventListener: vi.fn(), pause: vi.fn(), play}),
+      },
+    });
+    expect(refreshDownload).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(reason === 'expired' ? 1 : 2);
+    expect(createObjectUrl).toHaveBeenCalledTimes(1);
+    expect(play).not.toHaveBeenCalled();
+    await playback.play();
+    expect(play).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not loop renewal or allow its response to change the selected asset', async () => {
+    for (const wrongAsset of [false, true]) {
+      const currentManifest = structuredClone(manifest);
+      currentManifest.downloads[0].expires_at = '2026-08-28T00:00:00.000Z';
+      const refreshDownload = vi.fn(async () => ({...currentManifest.downloads[0], asset_id: wrongAsset ? 'cet4.different.audio' : card.audio.asset_id}));
+      const fetchImpl = vi.fn();
+      const createObjectUrl = vi.fn();
+      await expect(prepareVerifiedCardAudio({card, contentManifest: currentManifest, refreshDownload, dependencies: {fetchImpl, createObjectUrl, now: () => new Date('2026-08-29T00:00:00.000Z')}})).rejects.toThrow();
+      expect(refreshDownload).toHaveBeenCalledTimes(1);
+      expect(fetchImpl).not.toHaveBeenCalled();
+      expect(createObjectUrl).not.toHaveBeenCalled();
+    }
+  });
+
+  it('discards a refreshed URL after account or selection cancellation before starting its download', async () => {
+    const controller = new AbortController();
+    const currentManifest = structuredClone(manifest);
+    currentManifest.downloads[0].expires_at = '2026-08-28T00:00:00.000Z';
+    const fetchImpl = vi.fn();
+    const refreshDownload = vi.fn(async () => {
+      controller.abort();
+      return manifest.downloads[0];
+    });
+    await expect(prepareVerifiedCardAudio({card, contentManifest: currentManifest, refreshDownload, dependencies: {fetchImpl, signal: controller.signal, now: () => new Date('2026-08-29T00:00:00.000Z')}})).rejects.toMatchObject({reason: 'session_superseded'});
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('plays only a verified Blob after full byte length and SHA-256 checks', async () => {
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       expect(init?.credentials).toBe('omit');

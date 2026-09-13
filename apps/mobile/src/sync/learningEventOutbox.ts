@@ -1,9 +1,13 @@
 import type { LearningCardResult, LearningTrack } from '../learning/model';
 import type {
   LearningEventPhase,
+  LearningEventTerminalRejectionCode,
   LearningEventV2,
 } from './learningEventsRepository';
-import { MAX_LEARNING_EVENT_BATCH_SIZE } from './learningEventsRepository';
+import {
+  LEARNING_EVENT_TERMINAL_REJECTION_CODES,
+  MAX_LEARNING_EVENT_BATCH_SIZE,
+} from './learningEventsRepository';
 
 const OUTBOX_SCHEMA_VERSION = 'learning-event-outbox.v2' as const;
 export const LEARNING_EVENT_OUTBOX_STORAGE_KEY =
@@ -24,11 +28,20 @@ export type LearningEventOutboxEntry = {
   track: LearningTrack;
 };
 
+export type RejectedLearningEvent = {
+  entry: LearningEventOutboxEntry;
+  rejection: {
+    code: LearningEventTerminalRejectionCode;
+    rejectedAt: string;
+  };
+};
+
 type LearningEventOutboxState = {
   schemaVersion: typeof OUTBOX_SCHEMA_VERSION;
   deviceId: string;
   nextSequence: number;
   entries: LearningEventOutboxEntry[];
+  rejectedEntries: RejectedLearningEvent[];
 };
 
 export type LearningEventOutboxStorage = {
@@ -282,6 +295,49 @@ export class LearningEventOutbox {
     );
   }
 
+  getRejectedEntries(accountPhoneNumber: string): Promise<RejectedLearningEvent[]> {
+    return this.runExclusive(async () => {
+      requirePhoneNumber(accountPhoneNumber);
+      return this.requireState().rejectedEntries
+        .filter(item => item.entry.accountPhoneNumber === accountPhoneNumber)
+        .map(cloneRejectedEntry);
+    });
+  }
+
+  rejectIfUnchanged(
+    expected: LearningEventOutboxEntry,
+    code: LearningEventTerminalRejectionCode,
+  ): Promise<RejectedLearningEvent | null> {
+    return this.runExclusive(async () => {
+      const original = sanitizeEntry(expected);
+      if (!LEARNING_EVENT_TERMINAL_REJECTION_CODES.includes(code)) {
+        throw new Error('Learning event rejection code is invalid.');
+      }
+      const state = this.requireState();
+      const index = state.entries.findIndex(
+        entry => JSON.stringify(entry) === JSON.stringify(original),
+      );
+      // A late response cannot recreate an event removed by logout, another
+      // tab's acknowledgement, or a newer lifecycle of the same account.
+      if (index < 0) return null;
+      const rejectedAt = this.now();
+      if (!isRfc3339Instant(rejectedAt)) {
+        throw new Error('Learning event rejection time is invalid.');
+      }
+      const rejected: RejectedLearningEvent = {
+        entry: cloneEntry(state.entries[index]),
+        rejection: {code, rejectedAt},
+      };
+      const candidate = cloneState(state);
+      candidate.entries.splice(index, 1);
+      candidate.rejectedEntries.push(rejected);
+      // One durable write both removes pending work and preserves the exact
+      // rejected payload. A failed write leaves the original retryable.
+      await this.persistCandidate(candidate, true);
+      return cloneRejectedEntry(rejected);
+    });
+  }
+
   clearAccount(accountPhoneNumber: string): Promise<void> {
     return this.runExclusive(async () => {
       requirePhoneNumber(accountPhoneNumber);
@@ -289,6 +345,9 @@ export class LearningEventOutbox {
 
       candidate.entries = candidate.entries.filter(
         entry => entry.accountPhoneNumber !== accountPhoneNumber,
+      );
+      candidate.rejectedEntries = candidate.rejectedEntries.filter(
+        item => item.entry.accountPhoneNumber !== accountPhoneNumber,
       );
       await this.persistCandidate(candidate);
       const persisted = await this.storage.getItem(this.key);
@@ -372,8 +431,12 @@ export class LearningEventOutbox {
     return this.state;
   }
 
-  private async persistCandidate(candidate: LearningEventOutboxState) {
-    await this.storage.setItem(this.key, JSON.stringify(candidate));
+  private async persistCandidate(candidate: LearningEventOutboxState, verify = false) {
+    const serialized = JSON.stringify(candidate);
+    await this.storage.setItem(this.key, serialized);
+    if (verify && await this.storage.getItem(this.key) !== serialized) {
+      throw new Error('Learning event rejection persistence verification failed.');
+    }
     this.state = candidate;
   }
 }
@@ -396,8 +459,10 @@ function isPersistedAccountCleared(
         'deviceId',
         'nextSequence',
         'entries',
+        'rejectedEntries',
       ]) ||
-      !Array.isArray(parsed.entries)
+      !Array.isArray(parsed.entries) ||
+      !Array.isArray(parsed.rejectedEntries)
     ) {
       return false;
     }
@@ -405,9 +470,13 @@ function isPersistedAccountCleared(
     const sanitized = sanitizeState(parsed, createDeviceId);
     return (
       sanitized.entries.length === parsed.entries.length &&
+      sanitized.rejectedEntries.length === parsed.rejectedEntries.length &&
       JSON.stringify(sanitized) === JSON.stringify(parsed) &&
       sanitized.entries.every(
         entry => entry.accountPhoneNumber !== accountPhoneNumber,
+      ) &&
+      sanitized.rejectedEntries.every(
+        item => item.entry.accountPhoneNumber !== accountPhoneNumber,
       )
     );
   } catch {
@@ -420,12 +489,18 @@ function sanitizeState(
   createDeviceId: () => string,
 ): LearningEventOutboxState {
   if (
-    !isExactObject(candidate, [
+    (!isExactObject(candidate, [
       'schemaVersion',
       'deviceId',
       'nextSequence',
       'entries',
-    ]) ||
+    ]) && !isExactObject(candidate, [
+      'schemaVersion',
+      'deviceId',
+      'nextSequence',
+      'entries',
+      'rejectedEntries',
+    ])) ||
     candidate.schemaVersion !== OUTBOX_SCHEMA_VERSION
   ) {
     return createEmptyState(createDeviceId());
@@ -441,6 +516,24 @@ function sanitizeState(
   const seenCursorKeys = new Set<string>();
   const seenEventIds = new Set<string>();
   const seenAccounts = new Set<string>();
+  const rejectedEntries: RejectedLearningEvent[] = Array.isArray(candidate.rejectedEntries)
+    ? candidate.rejectedEntries.flatMap(item => {
+        try {
+          const rejected = sanitizeRejectedEntry(item);
+          const event = rejected.entry.event;
+          const cursorKey = `${event.device_cursor.device_id}:${event.device_cursor.sequence}`;
+          if (
+            event.event_id !== createEventId(event.device_cursor.device_id, event.device_cursor.sequence) ||
+            seenCursorKeys.has(cursorKey) || seenEventIds.has(event.event_id)
+          ) return [];
+          seenCursorKeys.add(cursorKey);
+          seenEventIds.add(event.event_id);
+          return [rejected];
+        } catch {
+          return [];
+        }
+      })
+    : [];
   const entries = Array.isArray(candidate.entries)
     ? candidate.entries.flatMap(entry => {
         try {
@@ -469,7 +562,7 @@ function sanitizeState(
         }
       })
     : [];
-  const highestCurrentDeviceSequence = entries.reduce(
+  const highestCurrentDeviceSequence = [...entries, ...rejectedEntries.map(item => item.entry)].reduce(
     (highest, entry) =>
       entry.event.device_cursor.device_id === deviceId
         ? Math.max(highest, entry.event.device_cursor.sequence)
@@ -491,6 +584,25 @@ function sanitizeState(
     deviceId,
     nextSequence: nextSequence as number,
     entries,
+    rejectedEntries,
+  };
+}
+
+function sanitizeRejectedEntry(candidate: unknown): RejectedLearningEvent {
+  if (
+    !isExactObject(candidate, ['entry', 'rejection']) ||
+    !isExactObject(candidate.rejection, ['code', 'rejectedAt']) ||
+    !LEARNING_EVENT_TERMINAL_REJECTION_CODES.includes(candidate.rejection.code as LearningEventTerminalRejectionCode) ||
+    !isRfc3339Instant(candidate.rejection.rejectedAt)
+  ) {
+    throw new Error('Rejected learning event is invalid.');
+  }
+  return {
+    entry: sanitizeEntry(candidate.entry),
+    rejection: {
+      code: candidate.rejection.code as LearningEventTerminalRejectionCode,
+      rejectedAt: candidate.rejection.rejectedAt,
+    },
   };
 }
 
@@ -678,6 +790,7 @@ function createEmptyState(deviceId: string): LearningEventOutboxState {
     deviceId: requireDeviceId(deviceId),
     nextSequence: 1,
     entries: [],
+    rejectedEntries: [],
   };
 }
 
@@ -704,6 +817,10 @@ function cloneState(state: LearningEventOutboxState): LearningEventOutboxState {
 
 function cloneEntry(entry: LearningEventOutboxEntry): LearningEventOutboxEntry {
   return JSON.parse(JSON.stringify(entry)) as LearningEventOutboxEntry;
+}
+
+function cloneRejectedEntry(entry: RejectedLearningEvent): RejectedLearningEvent {
+  return JSON.parse(JSON.stringify(entry)) as RejectedLearningEvent;
 }
 
 function isRfc3339Instant(candidate: unknown): candidate is string {

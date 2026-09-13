@@ -71,6 +71,7 @@ input + label { margin-top: .75rem; }
 
 .learning-workbench { width:min(820px,100%); margin:0 auto; padding:24px 32px 32px; }
 .learning-address { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.next-card-status { position:sticky; top:12px; z-index:1; margin:0 auto 12px; }
 .learning-address .address-button { display:flex; flex-wrap:wrap; gap:5px; align-items:center; padding:8px 0; font-size:12px; line-height:1.5; text-align:left; }
 .address-button strong { font-weight:500; color:var(--ink); }
 .library-dot { width:6px; height:6px; display:inline-block; background:var(--hall); border-radius:50%; margin-right:6px; }

@@ -43,6 +43,13 @@ Before authentication, show a calm identity gate with phone SMS verification. Do
 
 The current card owns the center workbench. The center region branches at shape level for flip, multiple choice, lock, elimination, and swipe. Review appears as an attached answer slip on the same object. Audio appears as an attached resource chip with ready, preparing, playing, paused, and recoverable states governed by the existing audio artifact.
 
+Each new server selection starts at the question and beginning of its material,
+even when the previous answer required a long scroll. An update to the same
+selection preserves its reading position and draft. A supplied listening
+transcript is collapsed under the resolved answer and can be opened explicitly;
+it never appears before answering. A corrected lock attempt is completed with
+“已解锁，稍后再回看”, following the attempt assessment in `spec/interactions.json`.
+
 For a resolved multiple-choice card, the attached slip explicitly labels the
 learner's choice and the correct answer before the explanation. Show each option
 label and full text; color is supplementary. No correct-answer disclosure appears
@@ -61,10 +68,14 @@ The observed failure was that selecting a sibling moved “当前学习” to th
 ### Statistics
 
 Statistics uses a quiet daily ledger and tabular numerals. It does not become the default home, achievement wall, or chart dashboard.
+User-facing copy describes today's completed work and what needs revisiting;
+it does not explain rejected design patterns or implementation choices.
 
 ### Mine And Membership
 
 Mine centers one account object with phone identity, membership state, purchase/restore, and sign-out controls. A membership interruption attaches to the current limited object and preserves enough Learning or Space context to explain why access is limited.
+The visible title is “我的账户”; object terminology belongs to the design model,
+not the learner's account page.
 
 ## Input And Motion
 

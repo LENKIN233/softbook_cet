@@ -28,6 +28,7 @@ describe('Web account deletion recovery repository', () => {
     const repository = createWebAccountDeletionRecoveryRepository({
       baseUrl: 'https://runtime.example.cn/',
       fetchImpl,
+      headers: {Authorization: 'must-not-send', Cookie: 'must-not-send', 'x-softbook-client': 'mobile'},
     });
 
     const challenge = await repository.requestCode({
@@ -73,6 +74,7 @@ describe('Web account deletion recovery repository', () => {
     );
     for (const [, init] of fetchImpl.mock.calls) {
       expect(new Headers(init?.headers).has('Authorization')).toBe(false);
+      expect(new Headers(init?.headers).has('Cookie')).toBe(false);
       expect(new Headers(init?.headers).get('x-softbook-client')).toBe('web');
     }
   });

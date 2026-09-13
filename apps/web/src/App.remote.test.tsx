@@ -34,6 +34,91 @@ describe('PC Web remote UI authority', () => {
     delete window.__SOFTBOOK_WEB_RUNTIME__;
   });
 
+  it('starts a new server selection at the beginning without resetting an auxiliary same-card update', async () => {
+    const initial = createSnapshot('premium');
+    const next = createSnapshot('premium');
+    next.learningSession.cards = [next.learningSession.catalogCards[1]];
+    next.learningSession.serverSelection = {...next.learningSession.serverSelection!, cardId: '000002', selectionId: 'sel_next_1234567890'};
+    const controller = createController(initial, {loadAuthenticatedState: vi.fn(async () => next)});
+    await authenticateRemote(controller);
+    vi.mocked(window.scrollTo).mockClear();
+    fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
+    await act(async () => undefined);
+    expect(window.scrollTo).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(await screen.findByRole('button', {name: '继续下一张'}));
+    await screen.findByRole('heading', {name: 'Card 2 prompt'});
+    expect(window.scrollTo).toHaveBeenCalledWith({behavior: 'auto', top: 0});
+  });
+
+  it('offers a supplied listening original only after answering and hides it initially', async () => {
+    const snapshot = createSnapshot('premium');
+    const original = 'Listen to the complete original passage. Its final line is preserved.';
+    snapshot.learningSession.cards[0].audio = {asset_id: 'original', duration_ms: 1000, sha256: `sha256:${'a'.repeat(64)}`, transcript: original};
+    await authenticateRemote(createController(snapshot));
+    expect(screen.queryByText(original)).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    expect(screen.queryByText(original)).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('button', {name: '继续下一张'});
+    expect(screen.getByText(original)).not.toBeVisible();
+    fireEvent.click(screen.getByText('听力原文'));
+    expect(screen.getByText(original)).toBeVisible();
+  });
+
+  it('refreshes after a rejected completion without showing it as an accepted result', async () => {
+    const initial = createSnapshot('premium');
+    const next = createSnapshot('premium');
+    next.learningSession.cards = [next.learningSession.catalogCards[1]];
+    next.learningSession.serverSelection = {...next.learningSession.serverSelection!, cardId: '000002', selectionId: 'sel_recovered_1234567890'};
+    next.learningSync = {pendingEventCount: 0, rejectedEventCount: 1, rejectionCodes: ['learning_event_selection_conflict'], status: 'rejected'};
+    const controller = createController(initial, {
+      completeCurrentCard: vi.fn(async () => ({...next.learningSync, completionStatus: 'rejected' as const})),
+      loadAuthenticatedState: vi.fn(async () => next),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('heading', {name: 'Card 2 prompt'});
+    expect(screen.queryByRole('region', {name: '答案对照'})).toBeNull();
+    expect(screen.getByRole('button', {name: '翻面看答案'})).toBeEnabled();
+    expect(screen.getByText(/这次结果未计入，学习安排已更新/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    expect(screen.getByText('已完成').closest('div')).toHaveTextContent('0 / 4');
+    expect(screen.getByText(/1 次学习结果未计入/)).toBeInTheDocument();
+  });
+
+  it('keeps rejected-result recovery usable when the first canonical refresh fails', async () => {
+    const snapshot = createSnapshot('premium');
+    const load = vi.fn().mockRejectedValueOnce(new Error('temporarily unavailable')).mockResolvedValueOnce(snapshot);
+    const complete = vi.fn(async () => ({pendingEventCount: 0, rejectedEventCount: 1, status: 'rejected' as const, completionStatus: 'rejected' as const}));
+    await authenticateRemote(createController(snapshot, {completeCurrentCard: complete, loadAuthenticatedState: load}));
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('heading', {name: '这次结果未计入'});
+    expect(screen.queryByRole('button', {name: '重试同步当前结果'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '重新读取服务端进度'}));
+    await screen.findByText(/这次结果未计入，学习安排已更新/);
+    expect(complete).toHaveBeenCalledTimes(1);
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('heading', {name: '这次结果未计入'})).toBeNull();
+  });
+
+  it('keeps a new accepted completion distinct from historical rejected results', async () => {
+    const snapshot = createSnapshot('premium');
+    snapshot.learningSync = {pendingEventCount: 0, rejectedEventCount: 1, status: 'rejected'};
+    await authenticateRemote(createController(snapshot, {
+      completeCurrentCard: vi.fn(async () => ({...snapshot.learningSync, completionStatus: 'confirmed' as const})),
+    }));
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('region', {name: '答案对照'});
+    expect(screen.getByText('已记为有把握')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '继续下一张'})).toBeEnabled();
+    expect(screen.getByText(/1 次学习结果未计入/)).toBeInTheDocument();
+  });
+
   it('keeps the visible favorite unchanged until durable enqueue succeeds', async () => {
     const snapshot = createSnapshot('premium');
     let rejectMutation: ((error: Error) => void) | null = null;
@@ -78,6 +163,19 @@ describe('PC Web remote UI authority', () => {
     expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: '翻面看答案'})).toBeNull();
     expect(screen.getByRole('button', {name: '有把握'})).toBeEnabled();
+  });
+
+  it.each(['content', 'phase'] as const)('starts a fresh attempt when %s changes even if a selection id is reused', async change => {
+    const initial = createSnapshot('premium');
+    const changed = createSnapshot('premium');
+    if (change === 'content') changed.learningSession.contentVersion = `sha256:${'ab'.repeat(32)}`;
+    else changed.learningSession.serverSelection = {...changed.learningSession.serverSelection!, phase: 'review'};
+    await authenticateRemote(createController(initial, {applySpaceState: vi.fn(async () => changed)}));
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    expect(screen.getByRole('button', {name: '有把握'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
+    await screen.findByRole('button', {name: '翻面看答案'});
+    expect(screen.queryByRole('button', {name: '有把握'})).toBeNull();
   });
 
   it('keeps Mine and logout reachable when the first account snapshot fails', async () => {

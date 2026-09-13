@@ -19,11 +19,36 @@ jest.mock('react-native-blob-util', () => ({
   },
 }));
 
+// Every rendered tree owns subscriptions and timers. Dispose them after each
+// case so authentication countdowns and native listeners cannot outlive tests.
+let renderedTrees = [];
+let rendererCreateSpy;
+beforeEach(() => {
+  const ReactTestRenderer = require('react-test-renderer');
+  const create = ReactTestRenderer.create;
+  rendererCreateSpy = jest
+    .spyOn(ReactTestRenderer, 'create')
+    .mockImplementation((...args) => {
+      const tree = create(...args);
+      renderedTrees.push(tree);
+      return tree;
+    });
+});
+afterEach(async () => {
+  const ReactTestRenderer = require('react-test-renderer');
+  const trees = renderedTrees;
+  renderedTrees = [];
+  await ReactTestRenderer.act(() => trees.forEach(tree => tree.unmount()));
+  rendererCreateSpy.mockRestore();
+});
+
 beforeEach(async () => {
   const { AccessibilityInfo, Dimensions } = require('react-native');
   // Domain regressions use the direct reduced-motion path. Normal-motion
   // cancellation and single-commit behavior are exercised in NativeMotion.test.
-  jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+  jest
+    .spyOn(AccessibilityInfo, 'isReduceMotionEnabled')
+    .mockResolvedValue(true);
   const AsyncStorage =
     require('@react-native-async-storage/async-storage').default;
   const NetInfo = require('@react-native-community/netinfo');

@@ -46,6 +46,33 @@ function createAck(events: LearningEventV2[]) {
 }
 
 describe('learningEventsRepository', () => {
+  it.each([
+    'learning_event_selection_conflict',
+    'learning_event_id_conflict',
+    'learning_event_cursor_conflict',
+  ])('preserves the exact permanent rejection code %s without exposing server text', async code => {
+    const repository = createLearningEventsRepository({
+      fetchImpl: async () => ({ok: false, status: 409, json: async () => ({error: {code, message: 'private server diagnostics'}})}),
+      mode: 'remote', remoteConfig: {endpoint: 'https://api.softbook.example/v2/learning/events'},
+    });
+    await expect(repository.submitEvents({authToken: 'token', phoneNumber: '13800138000'}, 'cet4', [createEvent()]))
+      .rejects.toMatchObject({status: 409, code, message: 'Remote learning events sync failed with 409.'});
+  });
+
+  it.each([
+    {status: 409, body: {error: {code: 'unknown_conflict', message: 'unknown'}}},
+    {status: 503, body: {error: {code: 'learning_event_selection_conflict', message: 'wrong status'}}},
+    {status: 409, body: {error: {code: 'learning_event_selection_conflict'}}},
+    {status: 409, body: {error: {code: 'learning_event_selection_conflict', message: 'extra'}, data: {}}},
+  ])('keeps ambiguous rejection $status/$body pending', async ({status, body}) => {
+    const repository = createLearningEventsRepository({
+      fetchImpl: async () => ({ok: false, status, json: async () => body}),
+      mode: 'remote', remoteConfig: {endpoint: 'https://api.softbook.example/v2/learning/events'},
+    });
+    await expect(repository.submitEvents({authToken: 'token', phoneNumber: '13800138000'}, 'cet4', [createEvent()]))
+      .rejects.toMatchObject({status, code: null});
+  });
+
   it('posts the strict v2 payload without account identity or credentials', async () => {
     const events = [createEvent()];
     const fetchImpl = jest.fn<

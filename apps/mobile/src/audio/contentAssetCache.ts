@@ -6,6 +6,13 @@ import type {
 const DEFAULT_DOWNLOAD_TIMEOUT_MS = 15_000;
 const CACHE_SCHEMA_DIRECTORY = 'softbook-content-v1';
 
+export class ContentAssetDownloadAuthorizationError extends Error {
+  constructor(readonly reason: 'expired' | 'rejected') {
+    super(reason === 'expired' ? 'Content asset download URL has expired.' : 'Content asset download authorization was rejected.');
+    this.name = 'ContentAssetDownloadAuthorizationError';
+  }
+}
+
 export type ContentAssetCacheFile = {
   path: string;
   uri: string;
@@ -135,6 +142,9 @@ async function resolveContentAsset(options: {
     });
 
     if (result.status !== 200) {
+      if (result.status === 401 || result.status === 403) {
+        throw new ContentAssetDownloadAuthorizationError('rejected');
+      }
       throw new Error(
         `Content asset download returned unexpected status ${result.status}.`,
       );
@@ -223,7 +233,7 @@ function assertDownloadIsUsable(download: ContentAssetDownload, now: Date) {
   const expiry = Date.parse(download.expires_at);
 
   if (Number.isNaN(expiry) || expiry <= now.getTime()) {
-    throw new Error('Content asset download URL has expired.');
+    throw new ContentAssetDownloadAuthorizationError('expired');
   }
 
   assertContentAssetCredentialFreeHttps(download.url, 'download URL');

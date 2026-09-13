@@ -12,6 +12,61 @@ import {
 } from './webStorage';
 
 describe('Web persistence boundary', () => {
+  it('serializes concurrent permanent rejection across tabs without duplicating or reviving the pending event', async () => {
+    localStorage.clear();
+    const first = createOutbox('webdevice_reject_first');
+    const second = createOutbox('webdevice_reject_second');
+    await Promise.all([first.hydrate(), second.hydrate()]);
+    const original = await first.enqueueCompletion(createCompletion('13800138000', '000001', 'sel_1234567890abcdef'));
+    const results = await Promise.all([
+      first.rejectIfUnchanged(original, 'learning_event_selection_conflict'),
+      second.rejectIfUnchanged(original, 'learning_event_selection_conflict'),
+      second.enqueueCompletion(createCompletion('13900139000', '000002', 'sel_other_account_12345678')),
+    ]);
+    expect(results.slice(0, 2).filter(Boolean)).toHaveLength(1);
+    const reader = createOutbox('webdevice_reject_reader');
+    expect((await reader.getAll()).map(entry => entry.accountPhoneNumber)).toEqual(['13900139000']);
+    const rejected = await reader.getRejectedEntries('13800138000');
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].entry).toEqual(original);
+    await expect(first.rejectIfUnchanged(original, 'learning_event_selection_conflict')).resolves.toBeNull();
+  });
+
+  it('does not append a late rejection after another tab already acknowledged that exact event', async () => {
+    localStorage.clear();
+    const first = createOutbox('webdevice_ack_first');
+    const second = createOutbox('webdevice_ack_second');
+    await Promise.all([first.hydrate(), second.hydrate()]);
+    const original = await first.enqueueCompletion(createCompletion('13800138000', '000001', 'sel_1234567890abcdef'));
+    await first.acknowledge('13800138000', [original.event.event_id]);
+    await expect(second.rejectIfUnchanged(original, 'learning_event_selection_conflict')).resolves.toBeNull();
+    await expect(second.getRejectedEntries('13800138000')).resolves.toEqual([]);
+    await expect(second.getPendingCount('13800138000')).resolves.toBe(0);
+  });
+
+  it('does not accept account cleanup that hides retained rejected events outside pending entries', async () => {
+    localStorage.clear();
+    const fence = createBoundAccountWriteFence();
+    const storage = createWebLearningEventStorage(localStorage, fence);
+    const outbox = createOutbox('webdevice_reject_cleanup', fence);
+    const original = await outbox.enqueueCompletion(createCompletion('13800138000', '000001', 'sel_1234567890abcdef'));
+    await outbox.rejectIfUnchanged(original, 'learning_event_selection_conflict');
+    const rejectedEnvelope = localStorage.getItem('__softbook_learning_event_outbox_v2')!;
+    const deletionStore = createWebAccountDeletionStateStore(localStorage);
+    const requesting = await deletionStore.beginRequesting?.('13800138000', 0);
+    await deletionStore.resolveRequesting?.(requesting!, 'accepted');
+    await fence.runAccountCleanup({ownerPhoneNumber: '13800138000', revision: await deletionStore.getRevision()}, async () => {
+      await expect(storage.setItem('__softbook_learning_event_outbox_v2', rejectedEnvelope)).rejects.toThrow('不能写入新的学习记录');
+      await outbox.clearAccount('13800138000');
+    });
+    await clearCurrentDeletionState(deletionStore, 'accepted');
+    const fresh = createOutbox('webdevice_new_lifecycle');
+    const next = await fresh.enqueueCompletion(createCompletion('13800138000', '000002', 'sel_new_lifecycle_12345678'));
+    await expect(outbox.rejectIfUnchanged(original, 'learning_event_selection_conflict')).resolves.toBeNull();
+    await expect(fresh.getRejectedEntries('13800138000')).resolves.toEqual([]);
+    await expect(fresh.getAll()).resolves.toEqual([next]);
+  });
+
   it('keeps access and refresh credentials in memory only', async () => {
     const store = createMemoryOnlyAuthSessionStore();
     const session: RemoteAuthSession = {
@@ -486,6 +541,14 @@ function createMutationQueue(
 }
 
 function createBoundAccountWriteFence(): WebAccountWriteFence {
+  // These tests start after ordinary authentication has prepared storage.
+  if (localStorage.getItem('softbook-cet/web-account-deletion/v1') === null) {
+    localStorage.setItem('softbook-cet/web-account-deletion/v1', JSON.stringify({
+      revision: 0,
+      schema_version: 'web-account-deletion-envelope.v3',
+      state: null,
+    }));
+  }
   const fence = createWebAccountWriteFence(localStorage);
   const rawEnvelope = localStorage.getItem(
     'softbook-cet/web-account-deletion/v1',

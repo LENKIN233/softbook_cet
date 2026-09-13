@@ -50,6 +50,36 @@ The deletion entry starts inside the account object and expands in place:
 3. `accepted`: remove the operable signed-in shell, say that the request was accepted and the account was signed out, and say that cleanup may still be in progress.
 4. `recoverable_unknown`: preserve the account object, expose safe retry, reveal no raw transport or provider language, and do not claim either erasure or non-erasure.
 
+### Account recovery correction, 2026-09-12
+
+The running mobile account flow exposed two failures: closing an unknown deletion
+discarded its retry authority, and a failed ordinary logout cleanup silently
+returned to the normal login form. Closing the deletion sheet now returns to a
+quiet account recovery object. It keeps the same unknown request and one
+`继续确认删除` action; it cannot reopen ordinary account operations or logout.
+Only the initial, unsent confirmation offers `保留账户`.
+
+Ordinary logout uses the same neutral identity-card silhouette as local deletion
+cleanup, with distinct `正在退出登录` / `退出尚未完成` copy and one retry action.
+It never claims a deletion request was accepted. A durable local-cleanup marker
+keeps this recovery state across restart, and normal phone verification returns
+only after account stores have been cleared and checked. Busy actions remain
+disabled, state changes are announced, and the card scrolls at large text sizes.
+
+The SMS identity object keeps the current code and challenge on failed resend.
+A phone-bound wait appears inside the resend control; changing away from and
+back to the same phone does not remove its wait. During that wait the user may
+still verify the code already received. Sending and waiting are visibly
+different states, and no countdown is announced once per second.
+
+On restart, an unresolved deletion opens a dedicated account recovery card
+before ordinary login. The phone is fixed to the retained owner and masked.
+Its SMS code only queries deletion status. A pending result says `账户仍在清理`
+and retains a query action; a none result first completes local cleanup and then
+returns to phone verification, without a success or deletion-completed claim.
+Failed queries preserve the entry, entered code and retry action. Each request
+has one disabled busy control, and the panel remains scrollable with large text.
+
 ## Platform adaptation
 
 - Phone: check-in states stay inside the daily object; deletion confirmation/submission/failure use the existing account-attached sheet silhouette. Accepted deletion becomes a neutral signed-out identity object.

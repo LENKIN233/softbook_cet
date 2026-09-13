@@ -1,4 +1,4 @@
-import type { ContentAssetCache } from '../src/audio/contentAssetCache';
+import {ContentAssetDownloadAuthorizationError, type ContentAssetCache} from '../src/audio/contentAssetCache';
 import { getAudioPresentation } from '../src/audio/LearningAudioPlayer';
 import {
   LearningAudioController,
@@ -98,6 +98,71 @@ test('selection never starts audio until the user presses the control', () => {
   expect(cache.resolve).not.toHaveBeenCalled();
   expect(engine.prepare).not.toHaveBeenCalled();
   expect(engine.play).not.toHaveBeenCalled();
+});
+
+test('renews an expired first-use authorization once and plays the same verified selected asset', async () => {
+  const {engine} = createEngine();
+  const freshDownload = {...selection.download, url: 'https://private-content.example/renewed.mp3', expires_at: '2031-01-01T00:00:00.000Z'};
+  const cache = createCache(jest.fn(async input => {
+    if (input.download.url === selection.download.url) throw new ContentAssetDownloadAuthorizationError('expired');
+    expect(input.asset).toEqual(selection.asset);
+    return {path: '/verified/audio.mp3', uri: 'file:///verified/audio.mp3'};
+  }));
+  const refreshDownload = jest.fn(async () => freshDownload);
+  const controller = new LearningAudioController({cache, engine, refreshDownload});
+  controller.select(selection);
+  expect(refreshDownload).not.toHaveBeenCalled();
+  await controller.press();
+  expect(refreshDownload).toHaveBeenCalledTimes(1);
+  expect(refreshDownload).toHaveBeenCalledWith(selection);
+  expect(engine.play).toHaveBeenCalledTimes(1);
+  expect(controller.getState()).toEqual({status: 'playing'});
+  await controller.press();
+  await controller.press();
+  expect(refreshDownload).toHaveBeenCalledTimes(1);
+});
+
+test('bounds authorization refresh and never retries integrity failure as authorization', async () => {
+  for (const error of [new ContentAssetDownloadAuthorizationError('rejected'), new Error('SHA-256 mismatch')]) {
+    const {engine} = createEngine();
+    const refreshDownload = jest.fn(async () => selection.download);
+    const controller = new LearningAudioController({cache: createCache(jest.fn().mockRejectedValue(error)), engine, refreshDownload});
+    controller.select(selection);
+    await controller.press();
+    expect(refreshDownload).toHaveBeenCalledTimes(error instanceof ContentAssetDownloadAuthorizationError ? 1 : 0);
+    expect(engine.play).not.toHaveBeenCalled();
+    expect(controller.getState().status).toBe('error');
+  }
+});
+
+test.each(['selection', 'background', 'dispose'] as const)('discards late authorization refresh after %s interruption', async interruption => {
+  const {engine} = createEngine();
+  const refreshed = createDeferred<LearningAudioSelection['download']>();
+  const refreshDownload = jest.fn(() => refreshed.promise);
+  const controller = new LearningAudioController({cache: createCache(jest.fn().mockRejectedValue(new ContentAssetDownloadAuthorizationError('expired'))), engine, refreshDownload});
+  controller.select(selection);
+  const press = controller.press();
+  while (refreshDownload.mock.calls.length === 0) await Promise.resolve();
+  if (interruption === 'selection') controller.select({...selection, authorityToken: 'sel_different_attempt_12345'});
+  else if (interruption === 'background') await controller.pauseForInterruption();
+  else controller.dispose();
+  refreshed.resolve({...selection.download, expires_at: '2031-01-01T00:00:00.000Z'});
+  await press;
+  expect(engine.prepare).not.toHaveBeenCalled();
+  expect(engine.play).not.toHaveBeenCalled();
+});
+
+test('refuses a refreshed download for a different asset and skips renewal offline', async () => {
+  for (const online of [true, false]) {
+    const {engine} = createEngine();
+    const refreshDownload = jest.fn(async () => ({...selection.download, asset_id: 'cet4.other.audio'}));
+    const controller = new LearningAudioController({cache: createCache(jest.fn().mockRejectedValue(new ContentAssetDownloadAuthorizationError('expired'))), engine, refreshDownload, isOnline: () => online});
+    controller.select(selection);
+    await controller.press();
+    expect(refreshDownload).toHaveBeenCalledTimes(online ? 1 : 0);
+    expect(engine.play).not.toHaveBeenCalled();
+    expect(controller.getState()).toEqual({status: 'error', reason: online ? 'temporary' : 'offline'});
+  }
 });
 
 test('all five playback states map to bounded user-facing copy', () => {

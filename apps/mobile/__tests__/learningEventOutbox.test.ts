@@ -38,6 +38,69 @@ function createInput(cardId = '100101') {
 }
 
 describe('LearningEventOutbox', () => {
+  it('atomically isolates an immutable rejected event across restart and preserves the next sequence', async () => {
+    const storage = createInMemoryLearningEventOutboxStorage();
+    const outbox = new LearningEventOutbox({storage, createDeviceId: () => 'install_rejected_device'});
+    const original = await outbox.enqueueCompletion(createInput());
+    const rejected = await outbox.rejectIfUnchanged(original, 'learning_event_selection_conflict');
+    expect(rejected?.entry).toEqual(original);
+    const restored = new LearningEventOutbox({storage});
+    await expect(restored.getPendingCount(PHONE)).resolves.toBe(0);
+    await expect(restored.getRejectedEntries(PHONE)).resolves.toEqual([rejected]);
+    const next = await restored.enqueueCompletion({...createInput('100102'), selectionId: 'sel_next_selection_1234567'});
+    expect(next.event.device_cursor.sequence).toBe(original.event.device_cursor.sequence + 1);
+    await expect(restored.rejectIfUnchanged(original, 'learning_event_selection_conflict')).resolves.toBeNull();
+    await expect(restored.getAll()).resolves.toEqual([next]);
+    await expect(restored.getRejectedEntries(PHONE)).resolves.toEqual([rejected]);
+  });
+
+  it.each(['write', 'readback'] as const)('preserves pending truth after rejection persistence %s failure', async failure => {
+    let fail = false;
+    const memory = createInMemoryLearningEventOutboxStorage();
+    const storage = {
+      ...memory,
+      setItem: async (key: string, value: string) => {
+        if (fail && failure === 'write') throw new Error('disk failure');
+        if (!fail) await memory.setItem(key, value);
+      },
+    };
+    const outbox = new LearningEventOutbox({storage, createDeviceId: () => 'install_reject_failure'});
+    const original = await outbox.enqueueCompletion(createInput());
+    fail = true;
+    await expect(outbox.rejectIfUnchanged(original, 'learning_event_selection_conflict')).rejects.toThrow();
+    await expect(outbox.getAll()).resolves.toEqual([original]);
+    await expect(outbox.getRejectedEntries(PHONE)).resolves.toEqual([]);
+    const restored = new LearningEventOutbox({storage});
+    await expect(restored.getAll()).resolves.toEqual([original]);
+  });
+
+  it('cleans both ledgers and cannot resurrect a previous same-phone lifecycle from a stale native instance', async () => {
+    const storage = createReactNativeLearningEventOutboxStorage();
+    const stale = new LearningEventOutbox({storage, createDeviceId: () => 'install_native_lifecycle'});
+    const cleanup = new LearningEventOutbox({storage});
+    await Promise.all([stale.hydrate(), cleanup.hydrate()]);
+    const original = await stale.enqueueCompletion(createInput());
+    await cleanup.rejectIfUnchanged(original, 'learning_event_selection_conflict');
+    await cleanup.clearAccount(PHONE);
+    const fresh = await cleanup.enqueueCompletion({...createInput('100102'), selectionId: 'sel_new_account_123456789'});
+    await expect(stale.rejectIfUnchanged(original, 'learning_event_selection_conflict')).resolves.toBeNull();
+    await expect(stale.getAll()).resolves.toEqual([fresh]);
+    await expect(stale.getRejectedEntries(PHONE)).resolves.toEqual([]);
+    expect(fresh.event.event_id).not.toBe(original.event.event_id);
+  });
+
+  it('migrates the original four-field v2 envelope without losing a pending event', async () => {
+    const seed: Record<string, string> = {};
+    const storage = createInMemoryLearningEventOutboxStorage(seed);
+    const original = await new LearningEventOutbox({storage}).enqueueCompletion(createInput());
+    const legacy = JSON.parse(seed[LEARNING_EVENT_OUTBOX_STORAGE_KEY]);
+    delete legacy.rejectedEntries;
+    seed[LEARNING_EVENT_OUTBOX_STORAGE_KEY] = JSON.stringify(legacy);
+    const restored = new LearningEventOutbox({storage});
+    await expect(restored.getAll()).resolves.toEqual([original]);
+    await expect(restored.getRejectedEntries(PHONE)).resolves.toEqual([]);
+  });
+
   it('preserves mobile durability through the explicit AsyncStorage adapter', async () => {
     const storage = createReactNativeLearningEventOutboxStorage();
     const first = new LearningEventOutbox({

@@ -1,5 +1,6 @@
 import {
   createContentAssetCache,
+  ContentAssetDownloadAuthorizationError,
   type ContentAssetCacheFileSystem,
 } from '../src/audio/contentAssetCache';
 import type {
@@ -81,6 +82,16 @@ test('returns a verified content-addressed cache hit without using the signed UR
     uri: `file://${targetPath()}`,
   });
   expect(fileSystem.download).not.toHaveBeenCalled();
+});
+
+test.each([401, 403])('reports renewable object authorization failure %s while deleting partial bytes', async status => {
+  const {fileSystem, files} = createFileSystem();
+  jest.mocked(fileSystem.download).mockImplementation(async ({destinationPath}) => {
+    files.set(destinationPath, {hash: DIGEST, sizeBytes: 20});
+    return {status};
+  });
+  await expect(createCache(fileSystem).resolve({asset: ASSET, download: DOWNLOAD})).rejects.toBeInstanceOf(ContentAssetDownloadAuthorizationError);
+  expect(files.size).toBe(0);
 });
 
 test('removes a corrupt cache entry then verifies and promotes a download', async () => {

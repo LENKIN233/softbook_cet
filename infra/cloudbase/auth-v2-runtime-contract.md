@@ -91,6 +91,51 @@ branches all keep the same success-shaped acknowledgement. A branch refused by
 the phone/task fence creates no phone counter, challenge, or provider request,
 so request-code cannot be used as a `200`/`403`/`409` account-state oracle.
 
+`retry_after_seconds` is a recommended minimum resend interval, computed as
+`ceil(rateLimitWindowSeconds / phoneRequestLimit)` (120 seconds by default),
+not a disclosure of remaining quota or successful delivery. Every success-shaped
+branch returns the same interval. Requests following it cannot exceed the
+per-phone quota within a fixed window from one client; the existing server
+counter still handles concurrent clients. Mobile retains the absolute deadline
+by phone when changing away and back, keeps existing-code verification enabled,
+and preserves its previous challenge and typed code on transport or explicit
+IP-rate-limit failure. It does not try old challenges automatically.
+
+Closing the mobile result-unknown deletion sheet preserves its exact captured
+origin and quarantine. The resulting account recovery object only offers to
+continue confirming that deletion or explicitly switch to a dedicated SMS
+status query under the same durable receipt. It cannot expose ordinary logout
+or account mutations. Dismissal does not cancel a dispatched deletion. The
+SMS option remains available when the worker has finished and the original
+Bearer can only return 401; switching retires the old in-memory callbacks but
+retains the exact recovery revision and never grants ordinary login.
+
+Before dispatching deletion, native persists and rereads a credential-free
+`account-deletion-recovery-state.v1` envelope. It contains a monotonic revision
+and either null or the requesting/accepted/registration_ready phase plus owner
+phone. Marker failure sends no deletion POST. A null envelope retains its
+revision, so a later same-phone account lifecycle cannot be mistaken for the
+older request. Startup resolves this marker before restoring ordinary auth.
+After process restart, the existing dedicated recovery SMS endpoints inspect
+only that phone without creating a general session. Exact pending means the
+request is still being processed; exact none plus safe-to-register only opens
+ordinary login after verified local cleanup, never a deletion-completed claim.
+All transitions and phase-authorized local cleanup share one native storage
+operation queue. Requests, replies, cleanup and unmount cancellation retain the
+exact owner/revision and current in-memory lifecycle, preventing an old callback
+from clearing a newer marker or newly registered account data.
+
+Ordinary native logout has its own credential-free
+`account-logout-local-cleanup.v1` marker, distinct from deletion acceptance.
+Its exact owner is persisted and reread before remote logout or local mutation;
+the coordinator also uses this marker before terminal authorization invalidation.
+The originating session stays quarantined while secure credentials, revocation
+state, account projection, event outbox and active/quarantined mutation queues
+are cleared and verified. A failed marker write destroys no account store; a
+later cleanup failure keeps the marker and a neutral retry surface across
+restart. Only complete verified cleanup removes the marker and opens ordinary
+phone login. None of these local logout states claims account deletion.
+
 Before the phone/task/provider branch diverges, every success-shaped ordinary
 or recovery request starts one fixed acknowledgement envelope equal to the
 configured provider delivery deadline. Real provider success, rejection,

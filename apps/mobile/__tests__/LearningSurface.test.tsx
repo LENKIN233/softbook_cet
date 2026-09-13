@@ -1179,16 +1179,6 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(output).not.toContain('本轮盒节奏保持');
   expect(output).not.toContain('下一张仍按本轮盒继续');
   expect(output).toContain('继续下一张');
-  const nextButtonStyle = JSON.stringify(
-    tree!.root.findByProps({ testID: 'learning-next-button' }).props.style,
-  );
-  expect(nextButtonStyle).toContain(palette.primaryActionSurface);
-  expect(nextButtonStyle).not.toContain(
-    resolveLibraryTone(card.space_metadata.library).accent,
-  );
-  expect(output).toContain(
-    resolveLibraryTone(card.space_metadata.library).accent,
-  );
   expect(output).not.toContain('knowledge_ref');
   expect(output).not.toContain('box_ref');
   expect(output).not.toContain(card.knowledge_ref);

@@ -21,6 +21,7 @@ type WebAccountDeletionStorageState = {
 };
 
 type WebAccountDeletionStorageEnvelope = {
+  schemaVersion: 'web-account-deletion-envelope.v2' | 'web-account-deletion-envelope.v3';
   revision: number;
   state: WebAccountDeletionStorageState | null;
 };
@@ -138,19 +139,37 @@ export function createWebAccountWriteFence(
       if (deletionCleanupScope !== null) {
         throw new Error('Web account deletion cleanup is already active.');
       }
-      const envelope = readAccountDeletionEnvelope(storage);
-      if (
-        envelope.revision !== scope.revision ||
-        envelope.state === null ||
-        envelope.state.ownerPhoneNumber !== scope.ownerPhoneNumber ||
-        (envelope.state.phase !== 'accepted' &&
-          envelope.state.phase !== 'local_cleanup' &&
-          envelope.state.phase !== 'registration_ready')
-      ) {
-        throw new Error('Web account deletion cleanup authority is stale.');
-      }
+      await runWebStorageExclusive(storage, WEB_ACCOUNT_DELETION_STORAGE_KEY, async () => {
+        if (deletionCleanupScope !== null) {
+          throw new Error('Web account deletion cleanup is already active.');
+        }
+        const envelope = readAccountDeletionEnvelope(storage);
+        if (
+          envelope.revision !== scope.revision ||
+          envelope.state === null ||
+          envelope.state.ownerPhoneNumber !== scope.ownerPhoneNumber ||
+          (envelope.state.phase !== 'accepted' &&
+            envelope.state.phase !== 'local_cleanup' &&
+            envelope.state.phase !== 'registration_ready')
+        ) {
+          throw new Error('Web account deletion cleanup authority is stale.');
+        }
+        if (envelope.schemaVersion === 'web-account-deletion-envelope.v2') {
+          // Preserve the exact cleanup authority. Only old JavaScript loses
+          // permission; it must not sanitize away other accounts' records.
+          const serialized = JSON.stringify({
+            revision: envelope.revision,
+            schema_version: 'web-account-deletion-envelope.v3',
+            state: {owner_phone_number: envelope.state.ownerPhoneNumber, phase: envelope.state.phase},
+          });
+          storage.setItem(WEB_ACCOUNT_DELETION_STORAGE_KEY, serialized);
+          if (storage.getItem(WEB_ACCOUNT_DELETION_STORAGE_KEY) !== serialized) {
+            throw new Error('Web account storage upgrade verification failed.');
+          }
+        }
+        deletionCleanupScope = {...scope};
+      });
 
-      deletionCleanupScope = {...scope};
       try {
         return await operation();
       } finally {
@@ -160,6 +179,10 @@ export function createWebAccountWriteFence(
 
     verifyWrite(key, value) {
       const envelope = readAccountDeletionEnvelope(storage);
+      if (key === '__softbook_learning_event_outbox_v2' &&
+        envelope.schemaVersion !== 'web-account-deletion-envelope.v3') {
+        throw new Error('学习记录存储版本尚未升级，请重新登录。');
+      }
       if (deletionCleanupScope !== null) {
         const cleanupState = envelope.state;
         const cleanupAuthorityCurrent =
@@ -360,6 +383,7 @@ function readAccountDeletionEnvelope(
   const value = storage.getItem(WEB_ACCOUNT_DELETION_STORAGE_KEY);
   if (value === null) {
     return {
+      schemaVersion: 'web-account-deletion-envelope.v2',
       revision: readLegacyDeletionRevision(storage),
       state: null,
     };
@@ -375,7 +399,8 @@ function readAccountDeletionEnvelope(
       throw new Error('invalid deletion marker');
     }
     const record = parsed as Record<string, unknown>;
-    if (record.schema_version === 'web-account-deletion-envelope.v2') {
+    if (record.schema_version === 'web-account-deletion-envelope.v2' ||
+      record.schema_version === 'web-account-deletion-envelope.v3') {
       if (
         Object.keys(record).sort().join(',') !==
           'revision,schema_version,state' ||
@@ -385,7 +410,7 @@ function readAccountDeletionEnvelope(
         throw new Error('invalid deletion envelope');
       }
       if (record.state === null) {
-        return {revision: record.revision as number, state: null};
+        return {schemaVersion: record.schema_version, revision: record.revision as number, state: null};
       }
       if (
         typeof record.state !== 'object' ||
@@ -408,6 +433,7 @@ function readAccountDeletionEnvelope(
         throw new Error('invalid deletion envelope');
       }
       return {
+        schemaVersion: record.schema_version,
         revision: record.revision as number,
         state: {
           ownerPhoneNumber: state.owner_phone_number,
@@ -426,6 +452,7 @@ function readAccountDeletionEnvelope(
       throw new Error('invalid deletion marker');
     }
     return {
+      schemaVersion: 'web-account-deletion-envelope.v2',
       revision: incrementDeletionRevision(readLegacyDeletionRevision(storage)),
       state: {
         ownerPhoneNumber: record.owner_phone_number,
@@ -477,6 +504,7 @@ function candidateContainsLearningEvent(
     return true;
   }
   const entries = (candidate as Record<string, unknown>).entries;
+  const rejectedEntries = (candidate as Record<string, unknown>).rejectedEntries;
   return (
     !Array.isArray(entries) ||
     entries.some(
@@ -485,7 +513,14 @@ function candidateContainsLearningEvent(
         entry !== null &&
         !Array.isArray(entry) &&
         (entry as Record<string, unknown>).accountPhoneNumber === phoneNumber,
-    )
+    ) ||
+    (rejectedEntries !== undefined &&
+      (!Array.isArray(rejectedEntries) || rejectedEntries.some(item => {
+        if (typeof item !== 'object' || item === null || Array.isArray(item)) return true;
+        const entry = (item as Record<string, unknown>).entry;
+        return typeof entry !== 'object' || entry === null || Array.isArray(entry) ||
+          (entry as Record<string, unknown>).accountPhoneNumber === phoneNumber;
+      })))
   );
 }
 

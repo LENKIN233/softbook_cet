@@ -49,6 +49,15 @@ The existing `hasCheckedInToday` / `canCheckInToday` pair is not sufficient to d
 
 Future mobile implementation must bind the request to the active signed session, clear signed-in presentation only after accepted semantics, and never preserve an operable cached account shell after acceptance.
 
+The 2026-09-12 recovery correction maps the dismissed unknown deletion to a
+dedicated account recovery object in `App.tsx`, retaining its quarantined origin
+and its retry action. Ordinary logout uses a separately typed durable cleanup
+marker and the existing local-cleanup card with logout-specific copy. Authentication
+handlers and initial hydration check this marker before restoring or creating a
+session. The SMS resend wait is phone-bound and preserves code verification;
+its server contract and backend rate-limit behavior are owned by
+`spec/account-sync-contract.json`.
+
 ## PC Web Statistics mapping
 
 - Extend `apps/web/src/App.tsx#StatisticsSurface` from read-only counts to the six visible state projections above.

@@ -4,8 +4,32 @@ import {
   createLearningCardState,
   createLocalLearningSession,
   evaluateLearningCard,
+  selectLockOption,
   selectReviewCards,
 } from '../src/learning/session';
+
+test('correcting a lock mistake completes once as review-needed without inventing assistance', () => {
+  const card = createLocalLearningSession('cet4').cards.find(item => item.interaction_id === 'lock')!;
+  if (card.interaction_id !== 'lock') throw new Error('Expected lock');
+  let state = createLearningCardState(card);
+  const first = card.lock_slots[0];
+  const wrong = first.options.find(value => value !== card.answer_key.lock_pattern[0])!;
+  expect(selectLockOption(card, state, 'missing', wrong)).toBe(state);
+  expect(selectLockOption(card, state, card.lock_slots[1].id, card.answer_key.lock_pattern[1])).toBe(state);
+  state = selectLockOption(card, state, first.id, wrong);
+  expect(evaluateLearningCard(card, state)).toBeNull();
+  for (const [index, slot] of card.lock_slots.entries()) {
+    state = selectLockOption(card, state, slot.id, card.answer_key.lock_pattern[index]);
+  }
+  const result = evaluateLearningCard(card, state)!;
+  expect(result).toMatchObject({outcome: 'incorrect', usedHint: false, usedPeek: false});
+  expect(selectReviewCards([card], [result])).toEqual([card]);
+  let fresh = createLearningCardState(card);
+  for (const [index, slot] of card.lock_slots.entries()) {
+    fresh = selectLockOption(card, fresh, slot.id, card.answer_key.lock_pattern[index]);
+  }
+  expect(evaluateLearningCard(card, fresh)?.outcome).toBe('correct');
+});
 
 test('local card source exposes structured TLGBNN ownership data', () => {
   const cards = localLearningCardSource.loadCards('cet4');

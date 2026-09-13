@@ -2,6 +2,9 @@ import type {AuthRepository} from '../../mobile/src/auth/authRepository';
 import type {AuthSession} from '../../mobile/src/auth/authSession';
 import {createAuthSessionCoordinator} from '../../mobile/src/auth/authSessionCoordinator';
 import type {AccountBootstrapSnapshot} from '../../mobile/src/bootstrap/accountBootstrapRepository';
+import * as BootstrapRepositoryModule from '../../mobile/src/bootstrap/accountBootstrapRepository';
+import * as LearningRepositoryModule from '../../mobile/src/learning/remoteLearningRepository';
+import * as WebAudioModule from './webAudio';
 import type {LearningSession} from '../../mobile/src/learning/model';
 import {createInitialMembershipState} from '../../mobile/src/membership/localMembership';
 import {createMembershipRepository} from '../../mobile/src/membership/membershipRepository';
@@ -12,6 +15,9 @@ import {
 } from '../../mobile/src/sync/mutationQueue';
 import {createMutationQueueRepository} from '../../mobile/src/sync/mutationQueueRepository';
 import {createProgressSyncRepository} from '../../mobile/src/sync/progressSyncRepository';
+import {LearningEventOutbox, createInMemoryLearningEventOutboxStorage} from '../../mobile/src/sync/learningEventOutbox';
+import {createLearningEventSyncRepository} from '../../mobile/src/sync/learningEventSyncRepository';
+import {createLearningEventsRepository} from '../../mobile/src/sync/learningEventsRepository';
 import {createMemoryOnlyAuthSessionStore} from './webStorage';
 import {createWebAccountDeletionStateStore} from './webAccountDeletionState';
 import {
@@ -23,6 +29,222 @@ import {
 const PHONE = '13800138000';
 
 describe('authenticated Web remote orchestration', () => {
+  it('prepares durable storage before ordinary SMS and leaves an active learning session in its bound epoch', async () => {
+    localStorage.clear();
+    const stateStore = createWebAccountDeletionStateStore(localStorage);
+    const prepare = vi.spyOn(stateStore, 'prepareLearningEventStorage');
+    const authRepository = createSimpleAuthRepository();
+    const requestSms = vi.spyOn(authRepository, 'requestSmsCode');
+    const authSessionCoordinator = createAuthSessionCoordinator({
+      authRepository, authSessionStore: createMemoryOnlyAuthSessionStore(),
+    });
+    const controller = createWebRemoteRuntimeController({
+      accountDeletionStateStore: stateStore,
+      accountBootstrapRepository: {load: async () => createBootstrapFixture(createInitialMembershipState())},
+      authRepository, authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
+      mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
+    });
+    prepare.mockRejectedValueOnce(new Error('version fence write failed'));
+    await expect(controller.requestSmsCode(PHONE)).rejects.toThrow('version fence write failed');
+    expect(requestSms).not.toHaveBeenCalled();
+    await controller.requestSmsCode(PHONE);
+    expect(prepare.mock.invocationCallOrder.at(-1)).toBeLessThan(requestSms.mock.invocationCallOrder[0]);
+    await expect(stateStore.getRevision()).resolves.toBe(1);
+    await controller.verifySmsCode(PHONE, '123456');
+    const session = authSessionCoordinator.getCurrentSession();
+    const preparationCount = prepare.mock.calls.length;
+    await controller.requestSmsCode(PHONE);
+    expect(prepare).toHaveBeenCalledTimes(preparationCount);
+    expect(authSessionCoordinator.getCurrentSession()).toEqual(session);
+    await expect(stateStore.getRevision()).resolves.toBe(1);
+  });
+
+  it.each(['empty', 'v2'] as const)('keeps two new tabs authenticated when their already-adopted %s upgrade event arrives late', async previous => {
+    const harness = await createAudioFactoryHarness();
+    const second = harness.createSibling();
+    second.start();
+    const key = 'softbook-cet/web-account-deletion/v1';
+    const upgraded = localStorage.getItem(key);
+    const before = previous === 'empty' ? null : JSON.stringify({schema_version: 'web-account-deletion-envelope.v2', revision: 0, state: null});
+    const notifyUpgrade = () => window.dispatchEvent(new StorageEvent('storage', {
+      key, oldValue: before, newValue: upgraded, storageArea: localStorage,
+    }));
+    try {
+      await second.requestSmsCode(PHONE);
+      notifyUpgrade();
+      expect(harness.controller.isAuthenticated()).toBe(true);
+      await second.verifySmsCode(PHONE, '123456');
+      notifyUpgrade();
+      expect(harness.controller.isAuthenticated()).toBe(true);
+      expect(second.isAuthenticated()).toBe(true);
+      await expect(second.loadAuthenticatedState()).resolves.toBeDefined();
+      const deletion = createWebAccountDeletionStateStore(localStorage);
+      await deletion.beginRequesting!(PHONE, 1);
+      window.dispatchEvent(new StorageEvent('storage', {
+        key, oldValue: upgraded, newValue: localStorage.getItem(key), storageArea: localStorage,
+      }));
+      expect(harness.controller.isAuthenticated()).toBe(false);
+      expect(second.isAuthenticated()).toBe(false);
+    } finally {second.dispose(); harness.cleanup();}
+  });
+
+  it.each(['cleanup', 'rollback', 'malformed', 'unadopted'] as const)('keeps %s storage notifications fail-closed for an authenticated new tab', async transition => {
+    const harness = await createAudioFactoryHarness();
+    const key = 'softbook-cet/web-account-deletion/v1';
+    const current = localStorage.getItem(key)!;
+    let oldValue = JSON.stringify({schema_version: 'web-account-deletion-envelope.v2', revision: 0, state: null});
+    let newValue = current;
+    if (transition === 'cleanup') oldValue = JSON.stringify({schema_version: 'web-account-deletion-envelope.v2', revision: 0, state: {phase: 'local_cleanup', owner_phone_number: PHONE}});
+    if (transition === 'rollback') newValue = oldValue;
+    if (transition === 'malformed') newValue = JSON.stringify({...JSON.parse(current), extra: true});
+    if (transition === 'unadopted') newValue = JSON.stringify({...JSON.parse(current), revision: 2});
+    localStorage.setItem(key, newValue);
+    try {
+      window.dispatchEvent(new StorageEvent('storage', {key, oldValue, newValue, storageArea: localStorage}));
+      expect(harness.controller.isAuthenticated()).toBe(false);
+    } finally {harness.cleanup();}
+  });
+
+  it('starts verified audio on the first explicit playback click', async () => {
+    const harness = await createAudioFactoryHarness();
+    try {
+      await expect(harness.controller.playCardAudio(harness.audioCard)).resolves.toBe('playing');
+      expect(harness.play).toHaveBeenCalledTimes(1);
+      expect(harness.prepare).toHaveBeenCalledTimes(1);
+      await expect(harness.controller.playCardAudio(harness.audioCard)).resolves.toBe('paused');
+      expect(harness.pause).toHaveBeenCalledTimes(1);
+    } finally {harness.cleanup();}
+  });
+
+  it.each(['route', 'selection', 'account', 'background', 'pagehide'] as const)('cancels first-click preparation after %s changes and never plays on return', async interruption => {
+    const harness = await createAudioFactoryHarness();
+    let release: (value: WebAudioModule.VerifiedWebAudioPlayback) => void = () => undefined;
+    harness.prepare.mockImplementationOnce(() => new Promise(resolve => {release = resolve;}));
+    try {
+      const playback = harness.controller.playCardAudio(harness.audioCard);
+      while (harness.prepare.mock.calls.length === 0) await Promise.resolve();
+      if (interruption === 'route') harness.controller.stopCardAudio?.();
+      else if (interruption === 'selection') {
+        harness.session.serverSelection = {...harness.session.serverSelection!, selectionId: 'sel_after_navigation_12345678'};
+        await harness.controller.loadAuthenticatedState();
+      } else if (interruption === 'account') await harness.controller.logout();
+      else if (interruption === 'background') {
+        harness.visibility.mockReturnValue('hidden');
+        document.dispatchEvent(new Event('visibilitychange'));
+        harness.visibility.mockReturnValue('visible');
+        document.dispatchEvent(new Event('visibilitychange'));
+      } else window.dispatchEvent(new Event('pagehide'));
+      release({pause: harness.pause, play: harness.play, stop: harness.stop});
+      await expect(playback).rejects.toMatchObject({reason: 'session_superseded'});
+      expect(harness.play).not.toHaveBeenCalled();
+      expect(harness.stop).toHaveBeenCalledTimes(1);
+    } finally {harness.cleanup();}
+  });
+
+  it('recovers a permanently rejected selection durably and distinguishes its history from a later accepted completion', async () => {
+    const membership = {...createInitialMembershipState(), stage: 'premium' as const};
+    const storage = createInMemoryLearningEventOutboxStorage();
+    const submittedIds: string[] = [];
+    let networkFailed = false;
+    const eventsRepository = createLearningEventsRepository({
+      mode: 'remote', remoteConfig: {endpoint: 'https://runtime.example.cn/v2/learning/events'},
+      fetchImpl: async (_url, init) => {
+        const events = JSON.parse(init!.body!).events;
+        submittedIds.push(events[0].event_id);
+        if (networkFailed) throw new Error('temporary network failure');
+        if (events[0].selection_id === 'sel_1234567890abcdef') {
+          return {ok: false, status: 409, json: async () => ({error: {code: 'learning_event_selection_conflict', message: 'Selection already completed elsewhere.'}})};
+        }
+        return {ok: true, status: 200, json: async () => ({data: {schema_version: 'learning-events-ack.v2', acknowledged_at: '2026-08-29T12:02:00.000Z', track: 'cet4', results: events.map((event: {event_id: string}) => ({event_id: event.event_id, status: 'accepted', server_sequence: 1}))}})};
+      },
+    });
+    let selectionId = 'sel_1234567890abcdef';
+    const bootstrapRequests: boolean[] = [];
+    const makeController = () => {
+      const authRepository = createSimpleAuthRepository();
+      return createWebRemoteRuntimeController({
+        accountBootstrapRepository: {load: async (_track, _day, options) => {bootstrapRequests.push(options?.forceFresh === true); return createBootstrapFixture(membership);}},
+        authRepository,
+        authSessionCoordinator: createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore(), now: () => new Date('2026-08-29T12:00:00.000Z')}),
+        learningEventSyncRepository: createLearningEventSyncRepository({eventsRepository, outbox: new LearningEventOutbox({storage, createDeviceId: () => 'webdevice_reject_test'})}),
+        learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => {const session = createLearningSessionFixture('premium'); return {...session, serverSelection: {...session.serverSelection!, selectionId}};}},
+        mutationQueueRepository: createMutationRepository([]),
+        now: () => new Date('2026-08-29T12:00:00.000Z'), playAudio: async () => 'ready', track: 'cet4',
+      });
+    };
+    const controller = makeController();
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    const rejected = await controller.completeCurrentCard(createLearningResult());
+    expect(rejected).toMatchObject({pendingEventCount: 0, rejectedEventCount: 1, status: 'rejected', completionStatus: 'rejected'});
+    expect(submittedIds).toHaveLength(1);
+    selectionId = 'sel_after_rejection_1234567';
+    const recovered = await controller.loadAuthenticatedState();
+    expect(bootstrapRequests.at(-1)).toBe(true);
+    expect(recovered.learningSync).toMatchObject({pendingEventCount: 0, rejectedEventCount: 1, status: 'rejected'});
+    expect(recovered.learningResults).toEqual([]);
+    expect(recovered.bootstrap.progress.snapshot.totalCompletedCount).toBe(0);
+    expect(recovered.learningSession.serverSelection?.selectionId).toBe(selectionId);
+    const accepted = await controller.completeCurrentCard({...createLearningResult(), completedAt: '2026-08-29T12:03:00.000Z'});
+    expect(accepted).toMatchObject({pendingEventCount: 0, rejectedEventCount: 1, status: 'rejected', completionStatus: 'confirmed'});
+    expect(new Set(submittedIds).size).toBe(2);
+    const restarted = makeController();
+    await restarted.requestSmsCode(PHONE);
+    const restored = await restarted.verifySmsCode(PHONE, '123456');
+    expect(restored.learningSync.rejectedEventCount).toBe(1);
+    expect(submittedIds).toHaveLength(2);
+    selectionId = 'sel_third_attempt_123456789';
+    await restarted.loadAuthenticatedState();
+    networkFailed = true;
+    const pending = await restarted.completeCurrentCard({...createLearningResult(), completedAt: '2026-08-29T12:04:00.000Z'});
+    expect(pending).toMatchObject({pendingEventCount: 1, rejectedEventCount: 1, status: 'queued_and_rejected', completionStatus: 'queued'});
+  });
+
+  it.each(['learning_event_cursor_conflict','learning_event_id_conflict'] as const)('allows a new attempt on the same canonical selection after %s without rebinding its rejected event', async code => {
+    const membership = {...createInitialMembershipState(), stage: 'premium' as const};
+    const storage = createInMemoryLearningEventOutboxStorage();
+    const submitted: Array<{event_id: string; selection_id: string}> = [];
+    const eventsRepository = createLearningEventsRepository({
+      mode: 'remote', remoteConfig: {endpoint: 'https://runtime.example.cn/v2/learning/events'},
+      fetchImpl: async (_url, init) => {
+        const events = JSON.parse(init!.body!).events;
+        submitted.push(events[0]);
+        if (submitted.length === 1) {
+          return {ok: false, status: 409, json: async () => ({error: {code, message: 'Immutable event identity conflict.'}})};
+        }
+        return {ok: true, status: 200, json: async () => ({data: {schema_version: 'learning-events-ack.v2', acknowledged_at: '2026-08-29T12:02:00.000Z', track: 'cet4', results: events.map((event: {event_id: string}) => ({event_id: event.event_id, status: 'accepted', server_sequence: 1}))}})};
+      },
+    });
+    const outbox = new LearningEventOutbox({storage, createDeviceId: () => 'webdevice_same_selection_recovery'});
+    const authRepository = createSimpleAuthRepository();
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {load: async () => createBootstrapFixture(membership)},
+      authRepository,
+      authSessionCoordinator: createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore(), now: () => new Date('2026-08-29T12:00:00.000Z')}),
+      learningEventSyncRepository: createLearningEventSyncRepository({eventsRepository, outbox}),
+      learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture('premium')},
+      mutationQueueRepository: createMutationRepository([]),
+      now: () => new Date('2026-08-29T12:00:00.000Z'), playAudio: async () => 'ready', track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE,'123456');
+    expect(await controller.completeCurrentCard(createLearningResult())).toMatchObject({completionStatus:'rejected'});
+    const rejected = await outbox.getRejectedEntries(PHONE);
+    expect(rejected).toHaveLength(1);
+    const snapshot = await controller.loadAuthenticatedState();
+    expect(snapshot.learningSession.serverSelection?.selectionId).toBe(submitted[0].selection_id);
+    expect(snapshot.learningResults).toEqual([]);
+    expect(snapshot.learningSync).toMatchObject({pendingEventCount:0,rejectedEventCount:1});
+    expect(await controller.completeCurrentCard({...createLearningResult(),completedAt:'2026-08-29T12:03:00.000Z'}))
+      .toMatchObject({completionStatus:'confirmed',pendingEventCount:0,rejectedEventCount:1});
+    expect(submitted).toHaveLength(2);
+    expect(submitted[1].event_id).not.toBe(submitted[0].event_id);
+    expect(submitted[1].selection_id).toBe(submitted[0].selection_id);
+    expect(await outbox.getRejectedEntries(PHONE)).toEqual(rejected);
+  });
+
   it('sends the explicit Web client identity through the shared auth repository', async () => {
     const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       expect(new Headers(init?.headers).get('x-softbook-client')).toBe('web');
@@ -151,11 +373,14 @@ describe('authenticated Web remote orchestration', () => {
           };
         },
         getPendingCount: async () => 0,
+        getRejectedEntries: async () => [],
         async startReplay() {
           operations.push('events-replay');
           return {
             acknowledgements: [],
             acknowledgedEntries: [],
+            rejectedEntries: [],
+            rejectedCount: 0,
             pendingCount: 0,
           };
         },
@@ -288,6 +513,7 @@ describe('authenticated Web remote orchestration', () => {
         },
         enqueueCompletion: vi.fn(),
         getPendingCount: async () => 0,
+        getRejectedEntries: async () => [],
         async startReplay(context) {
           operations.push(
             staleEventPresent
@@ -297,6 +523,8 @@ describe('authenticated Web remote orchestration', () => {
           return {
             acknowledgements: [],
             acknowledgedEntries: [],
+            rejectedEntries: [],
+            rejectedCount: 0,
             pendingCount: 0,
           };
         },
@@ -395,13 +623,13 @@ describe('authenticated Web remote orchestration', () => {
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
     await controller.logout();
-    await expect(deletionStateStore.getRevision()).resolves.toBe(2);
+    await expect(deletionStateStore.getRevision()).resolves.toBe(3);
 
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
     await authSessionCoordinator.invalidate();
     await controller.cleanupInvalidatedSession();
-    await expect(deletionStateStore.getRevision()).resolves.toBe(4);
+    await expect(deletionStateStore.getRevision()).resolves.toBe(5);
   });
 
   it('keeps login closed and resumes failed local cleanup without a session after reload', async () => {
@@ -753,9 +981,10 @@ describe('authenticated Web remote orchestration', () => {
         async enqueueCompletion() {
           enqueueCount += 1;
           pendingEventCount = 1;
-          return {} as never;
+          return {event: {event_id: 'event_web_queued_1'}} as never;
         },
         getPendingCount: async () => pendingEventCount,
+        getRejectedEntries: async () => [],
         async startReplay() {
           if (!networkAvailable && pendingEventCount > 0) {
             throw new Error('injected acknowledgement network failure');
@@ -764,6 +993,8 @@ describe('authenticated Web remote orchestration', () => {
           return {
             acknowledgements: [],
             acknowledgedEntries: [],
+            rejectedEntries: [],
+            rejectedCount: 0,
             pendingCount: 0,
           };
         },
@@ -787,6 +1018,9 @@ describe('authenticated Web remote orchestration', () => {
     const result = createLearningResult();
     expect(await controller.completeCurrentCard(result)).toEqual({
       pendingEventCount: 1,
+      rejectedEventCount: 0,
+      rejectionCodes: [],
+      completionStatus: 'queued',
       status: 'queued',
     });
     expect(enqueueCount).toBe(1);
@@ -799,6 +1033,9 @@ describe('authenticated Web remote orchestration', () => {
     networkAvailable = true;
     expect(await controller.completeCurrentCard(result)).toEqual({
       pendingEventCount: 0,
+      rejectedEventCount: 0,
+      rejectionCodes: [],
+      completionStatus: 'confirmed',
       status: 'confirmed',
     });
     expect(enqueueCount).toBe(1);
@@ -1797,10 +2034,10 @@ describe('authenticated Web remote orchestration', () => {
 
     const deletion = controller.requestAccountDeletion();
     await deletionStarted;
-    const oldAuthority = {phoneNumber: PHONE, revision: 1};
+    const oldAuthority = {phoneNumber: PHONE, revision: 2};
     await lifecycleStore.resolveRequesting?.(oldAuthority, 'accepted');
     await clearCurrentDeletionState(lifecycleStore, 'accepted');
-    const currentAuthority = await lifecycleStore.beginRequesting?.(PHONE, 3);
+    const currentAuthority = await lifecycleStore.beginRequesting?.(PHONE, 4);
     releaseDeletion?.();
 
     await expect(deletion).rejects.toMatchObject({name: 'WebAccountEpochError'});
@@ -1809,7 +2046,7 @@ describe('authenticated Web remote orchestration', () => {
       phase: 'requesting',
       phoneNumber: PHONE,
     });
-    expect(currentAuthority?.revision).toBe(4);
+    expect(currentAuthority?.revision).toBe(5);
   });
 
   it('quarantines an old tab after another tab completes deletion cleanup', async () => {
@@ -1862,7 +2099,7 @@ describe('authenticated Web remote orchestration', () => {
     expect(bootstrapLoads).toBe(1);
     cleanupOperations.length = 0;
     const requestingAuthority =
-      await otherTabDeletionStore.beginRequesting?.(PHONE, 0);
+      await otherTabDeletionStore.beginRequesting?.(PHONE, 1);
     await expect(controller.logout()).resolves.toEqual({status: 'unknown'});
     expect(controller.isAuthenticated()).toBe(true);
     expect(cleanupOperations).toEqual([]);
@@ -1932,7 +2169,7 @@ describe('authenticated Web remote orchestration', () => {
     await controller.requestSmsCode(PHONE);
     const verification = controller.verifySmsCode(PHONE, '123456');
     await verificationStarted;
-    await otherTabDeletionStore.beginRequesting?.(PHONE, 0);
+    await otherTabDeletionStore.beginRequesting?.(PHONE, 1);
     continueVerification?.();
 
     await expect(verification).rejects.toThrow('删除恢复入口');
@@ -1991,7 +2228,7 @@ describe('authenticated Web remote orchestration', () => {
     const verification = controller.verifySmsCode(PHONE, '123456');
     await bootstrapStarted;
     const requestingAuthority =
-      await competingDeletionStore.beginRequesting?.(PHONE, 0);
+      await competingDeletionStore.beginRequesting?.(PHONE, 1);
     await competingDeletionStore.resolveRequesting?.(
       requestingAuthority!,
       'accepted',
@@ -2059,7 +2296,7 @@ describe('authenticated Web remote orchestration', () => {
     await controller.verifySmsCode(PHONE, '123456');
     const lateSnapshot = controller.loadAuthenticatedState();
     await lateBootstrapStarted;
-    await competingDeletionStore.beginRequesting?.(PHONE, 0);
+    await competingDeletionStore.beginRequesting?.(PHONE, 1);
     releaseLateBootstrap?.();
 
     await expect(lateSnapshot).rejects.toMatchObject({
@@ -2210,7 +2447,7 @@ describe('authenticated Web remote orchestration', () => {
       async beforeSessionInvalidation({session}) {
         await deletionStateStore.ensureCleanupAuthority?.(
           session.phoneNumber,
-          0,
+          1,
         );
         accountWriteQuarantined = true;
       },
@@ -2325,7 +2562,7 @@ describe('authenticated Web remote orchestration', () => {
       learningSession,
       {
         contentVersion: learningSession.contentVersion,
-        deletionRevision: 0,
+        deletionRevision: 1,
         selectionId: 'sel_1234567890abcdef',
         sessionScopeKey: 'remote:13800138000:session-simple',
       },
@@ -2678,6 +2915,47 @@ function createLearningResult() {
   };
 }
 
+async function createAudioFactoryHarness() {
+  localStorage.clear();
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  const audioCard = {...card, audio: {asset_id: 'cet4.000001.prompt', duration_ms: 1000, sha256: `sha256:${'a'.repeat(64)}`}};
+  const session: LearningSession = {
+    ...createLearningSessionFixture('premium'), cards: [audioCard], catalogCards: [audioCard],
+    contentManifest: {
+      access: {accessible_card_count: 1, mode: 'full', total_card_count: 1},
+      downloads: [{asset_id: audioCard.audio.asset_id, expires_at: '2035-01-01T00:00:00.000Z', url: 'https://private.example/audio.mp3'}],
+      manifest: {schema_version: 'content-manifest.v1', content_version: `sha256:${'12'.repeat(32)}`, track: 'cet4', release_id: 'release-2026', parent_release_id: null, minimum_client_version: '1.0.0', assets: [{asset_id: audioCard.audio.asset_id, duration_ms: 1000, sha256: audioCard.audio.sha256, size_bytes: 3, media_type: 'audio/mpeg'}]},
+      signature: {algorithm: 'ed25519', key_id: 'release-2026', value: 'ab'.repeat(64)},
+    },
+  };
+  const repositorySpy = vi.spyOn(LearningRepositoryModule, 'createRemoteLearningSessionRepository').mockReturnValue({
+    continueRound: async () => undefined,
+    loadSession: async () => ({...session, serverSelection: session.serverSelection ? {...session.serverSelection} : null}),
+  });
+  const bootstrapSpy = vi.spyOn(BootstrapRepositoryModule, 'createAccountBootstrapRepository').mockReturnValue({
+    load: async () => createBootstrapFixture({...createInitialMembershipState(), stage: 'premium'}),
+  });
+  const pause = vi.fn();
+  const play = vi.fn(async () => undefined);
+  const stop = vi.fn();
+  const prepare = vi.spyOn(WebAudioModule, 'prepareVerifiedCardAudio').mockResolvedValue({pause, play, stop});
+  const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith('/auth/request-code')) return new Response(JSON.stringify({data: {challenge_id: 'challenge-audio', expires_at: '2035-01-01T00:00:00.000Z', retry_after_seconds: 0}}), {status: 200});
+    if (url.endsWith('/auth/verify-code')) return new Response(JSON.stringify({data: {access_token: 'audio-access', expires_in: 3600, phone_number: PHONE, refresh_token: 'audio-refresh', refresh_expires_at: '2035-02-01T00:00:00.000Z', session_id: 'audio-session', token_type: 'Bearer'}}), {status: 200});
+    if (url.endsWith('/auth/logout')) return new Response(null, {status: 204});
+    throw new Error(`Unexpected audio harness request: ${url}`);
+  });
+  const createSibling = () => createWebRemoteRuntime({baseUrl: 'https://runtime.example.cn', clientIdentity: {platform: 'web', version: '1.0.0'}, clientKind: 'web', contentManifestPublicKeys: {'release-2026': 'ab'.repeat(32)}, mode: 'remote', track: 'cet4'}, {fetchImpl, storage: localStorage});
+  const controller = createSibling();
+  controller.start();
+  await controller.requestSmsCode(PHONE);
+  await controller.verifySmsCode(PHONE, '123456');
+  return {controller, createSibling, session, audioCard, prepare, play, pause, stop, visibility, cleanup() {
+    controller.dispose(); repositorySpy.mockRestore(); bootstrapSpy.mockRestore(); prepare.mockRestore(); visibility.mockRestore();
+  }};
+}
+
 function createSimpleAuthRepository(): AuthRepository {
   return {
     logout: async () => undefined,
@@ -2707,10 +2985,13 @@ function createEmptyEventSyncRepository() {
     clearAccount: async () => undefined,
     enqueueCompletion: vi.fn(),
     getPendingCount: async () => 0,
+    getRejectedEntries: async () => [],
     async startReplay() {
       return {
         acknowledgements: [],
         acknowledgedEntries: [],
+        rejectedEntries: [],
+        rejectedCount: 0,
         pendingCount: 0,
       };
     },

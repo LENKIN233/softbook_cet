@@ -1,5 +1,5 @@
 import NetInfo from '@react-native-community/netinfo';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { reactNativeContentAssetCache } from './reactNativeContentAssetCache';
@@ -7,6 +7,7 @@ import {
   LearningAudioController,
   type LearningAudioPlaybackState,
   type LearningAudioSelection,
+  type RefreshLearningAudioDownload,
 } from './learningAudioController';
 import { nativeLearningAudioEngine } from './nativeLearningAudioEngine';
 import type { LearningSurfacePalette } from '../learning/LearningSurface';
@@ -15,17 +16,25 @@ import { hexToRgba } from '../visual/tokens';
 export type LearningAudioPlayerProps = {
   palette: LearningSurfacePalette;
   selection: LearningAudioSelection;
+  refreshDownload?: RefreshLearningAudioDownload;
 };
 
 export function LearningAudioPlayer({
   palette,
   selection,
+  refreshDownload,
 }: LearningAudioPlayerProps) {
+  const refreshDownloadRef = useRef(refreshDownload);
+  refreshDownloadRef.current = refreshDownload;
   const controller = useMemo(
     () =>
       new LearningAudioController({
         cache: reactNativeContentAssetCache,
         engine: nativeLearningAudioEngine,
+        refreshDownload: async currentSelection => {
+          if (!refreshDownloadRef.current) throw new Error('Audio authorization refresh is unavailable.');
+          return refreshDownloadRef.current(currentSelection);
+        },
         isOnline: async () => {
           const network = await NetInfo.fetch();
           return (

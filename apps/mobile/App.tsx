@@ -33,12 +33,30 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { createAccountDeletionRepository } from './src/account/accountDeletionRepository';
+import {AccountDeletionRecoverySurface} from './src/account/AccountDeletionRecoverySurface';
+import {
+  createAccountDeletionRecoveryRepository,
+  type AccountDeletionRecoveryChallenge,
+} from './src/account/accountDeletionRecoveryRepository';
+import {
+  createAccountDeletionRecoveryStore,
+  sameRecoveryState,
+  type AccountDeletionRecoveryReceipt,
+} from './src/account/accountDeletionRecoveryStore';
 import { resolveAccountDeletionRepositoryConfig } from './src/account/accountDeletionRuntimeConfig';
-import { createAccountDeletionCleanupStore } from './src/account/accountDeletionCleanupStore';
+import {
+  createAccountDeletionCleanupStore,
+  createAccountLogoutCleanupStore,
+} from './src/account/accountDeletionCleanupStore';
 import { createAuthRepository } from './src/auth/authRepository';
 import { createAuthenticatedFetch } from './src/auth/authenticatedFetch';
 import { resolveAuthRepositoryConfig } from './src/auth/authRuntimeConfig';
 import { createAuthSessionCoordinator } from './src/auth/authSessionCoordinator';
+import {
+  DEFAULT_SMS_RESEND_SECONDS,
+  smsResendRemainingSeconds,
+  useSmsResendRemainingSeconds,
+} from './src/auth/smsResend';
 import {
   getAuthAccessToken,
   getAuthSessionScopeKey,
@@ -78,6 +96,7 @@ import {
 import {
   createLearningCardState,
   evaluateLearningCard,
+  selectLockOption,
   selectReviewCards,
 } from './src/learning/session';
 import {
@@ -103,6 +122,7 @@ import {
 } from './src/persistence/userStateStore';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { resolveContentManifestRuntimeConfig } from './src/audio/contentManifestRuntimeConfig';
+import type {RefreshLearningAudioDownload} from './src/audio/learningAudioController';
 import {
   readSoftbookAppRuntimeConfig,
   resolveLearningSessionRepositoryConfig,
@@ -155,7 +175,7 @@ import {
   createProgressSyncRepository,
 } from './src/sync/progressSyncRepository';
 import { resolveProgressSyncRepositoryConfig } from './src/sync/progressSyncRuntimeConfig';
-import { isRemoteAuthorizationError } from './src/runtime/remoteHttpError';
+import { isRemoteAuthorizationError, RemoteHttpError } from './src/runtime/remoteHttpError';
 import {
   isRemoteRequestCancellationError,
   RemoteRequestLifecycleError,
@@ -255,6 +275,8 @@ type AuthState = {
   stage: AuthStage;
   phoneNumber: string;
   pendingAction: 'request_code' | 'verify_code' | null;
+  resendAvailableAt: number;
+  errorAction?: 'request_code' | 'verify_code' | 'save_session';
   smsCode: string;
   error: string | null;
 };
@@ -284,11 +306,24 @@ type AccountDeletionPresentationState =
 type AccountDeletionOrigin = {
   session: RemoteAuthSession;
   sessionScopeKey: string;
+  emptyRevision: number | null;
+  receipt: AccountDeletionRecoveryReceipt | null;
+  generation: number;
+  dispatched: boolean;
 };
 
 type AcceptedAccountDeletionCleanup = {
   phoneNumber: string;
   sessionScopeKey: string | null;
+  receipt?: AccountDeletionRecoveryReceipt;
+  registrationReady?: boolean;
+  generation?: number;
+  fromRecovery?: boolean;
+};
+
+type PendingAccountLogoutCleanup = AcceptedAccountDeletionCleanup & {
+  error: string | null;
+  revokeRemote: boolean;
 };
 
 type AuthenticatedRuntimeHydration = {
@@ -381,6 +416,7 @@ const INITIAL_AUTH_STATE: AuthState = {
   stage: 'logged_out',
   phoneNumber: '',
   pendingAction: null,
+  resendAvailableAt: 0,
   smsCode: '',
   error: null,
 };
@@ -454,7 +490,21 @@ function AppShell({
     [authRepositoryConfig],
   );
   const authSessionStore = useMemo(() => createAuthSessionStore(), []);
+  const accountLogoutCleanupStore = useMemo(
+    () => createAccountLogoutCleanupStore(),
+    [],
+  );
+  const pendingAccountLogoutCleanupRef =
+    useRef<PendingAccountLogoutCleanup | null>(null);
   const accountDeletionOriginRef = useRef<AccountDeletionOrigin | null>(null);
+  const deletionRecoveryReceiptRef = useRef<AccountDeletionRecoveryReceipt | null>(null);
+  const deletionRecoveryLifetimeRef = useRef({active: true, generation: 0});
+  const deletionRecoveryRequestRef = useRef<{
+    controller: AbortController;
+    generation: number;
+    receipt: AccountDeletionRecoveryReceipt;
+  } | null>(null);
+  const accountDeletionRecoveryStore = useMemo(() => createAccountDeletionRecoveryStore(), []);
   const acceptedAccountDeletionCleanupRef =
     useRef<AcceptedAccountDeletionCleanup | null>(null);
   const isAccountDeletionSessionQuarantined = useCallback(
@@ -462,8 +512,17 @@ function AppShell({
       sessionScopeKey !== null &&
       (accountDeletionOriginRef.current?.sessionScopeKey === sessionScopeKey ||
         acceptedAccountDeletionCleanupRef.current?.sessionScopeKey ===
-          sessionScopeKey),
+          sessionScopeKey ||
+        (deletionRecoveryReceiptRef.current !== null &&
+          sessionScopeKey.startsWith(`remote:${deletionRecoveryReceiptRef.current.state.phoneNumber}:`))),
     [],
+  );
+  const isAccountSessionQuarantined = useCallback(
+    (sessionScopeKey: string | null) =>
+      isAccountDeletionSessionQuarantined(sessionScopeKey) ||
+      (sessionScopeKey !== null &&
+        pendingAccountLogoutCleanupRef.current?.sessionScopeKey === sessionScopeKey),
+    [isAccountDeletionSessionQuarantined],
   );
   const authSessionCoordinator = useMemo(
     () =>
@@ -471,12 +530,40 @@ function AppShell({
         authRepository,
         authSessionStore,
         shouldPreserveAuthorizationRejection:
-          isAccountDeletionSessionQuarantined,
+          isAccountSessionQuarantined,
+        beforeSessionInvalidation: async ({session, reason}) => {
+          // Deletion keeps its own phase authority. Ordinary invalidation must
+          // first retain enough non-secret state to finish cleanup after restart.
+          if (
+            accountDeletionOriginRef.current !== null ||
+            deletionRecoveryReceiptRef.current !== null ||
+            acceptedAccountDeletionCleanupRef.current !== null
+          ) {
+            return;
+          }
+          const cleanup = pendingAccountLogoutCleanupRef.current ?? {
+            phoneNumber: session.phoneNumber,
+            sessionScopeKey: getAuthSessionScopeKey(session),
+            error: reason === 'authorization_invalidated'
+              ? '登录已失效，请重新验证手机号。'
+              : null,
+            revokeRemote: false,
+          };
+          pendingAccountLogoutCleanupRef.current = cleanup;
+          try {
+            await accountLogoutCleanupStore.markPending(cleanup.phoneNumber);
+          } catch (error) {
+            setAccountLogoutState('cleanup_required');
+            throw error;
+          }
+          setAccountLogoutState('cleanup_retrying');
+        },
       }),
     [
       authRepository,
       authSessionStore,
-      isAccountDeletionSessionQuarantined,
+      accountLogoutCleanupStore,
+      isAccountSessionQuarantined,
     ],
   );
   const authenticatedFetch = useMemo(
@@ -484,10 +571,10 @@ function AppShell({
       createAuthenticatedFetch({
         authSessionCoordinator,
         shouldPreserveAuthorizationRejection:
-          isAccountDeletionSessionQuarantined,
-        shouldQuarantineSession: isAccountDeletionSessionQuarantined,
+          isAccountSessionQuarantined,
+        shouldQuarantineSession: isAccountSessionQuarantined,
       }),
-    [authSessionCoordinator, isAccountDeletionSessionQuarantined],
+    [authSessionCoordinator, isAccountSessionQuarantined],
   );
   const accountDeletionRepositoryConfig = useMemo(
     () => resolveAccountDeletionRepositoryConfig(runtimeConfig),
@@ -498,6 +585,14 @@ function AppShell({
       accountDeletionRepositoryConfig
         ? createAccountDeletionRepository(accountDeletionRepositoryConfig)
         : null,
+    [accountDeletionRepositoryConfig],
+  );
+  const accountDeletionRecoveryRepository = useMemo(
+    () => accountDeletionRepositoryConfig === null ? null : createAccountDeletionRecoveryRepository({
+      baseUrl: accountDeletionRepositoryConfig.endpoint.replace(/\/v2\/account\/deletion$/, ''),
+      headers: accountDeletionRepositoryConfig.headers,
+      clientKind: 'mobile',
+    }),
     [accountDeletionRepositoryConfig],
   );
   const accountDeletionCleanupStore = useMemo(
@@ -626,8 +721,34 @@ function AppShell({
     useState<SpaceSurfaceScreen>('overview');
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
+  const smsResendAvailableAtByPhone = useRef(new Map<string, number>());
+  const smsChallengesByPhone = useRef(new Map<string, AuthChallenge>());
   const [accountDeletionState, setAccountDeletionState] =
     useState<AccountDeletionPresentationState>('closed');
+  const [accountDeletionSheetDismissed, setAccountDeletionSheetDismissed] =
+    useState(false);
+  const [deletionRecoverySnapshot, setDeletionRecoverySnapshot] = useState<AccountDeletionRecoveryReceipt | null>(null);
+  const [deletionRecoveryReadBlocked, setDeletionRecoveryReadBlocked] = useState(false);
+  const [deletionRecoveryBusy, setDeletionRecoveryBusy] = useState<'checking' | 'request_code' | 'verify_code' | null>(null);
+  const [deletionRecoveryChallenge, setDeletionRecoveryChallenge] = useState<AccountDeletionRecoveryChallenge | null>(null);
+  const [deletionRecoveryCode, setDeletionRecoveryCode] = useState('');
+  const [deletionRecoveryResendAt, setDeletionRecoveryResendAt] = useState(0);
+  const [deletionRecoveryError, setDeletionRecoveryError] = useState<string | null>(null);
+  const [accountDeletionPreparationFailed, setAccountDeletionPreparationFailed] = useState(false);
+  const [accountLogoutState, setAccountLogoutState] =
+    useState<'idle' | 'cleanup_required' | 'cleanup_retrying'>('idle');
+  const [accountRecoveryRetryGeneration, setAccountRecoveryRetryGeneration] =
+    useState(0);
+  useEffect(() => {
+    const lifetime = deletionRecoveryLifetimeRef.current;
+    lifetime.active = true;
+    return () => {
+      lifetime.active = false;
+      lifetime.generation += 1;
+      deletionRecoveryRequestRef.current?.controller.abort();
+      deletionRecoveryRequestRef.current = null;
+    };
+  }, []);
   const [accountBootstrapStatus, setAccountBootstrapStatus] =
     useState<AccountBootstrapStatus>(
       runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required',
@@ -645,8 +766,22 @@ function AppShell({
   ] = useState(runtimeAccountBootstrapMode !== 'remote');
   const [learningSession, setLearningSession] =
     useState<LearningSession | null>(null);
+  const learningSessionScopeKeyRef = useRef<string | null>(null);
   const [learningBootstrapStatus, setLearningBootstrapStatus] =
     useState<LearningBootstrapStatus>('idle');
+  const learningBootstrapStatusRef = useRef(learningBootstrapStatus);
+  learningBootstrapStatusRef.current = learningBootstrapStatus;
+  const learningAuthoritySnapshotRef = useRef<AccountBootstrapSnapshot | null>(null);
+  const lastDueRefreshKeyRef = useRef<string | null>(null);
+  const requestLearningSessionRefresh = useCallback(() => {
+    if (
+      learningBootstrapStatusRef.current !== 'ready' &&
+      learningBootstrapStatusRef.current !== 'error'
+    ) return;
+    learningBootstrapStatusRef.current = 'idle';
+    setLearningBootstrapStatus('idle');
+    setLearningBootstrapError(null);
+  }, []);
   const [learningBootstrapError, setLearningBootstrapError] = useState<
     string | null
   >(null);
@@ -682,6 +817,10 @@ function AppShell({
   const [spaceStateSyncState, setSpaceStateSyncState] =
     useState<SpaceStateSyncState>(INITIAL_SPACE_STATE_SYNC_STATE);
   const [pendingLearningEventCount, setPendingLearningEventCount] = useState(0);
+  const [rejectedLearningNotice, setRejectedLearningNotice] = useState<{
+    sessionScopeKey: string;
+    count: number;
+  } | null>(null);
   const [retainedReplayWakeGeneration, setRetainedReplayWakeGeneration] =
     useState(0);
   const pendingLearningEventCountRef = useRef(0);
@@ -831,13 +970,20 @@ function AppShell({
       revokeRemote = false,
       accountPhoneNumberOverride: string | null = null,
     ) => {
+      if (accountDeletionOriginRef.current !== null) {
+        setAccountDeletionSheetDismissed(false);
+        if (accountDeletionInFlight.current === null) {
+          setAccountDeletionState('recoverable_unknown');
+        }
+        return Promise.resolve();
+      }
       if (logoutInFlight.current) {
         return logoutInFlight.current;
       }
 
       const logoutTask = (async () => {
-        let authCleanupFailed = false;
         const accountPhoneNumber =
+          pendingAccountLogoutCleanupRef.current?.phoneNumber ??
           accountPhoneNumberOverride ??
           authSessionCoordinator.getCurrentSession()?.phoneNumber ??
           (authState.stage === 'authenticated'
@@ -845,8 +991,43 @@ function AppShell({
             : null) ??
           null;
 
+        if (accountPhoneNumber === null) {
+          throw new Error('Account cleanup requires an exact account owner.');
+        }
+        const cleanup = pendingAccountLogoutCleanupRef.current ?? {
+          phoneNumber: accountPhoneNumber,
+          sessionScopeKey: getAuthSessionScopeKey(
+            authSessionCoordinator.getCurrentSession(),
+          ),
+          error,
+          revokeRemote,
+        };
+        pendingAccountLogoutCleanupRef.current = cleanup;
+        setAccountLogoutState('cleanup_retrying');
+
+        // No credentials or account records are destroyed before this exact
+        // owner marker is durable. A later failure leaves a restart-safe retry.
         try {
-          if (revokeRemote) {
+          await accountLogoutCleanupStore.markPending(accountPhoneNumber);
+        } catch {
+          setAccountLogoutState('cleanup_required');
+          return;
+        }
+
+        const currentScopeKey = getAuthSessionScopeKey(
+          authSessionCoordinator.getCurrentSession(),
+        );
+        if (
+          currentScopeKey !== null &&
+          currentScopeKey !== cleanup.sessionScopeKey
+        ) {
+          setAccountLogoutState('cleanup_required');
+          return;
+        }
+
+        let authCleanupFailed = false;
+        try {
+          if (cleanup.revokeRemote) {
             await authSessionCoordinator.logout();
           } else {
             await authSessionCoordinator.invalidate();
@@ -859,27 +1040,28 @@ function AppShell({
         }
 
         const cleanupResults = await Promise.allSettled([
+          authSessionStore.clearExactly(),
           userStateStore.clear(),
           mutationQueueRepository.clear(),
-          ...(accountPhoneNumber
-            ? [learningEventSyncRepository.clearAccount(accountPhoneNumber)]
-            : []),
+          learningEventSyncRepository.clearAccount(accountPhoneNumber),
         ]);
 
-        cleanupResults.forEach(result => {
-          if (result.status === 'rejected') {
-            console.warn(
-              '[AppPersistence] Failed to clear account-bound local state.',
-              result.reason,
-            );
-          }
-        });
-        resetRuntimeAfterLogout(
-          error ??
-            (authCleanupFailed
-              ? '本地登录凭证未能完全清理，请重启应用后重新验证手机号。'
-              : null),
-        );
+        resetRuntimeAfterLogout(cleanup.error);
+        if (
+          authCleanupFailed ||
+          cleanupResults.some(result => result.status === 'rejected')
+        ) {
+          setAccountLogoutState('cleanup_required');
+          return;
+        }
+        try {
+          await accountLogoutCleanupStore.clear();
+        } catch {
+          setAccountLogoutState('cleanup_required');
+          return;
+        }
+        pendingAccountLogoutCleanupRef.current = null;
+        setAccountLogoutState('idle');
       })();
 
       logoutInFlight.current = logoutTask;
@@ -892,6 +1074,8 @@ function AppShell({
     },
     [
       authSessionCoordinator,
+      authSessionStore,
+      accountLogoutCleanupStore,
       authState.phoneNumber,
       authState.stage,
       learningEventSyncRepository,
@@ -900,6 +1084,20 @@ function AppShell({
       userStateStore,
     ],
   );
+  useEffect(() => {
+    // A transport may surface session invalidation as cancellation before its
+    // original caller can run account cleanup. The durable marker owns the
+    // continuation, so it must not depend on that caller reaching a catch block.
+    if (
+      accountLogoutState === 'cleanup_retrying' &&
+      pendingAccountLogoutCleanupRef.current !== null &&
+      logoutInFlight.current === null
+    ) {
+      clearAuthenticatedSession().catch(() =>
+        setAccountLogoutState('cleanup_required'),
+      );
+    }
+  }, [accountLogoutState, clearAuthenticatedSession]);
   const clearOriginSessionAfterAuthorizationError = useCallback(
     async (
       error: unknown,
@@ -939,8 +1137,14 @@ function AppShell({
     ],
   );
   const openAccountDeletionConfirmation = useCallback(() => {
+    if (accountDeletionOriginRef.current !== null) {
+      setAccountDeletionSheetDismissed(false);
+      setAccountDeletionState('recoverable_unknown');
+      return;
+    }
     if (
       accountDeletionRepository === null ||
+      pendingAccountLogoutCleanupRef.current !== null ||
       authState.stage !== 'authenticated' ||
       accountDeletionInFlight.current !== null ||
       accountDeletionState === 'accepted'
@@ -948,6 +1152,7 @@ function AppShell({
       return;
     }
 
+    setAccountDeletionSheetDismissed(false);
     setAccountDeletionState('confirmation');
   }, [accountDeletionRepository, accountDeletionState, authState.stage]);
   const closeAccountDeletionSheet = useCallback(() => {
@@ -958,8 +1163,15 @@ function AppShell({
       return;
     }
 
-    accountDeletionOriginRef.current = null;
-    setAccountDeletionState('closed');
+    if (accountDeletionState === 'recoverable_unknown') {
+      // Dismissing presentation cannot discard an irreversible request whose
+      // outcome is unknown. Its original credentials stay isolated for retry.
+      setAccountDeletionSheetDismissed(true);
+      setActiveRoute('mine');
+    } else {
+      accountDeletionOriginRef.current = null;
+      setAccountDeletionState('closed');
+    }
   }, [accountDeletionState]);
   const completeAcceptedAccountDeletionCleanup = useCallback(() => {
     if (accountDeletionCleanupInFlight.current) {
@@ -971,8 +1183,13 @@ function AppShell({
     if (cleanup === null) {
       return Promise.resolve();
     }
+    const generation = cleanup.generation ?? deletionRecoveryLifetimeRef.current.generation;
+    const isCleanupCurrent = () => deletionRecoveryLifetimeRef.current.active &&
+      deletionRecoveryLifetimeRef.current.generation === generation &&
+      acceptedAccountDeletionCleanupRef.current === cleanup;
 
     const cleanupTask = (async () => {
+      if (!isCleanupCurrent()) return;
       const currentSessionScopeKey = getAuthSessionScopeKey(
         authSessionCoordinator.getCurrentSession(),
       );
@@ -989,14 +1206,38 @@ function AppShell({
       setAccountDeletionState('cleanup_retrying');
 
       try {
-        await accountDeletionCleanupStore.markPending(cleanup.phoneNumber);
+        let receipt = cleanup.receipt;
+        if (receipt === undefined) {
+          const stored = await accountDeletionRecoveryStore.load();
+          if (!isCleanupCurrent()) return;
+          receipt = stored.state === null
+            ? await accountDeletionRecoveryStore.begin(cleanup.phoneNumber, stored.revision, 'accepted')
+            : stored as AccountDeletionRecoveryReceipt;
+        }
+        if (receipt.state.phoneNumber !== cleanup.phoneNumber) throw new Error('Deletion cleanup owner changed.');
+        if (!cleanup.registrationReady && receipt.state.phase !== 'accepted') {
+          receipt = await accountDeletionRecoveryStore.transition(receipt, 'accepted');
+        }
+        if (cleanup.registrationReady && receipt.state.phase !== 'registration_ready') {
+          throw new Error('Registration cleanup phase changed.');
+        }
+        if (!isCleanupCurrent()) return;
+        cleanup.receipt = receipt;
+        deletionRecoveryReceiptRef.current = receipt;
+        setDeletionRecoverySnapshot(receipt);
+        if (!cleanup.registrationReady) {
+          await accountDeletionCleanupStore.markPending(cleanup.phoneNumber);
+        }
       } catch {
+        if (!isCleanupCurrent()) return;
         console.warn(
           '[AccountDeletion] Exact local cleanup remains pending.',
         );
         setAccountDeletionState('cleanup_required');
         return;
       }
+
+      if (!isCleanupCurrent()) return;
 
       let priorLogoutFailed = false;
       try {
@@ -1019,49 +1260,59 @@ function AppShell({
         return;
       }
 
-      let invalidationFailed = false;
       try {
-        await authSessionCoordinator.invalidate();
+        await accountDeletionRecoveryStore.runCleanup(cleanup.receipt!, async () => {
+          if (priorLogoutFailed || !isCleanupCurrent()) throw new Error('Deletion cleanup must retry.');
+          const pendingLogout = await accountLogoutCleanupStore.load();
+          if (pendingLogout !== null && pendingLogout.phoneNumber !== cleanup.phoneNumber) {
+            throw new Error('Another account owns pending local cleanup.');
+          }
+          if (!isCleanupCurrent()) throw new Error('Deletion cleanup was superseded.');
+          await authSessionCoordinator.invalidate();
+          if (!isCleanupCurrent()) throw new Error('Deletion cleanup was superseded.');
+          const cleanupResults = await Promise.allSettled([
+            authSessionStore.clearExactly(),
+            userStateStore.clear(),
+            learningEventSyncRepository.clearAccount(cleanup.phoneNumber),
+            mutationQueueRepository.clear(),
+          ]);
+          if (cleanupResults.some(result => result.status === 'rejected') || !isCleanupCurrent()) {
+            throw new Error('Exact account cleanup remains incomplete.');
+          }
+          await accountDeletionCleanupStore.clear();
+          await accountLogoutCleanupStore.clear();
+        }, isCleanupCurrent);
       } catch {
-        invalidationFailed = true;
+        if (!isCleanupCurrent()) return;
+        resetRuntimeAfterLogout(null);
+        console.warn(
+          '[AccountDeletion] Exact local cleanup remains pending.',
+        );
+        setAccountDeletionState('cleanup_required');
+        return;
       }
 
-      const cleanupResults = await Promise.allSettled([
-        authSessionStore.clearExactly(),
-        userStateStore.clear(),
-        learningEventSyncRepository.clearAccount(cleanup.phoneNumber),
-        mutationQueueRepository.clear(),
-      ]);
-      const cleanupFailed = cleanupResults.some(
-        result => result.status === 'rejected',
-      );
-
+      if (!isCleanupCurrent()) return;
       resetRuntimeAfterLogout(null);
-
-      if (
-        priorLogoutFailed ||
-        invalidationFailed ||
-        cleanupFailed
-      ) {
-        console.warn(
-          '[AccountDeletion] Exact local cleanup remains pending.',
-        );
-        setAccountDeletionState('cleanup_required');
-        return;
-      }
-
-      try {
-        await accountDeletionCleanupStore.clear();
-      } catch {
-        console.warn(
-          '[AccountDeletion] Exact local cleanup remains pending.',
-        );
-        setAccountDeletionState('cleanup_required');
-        return;
-      }
-
+      pendingAccountLogoutCleanupRef.current = null;
+      setAccountLogoutState('idle');
       acceptedAccountDeletionCleanupRef.current = null;
-      setAccountDeletionState('accepted');
+      if (cleanup.registrationReady) {
+        deletionRecoveryLifetimeRef.current.generation += 1;
+        deletionRecoveryRequestRef.current?.controller.abort();
+        deletionRecoveryRequestRef.current = null;
+        deletionRecoveryReceiptRef.current = null;
+        setDeletionRecoverySnapshot(null);
+        setDeletionRecoveryChallenge(null);
+        setDeletionRecoveryCode('');
+        setDeletionRecoveryResendAt(0);
+        setDeletionRecoveryBusy(null);
+        setDeletionRecoveryError(null);
+        setDeletionRecoveryReadBlocked(false);
+        setAccountDeletionState('closed');
+      } else {
+        setAccountDeletionState(cleanup.fromRecovery ? 'closed' : 'accepted');
+      }
     })();
 
     accountDeletionCleanupInFlight.current = cleanupTask;
@@ -1073,6 +1324,8 @@ function AppShell({
     return cleanupTask;
   }, [
     accountDeletionCleanupStore,
+    accountDeletionRecoveryStore,
+    accountLogoutCleanupStore,
     authSessionCoordinator,
     authSessionStore,
     learningEventSyncRepository,
@@ -1083,6 +1336,7 @@ function AppShell({
   const submitAccountDeletion = useCallback(() => {
     if (
       accountDeletionRepository === null ||
+      pendingAccountLogoutCleanupRef.current !== null ||
       accountDeletionInFlight.current !== null ||
       (accountDeletionState !== 'confirmation' &&
         accountDeletionState !== 'recoverable_unknown')
@@ -1109,6 +1363,10 @@ function AppShell({
       origin = {
         session: originSession,
         sessionScopeKey: originSessionScopeKey,
+        emptyRevision: null,
+        receipt: null,
+        generation: deletionRecoveryLifetimeRef.current.generation,
+        dispatched: false,
       };
       accountDeletionOriginRef.current = origin;
     }
@@ -1131,13 +1389,38 @@ function AppShell({
     }
 
     setAccountDeletionState('submitting');
+    setAccountDeletionPreparationFailed(false);
+    const isOriginCurrent = () => deletionRecoveryLifetimeRef.current.active &&
+      deletionRecoveryLifetimeRef.current.generation === origin.generation &&
+      accountDeletionOriginRef.current === origin;
 
     const task = (async () => {
       try {
+        if (origin.receipt === null) {
+          if (origin.emptyRevision === null) {
+            const stored = await accountDeletionRecoveryStore.load();
+            if (!isOriginCurrent()) return;
+            if (stored.state !== null) throw new Error('An earlier deletion must be recovered first.');
+            origin.emptyRevision = stored.revision;
+          }
+          const receipt = await accountDeletionRecoveryStore.begin(origin.session.phoneNumber, origin.emptyRevision);
+          if (!isOriginCurrent()) return;
+          origin.receipt = receipt;
+          deletionRecoveryReceiptRef.current = receipt;
+          setDeletionRecoverySnapshot(receipt);
+        } else if (!sameRecoveryState(await accountDeletionRecoveryStore.load(), origin.receipt)) {
+          throw new Error('Deletion request authority changed.');
+        }
+        if (!isOriginCurrent()) return;
+        const dispatchScope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
+        if (dispatchScope !== null && dispatchScope !== origin.sessionScopeKey) return;
+        origin.dispatched = true;
         await accountDeletionRepository.requestDeletion({
           accessToken: origin.session.accessToken,
           tokenType: origin.session.tokenType,
         });
+
+        if (!isOriginCurrent()) return;
 
         const responseSessionScopeKey = getAuthSessionScopeKey(
           authSessionCoordinator.getCurrentSession(),
@@ -1155,9 +1438,12 @@ function AppShell({
         acceptedAccountDeletionCleanupRef.current = {
           phoneNumber: origin.session.phoneNumber,
           sessionScopeKey: origin.sessionScopeKey,
+          receipt: origin.receipt,
+          generation: origin.generation,
         };
         await completeAcceptedAccountDeletionCleanup();
       } catch {
+        if (!isOriginCurrent()) return;
         const failureSessionScopeKey = getAuthSessionScopeKey(
           authSessionCoordinator.getCurrentSession(),
         );
@@ -1171,6 +1457,7 @@ function AppShell({
           return;
         }
 
+        setAccountDeletionPreparationFailed(!origin.dispatched);
         setAccountDeletionState('recoverable_unknown');
       }
     })();
@@ -1184,15 +1471,120 @@ function AppShell({
     return task;
   }, [
     accountDeletionRepository,
+    accountDeletionRecoveryStore,
     accountDeletionState,
     authSessionCoordinator,
     completeAcceptedAccountDeletionCleanup,
   ]);
+  const switchUnknownDeletionToSmsRecovery = useCallback(() => {
+    const origin = accountDeletionOriginRef.current;
+    const receipt = deletionRecoveryReceiptRef.current;
+    if (accountDeletionInFlight.current !== null || origin?.receipt == null ||
+      receipt === null || !sameRecoveryState(origin.receipt, receipt) ||
+      !deletionRecoveryLifetimeRef.current.active) return;
+    // The user explicitly chooses a credential-free query. Keep the same
+    // durable authority while retiring callbacks belonging to the raw retry.
+    deletionRecoveryLifetimeRef.current.generation += 1;
+    accountDeletionOriginRef.current = null;
+    setDeletionRecoverySnapshot(receipt);
+    setDeletionRecoveryError(null);
+    setAccountDeletionSheetDismissed(false);
+    setAccountDeletionState('closed');
+  }, []);
+  const queryAccountDeletionRecovery = useCallback((verify: boolean) => {
+    const receipt = deletionRecoveryReceiptRef.current;
+    const lifetime = deletionRecoveryLifetimeRef.current;
+    if (
+      receipt === null || !lifetime.active || deletionRecoveryRequestRef.current !== null ||
+      accountDeletionOriginRef.current !== null || acceptedAccountDeletionCleanupRef.current !== null
+    ) return;
+    if (accountDeletionRecoveryRepository === null) {
+      setDeletionRecoveryError('当前暂时无法查询账户状态，请稍后重试。');
+      return;
+    }
+    const challenge = deletionRecoveryChallenge;
+    if (verify && (challenge === null || challenge.phoneNumber !== receipt.state.phoneNumber ||
+      challenge.requestingRevision !== receipt.revision || !/^\d{6}$/.test(deletionRecoveryCode))) return;
+    if (!verify && smsResendRemainingSeconds(deletionRecoveryResendAt) > 0) return;
+    const operation = {controller: new AbortController(), generation: lifetime.generation, receipt};
+    deletionRecoveryRequestRef.current = operation;
+    const isCurrent = () => lifetime.active && lifetime.generation === operation.generation &&
+      deletionRecoveryRequestRef.current === operation && deletionRecoveryReceiptRef.current !== null &&
+      sameRecoveryState(deletionRecoveryReceiptRef.current, receipt);
+    setDeletionRecoveryBusy(verify ? 'verify_code' : 'request_code');
+    setDeletionRecoveryError(null);
+    (async () => {
+      try {
+        if (!sameRecoveryState(await accountDeletionRecoveryStore.load(), receipt) || !isCurrent()) return;
+        if (!verify) {
+          const nextChallenge = await accountDeletionRecoveryRepository.requestCode({
+            phoneNumber: receipt.state.phoneNumber, requestingRevision: receipt.revision,
+            signal: operation.controller.signal,
+          });
+          if (!isCurrent() || !sameRecoveryState(await accountDeletionRecoveryStore.load(), receipt)) return;
+          setDeletionRecoveryChallenge(nextChallenge);
+          setDeletionRecoveryResendAt(Date.now() + nextChallenge.retryAfterSeconds * 1000);
+          return;
+        }
+        const result = await accountDeletionRecoveryRepository.verifyCode({
+          challenge: challenge!, smsCode: deletionRecoveryCode, signal: operation.controller.signal,
+        });
+        if (!isCurrent()) return;
+        const next = await accountDeletionRecoveryStore.transition(receipt, result.state === 'pending' ? 'accepted' : 'registration_ready');
+        if (!isCurrent()) return;
+        deletionRecoveryReceiptRef.current = next;
+        setDeletionRecoverySnapshot(next);
+        setDeletionRecoveryChallenge(null);
+        setDeletionRecoveryCode('');
+        acceptedAccountDeletionCleanupRef.current = {
+          phoneNumber: next.state.phoneNumber,
+          sessionScopeKey: getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()),
+          receipt: next, registrationReady: result.state === 'none',
+          generation: operation.generation, fromRecovery: true,
+        };
+        await completeAcceptedAccountDeletionCleanup();
+      } catch {
+        if (isCurrent()) setDeletionRecoveryError('删除状态暂时无法查询，请稍后重试。不会因此登录或新建账户。');
+      } finally {
+        if (deletionRecoveryRequestRef.current === operation) {
+          deletionRecoveryRequestRef.current = null;
+          if (lifetime.active && lifetime.generation === operation.generation) setDeletionRecoveryBusy(null);
+        }
+      }
+    })();
+  }, [accountDeletionRecoveryRepository, accountDeletionRecoveryStore, authSessionCoordinator,
+    completeAcceptedAccountDeletionCleanup, deletionRecoveryChallenge, deletionRecoveryCode, deletionRecoveryResendAt]);
   const { width, height, fontScale } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
   const usesAccessibilityLayout = fontScale >= 1.3;
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
+  const activeLearningNoticeScope = isAuthenticated
+    ? getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())
+    : null;
+  useEffect(() => {
+    if (activeLearningNoticeScope === null || runtimeLearningEventsMode !== 'remote') {
+      setRejectedLearningNotice(null);
+      return;
+    }
+    let cancelled = false;
+    learningEventSyncRepository.getRejectedEntries(authState.phoneNumber).then(entries => {
+      if (
+        !cancelled &&
+        getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === activeLearningNoticeScope
+      ) setRejectedLearningNotice(current => ({
+        sessionScopeKey: activeLearningNoticeScope,
+        count: Math.max(entries.length, current?.sessionScopeKey === activeLearningNoticeScope ? current.count : 0),
+      }));
+    }).catch(() => undefined);
+    return () => {cancelled = true;};
+  }, [
+    activeLearningNoticeScope,
+    authSessionCoordinator,
+    authState.phoneNumber,
+    learningEventSyncRepository,
+    runtimeLearningEventsMode,
+  ]);
   const routeMotion = useCardMotion(`${isAuthenticated}:${activeRoute}:${learningScreen}:${spaceScreen}`, activeRoute === 'space' && spaceScreen === 'overview' ? 'space' : 'focus');
   const cancelRouteMotion = routeMotion.cancel;
   const pendingRoute = useRef<RouteKey | null>(null);
@@ -1203,7 +1595,7 @@ function AppShell({
     }
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       // Modal/recovery flows own their close policy and must not be bypassed.
-      if (accountDeletionState !== 'closed') {
+      if (accountDeletionState !== 'closed' || deletionRecoveryReceiptRef.current !== null) {
         return false;
       }
       if (pendingRoute.current !== null) {
@@ -1349,6 +1741,20 @@ function AppShell({
     : null;
   const activeLearningContextCard =
     currentLearningCard ?? currentRoundSpaceCard;
+  // A durable sleep intent hides this question while the server chooses its
+  // replacement. It never selects another card from the local catalog.
+  const isServerSelectionSleeping = Boolean(
+    learningSession?.schedulingMode === 'server' &&
+    currentLearningCard &&
+    readSpaceCardState(currentLearningCard.card_id).isSleeping,
+  );
+  const isServerSelectionEmpty = Boolean(
+    learningSession?.schedulingMode === 'server' &&
+    learningSession.serverSelection === null &&
+    !learningSession.roundCompletion,
+  );
+  const isServerSelectionEmptyRef = useRef(isServerSelectionEmpty);
+  isServerSelectionEmptyRef.current = isServerSelectionEmpty;
   const activeLibraryTone = activeLearningContextCard
     ? resolveLibraryTone(activeLearningContextCard.space_metadata.library)
     : null;
@@ -1662,6 +2068,11 @@ function AppShell({
       accountBootstrapSnapshot.track === learningTrack);
   const canWriteAccountState =
     isAccountStateReconciled &&
+    accountLogoutState === 'idle' &&
+    accountDeletionOriginRef.current === null &&
+    deletionRecoveryReceiptRef.current === null &&
+    acceptedAccountDeletionCleanupRef.current === null &&
+    !deletionRecoveryReadBlocked &&
     accountBootstrapHydrationSettled &&
     !accountBootstrapIntegrityBlocked;
   const hasCheckedInToday = checkedInDayKey === todayKey;
@@ -2288,8 +2699,9 @@ function AppShell({
           learningEventReplayPaused.current = false;
           pendingLearningEventCountRef.current = replay.pendingCount;
           setPendingLearningEventCount(replay.pendingCount);
-
-          if (replay.acknowledgedEntries.length > 0) {
+          setRejectedLearningNotice({sessionScopeKey: replaySessionScopeKey, count: replay.rejectedCount});
+          const hasNewRejection = replay.rejectedEntries.length > 0;
+          if (replay.acknowledgedEntries.length > 0 || hasNewRejection) {
             if (runtimeAccountBootstrapMode === 'remote') {
               setLearningSession(null);
               setLearningCardState(null);
@@ -2300,7 +2712,9 @@ function AppShell({
               accountBootstrapHydrationSettledRef.current = false;
               setAccountBootstrapHydrationSettled(false);
               setLearningStateSyncState({
-                detail: '答题记录已保存，正在更新学习状态。',
+                detail: hasNewRejection
+                  ? '这次结果未计入，正在更新学习安排。'
+                  : '答题记录已保存，正在更新学习状态。',
                 label: '同步中',
                 state: 'syncing',
               });
@@ -2319,7 +2733,9 @@ function AppShell({
                     '账户学习状态尚未刷新，重新确认后再继续下一张。',
                   );
                   setLearningStateSyncState({
-                    detail: '答题记录已保存，联网后会自动更新学习状态。',
+                    detail: hasNewRejection
+                      ? '这次结果未计入，联网后会重新读取学习安排。'
+                      : '答题记录已保存，联网后会自动更新学习状态。',
                     label: '待刷新',
                     state: 'error',
                   });
@@ -2355,9 +2771,9 @@ function AppShell({
             }
 
             setLearningStateSyncState({
-              detail: '当前答题记录已同步。',
-              label: '已同步',
-              state: 'synced',
+              detail: hasNewRejection ? '这次结果未计入，请重新读取学习安排。' : '当前答题记录已同步。',
+              label: hasNewRejection ? '未计入' : '已同步',
+              state: hasNewRejection ? 'error' : 'synced',
             });
           }
         } catch (error) {
@@ -2850,6 +3266,16 @@ function AppShell({
       nextSession: LearningSession | null = learningSession,
       nextMembershipState: MembershipState = membershipState,
     ) => {
+      if (nextSession?.schedulingMode === 'server') {
+        const currentId = currentLearningCardIdRef.current;
+        if (currentId) {
+          setLearningCardState(current => current === null ? null : {
+            ...current,
+            isFavorited: stateMap[currentId]?.isFavorited ?? false,
+          });
+        }
+        return;
+      }
       const nextVisibleCards = resolveVisibleLearningCards(
         nextSession,
         stateMap,
@@ -2927,9 +3353,70 @@ function AppShell({
     let restoringAccountPhoneNumber: string | null = null;
 
     const hydratePersistence = async () => {
-      const pendingAccountDeletionCleanup =
-        await accountDeletionCleanupStore.load();
-
+      // Resolve the durable deletion authority before reading or refreshing
+      // credentials. A requesting marker never grants an ordinary session.
+      let recovery;
+      try {
+        recovery = await accountDeletionRecoveryStore.load();
+      } catch {
+        if (!isCancelled) {
+          setDeletionRecoveryReadBlocked(true);
+          setDeletionRecoveryError('上次账户状态暂时无法读取，请重试。');
+        }
+        return;
+      }
+      if (isCancelled) return;
+      setDeletionRecoveryReadBlocked(false);
+      setDeletionRecoveryBusy(null);
+      setDeletionRecoveryError(null);
+      if (recovery.state !== null) {
+        const receipt = recovery as AccountDeletionRecoveryReceipt;
+        deletionRecoveryReceiptRef.current = receipt;
+        setDeletionRecoverySnapshot(receipt);
+        if (receipt.state.phase !== 'requesting') {
+          acceptedAccountDeletionCleanupRef.current = {
+            phoneNumber: receipt.state.phoneNumber,
+            sessionScopeKey: null,
+            receipt,
+            registrationReady: receipt.state.phase === 'registration_ready',
+            generation: deletionRecoveryLifetimeRef.current.generation,
+            fromRecovery: true,
+          };
+          await completeAcceptedAccountDeletionCleanup();
+        }
+        return;
+      }
+      let pendingAccountLogoutCleanup;
+      try {
+        pendingAccountLogoutCleanup = await accountLogoutCleanupStore.load();
+      } catch (error) {
+        setAccountLogoutState('cleanup_required');
+        throw error;
+      }
+      if (pendingAccountLogoutCleanup !== null) {
+        pendingAccountLogoutCleanupRef.current = {
+          phoneNumber: pendingAccountLogoutCleanup.phoneNumber,
+          sessionScopeKey: null,
+          error: null,
+          revokeRemote: false,
+        };
+        await persistenceHydrationCallbacksRef.current.clearSession();
+        return;
+      }
+      if (pendingAccountLogoutCleanupRef.current === null) {
+        setAccountLogoutState('idle');
+      }
+      let pendingAccountDeletionCleanup;
+      try {
+        pendingAccountDeletionCleanup = await accountDeletionCleanupStore.load();
+      } catch {
+        if (!isCancelled) {
+          setDeletionRecoveryReadBlocked(true);
+          setDeletionRecoveryError('上次账户清理状态暂时无法读取，请重试。');
+        }
+        return;
+      }
+      if (isCancelled) return;
       if (pendingAccountDeletionCleanup !== null) {
         acceptedAccountDeletionCleanupRef.current = {
           phoneNumber: pendingAccountDeletionCleanup.phoneNumber,
@@ -3036,6 +3523,7 @@ function AppShell({
       })
       .finally(() => {
         if (!isCancelled) {
+          setDeletionRecoveryBusy(null);
           setPersistenceHydrated(true);
         }
       });
@@ -3044,6 +3532,9 @@ function AppShell({
       isCancelled = true;
     };
   }, [
+    accountLogoutCleanupStore,
+    accountRecoveryRetryGeneration,
+    accountDeletionRecoveryStore,
     accountDeletionCleanupStore,
     authSessionCoordinator,
     completeAcceptedAccountDeletionCleanup,
@@ -3125,8 +3616,8 @@ function AppShell({
 
     if (!isAccountStateReconciled) {
       if (learningBootstrapStatus !== 'error') {
-        setLearningSession(null);
-        setLearningCardState(null);
+        // Keep the hidden attempt through a temporary authority read failure.
+        // A successful reload must still match its original account and selection.
         setLearningBootstrapStatus('error');
         setLearningBootstrapError(
           '账户状态暂时无法读取，服务恢复后再加载本轮卡片。',
@@ -3390,9 +3881,15 @@ function AppShell({
       }
 
       learningEventReplayPaused.current = false;
-      startMutationReplay({allowCanonicalRefreshRetry: true}).catch(
-        () => undefined,
-      );
+      const wakeScope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
+      startMutationReplay({allowCanonicalRefreshRetry: true}).then(() => {
+        if (
+          wakeScope !== null &&
+          getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === wakeScope &&
+          isServerSelectionEmptyRef.current &&
+          pendingLearningEventCountRef.current === 0
+        ) requestLearningSessionRefresh();
+      }).catch(() => undefined);
     };
 
     const unsubscribeNetInfo = NetInfo.addEventListener(state => {
@@ -3437,6 +3934,8 @@ function AppShell({
   }, [
     isAuthenticated,
     runtimeAccountBootstrapMode,
+    authSessionCoordinator,
+    requestLearningSessionRefresh,
     startMutationReplay,
   ]);
 
@@ -3479,7 +3978,8 @@ function AppShell({
     learningSessionRepository
       .loadSession(authenticatedRuntimeContext, learningTrack)
       .then(async session => {
-        if (isCancelled) {
+        if (isCancelled ||
+          getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== learningLoadSessionScopeKey) {
           return;
         }
 
@@ -3513,7 +4013,8 @@ function AppShell({
             forceFresh: true,
           });
 
-          if (isCancelled) {
+          if (isCancelled ||
+            getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== learningLoadSessionScopeKey) {
             return;
           }
 
@@ -3567,12 +4068,25 @@ function AppShell({
               reviewResults: [],
             };
 
+        const preservesServerAttempt =
+          learningSessionScopeKeyRef.current === learningLoadSessionScopeKey &&
+          learningSession?.schedulingMode === 'server' &&
+          session.schedulingMode === 'server' &&
+          learningSession.serverSelection !== null &&
+          session.serverSelection?.selectionId ===
+            learningSession.serverSelection.selectionId &&
+          session.track === learningSession.track &&
+          session.sourceId === learningSession.sourceId &&
+          session.contentVersion === learningSession.contentVersion &&
+          session.serverSelection?.phase === learningSession.serverSelection.phase &&
+          session.cards[0]?.card_id === currentLearningCardIdRef.current;
+        learningSessionScopeKeyRef.current = learningLoadSessionScopeKey;
+        learningAuthoritySnapshotRef.current = accountBootstrapSnapshot;
         setMappedAccountBootstrapSnapshot(accountBootstrapSnapshot);
-
         setLearningSession(session);
         setLearningRoundContinuePending(false);
         setLearningRoundContinueError(null);
-        setLearningCurrentResult(null);
+        if (!preservesServerAttempt) setLearningCurrentResult(null);
         setLearningCompletedResults(canonicalLearningState.learningResults);
         const scheduledPhase =
           session.schedulingMode === 'server' &&
@@ -3607,11 +4121,17 @@ function AppShell({
         const nextIndex = restoredIndex >= 0 ? restoredIndex : 0;
 
         setLearningIndex(nextIndex);
-        setLearningCardState(
-          nextVisibleCards[nextIndex]
-            ? createTrackedLearningAttemptState(nextVisibleCards[nextIndex])
-            : null,
-        );
+        const nextCard = nextVisibleCards[nextIndex];
+        if (preservesServerAttempt && nextCard) {
+          setLearningCardState(current => current === null ? null : {
+            ...current,
+            isFavorited: readSpaceCardState(nextCard.card_id).isFavorited,
+          });
+        } else {
+          setLearningCardState(
+            nextCard ? createTrackedLearningAttemptState(nextCard) : null,
+          );
+        }
         setLearningBootstrapStatus('ready');
       })
       .catch((error: unknown) => {
@@ -3632,8 +4152,8 @@ function AppShell({
           return;
         }
 
-        setLearningSession(null);
-        setLearningCardState(null);
+        // The error surface blocks this attempt until fresh authority arrives;
+        // a transient load failure must not erase sticky assistance or mistakes.
         setLearningBootstrapStatus('error');
         setLearningBootstrapError(
           getUserFacingErrorMessage(error, '本轮卡片加载失败。'),
@@ -3659,6 +4179,7 @@ function AppShell({
     isAuthenticated,
     learningBootstrapStatus,
     learningTrack,
+    learningSession,
     learningSessionRepository,
     pendingLearningEventCount,
     readSpaceCardState,
@@ -3683,10 +4204,30 @@ function AppShell({
         accountBootstrapSnapshot,
         learningSession,
       );
+      const previousAuthority = learningAuthoritySnapshotRef.current;
+      const selectedCardId = learningSession.serverSelection?.cardId;
+      const canonicalSleepingCards = accountBootstrapSnapshot.space.snapshot.states
+        .filter(state => state.isSleeping).map(state => state.cardId).sort();
+      const previousSleepingCards = previousAuthority?.space.snapshot.states
+        .filter(state => state.isSleeping).map(state => state.cardId).sort() ?? [];
+      const needsServerSelection =
+        learningSession.schedulingMode === 'server' &&
+        previousAuthority !== null &&
+        (previousAuthority.componentRevisions.learning.eventServerSequence !==
+          accountBootstrapSnapshot.componentRevisions.learning.eventServerSequence ||
+          previousAuthority.componentRevisions.learning.sessionRevision !==
+          accountBootstrapSnapshot.componentRevisions.learning.sessionRevision ||
+          (selectedCardId !== undefined && canonicalSleepingCards.includes(selectedCardId)) ||
+          (learningSession.serverSelection === null &&
+            JSON.stringify(previousSleepingCards) !== JSON.stringify(canonicalSleepingCards)));
+      learningAuthoritySnapshotRef.current = accountBootstrapSnapshot;
       setMappedAccountBootstrapSnapshot(accountBootstrapSnapshot);
       setLearningCompletedResults(canonicalLearningState.learningResults);
       setReviewCompletedResults(canonicalLearningState.reviewResults);
-      setLearningCurrentResult(null);
+      if (needsServerSelection) {
+        requestLearningSessionRefresh();
+        return;
+      }
       const scheduledPhase =
         learningSession.schedulingMode === 'server' &&
         learningSession.serverSelection?.phase === 'review'
@@ -3713,16 +4254,22 @@ function AppShell({
             )
           : -1;
       const nextIndex = restoredIndex >= 0 ? restoredIndex : 0;
-
+      const nextCard = nextVisibleCards[nextIndex];
+      const preservesCurrentAttempt =
+        nextCard?.card_id === currentLearningCardIdRef.current &&
+        scheduledPhase === learningPhase;
       setLearningIndex(nextIndex);
-      setLearningCardState(
-        nextVisibleCards[nextIndex]
-          ? createTrackedLearningAttemptState(
-              nextVisibleCards[nextIndex],
-              spaceCardStateById,
-            )
-          : null,
-      );
+      if (preservesCurrentAttempt && nextCard) {
+        setLearningCardState(current => current === null ? null : {
+          ...current,
+          isFavorited: spaceCardStateById[nextCard.card_id]?.isFavorited ?? false,
+        });
+      } else {
+        setLearningCurrentResult(null);
+        setLearningCardState(
+          nextCard ? createTrackedLearningAttemptState(nextCard, spaceCardStateById) : null,
+        );
+      }
     } catch (error) {
       accountBootstrapStatusRef.current = 'deferred';
       setAccountBootstrapStatus('deferred');
@@ -3737,11 +4284,47 @@ function AppShell({
     accountBootstrapSnapshot,
     createTrackedLearningAttemptState,
     learningBootstrapStatus,
+    learningPhase,
     learningSession,
     mappedAccountBootstrapSnapshot,
     membershipState,
     resolveVisibleLearningCards,
+    requestLearningSessionRefresh,
     spaceCardStateById,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isAuthenticated || !isServerSelectionEmpty ||
+      learningBootstrapStatus !== 'ready' ||
+      pendingLearningEventCount > 0 ||
+      !learningSession?.nextDueAt
+    ) return;
+    const dueAt = Date.parse(learningSession.nextDueAt);
+    if (!Number.isFinite(dueAt)) return;
+    const dueKey = `${getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())}:${learningSession.track}:${learningSession.contentVersion}:${learningSession.nextDueAt}`;
+    if (lastDueRefreshKeyRef.current === dueKey) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const refreshWhenDue = () => {
+      const remaining = dueAt - Date.now();
+      if (remaining > 0) {
+        timer = setTimeout(refreshWhenDue, Math.min(remaining, 2_147_483_647));
+        return;
+      }
+      if (externalReplayWakeRef.current.appState !== 'active') return;
+      lastDueRefreshKeyRef.current = dueKey;
+      requestLearningSessionRefresh();
+    };
+    refreshWhenDue();
+    return () => {if (timer !== undefined) clearTimeout(timer);};
+  }, [
+    authSessionCoordinator,
+    isAuthenticated,
+    isServerSelectionEmpty,
+    learningBootstrapStatus,
+    learningSession,
+    pendingLearningEventCount,
+    requestLearningSessionRefresh,
   ]);
 
   useEffect(() => {
@@ -3926,19 +4509,26 @@ function AppShell({
   const authHandlers: AuthHandlers = {
     onChangePhone: value => {
       const phoneNumber = value.replace(/[^\d]/g, '').slice(0, 11);
+      const rememberedChallenge = smsChallengesByPhone.current.get(phoneNumber);
+      const challenge = rememberedChallenge?.mode === 'remote' &&
+        Date.parse(rememberedChallenge.expiresAt) > Date.now()
+        ? rememberedChallenge
+        : null;
 
       setAuthState(current => ({
         ...current,
         challenge:
-          current.phoneNumber === phoneNumber ? current.challenge : null,
+          current.phoneNumber === phoneNumber ? current.challenge : challenge,
         error: null,
+        errorAction: undefined,
         phoneNumber,
+        resendAvailableAt: smsResendAvailableAtByPhone.current.get(phoneNumber) ?? 0,
         smsCode: current.phoneNumber === phoneNumber ? current.smsCode : '',
         stage:
           current.phoneNumber === phoneNumber ||
           current.stage === 'authenticated'
             ? current.stage
-            : 'logged_out',
+            : challenge !== null ? 'code_sent' : 'logged_out',
       }));
     },
     onChangeCode: value => {
@@ -3946,6 +4536,7 @@ function AppShell({
         ...current,
         smsCode: value.replace(/[^\d]/g, '').slice(0, 6),
         error: null,
+        errorAction: undefined,
       }));
     },
     onResetPhone: () => {
@@ -3953,8 +4544,10 @@ function AppShell({
         ...current,
         challenge: null,
         error: null,
+        errorAction: undefined,
         pendingAction: null,
         phoneNumber: '',
+        resendAvailableAt: 0,
         smsCode: '',
         stage: 'logged_out',
       }));
@@ -3973,7 +4566,19 @@ function AppShell({
       });
     },
     onRequestCode: () => {
-      if (authState.pendingAction !== null) {
+      if (
+        !persistenceHydrated ||
+        deletionRecoveryReadBlocked ||
+        deletionRecoveryReceiptRef.current !== null ||
+        accountLogoutState !== 'idle' ||
+        pendingAccountLogoutCleanupRef.current !== null ||
+        accountDeletionOriginRef.current !== null ||
+        acceptedAccountDeletionCleanupRef.current !== null ||
+        authState.pendingAction !== null ||
+        smsResendRemainingSeconds(
+          smsResendAvailableAtByPhone.current.get(authState.phoneNumber) ?? 0,
+        ) > 0
+      ) {
         return;
       }
 
@@ -3989,12 +4594,18 @@ function AppShell({
       setAuthState(current => ({
         ...current,
         error: null,
+        errorAction: undefined,
         pendingAction: 'request_code',
       }));
 
       authRepository
         .requestSmsCode(phoneNumber)
         .then(challenge => {
+          const resendAvailableAt = challenge.mode === 'remote'
+            ? Date.now() + challenge.retryAfterSeconds * 1000
+            : 0;
+          smsResendAvailableAtByPhone.current.set(phoneNumber, resendAvailableAt);
+          smsChallengesByPhone.current.set(phoneNumber, challenge);
           setAuthState(current =>
             current.phoneNumber === phoneNumber
               ? {
@@ -4002,7 +4613,8 @@ function AppShell({
                   challenge,
                   error: null,
                   pendingAction: null,
-                  smsCode: '',
+                  resendAvailableAt,
+                  smsCode: current.stage === 'code_sent' ? current.smsCode : '',
                   stage: 'code_sent',
                 }
               : {
@@ -4012,15 +4624,35 @@ function AppShell({
           );
         })
         .catch((error: unknown) => {
+          const rateLimited = error instanceof RemoteHttpError && error.status === 429;
+          if (rateLimited) {
+            smsResendAvailableAtByPhone.current.set(
+              phoneNumber,
+              Date.now() + DEFAULT_SMS_RESEND_SECONDS * 1000,
+            );
+          }
           setAuthState(current => ({
             ...current,
-            error: getUserFacingErrorMessage(error, '验证码请求暂时失败。'),
+            error: rateLimited
+              ? '请求较频繁，请稍后再试。已收到的验证码仍可填写。'
+              : getUserFacingErrorMessage(error, '验证码请求暂时失败。'),
+            errorAction: 'request_code',
             pendingAction: null,
+            resendAvailableAt: smsResendAvailableAtByPhone.current.get(current.phoneNumber) ?? 0,
           }));
         });
     },
     onSubmitCode: () => {
-      if (authState.pendingAction !== null) {
+      if (
+        !persistenceHydrated ||
+        deletionRecoveryReadBlocked ||
+        deletionRecoveryReceiptRef.current !== null ||
+        accountLogoutState !== 'idle' ||
+        pendingAccountLogoutCleanupRef.current !== null ||
+        accountDeletionOriginRef.current !== null ||
+        acceptedAccountDeletionCleanupRef.current !== null ||
+        authState.pendingAction !== null
+      ) {
         return;
       }
 
@@ -4055,15 +4687,29 @@ function AppShell({
       setAuthState(current => ({
         ...current,
         error: null,
+        errorAction: undefined,
         pendingAction: 'verify_code',
       }));
       setMembershipError(null);
       setMembershipPendingAction(null);
 
+      let loginStage: 'verify_code' | 'save_session' | 'hydrate_account' = 'verify_code';
       let sessionEstablished = false;
       let establishedSessionScopeKey: string | null = null;
 
       (async () => {
+        const pendingAccountLogoutCleanup =
+          await accountLogoutCleanupStore.load();
+        if (pendingAccountLogoutCleanup !== null) {
+          pendingAccountLogoutCleanupRef.current = {
+            phoneNumber: pendingAccountLogoutCleanup.phoneNumber,
+            sessionScopeKey: null,
+            error: null,
+            revokeRemote: false,
+          };
+          await clearAuthenticatedSession();
+          throw new Error('Account cleanup must finish before authentication.');
+        }
         const pendingAccountDeletionCleanup =
           await accountDeletionCleanupStore.load();
         if (pendingAccountDeletionCleanup !== null) {
@@ -4081,6 +4727,8 @@ function AppShell({
           phoneNumber,
           smsCode,
         });
+        smsChallengesByPhone.current.delete(phoneNumber);
+        loginStage = 'save_session';
         await authSessionCoordinator.establish(session);
         sessionEstablished = true;
         establishedSessionScopeKey = getAuthSessionScopeKey(session);
@@ -4089,6 +4737,7 @@ function AppShell({
           throw new Error('Authenticated session scope is unavailable.');
         }
 
+        loginStage = 'hydrate_account';
         const hydration = await loadAuthenticatedRuntimeHydration(session);
 
         return {
@@ -4184,9 +4833,26 @@ function AppShell({
             }
           }
 
+          if (loginStage === 'save_session') {
+            // Verification has already consumed this challenge. Retain only
+            // the phone's resend deadline; retry must request a fresh code.
+            setAuthState(current => ({
+              ...current,
+              authToken: null,
+              challenge: null,
+              error: '本机暂时无法保存登录状态。',
+              errorAction: 'save_session',
+              pendingAction: null,
+              smsCode: '',
+              stage: 'logged_out',
+            }));
+            return;
+          }
+
           setAuthState(current => ({
             ...current,
             error: getUserFacingErrorMessage(error, '验证码暂时没通过。'),
+            errorAction: 'verify_code',
             pendingAction: null,
           }));
         });
@@ -4560,7 +5226,7 @@ function AppShell({
     },
     onSetLockSelection: (slotId: string, value: string) => {
       if (!currentLearningCard || currentLearningCard.interaction_id !== 'lock' || !learningCardState || learningCurrentResult) return;
-      const nextState = {...learningCardState, lockSelections: {...learningCardState.lockSelections, [slotId]: value}};
+      const nextState = selectLockOption(currentLearningCard, learningCardState, slotId, value);
       setLearningCardState(nextState);
       const result = evaluateLearningCard(currentLearningCard, nextState);
       if (result) {setLearningCurrentResult(result); setLearningScreen('practice');}
@@ -5104,6 +5770,67 @@ function AppShell({
     setLearningBootstrapStatus('idle');
     setLearningBootstrapError(null);
   };
+  const retryEmptyLearningSession = () => {
+    if (pendingLearningEventCountRef.current > 0 || isServerSelectionSleeping) {
+      const retryScope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
+      startMutationReplay({allowCanonicalRefreshRetry: true}).then(() => {
+        if (
+          retryScope === null ||
+          getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== retryScope ||
+          pendingLearningEventCountRef.current > 0
+        ) return;
+        const canonicalSleeping = accountBootstrapSnapshotRef.current?.space.snapshot.states.some(
+          state => state.cardId === currentLearningCardIdRef.current && state.isSleeping,
+        );
+        if (isServerSelectionEmptyRef.current || canonicalSleeping) requestLearningSessionRefresh();
+      }).catch(() => undefined);
+      return;
+    }
+    requestLearningSessionRefresh();
+  };
+  const audioRefreshIdentity = JSON.stringify([
+    activeLearningNoticeScope, activeRoute, learningSession?.track,
+    learningSession?.sourceId, learningSession?.contentVersion,
+    learningAudioAttemptId, currentLearningCard?.card_id,
+    currentLearningCard?.audio?.asset_id, currentLearningCard?.audio?.sha256,
+    currentLearningCard?.audio?.duration_ms, isServerSelectionSleeping,
+    canWriteAccountState,
+  ]);
+  const audioRefreshIdentityRef = useRef(audioRefreshIdentity);
+  audioRefreshIdentityRef.current = audioRefreshIdentity;
+  const refreshLearningAudioDownload = useCallback<RefreshLearningAudioDownload>(async selection => {
+    const origin = authSessionCoordinator.getCurrentSession();
+    const originScope = getAuthSessionScopeKey(origin);
+    const card = currentLearningCard;
+    const session = learningSession;
+    const isCurrent = () =>
+      originScope !== null &&
+      getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === originScope &&
+      audioRefreshIdentityRef.current === audioRefreshIdentity;
+    if (
+      !origin || !isCurrent() || activeRoute !== 'learning' ||
+      !canWriteAccountState || isServerSelectionSleeping ||
+      !card?.audio || !session ||
+      !learningSessionRepository.refreshAudioDownload ||
+      selection.authorityToken !== learningAudioAttemptId ||
+      selection.cardToken !== `${card.card_id}:${card.audio.sha256}` ||
+      selection.asset.asset_id !== card.audio.asset_id ||
+      selection.asset.sha256 !== card.audio.sha256 ||
+      selection.asset.duration_ms !== card.audio.duration_ms
+    ) throw new RemoteRequestLifecycleError('caller_cancelled');
+    const download = await learningSessionRepository.refreshAudioDownload(
+      {phoneNumber: origin.phoneNumber, authToken: getAuthAccessToken(origin)},
+      session,
+      card.audio.asset_id,
+      {isCurrent},
+    );
+    if (!isCurrent()) throw new RemoteRequestLifecycleError('caller_cancelled');
+    return download;
+  }, [
+    activeRoute, audioRefreshIdentity, authSessionCoordinator, canWriteAccountState,
+    currentLearningCard, isServerSelectionSleeping, learningAudioAttemptId,
+    learningSession, learningSessionRepository,
+  ]);
 
   const accessibleSpaceCards = learningSession
     ? learningSession.schedulingMode === 'server'
@@ -5273,6 +6000,7 @@ function AppShell({
     />
   ) : route.key === 'learning' &&
     learningScreen === 'result_detail' &&
+    !isServerSelectionSleeping &&
     currentLearningCard !== null &&
     learningCardState !== null &&
     learningCurrentResult !== null ? (
@@ -5296,8 +6024,16 @@ function AppShell({
       audioAttemptId={learningAudioAttemptId}
       completedResults={activeCompletedResults}
       contentManifest={learningSession?.contentManifest ?? null}
-      currentCard={currentLearningCard}
-      currentCardState={learningCardState}
+      refreshAudioDownload={refreshLearningAudioDownload}
+      currentCard={isServerSelectionSleeping ? null : currentLearningCard}
+      currentCardState={isServerSelectionSleeping ? null : learningCardState}
+      emptySession={learningSession?.schedulingMode === 'server' ? {
+        nextDueAt: learningSession.nextDueAt,
+        pendingSleep: isServerSelectionSleeping,
+        pendingSync: pendingLearningEventCount > 0 || learningEventRecoveryPending,
+        onRefresh: retryEmptyLearningSession,
+        onOpenSpace: () => handleSelectRoute('space'),
+      } : null}
       currentIndex={learningIndex}
       currentResult={learningCurrentResult}
       phase={learningPhase}
@@ -5366,10 +6102,26 @@ function AppShell({
       syncStatusLabel={progressSyncState.label}
     />
   ) : null;
+  const contentWithLearningNotice = route.key === 'learning' &&
+    rejectedLearningNotice?.sessionScopeKey === activeLearningNoticeScope &&
+    rejectedLearningNotice.count > 0 ? (
+      <>
+        <Text accessibilityLiveRegion="polite" testID="learning-rejected-result-notice"
+          style={[styles.learningRecoveryNotice, {color: palette.textMuted}]}>
+          {learningBootstrapStatus === 'ready' && accountBootstrapHydrationSettled
+            ? '这次结果未计入，已更新学习安排。'
+            : learningBootstrapStatus === 'error'
+            ? '这次结果未计入，请重试更新学习安排。'
+            : '这次结果未计入，正在更新学习安排。'}
+        </Text>
+        {content}
+      </>
+    ) : content;
   const isAccountDeletionSheetVisible =
-    accountDeletionState === 'confirmation' ||
-    accountDeletionState === 'submitting' ||
-    accountDeletionState === 'recoverable_unknown';
+    !accountDeletionSheetDismissed &&
+    (accountDeletionState === 'confirmation' ||
+      accountDeletionState === 'submitting' ||
+      accountDeletionState === 'recoverable_unknown');
 
   return (
     <SafeAreaView
@@ -5410,6 +6162,50 @@ function AppShell({
             }}
             palette={palette}
             pending={accountDeletionState === 'cleanup_retrying'}
+            purpose={acceptedAccountDeletionCleanupRef.current?.registrationReady ? 'registration' : 'deletion'}
+          />
+        ) : accountLogoutState !== 'idle' ? (
+          <AccountDeletionCleanupSurface
+            onRetry={() => {
+              if (pendingAccountLogoutCleanupRef.current !== null) {
+                clearAuthenticatedSession().catch(() =>
+                  setAccountLogoutState('cleanup_required'),
+                );
+              } else {
+                setAccountLogoutState('cleanup_retrying');
+                setAccountRecoveryRetryGeneration(current => current + 1);
+              }
+            }}
+            palette={palette}
+            pending={accountLogoutState === 'cleanup_retrying'}
+            purpose="logout"
+          />
+        ) : accountDeletionState === 'recoverable_unknown' && accountDeletionSheetDismissed ? (
+          <AccountDeletionCleanupSurface
+            onRetry={() => setAccountDeletionSheetDismissed(false)}
+            onQueryStatus={deletionRecoverySnapshot === null ? undefined : switchUnknownDeletionToSmsRecovery}
+            palette={palette}
+            pending={false}
+            purpose="deletion_unknown"
+          />
+        ) : deletionRecoveryReadBlocked || !persistenceHydrated ||
+          (deletionRecoverySnapshot !== null && accountDeletionOriginRef.current === null) ? (
+          <AccountDeletionRecoverySurface
+            accepted={deletionRecoverySnapshot?.state.phase === 'accepted'}
+            busy={!persistenceHydrated ? 'checking' : deletionRecoveryBusy}
+            error={deletionRecoveryError}
+            hasChallenge={deletionRecoveryChallenge !== null}
+            onChangeCode={code => setDeletionRecoveryCode(code.replace(/\D/g, '').slice(0, 6))}
+            onRequestCode={() => queryAccountDeletionRecovery(false)}
+            onRetryLoad={() => {
+              setDeletionRecoveryBusy('checking');
+              setAccountRecoveryRetryGeneration(current => current + 1);
+            }}
+            onVerifyCode={() => queryAccountDeletionRecovery(true)}
+            palette={palette}
+            phoneNumber={deletionRecoverySnapshot?.state.phoneNumber ?? null}
+            resendAvailableAt={deletionRecoveryResendAt}
+            smsCode={deletionRecoveryCode}
           />
         ) : !isAuthenticated ? (
           <View style={styles.standaloneAuthRoot} testID="standalone-auth-root">
@@ -5425,7 +6221,7 @@ function AppShell({
           <TabletShell
             activeRoute={activeRoute}
             authState={authState}
-            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{content}</Animated.View>}
+            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithLearningNotice}</Animated.View>}
             onSelectRoute={handleSelectRoute}
             palette={palette}
             route={route}
@@ -5435,7 +6231,7 @@ function AppShell({
             activeRoute={activeRoute}
             readingResetKey={`${currentLearningCard?.card_id ?? 'complete'}:${learningPhase}:${learningScreen}:${Boolean(learningCurrentResult)}:${Boolean(learningCardState?.isFlipped)}`}
             authState={authState}
-            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{content}</Animated.View>}
+            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithLearningNotice}</Animated.View>}
             onSelectRoute={handleSelectRoute}
             palette={palette}
             route={route}
@@ -5446,7 +6242,8 @@ function AppShell({
         onCancel={closeAccountDeletionSheet}
         onSubmit={submitAccountDeletion}
         palette={palette}
-        state={accountDeletionState}
+        preparationFailed={accountDeletionPreparationFailed}
+        state={accountDeletionSheetDismissed ? 'closed' : accountDeletionState}
       />
     </SafeAreaView>
   );
@@ -5643,18 +6440,43 @@ function LearningSleepSurface({
 
 function AccountDeletionCleanupSurface({
   onRetry,
+  onQueryStatus,
   palette,
   pending,
+  purpose = 'deletion',
 }: {
   onRetry: () => void;
+  onQueryStatus?: () => void;
   palette: Palette;
   pending: boolean;
+  purpose?: 'deletion' | 'logout' | 'deletion_unknown' | 'registration';
 }) {
   const headingRef = useRef<React.ElementRef<typeof Text>>(null);
+  const title = purpose === 'registration'
+    ? pending ? '正在准备重新登录' : '本机清理尚未完成'
+    : purpose === 'logout'
+    ? pending ? '正在退出登录' : '退出尚未完成'
+    : purpose === 'deletion_unknown'
+    ? '删除结果尚未确认'
+    : '删除申请已接收';
+  const summary = purpose === 'registration'
+    ? '已确认当前没有待处理的删除申请。完成本机旧账户数据清理后即可重新验证手机号。'
+    : purpose === 'logout'
+    ? '这台设备上的账户数据还没有全部清理完成。完成后即可重新登录。'
+    : purpose === 'deletion_unknown'
+    ? '请继续确认这次删除申请。结果确认前，学习和其他账户操作暂不可用。'
+    : '当前账户已不能继续使用，但这台设备上的账户数据还没有全部清理完成。请重新完成本机退出。';
+  const testPrefix = purpose === 'deletion' || purpose === 'registration'
+    ? 'account-deletion-cleanup'
+    : purpose === 'logout'
+    ? 'account-logout-cleanup'
+    : 'account-deletion-unknown';
 
   useEffect(() => {
     AccessibilityInfo.announceForAccessibility(
-      pending
+      purpose !== 'deletion'
+        ? `${title}。${summary}`
+        : pending
         ? '删除申请已接收。正在清理这台设备上的账户数据。'
         : '删除申请已接收。本机账户数据尚未清理完成，请重试。',
     );
@@ -5662,7 +6484,7 @@ function AccountDeletionCleanupSurface({
     if (headingHandle !== null) {
       AccessibilityInfo.setAccessibilityFocus(headingHandle);
     }
-  }, [pending]);
+  }, [pending, purpose, summary, title]);
 
   return (
     <ScrollView
@@ -5670,7 +6492,7 @@ function AccountDeletionCleanupSurface({
       contentContainerStyle={styles.accountDeletionAcceptedScreen}
       showsVerticalScrollIndicator={false}
       style={styles.accountDeletionAcceptedScroll}
-      testID="account-deletion-cleanup-screen"
+      testID={`${testPrefix}-screen`}
     >
       <View
         style={[
@@ -5698,7 +6520,7 @@ function AccountDeletionCleanupSurface({
           ref={headingRef}
           style={[styles.accountDeletionAcceptedTitle, { color: palette.text }]}
         >
-          删除申请已接收
+          {title}
         </Text>
         <Text
           style={[
@@ -5706,7 +6528,7 @@ function AccountDeletionCleanupSurface({
             { color: palette.textMuted },
           ]}
         >
-          当前账户已不能继续使用，但这台设备上的账户数据还没有全部清理完成。请重新完成本机退出。
+          {summary}
         </Text>
         <View
           style={[
@@ -5723,7 +6545,11 @@ function AccountDeletionCleanupSurface({
               { color: palette.textMuted },
             ]}
           >
-            这里仍不表示服务端账户数据已经全部清理完成。
+            {purpose === 'logout'
+              ? '退出只清理这台设备上的登录和账户数据，不会删除你的学习账户。'
+              : purpose === 'deletion_unknown'
+              ? '目前不能判断申请是否已被接收，也不代表账户数据已经清理完成。'
+              : '这里仍不表示服务端账户数据已经全部清理完成。'}
           </Text>
         </View>
         <Pressable
@@ -5738,7 +6564,7 @@ function AccountDeletionCleanupSurface({
                 : palette.accent,
             },
           ]}
-          testID="account-deletion-cleanup-retry-button"
+          testID={`${testPrefix}-retry-button`}
         >
           <Text
             style={[
@@ -5750,9 +6576,21 @@ function AccountDeletionCleanupSurface({
               },
             ]}
           >
-            {pending ? '正在清理本机数据' : '重新完成本机退出'}
+            {purpose === 'deletion_unknown'
+              ? '继续确认删除'
+              : pending ? '正在清理本机数据' : '重新完成本机退出'}
           </Text>
         </Pressable>
+        {onQueryStatus ? (
+          <Pressable accessibilityRole="button" disabled={pending}
+            onPress={onQueryStatus}
+            style={[styles.accountDeletionPrimaryButton, {backgroundColor: palette.panelStrong}]}
+            testID="account-deletion-unknown-sms-button">
+            <Text style={[styles.accountDeletionPrimaryButtonLabel, {color: palette.text}]}>
+              用短信查询状态
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -5867,11 +6705,13 @@ function AccountDeletionSheet({
   onCancel,
   onSubmit,
   palette,
+  preparationFailed,
   state,
 }: {
   onCancel: () => void;
   onSubmit: () => Promise<void>;
   palette: Palette;
+  preparationFailed: boolean;
   state: AccountDeletionPresentationState;
 }) {
   const visible =
@@ -5937,7 +6777,7 @@ function AccountDeletionSheet({
                 ? '确认永久删除这个账户？'
                 : isSubmitting
                 ? '正在提交删除申请'
-                : '还没有收到确认'}
+                : preparationFailed ? '删除申请尚未发送' : '还没有收到确认'}
             </Text>
             <Text
               style={[
@@ -5949,6 +6789,8 @@ function AccountDeletionSheet({
                 ? '删除申请提交后会退出当前账号，学习进度、空间位置、签到与会员归属都会进入清理。'
                 : isSubmitting
                 ? '请保持当前画面，等待这次申请得到确认。'
+                : preparationFailed
+                ? '这台设备暂时无法保存恢复信息，尚未发送删除申请。请重试。'
                 : '现在无法判断申请是否已经被接收。重试会继续确认同一次删除，不会新建另一份申请。'}
             </Text>
 
@@ -6010,7 +6852,7 @@ function AccountDeletionSheet({
                     { color: palette.text },
                   ]}
                 >
-                  {isSubmitting ? '正在确认' : '结果尚未确认'}
+                  {isSubmitting ? '正在确认' : preparationFailed ? '尚未发送' : '结果尚未确认'}
                 </Text>
                 <Text
                   style={[
@@ -6020,7 +6862,7 @@ function AccountDeletionSheet({
                 >
                   {isSubmitting
                     ? '不会重复提交，也不会提前显示删除完成。'
-                    : '账户数据是否开始清理，当前都不作结论。'}
+                    : preparationFailed ? '重试会先保存恢复信息，再发送申请。' : '账户数据是否开始清理，当前都不作结论。'}
                 </Text>
               </View>
             </View>
@@ -7850,18 +8692,22 @@ function PhoneSmsPanel({
   const isDockedPanel = accountDock || routeDock || minimal;
   const isAuthenticated = authState.stage === 'authenticated';
   const isPending = authState.pendingAction !== null;
+  const resendRemainingSeconds = useSmsResendRemainingSeconds(authState.resendAvailableAt);
   const hasRequestedCode = authState.stage !== 'logged_out';
   const hasAuthError = authState.error !== null;
+  const isSessionSaveError = hasAuthError && authState.errorAction === 'save_session';
   const isClientUpdateRequired =
     isAuthenticated && authState.error === CLIENT_UPDATE_REQUIRED_COPY;
   const hasCodeError =
-    hasAuthError && hasRequestedCode && !isClientUpdateRequired;
+    hasAuthError && hasRequestedCode && !isClientUpdateRequired &&
+    authState.errorAction !== 'request_code';
   const isExpiredSessionError =
     hasAuthError &&
     !hasRequestedCode &&
     authState.error?.startsWith('登录已失效');
   const isPhoneReady = isPhoneNumberReady(authState.phoneNumber);
-  const canRequestCode = isPhoneReady && !isPending && !isAuthenticated;
+  const canRequestCode = isPhoneReady && !isPending && !isAuthenticated &&
+    resendRemainingSeconds === 0;
   const canSubmitCode =
     isSmsCodeReady(authState.smsCode) && !isPending && !isAuthenticated;
   const requestCodeLabelColor = canRequestCode
@@ -7891,18 +8737,26 @@ function PhoneSmsPanel({
     ? `验证码已发送，登录后返回${returnTarget}。`
     : requestDockDetail;
   const requestStatusTone = canRequestCode ? palette.success : palette.accent;
-  const authErrorTitle = isClientUpdateRequired
+  const authErrorTitle = isSessionSaveError
+    ? '本机暂时无法保存登录状态'
+    : isClientUpdateRequired
     ? '需要安装最新版本'
     : isExpiredSessionError
     ? '登录已失效'
-    : hasRequestedCode
+    : hasCodeError
     ? '验证码不正确'
     : '验证码发送失败';
-  const authErrorDetail = isClientUpdateRequired
+  const authErrorDetail = isSessionSaveError
+    ? resendRemainingSeconds > 0
+      ? '请等待短信间隔结束，再重新获取验证码登录。'
+      : '请稍后重新获取验证码登录。'
+    : isClientUpdateRequired
     ? '登录状态已保留，更新后可直接继续。'
     : isExpiredSessionError
     ? '请重新登录。'
-    : hasRequestedCode
+    : authState.errorAction === 'request_code' && hasRequestedCode
+    ? authState.error ?? '重发暂时失败，仍可填写已收到的验证码。'
+    : hasCodeError
     ? '请检查验证码后重试。'
     : '请检查手机号后重试。';
   const codeActionTone = hasCodeError ? palette.warning : palette.accent;
@@ -7942,14 +8796,14 @@ function PhoneSmsPanel({
       />
       <View style={styles.authErrorCopy}>
         <Text
-          numberOfLines={1}
+          numberOfLines={isSessionSaveError ? undefined : 1}
           style={[styles.authErrorTitle, { color: palette.text }]}
           testID="auth-error-title"
         >
           {authErrorTitle}
         </Text>
         <Text
-          numberOfLines={2}
+          numberOfLines={isSessionSaveError ? undefined : 2}
           style={[styles.authErrorDetail, { color: palette.textMuted }]}
           testID="auth-error-detail"
         >
@@ -7979,7 +8833,7 @@ function PhoneSmsPanel({
           numberOfLines={1}
           style={[styles.authErrorPillText, { color: palette.warning }]}
         >
-          {isClientUpdateRequired ? '获取更新' : '可重试'}
+          {isClientUpdateRequired ? '获取更新' : isSessionSaveError ? '重新取码' : '可重试'}
         </Text>
       </Pressable>
     </View>
@@ -8068,6 +8922,8 @@ function PhoneSmsPanel({
               >
                 {authState.pendingAction === 'request_code'
                   ? '请求中'
+                  : resendRemainingSeconds > 0
+                  ? `${resendRemainingSeconds} 秒后重发`
                   : '重新发送'}
               </Text>
             </Pressable>
@@ -8382,8 +9238,8 @@ function PhoneSmsPanel({
               >
                 {authState.pendingAction === 'request_code'
                   ? '发送中'
-                  : canRequestCode
-                  ? '获取验证码'
+                  : resendRemainingSeconds > 0
+                  ? `${resendRemainingSeconds} 秒后重发`
                   : '获取验证码'}
               </Text>
             </Pressable>
@@ -8594,6 +9450,7 @@ function getMembershipCardSummary(
 }
 
 const styles = StyleSheet.create({
+  learningRecoveryNotice: {fontSize: 14, lineHeight: 22, paddingHorizontal: 18, paddingVertical: 8},
   safeArea: {
     flex: 1,
   },

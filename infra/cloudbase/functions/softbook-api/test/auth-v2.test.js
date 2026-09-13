@@ -629,6 +629,31 @@ test('v2 request-code enforces independent phone and client-IP limits', async ()
   );
 });
 
+test('recommended resend interval spans the phone quota and fixed-window reset', async () => {
+  const {api, clock, sms} = createV2TestApi();
+  for (let attempt = 0; attempt < 11; attempt += 1) {
+    const issued = await issueChallenge(api);
+    assert.equal(issued.statusCode, 200);
+    assert.equal(issued.body.data.retry_after_seconds, 120);
+    assert.equal(sms.deliveries.length, attempt + 1);
+    clock.advanceSeconds(issued.body.data.retry_after_seconds);
+  }
+});
+
+test('suppressed phone sends expose the same interval and preserve the previous challenge', async () => {
+  const {api, sms} = createV2TestApi({phoneRequestLimit: 1});
+  const first = await issueChallenge(api);
+  const suppressed = await issueChallenge(api, PHONE_NUMBER, '203.0.113.11');
+  assert.equal(suppressed.statusCode, 200);
+  assert.equal(suppressed.body.data.retry_after_seconds, first.body.data.retry_after_seconds);
+  assert.equal(sms.deliveries.length, 1);
+  const verified = await request(api, {
+    path: '/v2/auth/verify-code',
+    body: {challenge_id: first.body.data.challenge_id, phone_number: PHONE_NUMBER, sms_code: SMS_CODE},
+  });
+  assert.equal(verified.statusCode, 200);
+});
+
 test('v2 records failed SMS delivery and does not activate that challenge', async () => {
   const store = createMemoryStore();
   const api = createSoftbookApi({

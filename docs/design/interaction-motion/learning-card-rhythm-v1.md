@@ -190,6 +190,27 @@ outer object, address, hint edge, and primary-action anchor remain stationary.
 
 Loading should preserve the one-card silhouette. Empty, unavailable, or permission states should explain the product condition and the next useful action. Remote failure should favor continuity and retry language over implementation details.
 
+The expanded explanation keeps outcome, answer comparison and explanation
+together in reading order. It does not spread those related pieces across the
+remaining screen height. Continue retains the current library accent and its
+readable foreground from the card view, with any spare paper below the content
+and above the footer action. This follows the observed separation and accent
+change in the native reading journey.
+
+A server response with no eligible card is an availability state, not a
+completed zero-card round. Show the next review time when supplied, offer a
+fresh check of the learning plan, and keep Space reachable. A due-time change,
+return to the foreground, or network recovery can recheck that empty state;
+an unchanged overdue response must not create a refresh loop. Pending answers
+and a current sleeping card explain what is being synchronized instead of
+claiming that the user completed a round.
+
+An asynchronous Continue keeps the departing object's final frame until the
+next question arrives. The newly committed question enters once. Restore the
+old object only if continuation fails or produces no replacement. Repeated
+activation and changes to reduced-motion preferences do not repeat the
+request, and cancelled surfaces cannot restore stale pixels.
+
 ## Design Review Checklist Answers
 
 Q1: The rhythm uses one current library accent and introduces no new accent family.

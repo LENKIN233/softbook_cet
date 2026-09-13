@@ -170,6 +170,12 @@ Every event is one immutable card completion. Required fields are:
 
 The grade is deterministic rather than a second client opinion:
 
+For lock cards, `spec/interactions.json` owns attempt assessment: a valid wrong
+slot selection makes the current attempt review-needed, even when the user
+subsequently unlocks every slot. The client emits one `incorrect` completion
+(`review_needed`) after correction, without fabricating hint/peek usage or
+adding a second event. A new mistake-free attempt emits `correct`/`passed`.
+
 | Outcome | Answer grade |
 | --- | --- |
 | `correct` | `passed` |
@@ -411,6 +417,18 @@ provide positive unique server sequences. A transient failure pauses automatic r
 app foreground, or a newly durably enqueued event, preventing render-driven
 request loops while preserving exact retry bytes.
 
+An exact HTTP 409 with `learning_event_selection_conflict`,
+`learning_event_id_conflict`, or `learning_event_cursor_conflict` is terminal
+for that immutable event. Replay submits one entry at a time so another entry's
+failure cannot reject an already accepted duplicate. It atomically moves the
+unchanged entry and the rejection code/time into `rejectedEntries` in the same
+credential-free v2 envelope. Unknown 409s and malformed error bodies remain
+pending. A rejected event is never an acknowledgement or a completion count.
+After isolation the client refreshes canonical state and the server selection,
+explains that the result was not counted, and can continue; historical rejection
+and new pending/accepted work remain separate facts. Logout and deletion clear
+both pending and rejected entries under the existing account cleanup authority.
+
 Replay is serialized per originating session. If an event is durably enqueued
 or a dependent mutation finishes queueing after an in-flight pass has observed
 its queue, the client records one follow-up pass and starts it when the current
@@ -435,7 +453,7 @@ PC Web injects browser localStorage behind this same outbox core. The stored
 shape remains credential-free; access and refresh tokens stay in memory. On
 authenticated entry and before every canonical bootstrap read, Web replays the
 signed-in account's retained events and refuses to advance to a new server
-selection while any completion remains unacknowledged. Authorization loss and
+selection while any completion remains pending. Authorization loss and
 explicit logout clear the signed-out account's event entries plus the generic
 mutation queue before the login surface is shown; a failed clear keeps a bounded
 recovery surface and blocks same-phone reauthentication. A persisted event whose

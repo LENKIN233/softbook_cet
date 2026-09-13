@@ -1,11 +1,14 @@
 import {
   resolveCardAudioDownload,
+  type ContentAssetDownload,
   type VerifiedContentManifest,
 } from '../../mobile/src/audio/contentManifestRepository';
 import type {LearningCard} from '../../mobile/src/learning/model';
+import {ContentAssetDownloadAuthorizationError} from '../../mobile/src/audio/contentAssetCache';
 import {
   DEFAULT_REMOTE_REQUEST_TIMEOUT_MS,
   runBoundedRemoteRequest,
+  RemoteRequestLifecycleError,
 } from '../../mobile/src/runtime/remoteRequest';
 
 type AudioElement = {
@@ -40,7 +43,29 @@ export async function prepareVerifiedCardAudio(options: {
   card: LearningCard;
   contentManifest: VerifiedContentManifest;
   dependencies?: WebAudioDependencies;
+  refreshDownload?: () => Promise<ContentAssetDownload>;
 }): Promise<VerifiedWebAudioPlayback> {
+  try {
+    return await prepareVerifiedCardAudioOnce(options);
+  } catch (error) {
+    if (!(error instanceof ContentAssetDownloadAuthorizationError) || !options.refreshDownload) throw error;
+    if (options.dependencies?.signal?.aborted) throw new RemoteRequestLifecycleError('session_superseded');
+    const download = await options.refreshDownload();
+    if (options.dependencies?.signal?.aborted) throw new RemoteRequestLifecycleError('session_superseded');
+    if (download.asset_id !== options.card.audio?.asset_id) throw new Error('音频授权与当前卡片不一致。');
+    return prepareVerifiedCardAudioOnce({
+      ...options,
+      contentManifest: {
+        ...options.contentManifest,
+        downloads: options.contentManifest.downloads.map(item => item.asset_id === download.asset_id ? download : item),
+      },
+    });
+  }
+}
+
+async function prepareVerifiedCardAudioOnce(
+  options: Parameters<typeof prepareVerifiedCardAudio>[0],
+): Promise<VerifiedWebAudioPlayback> {
   const selection = resolveCardAudioDownload(
     options.contentManifest,
     options.card,
@@ -52,7 +77,7 @@ export async function prepareVerifiedCardAudio(options: {
   const dependencies = options.dependencies ?? {};
   const now = dependencies.now?.() ?? new Date();
   if (Date.parse(selection.download.expires_at) <= now.getTime()) {
-    throw new Error('音频授权已过期，请重新读取当前学习卡。');
+    throw new ContentAssetDownloadAuthorizationError('expired');
   }
 
   assertCredentialFreeHttpsUrl(selection.download.url);
@@ -73,6 +98,9 @@ export async function prepareVerifiedCardAudio(options: {
         },
       );
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new ContentAssetDownloadAuthorizationError('rejected');
+        }
         throw new Error('音频暂时无法下载，请稍后再试。');
       }
       assertCredentialFreeHttpsUrl(response.url || selection.download.url);
