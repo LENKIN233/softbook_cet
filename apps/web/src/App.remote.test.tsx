@@ -480,7 +480,8 @@ describe('PC Web remote UI authority', () => {
 
     expect(await screen.findByText('删除申请已提交')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
-    expect(screen.getByText(/不表示所有数据已在这一刻擦除完成/)).toBeInTheDocument();
+    expect(screen.getByText(/删除申请正在处理/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/账户已删除|删除已完成/);
     fireEvent.click(screen.getByRole('button', {name: '返回手机号验证'}));
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
   });
@@ -792,7 +793,8 @@ describe('PC Web remote UI authority', () => {
     expect(
       await screen.findByText('现在可以重新验证手机号'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/不表示此前删除申请已接收或已经完成/)).toBeInTheDocument();
+    expect(screen.getByText(/当前没有待处理的删除申请/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/账户已删除|删除已完成/);
     expect(screen.queryByText('删除申请已提交')).toBeNull();
     fireEvent.click(screen.getByRole('button', {name: '返回手机号验证'}));
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
@@ -965,7 +967,8 @@ describe('PC Web remote UI authority', () => {
     expect(
       await screen.findByText('重新验证前还要完成本机清理'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/不证明此前申请已接收或完成/)).toBeInTheDocument();
+    expect(screen.getByText(/先完成这台设备的旧记录清理/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/账户已删除|删除已完成/);
     fireEvent.click(screen.getByRole('button', {name: '重试本机清理'}));
 
     expect(
