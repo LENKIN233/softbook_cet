@@ -91,7 +91,7 @@ Flip feedback keeps 有把握=confident/mint (#22C58B) and
 - The primary action is always the interaction's own operation.
 - `peek`, `hint`, `favorite`, and contextual `sleep` stay secondary.
 - Auto-scored interactions must not ask the user for `有把握` / `再回看`.
-- The complete analysis keeps every answer line readable at ordinary and large text sizes. A provided audio transcript is available through “查看听力原文” after resolution, collapsed initially, and never shown on an unanswered front.
+- The complete analysis keeps every answer line readable at ordinary and large text sizes. A provided audio transcript has an explicit disclosure after resolution, collapsed initially, and is never shown on an unanswered front.
 - The accessible swipe object includes its actual question in the spoken name; direction choices and selection status remain available without dragging.
 - No interaction may introduce gamification chrome, reward bursts, or extra state counters as the main feedback.
 

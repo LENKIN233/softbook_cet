@@ -191,11 +191,11 @@ outer object, address, hint edge, and primary-action anchor remain stationary.
 Loading should preserve the one-card silhouette. Empty, unavailable, or permission states should explain the product condition and the next useful action. Remote failure should favor continuity and retry language over implementation details.
 
 The expanded explanation keeps outcome, answer comparison and explanation
-together in reading order. It does not spread those related pieces across the
+together in content order. It does not spread those related pieces across the
 remaining screen height. Continue retains the current library accent and its
 readable foreground from the card view, with any spare paper below the content
 and above the footer action. This follows the observed separation and accent
-change in the native reading journey.
+change in the native card journey.
 
 A server response with no eligible card is an availability state, not a
 completed zero-card round. Show the next review time when supplied, offer a
