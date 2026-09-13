@@ -1,4 +1,4 @@
-import type { ContentAssetCache } from './contentAssetCache';
+import {ContentAssetDownloadAuthorizationError, type ContentAssetCache} from './contentAssetCache';
 import type {
   ContentAssetDownload,
   ContentManifestAsset,
@@ -34,6 +34,10 @@ export type LearningAudioSelection = {
   download: ContentAssetDownload;
 };
 
+export type RefreshLearningAudioDownload = (
+  selection: LearningAudioSelection,
+) => Promise<ContentAssetDownload>;
+
 type StateListener = (state: LearningAudioPlaybackState) => void;
 
 let learningAudioControllerSequence = 0;
@@ -59,6 +63,7 @@ export class LearningAudioController {
       cache: ContentAssetCache;
       engine: LearningAudioEngine;
       isOnline?: () => boolean | Promise<boolean>;
+      refreshDownload?: RefreshLearningAudioDownload;
     },
   ) {
     this.unsubscribeEngine = dependencies.engine.subscribe(event => {
@@ -258,7 +263,7 @@ export class LearningAudioController {
   }
 
   private async prepareAndPlay() {
-    const selection = this.selection;
+    let selection = this.selection;
 
     if (selection === null) {
       return;
@@ -266,13 +271,30 @@ export class LearningAudioController {
 
     const generation = ++this.generation;
     this.setState({ status: 'loading' });
+    let refreshedDownload = false;
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        const file = await this.dependencies.cache.resolve({
-          asset: selection.asset,
-          download: selection.download,
-        });
+        let file;
+        try {
+          file = await this.dependencies.cache.resolve({asset: selection.asset, download: selection.download});
+        } catch (error) {
+          if (
+            !(error instanceof ContentAssetDownloadAuthorizationError) ||
+            refreshedDownload || !this.dependencies.refreshDownload ||
+            !this.isCurrentSelection(generation, selection.authorityToken) ||
+            await this.readOnlineState() === false
+          ) throw error;
+          refreshedDownload = true;
+          const download = await this.dependencies.refreshDownload(selection);
+          if (!this.isCurrentSelection(generation, selection.authorityToken)) return;
+          if (download.asset_id !== selection.asset.asset_id) {
+            throw new Error('Refreshed audio authorization changed the selected asset.');
+          }
+          selection = {...selection, download};
+          this.selection = selection;
+          file = await this.dependencies.cache.resolve({asset: selection.asset, download});
+        }
 
         if (!this.isCurrentSelection(generation, selection.authorityToken)) {
           return;

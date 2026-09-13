@@ -56,7 +56,7 @@ import {
   type SpaceActionDimension,
 } from '../../mobile/src/space/spaceStateRepository';
 import {resolveSpaceStateRepositoryConfig} from '../../mobile/src/space/spaceStateRuntimeConfig';
-import {LearningEventOutbox} from '../../mobile/src/sync/learningEventOutbox';
+import {LearningEventOutbox, type RejectedLearningEvent} from '../../mobile/src/sync/learningEventOutbox';
 import {createLearningEventSyncRepository} from '../../mobile/src/sync/learningEventSyncRepository';
 import {createLearningEventsRepository} from '../../mobile/src/sync/learningEventsRepository';
 import {resolveLearningEventsRepositoryConfig} from '../../mobile/src/sync/learningEventsRuntimeConfig';
@@ -79,6 +79,7 @@ import {
 } from './webStorage';
 import {
   createWebAccountDeletionStateStore,
+  isCommittedWebLearningStorageUpgrade,
   WEB_ACCOUNT_DELETION_STORAGE_KEY,
   type WebAccountDeletionRequestingAuthority,
   type WebAccountResolvedCleanupAuthority,
@@ -115,7 +116,9 @@ export type WebRemoteSnapshot = {
   };
   learningSync: {
     pendingEventCount: number;
-    status: 'confirmed' | 'queued';
+    rejectedEventCount?: number;
+    rejectionCodes?: Array<RejectedLearningEvent['rejection']['code']>;
+    status: 'confirmed' | 'queued' | 'rejected' | 'queued_and_rejected';
   };
   membership: AccountBootstrapSnapshot['membership']['state'];
   reviewResults: LearningCardResult[];
@@ -146,7 +149,9 @@ export type WebAccountDeletionOutcome =
       status: 'reauthentication_required';
     };
 
-export type WebLearningCompletionSync = WebRemoteSnapshot['learningSync'];
+export type WebLearningCompletionSync = WebRemoteSnapshot['learningSync'] & {
+  completionStatus?: 'confirmed' | 'queued' | 'rejected';
+};
 
 export type WebAccountPresentationInvalidation = {
   reason?: 'authorization_invalidated';
@@ -195,6 +200,7 @@ type RemoteRuntimeDependencies = {
   subscribeAudioStatus?: (
     listener: (status: 'error' | 'idle') => void,
   ) => () => void;
+  subscribeAudioLifecycle?: (listener: () => void) => () => void;
   track: LearningTrack;
 };
 
@@ -222,6 +228,7 @@ export type WebRemoteRuntimeController = {
   requestAccountDeletionRecoverySmsCode: () => Promise<WebAccountDeletionRecoveryChallenge>;
   resumeAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
   start: () => void;
+  stopCardAudio?: () => void;
   subscribeAccountPresentationInvalidation: (
     listener: (event: WebAccountPresentationInvalidation) => void,
   ) => () => void;
@@ -268,6 +275,7 @@ export function createWebRemoteRuntime(
     (reason: WebAccountEpochChangeReason) => void
   >();
   let storageEpochListenerInstalled = false;
+  let preparedAccountStorageRevision: number | null = null;
   const isDeletionQuarantined = (sessionScopeKey: string | null) =>
     sessionScopeKey !== null &&
     deletionQuarantinedSessionScopes.has(sessionScopeKey);
@@ -285,6 +293,21 @@ export function createWebRemoteRuntime(
       event.key !== WEB_ACCOUNT_DELETION_STORAGE_KEY ||
       (event.storageArea !== null && event.storageArea !== browserStorage)
     ) {
+      return;
+    }
+    if (
+      preparedAccountStorageRevision !== null &&
+      (currentAccountWriteRevision === null ||
+        currentAccountWriteRevision === preparedAccountStorageRevision) &&
+      isCommittedWebLearningStorageUpgrade(
+        browserStorage,
+        event.oldValue,
+        event.newValue,
+        preparedAccountStorageRevision,
+      )
+    ) {
+      // Another new tab can adopt the committed version before the browser
+      // delivers its upgrade event. Its challenge/session already uses it.
       return;
     }
     const sessionScopeKey = getAuthSessionScopeKey(
@@ -534,7 +557,14 @@ export function createWebRemoteRuntime(
   const controller = createWebRemoteRuntimeController({
     accountDeletionRecoveryRepository,
     accountDeletionRepository,
-    accountDeletionStateStore,
+    accountDeletionStateStore: {
+      ...accountDeletionStateStore,
+      async prepareLearningEventStorage() {
+        const revision = await accountDeletionStateStore.prepareLearningEventStorage!();
+        preparedAccountStorageRevision = revision;
+        return revision;
+      },
+    },
     accountBootstrapRepository,
     authRepository,
     authSessionCoordinator,
@@ -545,6 +575,9 @@ export function createWebRemoteRuntime(
     runAccountCleanup: (scope, operation) =>
       accountWriteFence.runAccountCleanup(scope, operation),
     playAudio: async (card, session, authority) => {
+      if (document.visibilityState === 'hidden') {
+        throw new RemoteRequestLifecycleError('session_superseded');
+      }
       if (session.contentManifest === null) {
         throw new Error('当前学习内容没有经过签名音频清单校验。');
       }
@@ -585,6 +618,21 @@ export function createWebRemoteRuntime(
         playback = await prepareVerifiedCardAudio({
           card,
           contentManifest: session.contentManifest,
+          refreshDownload: async () => {
+            if (!learningSessionRepository.refreshAudioDownload || !card.audio) throw new Error('音频授权暂时无法更新。');
+            const isCurrent = () => audioGeneration === preparationGeneration &&
+              !preparationController.signal.aborted &&
+              getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === authority.sessionScopeKey &&
+              currentAccountWriteRevision === authority.deletionRevision && !accountWriteFence.isWriteQuarantined();
+            const authSession = authSessionCoordinator.getCurrentSession();
+            if (!isCurrent() || authSession?.mode !== 'remote') throw new RemoteRequestLifecycleError('session_superseded');
+            const download = await learningSessionRepository.refreshAudioDownload(
+              {authToken: authSession.accessToken, phoneNumber: authSession.phoneNumber},
+              session, card.audio.asset_id, {isCurrent},
+            );
+            if (!isCurrent()) throw new RemoteRequestLifecycleError('session_superseded');
+            return download;
+          },
           dependencies: {
             fetchImpl,
             onPlaybackTerminated(reason) {
@@ -619,7 +667,13 @@ export function createWebRemoteRuntime(
         generation: preparationGeneration,
         status: 'ready',
       };
-      return 'ready';
+      const requestedAudio = activeAudio;
+      await requestedAudio.play();
+      if (activeAudio !== requestedAudio || audioGeneration !== preparationGeneration) {
+        throw new RemoteRequestLifecycleError('session_superseded');
+      }
+      requestedAudio.status = 'playing';
+      return 'playing';
     },
     stopAudio: stopActiveAudio,
     setAccountDeletionQuarantine(sessionScopeKey, active) {
@@ -656,6 +710,17 @@ export function createWebRemoteRuntime(
       audioStatusListeners.add(listener);
       return () => audioStatusListeners.delete(listener);
     },
+    subscribeAudioLifecycle(listener) {
+      const onVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') listener();
+      };
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      window.addEventListener('pagehide', listener);
+      return () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+        window.removeEventListener('pagehide', listener);
+      };
+    },
     track: runtime.track,
   });
   return controller;
@@ -673,6 +738,9 @@ export function createWebRemoteRuntimeController(
   let currentLearningSession: LearningSession | null = null;
   let persistedLearningResult: LearningCardResult | null = null;
   let persistedSelectionId: string | null = null;
+  let persistedLearningEventId: string | null = null;
+  let learningCompletionRevision = 0;
+  let reconciledLearningCompletionRevision = 0;
   let sessionDeletionRevision: number | null = null;
   let acceptedDeletionProof: WebAccountDeletionRequestingAuthority | null =
     null;
@@ -764,7 +832,8 @@ export function createWebRemoteRuntimeController(
           dependencies.stopAudio?.();
         },
       );
-    listenerCleanups = [epochCleanup, sessionCleanup].filter(
+    const audioLifecycleCleanup = dependencies.subscribeAudioLifecycle?.(() => dependencies.stopAudio?.());
+    listenerCleanups = [epochCleanup, sessionCleanup, audioLifecycleCleanup].filter(
       (cleanup): cleanup is () => void => cleanup !== undefined,
     );
   };
@@ -979,6 +1048,9 @@ export function createWebRemoteRuntimeController(
     currentLearningSession = null;
     persistedLearningResult = null;
     persistedSelectionId = null;
+    persistedLearningEventId = null;
+    learningCompletionRevision = 0;
+    reconciledLearningCompletionRevision = 0;
     sessionDeletionRevision = null;
     presentedSessionScopeKey = null;
     acceptedDeletionProof = null;
@@ -1363,6 +1435,7 @@ export function createWebRemoteRuntimeController(
       dependencies.authSessionCoordinator.getCurrentSession(),
     );
     const requestDeletionRevision = sessionDeletionRevision;
+    const requestLearningCompletionRevision = learningCompletionRevision;
     if (requestSessionScopeKey === null) {
       throw new WebAccountEpochError();
     }
@@ -1420,7 +1493,10 @@ export function createWebRemoteRuntimeController(
       throw new Error('仍有学习结果等待服务端确认。');
     }
 
-    let {bootstrap, observation} = await loadBootstrap(false);
+    let {bootstrap, observation} = await loadBootstrap(
+      requestLearningCompletionRevision !== reconciledLearningCompletionRevision ||
+      eventReplay.acknowledgedEntries.length > 0 || eventReplay.rejectedEntries.length > 0,
+    );
     await dependencies.mutationQueueRepository.hydrate();
     const mutationResults =
       await dependencies.mutationQueueRepository.startReplay({
@@ -1522,6 +1598,7 @@ export function createWebRemoteRuntimeController(
       .map(([cardId]) => cardId);
 
     const nextSelectionId = learningSession.serverSelection?.selectionId ?? null;
+    const rejectedLearningEvents = await dependencies.learningEventSyncRepository.getRejectedEntries(context.phoneNumber);
     const nextSnapshot: WebRemoteSnapshot = {
       bootstrap,
       checkInSync: {
@@ -1538,10 +1615,7 @@ export function createWebRemoteRuntimeController(
       favorites,
       learningResults: hydrated.learningResults,
       learningSession,
-      learningSync: {
-        pendingEventCount: eventReplay.pendingCount,
-        status: eventReplay.pendingCount === 0 ? 'confirmed' : 'queued',
-      },
+      learningSync: learningSyncPresentation(eventReplay.pendingCount, rejectedLearningEvents),
       membership: bootstrap.membership.state,
       reviewResults: hydrated.reviewResults,
       sleeping,
@@ -1565,7 +1639,8 @@ export function createWebRemoteRuntimeController(
       requestDeletionRevision,
       () => {
         if (
-          finalBootstrapGeneration !== latestStartedBootstrapGeneration
+          finalBootstrapGeneration !== latestStartedBootstrapGeneration ||
+          requestLearningCompletionRevision !== learningCompletionRevision
         ) {
           throw new WebAccountEpochError(
             '较新的账户状态读取已经开始，本次迟到结果不会呈现。',
@@ -1589,12 +1664,20 @@ export function createWebRemoteRuntimeController(
         currentBootstrap = bootstrap;
         currentLearningSession = learningSession;
         presentedSessionScopeKey = requestSessionScopeKey;
+        reconciledLearningCompletionRevision = requestLearningCompletionRevision;
         if (
           persistedSelectionId !== null &&
-          nextSelectionId !== persistedSelectionId
+          (nextSelectionId !== persistedSelectionId ||
+            rejectedLearningEvents.some(entry =>
+              entry.entry.event.event_id === persistedLearningEventId,
+            ))
         ) {
+          // A terminally rejected event stays immutable in rejection history.
+          // Fresh canonical selection authority permits a new attempt, even
+          // when a cursor conflict did not consume the previous selection.
           persistedLearningResult = null;
           persistedSelectionId = null;
+          persistedLearningEventId = null;
         }
         return nextSnapshot;
       },
@@ -1695,7 +1778,12 @@ export function createWebRemoteRuntimeController(
         runWithAuthenticatedAuthority(
           requestSessionScopeKey,
           requestDeletionRevision,
-          () => sync,
+          () => {
+            if (sync.completionStatus === 'confirmed' || sync.completionStatus === 'rejected') {
+              learningCompletionRevision += 1;
+            }
+            return sync;
+          },
         );
       const selection = currentLearningSession?.serverSelection;
       const contentVersion = currentLearningSession?.contentVersion;
@@ -1718,7 +1806,7 @@ export function createWebRemoteRuntimeController(
         );
       }
       if (persistedSelectionId !== selection.selectionId) {
-        await dependencies.learningEventSyncRepository.enqueueCompletion({
+        const persistedEntry = await dependencies.learningEventSyncRepository.enqueueCompletion({
           accountPhoneNumber: context.phoneNumber,
           contentVersion,
           phase: selection.phase,
@@ -1732,6 +1820,7 @@ export function createWebRemoteRuntimeController(
           () => {
             persistedLearningResult = {...result};
             persistedSelectionId = selection.selectionId;
+            persistedLearningEventId = persistedEntry.event.event_id;
           },
         );
       }
@@ -1769,15 +1858,21 @@ export function createWebRemoteRuntimeController(
           // Durable enqueue succeeded, so an ambiguous replay/read remains
           // queued until exact acknowledgement can be proven.
         }
-        return finish({pendingEventCount, status: 'queued'});
+        const rejected = await dependencies.learningEventSyncRepository.getRejectedEntries(context.phoneNumber);
+        return finish({...learningSyncPresentation(pendingEventCount, rejected), completionStatus: 'queued'});
       }
+      const rejected = await dependencies.learningEventSyncRepository.getRejectedEntries(context.phoneNumber);
+      const currentEventRejected = rejected.some(item => item.entry.event.event_id === persistedLearningEventId);
       if (replay.pendingCount !== 0) {
         return finish({
-          pendingEventCount: replay.pendingCount,
-          status: 'queued',
+          ...learningSyncPresentation(replay.pendingCount, rejected),
+          completionStatus: currentEventRejected ? 'rejected' : 'queued',
         });
       }
-      return finish({pendingEventCount: 0, status: 'confirmed'});
+      return finish({
+        ...learningSyncPresentation(0, rejected),
+        completionStatus: currentEventRejected ? 'rejected' : 'confirmed',
+      });
     },
 
     async continueServerRound() {
@@ -1793,6 +1888,7 @@ export function createWebRemoteRuntimeController(
     },
 
     dispose: disposeRuntime,
+    stopCardAudio: () => dependencies.stopAudio?.(),
 
     isAuthenticated() {
       return (
@@ -1916,6 +2012,10 @@ export function createWebRemoteRuntimeController(
     },
 
     async requestSmsCode(phoneNumber) {
+      if (dependencies.authSessionCoordinator.getCurrentSession() === null &&
+        activeAccountPhoneNumber === null) {
+        await dependencies.accountDeletionStateStore?.prepareLearningEventStorage?.();
+      }
       const deletionStateBeforeRequest = await readStableDeletionState();
       if (deletionStateBeforeRequest.state !== null) {
         throw new Error(
@@ -2194,6 +2294,20 @@ export function createWebRemoteRuntimeController(
         throw new WebRemotePostAuthError(error);
       }
     },
+  };
+}
+
+function learningSyncPresentation(
+  pendingEventCount: number,
+  rejectedEntries: readonly RejectedLearningEvent[],
+): WebRemoteSnapshot['learningSync'] {
+  return {
+    pendingEventCount,
+    rejectedEventCount: rejectedEntries.length,
+    rejectionCodes: [...new Set(rejectedEntries.map(item => item.rejection.code))],
+    status: pendingEventCount > 0
+      ? rejectedEntries.length > 0 ? 'queued_and_rejected' : 'queued'
+      : rejectedEntries.length > 0 ? 'rejected' : 'confirmed',
   };
 }
 

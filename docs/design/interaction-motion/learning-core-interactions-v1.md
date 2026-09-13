@@ -45,7 +45,7 @@ Learning 是 system-sequenced single-card flow。核心交互不是按钮装饰�
 
 - Operation model: 一组 vertical lock rows，用户按顺序解锁或选择 row。
 - Feedback model: accepted phrases form the sentence in place. The final correct slot immediately reveals the answer and original sentence. Continue is the next action; there is no redundant confirmation.
-- Failure / recovery: 选错时保留 row context and allow retry or reveal according to card contract.
+- Failure / recovery: 选错时保留 row context and allow retry or reveal according to card contract. Completing after a mistake says “已解锁，稍后再回看”; the attempt remains review-needed without another rating or a visible mistake counter. Leaving and returning must preserve that attempt evidence.
 - Motion intent: each unlocked row expands 120-220ms; no per-row card shell.
 - Interruptibility: 未完成时可以离开当前卡，但返回后仍看到 row progress.
 - Reduce motion fallback: expansion becomes immediate row height/content reveal.
@@ -91,6 +91,8 @@ Flip feedback keeps 有把握=confident/mint (#22C58B) and
 - The primary action is always the interaction's own operation.
 - `peek`, `hint`, `favorite`, and contextual `sleep` stay secondary.
 - Auto-scored interactions must not ask the user for `有把握` / `再回看`.
+- The complete analysis keeps every answer line readable at ordinary and large text sizes. A provided audio transcript has an explicit disclosure after resolution, collapsed initially, and is never shown on an unanswered front.
+- The accessible swipe object includes its actual question in the spoken name; direction choices and selection status remain available without dragging.
 - No interaction may introduce gamification chrome, reward bursts, or extra state counters as the main feedback.
 
 ## Design Review Checklist Answers

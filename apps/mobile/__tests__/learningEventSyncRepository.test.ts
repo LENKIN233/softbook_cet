@@ -41,6 +41,103 @@ function createOutbox() {
 }
 
 describe('learningEventSyncRepository', () => {
+  it('confirms each compatible queued entry separately so a batch conflict cannot quarantine an already accepted duplicate', async () => {
+    const outbox = createOutbox();
+    const duplicate = await outbox.enqueueCompletion(createInput());
+    await outbox.acknowledge(PHONE, [duplicate.event.event_id]);
+    const stale = await outbox.enqueueCompletion({...createInput('100102'), selectionId: 'sel_stale_later_123456789'});
+    // Simulate a compatible multi-entry reader; each current enqueue still
+    // permits only one unseen completion for an account.
+    let pending = [duplicate, stale];
+    const rejected: Awaited<ReturnType<LearningEventOutbox['getRejectedEntries']>> = [];
+    const batches = jest.spyOn(outbox, 'getBatch').mockImplementation(async (_phone, limit = 9) => pending.slice(0, limit));
+    jest.spyOn(outbox, 'acknowledge').mockImplementation(async (_phone, ids) => {pending = pending.filter(entry => !ids.includes(entry.event.event_id));});
+    jest.spyOn(outbox, 'rejectIfUnchanged').mockImplementation(async (entry, code) => {
+      const item = {entry, rejection: {code, rejectedAt: '2026-09-12T08:00:01.000Z'}};
+      rejected.push(item); pending = pending.filter(candidate => candidate.event.event_id !== entry.event.event_id); return item;
+    });
+    jest.spyOn(outbox, 'getPendingCount').mockImplementation(async () => pending.length);
+    jest.spyOn(outbox, 'getRejectedEntries').mockImplementation(async () => rejected);
+    const submitted: string[][] = [];
+    const repository = createLearningEventSyncRepository({outbox, eventsRepository: {
+      submitEvents: async (_context, track, events) => {
+        submitted.push(events.map(event => event.event_id));
+        if (events.some(event => event.event_id === stale.event.event_id)) throw new RemoteHttpError('batch selection conflict', 409, 'learning_event_selection_conflict');
+        return {acknowledgedAt: '2026-09-12T08:00:01.000Z', track, results: [{eventId: duplicate.event.event_id, serverSequence: 1, status: 'duplicate'}]};
+      },
+    }});
+    const replay = await repository.startReplay({authToken: 'token', phoneNumber: PHONE});
+    expect(batches).toHaveBeenCalledWith(PHONE, 1);
+    expect(submitted).toEqual([[duplicate.event.event_id], [stale.event.event_id]]);
+    expect(replay.acknowledgedEntries).toEqual([duplicate]);
+    expect(replay.rejectedEntries.map(item => item.entry)).toEqual([stale]);
+  });
+
+  it('quarantines a permanent selection conflict and resumes a new content selection without acknowledging the rejected answer', async () => {
+    const storage = createInMemoryLearningEventOutboxStorage();
+    const outbox = new LearningEventOutbox({storage, createDeviceId: () => 'install_recovery_device'});
+    const submitEvents = jest.fn<ReturnType<LearningEventsRepository['submitEvents']>, Parameters<LearningEventsRepository['submitEvents']>>(
+      async (_context, track, events) => {
+        if (events[0].selection_id === SELECTION_ID) {
+          throw new RemoteHttpError('stale selection', 409, 'learning_event_selection_conflict');
+        }
+        return {acknowledgedAt: '2026-09-12T08:00:01.000Z', track, results: events.map(event => ({eventId: event.event_id, serverSequence: 1, status: 'accepted'}))};
+      },
+    );
+    const repository = createLearningEventSyncRepository({eventsRepository: {submitEvents}, outbox});
+    const original = await repository.enqueueCompletion(createInput());
+    const first = await repository.startReplay({authToken: 'token', phoneNumber: PHONE});
+    expect(first).toMatchObject({pendingCount: 0, rejectedCount: 1, acknowledgements: [], acknowledgedEntries: []});
+    expect(first.rejectedEntries[0].entry).toEqual(original);
+    const restarted = createLearningEventSyncRepository({eventsRepository: {submitEvents}, outbox: new LearningEventOutbox({storage})});
+    const restored = await restarted.startReplay({authToken: 'new-token', phoneNumber: PHONE});
+    expect(restored).toMatchObject({pendingCount: 0, rejectedCount: 1, rejectedEntries: [], acknowledgedEntries: []});
+    expect(submitEvents).toHaveBeenCalledTimes(1);
+    const next = await restarted.enqueueCompletion({...createInput('100102'), contentVersion: `sha256:${'b'.repeat(64)}`, selectionId: 'sel_new_content_123456789'});
+    const resumed = await restarted.startReplay({authToken: 'new-token', phoneNumber: PHONE});
+    expect(resumed.acknowledgedEntries).toEqual([next]);
+    expect(resumed.rejectedCount).toBe(1);
+    await expect(restarted.getRejectedEntries(PHONE)).resolves.toEqual(first.rejectedEntries);
+    expect(next.event.event_id).not.toBe(original.event.event_id);
+  });
+
+  it('does not isolate unknown 409s or malformed error-shaped objects', async () => {
+    for (const failure of [new RemoteHttpError('unknown', 409), Object.assign(new Error('untrusted error'), {status: 409, code: 'learning_event_selection_conflict'})]) {
+      const outbox = createOutbox();
+      const repository = createLearningEventSyncRepository({eventsRepository: {submitEvents: jest.fn().mockRejectedValue(failure)}, outbox});
+      const original = await repository.enqueueCompletion(createInput());
+      await expect(repository.startReplay({authToken: 'token', phoneNumber: PHONE})).rejects.toBe(failure);
+      const pending = await outbox.getAll();
+      expect(pending[0].event).toEqual(original.event);
+      await expect(repository.getRejectedEntries(PHONE)).resolves.toEqual([]);
+    }
+  });
+
+  it('does not hand a previous same-phone session rejection to a new session or recreate its cleared event', async () => {
+    const outbox = createOutbox();
+    let rejectOld: (error: Error) => void = () => undefined;
+    let oldCurrent = true;
+    const submitEvents = jest.fn<ReturnType<LearningEventsRepository['submitEvents']>, Parameters<LearningEventsRepository['submitEvents']>>(
+      async (context, track, events) => {
+        if (context.authToken === 'old-token') return new Promise((_resolve, reject) => {rejectOld = reject;});
+        return {acknowledgedAt: '2026-09-12T08:00:01.000Z', track, results: events.map(event => ({eventId: event.event_id, serverSequence: 1, status: 'accepted'}))};
+      },
+    );
+    const repository = createLearningEventSyncRepository({eventsRepository: {submitEvents}, outbox});
+    await repository.enqueueCompletion(createInput());
+    const old = repository.startReplay({authToken: 'old-token', phoneNumber: PHONE}, {canSubmit: () => oldCurrent});
+    while (submitEvents.mock.calls.length === 0) await Promise.resolve();
+    oldCurrent = false;
+    await repository.clearAccount(PHONE);
+    const current = await repository.enqueueCompletion({...createInput('100102'), selectionId: 'sel_reregistered_12345678'});
+    const fresh = repository.startReplay({authToken: 'fresh-token', phoneNumber: PHONE}, {canSubmit: () => true});
+    expect(fresh).not.toBe(old);
+    rejectOld(new RemoteHttpError('stale response', 409, 'learning_event_selection_conflict'));
+    expect((await old).rejectedEntries).toEqual([]);
+    expect((await fresh).acknowledgedEntries).toEqual([current]);
+    await expect(repository.getRejectedEntries(PHONE)).resolves.toEqual([]);
+  });
+
   it('removes one selection-bound event only after acknowledgement', async () => {
     const outbox = createOutbox();
     const submitEvents = jest.fn<

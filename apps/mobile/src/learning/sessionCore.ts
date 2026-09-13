@@ -88,6 +88,7 @@ export function createLearningCardState(card: LearningCard): LearningCardState {
   return {
     hasUsedHint: false,
     hasUsedPeek: false,
+    hasMadeLockMistake: false,
     isPeeked: false,
     isFavorited: false,
     isHintVisible: false,
@@ -116,6 +117,27 @@ export function canSubmitLearningCard(
     case 'swipe': return state.swipeSelection !== null;
     default: return false;
   }
+}
+
+export function selectLockOption(
+  card: LearningCard,
+  state: LearningCardState,
+  slotId: string,
+  value: string,
+): LearningCardState {
+  if (card.interaction_id !== 'lock') return state;
+  const slotIndex = card.lock_slots.findIndex(slot => slot.id === slotId);
+  const currentIndex = card.lock_slots.findIndex(
+    (slot, index) => state.lockSelections[slot.id] !== card.answer_key.lock_pattern[index],
+  );
+  if (slotIndex < 0 || slotIndex !== currentIndex || !card.lock_slots[slotIndex].options.includes(value)) {
+    return state;
+  }
+  return {
+    ...state,
+    lockSelections: {...state.lockSelections, [slotId]: value},
+    hasMadeLockMistake: state.hasMadeLockMistake === true || value !== card.answer_key.lock_pattern[slotIndex],
+  };
 }
 
 export function evaluateLearningCard(
@@ -150,12 +172,7 @@ export function evaluateLearningCard(
       if (!canSubmitLearningCard(card, state)) return null;
       return {
         ...baseResult,
-        outcome: card.answer_key.lock_pattern.every(
-          (expectedValue, index) =>
-            state.lockSelections[card.lock_slots[index].id] === expectedValue,
-        )
-          ? 'correct'
-          : 'incorrect',
+        outcome: state.hasMadeLockMistake === true ? 'incorrect' : 'correct',
       };
     case 'elimination':
       if (!canSubmitLearningCard(card, state)) return null;

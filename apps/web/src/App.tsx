@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -21,6 +22,7 @@ import {
   canSubmitLearningCard,
   createLearningCardState,
   evaluateLearningCard,
+  selectLockOption,
   summarizeLearningResults,
 } from '../../mobile/src/learning/sessionCore';
 import {
@@ -38,6 +40,7 @@ import {
   type WebAccountDeletionOutcome,
   type WebAccountPresentationInvalidation,
   type WebRemoteSnapshot,
+  type WebLearningCompletionSync,
 } from './remoteRuntime';
 import {resolveWebRuntime} from './runtime';
 
@@ -138,12 +141,20 @@ export function App({
   >(null);
   const [queuedLearningResult, setQueuedLearningResult] =
     useState<LearningCardResult | null>(null);
+  const [rejectedCompletion, setRejectedCompletion] = useState(false);
   const [accountDeletionStage, setAccountDeletionStage] =
     useState<AccountDeletionStage>(
       runtime.mode === 'remote' ? 'checking' : 'none',
     );
   const routeMotion = useRouteMotion(`${authStage}:${phone}:${accountDeletionStage}`);
-  const navigateRoute = (next: RouteKey) => routeMotion(() => setRoute(next));
+  const navigateRoute = (next: RouteKey) => {
+    if (route === 'learning' && next !== 'learning') {
+      audioRequestGeneration.current += 1;
+      remoteController?.stopCardAudio?.();
+      setAudioStatus('idle');
+    }
+    routeMotion(() => setRoute(next));
+  };
   const resolutionInFlight = useRef(false);
   const audioRequestGeneration = useRef(0);
   const accountAuthorityGeneration = useRef(0);
@@ -208,6 +219,10 @@ export function App({
     ? reviewCards
     : session?.cards ?? [];
   const currentCard = activeCards[currentIndex] ?? null;
+  // Hide presentation without changing the server selection or its draft.
+  const isServerSelectionSleeping = runtime.mode === 'remote' &&
+    session?.schedulingMode === 'server' && currentCard !== null &&
+    sleeping.includes(currentCard.card_id);
   const membershipAccess = membership
     ? resolveMembershipAccess(membership)
     : null;
@@ -227,8 +242,11 @@ export function App({
     : accessibleSpaceCards;
   const remoteSyncFacts = [
     checkInSync?.status === 'queued' ? '今日签到等待同步' : null,
-    learningSync?.status === 'queued'
-      ? `${learningSync.pendingEventCount} 项学习结果等待同步`
+    (learningSync?.pendingEventCount ?? 0) > 0
+      ? `${learningSync?.pendingEventCount} 项学习结果等待同步`
+      : null,
+    (learningSync?.rejectedEventCount ?? 0) > 0
+      ? `${learningSync?.rejectedEventCount} 次学习结果未计入`
       : null,
     (spaceSync?.rejectedActionCount ?? 0) > 0
       ? `${spaceSync?.rejectedActionCount ?? 0} 项空间操作已被拒绝`
@@ -257,7 +275,8 @@ export function App({
     remoteBusy ||
     remoteCleanupPending ||
     accountDeletionLocksAccount ||
-    learningSync?.status === 'queued';
+    rejectedCompletion ||
+    (learningSync?.pendingEventCount ?? 0) > 0;
 
   useEffect(() => {
     if (remoteController === null) {
@@ -352,9 +371,9 @@ export function App({
     });
   }, [remoteController]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     window.scrollTo({behavior: 'auto', top: 0});
-  }, [currentIndex, route]);
+  }, [currentIndex, currentCard?.card_id, session?.serverSelection?.selectionId, learningPhase, route]);
 
   function applyRemoteSnapshot(snapshot: WebRemoteSnapshot) {
     const nextSession = snapshot.learningSession;
@@ -364,6 +383,8 @@ export function App({
     const preservesCurrentCardDraft =
       previousSelectionId !== null &&
       previousSelectionId === nextSelectionId &&
+      session?.contentVersion === nextSession.contentVersion &&
+      session?.serverSelection?.phase === nextSession.serverSelection?.phase &&
       currentCard !== null &&
       nextCard?.card_id === currentCard.card_id;
     setSession(nextSession);
@@ -372,6 +393,11 @@ export function App({
     setReviewCards([]);
     setSessionComplete(nextSession.cards.length === 0);
     setResults([...snapshot.learningResults, ...snapshot.reviewResults]);
+    if (nextCard !== null && snapshot.sleeping.includes(nextCard.card_id)) {
+      audioRequestGeneration.current += 1;
+      remoteController?.stopCardAudio?.();
+      setAudioStatus('idle');
+    }
     if (!preservesCurrentCardDraft) {
       audioRequestGeneration.current += 1;
       setResolved(null);
@@ -383,6 +409,7 @@ export function App({
     setCheckInSync(snapshot.checkInSync);
     if (!preservesCurrentCardDraft) {
       setQueuedLearningResult(null);
+      setRejectedCompletion(false);
     }
     setMembership(snapshot.membership);
     setCardState(previous => {
@@ -523,13 +550,15 @@ export function App({
 
   async function reloadRemoteState() {
     if (remoteController === null) return;
+    const generation = accountAuthorityGeneration.current;
     setRemoteBusy(true);
     try {
-      applyRemoteSnapshot(await remoteController.loadAuthenticatedState());
+      const snapshot = await remoteController.loadAuthenticatedState();
+      if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot);
     } catch (error) {
-      await handleRemoteFailure(error, '当前学习状态暂时无法读取。');
+      if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '当前学习状态暂时无法读取。');
     } finally {
-      setRemoteBusy(false);
+      if (accountAuthorityGeneration.current === generation) setRemoteBusy(false);
     }
   }
 
@@ -599,6 +628,7 @@ export function App({
     setLearningSync(null);
     setCheckInSync(null);
     setQueuedLearningResult(null);
+    setRejectedCompletion(false);
     setAccountDeletionStage('none');
   }
 
@@ -696,30 +726,40 @@ export function App({
 
   async function resolveCurrentCard(stateOverride?: LearningCardState) {
     const stateToResolve = stateOverride ?? cardState;
-    if (!currentCard || !stateToResolve || resolved || queuedLearningResult || resolutionInFlight.current) return;
+    if (isServerSelectionSleeping || !currentCard || !stateToResolve || resolved || queuedLearningResult || resolutionInFlight.current) return;
     const next = evaluateLearningCard(currentCard, stateToResolve);
     if (!next) return;
     setCardState(stateToResolve);
 
     if (runtime.mode === 'remote') {
       if (remoteController === null) return;
+      const generation = accountAuthorityGeneration.current;
       resolutionInFlight.current = true;
       setRemoteBusy(true);
       try {
         const completionSync =
           await remoteController.completeCurrentCard(next);
+        if (accountAuthorityGeneration.current !== generation) return;
         setLearningSync(completionSync);
-        if (completionSync.status === 'queued') {
+        const status = currentCompletionStatus(completionSync);
+        if (status === 'rejected') {
+          await recoverRejectedCompletion(next);
+          return;
+        }
+        if (status === 'queued') {
           setQueuedLearningResult({...next});
+          setRejectedCompletion(false);
           setRemoteError('学习结果已安全保存，正在等待服务端确认。');
           return;
         }
         presentAcknowledgedLearningResult(next);
       } catch (error) {
-        await handleRemoteFailure(error, '当前学习结果暂时没有同步。');
+        if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '当前学习结果暂时没有同步。');
       } finally {
-        resolutionInFlight.current = false;
-        setRemoteBusy(false);
+        if (accountAuthorityGeneration.current === generation) {
+          resolutionInFlight.current = false;
+          setRemoteBusy(false);
+        }
       }
       return;
     }
@@ -732,6 +772,7 @@ export function App({
   }
 
   async function continueLearning() {
+    if (isServerSelectionSleeping) return;
     if (runtime.mode === 'remote') {
       await reloadRemoteState();
       return;
@@ -756,32 +797,58 @@ export function App({
       result,
     ]);
     setQueuedLearningResult(null);
+    setRejectedCompletion(false);
     setRemoteError('');
+  }
+
+  async function recoverRejectedCompletion(result: LearningCardResult) {
+    if (remoteController === null) return;
+    const generation = accountAuthorityGeneration.current;
+    setQueuedLearningResult({...result});
+    setRejectedCompletion(true);
+    setResolved(null);
+    try {
+      const snapshot = await remoteController.loadAuthenticatedState();
+      if (accountAuthorityGeneration.current !== generation) return;
+      applyRemoteSnapshot(snapshot);
+      setQueuedLearningResult(null);
+      setRejectedCompletion(false);
+      setRemoteError('这次结果未计入，学习安排已更新，可以继续。');
+    } catch (error) {
+      if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '这次结果未计入，暂时无法更新学习安排。请重新读取。');
+    }
   }
 
   async function retryQueuedLearningResult() {
     if (remoteController === null || queuedLearningResult === null) {
       return;
     }
+    const generation = accountAuthorityGeneration.current;
     setRemoteBusy(true);
     try {
       const completionSync =
         await remoteController.completeCurrentCard(queuedLearningResult);
+      if (accountAuthorityGeneration.current !== generation) return;
       setLearningSync(completionSync);
-      if (completionSync.status === 'queued') {
+      const status = currentCompletionStatus(completionSync);
+      if (status === 'rejected') {
+        await recoverRejectedCompletion(queuedLearningResult);
+        return;
+      }
+      if (status === 'queued') {
         setRemoteError('学习结果已安全保存，仍在等待服务端确认。');
         return;
       }
       presentAcknowledgedLearningResult(queuedLearningResult);
     } catch (error) {
-      await handleRemoteFailure(error, '当前学习结果暂时没有同步。');
+      if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '当前学习结果暂时没有同步。');
     } finally {
-      setRemoteBusy(false);
+      if (accountAuthorityGeneration.current === generation) setRemoteBusy(false);
     }
   }
 
   async function playCurrentAudio() {
-    if (runtime.mode !== 'remote' || remoteController === null || !currentCard) {
+    if (isServerSelectionSleeping || runtime.mode !== 'remote' || remoteController === null || !currentCard) {
       return;
     }
     const requestGeneration = audioRequestGeneration.current + 1;
@@ -1086,6 +1153,20 @@ export function App({
               <button className="primary" disabled={remoteBusy} onClick={() => void reloadRemoteState()}>重新读取</button>
             </section>
           </main>
+        ) : isServerSelectionSleeping ? (
+          <main className="workbench">
+            <section className="learning-card" aria-labelledby="learning-sleep-title">
+              <p className="eyebrow">学习安排</p>
+              <h1 id="learning-sleep-title">这张卡已放入休眠</h1>
+              <p className="notice" role="status">{(spaceSync?.pendingActionCount ?? 0) > 0
+                ? '休眠操作等待同步，确认后再读取下一张。也可以到空间唤醒这张卡。'
+                : '重新读取学习安排后即可继续，也可以到空间唤醒这张卡。'}</p>
+              {remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}
+              <button className="primary" disabled={remoteBusy || remoteCleanupPending || accountDeletionLocksAccount} onClick={() => void reloadRemoteState()}>重新读取学习安排</button>
+              <button className="secondary" onClick={() => navigateRoute('space')}>前往空间</button>
+              <p className="notice" role="status">跨端同步 · {genericSyncStatus}</p>
+            </section>
+          </main>
         ) : sessionComplete ? (
           <SessionCompleteSurface
             phase={learningPhase}
@@ -1160,6 +1241,7 @@ export function App({
           total={activeCards.length}
           resolved={resolved}
           queuedResult={queuedLearningResult}
+          rejectedCompletion={rejectedCompletion}
           busy={productBusy}
           audioStatus={audioStatus}
           canMutateSpace={membershipAccess?.completePhysicalSpace === true}
@@ -1168,9 +1250,17 @@ export function App({
           syncStatus={genericSyncStatus}
           onState={setCardState}
           onResolve={stateOverride => void resolveCurrentCard(stateOverride)}
-          onContinue={() => void continueLearning()}
+          onContinue={continueLearning}
           onPlayAudio={runtime.mode === 'remote' ? () => void playCurrentAudio() : null}
-          onReloadQueued={() => void reloadRemoteState()}
+          onReloadQueued={() => {
+            if (rejectedCompletion && queuedLearningResult) {
+              const generation = accountAuthorityGeneration.current;
+              setRemoteBusy(true);
+              void recoverRejectedCompletion(queuedLearningResult).finally(() => {
+                if (accountAuthorityGeneration.current === generation) setRemoteBusy(false);
+              });
+            } else void reloadRemoteState();
+          }}
           onRetryQueued={() => void retryQueuedLearningResult()}
           onOpenSpace={() => navigateRoute('space')}
           onFavorite={cardId => void toggleFavorite(cardId)}
@@ -1285,13 +1375,14 @@ type LearningSurfaceProps = {
   resolved: LearningCardResult | null;
   onState: React.Dispatch<React.SetStateAction<LearningCardState | null>>;
   onResolve: (stateOverride?: LearningCardState) => void;
-  onContinue: () => void;
+  onContinue: () => void | Promise<void>;
   onOpenSpace: () => void;
   onFavorite: (cardId: string) => void;
   onPlayAudio: (() => void) | null;
   onReloadQueued: () => void;
   onRetryQueued: () => void;
   queuedResult: LearningCardResult | null;
+  rejectedCompletion: boolean;
   retryBusy: boolean;
   serverSequenced: boolean;
   statusMessage: string;
@@ -1310,7 +1401,7 @@ function LearningSurface(props: LearningSurfaceProps) {
     answerRef.current.focus({preventScroll: true});
     answerRef.current.scrollIntoView?.({block: 'start'});
   }, [resolved]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       if (props.busy || motionBusy || (event.target as HTMLElement | null)?.closest('button, input, textarea, select, summary')) return;
       if (resolved && event.key === 'Enter') {event.preventDefault(); onContinue(); return;}
@@ -1335,10 +1426,10 @@ function LearningSurface(props: LearningSurfaceProps) {
   const continueLabel = props.serverSequenced || props.currentIndex < props.total - 1 ? '继续下一张' : '完成本轮';
   const questionContext = spaceCardPreview(card);
   const backVisible = card.interaction_id === 'flip' && cardState.isFlipped;
-  const resolveLock = (lockSelections: Record<string, string | null>) => {
-    const next = {...cardState, lockSelections};
+  const resolveLock = (slotId: string, value: string) => {
+    const next = selectLockOption(card, cardState, slotId, value);
     if (canSubmitLearningCard(card, next)) onResolve(next);
-    else patchState({lockSelections});
+    else patchState(next);
   };
   const interaction = <Interaction key={props.motionIdentity} card={card} state={cardState} onFlip={onFlip} resolved={false} patch={patchState} disabled={props.busy || motionBusy || Boolean(props.queuedResult)}
             onResolveLock={resolveLock}
@@ -1349,7 +1440,8 @@ function LearningSurface(props: LearningSurfaceProps) {
       <button className="text-button address-button" onClick={props.onOpenSpace}><span className="library-dot" />{library} / {group} / <strong id="learning-title">{box}</strong></button>
       <span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '回看' : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span>
     </div>
-    <article ref={cardRef} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
+    {props.serverSequenced && resolved && motionBusy ? <p className="notice next-card-status" role="status">正在准备下一张…</p> : null}
+    <article ref={cardRef} inert={props.serverSequenced && Boolean(resolved) && motionBusy} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
       <div className="paper-identity"><span>{props.phase === 'review' ? '回看' : INTERACTION_LABELS[card.interaction_id]}</span><button className="card-favorite" aria-label={cardState.isFavorited ? '已标记喜欢' : '标记喜欢'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button></div>
       <div className="paper-body">
         {resolved ? <section className={`result-slip ${resultTone(resolved)}`} aria-label="答案对照" aria-live="polite">
@@ -1359,6 +1451,8 @@ function LearningSurface(props: LearningSurfaceProps) {
           <p className="question-context">{questionContext.title}</p>
           {questionContext.detail.map(text => <p className="question-context" key={text}>{text}</p>)}
           <p className="answer-reason">{card.analysis.summary}</p>
+          {card.interaction_id === 'lock' && resolved.outcome === 'incorrect' ? <p className="answer-reason">已解锁，稍后再回看。</p> : null}
+          {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary>听力原文</summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           <ResultExplanation card={card} />
         </section> : <>
           {card.interaction_id !== 'swipe' ? <h2>{backVisible ? comparison.correct : card.front.prompt}</h2> : null}
@@ -1373,7 +1467,7 @@ function LearningSurface(props: LearningSurfaceProps) {
           <p className="attached-note" hidden={!cardState.isPeeked}>{card.analysis.exam_tip}</p>
         </>}
         {card.audio ? <div className="learning-tools"><button className="text-button" disabled={props.onPlayAudio === null || props.busy || props.audioStatus === 'loading'} onClick={props.onPlayAudio ?? undefined}>{props.audioStatus === 'loading' ? '正在准备音频' : props.audioStatus === 'playing' ? '暂停音频' : props.audioStatus === 'paused' ? '继续播放' : props.audioStatus === 'error' ? '重试播放' : '播放音频'}</button></div> : null}
-        {props.queuedResult ? <section className="notice" aria-live="polite"><h3>学习结果等待同步</h3><p>答案已保存，确认后即可继续。</p><button className="secondary" disabled={props.retryBusy} onClick={props.onRetryQueued}>重试同步当前结果</button><button className="text-button" disabled={props.retryBusy} onClick={props.onReloadQueued}>重新读取服务端进度</button></section> : null}
+        {props.queuedResult ? <section className="notice" aria-live="polite"><h3>{props.rejectedCompletion ? '这次结果未计入' : '学习结果等待同步'}</h3><p>{props.rejectedCompletion ? '这张卡的学习安排已经变化，重新读取后可继续。' : '答案已保存，确认后即可继续。'}</p>{!props.rejectedCompletion ? <button className="secondary" disabled={props.retryBusy} onClick={props.onRetryQueued}>重试同步当前结果</button> : null}<button className="text-button" disabled={props.retryBusy} onClick={props.onReloadQueued}>重新读取服务端进度</button></section> : null}
         {props.statusMessage ? <p className="notice error" role="alert">{props.statusMessage}</p> : null}
         {!['当前设备可继续', '服务端已确认', ''].includes(props.syncStatus) ? <p className="notice" role="status">跨端同步 · {props.syncStatus}</p> : null}
       </div>
@@ -1388,7 +1482,7 @@ function ResultExplanation({card}: {card: LearningCard}) {
   return <details className="full-analysis" onToggle={event => setOpen(event.currentTarget.open)}><summary>{open ? '收起完整解析' : '展开完整解析'}</summary><h3>{card.analysis.title}</h3><p>{card.analysis.exam_tip}</p></details>;
 }
 
-function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveLock, onResolveFlip, onResolveSwipe}: {onResolveLock: (values: Record<string, string | null>) => void; resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
+function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveLock, onResolveFlip, onResolveSwipe}: {onResolveLock: (slotId: string, value: string) => void; resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
   switch (card.interaction_id) {
     case 'flip':
       return (
@@ -1453,7 +1547,7 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
                           className={selectedValue === option ? 'lock-option selected' : 'lock-option'}
                           aria-pressed={selectedValue === option}
                           disabled={disabled}
-                          onClick={() => onResolveLock({...state.lockSelections, [slot.id]: option})}
+                          onClick={() => onResolveLock(slot.id, option)}
                         >
                           {option}
                         </button>
@@ -1522,7 +1616,7 @@ function SwipeInteraction({
     item => item.id === state.swipeSelection,
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       if (disabled || motionBusy || (event.target as HTMLElement | null)?.closest('button, input, textarea, select')) return;
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -1695,7 +1789,7 @@ function StatisticsSurface({
         <p className="eyebrow">今日记录</p>
         <h1 id="statistics-title">学习账页</h1>
         <p className="lede">
-          只记录已经发生的学习，不用成绩环或连续打卡替代掌握。
+          看看今天完成的学习，以及还需要回看的内容。
         </p>
         <p className="muted">跨端同步 · {syncStatus}</p>
         <dl>
@@ -1707,7 +1801,7 @@ function StatisticsSurface({
           ))}
         </dl>
         <section className="account-policy" aria-live="polite">
-          <p className="eyebrow">显式签到</p>
+          <p className="eyebrow">今日签到</p>
           <h2>
             {checkInSync?.status === 'confirmed'
               ? '今天已收好'
@@ -1723,8 +1817,8 @@ function StatisticsSurface({
               : checkInSync?.status === 'confirmed'
               ? '这条记录已由学习账户确认。'
               : checkInSync?.status === 'unavailable'
-              ? '完成至少一张学习卡后，再确认今天已经发生的学习。'
-              : '签到只确认今天已经发生的学习，不增加额外奖励。'}
+              ? '先完成一张学习卡，再来确认今天的进展。'
+              : '确认今天的学习进展。'}
           </p>
           <button
             className="primary"
@@ -1777,7 +1871,7 @@ function MineSurface({
   const [showPrivacy, setShowPrivacy] = useState(false);
   const stageLabel = {trial_available: '体验待自动开启', trial: '5 天体验中', free: '基础版', premium: '会员'}[membership.stage];
   return <main className="account-workbench"><section className="account-object" aria-labelledby="mine-title">
-    <p className="eyebrow">账户对象</p><h1 id="mine-title">{maskPhone(phone)}</h1>
+    <p className="eyebrow">我的账户</p><h1 id="mine-title">{maskPhone(phone)}</h1>
     <div className="account-row"><span>会员状态</span><strong>{stageLabel}</strong></div>
     <div className="account-row"><span>跨端同步</span><strong>{syncStatus}</strong></div>
     {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
@@ -1795,8 +1889,8 @@ function MineSurface({
         <p className="eyebrow">删除学习账户</p>
         <h2 id="delete-account-title">确认永久删除这个账户？</h2>
         <p>
-          申请提交后会退出当前账户，学习进度、空间位置、签到与会员归属会进入异步清理。
-          申请接收不代表所有数据已在这一刻擦除完成。
+          申请接收后会退出当前账户，并开始删除学习进度、空间位置、签到和会员归属。
+          数据清理需要一些时间。
         </p>
         <button className="secondary" disabled={busy} onClick={onCancelDelete}>
           保留账户
@@ -1809,7 +1903,7 @@ function MineSurface({
       <section className="account-policy" aria-live="polite">
         <p className="eyebrow">删除学习账户</p>
         <h2>正在提交删除申请</h2>
-        <p>请保持当前页面，不会重复提交，也不会提前显示删除完成。</p>
+        <p>正在确认申请是否收到，请稍候。</p>
         <button className="tool danger" disabled>正在提交</button>
       </section>
     ) : accountDeletionStage === 'unknown' ? (
@@ -1817,7 +1911,7 @@ function MineSurface({
         <p className="eyebrow">结果尚未确认</p>
         <h2>删除结果暂时未知</h2>
         <p>
-          没有观察到精确接收结果，因此不会声称已经删除，也不会清掉当前账户和待同步记录。
+          暂时没有收到申请确认。请重试查询这次删除的状态。
         </p>
         <button className="tool danger" disabled={busy} onClick={onRetryDelete}>
           {busy ? '正在重试' : '重试确认'}
@@ -1861,7 +1955,7 @@ function AccountDeletionStatusSurface({
       eyebrow: '删除学习账户',
       title: '删除申请已提交',
       detail:
-        '当前账户已退出，服务端会继续异步清理。这表示申请已接收，不表示所有数据已在这一刻擦除完成。',
+        '当前账户已退出，删除申请正在处理，数据清理完成后才能重新登录。',
     },
     checking: {
       eyebrow: '账户恢复',
@@ -1872,31 +1966,31 @@ function AccountDeletionStatusSurface({
       eyebrow: '本机清理',
       title: '删除申请已接收，正在完成本机清理',
       detail:
-        '登录凭证或待同步记录尚未全部清空；完成前不会重新开放账户入口。',
+        '正在清理这台设备上保存的登录信息和待同步记录。完成后可继续。',
     },
     registration_cleanup_required: {
       eyebrow: '本机恢复',
       title: '重新验证前还要完成本机清理',
       detail:
-        '服务端当前没有待处理的删除申请，但这不证明此前申请已接收或完成。本机旧记录清理完成前不会开放普通登录。',
+        '当前没有待处理的删除申请。先完成这台设备的旧记录清理，即可重新验证手机号。',
     },
     registration_ready: {
       eyebrow: '账户入口可用',
       title: '现在可以重新验证手机号',
       detail:
-        '服务端当前没有待处理的删除申请，可以安全建立新的登录；这不表示此前删除申请已接收或已经完成。',
+        '当前没有待处理的删除申请，现在可以重新验证手机号并登录。',
     },
     session_cleanup_required: {
       eyebrow: '本机清理',
       title: '退出前的本机记录还在清理',
       detail:
-        '登录已经关闭；待同步学习与空间记录全部清理完成前，不会重新开放手机号验证。',
+        '正在清理这台设备的学习与空间记录，完成后可重新验证手机号。',
     },
     unknown: {
       eyebrow: '结果尚未确认',
       title: '删除结果暂时未知',
       detail:
-        '没有观察到精确接收结果，因此不会声称已经删除，也不会清掉待同步记录。请在当前页面重试确认。',
+        '暂时没有收到申请确认。请在这里重试查询删除状态。',
     },
   }[stage];
   return (
@@ -1959,8 +2053,7 @@ function AccountDeletionRecoverySurface({
         <p className="eyebrow">删除结果尚待确认</p>
         <h1 id="deletion-recovery-title">重新验证手机号，继续确认删除</h1>
         <p className="lede">
-          刷新后登录凭证已经失效。这里只验证原账户绑定的 {maskPhone(phone)}，
-          用于继续同一次删除确认；验证成功前不会显示申请已提交，也不会清掉待同步记录。
+          请验证原账户绑定的 {maskPhone(phone)}，查询这次删除申请的最新状态。
         </p>
         {stage === 'recovery_code' ? (
           <div className="field-stack">
@@ -2006,7 +2099,7 @@ function AccountDeletionRecoverySurface({
           </button>
         ) : null}
         <p className="privacy-copy">
-          无法确认的删除结果会继续保持未知，不会被改写成已完成。
+          暂时无法查询时，可以稍后在这里重试。
         </p>
       </section>
     </main>
@@ -2069,6 +2162,10 @@ function buildSpaceBoxes(cards: LearningCard[]): SpaceBox[] {
 
 function resultTone(result: LearningCardResult) {
   return result.outcome === 'correct' || result.outcome === 'confident' ? 'good' : 'review';
+}
+
+function currentCompletionStatus(sync: WebLearningCompletionSync) {
+  return sync.completionStatus ?? (sync.status === 'confirmed' ? 'confirmed' : sync.pendingEventCount > 0 ? 'queued' : 'rejected');
 }
 
 function resultLabel(result: LearningCardResult) {

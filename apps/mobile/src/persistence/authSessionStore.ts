@@ -41,11 +41,16 @@ type RemoteAuthSessionPayload = Omit<RemoteAuthSession, 'phoneNumber'> & {
 
 type AuthSessionPayload = LocalAuthSessionPayload | RemoteAuthSessionPayload;
 
+// Remounts create fresh secure-storage adapters, but share the native
+// revocation backend. Keep each marker-and-credentials operation indivisible
+// across those store instances, including cleanup performed by load().
+const authStorageOperationTails = new WeakMap<object, Promise<void>>();
+
 export function createAuthSessionStore(
   storage: AuthSessionSecureStorage = createReactNativeAuthSessionSecureStorage(),
   revocationStorage: AuthSessionRevocationStorage = AsyncStorage,
 ): AuthSessionStore {
-  return {
+  const operations: AuthSessionStore = {
     async clear() {
       let markerPersisted = false;
       let credentialsCleanupCompleted = false;
@@ -185,17 +190,40 @@ export function createAuthSessionStore(
       }
     },
   };
+
+  const exclusive = <Result>(operation: () => Promise<Result>): Promise<Result> => {
+    const result = (authStorageOperationTails.get(revocationStorage) ?? Promise.resolve())
+      .then(operation);
+    const settled = result.then(() => undefined, () => undefined);
+    authStorageOperationTails.set(revocationStorage, settled);
+    settled.then(() => {
+      if (authStorageOperationTails.get(revocationStorage) === settled) {
+        authStorageOperationTails.delete(revocationStorage);
+      }
+    });
+    return result;
+  };
+  return {
+    clear: () => exclusive(operations.clear),
+    clearExactly: () => exclusive(operations.clearExactly),
+    load: () => exclusive(operations.load),
+    save: session => exclusive(() => operations.save(session)),
+  };
 }
 
 export function createReactNativeAuthSessionSecureStorage(): AuthSessionSecureStorage {
   return {
     async clearCredentials() {
-      const [current, legacy] = await Promise.all([
+      const results = await Promise.allSettled([
         Keychain.resetGenericPassword({service: AUTH_SESSION_SERVICE}),
         Keychain.resetGenericPassword({service: LEGACY_AUTH_SESSION_SERVICE}),
       ]);
-
-      return current !== false && legacy !== false;
+      // A failed legacy reset must not release the shared store queue while
+      // the current-service reset can still delete a later session.
+      for (const result of results) {
+        if (result.status === 'rejected') throw result.reason;
+      }
+      return results.every(result => result.status === 'fulfilled' && result.value !== false);
     },
     async loadCredentials() {
       const current = await Keychain.getGenericPassword({

@@ -162,7 +162,11 @@ async function requestCode(config, request, purpose) {
     challenge_id: challengeId,
     delivery: config.smsProvider.delivery ?? 'sms',
     expires_at: expiresAt.toISOString(),
-    retry_after_seconds: config.rateLimitWindowSeconds,
+    // One compliant client cannot consume more than the phone quota in any
+    // fixed window. Every account/task/provider branch exposes the same wait.
+    retry_after_seconds: Math.ceil(
+      config.rateLimitWindowSeconds / config.phoneRequestLimit,
+    ),
   });
   const acknowledgementReady = Promise.resolve(
     config.acknowledgementSleeper(config.providerDeliveryDeadlineMs),

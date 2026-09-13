@@ -14,6 +14,24 @@ export const LEARNING_EVENTS_ACK_SCHEMA_VERSION =
   'learning-events-ack.v2' as const;
 export const MAX_LEARNING_EVENT_BATCH_SIZE = 9;
 
+export const LEARNING_EVENT_TERMINAL_REJECTION_CODES = [
+  'learning_event_selection_conflict',
+  'learning_event_id_conflict',
+  'learning_event_cursor_conflict',
+] as const;
+export type LearningEventTerminalRejectionCode =
+  (typeof LEARNING_EVENT_TERMINAL_REJECTION_CODES)[number];
+
+export function getLearningEventTerminalRejectionCode(
+  error: unknown,
+): LearningEventTerminalRejectionCode | null {
+  return error instanceof RemoteHttpError &&
+    error.status === 409 &&
+    LEARNING_EVENT_TERMINAL_REJECTION_CODES.some(code => code === error.code)
+    ? (error.code as LearningEventTerminalRejectionCode)
+    : null;
+}
+
 export type LearningAnswerGrade = 'passed' | 'review_needed';
 export type LearningEventPhase = 'learning' | 'review';
 
@@ -135,9 +153,31 @@ export function createLearningEventsRepository(
       });
 
       if (!response.ok) {
+        let code: LearningEventTerminalRejectionCode | null = null;
+        if (response.status === 409) {
+          try {
+            const payload: unknown = await response.json();
+            if (
+              isObject(payload) &&
+              Object.keys(payload).length === 1 &&
+              isObject(payload.error) &&
+              Object.keys(payload.error).length === 2 &&
+              typeof payload.error.message === 'string' &&
+              LEARNING_EVENT_TERMINAL_REJECTION_CODES.includes(
+                payload.error.code as LearningEventTerminalRejectionCode,
+              )
+            ) {
+              code = payload.error.code as LearningEventTerminalRejectionCode;
+            }
+          } catch {
+            // An unreadable or unknown failure is not proof that the event
+            // was rejected permanently. Keep it pending for an exact retry.
+          }
+        }
         throw new RemoteHttpError(
           `Remote learning events sync failed with ${response.status}.`,
           response.status,
+          code,
         );
       }
 

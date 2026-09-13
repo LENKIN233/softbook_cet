@@ -1,4 +1,4 @@
-import type {ContentManifestSignatureVerifier} from '../audio/contentManifestRepository';
+import type {ContentAssetDownload, ContentManifestSignatureVerifier} from '../audio/contentManifestRepository';
 import type {InstalledClientIdentityProvider} from '../runtime/clientVersion';
 import type {SoftbookClientKind} from '../runtime/remoteClient';
 import { LearningSession, LearningTrack } from './model';
@@ -22,6 +22,12 @@ export type LearningSessionRepositoryContext = {
 };
 
 export type LearningSessionRepository = {
+  refreshAudioDownload?: (
+    context: LearningSessionRepositoryContext,
+    session: LearningSession,
+    assetId: string,
+    options?: {isCurrent?: () => boolean},
+  ) => Promise<ContentAssetDownload>;
   continueRound: (
     context: LearningSessionRepositoryContext,
     session: LearningSession,

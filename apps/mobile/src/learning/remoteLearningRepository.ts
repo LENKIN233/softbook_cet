@@ -1,6 +1,8 @@
 import {
   assertContentManifestMatchesCards,
   loadRemoteContentManifest,
+  resolveCardAudioDownload,
+  stableJsonStringify,
   type VerifiedContentManifest,
 } from '../audio/contentManifestRepository';
 import type {
@@ -20,6 +22,7 @@ import {
   continueRemoteLearningRound,
   loadRemoteLearningSession,
 } from './remoteLearningSession';
+import {RemoteRequestLifecycleError} from '../runtime/remoteRequest';
 
 export function createRemoteLearningSessionRepository(
   config: LearningSessionRepositoryConfig,
@@ -29,6 +32,47 @@ export function createRemoteLearningSessionRepository(
   }
 
   return {
+    refreshAudioDownload: async (context, session, assetId, options) => {
+      const assertCurrent = () => {
+        if (options?.isCurrent?.() === false) throw new RemoteRequestLifecycleError('session_superseded');
+      };
+      assertCurrent();
+      const manifestConfig = config.contentManifestConfig;
+      const card = session.cards.find(candidate => candidate.card_id === session.serverSelection?.cardId);
+      if (
+        !context.authToken || !config.remoteConfig ||
+        !manifestConfig || manifestConfig.mode !== 'remote' ||
+        session.schedulingMode !== 'server' || !session.contentVersion ||
+        !session.contentManifest || !card?.audio || card.audio.asset_id !== assetId
+      ) {
+        throw new Error('Current learning selection cannot refresh audio authorization.');
+      }
+      const expected = resolveCardAudioDownload(session.contentManifest, card);
+      const fetchImpl = config.fetchImpl ?? fetch;
+      const source = await loadRemoteLearningCardSource(context, session.track, config.remoteConfig, fetchImpl);
+      assertCurrent();
+      if (source.contentVersion !== session.contentVersion || source.sourceId !== session.sourceId || source.track !== session.track) {
+        throw new Error('Audio authorization refresh cannot change the selected content.');
+      }
+      const currentCard = source.cards.find(candidate => candidate.card_id === card.card_id);
+      if (!currentCard?.audio || stableJsonStringify(currentCard.audio) !== stableJsonStringify(card.audio)) {
+        throw new Error('Selected audio is no longer in the authorized card source.');
+      }
+      const refreshed = await loadRemoteContentManifest({
+        ...manifestConfig, authToken: context.authToken, contentVersion: session.contentVersion,
+        fetchImpl, track: session.track,
+      });
+      assertCurrent();
+      assertContentManifestMatchesCards(refreshed, source.cards, {
+        cardsAreAccessiblePrefix: true, totalCardCount: session.contentManifest.access.total_card_count,
+      });
+      const resolved = resolveCardAudioDownload(refreshed, currentCard);
+      if (!resolved || !expected || stableJsonStringify(resolved.asset) !== stableJsonStringify(expected.asset)) {
+        throw new Error('Refreshed audio descriptor differs from the selected signed asset.');
+      }
+      return resolved.download;
+    },
+
     continueRound: async (context, session) => {
       if (!config.remoteSessionConfig || !session.roundCompletion) {
         throw new Error('Learning session has no remote round to continue.');

@@ -234,10 +234,17 @@ jobs:
         with:
           node-version: "22.13.0"
           cache: "npm"
-          cache-dependency-path: apps/mobile/package-lock.json
+          cache-dependency-path: |
+            apps/mobile/package-lock.json
+            infra/cloudbase/functions/softbook-api/package-lock.json
 
       - name: Install dependencies
         if: env.RUN_GATE == 'true'
+        run: npm ci
+
+      - name: Install backend dependencies for account recovery integration
+        if: env.RUN_GATE == 'true'
+        working-directory: infra/cloudbase/functions/softbook-api
         run: npm ci
 
       - name: Lint mobile app

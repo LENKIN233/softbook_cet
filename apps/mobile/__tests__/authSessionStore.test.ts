@@ -1,4 +1,5 @@
 import type {RemoteAuthSession} from '../src/auth/authSession';
+import * as Keychain from 'react-native-keychain';
 import {
   AUTH_SESSION_REVOCATION_KEY,
   createAuthSessionStore,
@@ -52,6 +53,103 @@ function createRevocationStorage(seed: Record<string, string> = {}) {
 }
 
 describe('AuthSessionStore', () => {
+  it.each(['clear', 'clearExactly', 'load'] as const)(
+    'serializes a second instance save and load behind an already-dispatched %s cleanup',
+    async operation => {
+      const {storage: secureStorage} = createSecureStorage();
+      const {storage: revocationStorage} = createRevocationStorage();
+      const first = createAuthSessionStore(secureStorage, revocationStorage);
+      const second = createAuthSessionStore(secureStorage, revocationStorage);
+      await first.save(REMOTE_SESSION);
+      if (operation === 'load') await revocationStorage.setItem(AUTH_SESSION_REVOCATION_KEY, 'revoked');
+      let release!: () => void;
+      let markStarted!: () => void;
+      const gate = new Promise<void>(resolve => {release = resolve;});
+      const started = new Promise<void>(resolve => {markStarted = resolve;});
+      const originalClear = secureStorage.clearCredentials;
+      jest.mocked(secureStorage.clearCredentials).mockImplementationOnce(async () => {
+        markStarted();
+        await gate;
+        return originalClear();
+      });
+      const clearing = first[operation]();
+      await started;
+      const newSession = {...REMOTE_SESSION, accessToken: 'new-access', refreshToken: 'new-refresh', sessionId: 'new-session'};
+      let saved = false;
+      const saving = second.save(newSession).then(() => {saved = true;});
+      const reading = second.load();
+      for (let i = 0; i < 10; i += 1) await Promise.resolve();
+      const savedBeforeCleanupFinished = saved;
+      release();
+      await Promise.allSettled([clearing, saving, reading]);
+      expect(savedBeforeCleanupFinished).toBe(false);
+      await expect(saving).resolves.toBeUndefined();
+      await expect(reading).resolves.toEqual(newSession);
+      await expect(first.load()).resolves.toEqual(newSession);
+    },
+  );
+
+  it('keeps default native stores serialized until both current and legacy credential clears settle', async () => {
+    const first = createAuthSessionStore();
+    const second = createAuthSessionStore();
+    await first.save(REMOTE_SESSION);
+    const reset = jest.mocked(Keychain.resetGenericPassword);
+    const originalReset = reset.getMockImplementation()!;
+    let release!: () => void;
+    let markStarted!: () => void;
+    const gate = new Promise<void>(resolve => {release = resolve;});
+    const started = new Promise<void>(resolve => {markStarted = resolve;});
+    reset.mockImplementationOnce(async options => {
+      markStarted();
+      await gate;
+      return originalReset(options);
+    }).mockRejectedValueOnce(new Error('legacy credential cleanup failed'));
+    const clearing = first.clearExactly();
+    const handledClear = clearing.catch(error => error);
+    await started;
+    const newSession = {...REMOTE_SESSION, sessionId: 'new-native-session'};
+    let saved = false;
+    const saving = second.save(newSession).then(() => {saved = true;});
+    for (let i = 0; i < 20; i += 1) await Promise.resolve();
+    const savedBeforeCleanupFinished = saved;
+    release();
+    await Promise.allSettled([handledClear, saving]);
+    expect(savedBeforeCleanupFinished).toBe(false);
+    await expect(clearing).rejects.toThrow('legacy credential cleanup failed');
+    await expect(second.load()).resolves.toEqual(newSession);
+  });
+
+  it('orders a second instance exact clear and subsequent save after an unfinished old clear', async () => {
+    const {storage: secureStorage} = createSecureStorage();
+    const {storage: revocationStorage} = createRevocationStorage();
+    const first = createAuthSessionStore(secureStorage, revocationStorage);
+    const second = createAuthSessionStore(secureStorage, revocationStorage);
+    await first.save(REMOTE_SESSION);
+    let release!: () => void;
+    let markStarted!: () => void;
+    const gate = new Promise<void>(resolve => {release = resolve;});
+    const started = new Promise<void>(resolve => {markStarted = resolve;});
+    const clear = jest.mocked(secureStorage.clearCredentials);
+    const originalClear = clear.getMockImplementation()!;
+    clear.mockImplementationOnce(async () => {
+      markStarted();
+      await gate;
+      return originalClear();
+    });
+    const oldClear = first.clear();
+    await started;
+    const nextClear = second.clearExactly();
+    const newSession = {...REMOTE_SESSION, sessionId: 'after-both-clears'};
+    const saving = second.save(newSession);
+    for (let i = 0; i < 10; i += 1) await Promise.resolve();
+    const concurrentClearCalls = clear.mock.calls.length;
+    release();
+    await Promise.allSettled([oldClear, nextClear, saving]);
+    expect(concurrentClearCalls).toBe(1);
+    await expect(nextClear).resolves.toBeUndefined();
+    await expect(second.load()).resolves.toEqual(newSession);
+  });
+
   it('round-trips the complete rotating credential pair in secure storage', async () => {
     const {storage} = createSecureStorage();
     const store = createAuthSessionStore(storage);

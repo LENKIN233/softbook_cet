@@ -282,6 +282,15 @@ source under the same authenticated session. It requires exact track,
 review policy. `selection: null` is valid and never triggers bundled-card
 fallback.
 
+A null selection is an empty schedule, not a completed zero-card round. The
+client shows `next_due_at` when supplied, offers an explicit refresh and Space
+entry, and rechecks at that time or after foreground/network recovery without
+looping on an unchanged past timestamp. A durable sleep intent hides the affected
+current card while sync is pending; confirmed sleep triggers a fresh server
+selection rather than local replacement. Unrelated canonical Space refreshes
+preserve the same selection's draft, resolved presentation, and sticky assistance
+or lock-mistake evidence.
+
 If `membership_stage` differs from the bootstrap snapshot because the session
 activated or observed a newer entitlement, the client refreshes bootstrap and
 requires the canonical stage to match before presenting the session. It never

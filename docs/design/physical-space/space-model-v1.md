@@ -63,6 +63,14 @@ The current library is a shelf containing labelled group regions. Each region co
 
 The current Learning card and a browsed card remain independent. The current marker never follows browsing selection. Return preserves the existing Learning attempt, result and next action. Sleep/favorite semantics do not change.
 
+An acknowledged favorite change or an unrelated Space update preserves the
+current answer draft, revealed result, and already-used help. A changed server
+selection starts a new attempt. Moving the current card into sleep hides its
+question while that intent is waiting to sync; after canonical confirmation,
+Learning reads the server's next selection. It never picks a replacement from
+the local catalog. Waking a card when no question is available also asks the
+server to update the learning path.
+
 ## Allowed Operations
 
 - browse library / group / box hierarchy;

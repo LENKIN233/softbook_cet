@@ -252,6 +252,16 @@ native redirect target must also remain credential-free HTTPS. Concurrent
 requests for the same digest share one in-process operation only after each
 caller's asset/download identity and declared byte length are validated.
 
+On an expired URL or an object-download 401/403, one explicit playback intent
+may refresh authorization once for the same asset. The repository rereads the
+current content source and signed manifest, verifies membership and the exact
+asset descriptor, and rejects any account, selection, content or lifecycle
+change before returning the new URL. The retry still checks byte length and
+SHA-256. A cached verified file needs no fresh download authorization. Web's
+first explicit play action prepares and plays; leaving Learning, hiding the
+page, changing selection/account, or pagehide cancels it. Foreground recovery
+never automatically resumes playback.
+
 PC Web performs the same acceptance without a native file cache: one explicit
 user action fetches the credential-free HTTPS download with browser credentials
 omitted, consumes the full body, compares exact signed byte length, computes

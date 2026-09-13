@@ -24,6 +24,26 @@ function chooseLockOption(slotLabel: string, option: string) {
 }
 
 describe('PC Web core flow', () => {
+  it('remembers a lock mistake across Space browsing and schedules the completed card for review', async () => {
+    await authenticate();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+    fireEvent.click(screen.getByRole('button', {name: /B.*unclear/}));
+    fireEvent.click(screen.getByRole('button', {name: '提交判断'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续下一张'}));
+    chooseLockOption('主语', 'reduces');
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
+    chooseLockOption('主语', 'The policy');
+    chooseLockOption('谓语', 'reduces');
+    chooseLockOption('宾语', 'test anxiety');
+    expect(screen.getByText('已解锁，稍后再回看。')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: '有把握'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    expect(screen.getByText('需要回看').closest('div')).toHaveTextContent('1');
+    expect(screen.getByText('使用提示').closest('div')).toHaveTextContent('0');
+  });
   it('shows the selected and correct answers after a wrong choice, then clears the feedback on continue', async () => {
     await authenticate();
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));

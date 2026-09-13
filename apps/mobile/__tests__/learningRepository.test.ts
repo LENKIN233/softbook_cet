@@ -145,6 +145,69 @@ test('local learning session repository loads a usable session', async () => {
   expect(installedClientIdentityProvider).not.toHaveBeenCalled();
 });
 
+test('renews only the selected audio through canonical content and a fresh verified manifest', async () => {
+  const fixture = createAudioRefreshFixture();
+  const session = await fixture.repository.loadSession(authenticatedContext, 'cet4');
+  fixture.manifest.data.downloads[0].url = 'https://private-content.example/renewed.mp3';
+  fixture.manifest.data.downloads[0].expires_at = '2026-07-24T09:00:00.000Z';
+  const initialCalls = fixture.fetchMock.mock.calls.length;
+  const renewed = await fixture.repository.refreshAudioDownload!(authenticatedContext, session, 'cet4.002001.prompt');
+  expect(renewed).toEqual(fixture.manifest.data.downloads[0]);
+  expect(fixture.verifySignature).toHaveBeenCalledTimes(2);
+  expect(fixture.fetchMock.mock.calls.slice(initialCalls).map(([url]) => url)).toEqual([
+    'https://example.com/v1/learning/card-source?track=cet4',
+    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(CONTENT_VERSION)}`,
+  ]);
+  expect(session.serverSelection?.selectionId).toBe(SELECTION_ID);
+  expect(session.contentManifest?.downloads[0].url).not.toBe(renewed.url);
+});
+
+test.each(['content', 'asset', 'size', 'signature', 'removed'] as const)('refuses audio renewal after %s authority drift', async drift => {
+  const fixture = createAudioRefreshFixture();
+  const session = await fixture.repository.loadSession(authenticatedContext, 'cet4');
+  if (drift === 'content') fixture.source.data.content_version = `sha256:${'d'.repeat(64)}`;
+  if (drift === 'asset') fixture.manifest.data.manifest.assets[0].sha256 = `sha256:${'d'.repeat(64)}`;
+  if (drift === 'size') fixture.manifest.data.manifest.assets[0].size_bytes += 1;
+  if (drift === 'signature') fixture.verifySignature.mockReturnValue(false);
+  if (drift === 'removed') fixture.source.data.card_records = fixture.source.data.card_records.filter(item => item.card_id !== session.serverSelection?.cardId);
+  await expect(fixture.repository.refreshAudioDownload!(authenticatedContext, session, 'cet4.002001.prompt')).rejects.toThrow();
+});
+
+test('stops renewal between source and manifest when the originating selection or account changes', async () => {
+  const fixture = createAudioRefreshFixture();
+  const session = await fixture.repository.loadSession(authenticatedContext, 'cet4');
+  let current = true;
+  fixture.fetchMock.mockImplementationOnce(async () => {
+    current = false;
+    return {ok: true, status: 200, json: async () => fixture.source};
+  });
+  const previousCount = fixture.fetchMock.mock.calls.length;
+  await expect(fixture.repository.refreshAudioDownload!(authenticatedContext, session, 'cet4.002001.prompt', {isCurrent: () => current})).rejects.toMatchObject({reason: 'session_superseded'});
+  expect(fixture.fetchMock.mock.calls.length).toBe(previousCount + 1);
+});
+
+function createAudioRefreshFixture() {
+  const audioCards = localLearningCardRecords.map((card, index) => index === 2 ? {...card, audio: {asset_id: 'cet4.002001.prompt', duration_ms: 2100, sha256: AUDIO_SHA256}} : card);
+  const source = createSourcePayload(audioCards);
+  const manifest = {data: {
+    access: {accessible_card_count: audioCards.length, mode: 'full', total_card_count: audioCards.length},
+    downloads: [{asset_id: 'cet4.002001.prompt', expires_at: '2026-07-24T08:05:00.000Z', url: 'https://private-content.example/initial.mp3'}],
+    manifest: {
+      assets: [{asset_id: 'cet4.002001.prompt', duration_ms: 2100, media_type: 'audio/mpeg', sha256: AUDIO_SHA256, size_bytes: 4096}],
+      content_version: CONTENT_VERSION, minimum_client_version: '1.0.0', parent_release_id: null,
+      release_id: 'cet4-release-1', schema_version: 'content-manifest.v1', track: 'cet4',
+    },
+    signature: {algorithm: 'ed25519', key_id: 'content-key-1', value: 'c'.repeat(128)},
+  }};
+  const fetchMock = jest.fn(async (url: string) => ({ok: true, status: 200, json: async () => url.includes('card-source') ? source : url.includes('/session') ? createSessionPayload() : manifest}));
+  const verifySignature = jest.fn(() => true);
+  const repository = createRemoteRepository(fetchMock, {
+    baseUrl: 'https://example.com', installedClientIdentityProvider: () => ({platform: 'android', version: '1.0.0'}), mode: 'remote',
+    now: () => new Date('2026-07-24T08:00:00.000Z'), verifySignature,
+  });
+  return {repository, fetchMock, source, manifest, verifySignature};
+}
+
 test('local learning session repository rejects empty sessions', async () => {
   const repository = createLearningSessionRepository({
     mode: 'local',

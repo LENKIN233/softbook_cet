@@ -4,7 +4,9 @@ import {
   LearningEventOutbox,
   type EnqueueLearningCompletionInput,
   type LearningEventOutboxEntry,
+  type RejectedLearningEvent,
 } from './learningEventOutbox';
+import {getLearningEventTerminalRejectionCode} from './learningEventsRepository';
 import type {
   LearningEventAcknowledgement,
   LearningEventsContext,
@@ -15,6 +17,8 @@ export type LearningEventReplayResult = {
   acknowledgements: LearningEventAcknowledgement[];
   acknowledgedEntries: LearningEventOutboxEntry[];
   pendingCount: number;
+  rejectedEntries: RejectedLearningEvent[];
+  rejectedCount: number;
 };
 
 export type LearningEventSyncRepository = {
@@ -23,6 +27,7 @@ export type LearningEventSyncRepository = {
     input: EnqueueLearningCompletionInput,
   ) => Promise<LearningEventOutboxEntry>;
   getPendingCount: (phoneNumber: string) => Promise<number>;
+  getRejectedEntries: (phoneNumber: string) => Promise<RejectedLearningEvent[]>;
   startReplay: (
     context: LearningEventsContext,
     options?: {canSubmit?: () => boolean},
@@ -36,7 +41,7 @@ export function createLearningEventSyncRepository(config: {
   const outbox = config.outbox;
   const replayInFlightByAccount = new Map<
     string,
-    Promise<LearningEventReplayResult>
+    {authToken: string | undefined; task: Promise<LearningEventReplayResult>}
   >();
 
   const replay = async (
@@ -45,9 +50,13 @@ export function createLearningEventSyncRepository(config: {
   ): Promise<LearningEventReplayResult> => {
     const acknowledgedEntries: LearningEventOutboxEntry[] = [];
     const acknowledgements: LearningEventAcknowledgement[] = [];
+    const rejectedEntries: RejectedLearningEvent[] = [];
 
     while (true) {
-      const batch = await outbox.getBatch(context.phoneNumber);
+      // A batch-level 409 does not identify the rejected event. Replay one
+      // immutable event at a time so an accepted duplicate can never inherit
+      // a later event's rejection during compatible outbox recovery.
+      const batch = await outbox.getBatch(context.phoneNumber, 1);
 
       if (batch.length === 0) {
         break;
@@ -67,10 +76,21 @@ export function createLearningEventSyncRepository(config: {
           result => result.eventId,
         );
 
+        if (options.canSubmit?.() === false) break;
+
         await outbox.acknowledge(context.phoneNumber, acknowledgedIds);
         acknowledgedEntries.push(...batch);
         acknowledgements.push(acknowledgement);
       } catch (error) {
+        if (options.canSubmit?.() === false) break;
+        const rejectionCode = getLearningEventTerminalRejectionCode(error);
+        if (rejectionCode !== null) {
+          for (const entry of batch) {
+            const rejected = await outbox.rejectIfUnchanged(entry, rejectionCode);
+            if (rejected) rejectedEntries.push(rejected);
+          }
+          continue;
+        }
         if (
           !isRemoteAuthorizationError(error) &&
           !isRemoteRequestCancellationError(error)
@@ -89,6 +109,8 @@ export function createLearningEventSyncRepository(config: {
       acknowledgements,
       acknowledgedEntries,
       pendingCount: await outbox.getPendingCount(context.phoneNumber),
+      rejectedEntries,
+      rejectedCount: (await outbox.getRejectedEntries(context.phoneNumber)).length,
     };
   };
 
@@ -105,23 +127,32 @@ export function createLearningEventSyncRepository(config: {
       return outbox.getPendingCount(phoneNumber);
     },
 
+    getRejectedEntries(phoneNumber) {
+      return outbox.getRejectedEntries(phoneNumber);
+    },
+
     startReplay(context, replayOptions) {
       const existingReplay = replayInFlightByAccount.get(context.phoneNumber);
 
-      if (existingReplay) {
-        return existingReplay;
+      if (existingReplay && existingReplay.authToken === context.authToken) {
+        return existingReplay.task;
       }
 
-      const task = replay(context, replayOptions);
-      replayInFlightByAccount.set(context.phoneNumber, task);
+      // Do not return a previous session's acknowledgement or rejection to a
+      // replacement session of the same phone. Its pass starts after the old
+      // pass settles and reads fresh durable state.
+      const task = existingReplay
+        ? existingReplay.task.catch(() => undefined).then(() => replay(context, replayOptions))
+        : replay(context, replayOptions);
+      replayInFlightByAccount.set(context.phoneNumber, {authToken: context.authToken, task});
       task.then(
         () => {
-          if (replayInFlightByAccount.get(context.phoneNumber) === task) {
+          if (replayInFlightByAccount.get(context.phoneNumber)?.task === task) {
             replayInFlightByAccount.delete(context.phoneNumber);
           }
         },
         () => {
-          if (replayInFlightByAccount.get(context.phoneNumber) === task) {
+          if (replayInFlightByAccount.get(context.phoneNumber)?.task === task) {
             replayInFlightByAccount.delete(context.phoneNumber);
           }
         },

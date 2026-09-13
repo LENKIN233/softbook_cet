@@ -132,6 +132,7 @@ export type LearningCard =
 export type LearningCardState = {
   hasUsedHint?: boolean;
   hasUsedPeek?: boolean;
+  hasMadeLockMistake?: boolean;
   isPeeked: boolean;
   isFavorited: boolean;
   isHintVisible: boolean;

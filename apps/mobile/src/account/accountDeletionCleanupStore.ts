@@ -2,6 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const ACCOUNT_DELETION_CLEANUP_STORAGE_KEY =
   'softbook-cet/account-deletion-cleanup/v1';
+export const ACCOUNT_LOGOUT_CLEANUP_STORAGE_KEY =
+  'softbook-cet/account-logout-cleanup/v1';
 
 const SCHEMA_VERSION = 'account-deletion-local-cleanup.v1' as const;
 
@@ -24,6 +26,28 @@ export type AccountDeletionCleanupStore = {
 export function createAccountDeletionCleanupStore(
   storage: AccountDeletionCleanupStorage = AsyncStorage,
 ): AccountDeletionCleanupStore {
+  return createAccountCleanupStore(
+    storage,
+    ACCOUNT_DELETION_CLEANUP_STORAGE_KEY,
+    SCHEMA_VERSION,
+  );
+}
+
+export function createAccountLogoutCleanupStore(
+  storage: AccountDeletionCleanupStorage = AsyncStorage,
+): AccountDeletionCleanupStore {
+  return createAccountCleanupStore(
+    storage,
+    ACCOUNT_LOGOUT_CLEANUP_STORAGE_KEY,
+    'account-logout-local-cleanup.v1',
+  );
+}
+
+function createAccountCleanupStore(
+  storage: AccountDeletionCleanupStorage,
+  storageKey: string,
+  schemaVersion: string,
+): AccountDeletionCleanupStore {
   let operationTail: Promise<void> = Promise.resolve();
   const runExclusive = <Result>(operation: () => Promise<Result>) => {
     const result = operationTail.then(operation);
@@ -37,11 +61,9 @@ export function createAccountDeletionCleanupStore(
   return {
     clear() {
       return runExclusive(async () => {
-        await storage.removeItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY);
+        await storage.removeItem(storageKey);
 
-        if (
-          (await storage.getItem(ACCOUNT_DELETION_CLEANUP_STORAGE_KEY)) !== null
-        ) {
+        if ((await storage.getItem(storageKey)) !== null) {
           throw new Error(
             'Account deletion cleanup marker removal verification failed.',
           );
@@ -51,10 +73,10 @@ export function createAccountDeletionCleanupStore(
 
     load() {
       return runExclusive(async () => {
-        const value = await storage.getItem(
-          ACCOUNT_DELETION_CLEANUP_STORAGE_KEY,
-        );
-        return value === null ? null : parsePendingCleanup(value);
+        const value = await storage.getItem(storageKey);
+        return value === null
+          ? null
+          : parsePendingCleanup(value, schemaVersion);
       });
     },
 
@@ -63,15 +85,10 @@ export function createAccountDeletionCleanupStore(
         assertPhoneNumber(phoneNumber);
         const serialized = JSON.stringify({
           owner_phone_number: phoneNumber,
-          schema_version: SCHEMA_VERSION,
+          schema_version: schemaVersion,
         });
-        await storage.setItem(
-          ACCOUNT_DELETION_CLEANUP_STORAGE_KEY,
-          serialized,
-        );
-        const persisted = await storage.getItem(
-          ACCOUNT_DELETION_CLEANUP_STORAGE_KEY,
-        );
+        await storage.setItem(storageKey, serialized);
+        const persisted = await storage.getItem(storageKey);
 
         if (persisted !== serialized) {
           throw new Error(
@@ -83,7 +100,10 @@ export function createAccountDeletionCleanupStore(
   };
 }
 
-function parsePendingCleanup(value: string): PendingAccountDeletionCleanup {
+function parsePendingCleanup(
+  value: string,
+  schemaVersion: string,
+): PendingAccountDeletionCleanup {
   let parsed: unknown;
 
   try {
@@ -98,15 +118,15 @@ function parsePendingCleanup(value: string): PendingAccountDeletionCleanup {
     Array.isArray(parsed) ||
     Object.keys(parsed).sort().join(',') !==
       'owner_phone_number,schema_version' ||
-    (parsed as {schema_version?: unknown}).schema_version !== SCHEMA_VERSION
+    (parsed as { schema_version?: unknown }).schema_version !== schemaVersion
   ) {
     throw new Error('Account deletion cleanup marker is invalid.');
   }
 
-  const phoneNumber = (parsed as {owner_phone_number?: unknown})
+  const phoneNumber = (parsed as { owner_phone_number?: unknown })
     .owner_phone_number;
   assertPhoneNumber(phoneNumber);
-  return {phoneNumber};
+  return { phoneNumber };
 }
 
 function assertPhoneNumber(value: unknown): asserts value is string {
