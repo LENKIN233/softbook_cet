@@ -35,6 +35,11 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
+// This suite includes real service integration. Resolve its locked dependencies
+// before any tests or fake-clock setup so missing fixtures fail the suite early.
+const {createMemoryStore, createSoftbookApi} =
+  require('../../../infra/cloudbase/functions/softbook-api/index.js');
+
 const PHONE = '13800138000';
 const AUTH_SERVICE = 'com.softbook.cet.auth-session.v2';
 type FetchInit = {
@@ -900,10 +905,6 @@ test.each(['restart', 'same_process'] as const)(
   'real auth backend recovers a lost 202 through %s without a session and registers a new account instance',
   async flow => {
     jest.useFakeTimers();
-    const {
-      createMemoryStore,
-      createSoftbookApi,
-    } = require('../../../infra/cloudbase/functions/softbook-api/index.js');
     const backendStore = createMemoryStore();
     const deliveries: unknown[] = [];
     const api = createSoftbookApi({

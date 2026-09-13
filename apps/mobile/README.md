@@ -42,11 +42,14 @@ npm run ios
 
 ## 常用检查
 
+账户恢复集成测试会直接运行服务端的隔离内存实现，先安装服务端锁定依赖；不需要真实短信或云端凭据。
+
 ```bash
+npm ci --prefix infra/cloudbase/functions/softbook-api
 cd apps/mobile
 npm run lint
 npm run typecheck
-npm test -- --watch=false
+npm test -- --runInBand --watchAll=false
 ```
 
 ## iOS UI 自动化 smoke
