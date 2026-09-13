@@ -165,6 +165,182 @@ describe('PC Web remote UI authority', () => {
     expect(screen.getByRole('button', {name: '有把握'})).toBeEnabled();
   });
 
+  it('hides a durably slept current selection until a fresh server selection arrives', async () => {
+    const initial = createSnapshot('premium');
+    const pending = createSnapshot('premium');
+    pending.sleeping = ['000001'];
+    pending.spaceSync = {pendingActionCount:1,rejectedActionCount:0,rejectionCodes:[],status:'queued'};
+    const next = createSnapshot('premium');
+    next.sleeping = ['000001'];
+    next.learningSession.cards = [next.learningSession.catalogCards[1]];
+    next.learningSession.serverSelection = {...next.learningSession.serverSelection!,cardId:'000002',selectionId:'sel_after_sleep_1234567890'};
+    const load = vi.fn().mockRejectedValueOnce(new Error('temporary read failure')).mockResolvedValueOnce(next);
+    const complete = vi.fn();
+    await authenticateRemote(createController(initial, {
+      applySpaceState:vi.fn(async()=>pending),loadAuthenticatedState:load,completeCurrentCard:complete,
+    }));
+    fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
+    fireEvent.click(screen.getByRole('button',{name:'空间'}));
+    fireEvent.click(screen.getByRole('button',{name:'移入盒内休眠区'}));
+    await screen.findByRole('button',{name:'唤醒到学习流'});
+    fireEvent.click(screen.getByRole('button',{name:'回到当前学习卡'}));
+    expect(screen.queryByRole('button',{name:'有把握'})).toBeNull();
+    expect(screen.queryByText('Card 1 answer')).toBeNull();
+    expect(screen.queryByText('Card 2 prompt')).toBeNull();
+    expect(screen.getByRole('heading',{name:'这张卡已放入休眠'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    await screen.findByRole('alert');
+    expect(screen.getByRole('heading',{name:'这张卡已放入休眠'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    await screen.findByRole('heading',{name:'Card 2 prompt'});
+    expect(screen.getByRole('button',{name:'翻面看答案'})).toBeEnabled();
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it.each(['wake','rejection'] as const)('restores the same assisted draft after sleep %s without counting a completion', async recovery => {
+    const initial=createSnapshot('premium');
+    initial.learningSession.cards[0].hint_layer={label:'提示',content:'Retained hint',reveal_gesture:'下滑'};
+    const pending=structuredClone(initial);
+    pending.sleeping=['000001'];
+    pending.spaceSync={pendingActionCount:1,rejectedActionCount:0,rejectionCodes:[],status:'queued'};
+    const restored=structuredClone(initial);
+    restored.spaceSync=recovery==='wake'
+      ? {pendingActionCount:1,rejectedActionCount:0,rejectionCodes:[],status:'queued'}
+      : {pendingActionCount:0,rejectedActionCount:1,rejectionCodes:['space_action_id_conflict'],status:'rejected'};
+    const controller=createController(initial,{
+      applySpaceState:vi.fn().mockResolvedValueOnce(pending).mockResolvedValueOnce(restored),
+      loadAuthenticatedState:vi.fn(async()=>restored),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button',{name:'查看提示'}));
+    fireEvent.click(screen.getByRole('button',{name:'收起提示'}));
+    fireEvent.click(screen.getByRole('button',{name:'解题思路'}));
+    fireEvent.click(screen.getByRole('button',{name:'收起思路'}));
+    fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
+    fireEvent.click(screen.getByRole('button',{name:'空间'}));
+    fireEvent.click(screen.getByRole('button',{name:'移入盒内休眠区'}));
+    await screen.findByRole('button',{name:'唤醒到学习流'});
+    fireEvent.click(screen.getByRole('button',{name:'回到当前学习卡'}));
+    expect(screen.getByRole('heading',{name:'这张卡已放入休眠'})).toBeInTheDocument();
+    if(recovery==='wake') {
+      fireEvent.click(screen.getByRole('button',{name:'前往空间'}));
+      fireEvent.click(screen.getByRole('button',{name:'唤醒到学习流'}));
+      await screen.findByRole('button',{name:'移入盒内休眠区'});
+      fireEvent.click(screen.getByRole('button',{name:'回到当前学习卡'}));
+    } else {
+      fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+      await screen.findByText(/空间操作未被服务端接受/);
+    }
+    expect(screen.getByRole('button',{name:'有把握'})).toBeEnabled();
+    expect(screen.queryByRole('button',{name:'翻面看答案'})).toBeNull();
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button',{name:'统计'}));
+    expect(screen.getByText('已完成').closest('div')).toHaveTextContent('0 / 4');
+    fireEvent.click(screen.getByRole('button',{name:'学习'}));
+    fireEvent.click(screen.getByRole('button',{name:'有把握'}));
+    await screen.findByRole('region',{name:'答案对照'});
+    expect(controller.completeCurrentCard).toHaveBeenCalledWith(expect.objectContaining({usedHint:true,usedPeek:true}));
+  });
+
+  it('keeps another card sleep auxiliary and preserves the current answer draft', async()=>{
+    const initial=createSnapshot('premium');const pending=createSnapshot('premium');
+    pending.sleeping=['000002'];
+    pending.spaceSync={pendingActionCount:1,rejectedActionCount:0,rejectionCodes:[],status:'queued'};
+    const controller=createController(initial,{applySpaceState:vi.fn(async()=>pending)});
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
+    fireEvent.click(screen.getByRole('button',{name:'空间'}));
+    fireEvent.click(screen.getByRole('button',{name:'Box 2 1 张'}));
+    fireEvent.click(screen.getByRole('button',{name:'移入盒内休眠区'}));
+    await screen.findByRole('button',{name:'唤醒到学习流'});
+    fireEvent.click(screen.getByRole('button',{name:'回到当前学习卡'}));
+    expect(screen.getByRole('button',{name:'有把握'})).toBeEnabled();
+    expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
+    expect(screen.queryByRole('heading',{name:'这张卡已放入休眠'})).toBeNull();
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+  });
+
+  it('removes resolved-card keyboard continuation while the current card is sleeping',async()=>{
+    const initial=createSnapshot('premium');const pending=createSnapshot('premium');
+    pending.sleeping=['000001'];pending.spaceSync={pendingActionCount:1,rejectedActionCount:0,rejectionCodes:[],status:'queued'};
+    const controller=createController(initial,{applySpaceState:vi.fn(async()=>pending)});
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
+    fireEvent.click(screen.getByRole('button',{name:'有把握'}));
+    await screen.findByRole('button',{name:'继续下一张'});
+    fireEvent.click(screen.getByRole('button',{name:'标记喜欢'}));
+    await screen.findByRole('heading',{name:'这张卡已放入休眠'});
+    fireEvent.keyDown(document.body,{key:'Enter'});
+    expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+    expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button',{name:'继续下一张'})).toBeNull();
+  });
+
+  it('does not let hidden-card keyboard choices change the retained answer',async()=>{
+    const initial=createSnapshot('premium');
+    const choiceCard:LearningCard={...initial.learningSession.cards[0],interaction_id:'multiple_choice',auto_scoring:true,
+      options:[{id:'a',label:'A',text:'alpha'},{id:'b',label:'B',text:'beta'},{id:'c',label:'C',text:'gamma'},{id:'d',label:'D',text:'delta'}],
+      answer_key:{correct_option:'a'}};
+    initial.learningSession.cards=[choiceCard];initial.learningSession.catalogCards[0]=choiceCard;
+    const pending=structuredClone(initial);pending.sleeping=['000001'];
+    pending.spaceSync={pendingActionCount:1,rejectedActionCount:0,rejectionCodes:[],status:'queued'};
+    const controller=createController(initial,{applySpaceState:vi.fn(async()=>pending)});
+    await authenticateRemote(controller);
+    fireEvent.keyDown(document.body,{key:'1'});
+    fireEvent.click(screen.getByRole('button',{name:'标记喜欢'}));
+    await screen.findByRole('heading',{name:'这张卡已放入休眠'});
+    fireEvent.keyDown(document.body,{key:'2'});
+    fireEvent.keyDown(document.body,{key:'Enter'});
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    const option=await screen.findByRole('button',{name:/alpha$/});
+    expect(option).toHaveAttribute('aria-pressed','true');
+    expect(screen.getByRole('button',{name:/beta$/})).toHaveAttribute('aria-pressed','false');
+  });
+
+  it('retains a lock mistake across pending sleep and waking the same selection',async()=>{
+    const initial=createSnapshot('premium');
+    const lockCard:LearningCard={...initial.learningSession.cards[0],interaction_id:'lock',auto_scoring:true,
+      lock_slots:[{id:'subject',label:'主语',options:['correct subject','wrong subject']},{id:'verb',label:'谓语',options:['correct verb','wrong verb']}],
+      answer_key:{lock_pattern:['correct subject','correct verb']}};
+    initial.learningSession.cards=[lockCard];initial.learningSession.catalogCards[0]=lockCard;
+    const pending=structuredClone(initial);pending.sleeping=['000001'];
+    pending.spaceSync={pendingActionCount:1,rejectedActionCount:0,rejectionCodes:[],status:'queued'};
+    const controller=createController(initial,{applySpaceState:vi.fn(async()=>pending)});
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button',{name:'wrong subject'}));
+    fireEvent.click(screen.getByRole('button',{name:'标记喜欢'}));
+    await screen.findByRole('heading',{name:'这张卡已放入休眠'});
+    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    expect(await screen.findByRole('button',{name:'wrong subject'})).toHaveAttribute('aria-pressed','true');
+    fireEvent.click(screen.getByRole('button',{name:'correct subject'}));
+    fireEvent.click(screen.getByRole('button',{name:'correct verb'}));
+    await screen.findByRole('region',{name:'答案对照'});
+    expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+    expect(controller.completeCurrentCard).toHaveBeenCalledWith(expect.objectContaining({outcome:'incorrect'}));
+  });
+
+  it('invalidates pending audio when an auxiliary snapshot sleeps the current selection',async()=>{
+    const initial=createSnapshot('premium');
+    initial.learningSession.cards[0].audio={asset_id:'sleep-audio',duration_ms:1000,sha256:`sha256:${'a'.repeat(64)}`};
+    const pending=structuredClone(initial);pending.sleeping=['000001'];
+    pending.spaceSync={pendingActionCount:1,rejectedActionCount:0,rejectionCodes:[],status:'queued'};
+    let finishPlayback!:(value:'playing')=>void;
+    const controller=createController(initial,{
+      applySpaceState:vi.fn(async()=>pending),stopCardAudio:vi.fn(),
+      playCardAudio:vi.fn(()=>new Promise<'playing'>(resolve=>{finishPlayback=resolve})),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button',{name:'播放音频'}));
+    fireEvent.click(screen.getByRole('button',{name:'标记喜欢'}));
+    await screen.findByRole('heading',{name:'这张卡已放入休眠'});
+    expect(controller.stopCardAudio).toHaveBeenCalled();
+    await act(async()=>finishPlayback('playing'));
+    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    await screen.findByRole('button',{name:'播放音频'});
+    expect(screen.queryByRole('button',{name:'暂停音频'})).toBeNull();
+  });
+
   it.each(['content', 'phase'] as const)('starts a fresh attempt when %s changes even if a selection id is reused', async change => {
     const initial = createSnapshot('premium');
     const changed = createSnapshot('premium');

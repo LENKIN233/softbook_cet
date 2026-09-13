@@ -15,7 +15,8 @@ import {
 } from '../src/account/accountDeletionRecoveryStore';
 import { USER_STATE_STORAGE_KEY } from '../src/persistence/userStateStore';
 import { createSoftbookRemoteRuntimeConfig } from '../src/runtime/appRuntimeConfig';
-import { LEARNING_EVENT_OUTBOX_STORAGE_KEY } from '../src/sync/learningEventOutbox';
+import { LearningEventOutbox, LEARNING_EVENT_OUTBOX_STORAGE_KEY } from '../src/sync/learningEventOutbox';
+import { createReactNativeLearningEventOutboxStorage } from '../src/sync/learningEventOutboxStorage.native';
 
 jest.mock('../src/learning/learningRepository', () => ({
   createLearningSessionRepository: () => ({
@@ -43,7 +44,6 @@ type FetchInit = {
 };
 const mockFetch = jest.fn();
 let originalFetch: typeof global.fetch;
-const mounted: ReactTestRenderer.ReactTestRenderer[] = [];
 
 function response(data: unknown, status = 200) {
   return { json: async () => data, ok: status >= 200 && status < 300, status };
@@ -109,7 +109,6 @@ async function mount() {
     tree = ReactTestRenderer.create(<App />);
     await settle();
   });
-  mounted.push(tree);
   return tree;
 }
 async function enterPhone(
@@ -165,10 +164,8 @@ beforeEach(() => {
     },
   });
 });
-afterEach(async () => {
-  await ReactTestRenderer.act(() =>
-    mounted.splice(0).forEach(tree => tree.unmount()),
-  );
+// jest.setup owns tree disposal before this suite restores timers and globals.
+afterEach(() => {
   global.fetch = originalFetch;
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = undefined;
   jest.useRealTimers();
@@ -294,6 +291,83 @@ test.each(['user_state', 'outbox', 'mutation_queue', 'auth'] as const)(
     }
   },
 );
+
+test('late logout from an unmounted App cannot clear a newly authenticated same-phone account', async () => {
+  const oldTree = await mount();
+  await login(oldTree.root);
+  let resolveLogout!: (value: ReturnType<typeof response>) => void;
+  const delayed = new Promise<ReturnType<typeof response>>(resolve => {resolveLogout = resolve;});
+  const ordinary = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url: string, init?: FetchInit) =>
+    url.endsWith('/auth/logout') ? delayed : ordinary(url, init),
+  );
+  await press(oldTree.root, 'mine-account-logout-button');
+  expect(await createAccountLogoutCleanupStore().load()).toEqual({phoneNumber: PHONE});
+  expect(mockFetch.mock.calls.some(([url]) => url.endsWith('/auth/logout'))).toBe(true);
+  await ReactTestRenderer.act(() => oldTree.unmount());
+  mockFetch.mockImplementation(async (url: string, init?: FetchInit) => {
+    if (url.endsWith('/auth/verify-code')) {
+      const value = await session().json() as {data: Record<string, unknown>};
+      return response({data: {...value.data, access_token: 'new-lifecycle-access', refresh_token: 'new-lifecycle-refresh', session_id: 'new-lifecycle-session'}});
+    }
+    return ordinary(url, init);
+  });
+  const restored = await mount();
+  // Native cleanup already owns IO: the next mount stays in recovery until
+  // that owner settles instead of logging in ahead of an outstanding erase.
+  expect(restored.root.findAllByProps({testID: 'auth-phone-input'})).toHaveLength(0);
+  expect(await createAccountLogoutCleanupStore().load()).toEqual({phoneNumber: PHONE});
+  await ReactTestRenderer.act(async () => {
+    resolveLogout(response(null, 204));
+    await settle();
+  });
+  expect(await createAccountLogoutCleanupStore().load()).toBeNull();
+  await login(restored.root);
+  const outbox = new LearningEventOutbox({
+    storage: createReactNativeLearningEventOutboxStorage(),
+    createDeviceId: () => 'same_phone_new_lifecycle',
+  });
+  await outbox.enqueueCompletion({
+    accountPhoneNumber: PHONE, track: 'cet4', phase: 'learning',
+    contentVersion: `sha256:${'12'.repeat(32)}`, selectionId: 'sel_new_lifecycle_12345678',
+    result: {cardId: '000001', completedAt: new Date().toISOString(), interactionId: 'flip', outcome: 'confident', usedHint: false, usedPeek: false, isFavorited: false},
+  });
+  const credentials = await Keychain.getGenericPassword({service: AUTH_SERVICE});
+  expect(credentials).not.toBe(false);
+  const accountState = await AsyncStorage.getItem(USER_STATE_STORAGE_KEY);
+  const pendingEvents = await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY);
+  expect(await outbox.getPendingCount(PHONE)).toBe(1);
+  await ReactTestRenderer.act(async () => {
+    await settle();
+  });
+  expect({
+    credentials: await Keychain.getGenericPassword({service: AUTH_SERVICE}),
+    accountState: await AsyncStorage.getItem(USER_STATE_STORAGE_KEY),
+    pendingEvents: await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY),
+  }).toEqual({credentials, accountState, pendingEvents});
+});
+
+test('unreadable cleanup authority on logout preserves the account and opens a retry surface', async () => {
+  const tree = await mount();
+  await login(tree.root);
+  const get = jest.mocked(AsyncStorage.getItem);
+  const original = get.getMockImplementation()!;
+  const credentials = await Keychain.getGenericPassword({service: AUTH_SERVICE});
+  get.mockImplementation(key => key === ACCOUNT_DELETION_RECOVERY_STORAGE_KEY
+    ? Promise.reject(new Error('Recovery authority unavailable'))
+    : original(key));
+  try {
+    await press(tree.root, 'mine-account-logout-button');
+    expect(tree.root.findByProps({testID: 'account-logout-cleanup-screen'})).toBeTruthy();
+    expect(await Keychain.getGenericPassword({service: AUTH_SERVICE})).toEqual(credentials);
+    expect(mockFetch.mock.calls.some(([url]) => url.endsWith('/auth/logout'))).toBe(false);
+  } finally {
+    get.mockImplementation(original);
+  }
+  await press(tree.root, 'account-logout-cleanup-retry-button');
+  expect(tree.root.findByProps({testID: 'auth-phone-input'})).toBeTruthy();
+  expect(await Keychain.getGenericPassword({service: AUTH_SERVICE})).toBe(false);
+});
 
 test('failed logout marker performs no destructive cleanup and can be retried', async () => {
   const tree = await mount();

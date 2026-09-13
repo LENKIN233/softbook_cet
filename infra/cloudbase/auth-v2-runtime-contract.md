@@ -135,6 +135,12 @@ are cleared and verified. A failed marker write destroys no account store; a
 later cleanup failure keeps the marker and a neutral retry surface across
 restart. Only complete verified cleanup removes the marker and opens ordinary
 phone login. None of these local logout states claims account deletion.
+Ordinary cleanup holds the same process-wide queue as startup and deletion
+recovery through remote revocation and native storage completion. A replacement
+App waits for that IO to settle before reading credentials or offering login.
+Unmounted invalidation callbacks cannot create another marker or clear a later
+session. Credential operations also serialize across native store instances so
+an already-started erase cannot finish after a replacement session is saved.
 
 Before the phone/task/provider branch diverges, every success-shaped ordinary
 or recovery request starts one fixed acknowledgement envelope equal to the

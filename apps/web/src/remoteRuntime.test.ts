@@ -1041,7 +1041,7 @@ describe('authenticated Web remote orchestration', () => {
     expect(enqueueCount).toBe(1);
   });
 
-  it.each(['malformed', 'network'] as const)(
+  it.each(['malformed', 'network', 'http503'] as const)(
     'keeps favorite and sleep overlays queued after a retryable %s Space response',
     async failureKind => {
       const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -1065,6 +1065,9 @@ describe('authenticated Web remote orchestration', () => {
           if (failureKind === 'network') {
             throw new Error('injected network failure');
           }
+          if (failureKind === 'http503') {
+            return {json: async () => ({error: {code: 'unavailable'}}), ok: false, status: 503};
+          }
           return {
             json: async () => ({data: {malformed: true}}),
             ok: true,
@@ -1085,6 +1088,8 @@ describe('authenticated Web remote orchestration', () => {
         }),
         spaceStateRepository,
       });
+      const eventOutbox = new LearningEventOutbox({storage: createInMemoryLearningEventOutboxStorage()});
+      const submitLearningEvent = vi.fn(async () => {throw new Error('Space recovery must not submit a learning completion.');});
       const controller = createWebRemoteRuntimeController({
         accountBootstrapRepository: {
           async load() {
@@ -1093,7 +1098,13 @@ describe('authenticated Web remote orchestration', () => {
         },
         authRepository,
         authSessionCoordinator,
-        learningEventSyncRepository: createEmptyEventSyncRepository(),
+        learningEventSyncRepository: createLearningEventSyncRepository({
+          outbox: eventOutbox,
+          eventsRepository: createLearningEventsRepository({
+            mode: 'remote', remoteConfig: {endpoint: 'https://runtime.example.cn/v2/learning/events'},
+            fetchImpl: submitLearningEvent,
+          }),
+        }),
         learningSessionRepository: {
           continueRound: async () => undefined,
           async loadSession() {
@@ -1109,7 +1120,7 @@ describe('authenticated Web remote orchestration', () => {
 
       try {
         await controller.requestSmsCode(PHONE);
-        await controller.verifySmsCode(PHONE, '123456');
+        const initial = await controller.verifySmsCode(PHONE, '123456');
         const favoriteSnapshot = await controller.applySpaceState(
           '000001',
           'favorite',
@@ -1136,6 +1147,10 @@ describe('authenticated Web remote orchestration', () => {
           rejectionCodes: [],
           status: 'queued',
         });
+        expect(sleepingSnapshot.learningSession.serverSelection).toEqual(initial.learningSession.serverSelection);
+        expect(sleepingSnapshot.learningSession.cards[0].card_id).toBe('000001');
+        expect(await eventOutbox.getPendingCount(PHONE)).toBe(0);
+        expect(submitLearningEvent).not.toHaveBeenCalled();
       } finally {
         warning.mockRestore();
       }

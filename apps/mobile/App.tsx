@@ -532,6 +532,14 @@ function AppShell({
         shouldPreserveAuthorizationRejection:
           isAccountSessionQuarantined,
         beforeSessionInvalidation: async ({session, reason}) => {
+          const lifetime = deletionRecoveryLifetimeRef.current;
+          const generation = lifetime.generation;
+          const assertActive = () => {
+            if (!lifetime.active || lifetime.generation !== generation) {
+              throw new Error('Session cleanup belongs to an inactive App.');
+            }
+          };
+          assertActive();
           // Deletion keeps its own phase authority. Ordinary invalidation must
           // first retain enough non-secret state to finish cleanup after restart.
           if (
@@ -552,8 +560,11 @@ function AppShell({
           pendingAccountLogoutCleanupRef.current = cleanup;
           try {
             await accountLogoutCleanupStore.markPending(cleanup.phoneNumber);
+            assertActive();
           } catch (error) {
-            setAccountLogoutState('cleanup_required');
+            if (lifetime.active && lifetime.generation === generation) {
+              setAccountLogoutState('cleanup_required');
+            }
             throw error;
           }
           setAccountLogoutState('cleanup_retrying');
@@ -981,38 +992,42 @@ function AppShell({
         return logoutInFlight.current;
       }
 
-      const logoutTask = (async () => {
-        const accountPhoneNumber =
-          pendingAccountLogoutCleanupRef.current?.phoneNumber ??
-          accountPhoneNumberOverride ??
-          authSessionCoordinator.getCurrentSession()?.phoneNumber ??
-          (authState.stage === 'authenticated'
-            ? authState.phoneNumber
-            : null) ??
-          null;
+      const lifetime = deletionRecoveryLifetimeRef.current;
+      const generation = lifetime.generation;
+      const isActive = () => lifetime.active && lifetime.generation === generation;
+      const accountPhoneNumber =
+        pendingAccountLogoutCleanupRef.current?.phoneNumber ??
+        accountPhoneNumberOverride ??
+        authSessionCoordinator.getCurrentSession()?.phoneNumber ??
+        (authState.stage === 'authenticated'
+          ? authState.phoneNumber
+          : null) ??
+        null;
 
-        if (accountPhoneNumber === null) {
-          throw new Error('Account cleanup requires an exact account owner.');
-        }
-        const cleanup = pendingAccountLogoutCleanupRef.current ?? {
-          phoneNumber: accountPhoneNumber,
-          sessionScopeKey: getAuthSessionScopeKey(
-            authSessionCoordinator.getCurrentSession(),
-          ),
-          error,
-          revokeRemote,
-        };
-        pendingAccountLogoutCleanupRef.current = cleanup;
-        setAccountLogoutState('cleanup_retrying');
+      if (accountPhoneNumber === null) {
+        return Promise.reject(new Error('Account cleanup requires an exact account owner.'));
+      }
+      const cleanup = pendingAccountLogoutCleanupRef.current ?? {
+        phoneNumber: accountPhoneNumber,
+        sessionScopeKey: getAuthSessionScopeKey(
+          authSessionCoordinator.getCurrentSession(),
+        ),
+        error,
+        revokeRemote,
+      };
+      pendingAccountLogoutCleanupRef.current = cleanup;
+      setAccountLogoutState('cleanup_retrying');
 
+      const logoutTask = accountDeletionRecoveryStore.runSessionCleanup(async () => {
         // No credentials or account records are destroyed before this exact
         // owner marker is durable. A later failure leaves a restart-safe retry.
         try {
           await accountLogoutCleanupStore.markPending(accountPhoneNumber);
         } catch {
-          setAccountLogoutState('cleanup_required');
+          if (isActive()) setAccountLogoutState('cleanup_required');
           return;
         }
+        if (!isActive()) return;
 
         const currentScopeKey = getAuthSessionScopeKey(
           authSessionCoordinator.getCurrentSession(),
@@ -1038,6 +1053,7 @@ function AppShell({
             '[AppPersistence] Failed to persist auth session revocation.',
           );
         }
+        if (!isActive()) return;
 
         const cleanupResults = await Promise.allSettled([
           authSessionStore.clearExactly(),
@@ -1045,6 +1061,7 @@ function AppShell({
           mutationQueueRepository.clear(),
           learningEventSyncRepository.clearAccount(accountPhoneNumber),
         ]);
+        if (!isActive()) return;
 
         resetRuntimeAfterLogout(cleanup.error);
         if (
@@ -1057,12 +1074,15 @@ function AppShell({
         try {
           await accountLogoutCleanupStore.clear();
         } catch {
-          setAccountLogoutState('cleanup_required');
+          if (isActive()) setAccountLogoutState('cleanup_required');
           return;
         }
+        if (!isActive()) return;
         pendingAccountLogoutCleanupRef.current = null;
         setAccountLogoutState('idle');
-      })();
+      }, isActive).catch(() => {
+        if (isActive()) setAccountLogoutState('cleanup_required');
+      });
 
       logoutInFlight.current = logoutTask;
       logoutTask.finally(() => {
@@ -1076,6 +1096,7 @@ function AppShell({
       authSessionCoordinator,
       authSessionStore,
       accountLogoutCleanupStore,
+      accountDeletionRecoveryStore,
       authState.phoneNumber,
       authState.stage,
       learningEventSyncRepository,

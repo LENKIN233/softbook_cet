@@ -65,6 +65,17 @@ export function createAccountDeletionRecoveryStore(
 
   return {
     load: () => exclusive(read),
+    runSessionCleanup(operation: () => Promise<void>, isActive: () => boolean) {
+      return exclusive(async () => {
+        if (!isActive()) return;
+        const current = await read();
+        if (!isActive()) return;
+        if (current.state !== null) throw superseded();
+        // Startup and deletion recovery use this same queue. A remounted App
+        // cannot authenticate while an earlier session still owns native IO.
+        await operation();
+      });
+    },
     begin(
       phoneNumber: string,
       emptyRevision: number,

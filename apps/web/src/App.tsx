@@ -219,6 +219,10 @@ export function App({
     ? reviewCards
     : session?.cards ?? [];
   const currentCard = activeCards[currentIndex] ?? null;
+  // Hide presentation without changing the server selection or its draft.
+  const isServerSelectionSleeping = runtime.mode === 'remote' &&
+    session?.schedulingMode === 'server' && currentCard !== null &&
+    sleeping.includes(currentCard.card_id);
   const membershipAccess = membership
     ? resolveMembershipAccess(membership)
     : null;
@@ -389,6 +393,11 @@ export function App({
     setReviewCards([]);
     setSessionComplete(nextSession.cards.length === 0);
     setResults([...snapshot.learningResults, ...snapshot.reviewResults]);
+    if (nextCard !== null && snapshot.sleeping.includes(nextCard.card_id)) {
+      audioRequestGeneration.current += 1;
+      remoteController?.stopCardAudio?.();
+      setAudioStatus('idle');
+    }
     if (!preservesCurrentCardDraft) {
       audioRequestGeneration.current += 1;
       setResolved(null);
@@ -717,7 +726,7 @@ export function App({
 
   async function resolveCurrentCard(stateOverride?: LearningCardState) {
     const stateToResolve = stateOverride ?? cardState;
-    if (!currentCard || !stateToResolve || resolved || queuedLearningResult || resolutionInFlight.current) return;
+    if (isServerSelectionSleeping || !currentCard || !stateToResolve || resolved || queuedLearningResult || resolutionInFlight.current) return;
     const next = evaluateLearningCard(currentCard, stateToResolve);
     if (!next) return;
     setCardState(stateToResolve);
@@ -763,6 +772,7 @@ export function App({
   }
 
   async function continueLearning() {
+    if (isServerSelectionSleeping) return;
     if (runtime.mode === 'remote') {
       await reloadRemoteState();
       return;
@@ -838,7 +848,7 @@ export function App({
   }
 
   async function playCurrentAudio() {
-    if (runtime.mode !== 'remote' || remoteController === null || !currentCard) {
+    if (isServerSelectionSleeping || runtime.mode !== 'remote' || remoteController === null || !currentCard) {
       return;
     }
     const requestGeneration = audioRequestGeneration.current + 1;
@@ -1141,6 +1151,20 @@ export function App({
               <h1>当前学习状态暂时不可用</h1>
               <p className="notice error" role="alert">{remoteError || '请重新读取当前学习状态。'}</p>
               <button className="primary" disabled={remoteBusy} onClick={() => void reloadRemoteState()}>重新读取</button>
+            </section>
+          </main>
+        ) : isServerSelectionSleeping ? (
+          <main className="workbench">
+            <section className="learning-card" aria-labelledby="learning-sleep-title">
+              <p className="eyebrow">学习安排</p>
+              <h1 id="learning-sleep-title">这张卡已放入休眠</h1>
+              <p className="notice" role="status">{(spaceSync?.pendingActionCount ?? 0) > 0
+                ? '休眠操作等待同步，确认后再读取下一张。也可以到空间唤醒这张卡。'
+                : '重新读取学习安排后即可继续，也可以到空间唤醒这张卡。'}</p>
+              {remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}
+              <button className="primary" disabled={remoteBusy || remoteCleanupPending || accountDeletionLocksAccount} onClick={() => void reloadRemoteState()}>重新读取学习安排</button>
+              <button className="secondary" onClick={() => navigateRoute('space')}>前往空间</button>
+              <p className="notice" role="status">跨端同步 · {genericSyncStatus}</p>
             </section>
           </main>
         ) : sessionComplete ? (
@@ -1793,8 +1817,8 @@ function StatisticsSurface({
               : checkInSync?.status === 'confirmed'
               ? '这条记录已由学习账户确认。'
               : checkInSync?.status === 'unavailable'
-              ? '完成至少一张学习卡后，再确认今天已经发生的学习。'
-              : '签到只确认今天已经发生的学习，不增加额外奖励。'}
+              ? '先完成一张学习卡，再来确认今天的进展。'
+              : '确认今天的学习进展。'}
           </p>
           <button
             className="primary"
