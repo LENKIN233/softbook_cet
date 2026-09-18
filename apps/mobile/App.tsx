@@ -120,6 +120,7 @@ import {
   type PersistedLearningCursor,
   type PersistedUserState,
 } from './src/persistence/userStateStore';
+import {LOCAL_CARD_SOURCE_ID} from './src/learning/localCardSource';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { resolveContentManifestRuntimeConfig } from './src/audio/contentManifestRuntimeConfig';
 import type {RefreshLearningAudioDownload} from './src/audio/learningAudioController';
@@ -724,7 +725,9 @@ function AppShell({
       }),
     [membershipRepository, progressSyncRepository, spaceStateRepository],
   );
-  const userStateStore = useMemo(() => createUserStateStore(), []);
+  const userStateStore = useMemo(() => createUserStateStore(undefined,
+    runtimeAccountBootstrapMode === 'local' && LOCAL_CARD_SOURCE_ID === 'bundled-card-make-v1'
+      ? 'softbook-cet/user-state/bundled-card-make-v1' : undefined), [runtimeAccountBootstrapMode]);
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [learningScreen, setLearningScreen] =
     useState<LearningSurfaceScreen>('practice');
@@ -6043,6 +6046,7 @@ function AppShell({
     <LearningSurface
       advanceState={learningAdvanceState}
       audioAttemptId={learningAudioAttemptId}
+      allowBundledAudio={learningSession?.schedulingMode === 'local' && learningSession.sourceId === 'bundled-card-make-v1'}
       completedResults={activeCompletedResults}
       contentManifest={learningSession?.contentManifest ?? null}
       refreshAudioDownload={refreshLearningAudioDownload}

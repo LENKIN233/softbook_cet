@@ -1,4 +1,4 @@
-import { localLearningCardRecords } from '../src/learning/localCardRecords';
+import { localLearningCardRecords } from './fixtures/interactionCards';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { normalizeLearningCardRecord } from '../src/learning/sourceContract';
 import {

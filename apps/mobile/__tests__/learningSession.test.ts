@@ -1,12 +1,12 @@
 import { CORE_INTERACTION_ORDER, LearningCard } from '../src/learning/model';
-import { localLearningCardSource } from '../src/learning/localCardSource';
+import { localLearningCardSource } from './fixtures/interactionSource';
 import {
   createLearningCardState,
   createLocalLearningSession,
   evaluateLearningCard,
   selectLockOption,
   selectReviewCards,
-} from '../src/learning/session';
+} from './fixtures/interactionSession';
 
 test('correcting a lock mistake completes once as review-needed without inventing assistance', () => {
   const card = createLocalLearningSession('cet4').cards.find(item => item.interaction_id === 'lock')!;

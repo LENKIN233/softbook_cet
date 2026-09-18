@@ -5,17 +5,15 @@ name: read-material-and-correction
 - launchApp
 - extendedWaitUntil:
     visible:
-      id: learning-flip-button
+      id: learning-option-1
     timeout: 60000
 - tapOn:
-    id: learning-flip-button
-- tapOn:
-    id: learning-flip-confident-button
-- tapOn:
-    id: learning-next-button
+    id: learning-audio-control
+- assertVisible:
+    id: learning-audio-control-label
 - takeScreenshot: options
 - tapOn:
-    id: learning-option-1
+    id: learning-option-2
 - tapOn:
     id: learning-submit-button
 - assertVisible:
@@ -24,16 +22,6 @@ name: read-material-and-correction
 - tapOn:
     id: learning-open-result-detail-button
 - takeScreenshot: answer
-- tapOn:
-    id: learning-next-button
-- tapOn:
-    id: learning-lock-1-1
-- tapOn:
-    id: learning-lock-2-3
-- tapOn:
-    id: learning-lock-3-2
-- assertVisible:
-    id: learning-correct-answer
 - tapOn:
     id: learning-next-button
 - takeScreenshot: material
@@ -47,7 +35,7 @@ name: read-material-and-correction
       platform: Android
     commands:
       - tapOn:
-          id: learning-elimination-1
+          id: learning-option-1
       - tapOn:
           id: learning-submit-button
       - tapOn:

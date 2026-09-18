@@ -6,7 +6,7 @@ const {
   createCloudBaseStore,
   createMemoryStore,
   createSoftbookApi,
-} = require('../index');
+} = require('./fixtures/api');
 const {createAuthV2Service: createAuthV2ServiceRuntime} = require('../auth-v2');
 
 const PHONE_NUMBER = '13800138000';

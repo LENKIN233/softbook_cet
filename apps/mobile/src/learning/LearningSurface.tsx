@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { LearningAudioPlayer } from '../audio/LearningAudioPlayer';
+import {bundledAudioSelection} from '../audio/bundledAudio';
 import type {RefreshLearningAudioDownload} from '../audio/learningAudioController';
 import {
   resolveCardAudioDownload,
@@ -60,6 +61,7 @@ export type LearningSurfacePalette = {
 type LearningSurfaceProps = {
   advanceState?: LearningAdvanceState;
   audioAttemptId: string | null;
+  allowBundledAudio?: boolean;
   palette: LearningSurfacePalette;
   contentManifest?: VerifiedContentManifest | null;
   refreshAudioDownload?: RefreshLearningAudioDownload;
@@ -168,6 +170,7 @@ export function isCompactLearningViewport(width: number, height: number) {
 export function LearningSurface({
   advanceState = DEFAULT_LEARNING_ADVANCE_STATE,
   audioAttemptId,
+  allowBundledAudio = false,
   palette,
   contentManifest = null,
   refreshAudioDownload,
@@ -515,11 +518,13 @@ export function LearningSurface({
   const submissionLabel = currentCard.interaction_id === 'elimination' ? '确认句干' : '确认答案';
   const primaryAction = getLibraryActionColors(tone.accent, palette);
   const audioSelection = (() => {
-    if (!currentCard.audio || !contentManifest || audioAttemptId === null) {
+    if (!currentCard.audio || audioAttemptId === null) {
       return null;
     }
 
     try {
+      if (allowBundledAudio) return bundledAudioSelection(currentCard, audioAttemptId);
+      if (!contentManifest) return null;
       const resolved = resolveCardAudioDownload(contentManifest, currentCard);
       return resolved
         ? {

@@ -19,7 +19,7 @@ import {ACCOUNT_DELETION_CLEANUP_STORAGE_KEY} from '../src/account/accountDeleti
 import {USER_STATE_STORAGE_KEY} from '../src/persistence/userStateStore';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
-import { createLocalLearningSession } from '../src/learning/session';
+import { createLocalLearningSession } from './fixtures/interactionSession';
 import {
   createSoftbookRemoteRuntimeConfig as createProductionRemoteRuntimeConfig,
   type SoftbookRemoteRuntimeProfile,

@@ -20,7 +20,7 @@ import {
   canSubmitLearningCard,
   createLearningCardState,
   createLocalLearningSession,
-} from '../src/learning/session';
+} from './fixtures/interactionSession';
 import { resolveLibraryTone } from '../src/visual/tokens';
 
 const palette = {

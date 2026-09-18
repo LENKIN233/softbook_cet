@@ -11,7 +11,7 @@ const {
   handleBetaEntitlementOperatorInvoke,
   handlePilotEntitlementOperatorInvoke,
   validateCardSourceForImport,
-} = require('../index');
+} = require('./fixtures/api');
 const {
   createSpaceActionLineageId,
   createSpaceActionLedgerId,

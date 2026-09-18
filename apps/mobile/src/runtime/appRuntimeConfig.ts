@@ -34,8 +34,8 @@ type SoftbookRuntimeGlobalThis = typeof globalThis & {
   };
 };
 
-// This tracked default is a bounded development demo. Complete local-product
-// runs use scripts/run_local_product.mjs and the receiver-owned formal content.
+// The local runtime consumes the complete bundled card-make libraries and audio.
+// Receiver profiles remain a separate authenticated remote deployment.
 export const SOFTBOOK_APP_RUNTIME_CONFIG: SoftbookAppRuntimeConfig = {
   accountBootstrap: {
     mode: 'local',

@@ -4,7 +4,7 @@ import {
   frontMaterial,
   survivingPassage,
 } from '../src/learning/presentation';
-import { localLearningCardRecords } from '../src/learning/localCardRecords';
+import { localLearningCardRecords } from './fixtures/interactionCards';
 import { createLearningCardState } from '../src/learning/sessionCore';
 import type { EliminationCard } from '../src/learning/model';
 

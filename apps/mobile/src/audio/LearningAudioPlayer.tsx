@@ -6,16 +6,17 @@ import { reactNativeContentAssetCache } from './reactNativeContentAssetCache';
 import {
   LearningAudioController,
   type LearningAudioPlaybackState,
-  type LearningAudioSelection,
+  type AnyLearningAudioSelection,
   type RefreshLearningAudioDownload,
 } from './learningAudioController';
 import { nativeLearningAudioEngine } from './nativeLearningAudioEngine';
+import {resolveNativeBundledAudio} from './nativeBundledAudio';
 import type { LearningSurfacePalette } from '../learning/LearningSurface';
 import { hexToRgba } from '../visual/tokens';
 
 export type LearningAudioPlayerProps = {
   palette: LearningSurfacePalette;
-  selection: LearningAudioSelection;
+  selection: AnyLearningAudioSelection;
   refreshDownload?: RefreshLearningAudioDownload;
 };
 
@@ -30,6 +31,7 @@ export function LearningAudioPlayer({
     () =>
       new LearningAudioController({
         cache: reactNativeContentAssetCache,
+        resolveBundledAsset: resolveNativeBundledAudio,
         engine: nativeLearningAudioEngine,
         refreshDownload: async currentSelection => {
           if (!refreshDownloadRef.current) throw new Error('Audio authorization refresh is unavailable.');

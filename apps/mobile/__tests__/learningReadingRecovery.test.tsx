@@ -2,7 +2,7 @@ import React from 'react';
 import {Text} from 'react-native';
 import Renderer from 'react-test-renderer';
 import {LearningResultDetailSurface, LearningSurface, type LearningSurfacePalette} from '../src/learning/LearningSurface';
-import {createLearningCardState, createLocalLearningSession, evaluateLearningCard} from '../src/learning/session';
+import {createLearningCardState, createLocalLearningSession, evaluateLearningCard} from './fixtures/interactionSession';
 
 const palette: LearningSurfacePalette = {
   background: '#F5F3EE', panel: '#FFFFFF', panelStrong: '#F3F4F8', border: '#E4E2DD',

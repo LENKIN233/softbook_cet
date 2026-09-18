@@ -241,7 +241,7 @@ test('first formal release replaces an unversioned development source', async ()
     profile: profileFixture(),
     runner,
   });
-  const development = require('../index').validateCardSourceForImport(
+  const development = require('./fixtures/api').validateCardSourceForImport(
     {...createRuntimeCardSource('development-placeholder', null), release: null},
     'cet4',
   );
@@ -465,8 +465,8 @@ function createRuntimeCardSource(releaseId, parentReleaseId, track = 'cet4') {
     source: {id: 'receiver-contract', label: 'Receiver contract'},
     track,
   };
-  const draft = require('../index').validateCardSourceForImport(payload, track);
-  return require('../index').validateCardSourceForImport(
+  const draft = require('./fixtures/api').validateCardSourceForImport(payload, track);
+  return require('./fixtures/api').validateCardSourceForImport(
     {
       ...draft,
       release: {
@@ -485,7 +485,7 @@ function createRuntimeCardSource(releaseId, parentReleaseId, track = 'cet4') {
 
 function createPilotRuntimeCardSource(releaseId) {
   const formal = createRuntimeCardSource(releaseId, null);
-  return require('../index').validateCardSourceForImport(
+  return require('./fixtures/api').validateCardSourceForImport(
     {
       ...formal,
       release: {

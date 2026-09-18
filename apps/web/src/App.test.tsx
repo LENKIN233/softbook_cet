@@ -1,3 +1,5 @@
+import {vi} from 'vitest';
+vi.mock('../../mobile/src/learning/session', () => import('../../mobile/__tests__/fixtures/interactionSession'));
 import {fireEvent, render, screen, within} from '@testing-library/react';
 import axe from 'axe-core';
 

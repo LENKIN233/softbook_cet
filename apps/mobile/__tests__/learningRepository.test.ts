@@ -1,4 +1,4 @@
-import { localLearningCardRecords } from '../src/learning/localCardRecords';
+import { localLearningCardRecords } from './fixtures/interactionCards';
 import { createLearningSessionRepository } from '../src/learning/learningRepository';
 import { parseSoftbookRemoteLearningCardSourcePayload } from '../src/learning/remoteCardSource';
 

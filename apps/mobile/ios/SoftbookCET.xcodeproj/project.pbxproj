@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BA1000000000000000000001 /* card-audio in Resources */ = {isa = PBXBuildFile; fileRef = BA1000000000000000000002 /* card-audio */; };
 		0C80B921A6F3F58F76C31292 /* libPods-SoftbookCET.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5DCACB8F33CDC322A6C60F78 /* libPods-SoftbookCET.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
@@ -18,6 +19,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		BA1000000000000000000002 /* card-audio */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "../assets/card-audio"; sourceTree = SOURCE_ROOT; };
 		13B07F961A680F5B00A75B9A /* SoftbookCET.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SoftbookCET.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = SoftbookCET/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = SoftbookCET/Info.plist; sourceTree = "<group>"; };
@@ -52,6 +54,7 @@
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				B7A0010136C44F12A7510B02 /* SoftbookAppInfo.m */,
 				B7A0030136C44F12A7510B02 /* softbook-release-runtime-profile.json */,
+				BA1000000000000000000002 /* card-audio */,
 				A41D10F03C4A4BFEA6CB4381 /* SoftbookAudioPlayer.m */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
@@ -169,6 +172,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B7A0030236C44F12A7510B02 /* softbook-release-runtime-profile.json in Resources */,
+				BA1000000000000000000001 /* card-audio in Resources */,
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				97E2703D04615A976E7478F6 /* PrivacyInfo.xcprivacy in Resources */,

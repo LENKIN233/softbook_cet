@@ -99,3 +99,6 @@ beforeEach(async () => {
     Keychain.__reset();
   }
 });
+
+// Small explicit fixtures keep behavior regressions independent of content updates.
+jest.mock('./src/learning/localCardSource', () => jest.requireActual('./__tests__/fixtures/interactionSource'));

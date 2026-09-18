@@ -8,7 +8,7 @@ const {pathToFileURL} = require('node:url');
 
 const {
   createSoftbookApi,
-} = require('../index');
+} = require('./fixtures/api');
 
 let smokeModule;
 let modelContract;
@@ -326,7 +326,7 @@ async function candidatePayload() {
       size_bytes: 2000 + index,
     };
   });
-  const {validateCardSourceForReleaseBundle} = require('../index');
+  const {validateCardSourceForReleaseBundle} = require('./fixtures/api');
   return validateCardSourceForReleaseBundle(
     {
       assets,

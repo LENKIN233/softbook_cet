@@ -1,4 +1,4 @@
-import { localLearningCardRecords } from '../src/learning/localCardRecords';
+import { localLearningCardRecords } from './fixtures/interactionCards';
 import {
   createSoftbookRemoteLearningCardSourceConfig,
   loadRemoteLearningCardSource,

@@ -157,7 +157,7 @@ test('content version is independent of receiver storage file IDs', () => {
       storage_file_id: `cloud://receiver-bucket/${asset.asset_id}.mp3`,
     })),
   };
-  const runtime = require('../index').validateCardSourceForImport(
+  const runtime = require('./fixtures/api').validateCardSourceForImport(
     runtimePayload,
     'cet4',
   );
@@ -662,7 +662,7 @@ function createValidBundleFixture(
     card_records: cards,
     release: null,
   };
-  const content = require('../index').validateCardSourceForReleaseBundle(
+  const content = require('./fixtures/api').validateCardSourceForReleaseBundle(
     rawContent,
     track,
   );

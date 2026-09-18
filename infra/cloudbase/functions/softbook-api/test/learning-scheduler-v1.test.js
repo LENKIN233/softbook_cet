@@ -5,7 +5,7 @@ const {
   createMemoryStore,
   createSoftbookApi,
   validateCardSourceForImport,
-} = require('../index');
+} = require('./fixtures/api');
 const {
   SCHEDULER_ALGORITHM,
   SCHEDULER_LIBRARY,

@@ -57,7 +57,8 @@ export function resolveWebRuntime(): WebRuntime {
 
 function resolveWebRuntimeUnchecked(): WebRuntime {
   const configured = window.__SOFTBOOK_WEB_RUNTIME__;
-  const track = isLearningTrack(configured?.track) ? configured.track : 'cet4';
+  const localTrack = import.meta.env.DEV ? new URL(window.location.href).searchParams.get('track') : null;
+  const track = isLearningTrack(configured?.track) ? configured.track : isLearningTrack(localTrack) ? localTrack : 'cet4';
 
   if (configured?.mode === 'remote') {
     if (!isCompleteRemoteRuntime(configured)) {

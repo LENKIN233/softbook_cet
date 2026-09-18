@@ -151,12 +151,14 @@ export function App({
     if (route === 'learning' && next !== 'learning') {
       audioRequestGeneration.current += 1;
       remoteController?.stopCardAudio?.();
+      bundledAudio.current?.stop();
       setAudioStatus('idle');
     }
     routeMotion(() => setRoute(next));
   };
   const resolutionInFlight = useRef(false);
   const audioRequestGeneration = useRef(0);
+  const bundledAudio = useRef<ReturnType<typeof import('./bundledAudio').createBundledAudioController> | null>(null);
   const accountAuthorityGeneration = useRef(0);
   const handleAccountPresentationInvalidation = useEffectEvent(
     (event: WebAccountPresentationInvalidation) => {
@@ -219,6 +221,23 @@ export function App({
     ? reviewCards
     : session?.cards ?? [];
   const currentCard = activeCards[currentIndex] ?? null;
+  useEffect(() => {
+    if (!import.meta.env.DEV || runtime.mode !== 'development') return;
+    let active = true;
+    let cleanup = () => {};
+    void import('./bundledAudio').then(({createBundledAudioController}) => {
+      if (!active) return;
+      const controller = createBundledAudioController();
+      bundledAudio.current = controller;
+      const unsubscribe = controller.subscribe(state => setAudioStatus(state.status));
+      cleanup = () => { unsubscribe(); controller.dispose(); bundledAudio.current = null; };
+    });
+    return () => { active = false; cleanup(); };
+  }, [runtime.mode]);
+  useEffect(() => {
+    bundledAudio.current?.stop();
+    audioRequestGeneration.current += 1;
+  }, [currentCard?.card_id, currentIndex, route, authStage, learningPhase]);
   // Hide presentation without changing the server selection or its draft.
   const isServerSelectionSleeping = runtime.mode === 'remote' &&
     session?.schedulingMode === 'server' && currentCard !== null &&
@@ -848,9 +867,14 @@ export function App({
   }
 
   async function playCurrentAudio() {
-    if (isServerSelectionSleeping || runtime.mode !== 'remote' || remoteController === null || !currentCard) {
+    if (isServerSelectionSleeping || !currentCard) {
       return;
     }
+    if (runtime.mode === 'development') {
+      await bundledAudio.current?.play(currentCard, `${phone}:${learningPhase}:${currentIndex}:${currentCard.card_id}`);
+      return;
+    }
+    if (runtime.mode !== 'remote' || remoteController === null) return;
     const requestGeneration = audioRequestGeneration.current + 1;
     audioRequestGeneration.current = requestGeneration;
     setRemoteError('');
@@ -1251,7 +1275,7 @@ export function App({
           onState={setCardState}
           onResolve={stateOverride => void resolveCurrentCard(stateOverride)}
           onContinue={continueLearning}
-          onPlayAudio={runtime.mode === 'remote' ? () => void playCurrentAudio() : null}
+          onPlayAudio={() => void playCurrentAudio()}
           onReloadQueued={() => {
             if (rejectedCompletion && queuedLearningResult) {
               const generation = accountAuthorityGeneration.current;
