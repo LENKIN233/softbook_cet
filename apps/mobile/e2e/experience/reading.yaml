@@ -9,8 +9,10 @@ name: read-material-and-correction
     timeout: 60000
 - tapOn:
     id: learning-audio-control
-- assertVisible:
-    id: learning-audio-control-label
+- extendedWaitUntil:
+    visible:
+      id: learning-audio-state-playing
+    timeout: 10000
 - takeScreenshot: options
 - tapOn:
     id: learning-option-2

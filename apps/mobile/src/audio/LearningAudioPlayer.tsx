@@ -100,7 +100,9 @@ export function LearningAudioPlayer({
       ]}
       testID="learning-audio-control"
     >
-      <AudioGlyph color={foreground} mode={glyphMode} />
+      <View testID={`learning-audio-state-${state.status}`}>
+        <AudioGlyph color={foreground} mode={glyphMode} />
+      </View>
       <Text
         numberOfLines={1}
         style={[styles.label, { color: foreground }]}
