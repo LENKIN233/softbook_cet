@@ -28,10 +28,10 @@ name: read-material-and-correction
     id: learning-next-button
 - takeScreenshot: material
 - tapOn:
-    id: learning-hint-button
+    id: learning-peek-button
 - assertVisible:
     id: learning-support-layer
-- takeScreenshot: material-with-hint
+- takeScreenshot: material-with-support
 - runFlow:
     when:
       platform: Android

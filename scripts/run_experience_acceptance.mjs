@@ -82,7 +82,7 @@ try {
   if (report.calibration.some(item => !item.rejected)) throw new Error('Known bad screenshot was accepted; the evaluator is not calibrated.');
   if (!options.calibrateOnly) {
     captureExperience({device: options.device, output, run});
-    const samples = [['options', 'options'], ['material', 'material'], ['material-with-hint', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
+    const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
     function capturedFiles(directory) {
       return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
         const path = join(directory, entry.name);
