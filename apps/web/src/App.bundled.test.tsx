@@ -14,7 +14,8 @@ it.each([['cet4', 1180, /electric buses/], ['cet6', 1234, /任务：先听音频
     fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
     fireEvent.change(screen.getByLabelText('短信验证码'), {target: {value: '123456'}});
     fireEvent.click(screen.getByRole('button', {name: '验证并继续'}));
-    expect(await screen.findByRole('heading', {name: firstPrompt})).toBeInTheDocument();
+    // Cold CI transforms the full 2414-card module, rather than seven fixtures.
+    expect(await screen.findByRole('heading', {name: firstPrompt}, {timeout: 10000})).toBeInTheDocument();
     expect(screen.getByText(`1 / ${count}`)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '播放音频'})).toBeEnabled();
     expect(screen.queryByText(/短对话里听到 however/)).toBeNull();

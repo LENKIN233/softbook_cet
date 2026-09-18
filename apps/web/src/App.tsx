@@ -130,6 +130,8 @@ export function App({
   const [audioStatus, setAudioStatus] = useState<
     'idle' | 'loading' | 'paused' | 'playing' | 'ready' | 'error'
   >('idle');
+  const [localLibraryStatus, setLocalLibraryStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [localLibraryAttempt, setLocalLibraryAttempt] = useState(0);
   const [spaceSync, setSpaceSync] = useState<
     WebRemoteSnapshot['spaceSync'] | null
   >(null);
@@ -225,18 +227,10 @@ export function App({
     ? reviewCards
     : localLearningCards;
   const currentCard = activeCards[currentIndex] ?? null;
-  useEffect(() => {
-    if (!import.meta.env.DEV || runtime.mode !== 'development') return;
-    let active = true;
-    let cleanup = () => {};
-    void import('./bundledAudio').then(({createBundledAudioController}) => {
-      if (!active) return;
-      const controller = createBundledAudioController();
-      bundledAudio.current = controller;
-      const unsubscribe = controller.subscribe(state => setAudioStatus(state.status));
-      cleanup = () => { unsubscribe(); controller.dispose(); bundledAudio.current = null; };
-    });
-    return () => { active = false; cleanup(); };
+  useEffect(() => () => {
+    audioRequestGeneration.current += 1;
+    bundledAudio.current?.dispose();
+    bundledAudio.current = null;
   }, [runtime.mode]);
   useEffect(() => {
     bundledAudio.current?.stop();
@@ -320,19 +314,21 @@ export function App({
     let active = true;
     if (!import.meta.env.DEV || runtime.mode !== 'development') return;
 
+    setLocalLibraryStatus('loading');
     import('../../mobile/src/learning/session').then(({createLocalLearningSession}) => {
       if (!active) return;
       const nextSession = createLocalLearningSession(runtime.track);
       setSession(nextSession);
+      setLocalLibraryStatus('ready');
       setCardState(
         nextSession.cards[0] ? createLearningCardState(nextSession.cards[0]) : null,
       );
-    });
+    }).catch(() => { if (active) setLocalLibraryStatus('error'); });
 
     return () => {
       active = false;
     };
-  }, [runtime]);
+  }, [runtime, localLibraryAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -875,7 +871,21 @@ export function App({
       return;
     }
     if (runtime.mode === 'development') {
-      await bundledAudio.current?.play(currentCard, `${phone}:${learningPhase}:${currentIndex}:${currentCard.card_id}`);
+      const generation = ++audioRequestGeneration.current;
+      setAudioStatus('loading');
+      try {
+        if (!bundledAudio.current && import.meta.env.DEV) {
+          const {createBundledAudioController} = await import('./bundledAudio');
+          if (generation !== audioRequestGeneration.current) return;
+          const controller = createBundledAudioController();
+          controller.subscribe(state => setAudioStatus(state.status));
+          bundledAudio.current = controller;
+        }
+        if (generation !== audioRequestGeneration.current) return;
+        await bundledAudio.current?.play(currentCard, `${phone}:${learningPhase}:${currentIndex}:${currentCard.card_id}`);
+      } catch {
+        if (generation === audioRequestGeneration.current) setAudioStatus('error');
+      }
       return;
     }
     if (runtime.mode !== 'remote' || remoteController === null) return;
@@ -1172,7 +1182,12 @@ export function App({
       </nav>
 
       {route === 'learning' ? (
-        runtime.mode === 'remote' && session === null ? (
+        runtime.mode === 'development' && localLibraryStatus !== 'ready' ? (
+          <main className="workbench"><section className="learning-card" aria-live="polite">
+            <p className="notice">{localLibraryStatus === 'loading' ? '正在准备卡库…' : '卡库暂时无法读取。'}</p>
+            {localLibraryStatus === 'error' ? <button onClick={() => setLocalLibraryAttempt(value => value + 1)}>重新加载卡库</button> : null}
+          </section></main>
+        ) : runtime.mode === 'remote' && session === null ? (
           <main className="workbench">
             <section className="learning-card" aria-live="polite">
               <p className="eyebrow">账户已确认</p>
