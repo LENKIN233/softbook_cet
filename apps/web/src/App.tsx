@@ -224,7 +224,7 @@ export function App({
   const activeCards = runtime.mode === 'remote'
     ? session?.cards ?? []
     : learningPhase === 'review'
-    ? reviewCards
+    ? reviewCards.filter(card => !sleeping.includes(card.card_id))
     : localLearningCards;
   const currentCard = activeCards[currentIndex] ?? null;
   useEffect(() => () => {
@@ -1336,7 +1336,18 @@ export function App({
                 .finally(() => setRemoteBusy(false));
               return;
             }
-            setSleeping(items => toggle(items, id));
+            const nextSleeping = toggle(sleeping, id);
+            const nextCards = (learningPhase === 'review' ? reviewCards : session?.cards.slice(
+              0, resolveAccessibleLearningCardCount(session.cards.length, membership),
+            ) ?? []).filter(card => !nextSleeping.includes(card.card_id));
+            const retainedIndex = nextCards.findIndex(card => card.card_id === currentCard?.card_id);
+            const nextIndex = retainedIndex >= 0 ? retainedIndex : Math.min(currentIndex, Math.max(0, nextCards.length - 1));
+            setSleeping(nextSleeping);
+            setCurrentIndex(nextIndex);
+            if (retainedIndex < 0) {
+              setResolved(null);
+              setCardState(nextCards[nextIndex] ? withFavoriteState(nextCards[nextIndex], favorites) : null);
+            }
           }}
           onReturn={() => navigateRoute('learning')}
         />

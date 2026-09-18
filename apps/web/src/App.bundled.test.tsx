@@ -19,5 +19,14 @@ it.each([['cet4', 1180, /electric buses/], ['cet6', 1234, /任务：先听音频
     expect(screen.getByText(`1 / ${count}`)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '播放音频'})).toBeEnabled();
     expect(screen.queryByText(/短对话里听到 however/)).toBeNull();
+    if (track === 'cet4') {
+      fireEvent.click(screen.getByRole('button', {name: /B.*游客如何购买/}));
+      fireEvent.click(screen.getByRole('button', {name: '空间'}));
+      fireEvent.click(screen.getByRole('button', {name: '移入盒内休眠区'}));
+      fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
+      expect(await screen.findByRole('heading', {name: /不要被 exam season/})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: '提交判断'})).toBeDisabled();
+      expect(screen.getByText('1 / 1179')).toBeInTheDocument();
+    }
   },
 );

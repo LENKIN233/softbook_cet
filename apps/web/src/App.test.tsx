@@ -136,7 +136,9 @@ describe('PC Web core flow', () => {
     expect(screen.getByRole('button', {name: '取消喜欢'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '唤醒到学习流'})).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '回到当前学习卡'}));
-    expect(screen.getByRole('button', {name: '已标记喜欢'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /A.*urgent/})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '标记喜欢'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: '已标记喜欢'})).toBeNull();
   });
 
   it('keeps the learning marker on the active card while browsing siblings and other boxes', async () => {
