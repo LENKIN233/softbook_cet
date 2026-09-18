@@ -8,8 +8,7 @@ import {validateCardSourceCatalogMapping} from '../infra/cloudbase/card-source-c
 
 const require = createRequire(import.meta.url);
 const {
-  createMemoryStore,
-  createSoftbookApi,
+  validateCardSourceForReleaseBundle,
   validateCardSourceForImport,
 } = require('../infra/cloudbase/functions/softbook-api');
 
@@ -70,7 +69,7 @@ function requireNextValue(argv, index, optionName) {
 function printUsage() {
   console.log(`Usage: node scripts/report_release_content_gap.mjs [--output <path>] [--format markdown|json] [--candidate-card-source <json>...]
 
-Creates a release content gap report from spec/box-catalog.json and the current repository dev card source.
+Creates a release content gap report from spec/box-catalog.json and the current bundled local card source.
 Pass one or more --candidate-card-source files to add a validated candidate handoff delta without changing the current-source baseline.`);
 }
 
@@ -107,46 +106,11 @@ function loadCandidateCardSources(root, filePaths) {
 }
 
 async function loadCurrentCards() {
-  const api = createSoftbookApi({
-    runtimeMode: 'development',
-    smsCode: '2468',
-    store: createMemoryStore(),
-    tokenSecret: 'content-gap-report-secret',
-  });
-  const challenge = await api.handleHttpRequest({
-    body: {phone_number: '13800138000'},
-    clientIp: '127.0.0.1',
-    headers: {},
-    method: 'POST',
-    path: '/v2/auth/request-code',
-    query: {},
-  });
-  const auth = await api.handleHttpRequest({
-    body: {
-      challenge_id: challenge.body.data.challenge_id,
-      phone_number: '13800138000',
-      sms_code: '2468',
-    },
-    clientIp: '127.0.0.1',
-    headers: {},
-    method: 'POST',
-    path: '/v2/auth/verify-code',
-    query: {},
-  });
-  const authorization = `Bearer ${auth.body.data.access_token}`;
-  const cardsByTrack = {};
-
-  for (const track of TRACKS) {
-    const response = await api.handleHttpRequest({
-      headers: {authorization},
-      method: 'GET',
-      path: '/v1/learning/card-source',
-      query: {track},
-    });
-    cardsByTrack[track] = response.body.data.card_records;
-  }
-
-  return cardsByTrack;
+  const library = require('../infra/cloudbase/functions/softbook-api/card-content');
+  return Object.fromEntries(TRACKS.map(track => [track, validateCardSourceCatalogMapping(
+    validateCardSourceForReleaseBundle({track, source: {id: 'bundled-card-make-v1', label: '系统顺序学习'},
+      card_records: library[track].cards, assets: library[track].assets}, track),
+  ).card_records]));
 }
 
 function flattenCatalog(catalog) {
@@ -256,7 +220,7 @@ function summarize(catalogRows, cardsByTrack, candidateSources = []) {
     candidate_handoff_delta: summarizeCandidateDelta(rows, cardsByTrack, candidateSources),
     generated_at: new Date().toISOString(),
     product_truth: 'Public release content must satisfy the active CET4/CET6 box catalog, free users need near-half normal card access, and current card records must map to active box prefixes.',
-    implementation_hypothesis: 'This report compares the active box catalog against the repository development card source. Candidate handoff deltas, when present, are dry-run projections only. They do not prove production content quality, production SMS, payment, content approval, import application, or App Store readiness.',
+    implementation_hypothesis: 'This report compares the active box catalog against the bundled local card source. Candidate handoff deltas, when present, are dry-run projections only. They do not prove production content quality, production SMS, payment, content approval, import application, or App Store readiness.',
     rows,
     summary,
     unmapped_cards: unmappedCards,
@@ -417,7 +381,7 @@ function renderMarkdown(report) {
     lines.push('');
     lines.push('## Candidate Handoff Delta');
     lines.push('');
-    lines.push('These dry-run figures are calculated from validated candidate `card-source` payloads. They do not approve content, apply an import, or change the current repository development source.');
+    lines.push('These dry-run figures are calculated from validated candidate `card-source` payloads. They do not approve content, apply an import, or change the current bundled local source.');
     lines.push('');
     lines.push('### Candidate Sources');
     lines.push('');
@@ -465,7 +429,7 @@ function renderMarkdown(report) {
   lines.push('');
   lines.push('## Current Unmapped Cards');
   lines.push('');
-  lines.push('These cards exist in the repository development card source but do not map to active `box-catalog` prefixes for their track.');
+  lines.push('These cards exist in the bundled local card source but do not map to active `box-catalog` prefixes for their track.');
   lines.push('');
   lines.push('| Track | Card ID | Knowledge Ref | Box Ref | Interaction |');
   lines.push('| --- | --- | --- | --- | --- |');
@@ -508,8 +472,8 @@ function renderMarkdown(report) {
   lines.push('');
   lines.push('## Immediate Implications');
   lines.push('');
-  lines.push('- The current development source is enough to prove the five core interaction shapes, but it is not enough for public release content.');
-  lines.push('- The current development cards map to active `box-catalog` prefixes, but mapped coverage is still far below the free-after-trial near-half target.');
+  lines.push('- These figures measure the bundled candidate library, not production content approval or deployment.');
+  lines.push('- Card counts and catalog coverage do not establish content quality, audio perception, or learning outcomes.');
   lines.push('- Candidate handoff deltas quantify validated dry-run payload contribution only; they do not approve content or apply production imports.');
   lines.push('- To reach the free-after-trial near-half target before full catalog completion, the current mapped content must reach the `Near-half free target` counts above.');
 

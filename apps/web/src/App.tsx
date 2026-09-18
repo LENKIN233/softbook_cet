@@ -215,11 +215,15 @@ export function App({
     },
   );
 
+  const localLearningCards = session && membership
+    ? session.cards.slice(0, resolveAccessibleLearningCardCount(session.cards.length, membership))
+      .filter(card => !sleeping.includes(card.card_id))
+    : [];
   const activeCards = runtime.mode === 'remote'
     ? session?.cards ?? []
     : learningPhase === 'review'
     ? reviewCards
-    : session?.cards ?? [];
+    : localLearningCards;
   const currentCard = activeCards[currentIndex] ?? null;
   useEffect(() => {
     if (!import.meta.env.DEV || runtime.mode !== 'development') return;
