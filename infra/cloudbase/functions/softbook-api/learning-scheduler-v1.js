@@ -1,4 +1,6 @@
 const crypto = require('node:crypto');
+const {ANSWER_EVIDENCE_SCHEMA} = require('./learning-answer-evidence');
+const {buildAdvisorInput} = require('./jev-learning-advisor');
 const {createEmptyCard, fsrs, Rating, State} = require('ts-fsrs');
 const {
   isContentReleaseValidForRuntime,
@@ -64,6 +66,7 @@ function createLearningSchedulerV1Service(options) {
     randomBytes: options.randomBytes ?? crypto.randomBytes,
     runtimeMode: options.runtimeMode,
     store: options.store,
+    advisor: options.advisor ?? null,
   };
   validateServiceConfig(config);
 
@@ -74,12 +77,14 @@ function createLearningSchedulerV1Service(options) {
 }
 
 async function readLearningSession(config, input) {
-  const generatedAt = requireValidDate(config.now(), 'scheduler clock');
-  const generatedAtIso = generatedAt.toISOString();
   const track = requireTrack(input.track, 'track');
-  const dayKey = chinaActivityDay(generatedAt.getTime());
+  let advisorAttempted = false;
+  let advisory = null;
 
   for (let attempt = 1; attempt <= SESSION_SELECTION_ATTEMPTS; attempt += 1) {
+    const generatedAt = requireValidDate(config.now(), 'scheduler clock');
+    const generatedAtIso = generatedAt.toISOString();
+    const dayKey = chinaActivityDay(generatedAt.getTime());
     const cardSourcePromise = config.store.getCardSource(track, {
       allowDevelopmentDefault: config.runtimeMode === 'development',
     });
@@ -139,6 +144,7 @@ async function readLearningSession(config, input) {
       spaceState,
       track,
     });
+    context.answerEvidenceSchemaVersion = input.answerEvidenceSupported === true ? ANSWER_EVIDENCE_SCHEMA : null;
     if (
       context.sessionState.learning_acknowledged_at !==
         context.learning.projectionAcknowledgedAt ||
@@ -244,6 +250,27 @@ async function readLearningSession(config, input) {
     }
 
     const next = selectNextCard(context, config.randomBytes);
+    const candidateIds = advisorCandidateIds(context, next);
+    const adviceIdentity = crypto.createHash('sha256').update(JSON.stringify({
+      accountKey: input.accountKey, track, contentVersion: context.contentVersion, sourceId: context.sourceId,
+      revision: context.sessionState.revision, sequence: context.learning.projectionServerSequence,
+      membership: context.membershipCheckpoint, spaceRevision: spaceState.revision,
+      candidates: candidateIds,
+    })).digest('hex');
+    if (!advisorAttempted && config.advisor && config.advisor.mode !== 'off' && next.selection) {
+      const advisorInput = buildAdvisorInput(context, candidateIds, cardSource);
+      if (advisorInput) {
+        advisorAttempted = true;
+        try { advisory = {identity: adviceIdentity, result: await config.advisor.recommend(advisorInput)}; }
+        catch { advisory = null; }
+        // Inference never runs in a transaction. Always re-read canonical state afterward.
+        continue;
+      }
+    }
+    if (config.advisor?.mode === 'rerank' && advisory?.identity === adviceIdentity &&
+      advisory.result?.cardId && candidateIds.includes(advisory.result.cardId)) {
+      next.selection.cursor.card_id = advisory.result.cardId;
+    }
     const cursor = next.selection?.cursor ?? null;
     const cursorAlreadyEmpty =
       context.sessionState.cursor === null && cursor === null;
@@ -260,6 +287,8 @@ async function readLearningSession(config, input) {
           track,
         })
       : await config.store.saveLearningSessionCursor({
+          ...(advisorAttempted ? {selectionGuard: {spaceRevision: spaceState.revision,
+            contentVersion: context.contentVersion, sourceId: context.sourceId}} : {}),
           accountKey: input.accountKey,
           cursor,
           expectedRevision: context.sessionState.revision,
@@ -309,6 +338,19 @@ async function readLearningSession(config, input) {
     'learning_session_conflict',
     'Learning state changed while selecting the next card.',
   );
+}
+
+function advisorCandidateIds(context, next) {
+  if (!next.selection) return [];
+  if (next.selection.cursor.phase === 'review') {
+    const dueAt = next.selection.cursor.due_at;
+    return context.accessibleCards.filter(card => !context.sleepingCardIds.has(card.cardId) &&
+      context.learning.eventsByCardId[card.cardId] &&
+      (context.learning.schedulerByCardId[card.cardId]?.card.due ?? context.generatedAt.toISOString()) === dueAt
+    ).slice(0, 8).map(card => card.cardId);
+  }
+  return context.accessibleCards.filter(card => !context.sleepingCardIds.has(card.cardId) &&
+    !context.learning.eventsByCardId[card.cardId]).slice(0, 8).map(card => card.cardId);
 }
 
 async function canonicalMembershipMatchesSelectionContext(
@@ -969,6 +1011,7 @@ function serializeLearningSession(
     },
     selection: cursor
       ? {
+          ...(context.answerEvidenceSchemaVersion ? {answer_evidence_schema_version: context.answerEvidenceSchemaVersion} : {}),
           selection_id: cursor.selection_id,
           card_id: cursor.card_id,
           phase: cursor.phase,

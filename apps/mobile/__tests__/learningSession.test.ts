@@ -124,6 +124,7 @@ test('multiple choice, lock, elimination and swipe cards can all be auto-scored'
   const multipleChoiceCard = cardsByInteraction.multiple_choice!;
   const multipleChoiceState = createLearningCardState(multipleChoiceCard);
   multipleChoiceState.selectedOptionId = 'unclear';
+  expect(evaluateLearningCard(multipleChoiceCard, multipleChoiceState)?.selectedOptionId).toBe('unclear');
   expect(
     evaluateLearningCard(multipleChoiceCard, multipleChoiceState)?.outcome,
   ).toBe('correct');

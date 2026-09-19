@@ -1807,6 +1807,7 @@ export function createWebRemoteRuntimeController(
       }
       if (persistedSelectionId !== selection.selectionId) {
         const persistedEntry = await dependencies.learningEventSyncRepository.enqueueCompletion({
+          ...(selection.answerEvidenceSchemaVersion ? {answerEvidenceSchemaVersion: selection.answerEvidenceSchemaVersion} : {}),
           accountPhoneNumber: context.phoneNumber,
           contentVersion,
           phase: selection.phase,
@@ -2356,5 +2357,6 @@ function areLearningResultsEqual(
     left.outcome === right.outcome &&
     left.usedHint === right.usedHint &&
     left.usedPeek === right.usedPeek
+    && left.selectedOptionId === right.selectedOptionId
   );
 }

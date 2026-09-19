@@ -163,6 +163,7 @@ export function evaluateLearningCard(
         ? null
         : {
             ...baseResult,
+            selectedOptionId: state.selectedOptionId,
             outcome:
               state.selectedOptionId === card.answer_key.correct_option
                 ? 'correct'

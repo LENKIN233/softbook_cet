@@ -43,6 +43,27 @@ Referenced active specs:
 
 ## Repository-local backend
 
+### Optional multiple-choice answer evidence for the next update
+
+After session capability negotiation, an updated client may add
+`answer_evidence: {schema_version: "learning-answer-evidence.v1", selected_option_id: "..."}`
+to a `multiple_choice` event. Other interactions and old clients omit it.
+The extension is part of the immutable payload digest and latest-card
+projection. It does not alter the existing outcome-to-FSRS rating mapping.
+
+The server checks the option against the event's retained content version and
+requires the submitted outcome to agree with that canonical answer. It rejects
+unknown fields, unknown options, unsupported evidence versions and conflicting
+replays before changing any projection. No client text, answer key, diagnosis,
+confidence or scheduling state is accepted. The mobile/Web durable outbox
+preserves the exact selected option; changed-answer retries cannot replace it.
+Bootstrap continues exposing its existing public learning projection shape.
+
+The feature is owned by
+`spec/account-sync-contract.json#learning_events_v2.answer_evidence_extension`;
+session negotiation, provider configuration and rollback behavior are defined
+in `learning-session-v1-runtime-contract.md`.
+
 The route is wired in `infra/cloudbase/functions/softbook-api/index.js`. Request
 validation lives in `learning-events-v2.js`; the memory and CloudBase adapters
 share the transaction algorithm in `learning-events-v2-store.js`.

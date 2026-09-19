@@ -37,6 +37,32 @@ function createInput(cardId = '100101') {
   };
 }
 
+it('persists negotiated selected-option evidence exactly across restart', async () => {
+  const storage = createInMemoryLearningEventOutboxStorage();
+  const outbox = new LearningEventOutbox({storage});
+  const input = createInput();
+  input.result = {...input.result, interactionId: 'multiple_choice', outcome: 'incorrect', selectedOptionId: 'wrong'};
+  const entry = await outbox.enqueueCompletion({...input, answerEvidenceSchemaVersion: 'learning-answer-evidence.v1'});
+  expect(entry.event.answer_evidence).toEqual({schema_version: 'learning-answer-evidence.v1', selected_option_id: 'wrong'});
+  input.result.selectedOptionId = 'changed_after_save';
+  const restored = new LearningEventOutbox({storage});
+  expect((await restored.getAll())[0].event.answer_evidence?.selected_option_id).toBe('wrong');
+});
+
+it('omits the extension when an older server does not advertise support', async () => {
+  const outbox = new LearningEventOutbox({storage: createInMemoryLearningEventOutboxStorage()});
+  const input = createInput();
+  input.result = {...input.result, interactionId: 'multiple_choice', outcome: 'incorrect', selectedOptionId: 'wrong'};
+  expect((await outbox.enqueueCompletion(input)).event.answer_evidence).toBeUndefined();
+});
+
+it('rejects malformed selected-option evidence before durable enqueue', async () => {
+  const outbox = new LearningEventOutbox({storage: createInMemoryLearningEventOutboxStorage()});
+  const input = createInput();
+  await expect(outbox.enqueueCompletion({...input, result: {...input.result, selectedOptionId: 'wrong'}, answerEvidenceSchemaVersion: 'learning-answer-evidence.v1'})).rejects.toThrow('selected option');
+  expect(await outbox.getPendingCount(PHONE)).toBe(0);
+});
+
 describe('LearningEventOutbox', () => {
   it('atomically isolates an immutable rejected event across restart and preserves the next sequence', async () => {
     const storage = createInMemoryLearningEventOutboxStorage();

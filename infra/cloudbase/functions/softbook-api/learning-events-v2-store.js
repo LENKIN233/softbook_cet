@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const {normalizeAnswerEvidence} = require('./learning-answer-evidence');
 const {
   assertCloudBaseAccountSessionAuthority,
   assertCloudBaseAccountWriteAllowed,
@@ -1253,6 +1254,11 @@ function assertLearningSessionProjectionWatermark(sessionState, projection) {
 }
 
 function validateProjectionEvent(event, cardId, maximumServerSequence) {
+  if (event && Object.hasOwn(event, 'answer_evidence')) {
+    try {
+      if (event.server_sequence === 0 || normalizeAnswerEvidence(event.answer_evidence, event.interaction_id) === undefined) throw new Error('Invalid evidence authority.');
+    } catch { throw invalidStoredState('The stored answer evidence is invalid.'); }
+  }
   if (
     !isObject(event) ||
     event.card_id !== cardId ||
@@ -1460,6 +1466,7 @@ function answerGradeForProjection(event) {
 
 function createProjectionEvent(entry, serverSequence) {
   return {
+    ...(entry.payload.answer_evidence ? {answer_evidence: cloneJson(entry.payload.answer_evidence)} : {}),
     activity_day: entry.activityDay,
     answer_grade: entry.payload.answer_grade,
     card_id: entry.payload.card_id,

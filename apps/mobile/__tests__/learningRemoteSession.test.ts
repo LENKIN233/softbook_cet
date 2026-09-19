@@ -80,13 +80,23 @@ test('loads and strictly maps a supported learning-session response', async () =
     {
       method: 'GET',
       headers: {
-        Accept: 'application/json',
+        Accept: 'application/json; profile=learning-answer-evidence.v1',
         Authorization: 'Bearer current-token',
         'x-api-key': 'runtime-key',
         'x-softbook-client': 'mobile',
       },
     },
   );
+});
+
+test('negotiates answer evidence without requiring it from an older server', () => {
+  const legacy = createPayload();
+  expect(parseRemoteLearningSessionPayload(legacy, 'cet4').selection?.answerEvidenceSchemaVersion).toBeUndefined();
+  const current = createPayload();
+  current.data.selection = {...current.data.selection, answer_evidence_schema_version: 'learning-answer-evidence.v1'} as never;
+  expect(parseRemoteLearningSessionPayload(current, 'cet4').selection?.answerEvidenceSchemaVersion).toBe('learning-answer-evidence.v1');
+  current.data.selection = {...current.data.selection, answer_evidence_schema_version: 'invented'} as never;
+  expect(() => parseRemoteLearningSessionPayload(current, 'cet4')).toThrow('Unsupported learning answer evidence');
 });
 
 test('accepts a canonical empty selection with the next due time', () => {

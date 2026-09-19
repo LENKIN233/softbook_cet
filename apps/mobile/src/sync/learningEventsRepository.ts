@@ -36,6 +36,7 @@ export type LearningAnswerGrade = 'passed' | 'review_needed';
 export type LearningEventPhase = 'learning' | 'review';
 
 export type LearningEventV2 = {
+  answer_evidence?: {schema_version: 'learning-answer-evidence.v1'; selected_option_id: string};
   event_id: string;
   selection_id: string;
   card_id: string;
