@@ -1,0 +1,20 @@
+{
+  "name": "softbook-jev-learning-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local synthetic-data experiment: FSRS baseline and evidence-gated Jev ranking",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "demo": "node cli.mjs demo",
+    "eval": "node cli.mjs eval",
+    "live": "node --env-file-if-exists=.env.local cli.mjs eval --provider=jev",
+    "start": "node --env-file-if-exists=.env.local server.mjs"
+  },
+  "dependencies": {
+    "ts-fsrs": "5.4.1"
+  }
+}
