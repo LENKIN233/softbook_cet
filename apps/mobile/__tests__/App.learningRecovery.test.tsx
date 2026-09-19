@@ -6,7 +6,7 @@ import {LearningSurface} from '../src/learning/LearningSurface';
 import {LearningEventOutbox} from '../src/sync/learningEventOutbox';
 import {createReactNativeLearningEventOutboxStorage} from '../src/sync/learningEventOutboxStorage.native';
 import type {LearningAudioSelection, RefreshLearningAudioDownload} from '../src/audio/learningAudioController';
-import {createLocalLearningSession} from '../src/learning/session';
+import {createLocalLearningSession} from './fixtures/interactionSession';
 import {createSoftbookRemoteRuntimeConfig} from '../src/runtime/appRuntimeConfig';
 import {getChinaDayKey} from '../src/shared/chinaDay';
 import type {LearningCard, LearningSession} from '../src/learning/model';

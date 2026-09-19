@@ -90,7 +90,25 @@ npm run ios
 
 ### 完整本地产品
 
-普通 `dev` / `ios` / `android` 命令保留为 7 张开发卡的快速行为 demo，不能代表完整产品。
+普通 `dev` / `ios` / `android` 命令现在使用完整本地卡库：CET4 1,180 张、CET6
+1,234 张，629 条音频随产品打包。默认学习四级，卡库按知识点顺序展开；原有示例
+已从运行时删除，少量交互测试数据仅在测试目录保留。无需 CloudBase 即可读卡、
+播放音频、作答和查看空间。本地登录仍使用开发验证码（Web `123456`，移动端 `2468`），
+不代表真实短信、跨设备同步或正式发布。本机原示例的空间与游标记录不迁入新卡库。
+
+```bash
+# 直接体验完整本地卡库，音频由本机提供
+npm --prefix apps/web run dev
+# 原生应用需要重新构建，才能包含随包音频
+npm --prefix apps/mobile run ios
+npm --prefix apps/mobile run android
+```
+
+内容来自 `card-make@6e4367e5b2c9a8dc114a820146b84c82091a2fa0` 的固定导出，
+来源与哈希见 `infra/cloudbase/functions/softbook-api/card-content/provenance.json`。
+接入不改变候选内容的发布授权状态。详情见 `docs/content/bundled-library.md`。
+
+下面的 `product:local` 是单独的**云端接入模式**：
 完整本地产品命令会从 tracked receiver delivery profile 与公开 Ed25519 keyring 生成当前
 commit 的临时公开 runtime profile，连接已经导入 CloudBase 的 1180 张 CET4 卡、108 个盒和
 301 个私有音频，并强制使用封闭内测的邀请资格语义；profile 不包含 token、私钥或凭证。

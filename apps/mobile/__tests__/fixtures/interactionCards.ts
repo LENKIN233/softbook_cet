@@ -1,4 +1,4 @@
-import { LearningCardRecord } from './sourceContract';
+import { LearningCardRecord } from '../../src/learning/sourceContract';
 
 export const localLearningCardRecords: LearningCardRecord[] = [
   {

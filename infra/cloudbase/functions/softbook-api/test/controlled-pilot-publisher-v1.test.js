@@ -15,7 +15,7 @@ const {after, before, test} = require('node:test');
 const {
   createSoftbookApi,
   validateCardSourceForReleaseBundle,
-} = require('../index');
+} = require('./fixtures/api');
 
 let catalog;
 let publisher;

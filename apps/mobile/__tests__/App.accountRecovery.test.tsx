@@ -21,7 +21,7 @@ import { createReactNativeLearningEventOutboxStorage } from '../src/sync/learnin
 jest.mock('../src/learning/learningRepository', () => ({
   createLearningSessionRepository: () => ({
     loadSession: async () =>
-      require('../src/learning/session').createLocalLearningSession('cet4'),
+      require('./fixtures/interactionSession').createLocalLearningSession('cet4'),
   }),
 }));
 jest.mock('react-native-safe-area-context', () => {
@@ -38,7 +38,7 @@ jest.mock('react-native-safe-area-context', () => {
 // This suite includes real service integration. Resolve its locked dependencies
 // before any tests or fake-clock setup so missing fixtures fail the suite early.
 const {createMemoryStore, createSoftbookApi} =
-  require('../../../infra/cloudbase/functions/softbook-api/index.js');
+  require('../../../infra/cloudbase/functions/softbook-api/test/fixtures/api.js');
 
 const PHONE = '13800138000';
 const AUTH_SERVICE = 'com.softbook.cet.auth-session.v2';

@@ -2,20 +2,22 @@ import {LearningTrack} from './model';
 import {localLearningCardSource} from './localCardSource';
 import {
   createLearningSession,
-  DEFAULT_LEARNING_SESSION_CARD_COUNT,
 } from './sessionCore';
 
 export * from './sessionCore';
 
 export function createLocalLearningSession(
   track: LearningTrack,
-  cardCount: number = DEFAULT_LEARNING_SESSION_CARD_COUNT,
+  cardCount?: number,
 ) {
-  return createLearningSession(
+  const cards = localLearningCardSource.loadCards(track);
+  const session = createLearningSession(
     track,
     localLearningCardSource.sourceId,
     localLearningCardSource.sourceLabel,
-    localLearningCardSource.loadCards(track),
-    cardCount,
+    cards,
+    cardCount ?? cards.length,
   );
+  session.cards = cards.slice(0, cardCount ?? cards.length);
+  return session;
 }

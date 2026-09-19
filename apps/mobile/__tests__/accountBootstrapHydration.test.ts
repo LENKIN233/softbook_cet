@@ -3,7 +3,7 @@ import {
   resolveAccountBootstrapLearningState,
 } from '../src/bootstrap/accountBootstrapHydration';
 import type { AccountBootstrapSnapshot } from '../src/bootstrap/accountBootstrapRepository';
-import { createLocalLearningSession } from '../src/learning/session';
+import { createLocalLearningSession } from './fixtures/interactionSession';
 
 const CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
 

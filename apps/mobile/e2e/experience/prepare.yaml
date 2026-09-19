@@ -35,5 +35,5 @@ name: prepare-reading-device
     id: auth-submit-button
 - extendedWaitUntil:
     visible:
-      id: learning-flip-button
+      id: learning-option-1
     timeout: 60000

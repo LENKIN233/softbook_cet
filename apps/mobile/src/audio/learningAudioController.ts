@@ -1,4 +1,4 @@
-import {ContentAssetDownloadAuthorizationError, type ContentAssetCache} from './contentAssetCache';
+import {ContentAssetDownloadAuthorizationError, type ContentAssetCache, type ContentAssetCacheFile} from './contentAssetCache';
 import type {
   ContentAssetDownload,
   ContentManifestAsset,
@@ -34,6 +34,9 @@ export type LearningAudioSelection = {
   download: ContentAssetDownload;
 };
 
+export type BundledLearningAudioSelection = Omit<LearningAudioSelection, 'download'> & {download: null};
+export type AnyLearningAudioSelection = LearningAudioSelection | BundledLearningAudioSelection;
+
 export type RefreshLearningAudioDownload = (
   selection: LearningAudioSelection,
 ) => Promise<ContentAssetDownload>;
@@ -53,7 +56,7 @@ export class LearningAudioController {
   private playbackSequence = 0;
   private playbackRevision = 0;
   private activePlaybackToken: string | null = null;
-  private selection: LearningAudioSelection | null = null;
+  private selection: AnyLearningAudioSelection | null = null;
   private state: LearningAudioPlaybackState = { status: 'idle' };
   private readonly listeners = new Set<StateListener>();
   private readonly unsubscribeEngine: () => void;
@@ -61,6 +64,7 @@ export class LearningAudioController {
   constructor(
     private readonly dependencies: {
       cache: ContentAssetCache;
+      resolveBundledAsset?: (asset: ContentManifestAsset) => Promise<ContentAssetCacheFile>;
       engine: LearningAudioEngine;
       isOnline?: () => boolean | Promise<boolean>;
       refreshDownload?: RefreshLearningAudioDownload;
@@ -117,7 +121,7 @@ export class LearningAudioController {
     };
   }
 
-  select(selection: LearningAudioSelection | null) {
+  select(selection: AnyLearningAudioSelection | null) {
     const isSameSelection =
       selection !== null &&
       this.selection !== null &&
@@ -277,10 +281,15 @@ export class LearningAudioController {
       try {
         let file;
         try {
-          file = await this.dependencies.cache.resolve({asset: selection.asset, download: selection.download});
+          if (selection.download === null) {
+            if (!this.dependencies.resolveBundledAsset) throw new Error('Bundled audio is unavailable.');
+            file = await this.dependencies.resolveBundledAsset(selection.asset);
+          } else {
+            file = await this.dependencies.cache.resolve({asset: selection.asset, download: selection.download});
+          }
         } catch (error) {
           if (
-            !(error instanceof ContentAssetDownloadAuthorizationError) ||
+            selection.download === null || !(error instanceof ContentAssetDownloadAuthorizationError) ||
             refreshedDownload || !this.dependencies.refreshDownload ||
             !this.isCurrentSelection(generation, selection.authorityToken) ||
             await this.readOnlineState() === false

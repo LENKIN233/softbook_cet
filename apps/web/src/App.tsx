@@ -130,6 +130,8 @@ export function App({
   const [audioStatus, setAudioStatus] = useState<
     'idle' | 'loading' | 'paused' | 'playing' | 'ready' | 'error'
   >('idle');
+  const [localLibraryStatus, setLocalLibraryStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [localLibraryAttempt, setLocalLibraryAttempt] = useState(0);
   const [spaceSync, setSpaceSync] = useState<
     WebRemoteSnapshot['spaceSync'] | null
   >(null);
@@ -151,12 +153,14 @@ export function App({
     if (route === 'learning' && next !== 'learning') {
       audioRequestGeneration.current += 1;
       remoteController?.stopCardAudio?.();
+      bundledAudio.current?.stop();
       setAudioStatus('idle');
     }
     routeMotion(() => setRoute(next));
   };
   const resolutionInFlight = useRef(false);
   const audioRequestGeneration = useRef(0);
+  const bundledAudio = useRef<ReturnType<typeof import('./bundledAudio').createBundledAudioController> | null>(null);
   const accountAuthorityGeneration = useRef(0);
   const handleAccountPresentationInvalidation = useEffectEvent(
     (event: WebAccountPresentationInvalidation) => {
@@ -213,12 +217,25 @@ export function App({
     },
   );
 
+  const localLearningCards = session && membership
+    ? session.cards.slice(0, resolveAccessibleLearningCardCount(session.cards.length, membership))
+      .filter(card => !sleeping.includes(card.card_id))
+    : [];
   const activeCards = runtime.mode === 'remote'
     ? session?.cards ?? []
     : learningPhase === 'review'
-    ? reviewCards
-    : session?.cards ?? [];
+    ? reviewCards.filter(card => !sleeping.includes(card.card_id))
+    : localLearningCards;
   const currentCard = activeCards[currentIndex] ?? null;
+  useEffect(() => () => {
+    audioRequestGeneration.current += 1;
+    bundledAudio.current?.dispose();
+    bundledAudio.current = null;
+  }, [runtime.mode]);
+  useEffect(() => {
+    bundledAudio.current?.stop();
+    audioRequestGeneration.current += 1;
+  }, [currentCard?.card_id, currentIndex, route, authStage, learningPhase]);
   // Hide presentation without changing the server selection or its draft.
   const isServerSelectionSleeping = runtime.mode === 'remote' &&
     session?.schedulingMode === 'server' && currentCard !== null &&
@@ -297,19 +314,21 @@ export function App({
     let active = true;
     if (!import.meta.env.DEV || runtime.mode !== 'development') return;
 
+    setLocalLibraryStatus('loading');
     import('../../mobile/src/learning/session').then(({createLocalLearningSession}) => {
       if (!active) return;
       const nextSession = createLocalLearningSession(runtime.track);
       setSession(nextSession);
+      setLocalLibraryStatus('ready');
       setCardState(
         nextSession.cards[0] ? createLearningCardState(nextSession.cards[0]) : null,
       );
-    });
+    }).catch(() => { if (active) setLocalLibraryStatus('error'); });
 
     return () => {
       active = false;
     };
-  }, [runtime]);
+  }, [runtime, localLibraryAttempt]);
 
   useEffect(() => {
     let active = true;
@@ -848,9 +867,28 @@ export function App({
   }
 
   async function playCurrentAudio() {
-    if (isServerSelectionSleeping || runtime.mode !== 'remote' || remoteController === null || !currentCard) {
+    if (isServerSelectionSleeping || !currentCard) {
       return;
     }
+    if (runtime.mode === 'development') {
+      const generation = ++audioRequestGeneration.current;
+      setAudioStatus('loading');
+      try {
+        if (!bundledAudio.current && import.meta.env.DEV) {
+          const {createBundledAudioController} = await import('./bundledAudio');
+          if (generation !== audioRequestGeneration.current) return;
+          const controller = createBundledAudioController();
+          controller.subscribe(state => setAudioStatus(state.status));
+          bundledAudio.current = controller;
+        }
+        if (generation !== audioRequestGeneration.current) return;
+        await bundledAudio.current?.play(currentCard, `${phone}:${learningPhase}:${currentIndex}:${currentCard.card_id}`);
+      } catch {
+        if (generation === audioRequestGeneration.current) setAudioStatus('error');
+      }
+      return;
+    }
+    if (runtime.mode !== 'remote' || remoteController === null) return;
     const requestGeneration = audioRequestGeneration.current + 1;
     audioRequestGeneration.current = requestGeneration;
     setRemoteError('');
@@ -1144,7 +1182,12 @@ export function App({
       </nav>
 
       {route === 'learning' ? (
-        runtime.mode === 'remote' && session === null ? (
+        runtime.mode === 'development' && localLibraryStatus !== 'ready' ? (
+          <main className="workbench"><section className="learning-card" aria-live="polite">
+            <p className="notice">{localLibraryStatus === 'loading' ? '正在准备卡库…' : '卡库暂时无法读取。'}</p>
+            {localLibraryStatus === 'error' ? <button onClick={() => setLocalLibraryAttempt(value => value + 1)}>重新加载卡库</button> : null}
+          </section></main>
+        ) : runtime.mode === 'remote' && session === null ? (
           <main className="workbench">
             <section className="learning-card" aria-live="polite">
               <p className="eyebrow">账户已确认</p>
@@ -1251,7 +1294,7 @@ export function App({
           onState={setCardState}
           onResolve={stateOverride => void resolveCurrentCard(stateOverride)}
           onContinue={continueLearning}
-          onPlayAudio={runtime.mode === 'remote' ? () => void playCurrentAudio() : null}
+          onPlayAudio={() => void playCurrentAudio()}
           onReloadQueued={() => {
             if (rejectedCompletion && queuedLearningResult) {
               const generation = accountAuthorityGeneration.current;
@@ -1293,7 +1336,18 @@ export function App({
                 .finally(() => setRemoteBusy(false));
               return;
             }
-            setSleeping(items => toggle(items, id));
+            const nextSleeping = toggle(sleeping, id);
+            const nextCards = (learningPhase === 'review' ? reviewCards : session?.cards.slice(
+              0, resolveAccessibleLearningCardCount(session.cards.length, membership),
+            ) ?? []).filter(card => !nextSleeping.includes(card.card_id));
+            const retainedIndex = nextCards.findIndex(card => card.card_id === currentCard?.card_id);
+            const nextIndex = retainedIndex >= 0 ? retainedIndex : Math.min(currentIndex, Math.max(0, nextCards.length - 1));
+            setSleeping(nextSleeping);
+            setCurrentIndex(nextIndex);
+            if (retainedIndex < 0) {
+              setResolved(null);
+              setCardState(nextCards[nextIndex] ? withFavoriteState(nextCards[nextIndex], favorites) : null);
+            }
           }}
           onReturn={() => navigateRoute('learning')}
         />

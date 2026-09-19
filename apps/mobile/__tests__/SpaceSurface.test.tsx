@@ -6,7 +6,7 @@ import React from 'react';
 import {Dimensions, StyleSheet} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
-import { createLocalLearningSession } from '../src/learning/session';
+import { createLocalLearningSession } from './fixtures/interactionSession';
 import {
   SpaceSurface,
   isShortSpaceViewport,

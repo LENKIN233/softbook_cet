@@ -25,6 +25,7 @@ import {
   canSubmitLearningCard,
   createLearningCardState,
   evaluateLearningCard,
+  selectLockOption,
 } from '../src/learning/session';
 
 const INTERACTION_ORDER = [
@@ -360,12 +361,11 @@ function CardAcceptanceHarness({ session }: { session: LearningSession }) {
         }));
         complete(next);
       }}
-      onSetLockSelection={(slotId, value) =>
-        updateState(current => ({
-          ...current,
-          lockSelections: { ...current.lockSelections, [slotId]: value },
-        }))
-      }
+      onSetLockSelection={(slotId, value) => {
+        if (card.interaction_id !== 'lock') throw new Error('Expected lock card.');
+        const next = updateState(current => selectLockOption(card, current, slotId, value));
+        if (evaluateLearningCard(card, next)) complete(next);
+      }}
       onSubmitCurrentCard={() => complete(cardStateRef.current)}
       onToggleEliminationItem={itemId =>
         updateState(current => ({
@@ -428,7 +428,7 @@ function completeInteraction(
           }`,
         ),
       );
-      press(tree, 'learning-submit-button');
+      expect(tree.root.findAllByProps({testID: 'learning-correct-answer'}).length).toBeGreaterThan(0);
       return;
     case 'elimination':
       card.answer_key.correct_items.forEach(itemId =>

@@ -13,6 +13,7 @@ import {
   createLearningSession,
 } from './session';
 import { LearningCardSource, localLearningCardSource } from './localCardSource';
+import {BUNDLED_CARD_SOURCE_ID} from './bundledCardLibrary';
 
 export type LearningRepositoryMode = 'local' | 'remote';
 
@@ -69,18 +70,21 @@ export function createLearningSessionRepository(
     return createRemoteLearningSessionRepository(config);
   }
 
-  const cardCount = config.cardCount ?? DEFAULT_LEARNING_SESSION_CARD_COUNT;
   const localSource = config.localSource ?? localLearningCardSource;
-  const createLocalSession = (track: LearningTrack) =>
-    assertNonEmptySession(
-      createLearningSession(
+  const createLocalSession = (track: LearningTrack) => {
+    const cards = localSource.loadCards(track);
+    const bundled = localSource.sourceId === BUNDLED_CARD_SOURCE_ID;
+    const cardCount = config.cardCount ?? (bundled ? cards.length : DEFAULT_LEARNING_SESSION_CARD_COUNT);
+    const session = createLearningSession(
         track,
         localSource.sourceId,
         localSource.sourceLabel,
-        localSource.loadCards(track),
+        cards,
         cardCount,
-      ),
-    );
+      );
+    if (bundled) session.cards = cards.slice(0, cardCount);
+    return assertNonEmptySession(session);
+  };
 
   return {
     continueRound: async () => {

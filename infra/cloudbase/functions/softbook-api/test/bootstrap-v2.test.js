@@ -4,7 +4,7 @@ const test = require('node:test');
 const {
   createBootstrapV2Service,
 } = require('../bootstrap-v2');
-const {createMemoryStore} = require('../index');
+const {createMemoryStore} = require('./fixtures/api');
 
 const fixedNow = new Date('2026-07-20T12:00:00.000Z');
 

@@ -33,6 +33,11 @@ assert.deepEqual(gateState(classifyChangedPaths(['README.md'])), {
   all: false,
 });
 
+for (const gate of ['mobile', 'native', 'web', 'backend']) {
+  assert.equal(classifyChangedPaths(['infra/cloudbase/functions/softbook-api/card-content/cet4-0.json'])[gate], true,
+    `Shared real content must run ${gate} checks`);
+}
+
 assert.deepEqual(
   gateState(classifyChangedPaths(['apps/mobile/src/learning/session.ts'])),
   {

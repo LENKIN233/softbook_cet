@@ -7,7 +7,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import App from '../App';
 import { getChinaDayKey } from '../src/shared/chinaDay';
-import { createLocalLearningSession } from '../src/learning/session';
+import { createLocalLearningSession } from './fixtures/interactionSession';
 import { createAuthSessionStore } from '../src/persistence/authSessionStore';
 import {
   createUserStateStore,

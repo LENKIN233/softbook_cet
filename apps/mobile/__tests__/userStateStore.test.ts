@@ -22,6 +22,20 @@ function createStorage(seed: Record<string, string> = {}) {
 }
 
 describe('UserStateStore', () => {
+  it('keeps real-library state separate from example records with reused card IDs', async () => {
+    const {storage, values} = createStorage();
+    const oldStore = createUserStateStore(storage);
+    await oldStore.save('13800138000', {...createEmptyPersistedUserState(),
+      learningCursor: {cardId: '002001', sourceId: 'local-structured-card-source', track: 'cet4'},
+      spaceCardStateById: {'002001': {isFavorited: true, isSleeping: true, lastModifiedAt: '2026-07-10T10:00:00.000Z'}},
+    });
+    const before = values[USER_STATE_STORAGE_KEY];
+    const realStore = createUserStateStore(storage, 'softbook-cet/user-state/bundled-card-make-v1');
+    await expect(realStore.load('13800138000')).resolves.toEqual(createEmptyPersistedUserState());
+    await realStore.save('13800138000', createEmptyPersistedUserState());
+    await realStore.clear();
+    expect(values[USER_STATE_STORAGE_KEY]).toBe(before);
+  });
   it('round-trips check-in, learning cursor, favorite, and sleep state', async () => {
     const { storage } = createStorage();
     const store = createUserStateStore(storage);

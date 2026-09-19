@@ -46,7 +46,7 @@ const report = {
 try {
   const require = createRequire(join(root, 'apps/mobile/package.json'));
   const ts = require('typescript');
-  const recordsPath = 'apps/mobile/src/learning/localCardRecords.ts';
+  const recordsPath = 'apps/mobile/__tests__/fixtures/interactionCards.ts';
   const source = readFileSync(join(root, recordsPath), 'utf8');
   const compiled = ts.transpileModule(source, {compilerOptions: {module: ts.ModuleKind.ESNext}}).outputText;
   const {localLearningCardRecords: records} = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
@@ -54,17 +54,21 @@ try {
   const choice = records.find(card => card.interaction_id === 'multiple_choice' && card.options.some(option => option.id === 'unclear'));
   if (!elimination || !choice) throw new Error('The journey sample changed; update the flow and its calibration together.');
   const correct = choice.options.find(option => option.id === choice.answer_key.correct_option);
-  const expected = {
+  const calibrationExpected = {
     'material': elimination.front.support.replace(/^目标句[：:]\s*/, ''),
     'answer': `${correct.label} ${correct.text}`,
     'options': choice.options.map(option => option.text),
   };
+  const realCards = require(join(root, 'infra/cloudbase/functions/softbook-api/card-content')).cet4.cards.slice().sort((a, b) => a.card_id.localeCompare(b.card_id));
+  const realChoice = realCards[0];
+  const realAnswer = realChoice.options.find(option => option.id === realChoice.answer_key.correct_option);
+  const expected = {material: realCards[1].front.support, answer: `${realAnswer.label} ${realAnswer.text}`, options: realChoice.options.map(option => option.text)};
   report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
     'apps/mobile/src/learning/presentation.ts', 'apps/mobile/src/learning/EliminationPassageText.tsx',
     'apps/mobile/src/space/SpaceSurface.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',
     'scripts/lib/experience_capture.mjs', 'scripts/experience_ocr.swift',
-    'scripts/run_experience_acceptance.mjs'].map(path => [path, hash(readFileSync(join(root, path)))]));
+    'scripts/run_experience_acceptance.mjs', 'infra/cloudbase/functions/softbook-api/card-content/provenance.json', ...Object.keys(require(join(root, 'infra/cloudbase/functions/softbook-api/card-content'))).flatMap(track => readdirSync(join(root, 'infra/cloudbase/functions/softbook-api/card-content')).filter(name => name.startsWith(track) && name.endsWith('.json')).map(name => `infra/cloudbase/functions/softbook-api/card-content/${name}`))].map(path => [path, hash(readFileSync(join(root, path)))]));
   const fixtureRoot = join(root, 'apps/mobile/e2e/experience/known-failures');
   const fixtures = ['material', 'answer', 'options'].map(kind => ({kind, path: join(fixtureRoot, `${kind}.png`)}));
   const normalize = text => text.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
@@ -74,11 +78,21 @@ try {
   }
   const failedPixels = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...fixtures.map(item => item.path)], 'calibration-ocr.log'));
   report.calibration = fixtures.map(({kind, path}, index) => ({kind, image_sha256: hash(readFileSync(path)),
-    rejected: !readable(failedPixels[index], expected[kind])}));
+    rejected: !readable(failedPixels[index], calibrationExpected[kind])}));
   if (report.calibration.some(item => !item.rejected)) throw new Error('Known bad screenshot was accepted; the evaluator is not calibrated.');
+  const positivePath = join(root, 'apps/mobile/e2e/experience/known-good/real-listening-options.json');
+  const positive = JSON.parse(readFileSync(positivePath, 'utf8'));
+  const positiveImage = join(dirname(positivePath), positive.image);
+  if (hash(readFileSync(positiveImage)) !== positive.image_sha256) throw new Error('Positive OCR fixture bytes changed.');
+  const positivePixels = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', positiveImage], 'positive-calibration-ocr.log'));
+  report.positive_calibration = {image_sha256: positive.image_sha256, source_run: positive.source_run,
+    readable: readable(positivePixels[0], positive.expected)};
+  report.inputs['apps/mobile/e2e/experience/known-good/real-listening-options.json'] = hash(readFileSync(positivePath));
+  report.inputs['apps/mobile/e2e/experience/known-good/real-listening-options.png'] = positive.image_sha256;
+  if (!report.positive_calibration.readable) throw new Error('Known readable Chinese options were rejected; check OCR language priority.');
   if (!options.calibrateOnly) {
     captureExperience({device: options.device, output, run});
-    const samples = [['options', 'options'], ['material', 'material'], ['material-with-hint', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
+    const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
     function capturedFiles(directory) {
       return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
         const path = join(directory, entry.name);

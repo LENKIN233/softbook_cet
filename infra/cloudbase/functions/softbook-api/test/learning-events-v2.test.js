@@ -6,7 +6,7 @@ const {
   createMemoryStore,
   createSoftbookApi,
   validateCardSourceForImport,
-} = require('../index');
+} = require('./fixtures/api');
 const {createLearningEventsV2Service} = require('../learning-events-v2');
 const {
   createAccountLearningSessionId,

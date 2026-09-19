@@ -5,7 +5,7 @@ const {
   createMemoryStore,
   createSoftbookApi,
   validateCardSourceForImport,
-} = require('../index');
+} = require('./fixtures/api');
 
 const NOW = new Date('2026-08-12T08:00:00.000Z');
 const PHONE = '13800138000';

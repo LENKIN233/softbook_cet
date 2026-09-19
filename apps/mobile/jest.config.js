@@ -1,7 +1,7 @@
 module.exports = {
   preset: '@react-native/jest-preset',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/ios/Pods/'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/ios/Pods/', '<rootDir>/__tests__/fixtures/'],
   transformIgnorePatterns: [
     // The App recovery integration exercises the untranspiled Node service.
     '/infra/cloudbase/functions/softbook-api/',

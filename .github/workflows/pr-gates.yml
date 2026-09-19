@@ -227,6 +227,8 @@ jobs:
       - name: Checkout repository
         if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
+        with:
+          lfs: true
 
       - name: Set up Node.js
         if: env.RUN_GATE == 'true'
@@ -295,6 +297,8 @@ jobs:
       - name: Checkout repository
         if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
+        with:
+          lfs: true
 
       - name: Set up Node.js
         if: env.RUN_GATE == 'true'
@@ -361,6 +365,8 @@ jobs:
       - name: Checkout repository
         if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
+        with:
+          lfs: true
 
       - name: Set up Node.js
         if: env.RUN_GATE == 'true'
@@ -403,6 +409,8 @@ jobs:
       - name: Checkout repository
         if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
+        with:
+          lfs: true
 
       - name: Set up Node.js
         if: env.RUN_GATE == 'true'
@@ -467,6 +475,8 @@ jobs:
       - name: Checkout repository
         if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
+        with:
+          lfs: true
 
       - name: Set up Node.js
         if: env.RUN_GATE == 'true'
@@ -506,6 +516,11 @@ jobs:
       - name: Verify CocoaPods lock
         if: env.RUN_GATE == 'true'
         run: bundle exec pod install --project-directory=ios --deployment
+
+      - name: Calibrate screenshot OCR before native compilation
+        if: env.RUN_GATE == 'true'
+        working-directory: ${{ github.workspace }}
+        run: node scripts/run_experience_acceptance.mjs --calibrate-only --output "$RUNNER_TEMP/softbook-ocr-calibration"
 
       - name: Set up Java for native experience runner
         if: env.RUN_GATE == 'true'
@@ -617,6 +632,8 @@ jobs:
       - name: Checkout repository
         if: env.RUN_GATE == 'true'
         uses: actions/checkout@v7
+        with:
+          lfs: true
 
       - name: Set up Node.js
         if: env.RUN_GATE == 'true'

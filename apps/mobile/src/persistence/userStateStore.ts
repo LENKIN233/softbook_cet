@@ -63,6 +63,7 @@ export function createEmptyPersistedUserState(): PersistedUserState {
 
 export function createUserStateStore(
   storage: UserStateStorage = AsyncStorage,
+  storageKey: string = USER_STATE_STORAGE_KEY,
 ): UserStateStore {
   let writePromise = Promise.resolve();
   let automaticWritesEnabled = true;
@@ -75,9 +76,9 @@ export function createUserStateStore(
   return {
     clear() {
       return enqueueWrite(async () => {
-        await storage.removeItem(USER_STATE_STORAGE_KEY);
+        await storage.removeItem(storageKey);
 
-        if ((await storage.getItem(USER_STATE_STORAGE_KEY)) !== null) {
+        if ((await storage.getItem(storageKey)) !== null) {
           throw new Error('User state cleanup verification failed.');
         }
       });
@@ -89,7 +90,7 @@ export function createUserStateStore(
       let rawValue: string | null;
 
       try {
-        rawValue = await storage.getItem(USER_STATE_STORAGE_KEY);
+        rawValue = await storage.getItem(storageKey);
         automaticWritesEnabled = true;
       } catch (error) {
         automaticWritesEnabled = false;
@@ -113,7 +114,7 @@ export function createUserStateStore(
         console.warn('[UserStateStore] Discarding invalid user state.', error);
 
         try {
-          await enqueueWrite(() => storage.removeItem(USER_STATE_STORAGE_KEY));
+          await enqueueWrite(() => storage.removeItem(storageKey));
         } catch (clearError) {
           console.warn(
             '[UserStateStore] Failed to clear invalid user state.',
@@ -135,7 +136,7 @@ export function createUserStateStore(
       const payload = serializeUserStatePayload(phoneNumber, state);
 
       return enqueueWrite(() =>
-        storage.setItem(USER_STATE_STORAGE_KEY, JSON.stringify(payload)),
+        storage.setItem(storageKey, JSON.stringify(payload)),
       );
     },
   };

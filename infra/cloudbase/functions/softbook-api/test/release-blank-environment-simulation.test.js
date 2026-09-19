@@ -382,7 +382,7 @@ function createVerifiedRelease({parentReleaseId, releaseId, salt}) {
     source: {id: 'release-simulation', label: 'Release simulation'},
     track: 'cet4',
   };
-  const content = require('../index').validateCardSourceForReleaseBundle(
+  const content = require('./fixtures/api').validateCardSourceForReleaseBundle(
     rawContent,
     'cet4',
   );

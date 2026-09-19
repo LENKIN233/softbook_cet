@@ -1,0 +1,13 @@
+{
+  "schema_version": "experience-positive-fixture.v1",
+  "source_run": "https://github.com/LENKIN233/softbook_cet/actions/runs/35379408048",
+  "tested_commit": "275d978b9c9cdea630605e3c1398a0200babcfb8",
+  "image": "real-listening-options.png",
+  "image_sha256": "8af5e5344fcc7ef77f4225110d94bc5b5ef68223e8c56a305c0d89e88cfe027a",
+  "expected": [
+    "电动公交与柴油车队的运营成本和排放对比",
+    "游客如何购买城市交通通票",
+    "学生使用校园咨询服务的原因",
+    "暴雨导致公交线路临时调整"
+  ]
+}

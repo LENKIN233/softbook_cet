@@ -110,7 +110,7 @@ export function classifyChangedPaths(files, {forceAll = false} = {}) {
         result.web = true;
         result.backend = true;
       }
-      if (file.startsWith('apps/mobile/') || MOBILE_SUPPORT_FILES.has(file)) {
+      if (file.startsWith('apps/mobile/') || file.startsWith('infra/cloudbase/functions/softbook-api/card-content/') || MOBILE_SUPPORT_FILES.has(file)) {
         result.mobile = true;
         result.native = true;
       }
@@ -137,6 +137,7 @@ export function classifyChangedPaths(files, {forceAll = false} = {}) {
       if (
         file.startsWith('apps/web/')
         || file.startsWith('apps/mobile/src/')
+        || file.startsWith('infra/cloudbase/functions/softbook-api/card-content/')
         || WEB_SHARED_MOBILE_FILES.has(file)
       ) {
         result.web = true;
