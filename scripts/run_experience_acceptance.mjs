@@ -80,6 +80,16 @@ try {
   report.calibration = fixtures.map(({kind, path}, index) => ({kind, image_sha256: hash(readFileSync(path)),
     rejected: !readable(failedPixels[index], calibrationExpected[kind])}));
   if (report.calibration.some(item => !item.rejected)) throw new Error('Known bad screenshot was accepted; the evaluator is not calibrated.');
+  const positivePath = join(root, 'apps/mobile/e2e/experience/known-good/real-listening-options.json');
+  const positive = JSON.parse(readFileSync(positivePath, 'utf8'));
+  const positiveImage = join(dirname(positivePath), positive.image);
+  if (hash(readFileSync(positiveImage)) !== positive.image_sha256) throw new Error('Positive OCR fixture bytes changed.');
+  const positivePixels = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', positiveImage], 'positive-calibration-ocr.log'));
+  report.positive_calibration = {image_sha256: positive.image_sha256, source_run: positive.source_run,
+    readable: readable(positivePixels[0], positive.expected)};
+  report.inputs['apps/mobile/e2e/experience/known-good/real-listening-options.json'] = hash(readFileSync(positivePath));
+  report.inputs['apps/mobile/e2e/experience/known-good/real-listening-options.png'] = positive.image_sha256;
+  if (!report.positive_calibration.readable) throw new Error('Known readable Chinese options were rejected; check OCR language priority.');
   if (!options.calibrateOnly) {
     captureExperience({device: options.device, output, run});
     const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
