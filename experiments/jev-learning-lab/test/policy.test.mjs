@@ -311,3 +311,28 @@ test("API failure cannot be reported as a successful live evaluation", async () 
   assert.equal(r.modelQuality.status, "not_verified");
   assert.equal(r.realModelCallsCompleted, 0);
 });
+
+test("even-sized latency samples use both middle observations", async () => {
+  let calls = 0;
+  const provider = {
+    kind: "jev",
+    async evaluate(request) {
+      const choices = Object.values(request.questions).map(
+        (q) => Object.keys(q.criteria)[0]
+      );
+      const result = await createFixtureProvider(choices).evaluate(request);
+      // Simulated timing data, exclusively for testing report aggregation.
+      result.meta = {
+        ...result.meta,
+        realModelCall: true,
+        latencyMs: ++calls,
+        inputTokens: 1,
+      };
+      return result;
+    },
+  };
+  const report = await runEvaluation({ providerKind: "jev", provider });
+  assert.equal(calls, 10);
+  assert.equal(report.latencyMs.median, 5.5);
+  assert.equal(report.latencyMs.maximum, 10);
+});

@@ -141,7 +141,9 @@ export async function runEvaluation({
     inputTokens: observedCalls.reduce((sum, m) => sum + m.inputTokens, 0),
     latencyMs: {
       median: latencies.length
-        ? latencies[Math.floor(latencies.length / 2)]
+        ? (latencies[Math.floor((latencies.length - 1) / 2)] +
+            latencies[Math.floor(latencies.length / 2)]) /
+          2
         : null,
       maximum: latencies.at(-1) ?? null,
     },
