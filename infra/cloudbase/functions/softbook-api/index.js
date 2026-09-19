@@ -53,6 +53,8 @@ const {
   validatePilotEntitlementCommand,
 } = require('./pilot-entitlement-v1');
 const {createLearningEventsV2Service} = require('./learning-events-v2');
+const {ANSWER_EVIDENCE_ACCEPT} = require('./learning-answer-evidence');
+const {createJevLearningAdvisor} = require('./jev-learning-advisor');
 const {
   SCHEDULER_POLICY_VERSION,
   createAccountLearningSessionId,
@@ -496,6 +498,11 @@ function createSoftbookApi(options = {}) {
     store,
   });
   config.learningSchedulerV1 = createLearningSchedulerV1Service({
+    advisor: options.learningAdvisor ?? createJevLearningAdvisor({
+      env: options.learningAdvisorEnv ?? process.env,
+      fetchImpl: options.learningAdvisorFetch,
+      observe: options.learningAdvisorObserver,
+    }),
     now: config.now,
     randomBytes: options.learningSchedulerRandomBytes,
     runtimeMode,
@@ -757,6 +764,7 @@ async function handleHttpRequest(config, request) {
 
       return jsonResponse(200, {
         data: await config.learningSchedulerV1.read({
+          answerEvidenceSupported: getHeader(request.headers, 'accept') === ANSWER_EVIDENCE_ACCEPT,
           accountKey: session.accountKey,
           phoneNumber: session.phoneNumber,
           sessionAuthority: session,
@@ -1738,6 +1746,14 @@ function createMemoryStore(options = {}) {
           current.learning_server_sequence !== input.learningServerSequence
         ) {
           return false;
+        }
+
+        if (input.selectionGuard) {
+          const currentSource = cardSources.get(input.track);
+          const currentSpaceRevision = spaceStateRevisions.get(createSpaceStateRevisionId(input.accountKey))?.revision ?? 0;
+          if (currentSpaceRevision !== input.selectionGuard.spaceRevision ||
+            currentSource?.content_version !== input.selectionGuard.contentVersion ||
+            currentSource?.source.id !== input.selectionGuard.sourceId) return false;
         }
 
         learningSessions.set(
@@ -2894,6 +2910,17 @@ function createCloudBaseStore(options = {}) {
           current.learning_server_sequence !== input.learningServerSequence
         ) {
           return false;
+        }
+
+        if (input.selectionGuard) {
+          const storedSource = await getCloudBaseDocument(transaction.collection(CLOUDBASE_COLLECTIONS.cardSources), input.track);
+          if (!storedSource) return false;
+          const currentSource = await resolveCloudBaseCardSource(storedSource, transaction.collection(CLOUDBASE_COLLECTIONS.cardSourceVersions), input.track);
+          const spaceRevision = normalizeStoredSpaceStateRevision(
+            await getCloudBaseDocument(transaction.collection(CLOUDBASE_COLLECTIONS.spaceStateRevisions), createSpaceStateRevisionId(input.accountKey)), input.accountKey);
+          if ((spaceRevision?.revision ?? 0) !== input.selectionGuard.spaceRevision ||
+            currentSource.content_version !== input.selectionGuard.contentVersion ||
+            currentSource.source.id !== input.selectionGuard.sourceId) return false;
         }
 
         await setCloudBaseDocument(

@@ -206,7 +206,13 @@
     "launch_evidence_policy_binding": "exact_learning_session_runtime_contract_sha256",
     "repository_simulation_gate_eligible": false,
     "deployment_status": "not_deployed_by_repository_change",
-    "launch_gate_status": "pending"
+    "launch_gate_status": "pending",
+    "semantic_advisor": {
+      "owner": "spec/account-sync-contract.json#server_scheduler_v1.semantic_advisor",
+      "status": "next_update_branch_implemented_not_deployed",
+      "default_mode": "off",
+      "policy_version": "softbook-jev.v1"
+    }
   },
   "content_manifest_runtime": {
     "classification": "implementation_hypothesis",

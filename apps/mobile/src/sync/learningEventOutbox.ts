@@ -56,6 +56,7 @@ export type LearningEventOutboxStorage = {
 };
 
 export type EnqueueLearningCompletionInput = {
+  answerEvidenceSchemaVersion?: 'learning-answer-evidence.v1';
   accountPhoneNumber: string;
   contentVersion: string;
   phase: LearningEventPhase;
@@ -150,6 +151,9 @@ export class LearningEventOutbox {
         accountPhoneNumber: input.accountPhoneNumber,
         enqueuedAt,
         event: {
+          ...(input.answerEvidenceSchemaVersion === 'learning-answer-evidence.v1' &&
+            input.result.interactionId === 'multiple_choice' && input.result.selectedOptionId !== undefined
+            ? {answer_evidence: {schema_version: 'learning-answer-evidence.v1' as const, selected_option_id: input.result.selectedOptionId}} : {}),
           event_id: eventId,
           selection_id: input.selectionId,
           card_id: input.result.cardId,
@@ -645,6 +649,7 @@ function sanitizeEvent(
   candidate: unknown,
   expectedTrack: LearningTrack,
 ): LearningEventV2 {
+  const hasEvidence = typeof candidate === 'object' && candidate !== null && Object.prototype.hasOwnProperty.call(candidate, 'answer_evidence');
   if (
     !isExactObject(candidate, [
       'event_id',
@@ -659,6 +664,7 @@ function sanitizeEvent(
       'client_occurred_at',
       'content_version',
       'device_cursor',
+      ...(hasEvidence ? ['answer_evidence'] : []),
     ]) ||
     !isExactObject(candidate.device_cursor, ['device_id', 'sequence'])
   ) {
@@ -667,6 +673,14 @@ function sanitizeEvent(
 
   const event = candidate as unknown as LearningEventV2;
   const expectedGrade = answerGradeForOutcome(event.outcome);
+
+  if (hasEvidence && (event.interaction_id !== 'multiple_choice' ||
+    !isExactObject(event.answer_evidence, ['schema_version', 'selected_option_id']) ||
+    event.answer_evidence.schema_version !== 'learning-answer-evidence.v1' ||
+    typeof event.answer_evidence.selected_option_id !== 'string' ||
+    !event.answer_evidence.selected_option_id.trim() || event.answer_evidence.selected_option_id.length > 128)) {
+    throw new Error('Learning answer evidence is invalid.');
+  }
 
   if (
     typeof event.event_id !== 'string' ||
@@ -696,6 +710,11 @@ function sanitizeEvent(
 }
 
 function validateCompletionInput(input: EnqueueLearningCompletionInput) {
+  if (input.result.selectedOptionId !== undefined &&
+    (input.result.interactionId !== 'multiple_choice' || typeof input.result.selectedOptionId !== 'string' ||
+      !input.result.selectedOptionId.trim() || input.result.selectedOptionId.length > 128)) {
+    throw new Error('Learning selected option is invalid.');
+  }
   requirePhoneNumber(input.accountPhoneNumber);
   requireTrack(input.track);
 

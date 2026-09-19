@@ -1,5 +1,9 @@
 # Jev 学习算法实验环境
 
+产品接入版位于同一分支的服务端和移动端/Web 共用事件链路，配置与发布顺序见
+[`learning-session-v1-runtime-contract.md`](../../infra/cloudbase/learning-session-v1-runtime-contract.md#next-update-jev-advisor)。
+本目录保留独立的合成数据原型，产品运行时不导入这里的 fixture 或实验实现。
+
 这是软书四六级的**本地算法原型**：FSRS 计算复习时间，Jev 根据具体错误作答识别可能需要加强的技能，代码在允许的候选卡中排序。默认仅记录建议。它没有连接正式用户、数据库、CloudBase 或发布流程。
 
 基于仓库 `6b8d56e924ae0d5d6d1fe815e76229ad2a0e092c`，使用独立分支 `module/jev-learning-lab`。现有工作区的未提交修改没有带入本实验。实验仅保留在本地，没有修改产品主学习流程。
