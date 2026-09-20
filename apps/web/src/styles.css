@@ -186,7 +186,7 @@ input + label { margin-top: .75rem; }
 .sibling-boxes { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
 .shelf-box { flex:1 1 110px; min-width:0; max-width:230px; min-height:90px; border:1px solid var(--line); border-top:4px solid #d5d8df; border-radius:5px 10px 5px 5px; background:#fbfaf7; padding:14px 12px; text-align:left; color:var(--ink); }
 .shelf-box strong { display:block; font-size:14px; font-weight:500; }
-.shelf-box small { display:block; margin-top:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.shelf-box small { display:block; margin-top:12px; color:var(--ink-2); font-variant-numeric:tabular-nums; }
 .shelf-box.selected { border-top-color:var(--hall); background:var(--hall-soft); }
 .box-tray { padding:24px; border:1px solid var(--line); border-top:4px solid var(--hall); border-radius:8px 16px 12px 12px; background:#fcfbf8; box-shadow:0 6px 18px #29261e05; }
 .box-tray .workbench-heading { margin-bottom:22px; }
