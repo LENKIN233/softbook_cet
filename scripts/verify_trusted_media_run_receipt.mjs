@@ -398,6 +398,7 @@ function validateArtifactEvidence(
   authorizationPath,
   probeMediaDuration,
   errors,
+  receiptSha256,
 ) {
   if (!artifactDirectory) {
     errors.push('formal media verification requires --artifact-dir with the exact run artifacts.');
@@ -692,6 +693,7 @@ function validateArtifactEvidence(
     worklist,
     errors,
     expectedScope,
+    catalogSnapshotForReceipt(policy, receiptSha256),
   );
 
   if (
@@ -990,7 +992,7 @@ function validateRunDecisions({
   }
 }
 
-function validateCandidateEvidence(receipt, root, authorizationPath, worklist, errors, expectedScope) {
+function validateCandidateEvidence(receipt, root, authorizationPath, worklist, errors, expectedScope, catalogSnapshot) {
   if (!root || !authorizationPath) {
     errors.push('formal media verification requires the exact candidate root and authorization.');
     return;
@@ -1060,7 +1062,7 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
   }
   const runtime = resolveCandidateRuntimePayload(runtimeDocument, candidateRoot, errors);
   if (!runtime) return;
-  const runtimeCatalog = loadRuntimeCatalog(errors, expectedScope);
+  const runtimeCatalog = loadRuntimeCatalog(errors, expectedScope, catalogSnapshot);
   if (!runtimeCatalog) return;
   const cards = runtime.card_records;
   const cardIds = cards.map(card => String(card?.card_id ?? ''));
@@ -1228,14 +1230,29 @@ function normalizedKnowledgeRef(card) {
   };
 }
 
-function loadRuntimeCatalog(errors, expectedScope) {
+export function catalogSnapshotForReceipt(policy, receiptSha256) {
+  return (policy.verification.historical_catalog_snapshots ?? []).find(snapshot => snapshot.receipt_sha256 === receiptSha256) ?? null;
+}
+
+export function loadRuntimeCatalog(errors, expectedScope, snapshot = null) {
+  if (snapshot !== null && (!COMMIT_PATTERN.test(snapshot.product_commit_sha ?? '') || !SHA256_PATTERN.test(snapshot.catalog_sha256 ?? ''))) {
+    errors.push('historical catalog snapshot identity is invalid.');
+    return null;
+  }
+  const catalogPath = snapshot === null
+    ? path.join(ROOT, 'spec/box-catalog.json')
+    : path.join(ROOT, 'archive/transitional-vnext-prose/media-catalogs', `${snapshot.product_commit_sha}.json`);
   const bytes = loadRegularFile(
-    path.join(ROOT, 'spec/box-catalog.json'),
+    catalogPath,
     4 * 1024 * 1024,
     'registered track box catalog',
     errors,
   );
   if (!bytes) return null;
+  if (snapshot !== null && createHash('sha256').update(bytes).digest('hex') !== snapshot.catalog_sha256) {
+    errors.push('historical catalog snapshot bytes do not match the bound hash.');
+    return null;
+  }
   let document;
   try {
     document = parseStrictJson(bytes, 'registered track box catalog');
@@ -1760,6 +1777,7 @@ export function verifyTrustedMediaRunReceipt({
       authorizationPath,
       probeMediaDuration,
       errors,
+      receiptSha256,
     );
   } else if (
     verifyAttestation &&

@@ -1,0 +1,2912 @@
+{
+  "version": "vnext-2",
+  "source": {
+    "inherited_from": [
+      "archive/legacy-v3/07-卡片数量清单.md",
+      "archive/legacy-v3/04-卡片内容模型与编码规范.md"
+    ],
+    "note": "Detailed box catalog promoted from legacy docs into an active machine-readable spec."
+  },
+  "catalog_policy": {
+    "is_required_active_asset": true,
+    "may_be_restructured_if_requirements_change": true,
+    "must_not_be_removed": true,
+    "current_catalog_role": "content_team_knowledge_point_decomposition"
+  },
+  "id_schema": {
+    "box_prefix_format": "TLGB",
+    "card_id_format": "TLGBNN",
+    "template_track_placeholder": "x"
+  },
+  "libraries": [
+    {
+      "id": "0",
+      "name": "听力",
+      "groups": [
+        {
+          "id": "0",
+          "name": "听前预测",
+          "boxes": [
+            {
+              "template_box_prefix": "x000",
+              "box_id": "0",
+              "name": "根据选项预测话题",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0000",
+                "cet6": "1000"
+              },
+              "card_template": {
+                "template": "x000xx",
+                "cet4": "0000xx",
+                "cet6": "1000xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x001",
+              "box_id": "1",
+              "name": "根据选项预测考点",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0001",
+                "cet6": "1001"
+              },
+              "card_template": {
+                "template": "x001xx",
+                "cet4": "0001xx",
+                "cet6": "1001xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x002",
+              "box_id": "2",
+              "name": "根据选项预测信号词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0002",
+                "cet6": "1002"
+              },
+              "card_template": {
+                "template": "x002xx",
+                "cet4": "0002xx",
+                "cet6": "1002xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "1",
+          "name": "语音现象",
+          "boxes": [
+            {
+              "template_box_prefix": "x010",
+              "box_id": "0",
+              "name": "连读",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0010",
+                "cet6": "1010"
+              },
+              "card_template": {
+                "template": "x010xx",
+                "cet4": "0010xx",
+                "cet6": "1010xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x011",
+              "box_id": "1",
+              "name": "弱读",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0011",
+                "cet6": "1011"
+              },
+              "card_template": {
+                "template": "x011xx",
+                "cet4": "0011xx",
+                "cet6": "1011xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x012",
+              "box_id": "2",
+              "name": "失去爆破",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0012",
+                "cet6": "1012"
+              },
+              "card_template": {
+                "template": "x012xx",
+                "cet4": "0012xx",
+                "cet6": "1012xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "name": "逻辑关系",
+          "boxes": [
+            {
+              "template_box_prefix": "x020",
+              "box_id": "0",
+              "name": "转折关系",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0020",
+                "cet6": "1020"
+              },
+              "card_template": {
+                "template": "x020xx",
+                "cet4": "0020xx",
+                "cet6": "1020xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x021",
+              "box_id": "1",
+              "name": "因果关系",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0021",
+                "cet6": "1021"
+              },
+              "card_template": {
+                "template": "x021xx",
+                "cet4": "0021xx",
+                "cet6": "1021xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x022",
+              "box_id": "2",
+              "name": "并列/递进关系",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0022",
+                "cet6": "1022"
+              },
+              "card_template": {
+                "template": "x022xx",
+                "cet4": "0022xx",
+                "cet6": "1022xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x023",
+              "box_id": "3",
+              "name": "对比/比较关系",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0023",
+                "cet6": "1023"
+              },
+              "card_template": {
+                "template": "x023xx",
+                "cet4": "0023xx",
+                "cet6": "1023xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x024",
+              "box_id": "4",
+              "name": "条件关系",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0024",
+                "cet6": "1024"
+              },
+              "card_template": {
+                "template": "x024xx",
+                "cet4": "0024xx",
+                "cet6": "1024xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "3",
+          "name": "细节捕捉",
+          "boxes": [
+            {
+              "template_box_prefix": "x030",
+              "box_id": "0",
+              "name": "人物类",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0030",
+                "cet6": "1030"
+              },
+              "card_template": {
+                "template": "x030xx",
+                "cet4": "0030xx",
+                "cet6": "1030xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x031",
+              "box_id": "1",
+              "name": "数字类",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0031",
+                "cet6": "1031"
+              },
+              "card_template": {
+                "template": "x031xx",
+                "cet4": "0031xx",
+                "cet6": "1031xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x032",
+              "box_id": "2",
+              "name": "时间",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0032",
+                "cet6": "1032"
+              },
+              "card_template": {
+                "template": "x032xx",
+                "cet4": "0032xx",
+                "cet6": "1032xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x033",
+              "box_id": "3",
+              "name": "地点",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0033",
+                "cet6": "1033"
+              },
+              "card_template": {
+                "template": "x033xx",
+                "cet4": "0033xx",
+                "cet6": "1033xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x034",
+              "box_id": "4",
+              "name": "时间因果",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0034",
+                "cet6": "1034"
+              },
+              "card_template": {
+                "template": "x034xx",
+                "cet4": "0034xx",
+                "cet6": "1034xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "1035",
+              "box_id": "5",
+              "name": "研究结论（仅六级）",
+              "track_availability": [
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet6": "1035"
+              },
+              "card_template": {
+                "template": "1035xx",
+                "cet6": "1035xx"
+              },
+              "card_counts": {
+                "cet4": null,
+                "cet6": 12,
+                "total": 12
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "1036",
+              "box_id": "6",
+              "name": "专家看法（仅六级）",
+              "track_availability": [
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet6": "1036"
+              },
+              "card_template": {
+                "template": "1036xx",
+                "cet6": "1036xx"
+              },
+              "card_counts": {
+                "cet4": null,
+                "cet6": 12,
+                "total": 12
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "4",
+          "name": "推理判断",
+          "boxes": [
+            {
+              "template_box_prefix": "x040",
+              "box_id": "0",
+              "name": "说话意图",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0040",
+                "cet6": "1040"
+              },
+              "card_template": {
+                "template": "x040xx",
+                "cet4": "0040xx",
+                "cet6": "1040xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x041",
+              "box_id": "1",
+              "name": "观点、态度",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0041",
+                "cet6": "1041"
+              },
+              "card_template": {
+                "template": "x041xx",
+                "cet4": "0041xx",
+                "cet6": "1041xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x042",
+              "box_id": "2",
+              "name": "因果逻辑",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0042",
+                "cet6": "1042"
+              },
+              "card_template": {
+                "template": "x042xx",
+                "cet4": "0042xx",
+                "cet6": "1042xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x043",
+              "box_id": "3",
+              "name": "后续计划/可能",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0043",
+                "cet6": "1043"
+              },
+              "card_template": {
+                "template": "x043xx",
+                "cet4": "0043xx",
+                "cet6": "1043xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "5",
+          "name": "主旨大意",
+          "boxes": [
+            {
+              "template_box_prefix": "x050",
+              "box_id": "0",
+              "name": "开头点题",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0050",
+                "cet6": "1050"
+              },
+              "card_template": {
+                "template": "x050xx",
+                "cet4": "0050xx",
+                "cet6": "1050xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x051",
+              "box_id": "1",
+              "name": "结尾总结",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0051",
+                "cet6": "1051"
+              },
+              "card_template": {
+                "template": "x051xx",
+                "cet4": "0051xx",
+                "cet6": "1051xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x052",
+              "box_id": "2",
+              "name": "重复重点",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0052",
+                "cet6": "1052"
+              },
+              "card_template": {
+                "template": "x052xx",
+                "cet4": "0052xx",
+                "cet6": "1052xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "box_code_count": 25,
+        "box_instance_count": 48,
+        "cet4_cards": 276,
+        "cet6_cards": 300,
+        "total_cards": 576
+      }
+    },
+    {
+      "id": "1",
+      "name": "仔细阅读",
+      "groups": [
+        {
+          "id": "0",
+          "name": "定位词抓取",
+          "boxes": [
+            {
+              "template_box_prefix": "x100",
+              "box_id": "0",
+              "name": "专有名词和数字",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0100",
+                "cet6": "1100"
+              },
+              "card_template": {
+                "template": "x100xx",
+                "cet4": "0100xx",
+                "cet6": "1100xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x101",
+              "box_id": "1",
+              "name": "实义名词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0101",
+                "cet6": "1101"
+              },
+              "card_template": {
+                "template": "x101xx",
+                "cet4": "0101xx",
+                "cet6": "1101xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x102",
+              "box_id": "2",
+              "name": "逻辑限定词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0102",
+                "cet6": "1102"
+              },
+              "card_template": {
+                "template": "x102xx",
+                "cet4": "0102xx",
+                "cet6": "1102xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "1",
+          "name": "干扰项排除",
+          "boxes": [
+            {
+              "template_box_prefix": "x110",
+              "box_id": "0",
+              "name": "无中生有",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0110",
+                "cet6": "1110"
+              },
+              "card_template": {
+                "template": "x110xx",
+                "cet4": "0110xx",
+                "cet6": "1110xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x111",
+              "box_id": "1",
+              "name": "绝对化",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0111",
+                "cet6": "1111"
+              },
+              "card_template": {
+                "template": "x111xx",
+                "cet4": "0111xx",
+                "cet6": "1111xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x112",
+              "box_id": "2",
+              "name": "与原文相反",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0112",
+                "cet6": "1112"
+              },
+              "card_template": {
+                "template": "x112xx",
+                "cet4": "0112xx",
+                "cet6": "1112xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x113",
+              "box_id": "3",
+              "name": "偷换概念",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0113",
+                "cet6": "1113"
+              },
+              "card_template": {
+                "template": "x113xx",
+                "cet4": "0113xx",
+                "cet6": "1113xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "name": "长难句主干",
+          "boxes": [
+            {
+              "template_box_prefix": "x120",
+              "box_id": "0",
+              "name": "主谓",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0120",
+                "cet6": "1120"
+              },
+              "card_template": {
+                "template": "x120xx",
+                "cet4": "0120xx",
+                "cet6": "1120xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x121",
+              "box_id": "1",
+              "name": "主谓宾",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0121",
+                "cet6": "1121"
+              },
+              "card_template": {
+                "template": "x121xx",
+                "cet4": "0121xx",
+                "cet6": "1121xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x122",
+              "box_id": "2",
+              "name": "主系表",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0122",
+                "cet6": "1122"
+              },
+              "card_template": {
+                "template": "x122xx",
+                "cet4": "0122xx",
+                "cet6": "1122xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x123",
+              "box_id": "3",
+              "name": "主谓双宾",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0123",
+                "cet6": "1123"
+              },
+              "card_template": {
+                "template": "x123xx",
+                "cet4": "0123xx",
+                "cet6": "1123xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x124",
+              "box_id": "4",
+              "name": "主谓宾补",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0124",
+                "cet6": "1124"
+              },
+              "card_template": {
+                "template": "x124xx",
+                "cet4": "0124xx",
+                "cet6": "1124xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "3",
+          "name": "长难句关键修饰",
+          "boxes": [
+            {
+              "template_box_prefix": "x130",
+              "box_id": "0",
+              "name": "定语",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0130",
+                "cet6": "1130"
+              },
+              "card_template": {
+                "template": "x130xx",
+                "cet4": "0130xx",
+                "cet6": "1130xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x131",
+              "box_id": "1",
+              "name": "状语",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0131",
+                "cet6": "1131"
+              },
+              "card_template": {
+                "template": "x131xx",
+                "cet4": "0131xx",
+                "cet6": "1131xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x132",
+              "box_id": "2",
+              "name": "同位语",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0132",
+                "cet6": "1132"
+              },
+              "card_template": {
+                "template": "x132xx",
+                "cet4": "0132xx",
+                "cet6": "1132xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x133",
+              "box_id": "3",
+              "name": "插入语",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0133",
+                "cet6": "1133"
+              },
+              "card_template": {
+                "template": "x133xx",
+                "cet4": "0133xx",
+                "cet6": "1133xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "4",
+          "name": "上下文猜词",
+          "boxes": [
+            {
+              "template_box_prefix": "x140",
+              "box_id": "0",
+              "name": "句内语义线索",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0140",
+                "cet6": "1140"
+              },
+              "card_template": {
+                "template": "x140xx",
+                "cet4": "0140xx",
+                "cet6": "1140xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x141",
+              "box_id": "1",
+              "name": "句间语义线索",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0141",
+                "cet6": "1141"
+              },
+              "card_template": {
+                "template": "x141xx",
+                "cet4": "0141xx",
+                "cet6": "1141xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x142",
+              "box_id": "2",
+              "name": "构词法",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0142",
+                "cet6": "1142"
+              },
+              "card_template": {
+                "template": "x142xx",
+                "cet4": "0142xx",
+                "cet6": "1142xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "box_code_count": 19,
+        "box_instance_count": 38,
+        "cet4_cards": 228,
+        "cet6_cards": 228,
+        "total_cards": 456
+      }
+    },
+    {
+      "id": "2",
+      "name": "选词填空",
+      "groups": [
+        {
+          "id": "0",
+          "name": "词性判断",
+          "boxes": [
+            {
+              "template_box_prefix": "x200",
+              "box_id": "0",
+              "name": "名词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0200",
+                "cet6": "1200"
+              },
+              "card_template": {
+                "template": "x200xx",
+                "cet4": "0200xx",
+                "cet6": "1200xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x201",
+              "box_id": "1",
+              "name": "形容词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0201",
+                "cet6": "1201"
+              },
+              "card_template": {
+                "template": "x201xx",
+                "cet4": "0201xx",
+                "cet6": "1201xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x202",
+              "box_id": "2",
+              "name": "动词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0202",
+                "cet6": "1202"
+              },
+              "card_template": {
+                "template": "x202xx",
+                "cet4": "0202xx",
+                "cet6": "1202xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x203",
+              "box_id": "3",
+              "name": "副词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0203",
+                "cet6": "1203"
+              },
+              "card_template": {
+                "template": "x203xx",
+                "cet4": "0203xx",
+                "cet6": "1203xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "1",
+          "name": "空格语法预判",
+          "boxes": [
+            {
+              "template_box_prefix": "x210",
+              "box_id": "0",
+              "name": "名词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0210",
+                "cet6": "1210"
+              },
+              "card_template": {
+                "template": "x210xx",
+                "cet4": "0210xx",
+                "cet6": "1210xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x211",
+              "box_id": "1",
+              "name": "形容词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0211",
+                "cet6": "1211"
+              },
+              "card_template": {
+                "template": "x211xx",
+                "cet4": "0211xx",
+                "cet6": "1211xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x212",
+              "box_id": "2",
+              "name": "动词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0212",
+                "cet6": "1212"
+              },
+              "card_template": {
+                "template": "x212xx",
+                "cet4": "0212xx",
+                "cet6": "1212xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x213",
+              "box_id": "3",
+              "name": "副词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0213",
+                "cet6": "1213"
+              },
+              "card_template": {
+                "template": "x213xx",
+                "cet4": "0213xx",
+                "cet6": "1213xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "name": "固定搭配",
+          "boxes": [
+            {
+              "template_box_prefix": "x220",
+              "box_id": "0",
+              "name": "动词+介词/副词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0220",
+                "cet6": "1220"
+              },
+              "card_template": {
+                "template": "x220xx",
+                "cet4": "0220xx",
+                "cet6": "1220xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x221",
+              "box_id": "1",
+              "name": "形容词+名词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0221",
+                "cet6": "1221"
+              },
+              "card_template": {
+                "template": "x221xx",
+                "cet4": "0221xx",
+                "cet6": "1221xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x222",
+              "box_id": "2",
+              "name": "名词+介词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0222",
+                "cet6": "1222"
+              },
+              "card_template": {
+                "template": "x222xx",
+                "cet4": "0222xx",
+                "cet6": "1222xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x223",
+              "box_id": "3",
+              "name": "be动词+形容词/分词+介词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0223",
+                "cet6": "1223"
+              },
+              "card_template": {
+                "template": "x223xx",
+                "cet4": "0223xx",
+                "cet6": "1223xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x224",
+              "box_id": "4",
+              "name": "其他",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0224",
+                "cet6": "1224"
+              },
+              "card_template": {
+                "template": "x224xx",
+                "cet4": "0224xx",
+                "cet6": "1224xx"
+              },
+              "card_counts": {
+                "cet4": 10,
+                "cet6": 10,
+                "total": 20
+              },
+              "status": "seeded"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "box_code_count": 13,
+        "box_instance_count": 26,
+        "cet4_cards": 130,
+        "cet6_cards": 130,
+        "total_cards": 260
+      }
+    },
+    {
+      "id": "3",
+      "name": "写作",
+      "groups": [
+        {
+          "id": "0",
+          "name": "判断作文体裁",
+          "boxes": [
+            {
+              "template_box_prefix": "x300",
+              "box_id": "0",
+              "name": "应用文",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0300",
+                "cet6": "1300"
+              },
+              "card_template": {
+                "template": "x300xx",
+                "cet4": "0300xx",
+                "cet6": "1300xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x301",
+              "box_id": "1",
+              "name": "议论文",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0301",
+                "cet6": "1301"
+              },
+              "card_template": {
+                "template": "x301xx",
+                "cet4": "0301xx",
+                "cet6": "1301xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x302",
+              "box_id": "2",
+              "name": "说明文",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0302",
+                "cet6": "1302"
+              },
+              "card_template": {
+                "template": "x302xx",
+                "cet4": "0302xx",
+                "cet6": "1302xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x303",
+              "box_id": "3",
+              "name": "图表作文",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0303",
+                "cet6": "1303"
+              },
+              "card_template": {
+                "template": "x303xx",
+                "cet4": "0303xx",
+                "cet6": "1303xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "1",
+          "name": "模版句式",
+          "boxes": [
+            {
+              "template_box_prefix": "x310",
+              "box_id": "0",
+              "name": "引入观点",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0310",
+                "cet6": "1310"
+              },
+              "card_template": {
+                "template": "x310xx",
+                "cet4": "0310xx",
+                "cet6": "1310xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x311",
+              "box_id": "1",
+              "name": "展开认证",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0311",
+                "cet6": "1311"
+              },
+              "card_template": {
+                "template": "x311xx",
+                "cet4": "0311xx",
+                "cet6": "1311xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x312",
+              "box_id": "2",
+              "name": "结论总结",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0312",
+                "cet6": "1312"
+              },
+              "card_template": {
+                "template": "x312xx",
+                "cet4": "0312xx",
+                "cet6": "1312xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x313",
+              "box_id": "3",
+              "name": "书信开头",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0313",
+                "cet6": "1313"
+              },
+              "card_template": {
+                "template": "x313xx",
+                "cet4": "0313xx",
+                "cet6": "1313xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x314",
+              "box_id": "4",
+              "name": "数据描述",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0314",
+                "cet6": "1314"
+              },
+              "card_template": {
+                "template": "x314xx",
+                "cet4": "0314xx",
+                "cet6": "1314xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x315",
+              "box_id": "5",
+              "name": "趋势分析",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0315",
+                "cet6": "1315"
+              },
+              "card_template": {
+                "template": "x315xx",
+                "cet4": "0315xx",
+                "cet6": "1315xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "box_code_count": 10,
+        "box_instance_count": 20,
+        "cet4_cards": 120,
+        "cet6_cards": 120,
+        "total_cards": 240
+      }
+    },
+    {
+      "id": "4",
+      "name": "翻译",
+      "groups": [
+        {
+          "id": "0",
+          "name": "高级句子",
+          "boxes": [
+            {
+              "template_box_prefix": "x400",
+              "box_id": "0",
+              "name": "并列句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0400",
+                "cet6": "1400"
+              },
+              "card_template": {
+                "template": "x400xx",
+                "cet4": "0400xx",
+                "cet6": "1400xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x401",
+              "box_id": "1",
+              "name": "定语从句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0401",
+                "cet6": "1401"
+              },
+              "card_template": {
+                "template": "x401xx",
+                "cet4": "0401xx",
+                "cet6": "1401xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x402",
+              "box_id": "2",
+              "name": "强调句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0402",
+                "cet6": "1402"
+              },
+              "card_template": {
+                "template": "x402xx",
+                "cet4": "0402xx",
+                "cet6": "1402xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x403",
+              "box_id": "3",
+              "name": "倒装句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0403",
+                "cet6": "1403"
+              },
+              "card_template": {
+                "template": "x403xx",
+                "cet4": "0403xx",
+                "cet6": "1403xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x404",
+              "box_id": "4",
+              "name": "增加非谓语",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0404",
+                "cet6": "1404"
+              },
+              "card_template": {
+                "template": "x404xx",
+                "cet4": "0404xx",
+                "cet6": "1404xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "1",
+          "name": "主题化例句",
+          "boxes": [
+            {
+              "template_box_prefix": "x410",
+              "box_id": "0",
+              "name": "历史文化",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0410",
+                "cet6": "1410"
+              },
+              "card_template": {
+                "template": "x410xx",
+                "cet4": "0410xx",
+                "cet6": "1410xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x411",
+              "box_id": "1",
+              "name": "社会发展",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0411",
+                "cet6": "1411"
+              },
+              "card_template": {
+                "template": "x411xx",
+                "cet4": "0411xx",
+                "cet6": "1411xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x412",
+              "box_id": "2",
+              "name": "地理生态",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0412",
+                "cet6": "1412"
+              },
+              "card_template": {
+                "template": "x412xx",
+                "cet4": "0412xx",
+                "cet6": "1412xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x413",
+              "box_id": "3",
+              "name": "教育经济",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0413",
+                "cet6": "1413"
+              },
+              "card_template": {
+                "template": "x413xx",
+                "cet4": "0413xx",
+                "cet6": "1413xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x414",
+              "box_id": "4",
+              "name": "贸易经济",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0414",
+                "cet6": "1414"
+              },
+              "card_template": {
+                "template": "x414xx",
+                "cet4": "0414xx",
+                "cet6": "1414xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "name": "介词短语",
+          "boxes": [
+            {
+              "template_box_prefix": "x420",
+              "box_id": "0",
+              "name": "动词变名词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0420",
+                "cet6": "1420"
+              },
+              "card_template": {
+                "template": "x420xx",
+                "cet4": "0420xx",
+                "cet6": "1420xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x421",
+              "box_id": "1",
+              "name": "修饰信息变介词短语",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0421",
+                "cet6": "1421"
+              },
+              "card_template": {
+                "template": "x421xx",
+                "cet4": "0421xx",
+                "cet6": "1421xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "box_code_count": 12,
+        "box_instance_count": 24,
+        "cet4_cards": 144,
+        "cet6_cards": 144,
+        "total_cards": 288
+      }
+    },
+    {
+      "id": "5",
+      "name": "词汇",
+      "groups": [
+        {
+          "id": "0",
+          "name": "同义词替换",
+          "boxes": [
+            {
+              "template_box_prefix": "x500",
+              "box_id": "0",
+              "name": "近义词替换",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0500",
+                "cet6": "1500"
+              },
+              "card_template": {
+                "template": "x500xx",
+                "cet4": "0500xx",
+                "cet6": "1500xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x501",
+              "box_id": "1",
+              "name": "词性转换",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0501",
+                "cet6": "1501"
+              },
+              "card_template": {
+                "template": "x501xx",
+                "cet4": "0501xx",
+                "cet6": "1501xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x502",
+              "box_id": "2",
+              "name": "短语类替换",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0502",
+                "cet6": "1502"
+              },
+              "card_template": {
+                "template": "x502xx",
+                "cet4": "0502xx",
+                "cet6": "1502xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x503",
+              "box_id": "3",
+              "name": "句式替换",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0503",
+                "cet6": "1503"
+              },
+              "card_template": {
+                "template": "x503xx",
+                "cet4": "0503xx",
+                "cet6": "1503xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x504",
+              "box_id": "4",
+              "name": "翻译否定",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0504",
+                "cet6": "1504"
+              },
+              "card_template": {
+                "template": "x504xx",
+                "cet4": "0504xx",
+                "cet6": "1504xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x505",
+              "box_id": "5",
+              "name": "解释性替换",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0505",
+                "cet6": "1505"
+              },
+              "card_template": {
+                "template": "x505xx",
+                "cet4": "0505xx",
+                "cet6": "1505xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "1",
+          "name": "中国特色词汇",
+          "boxes": [
+            {
+              "template_box_prefix": "x510",
+              "box_id": "0",
+              "name": "政治",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0510",
+                "cet6": "1510"
+              },
+              "card_template": {
+                "template": "x510xx",
+                "cet4": "0510xx",
+                "cet6": "1510xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x511",
+              "box_id": "1",
+              "name": "经济",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0511",
+                "cet6": "1511"
+              },
+              "card_template": {
+                "template": "x511xx",
+                "cet4": "0511xx",
+                "cet6": "1511xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x512",
+              "box_id": "2",
+              "name": "文化",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0512",
+                "cet6": "1512"
+              },
+              "card_template": {
+                "template": "x512xx",
+                "cet4": "0512xx",
+                "cet6": "1512xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x513",
+              "box_id": "3",
+              "name": "社会",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0513",
+                "cet6": "1513"
+              },
+              "card_template": {
+                "template": "x513xx",
+                "cet4": "0513xx",
+                "cet6": "1513xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x514",
+              "box_id": "4",
+              "name": "生态",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0514",
+                "cet6": "1514"
+              },
+              "card_template": {
+                "template": "x514xx",
+                "cet4": "0514xx",
+                "cet6": "1514xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x515",
+              "box_id": "5",
+              "name": "科技",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0515",
+                "cet6": "1515"
+              },
+              "card_template": {
+                "template": "x515xx",
+                "cet4": "0515xx",
+                "cet6": "1515xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x516",
+              "box_id": "6",
+              "name": "地理",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0516",
+                "cet6": "1516"
+              },
+              "card_template": {
+                "template": "x516xx",
+                "cet4": "0516xx",
+                "cet6": "1516xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "name": "高频词",
+          "boxes": [
+            {
+              "template_box_prefix": "x520",
+              "box_id": "0",
+              "name": "听力高频词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0520",
+                "cet6": "1520"
+              },
+              "card_template": {
+                "template": "x520xx",
+                "cet4": "0520xx",
+                "cet6": "1520xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x521",
+              "box_id": "1",
+              "name": "阅读高频词",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0521",
+                "cet6": "1521"
+              },
+              "card_template": {
+                "template": "x521xx",
+                "cet4": "0521xx",
+                "cet6": "1521xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x522",
+              "box_id": "2",
+              "name": "写作高级词汇",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0522",
+                "cet6": "1522"
+              },
+              "card_template": {
+                "template": "x522xx",
+                "cet4": "0522xx",
+                "cet6": "1522xx"
+              },
+              "card_counts": {
+                "cet4": 12,
+                "cet6": 12,
+                "total": 24
+              },
+              "status": "seeded"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "box_code_count": 16,
+        "box_instance_count": 32,
+        "cet4_cards": 192,
+        "cet6_cards": 192,
+        "total_cards": 384
+      }
+    },
+    {
+      "id": "6",
+      "name": "语法",
+      "groups": [
+        {
+          "id": "0",
+          "name": "时态",
+          "boxes": [
+            {
+              "template_box_prefix": "x600",
+              "box_id": "0",
+              "name": "写作时态",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0600",
+                "cet6": "1600"
+              },
+              "card_template": {
+                "template": "x600xx",
+                "cet4": "0600xx",
+                "cet6": "1600xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x601",
+              "box_id": "1",
+              "name": "听力时态",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0601",
+                "cet6": "1601"
+              },
+              "card_template": {
+                "template": "x601xx",
+                "cet4": "0601xx",
+                "cet6": "1601xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "1",
+          "name": "复杂句",
+          "boxes": [
+            {
+              "template_box_prefix": "x610",
+              "box_id": "0",
+              "name": "名词性从句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0610",
+                "cet6": "1610"
+              },
+              "card_template": {
+                "template": "x610xx",
+                "cet4": "0610xx",
+                "cet6": "1610xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x611",
+              "box_id": "1",
+              "name": "定语从句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0611",
+                "cet6": "1611"
+              },
+              "card_template": {
+                "template": "x611xx",
+                "cet4": "0611xx",
+                "cet6": "1611xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x612",
+              "box_id": "2",
+              "name": "状语从句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0612",
+                "cet6": "1612"
+              },
+              "card_template": {
+                "template": "x612xx",
+                "cet4": "0612xx",
+                "cet6": "1612xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x613",
+              "box_id": "3",
+              "name": "倒装句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0613",
+                "cet6": "1613"
+              },
+              "card_template": {
+                "template": "x613xx",
+                "cet4": "0613xx",
+                "cet6": "1613xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x614",
+              "box_id": "4",
+              "name": "强调句",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0614",
+                "cet6": "1614"
+              },
+              "card_template": {
+                "template": "x614xx",
+                "cet4": "0614xx",
+                "cet6": "1614xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x615",
+              "box_id": "5",
+              "name": "比较结构",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0615",
+                "cet6": "1615"
+              },
+              "card_template": {
+                "template": "x615xx",
+                "cet4": "0615xx",
+                "cet6": "1615xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x616",
+              "box_id": "6",
+              "name": "其他固定句型",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0616",
+                "cet6": "1616"
+              },
+              "card_template": {
+                "template": "x616xx",
+                "cet4": "0616xx",
+                "cet6": "1616xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "2",
+          "name": "虚拟语气",
+          "boxes": [
+            {
+              "template_box_prefix": "x620",
+              "box_id": "0",
+              "name": "听力",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0620",
+                "cet6": "1620"
+              },
+              "card_template": {
+                "template": "x620xx",
+                "cet4": "0620xx",
+                "cet6": "1620xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x621",
+              "box_id": "1",
+              "name": "阅读",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0621",
+                "cet6": "1621"
+              },
+              "card_template": {
+                "template": "x621xx",
+                "cet4": "0621xx",
+                "cet6": "1621xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x622",
+              "box_id": "2",
+              "name": "翻译",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0622",
+                "cet6": "1622"
+              },
+              "card_template": {
+                "template": "x622xx",
+                "cet4": "0622xx",
+                "cet6": "1622xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x623",
+              "box_id": "3",
+              "name": "写作",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0623",
+                "cet6": "1623"
+              },
+              "card_template": {
+                "template": "x623xx",
+                "cet4": "0623xx",
+                "cet6": "1623xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            }
+          ]
+        },
+        {
+          "id": "3",
+          "name": "主/被动语态",
+          "boxes": [
+            {
+              "template_box_prefix": "x630",
+              "box_id": "0",
+              "name": "翻译",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0630",
+                "cet6": "1630"
+              },
+              "card_template": {
+                "template": "x630xx",
+                "cet4": "0630xx",
+                "cet6": "1630xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            },
+            {
+              "template_box_prefix": "x631",
+              "box_id": "1",
+              "name": "阅读",
+              "track_availability": [
+                "cet4",
+                "cet6"
+              ],
+              "resolved_box_prefixes": {
+                "cet4": "0631",
+                "cet6": "1631"
+              },
+              "card_template": {
+                "template": "x631xx",
+                "cet4": "0631xx",
+                "cet6": "1631xx"
+              },
+              "card_counts": {
+                "cet4": 6,
+                "cet6": 8,
+                "total": 14
+              },
+              "status": "seeded"
+            }
+          ]
+        }
+      ],
+      "summary": {
+        "box_code_count": 15,
+        "box_instance_count": 30,
+        "cet4_cards": 90,
+        "cet6_cards": 120,
+        "total_cards": 210
+      }
+    }
+  ],
+  "totals": {
+    "library_count": 7,
+    "box_code_count": 110,
+    "box_instance_count": 218,
+    "cet4_cards": 1180,
+    "cet6_cards": 1234,
+    "total_cards": 2414
+  }
+}

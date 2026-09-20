@@ -88,7 +88,15 @@
       "model_weights_model_package_and_compact_v2_Python_environment_manifests_each_identify_one_or_more_unique_safe_file_path_hash_size_tuples_are_recomputed_and_bound_to_execution_harness",
       "model_acceptances_bind_the_recomputed_per_card_media_input_and_source_runs"
     ],
-    "real_attested_receipt_required_before_formal_media_registration": true
+    "real_attested_receipt_required_before_formal_media_registration": true,
+    "historical_catalog_snapshots": [
+      {
+        "receipt_sha256": "9a7833df857fa6b351a4fa96261ff58d4dd28aca7b7be9138243756d4094825a",
+        "product_commit_sha": "7707f9a17b0a6ffc7ee0553cb7f49c49d31ddce1",
+        "catalog_sha256": "301b336f68b50be9d3ef75861a336dc65c42e549f78b552a62d6280d712be42a",
+        "reason": "Replay the immutable pre-rename receipt against its pinned product catalog. Current releases still require current catalog and content authorization; no audio or source identity is relaxed."
+      }
+    ]
   },
   "current_boundary": {
     "structural_verifier": "scripts/verify_trusted_media_run_receipt.mjs",
