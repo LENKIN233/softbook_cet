@@ -472,6 +472,29 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
   ]);
 });
 
+test('provider-owned codes allow normal entry time without changing suppressed acknowledgements', async () => {
+  for (const [delay, expectedStatus] of [[90, 200], [300, 401]]) {
+    const clock = createClock();
+    let verificationCalls = 0;
+    const sms = {provider: {kind: 'cloudbase_auth', delivery: 'sms_cloudbase_auth_default',
+      sendChallenge: async () => ({challengeId: 'provider-five-minute-window', expiresInSeconds: 600}),
+      verifyChallenge: async () => {verificationCalls += 1;},
+    }};
+    const {api} = createV2TestApi({clock, sms, phoneRequestLimit: 1});
+    const challenge = await issueChallenge(api);
+    const suppressed = await issueChallenge(api);
+    assert.equal(Date.parse(challenge.body.data.expires_at) - clock.now().getTime(), 300_000);
+    assert.equal(suppressed.body.data.expires_at, challenge.body.data.expires_at);
+    assert.equal(suppressed.body.data.retry_after_seconds, challenge.body.data.retry_after_seconds);
+    clock.advanceSeconds(delay);
+    const verified = await request(api, {path: '/v2/auth/verify-code', body: {
+      phone_number: PHONE_NUMBER, challenge_id: challenge.body.data.challenge_id, sms_code: SMS_CODE,
+    }});
+    assert.equal(verified.statusCode, expectedStatus);
+    assert.equal(verificationCalls, expectedStatus === 200 ? 1 : 0);
+  }
+});
+
 test('provider-owned SMS failures consume the local attempt limit and lock the challenge', async () => {
   const sms = {
     provider: {
