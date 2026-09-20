@@ -51,6 +51,11 @@ adapter when no SMS provider is injected. Production mode fails closed unless:
 - a non-development SMS provider is injected; and
 - request-code receives a trusted client IP from the CloudBase gateway context.
 
+CloudBase HTTP injects `TCB_SOURCE_IP` separately from the request event. The
+adapter reads and validates it on every invocation (including warm instances),
+then falls back to a valid API Gateway `requestContext` source IP. It never
+uses `X-Forwarded-For`, `X-Real-IP`, or request-body IP claims for rate limits.
+
 Production mode disables all `/v1` routes with `410 legacy_api_disabled`.
 There is intentionally no environment-only switch that silently turns the
 development SMS adapter into a production provider. Internal constructor

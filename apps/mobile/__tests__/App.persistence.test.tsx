@@ -324,6 +324,27 @@ test('persists a successful login and restores it after relaunch', async () => {
   expect(JSON.stringify(restoredTree.toJSON())).toContain('138****8000');
 });
 
+test('retains completed local learning and its cursor after relaunch', async () => {
+  await createAuthSessionStore().save({mode: 'local', phoneNumber: '13800138000'});
+  const tree = await renderAppAndWaitForLearning();
+  for (const id of ['learning-flip-button', 'learning-flip-review-button', 'learning-next-button']) {
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(tree.root, id).props.onPress();
+      await flushAsyncEffects();
+    });
+  }
+  const saved = await createUserStateStore().load('13800138000');
+  expect(saved.localLearningProgress?.learningResults).toHaveLength(1);
+  const nextCard = createLocalLearningSession('cet4').cards[1];
+  expect(saved.localLearningProgress?.cursorCardId).toBe(nextCard.card_id);
+  await ReactTestRenderer.act(() => tree.unmount());
+  const restored = await renderAppAndWaitForLearning();
+  expect(JSON.stringify(restored.toJSON())).toContain(nextCard.front.prompt);
+  await openRoute(restored.root, 'statistics');
+  expect(restored.root.findByProps({testID: 'statistics-progress-ratio'}).props.children).toMatch(/^1\//);
+  await ReactTestRenderer.act(() => restored.unmount());
+});
+
 test('restores check-in, learning cursor, favorite, and sleep state', async () => {
   const session = createLocalLearningSession('cet4');
   const sleepingFavoriteCard = session.cards[0];

@@ -505,11 +505,11 @@ function createProtectedResponseBody<Chunk>(
   branch: ResponseBodyAuthorityBranch,
   markBodyDisturbed: () => void = () => undefined,
   preserveByteStream = false,
-  isObsolete: () => boolean = () => false,
+  isObsolete: () => boolean = () => false
 ): ReadableStream<Chunk> {
   let reader: ReadableStreamDefaultReader<Chunk> | null = null;
   let guardedController: {
-    readonly byobRequest?: {respond: (bytesWritten: number) => void} | null;
+    readonly byobRequest?: { respond: (bytesWritten: number) => void } | null;
     close: () => void;
     enqueue: (chunk: Chunk) => void;
     error: (reason?: unknown) => void;
@@ -517,15 +517,13 @@ function createProtectedResponseBody<Chunk>(
   const cancelForAuthorityLoss = () => {
     const error =
       lifecycle.getCancellationError() ??
-      new RemoteRequestLifecycleError('session_quarantined');
+      new RemoteRequestLifecycleError("session_quarantined");
     try {
       guardedController?.error(error);
     } catch {
       // A terminal guarded stream already has the required outcome.
     }
-    return reader === null
-      ? source.cancel(error)
-      : reader.cancel(error);
+    return reader === null ? source.cancel(error) : reader.cancel(error);
   };
   const requireReader = () => {
     if (reader === null) {
@@ -546,11 +544,13 @@ function createProtectedResponseBody<Chunk>(
     },
     async pull(controller: NonNullable<typeof guardedController>) {
       try {
+        if (isObsolete())
+          throw new TypeError("ReadableStream is locked by Response.clone().");
         lifecycle.assertCurrent();
         markBodyDisturbed();
         const result = await Promise.race([
           requireReader().read(),
-          lifecycle.cancellation.then(error => Promise.reject(error)),
+          lifecycle.cancellation.then((error) => Promise.reject(error)),
         ]);
         lifecycle.assertCurrent();
         if (result.done) {
@@ -579,100 +579,128 @@ function createProtectedResponseBody<Chunk>(
     },
   };
   const guarded = preserveByteStream
-    ? new ReadableStream<Chunk>(
-        {...guardedSource, type: 'bytes'} as never,
-        {highWaterMark: 0},
-      )
-    : new ReadableStream<Chunk>(guardedSource, {highWaterMark: 0});
+    ? new ReadableStream<Chunk>({ ...guardedSource, type: "bytes" } as never, {
+        highWaterMark: 0,
+      })
+    : new ReadableStream<Chunk>(guardedSource, { highWaterMark: 0 });
 
-  return new Proxy(guarded, {
-    get(current, property) {
-      if (property === 'locked') {
-        return isObsolete() || current.locked;
+  const nativeLocked = Object.getOwnPropertyDescriptor(
+    ReadableStream.prototype,
+    "locked"
+  )!.get!;
+  const properties: PropertyKey[] = [
+    "locked",
+    "getReader",
+    "cancel",
+    "tee",
+    "pipeTo",
+    "pipeThrough",
+    "values",
+    Symbol.asyncIterator,
+  ];
+  const nativeOperations = new Map(
+    properties
+      .filter((property) => property !== "locked")
+      .map((property) => [property, Reflect.get(guarded, property, guarded)])
+  );
+  const readProperty = (property: PropertyKey) => {
+    const current = guarded;
+    if (property === "locked") {
+      return isObsolete() || nativeLocked.call(current);
+    }
+    if (isObsolete()) {
+      if (property === "cancel" || property === "pipeTo") {
+        return () =>
+          Promise.reject(
+            new TypeError("ReadableStream is locked by Response.clone().")
+          );
       }
-      if (isObsolete()) {
-        if (property === 'cancel' || property === 'pipeTo') {
-          return () =>
-            Promise.reject(
-              new TypeError('ReadableStream is locked by Response.clone().'),
-            );
-        }
-        if (
-          property === 'getReader' ||
-          property === 'tee' ||
-          property === 'pipeThrough' ||
-          property === 'values' ||
-          property === Symbol.asyncIterator
-        ) {
-          return () => {
-            throw new TypeError(
-              'ReadableStream is locked by Response.clone().',
-            );
-          };
-        }
-      }
-      if (property === 'tee') {
+      if (
+        property === "getReader" ||
+        property === "tee" ||
+        property === "pipeThrough" ||
+        property === "values" ||
+        property === Symbol.asyncIterator
+      ) {
         return () => {
-          lifecycle.assertCurrent();
-          const [left, right] = current.tee();
-          const leftBranch = lifecycle.registerBranch(() => left.cancel());
-          const rightBranch = lifecycle.registerBranch(() => right.cancel());
-          return [
-            createProtectedResponseBody(
-              left,
-              lifecycle,
-              leftBranch,
-              markBodyDisturbed,
-              preserveByteStream,
-              isObsolete,
-            ),
-            createProtectedResponseBody(
-              right,
-              lifecycle,
-              rightBranch,
-              markBodyDisturbed,
-              preserveByteStream,
-              isObsolete,
-            ),
-          ];
+          throw new TypeError("ReadableStream is locked by Response.clone().");
         };
       }
-      if (property === 'pipeThrough') {
-        return (...args: Parameters<typeof current.pipeThrough>) => {
-          lifecycle.assertCurrent();
-          markBodyDisturbed();
-          const output = current.pipeThrough(...args);
-          const outputBranch = lifecycle.registerBranch(() =>
-            output.cancel(),
-          );
-          return createProtectedResponseBody(
-            output,
+    }
+    if (property === "tee") {
+      return () => {
+        lifecycle.assertCurrent();
+        const [left, right] = nativeOperations.get("tee").call(current);
+        const leftBranch = lifecycle.registerBranch(() => left.cancel());
+        const rightBranch = lifecycle.registerBranch(() => right.cancel());
+        return [
+          createProtectedResponseBody(
+            left,
             lifecycle,
-            outputBranch,
+            leftBranch,
             markBodyDisturbed,
-            false,
-            isObsolete,
-          );
-        };
-      }
-      if (property === 'getReader') {
-        return (...args: unknown[]) =>
-          createDisturbanceTrackingReader(
-            Reflect.apply(current.getReader, current, args) as object,
+            preserveByteStream,
+            isObsolete
+          ),
+          createProtectedResponseBody(
+            right,
+            lifecycle,
+            rightBranch,
             markBodyDisturbed,
-          );
-      }
-      if (property === 'cancel' || property === 'pipeTo') {
-        return (...args: unknown[]) => {
-          markBodyDisturbed();
-          const operation = Reflect.get(current, property, current);
-          return Reflect.apply(operation, current, args);
-        };
-      }
-      const value = Reflect.get(current, property, current);
-      return typeof value === 'function' ? value.bind(current) : value;
-    },
-  });
+            preserveByteStream,
+            isObsolete
+          ),
+        ];
+      };
+    }
+    if (property === "pipeThrough") {
+      return (...args: Parameters<typeof current.pipeThrough>) => {
+        lifecycle.assertCurrent();
+        markBodyDisturbed();
+        const output = nativeOperations.get("pipeThrough").apply(current, args);
+        const outputBranch = lifecycle.registerBranch(() => output.cancel());
+        return createProtectedResponseBody(
+          output,
+          lifecycle,
+          outputBranch,
+          markBodyDisturbed,
+          false,
+          isObsolete
+        );
+      };
+    }
+    if (property === "getReader") {
+      return (...args: unknown[]) =>
+        createDisturbanceTrackingReader(
+          Reflect.apply(
+            nativeOperations.get("getReader"),
+            current,
+            args
+          ) as object,
+          markBodyDisturbed
+        );
+    }
+    if (property === "cancel" || property === "pipeTo") {
+      return (...args: unknown[]) => {
+        markBodyDisturbed();
+        const operation = nativeOperations.get(property);
+        return Reflect.apply(operation, current, args);
+      };
+    }
+    const value = nativeOperations.get(property);
+    return typeof value === "function" ? value.bind(current) : value;
+  };
+  // A Proxy loses the browser ReadableStream brand: Response(proxy) becomes text.
+  // Keep the actual stream and decorate public methods while pulls retain authority checks.
+  for (const property of properties) {
+    if (property === "locked" || nativeOperations.get(property) !== undefined) {
+      Object.defineProperty(guarded, property, {
+        configurable: true,
+        get: () => readProperty(property),
+      });
+    }
+  }
+  return guarded;
 }
 
 function createDisturbanceTrackingReader(

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { LearningTrack } from '../learning/model';
 import type {SpaceCardStateValue} from '../space/spaceStateRepository';
+import {parseLocalLearningProgress, type LocalLearningProgress} from './localLearningProgress';
 
 export type PersistedSpaceCardState = SpaceCardStateValue;
 
@@ -12,6 +13,7 @@ export type PersistedLearningCursor = {
 };
 
 export type PersistedUserState = {
+  localLearningProgress?: LocalLearningProgress | null;
   checkedInDayKey: string | null;
   learningCursor: PersistedLearningCursor | null;
   spaceCardStateById: Record<string, PersistedSpaceCardState>;
@@ -35,6 +37,7 @@ const LEGACY_USER_STATE_SCHEMA_VERSION = 'user-state.v1';
 export const LEGACY_SPACE_STATE_TIMESTAMP = '1970-01-01T00:00:00.000Z';
 
 type UserStatePayload = {
+  local_learning_progress?: LocalLearningProgress | null;
   checked_in_day_key: string | null;
   learning_cursor: {
     card_id: string;
@@ -152,6 +155,9 @@ function serializeUserStatePayload(
 
   return {
     checked_in_day_key: state.checkedInDayKey,
+    ...(state.localLearningProgress === undefined ? {} : {
+      local_learning_progress: parseLocalLearningProgress(state.localLearningProgress),
+    }),
     learning_cursor: learningCursor
       ? {
           card_id: learningCursor.cardId,
@@ -192,6 +198,9 @@ function parseUserStatePayload(payload: unknown): {
   return {
     ownerPhoneNumber: payload.owner_phone_number,
     state: {
+      ...(payload.local_learning_progress === undefined ? {} : {
+        localLearningProgress: readLocalProgress(payload.local_learning_progress),
+      }),
       checkedInDayKey: payload.checked_in_day_key,
       learningCursor: parseLearningCursorPayload(payload.learning_cursor),
       spaceCardStateById: parseSpaceCardStatePayload(
@@ -200,6 +209,15 @@ function parseUserStatePayload(payload: unknown): {
       ),
     },
   };
+}
+
+function readLocalProgress(value: unknown): LocalLearningProgress | null {
+  try {
+    return parseLocalLearningProgress(value);
+  } catch {
+    // A damaged optional development round must not discard favorites/check-in.
+    return null;
+  }
 }
 
 function parseLearningCursor(value: unknown): PersistedLearningCursor | null {

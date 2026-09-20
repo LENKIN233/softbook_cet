@@ -22,6 +22,38 @@ function createStorage(seed: Record<string, string> = {}) {
 }
 
 describe('UserStateStore', () => {
+  it('keeps check-in when only the optional local round is damaged', async () => {
+    const {storage, values} = createStorage();
+    const store = createUserStateStore(storage);
+    await store.save('13800138000', {...createEmptyPersistedUserState(), checkedInDayKey: '2026-09-21'});
+    const payload = JSON.parse(values[USER_STATE_STORAGE_KEY]);
+    payload.local_learning_progress = {learningResults: 'damaged'};
+    values[USER_STATE_STORAGE_KEY] = JSON.stringify(payload);
+    const restored = await store.load('13800138000');
+    expect(restored.checkedInDayKey).toBe('2026-09-21');
+    expect(restored.localLearningProgress).toBeNull();
+    expect(storage.removeItem).not.toHaveBeenCalled();
+  });
+  it('round-trips local results without exposing them to another account', async () => {
+    const {storage} = createStorage();
+    const store = createUserStateStore(storage);
+    const state = {...createEmptyPersistedUserState(), localLearningProgress: {
+      dayKey: '2026-09-21', sourceId: 'test-round', track: 'cet4' as const,
+      phase: 'review' as const, cursorCardId: null, reviewCardIds: ['test-card'],
+      learningResults: [{cardId: 'test-card', interactionId: 'flip' as const,
+        outcome: 'review' as const, completedAt: '2026-09-21T01:00:00Z',
+        usedHint: false, usedPeek: false, isFavorited: false}], reviewResults: [],
+    }};
+    await store.save('13800138000', state);
+    await expect(createUserStateStore(storage).load('13800138000')).resolves.toEqual(state);
+    await expect(store.load('13900139000')).resolves.toEqual(createEmptyPersistedUserState());
+    expect(() => store.save('13800138000', {...state, localLearningProgress: {
+      ...state.localLearningProgress,
+      learningResults: [...state.localLearningProgress.learningResults, ...state.localLearningProgress.learningResults],
+    }})).toThrow();
+    await store.clear();
+    await expect(store.load('13800138000')).resolves.toEqual(createEmptyPersistedUserState());
+  });
   it('keeps real-library state separate from example records with reused card IDs', async () => {
     const {storage, values} = createStorage();
     const oldStore = createUserStateStore(storage);

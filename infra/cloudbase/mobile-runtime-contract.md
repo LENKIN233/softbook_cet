@@ -303,6 +303,13 @@ bridges, not production contracts. Remote learning and membership use
 authenticated session-owned `/v2` routes; Bootstrap remains the canonical
 cross-owner account read.
 
+Device-only development persists its current learning/review round, completed
+results, and cursor under the existing account-owned user-state key. Restoration
+requires the same China day, track and source and filters removed cards; an ended
+round remains ended after restart. This optional cache never overrides remote
+bootstrap authority and is erased by the existing account cleanup. Old payloads
+without the optional round continue to load normally.
+
 ### Learning Session
 
 ```http

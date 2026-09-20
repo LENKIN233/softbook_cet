@@ -331,6 +331,12 @@ jobs:
         if: env.RUN_GATE == 'true'
         run: npm test
 
+      - name: Verify protected responses in Chromium
+        if: env.RUN_GATE == 'true'
+        run: |
+          npx playwright-core install --with-deps chromium
+          npm run test:browser:transport
+
       - name: Build production Web app
         if: env.RUN_GATE == 'true'
         run: npm run build

@@ -129,6 +129,7 @@ function createV2TestApi(options = {}) {
     now: clock.now,
     runtimeMode: options.runtimeMode ?? 'development',
     smsProvider: sms.provider,
+    platformClientIp: options.platformClientIp,
     store,
     tokenSecret: options.tokenSecret ?? TOKEN_SECRET,
   });
@@ -2355,6 +2356,15 @@ test('production auth fails closed on weak configuration and missing trusted cli
   assert.equal(response.statusCode, 503);
   assert.equal(response.body.error.code, 'client_ip_unavailable');
 
+  const spoofedGateway = await api.handleCloudBaseEvent({
+    httpMethod: 'POST', path: '/v2/auth/request-code',
+    body: JSON.stringify({phone_number: PHONE_NUMBER, clientIp: '203.0.113.90'}),
+    headers: {'x-forwarded-for': '203.0.113.91', 'x-real-ip': '203.0.113.92'},
+    requestContext: {sourceIp: 'invalid'},
+  });
+  assert.equal(spoofedGateway.statusCode, 503);
+  assert.equal(JSON.parse(spoofedGateway.body).error.code, 'client_ip_unavailable');
+
   const legacyResponse = await api.handleHttpRequest({
     body: {phone_number: PHONE_NUMBER},
     clientIp: '203.0.113.99',
@@ -2395,6 +2405,39 @@ test('CloudBase adapter discovers v2 paths and trusted gateway source IP', async
 
   assert.equal(response.statusCode, 200);
   assert.equal(JSON.parse(response.body).data.delivery, 'test_sms');
+});
+
+test('CloudBase HTTP uses per-invocation platform IP, ignoring spoofed forwarded headers', async () => {
+  let platformIp = '203.0.113.55';
+  const {api, sms} = createV2TestApi({platformClientIp: () => platformIp, ipRequestLimit: 1});
+  const event = {
+    httpMethod: 'POST', path: '/softbook-api/v2/auth/request-code',
+    body: JSON.stringify({phone_number: PHONE_NUMBER, clientIp: '198.51.100.9'}),
+    headers: {'x-forwarded-for': '198.51.100.10', 'x-real-ip': '198.51.100.11'},
+    requestContext: {appId: 'qa', envId: 'qa', requestId: 'qa'},
+  };
+  const first = await api.handleCloudBaseEvent(event);
+  assert.equal(first.statusCode, 200);
+  assert.equal(sms.deliveries.length, 1);
+  const spoofed = await api.handleCloudBaseEvent({...event,
+    headers: {'x-forwarded-for': '198.51.100.99'},
+    requestContext: {sourceIp: '198.51.100.98'}});
+  assert.equal(spoofed.statusCode, 429);
+  platformIp = '2001:db8::1';
+  const nextClient = await api.handleCloudBaseEvent(event);
+  assert.equal(nextClient.statusCode, 200);
+});
+
+test('CloudBase adapter rejects invalid IP strings rather than using untrusted headers', async () => {
+  const {api} = createV2TestApi({platformClientIp: () => 'not-an-ip', ipRequestLimit: 1});
+  const event = {httpMethod: 'POST', path: '/v2/auth/request-code',
+    body: JSON.stringify({phone_number: PHONE_NUMBER}),
+    headers: {'x-forwarded-for': '198.51.100.10'},
+    requestContext: {sourceIp: 'also-not-an-ip'}};
+  // Development's shared unknown bucket proves neither attacker field is used.
+  assert.equal((await api.handleCloudBaseEvent(event)).statusCode, 200);
+  assert.equal((await api.handleCloudBaseEvent({...event,
+    headers: {'x-forwarded-for': '198.51.100.20'}})).statusCode, 429);
 });
 
 function createFakeCloudBaseDb({
