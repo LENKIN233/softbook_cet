@@ -2295,6 +2295,8 @@ export function LearningResultDetailSurface({
           </View>
         </View>
 
+      </ScrollView>
+      <View style={styles.oneScreenDock} testID="learning-detail-action-dock">
         <Pressable
           disabled={advanceState.busy}
           onPress={onAdvanceCard}
@@ -2334,7 +2336,7 @@ export function LearningResultDetailSurface({
             {advanceState.detail}
           </Text>
         ) : null}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -2850,7 +2852,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   detailPrimaryButton: {
-    marginTop: 'auto',
+    flexShrink: 0,
     paddingVertical: 12,
   },
   detailPrimaryButtonCompact: {

@@ -46,6 +46,10 @@ The minimum operable phone layout is:
 This can scroll when content requires it. The rule is not "everything above the
 fold"; the rule is "the current task and primary action are always findable."
 
+On the expanded result page, the advance action stays outside the explanation's
+scroll viewport. Long analysis scrolls independently while the full primary
+button remains inside the available phone frame above navigation.
+
 ## Touch Priority
 
 Primary action must be visually and spatially dominant. Secondary actions must
