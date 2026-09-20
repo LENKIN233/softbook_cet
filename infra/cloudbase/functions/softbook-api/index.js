@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const {isIP} = require('node:net');
 const {
   assertCloudBaseAccountSessionAuthority,
   assertCloudBaseAccountWriteAllowed,
@@ -504,7 +505,12 @@ function createSoftbookApi(options = {}) {
 
   return {
     handleCloudBaseEvent: async event => {
-      const request = parseCloudBaseEvent(event);
+      // CloudBase HTTP injects the source IP per invocation, outside event.body
+      // and user-controlled forwarded headers. Read it now, never at cold start.
+      const platformIp = options.platformClientIp
+        ? options.platformClientIp()
+        : process.env.TCB_SOURCE_IP;
+      const request = parseCloudBaseEvent(event, platformIp);
       const response = await handleHttpRequest(config, request);
       return toCloudBaseResponse(response);
     },
@@ -5626,7 +5632,7 @@ function assertBodyPhoneMatchesSession(body, session) {
   }
 }
 
-function parseCloudBaseEvent(event = {}) {
+function parseCloudBaseEvent(event = {}, platformIp) {
   const headers = normalizeHeaders(event.headers ?? {});
   const path =
     event.path ??
@@ -5648,10 +5654,12 @@ function parseCloudBaseEvent(event = {}) {
 
   return {
     body: parseEventBody(event.body, event.isBase64Encoded),
-    clientIp:
-      event.requestContext?.http?.sourceIp ??
-      event.requestContext?.identity?.sourceIp ??
+    clientIp: [
+      platformIp,
+      event.requestContext?.http?.sourceIp,
+      event.requestContext?.identity?.sourceIp,
       event.requestContext?.sourceIp,
+    ].find(value => typeof value === 'string' && isIP(value) !== 0),
     headers,
     method,
     path,
