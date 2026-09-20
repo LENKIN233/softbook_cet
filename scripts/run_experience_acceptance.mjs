@@ -7,6 +7,7 @@ import {dirname, resolve, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {captureExperience} from './lib/experience_capture.mjs';
+import {readableExperienceText as readable} from './lib/experience_text_match.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const options = {device: null, output: null, calibrateOnly: false};
@@ -67,18 +68,13 @@ try {
     'apps/mobile/src/learning/presentation.ts', 'apps/mobile/src/learning/EliminationPassageText.tsx',
     'apps/mobile/src/space/SpaceSurface.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',
-    'scripts/lib/experience_capture.mjs', 'scripts/experience_ocr.swift',
+    'scripts/lib/experience_capture.mjs', 'scripts/lib/experience_text_match.mjs', 'scripts/experience_ocr.swift',
     'scripts/run_experience_acceptance.mjs', 'infra/cloudbase/functions/softbook-api/card-content/provenance.json', ...Object.keys(require(join(root, 'infra/cloudbase/functions/softbook-api/card-content'))).flatMap(track => readdirSync(join(root, 'infra/cloudbase/functions/softbook-api/card-content')).filter(name => name.startsWith(track) && name.endsWith('.json')).map(name => `infra/cloudbase/functions/softbook-api/card-content/${name}`))].map(path => [path, hash(readFileSync(join(root, path)))]));
   const fixtureRoot = join(root, 'apps/mobile/e2e/experience/known-failures');
   const fixtures = ['material', 'answer', 'options'].map(kind => ({kind, path: join(fixtureRoot, `${kind}.png`)}));
-  const normalize = text => text.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-  function readable(observation, text) {
-    const visible = normalize(observation.lines.map(line => line.text).join(' '));
-    return (Array.isArray(text) ? text : [text]).every(value => visible.includes(normalize(value)));
-  }
   const failedPixels = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...fixtures.map(item => item.path)], 'calibration-ocr.log'));
   report.calibration = fixtures.map(({kind, path}, index) => ({kind, image_sha256: hash(readFileSync(path)),
-    rejected: !readable(failedPixels[index], calibrationExpected[kind])}));
+    rejected: !readable(failedPixels[index], calibrationExpected[kind], {answer: kind === 'answer'})}));
   if (report.calibration.some(item => !item.rejected)) throw new Error('Known bad screenshot was accepted; the evaluator is not calibrated.');
   const positivePath = join(root, 'apps/mobile/e2e/experience/known-good/real-listening-options.json');
   const positive = JSON.parse(readFileSync(positivePath, 'utf8'));
@@ -108,7 +104,7 @@ try {
     const observations = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...paths], 'journey-ocr.log'));
     report.journeys = samples.map(([name, kind], index) => ({name, expected: expected[kind],
       screenshot: paths[index], image_sha256: hash(readFileSync(paths[index])),
-      readable: readable(observations[index], expected[kind])}));
+      readable: readable(observations[index], expected[kind], {answer: kind === 'answer'})}));
     if (report.journeys.some(item => !item.readable)) throw new Error('Required reading material or correct answer is not readable in the actual screenshot.');
   }
   if (run('git', ['rev-parse', 'HEAD']).trim() !== report.head ||

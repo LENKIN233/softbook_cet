@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 
 import {classifyChangedPaths} from './classify_pr_gate_scope.mjs';
 
-for (const file of ['scripts/run_experience_acceptance.mjs', 'scripts/run_ios_experience_ci.sh', 'scripts/experience_ocr.swift', 'scripts/lib/experience_capture.mjs', 'scripts/test_experience_capture.mjs', 'apps/mobile/e2e/experience/prepare.yaml']) {
+for (const file of ['scripts/run_experience_acceptance.mjs', 'scripts/run_ios_experience_ci.sh', 'scripts/experience_ocr.swift', 'scripts/lib/experience_capture.mjs', 'scripts/lib/experience_text_match.mjs', 'scripts/test_experience_capture.mjs', 'apps/mobile/e2e/experience/prepare.yaml']) {
   assert.equal(classifyChangedPaths([file]).native, true, `${file} must run native acceptance`);
 }
 
