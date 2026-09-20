@@ -44,6 +44,11 @@ name: read-material-and-correction
 - takeScreenshot: material
 - tapOn:
     id: learning-peek-button
+- scrollUntilVisible:
+    element:
+      id: learning-support-layer
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     id: learning-support-layer
 - takeScreenshot: material-with-support
