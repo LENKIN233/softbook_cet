@@ -1,3 +1,4 @@
+import {catalogSnapshotForReceipt, loadRuntimeCatalog} from './verify_trusted_media_run_receipt.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -1260,4 +1261,19 @@ test('a rehashed CET6 manifest cannot bind CET4 media paths', t => {
   const result = verifyTrustedMediaRunReceipt({...inputs, probeMediaDuration: () => 1000});
   assert.equal(result.ok, false);
   assert.match(result.errors.join('\n'), /audio manifest assets\[0\]/);
+});
+
+test('only the exact historical receipt replays its pinned pre-rename catalog', () => {
+  const policy = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '../spec/trusted-media-run-receipt.json')));
+  const oldReceiptSha = '9a7833df857fa6b351a4fa96261ff58d4dd28aca7b7be9138243756d4094825a';
+  const snapshot = catalogSnapshotForReceipt(policy, oldReceiptSha);
+  assert.ok(snapshot);
+  const errors = [];
+  const oldCatalog = loadRuntimeCatalog(errors, policy.receipt.exact_scopes.cet4, snapshot);
+  assert.deepEqual(errors, []);
+  assert.equal(oldCatalog.get('0311').box, '展开认证');
+  const currentCatalog = loadRuntimeCatalog(errors, policy.receipt.exact_scopes.cet4, catalogSnapshotForReceipt(policy, hash('different receipt bytes')));
+  assert.equal(currentCatalog.get('0311').box, '展开论证');
+  assert.equal(loadRuntimeCatalog(errors, policy.receipt.exact_scopes.cet4, {...snapshot, catalog_sha256: 'a'.repeat(64)}), null);
+  assert.match(errors.join('\n'), /snapshot bytes do not match/);
 });
