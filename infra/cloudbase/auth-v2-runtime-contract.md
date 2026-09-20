@@ -180,9 +180,11 @@ provider promise has no continuation that can attach a provider ID, mark the
 local challenge delivered, or recreate the removed intent. Supported receiver
 providers additionally bind the network/SDK timeout itself, so their outbound
 operation settles before the durable deadline.
-Provider-owned acknowledgements use one conservative 60-second local expiry in
+Provider-owned acknowledgements use the same five-minute local expiry in
 both real and suppressed branches and accept only provider challenges valid for
 at least that interval, so provider TTL cannot become a deletion-state oracle.
+The CloudBase default provider advertises ten minutes; the local cap stays at
+five minutes, independently of the unchanged 120-second resend interval.
 Provider rejection, invalid provider output, and service timeout also return
 that same success-shaped public acknowledgement. Rejection conditionally marks
 the reservation `delivery_failed`; timeout leaves it `pending` until the
