@@ -29,6 +29,11 @@ name: read-material-and-correction
 - tapOn:
     id: learning-open-result-detail-button
 - takeScreenshot: answer
+- scrollUntilVisible:
+    element:
+      id: learning-next-button
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: learning-next-button
 - extendedWaitUntil:
