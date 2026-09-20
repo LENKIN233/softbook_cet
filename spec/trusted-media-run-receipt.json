@@ -1,5 +1,5 @@
 {
-  "version": "trusted-media-run-receipt-v2",
+  "version": "trusted-media-run-receipt-v3",
   "status": "active",
   "classification": "evidence_contract",
   "owner": "spec/machine-acceptance.json",
@@ -17,15 +17,8 @@
   "receipt": {
     "schema_version": "trusted-media-run-receipt.v2",
     "maximum_bytes": 1048576,
-    "exact_cet4_scope": {
-      "track": "cet4",
-      "card_count": 1180,
-      "box_count": 108,
-      "audio_asset_count": 301
-    },
     "minimum_full_perceptual_runs": 2,
     "minimum_blind_transcript_runs": 2,
-    "minimum_complete_asset_consumptions": 1204,
     "artifact_files": {
       "audio_manifest": "audio-manifest.json",
       "review_worklist": "reviewed-worklist.json",
@@ -50,13 +43,26 @@
       "python_environment_manifest_sha256"
     ],
     "required_result": {
-      "reviewed_card_count": 301,
-      "passed_card_count": 301,
       "failed_card_count": 0,
       "every_card_has_two_independent_acceptances": true,
       "all_assets_complete_consumed": true,
       "all_required_checks_passed": true
-    }
+    },
+    "exact_scopes": {
+      "cet4": {
+        "track": "cet4",
+        "card_count": 1180,
+        "box_count": 108,
+        "audio_asset_count": 301
+      },
+      "cet6": {
+        "track": "cet6",
+        "card_count": 1234,
+        "box_count": 110,
+        "audio_asset_count": 328
+      }
+    },
+    "minimum_complete_asset_consumptions_rule": "audio_asset_count * (minimum_full_perceptual_runs + minimum_blind_transcript_runs)"
   },
   "verification": {
     "command": "gh attestation verify <receipt> --repo LENKIN233/card-make --bundle <bundle> --deny-self-hosted-runners --signer-workflow LENKIN233/card-make/.github/workflows/trusted-media-run.yml --signer-digest <finalization_commit_sha> --source-digest <finalization_commit_sha> --source-ref refs/heads/main --cert-oidc-issuer https://token.actions.githubusercontent.com --predicate-type https://slsa.dev/provenance/v1 --format json",
@@ -65,20 +71,20 @@
     "require_nonempty_verified_timestamp": true,
     "author_editable_json_is_trust_root": false,
     "attestation_alone_proves_result_correctness": false,
-    "reuse_boundary": "a_previous_attested_receipt_may_be_reused_only_when_its_exact_audio_manifest_and_reviewed_worklist_bytes_are_rehashed_and_all_301_card_asset_hash_size_duration_transcript_box_and_training_goal_identities_match_the_current_release;_current_non_audio_content_still_requires_new_full_track_review_authorization_audit_runtime_and_bundle_evidence",
+    "reuse_boundary": "a_previous_attested_receipt_may_be_reused_only_when_its_exact_audio_manifest_and_reviewed_worklist_bytes_are_rehashed_and_all_registered_track_card_asset_hash_size_duration_transcript_box_and_training_goal_identities_match_the_current_release;_current_non_audio_content_still_requires_new_full_track_review_authorization_audit_runtime_and_bundle_evidence",
     "type_specific_semantic_validation_required": true,
     "type_specific_semantics": [
       "exact_unique_raw_run_ID_name_path_hash_and_card_sets",
-      "all_301_audio_files_are_regular_and_rehashed_from_exact_bytes",
+      "all_registered_track_audio_files_are_regular_and_rehashed_from_exact_bytes",
       "entry_identity_is_recomputed_from_card_context_media_bytes_duration_and_transcript",
       "raw_run_results_replay_every_final_decision",
-    "final_result_is_reparsed_from_the_last_retained_bounded_JSON_Python_literal_or_registered_exact_escaped_object_model_output",
+      "final_result_is_reparsed_from_the_last_retained_bounded_JSON_Python_literal_or_registered_exact_escaped_object_model_output",
       "reviewed_transcript_bytes_rehash_to_declared_digest",
-    "blind_transcript_similarity_is_recomputed_as_the_maximum_of_word_and_compact_alphanumeric_sequence_scores_at_the_locked_threshold",
+      "blind_transcript_similarity_is_recomputed_as_the_maximum_of_word_and_compact_alphanumeric_sequence_scores_at_the_locked_threshold",
       "decoded_sample_count_matches_the_bound_probed_duration_at_the_locked_sample_rate_within_50ms",
       "consumer_ffprobe_decodes_each_exact_audio_byte_sequence_and_recomputes_duration_within_50ms_of_the_worklist",
-      "content_authorization_full_track_review_quality_audit_and_runtime_payload_bytes_rehash_to_the_receipt_and_bind_exact_1180_card_108_box_scope",
-      "all_301_media_entries_join_to_their_exact_authorized_runtime_and_card_source_records",
+      "content_authorization_full_track_review_quality_audit_and_runtime_payload_bytes_rehash_to_the_receipt_and_bind_exact_registered_track_card_and_box_scope",
+      "all_registered_track_media_entries_join_to_their_exact_authorized_runtime_and_card_source_records",
       "model_weights_model_package_and_compact_v2_Python_environment_manifests_each_identify_one_or_more_unique_safe_file_path_hash_size_tuples_are_recomputed_and_bound_to_execution_harness",
       "model_acceptances_bind_the_recomputed_per_card_media_input_and_source_runs"
     ],
@@ -97,7 +103,9 @@
     "observed_workflow_run_id": "33261431967",
     "observed_workflow_run_attempt": 1,
     "formal_cet4_media_types_registered": true,
-    "closed_beta_gate_effect": "registered_types_require_the_attested_receipt_identity_and_attested_audio_manifest_worklist_plus_independent_rehash_and_type_specific_recomputation_of_current_authorization_review_audit_runtime_bundle_content_and_QC_inputs;unchanged_exact_media_does_not_rerun_301_model_consumptions_for_unrelated_non_audio_content_changes"
+    "closed_beta_gate_effect": "registered_types_require_the_attested_receipt_identity_and_attested_audio_manifest_worklist_plus_independent_rehash_and_type_specific_recomputation_of_current_authorization_review_audit_runtime_bundle_content_and_QC_inputs;unchanged_exact_media_does_not_rerun_301_model_consumptions_for_unrelated_non_audio_content_changes",
+    "formal_cet6_media_types_registered": false,
+    "cet6_receipt_observed": false
   },
   "official_sources": [
     "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",

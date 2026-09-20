@@ -198,10 +198,10 @@ function recomputedEntryIdentitySha256(entry) {
   return createHash('sha256').update(canonicalStringify(identity)).digest('hex');
 }
 
-function isSafeRelativeMediaPath(value) {
+function isSafeRelativeMediaPath(value, expectedScope) {
   return (
     typeof value === 'string' &&
-    value.startsWith('ai_tts/cet4/') &&
+    value.startsWith(`ai_tts/${expectedScope.track}/`) &&
     value.endsWith('.mp3') &&
     !value.includes('\\') &&
     !/[\u0000-\u001f\u007f\u2028\u2029]/u.test(value) &&
@@ -210,7 +210,7 @@ function isSafeRelativeMediaPath(value) {
   );
 }
 
-function validateCompleteWorklistEntry(entry, index, errors) {
+function validateCompleteWorklistEntry(entry, index, errors, expectedScope) {
   const label = `reviewed worklist entries[${index}]`;
   let valid = exactKeys(
     entry,
@@ -266,7 +266,7 @@ function validateCompleteWorklistEntry(entry, index, errors) {
       typeof value === 'string' && value.trim().length > 0) ||
     !Object.values(entry?.training_context ?? {}).every(value =>
       typeof value === 'string' && value.trim().length > 0) ||
-    !isSafeRelativeMediaPath(entry?.audio?.asset_path) ||
+    !isSafeRelativeMediaPath(entry?.audio?.asset_path, expectedScope) ||
     !Number.isSafeInteger(entry?.audio?.size_bytes) ||
     entry.audio.size_bytes < 1 ||
     !Number.isSafeInteger(entry?.audio?.declared_duration_ms) ||
@@ -403,6 +403,7 @@ function validateArtifactEvidence(
     errors.push('formal media verification requires --artifact-dir with the exact run artifacts.');
     return false;
   }
+  const expectedScope = policy.receipt.exact_scopes[receipt.candidate.track];
   const filenames = policy.receipt.artifact_files;
   const audioManifestFile = loadBoundArtifact(
     artifactDirectory,
@@ -567,12 +568,12 @@ function validateArtifactEvidence(
 
   if (
     audioManifest.schema_version !== 'trusted-media-audio-manifest.v1' ||
-    audioManifest.track !== 'cet4' ||
-    audioManifest.asset_count !== 301 ||
+    audioManifest.track !== expectedScope.track ||
+    audioManifest.asset_count !== expectedScope.audio_asset_count ||
     !Array.isArray(audioManifest.assets) ||
-    audioManifest.assets.length !== 301
+    audioManifest.assets.length !== expectedScope.audio_asset_count
   ) {
-    errors.push('trusted media audio manifest does not contain the exact CET4 301-asset scope.');
+    errors.push(`trusted media audio manifest does not contain the exact ${expectedScope.track} ${expectedScope.audio_asset_count}-asset scope.`);
     return false;
   }
   const assetsByCard = new Map();
@@ -589,7 +590,7 @@ function validateArtifactEvidence(
     if (
       typeof asset.card_id !== 'string' ||
       assetsByCard.has(asset.card_id) ||
-      !isSafeRelativeMediaPath(asset.asset_path) ||
+      !isSafeRelativeMediaPath(asset.asset_path, expectedScope) ||
       assetPaths.has(asset.asset_path) ||
       !SHA256_PATTERN.test(asset.file_sha256 ?? '') ||
       !SHA256_PATTERN.test(asset.transcript_sha256 ?? '') ||
@@ -624,26 +625,26 @@ function validateArtifactEvidence(
     }
     assetsByCard.set(asset.card_id, asset);
   }
-  if (assetsByCard.size !== 301) {
+  if (assetsByCard.size !== expectedScope.audio_asset_count) {
     errors.push('trusted media audio manifest card identities are incomplete.');
   }
 
   if (
     worklist.schema_version !== 'audio-perceptual-worklist.v3' ||
-    worklist.track !== 'cet4' ||
+    worklist.track !== expectedScope.track ||
     !Array.isArray(worklist.entries) ||
-    worklist.entries.length !== 301 ||
-    worklist.progress?.passed !== 301 ||
+    worklist.entries.length !== expectedScope.audio_asset_count ||
+    worklist.progress?.passed !== expectedScope.audio_asset_count ||
     worklist.progress?.failed !== 0 ||
     worklist.progress?.pending !== 0
   ) {
-    errors.push('trusted media reviewed worklist is not an exact complete CET4 pass.');
+    errors.push(`trusted media reviewed worklist is not an exact complete ${expectedScope.track} pass.`);
     return false;
   }
   const entriesByCard = new Map();
   for (const [index, entry] of worklist.entries.entries()) {
     const label = `reviewed worklist entries[${index}]`;
-    const completeIdentity = validateCompleteWorklistEntry(entry, index, errors);
+    const completeIdentity = validateCompleteWorklistEntry(entry, index, errors, expectedScope);
     const asset = assetsByCard.get(entry?.card_id);
     if (
       !completeIdentity ||
@@ -690,6 +691,7 @@ function validateArtifactEvidence(
     authorizationPath,
     worklist,
     errors,
+    expectedScope,
   );
 
   if (
@@ -708,8 +710,8 @@ function validateArtifactEvidence(
     runPackage.execution?.runner_class !== receipt.execution.runner_class ||
     !Array.isArray(runPackage.runs) ||
     canonicalStringify(runPackage.runs) !== canonicalStringify(rawManifest.runs) ||
-    runPackage.result?.reviewed_card_count !== 301 ||
-    runPackage.result?.passed_card_count !== 301 ||
+    runPackage.result?.reviewed_card_count !== expectedScope.audio_asset_count ||
+    runPackage.result?.passed_card_count !== expectedScope.audio_asset_count ||
     runPackage.result?.failed_card_count !== 0
   ) {
     errors.push('trusted media run package does not match the receipt and raw run manifest.');
@@ -836,10 +838,10 @@ function validateArtifactEvidence(
     });
     if (['full_perceptual', 'blind_transcript'].includes(run.purpose)) {
       if (
-        seen.size !== 301 ||
+        seen.size !== expectedScope.audio_asset_count ||
         [...entriesByCard.keys()].some(cardId => !seen.has(cardId))
       ) {
-        errors.push(`${label} must cover all 301 exact card assets.`);
+        errors.push(`${label} must cover all ${expectedScope.audio_asset_count} exact card assets.`);
       }
       mandatoryCoverage.set(run.purpose, mandatoryCoverage.get(run.purpose) + 1);
     }
@@ -857,6 +859,7 @@ function validateArtifactEvidence(
     errors.push('raw artifacts lack two complete blind_transcript runs.');
   }
   validateRunDecisions({
+    expectedScope,
     entriesByCard,
     receipt,
     rawRunsByName,
@@ -867,14 +870,15 @@ function validateArtifactEvidence(
 }
 
 function validateRunDecisions({
+  expectedScope,
   entriesByCard,
   errors,
   rawRunsByName,
   receipt,
   runPackage,
 }) {
-  if (!Array.isArray(runPackage.decisions) || runPackage.decisions.length !== 301) {
-    errors.push('trusted media run package does not contain exactly 301 decisions.');
+  if (!Array.isArray(runPackage.decisions) || runPackage.decisions.length !== expectedScope.audio_asset_count) {
+    errors.push(`trusted media run package does not contain exactly ${expectedScope.audio_asset_count} decisions.`);
     return;
   }
   const decisions = new Map();
@@ -986,7 +990,7 @@ function validateRunDecisions({
   }
 }
 
-function validateCandidateEvidence(receipt, root, authorizationPath, worklist, errors) {
+function validateCandidateEvidence(receipt, root, authorizationPath, worklist, errors, expectedScope) {
   if (!root || !authorizationPath) {
     errors.push('formal media verification requires the exact candidate root and authorization.');
     return;
@@ -1010,7 +1014,7 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
       receipt.candidate.content_authorization_sha256 ||
     authorization.schema_version !== 'model-owned-content-authorization.v2' ||
     authorization.authorization_mode !== 'full_track' ||
-    authorization.scope?.track !== 'cet4' ||
+    authorization.scope?.track !== expectedScope.track ||
     authorization.scope?.purpose !== 'formal_content'
   ) {
     errors.push('trusted media content authorization does not match the receipt candidate.');
@@ -1056,7 +1060,7 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
   }
   const runtime = resolveCandidateRuntimePayload(runtimeDocument, candidateRoot, errors);
   if (!runtime) return;
-  const runtimeCatalog = loadCet4RuntimeCatalog(errors);
+  const runtimeCatalog = loadRuntimeCatalog(errors, expectedScope);
   if (!runtimeCatalog) return;
   const cards = runtime.card_records;
   const cardIds = cards.map(card => String(card?.card_id ?? ''));
@@ -1065,16 +1069,16 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
   const authorizedBoxes = [...(authorization.scope?.box_prefixes ?? [])].map(String).sort();
   const contentVersion = deriveCandidateContentVersion(runtime);
   if (
-    runtime.track !== 'cet4' ||
-    cards.length !== 1180 ||
-    new Set(cardIds).size !== 1180 ||
-    uniqueBoxes.length !== 108 ||
+    runtime.track !== expectedScope.track ||
+    cards.length !== expectedScope.card_count ||
+    new Set(cardIds).size !== expectedScope.card_count ||
+    uniqueBoxes.length !== expectedScope.box_count ||
     !Array.isArray(runtime.assets) ||
-    runtime.assets.length !== 301 ||
-    new Set(runtime.assets.map(asset => asset?.asset_id)).size !== 301 ||
+    runtime.assets.length !== expectedScope.audio_asset_count ||
+    new Set(runtime.assets.map(asset => asset?.asset_id)).size !== expectedScope.audio_asset_count ||
     runtime.assets.some(asset =>
       !/^[a-z0-9][a-z0-9._-]{2,127}$/.test(String(asset?.asset_id ?? '')) ||
-      !/^audio\/cet4\/[0-9]{4}\/[0-9]{6}\.mp3$/.test(String(asset?.asset_path ?? '')) ||
+      !new RegExp(`^audio/${expectedScope.track}/[0-9]{4}/[0-9]{6}\\.mp3$`).test(String(asset?.asset_path ?? '')) ||
       !CONTENT_VERSION_PATTERN.test(asset?.sha256 ?? '') ||
       !Number.isSafeInteger(asset?.size_bytes) ||
       asset.size_bytes <= 0 ||
@@ -1086,7 +1090,7 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
     contentVersion !== authorization.content_version ||
     contentVersion !== receipt.candidate.content_version
   ) {
-    errors.push('authorized runtime payload does not bind the exact CET4 1180-card/108-box candidate.');
+    errors.push(`authorized runtime payload does not bind the exact ${expectedScope.track} ${expectedScope.card_count}-card/${expectedScope.box_count}-box candidate.`);
     return;
   }
   const runtimeByCard = new Map(cards.map(card => [String(card.card_id), card]));
@@ -1097,12 +1101,12 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
   const referencedRuntimeAssetIds = runtimeAudioCards.map(card =>
     String(card.audio.asset_id ?? ''));
   if (
-    runtimeAudioCards.length !== 301 ||
-    new Set(referencedRuntimeAssetIds).size !== 301 ||
+    runtimeAudioCards.length !== expectedScope.audio_asset_count ||
+    new Set(referencedRuntimeAssetIds).size !== expectedScope.audio_asset_count ||
     JSON.stringify([...referencedRuntimeAssetIds].sort()) !==
       JSON.stringify([...runtimeAssetById.keys()].sort())
   ) {
-    errors.push('authorized runtime audio cards do not own the exact 301-asset catalog.');
+    errors.push(`authorized runtime audio cards do not own the exact ${expectedScope.audio_asset_count}-asset catalog.`);
     return;
   }
   for (const runtimeCard of cards) {
@@ -1112,13 +1116,13 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
       !catalogEntry ||
       !/^[0-9]{6}$/.test(String(runtimeCard?.card_id ?? '')) ||
       String(runtimeCard.card_id).slice(0, 4) !== prefix ||
-      runtimeCard.track !== 'cet4' ||
+      runtimeCard.track !== expectedScope.track ||
       runtimeCard.space_metadata?.box_ref !== prefix ||
       runtimeCard.space_metadata?.library !== catalogEntry.library ||
       runtimeCard.space_metadata?.group !== catalogEntry.group ||
       runtimeCard.space_metadata?.box !== catalogEntry.box
     ) {
-      errors.push(`runtime card ${String(runtimeCard?.card_id)} does not match the CET4 box catalog.`);
+      errors.push(`runtime card ${String(runtimeCard?.card_id)} does not match the registered track box catalog.`);
       return;
     }
   }
@@ -1152,15 +1156,15 @@ function validateCandidateEvidence(receipt, root, authorizationPath, worklist, e
       canonicalStringify(entry.training_context) !== canonicalStringify(normalizedTrainingContext(sourceCard)) ||
       entry.audio.asset_path !== (sourceCard.audio?.path ?? sourceCard.audio?.url) ||
       entry.audio.transcript !== transcript ||
-      runtimeCard.track !== 'cet4' ||
+      runtimeCard.track !== expectedScope.track ||
       runtimeBoxPrefix(runtimeCard) !== entry.knowledge_ref.box_prefix ||
-      runtimeCard.audio?.asset_id !== `cet4-${entry.card_id}-audio` ||
+      runtimeCard.audio?.asset_id !== `${expectedScope.track}-${entry.card_id}-audio` ||
       runtimeCard.audio?.transcript !== entry.audio.transcript ||
       runtimeCard.audio?.duration_ms !== entry.audio.declared_duration_ms ||
       normalizeSha(runtimeCard.audio?.sha256) !== entry.audio.file_sha256 ||
       !runtimeAsset ||
       runtimeAsset.asset_path !==
-        `audio/cet4/${entry.card_id.slice(0, 4)}/${entry.card_id}.mp3` ||
+        `audio/${expectedScope.track}/${entry.card_id.slice(0, 4)}/${entry.card_id}.mp3` ||
       normalizeSha(runtimeAsset.sha256) !== entry.audio.file_sha256 ||
       runtimeAsset.size_bytes !== entry.audio.size_bytes ||
       runtimeAsset.duration_ms !== entry.audio.declared_duration_ms ||
@@ -1224,17 +1228,17 @@ function normalizedKnowledgeRef(card) {
   };
 }
 
-function loadCet4RuntimeCatalog(errors) {
+function loadRuntimeCatalog(errors, expectedScope) {
   const bytes = loadRegularFile(
     path.join(ROOT, 'spec/box-catalog.json'),
     4 * 1024 * 1024,
-    'CET4 box catalog',
+    'registered track box catalog',
     errors,
   );
   if (!bytes) return null;
   let document;
   try {
-    document = parseStrictJson(bytes, 'CET4 box catalog');
+    document = parseStrictJson(bytes, 'registered track box catalog');
   } catch (error) {
     errors.push(error instanceof Error ? error.message : String(error));
     return null;
@@ -1243,10 +1247,10 @@ function loadCet4RuntimeCatalog(errors) {
   for (const library of document.libraries ?? []) {
     for (const group of library.groups ?? []) {
       for (const box of group.boxes ?? []) {
-        const prefix = box.resolved_box_prefixes?.cet4;
+        const prefix = box.resolved_box_prefixes?.[expectedScope.track];
         if (typeof prefix !== 'string') continue;
         if (result.has(prefix)) {
-          errors.push(`CET4 box catalog repeats prefix ${prefix}.`);
+          errors.push(`box catalog repeats ${expectedScope.track} prefix ${prefix}.`);
           return null;
         }
         result.set(prefix, {
@@ -1257,8 +1261,8 @@ function loadCet4RuntimeCatalog(errors) {
       }
     }
   }
-  if (result.size !== 108) {
-    errors.push('CET4 box catalog does not contain exactly 108 boxes.');
+  if (result.size !== expectedScope.box_count) {
+    errors.push(`box catalog does not contain exactly ${expectedScope.box_count} ${expectedScope.track} boxes.`);
     return null;
   }
   return result;
@@ -1515,7 +1519,13 @@ function validateReceipt(receipt, policy, errors) {
   }
 
   const candidate = receipt.candidate;
-  const expectedScope = policy.receipt.exact_cet4_scope;
+  const expectedScope = Object.hasOwn(policy.receipt.exact_scopes ?? {}, candidate?.track)
+    ? policy.receipt.exact_scopes[candidate.track]
+    : null;
+  if (!expectedScope) {
+    errors.push('receipt candidate track is not a registered media scope.');
+    return;
+  }
   if (exactKeys(
     candidate,
     [
@@ -1616,8 +1626,8 @@ function validateReceipt(receipt, policy, errors) {
       if (run.model_revision !== execution?.model?.revision) {
         errors.push(`${label}.model_revision does not match execution.model.revision.`);
       }
-      if (!Number.isInteger(run.card_count) || run.card_count < 1 || run.card_count > 301) {
-        errors.push(`${label}.card_count must be between 1 and 301.`);
+      if (!Number.isInteger(run.card_count) || run.card_count < 1 || run.card_count > expectedScope.audio_asset_count) {
+        errors.push(`${label}.card_count must be between 1 and ${expectedScope.audio_asset_count}.`);
       }
       if (run.complete_asset_count !== run.card_count) {
         errors.push(`${label}.complete_asset_count must equal card_count.`);
@@ -1633,14 +1643,14 @@ function validateReceipt(receipt, policy, errors) {
         : 0;
       if (run.purpose === 'full_perceptual') {
         fullRunCount += 1;
-        if (run.card_count !== 301) {
-          errors.push(`${label} full_perceptual run must cover all 301 assets.`);
+        if (run.card_count !== expectedScope.audio_asset_count) {
+          errors.push(`${label} full_perceptual run must cover all ${expectedScope.audio_asset_count} assets.`);
         }
       }
       if (run.purpose === 'blind_transcript') {
         blindRunCount += 1;
-        if (run.card_count !== 301) {
-          errors.push(`${label} blind_transcript run must cover all 301 assets.`);
+        if (run.card_count !== expectedScope.audio_asset_count) {
+          errors.push(`${label} blind_transcript run must cover all ${expectedScope.audio_asset_count} assets.`);
         }
       }
     }
@@ -1650,7 +1660,7 @@ function validateReceipt(receipt, policy, errors) {
     if (blindRunCount < policy.receipt.minimum_blind_transcript_runs) {
       errors.push('receipt does not contain two complete blind_transcript runs.');
     }
-    if (completeConsumptionCount < policy.receipt.minimum_complete_asset_consumptions) {
+    if (completeConsumptionCount < expectedScope.audio_asset_count * (policy.receipt.minimum_full_perceptual_runs + policy.receipt.minimum_blind_transcript_runs)) {
       errors.push('receipt complete asset consumption count is below policy.');
     }
   }
@@ -1669,7 +1679,7 @@ function validateReceipt(receipt, policy, errors) {
     'receipt.result',
     errors,
   )) {
-    for (const [field, expected] of Object.entries(policy.receipt.required_result)) {
+    for (const [field, expected] of Object.entries({...policy.receipt.required_result, reviewed_card_count: expectedScope.audio_asset_count, passed_card_count: expectedScope.audio_asset_count})) {
       if (result[field] !== expected) {
         errors.push(`receipt.result.${field} does not match policy.`);
       }
