@@ -26,8 +26,18 @@ name: read-material-and-correction
       id: learning-open-result-detail-button
     direction: DOWN
     timeout: 10000
+- waitForAnimationToEnd
 - tapOn:
     id: learning-open-result-detail-button
+- extendedWaitUntil:
+    visible:
+      id: learning-result-detail-screen
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: learning-detail-correct-answer
+    direction: DOWN
+    timeout: 10000
 - takeScreenshot: answer
 - scrollUntilVisible:
     element:
