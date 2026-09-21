@@ -5,9 +5,19 @@ const {
   createRuntimeSmsProvider,
   createTencentCloudSmsProvider,
   createWebhookSmsProvider,
+  requireSmsProviderChallengeId,
 } = require('../sms-provider');
 
 const SECRET = 'receiver-SMS-secret-0123456789-ABCDEFG';
+
+test('provider challenge credentials preserve opaque bytes but reject unbounded/control input', () => {
+  for (const value of ['a'.repeat(16), 'a'.repeat(4096), `header.${'a'.repeat(512)}.signature`]) {
+    assert.equal(requireSmsProviderChallengeId(value), value);
+  }
+  for (const value of [null, {}, 'short', 'a'.repeat(4097), 'a'.repeat(20) + '\n', 'a'.repeat(20) + '\u0000']) {
+    assert.throws(() => requireSmsProviderChallengeId(value), /challenge ID is invalid/);
+  }
+});
 
 test('development runtime keeps the in-memory fixed-code adapter boundary', () => {
   assert.equal(createRuntimeSmsProvider({runtimeMode: 'development', env: {}}), undefined);
@@ -21,9 +31,10 @@ test('production runtime fails closed without a configured provider', () => {
 });
 
 test('CloudBase Auth default SMS owns the exact send and verify challenge', async () => {
+  const verificationId = `header.${'a'.repeat(512)}.signature`;
   const calls = [];
   const responses = [
-    {verification_id: 'verification-id-1234567890', expires_in: 600},
+    {verification_id: verificationId, expires_in: 600},
     {verification_token: 'verification-token-1234567890', expires_in: 600},
   ];
   const provider = createRuntimeSmsProvider({
@@ -55,7 +66,7 @@ test('CloudBase Auth default SMS owns the exact send and verify challenge', asyn
   assert.equal(provider.kind, 'cloudbase_auth');
   assert.equal(provider.delivery, 'sms_cloudbase_auth_default');
   assert.deepEqual(challenge, {
-    challengeId: 'verification-id-1234567890',
+    challengeId: verificationId,
     expiresInSeconds: 600,
     providerRequestId: 'request-id',
   });
@@ -77,7 +88,7 @@ test('CloudBase Auth default SMS owns the exact send and verify challenge', asyn
       {
         body: {
           verification_code: '482913',
-          verification_id: 'verification-id-1234567890',
+          verification_id: verificationId,
         },
         method: 'POST',
         redirect: 'error',

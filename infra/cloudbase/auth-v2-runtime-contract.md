@@ -232,6 +232,10 @@ committed as one local failed attempt; reaching the configured limit locks the
 local challenge even if a later provider verification would succeed.
 For provider-owned delivery, the client submits the local challenge ID while
 the adapter receives only the conditionally stored provider verification ID.
+The provider ID is an opaque credential of 16–4096 printable ASCII characters,
+including signed-token separators. It is stored and forwarded byte-for-byte,
+never logged or exposed through the public challenge. The public challenge and
+session IDs retain their existing short base64url format.
 
 ### Read the authorized card source
 
