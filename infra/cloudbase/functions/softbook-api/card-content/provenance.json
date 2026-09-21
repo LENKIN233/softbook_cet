@@ -1,7 +1,7 @@
 {
   "schema_version": "bundled-card-library.v1",
   "upstream_repository": "LENKIN233/card-make",
-  "upstream_commit": "b31e582fdb56bcf846324cc17bde87bec574acb9",
+  "upstream_commit": "3917434f65b9fc24a461db96ab86427a98b298eb",
   "release_authorization": "candidate",
   "tracks": {
     "cet4": {
@@ -12,8 +12,8 @@
       "audio_asset_count": 301
     },
     "cet6": {
-      "payload_sha256": "sha256:0a2bf2e782ace959ee2e24e72ae6c39b716fc2fa1ea86438956268f6edc5afe3",
-      "content_version": "sha256:7bd40318e67ec2b071a8a6635946a2e90f881f2d517d11d10139992cb5f000a3",
+      "payload_sha256": "sha256:76bef40c2c37a6e944af0f2ae4e7fe9ef910e00027fd67b8c70f593abbd9a01d",
+      "content_version": "sha256:5884c25f6ed649317aedc69773682a0795984473efde55d1c9ba2803080ef6d0",
       "card_count": 1234,
       "box_count": 110,
       "audio_asset_count": 328

@@ -2843,8 +2843,8 @@
     },
     "audio": {
       "asset_id": "cet6-105207-audio",
-      "duration_ms": 14088,
-      "sha256": "sha256:9b369455968bfbe0613c94dc90e4cdc44567a0272845cd73cda5f58d43e99f40",
+      "duration_ms": 18288,
+      "sha256": "sha256:1601b7812cb08dd49d7dec620d565d98661505a44b6c3f06375247be6d8ac697",
       "transcript": "Across the three surveys, people who felt their activities were meaningful tended to report greater satisfaction. I want to stress that pattern again, while also reminding you that the surveys alone cannot establish which factor caused the other."
     },
     "back_text": "意义感与满意度常一起出现；调查本身不能确定因果方向。"

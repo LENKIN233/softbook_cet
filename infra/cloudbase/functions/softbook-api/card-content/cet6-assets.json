@@ -2353,10 +2353,10 @@
   },
   {
     "asset_id": "cet6-105207-audio",
-    "duration_ms": 14088,
+    "duration_ms": 18288,
     "media_type": "audio/mpeg",
-    "sha256": "sha256:9b369455968bfbe0613c94dc90e4cdc44567a0272845cd73cda5f58d43e99f40",
-    "size_bytes": 84572,
+    "sha256": "sha256:1601b7812cb08dd49d7dec620d565d98661505a44b6c3f06375247be6d8ac697",
+    "size_bytes": 109772,
     "asset_path": "audio/cet6/1052/105207.mp3"
   },
   {
