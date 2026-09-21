@@ -1634,6 +1634,7 @@ function LearningSurface(props: LearningSurfaceProps) {
   }, [card, cardState, motionBusy, onContinue, onFlip, onState, props.busy, resolved]);
   if (!card || !cardState) return <main className="workbench"><p className="notice">当前没有可用学习卡。</p></main>;
   const patchState = (patch: Partial<LearningCardState>) => onState(previous => previous ? {...previous, ...patch} : previous);
+  const courseName = card.track === 'cet6' ? '英语六级' : '英语四级';
   const library = formatSpaceDisplayName(card.space_metadata.library, '当前书架');
   const group = formatSpaceDisplayName(card.space_metadata.group, '当前分区');
   const box = formatSpaceDisplayName(card.space_metadata.box, '当前卡盒');
@@ -1655,7 +1656,7 @@ function LearningSurface(props: LearningSurfaceProps) {
             onResolveSwipe={value => onResolve({...cardState, swipeSelection: value})} />;
   return <main className="workbench learning-workbench" style={libraryStyle(library)} aria-labelledby="learning-title">
     <div className="learning-address">
-      <button className="text-button address-button" onClick={props.onOpenSpace}><span className="library-dot" />{library} / {group} / <strong id="learning-title">{box}</strong></button>
+      <button className="text-button address-button" onClick={props.onOpenSpace}><span className="library-dot" />{courseName} · {library} / {group} / <strong id="learning-title">{box}</strong></button>
       <span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '复习' : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span>
     </div>
     {props.serverSequenced && resolved && motionBusy ? <p className="notice next-card-status" role="status">正在准备下一张…</p> : null}

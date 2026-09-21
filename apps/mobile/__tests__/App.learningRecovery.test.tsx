@@ -86,6 +86,8 @@ it('switches authenticated tracks without losing the old track when the next loa
   expect(root.findByProps({testID: 'mine-track-cet6'}).props.accessibilityState.selected).toBe(true);
   await press(root, 'route-tab-learning'); await settle();
   expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(six.cards[0].card_id);
+  expect(root.findByProps({testID: 'learning-progress-label'}).props.children).toContain('英语六级');
+  expect(root.findAllByProps({testID: 'learning-progress-count'})).toHaveLength(0);
   await press(root, 'route-tab-mine'); await settle();
   await press(root, 'mine-track-cet4'); await settle();
   expect(root.findByProps({testID: 'mine-track-cet4'}).props.accessibilityState.selected).toBe(true);

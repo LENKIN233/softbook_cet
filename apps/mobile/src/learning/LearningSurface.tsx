@@ -475,6 +475,7 @@ export function LearningSurface({
     );
   }
 
+  const courseName = currentCard.track === 'cet6' ? '英语六级' : '英语四级';
   const libraryTone = resolveLibraryTone(currentCard.space_metadata.library);
   const tone = {
     accent: libraryTone.accent,
@@ -570,7 +571,7 @@ export function LearningSurface({
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
                 testID="learning-progress-label"
               >
-                {`${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
+                {`${courseName} · ${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
               </Text>
               <Text
                 style={[
@@ -2055,7 +2056,7 @@ export function LearningResultDetailSurface({
                 numberOfLines={1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                {`${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
+                {`${courseName} · ${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
               </Text>
             </View>
             <Pressable
