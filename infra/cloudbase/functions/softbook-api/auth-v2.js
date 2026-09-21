@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const {requireSmsProviderChallengeId} = require('./sms-provider');
 const {
   deriveAccountKey,
   requireAccountInstanceId,
@@ -232,10 +233,7 @@ async function requestCode(config, request, purpose) {
         providerCallDeadlineAt,
         signal => config.smsProvider.sendChallenge({phoneNumber, signal}),
       );
-      providerChallengeId = requireOpaqueId(
-        providerChallenge?.challengeId,
-        'provider challenge_id',
-      );
+      providerChallengeId = requireSmsProviderChallengeId(providerChallenge?.challengeId);
       if (
         !Number.isSafeInteger(providerChallenge?.expiresInSeconds) ||
         providerChallenge.expiresInSeconds <
@@ -1138,7 +1136,11 @@ function providerChallengeIdForVerification(challenge, input) {
   ) {
     return null;
   }
-  return challenge.provider_challenge_id;
+  try {
+    return requireSmsProviderChallengeId(challenge.provider_challenge_id);
+  } catch {
+    return null;
+  }
 }
 
 function resolveClientIp(config, request) {

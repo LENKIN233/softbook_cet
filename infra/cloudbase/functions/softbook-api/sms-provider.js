@@ -136,9 +136,8 @@ function createCloudBaseAuthSmsProvider({
         phone_number: requireCloudBasePhoneNumber(phoneNumber),
         target: 'ANY',
       }, signal);
+      const challengeId = requireSmsProviderChallengeId(payload.verification_id);
       if (
-        typeof payload.verification_id !== 'string' ||
-        !/^[A-Za-z0-9_-]{16,128}$/.test(payload.verification_id) ||
         !Number.isSafeInteger(payload.expires_in) ||
         payload.expires_in < 60 ||
         payload.expires_in > 600
@@ -146,7 +145,7 @@ function createCloudBaseAuthSmsProvider({
         throw new Error('CloudBase Auth returned an invalid verification challenge.');
       }
       return {
-        challengeId: payload.verification_id,
+        challengeId,
         expiresInSeconds: payload.expires_in,
         providerRequestId: requestId,
       };
@@ -154,7 +153,7 @@ function createCloudBaseAuthSmsProvider({
     async verifyChallenge({challengeId, code}) {
       const {payload, requestId} = await post('/auth/v1/verification/verify', {
         verification_code: requireSmsCode(code),
-        verification_id: challengeId,
+        verification_id: requireSmsProviderChallengeId(challengeId),
       });
       if (
         typeof payload.verification_token !== 'string' ||
@@ -169,6 +168,15 @@ function createCloudBaseAuthSmsProvider({
       return {providerRequestId: requestId};
     },
   };
+}
+
+function requireSmsProviderChallengeId(value) {
+  // Provider credentials are opaque (CloudBase returns a long signed token).
+  // Keep their bytes intact; local/public challenge IDs have a separate format.
+  if (typeof value !== 'string' || !/^[\x21-\x7e]{16,4096}$/.test(value)) {
+    throw new Error('SMS provider challenge ID is invalid.');
+  }
+  return value;
 }
 
 function createWebhookSmsProvider({endpoint, fetchImpl, secret, timeoutMs = DEFAULT_TIMEOUT_MS}) {
@@ -531,6 +539,7 @@ function requireTimeout(value, providerName) {
 }
 
 module.exports = {
+  requireSmsProviderChallengeId,
   createCloudBaseAuthSmsProvider,
   createRuntimeSmsProvider,
   createTencentCloudSmsProvider,

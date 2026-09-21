@@ -377,6 +377,7 @@ test('memory and CloudBase both fail a missing account instance as revoked sessi
 });
 
 test('v2 delegates provider-owned SMS challenges without storing or generating the code', async () => {
+  const providerChallengeId = `header.${'a'.repeat(512)}.signature`;
   const calls = [];
   const sms = {
     provider: {
@@ -385,7 +386,7 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
       async sendChallenge(input) {
         calls.push({kind: 'send', ...input});
         return {
-          challengeId: 'cloudbase-verification-123456',
+          challengeId: providerChallengeId,
           expiresInSeconds: 600,
         };
       },
@@ -411,7 +412,7 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
   assert.match(challenge.body.data.challenge_id, /^[A-Za-z0-9_-]{32}$/);
   assert.notEqual(
     challenge.body.data.challenge_id,
-    'cloudbase-verification-123456',
+    providerChallengeId,
   );
   assert.equal(challenge.body.data.delivery, 'sms_cloudbase_auth_default');
   assert.equal(calls.length, 1);
@@ -424,7 +425,7 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
   assert.equal(persisted.code_digest.length, 64);
   assert.equal(
     persisted.provider_challenge_id,
-    'cloudbase-verification-123456',
+    providerChallengeId,
   );
   assert.equal(persisted.purpose, 'sign_in');
   assert.equal(JSON.stringify(persisted).includes(SMS_CODE), false);
@@ -458,13 +459,13 @@ test('v2 delegates provider-owned SMS challenges without storing or generating t
   assert.match(verified.body.data.access_token, /^softbook_v2\./);
   assert.deepEqual(calls.slice(1), [
     {
-      challengeId: 'cloudbase-verification-123456',
+      challengeId: providerChallengeId,
       code: '000000',
       kind: 'verify',
       phoneNumber: PHONE_NUMBER,
     },
     {
-      challengeId: 'cloudbase-verification-123456',
+      challengeId: providerChallengeId,
       code: SMS_CODE,
       kind: 'verify',
       phoneNumber: PHONE_NUMBER,
