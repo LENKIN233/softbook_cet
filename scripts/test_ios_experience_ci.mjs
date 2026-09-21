@@ -15,7 +15,7 @@ function exercise(phase, flags = {}) {
     npm: 'exec sleep 60',
     xcodebuild: 'echo compiler >> "$TRACE"; exit "${COMPILER_EXIT:-0}"',
     xcrun: 'echo "xcrun $*" >> "$TRACE"',
-    curl: 'case "$*" in *index.bundle*) echo warm >> "$TRACE"; exit "${WARM_EXIT:-0}" ;; *) echo packager-status:running ;; esac',
+    curl: 'case "$*" in *.bundle*) echo warm >> "$TRACE"; exit "${WARM_EXIT:-0}" ;; *) echo packager-status:running ;; esac',
     node: 'echo journey >> "$TRACE"; exit "${JOURNEY_EXIT:-0}"',
   };
   for (const [name, body] of Object.entries(commands)) {
@@ -54,7 +54,8 @@ test('cold bundle failure prevents the UI journey and cleans up', () => {
 test('the app bundle is ready before the journey is dispatched', () => {
   const result = exercise('run');
   assert.equal(result.status, 0);
-  assert.ok(result.trace.indexOf('warm') < result.trace.indexOf('journey'));
+  assert.ok(result.trace.indexOf('warm') >= 0);
+  assert.ok(result.trace.indexOf('journey') > result.trace.indexOf('warm'));
   assert.ok(result.trace.includes('xcrun simctl shutdown disposable-test'));
 });
 
