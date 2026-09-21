@@ -2611,18 +2611,16 @@ function createCloudBaseStore(options = {}) {
         const transactionPilotEntitlements = transaction.collection(
           CLOUDBASE_COLLECTIONS.pilotEntitlements,
         );
-        const [betaEntitlement, pilotEntitlement] = await Promise.all([
-          getCloudBaseDocument(
-            transactionBetaEntitlements,
-            input.phoneNumber,
-          ),
-          runtimeMode === 'controlled_pilot'
-            ? getCloudBaseDocument(
-                transactionPilotEntitlements,
-                input.phoneNumber,
-              )
-            : null,
-        ]);
+        const betaEntitlement = await getCloudBaseDocument(
+          transactionBetaEntitlements,
+          input.phoneNumber,
+        );
+        const pilotEntitlement = runtimeMode === 'controlled_pilot'
+          ? await getCloudBaseDocument(
+              transactionPilotEntitlements,
+              input.phoneNumber,
+            )
+          : null;
         const transactionMemberships = transaction.collection(
           CLOUDBASE_COLLECTIONS.memberships,
         );

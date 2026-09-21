@@ -143,20 +143,19 @@ async function assertCloudBaseAccountSessionAuthority(
   ) {
     throw revokedAuthSessionError();
   }
-  const [deletion, session, account] = await Promise.all([
-    getDocument(
-      transaction.collection(collections.accountDeletions),
-      normalized.accountKey,
-    ),
-    getDocument(
-      transaction.collection(collections.authSessions),
-      normalized.sessionId,
-    ),
-    getDocument(
-      transaction.collection(collections.accounts),
-      normalized.accountKey,
-    ),
-  ]);
+  // FlexDB can reject overlapping operations inside the same transaction.
+  const deletion = await getDocument(
+    transaction.collection(collections.accountDeletions),
+    normalized.accountKey,
+  );
+  const session = await getDocument(
+    transaction.collection(collections.authSessions),
+    normalized.sessionId,
+  );
+  const account = await getDocument(
+    transaction.collection(collections.accounts),
+    normalized.accountKey,
+  );
   if (deletion !== null) {
     throw accountDeletionPendingError();
   }
