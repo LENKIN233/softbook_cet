@@ -21,14 +21,34 @@ name: read-material-and-correction
 - assertVisible:
     id: learning-correct-answer
 - takeScreenshot: answer-first-layer
+- scrollUntilVisible:
+    element:
+      id: learning-open-result-detail-button
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: learning-open-result-detail-button
 - takeScreenshot: answer
+- scrollUntilVisible:
+    element:
+      id: learning-next-button
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: learning-next-button
+- extendedWaitUntil:
+    visible:
+      id: learning-current-card
+    timeout: 10000
+- waitForAnimationToEnd
 - takeScreenshot: material
 - tapOn:
     id: learning-peek-button
+- scrollUntilVisible:
+    element:
+      id: learning-support-layer
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     id: learning-support-layer
 - takeScreenshot: material-with-support
@@ -40,6 +60,11 @@ name: read-material-and-correction
           id: learning-option-1
       - tapOn:
           id: learning-submit-button
+      - scrollUntilVisible:
+          element:
+            id: learning-open-result-detail-button
+          direction: DOWN
+          timeout: 10000
       - tapOn:
           id: learning-open-result-detail-button
       - assertVisible:

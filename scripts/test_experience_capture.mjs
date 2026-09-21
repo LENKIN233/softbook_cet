@@ -1,6 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {captureExperience} from './lib/experience_capture.mjs';
+import {readableExperienceText} from './lib/experience_text_match.mjs';
+
+test('wrapped answers tolerate only standalone answer-column labels', () => {
+  const observation = {lines: [
+    {text: 'A 电动公交与柴油车队的运营成本和排'},
+    {text: '正确答案'},
+    {text: '放对比'},
+  ]};
+  const expected = 'A 电动公交与柴油车队的运营成本和排放对比';
+  assert.equal(readableExperienceText(observation, expected, {answer: true}), true);
+  assert.equal(readableExperienceText(observation, expected), false);
+  assert.equal(readableExperienceText({lines: observation.lines.slice(0, 2)}, expected, {answer: true}), false);
+  assert.equal(readableExperienceText({lines: [{text: '正确答案'}]}, expected, {answer: true}), false);
+  assert.equal(readableExperienceText({lines: [{text: '原天'}]}, '原因', {answer: true}), false);
+  assert.equal(readableExperienceText({lines: observation.lines.map(line =>
+    line.text === '正确答案' ? {text: '遗漏的正文'} : line)}, expected, {answer: true}), false);
+});
 
 function exercise(durations, failure = null) {
   const calls = [];

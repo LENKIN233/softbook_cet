@@ -121,6 +121,7 @@ import {
   type PersistedUserState,
 } from './src/persistence/userStateStore';
 import {LOCAL_CARD_SOURCE_ID} from './src/learning/localCardSource';
+import type {LocalLearningProgress} from './src/persistence/localLearningProgress';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { resolveContentManifestRuntimeConfig } from './src/audio/contentManifestRuntimeConfig';
 import type {RefreshLearningAudioDownload} from './src/audio/learningAudioController';
@@ -869,6 +870,7 @@ function AppShell({
   const lastMembershipRefreshKey = useRef<string | null>(null);
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
+  const persistedLocalProgress = useRef<LocalLearningProgress | null>(null);
   const accountBootstrapStatusRef = useRef(accountBootstrapStatus);
   const accountBootstrapSnapshotRef = useRef<AccountBootstrapSnapshot | null>(
     null,
@@ -930,6 +932,7 @@ function AppShell({
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
       persistedLearningCursor.current = null;
+      persistedLocalProgress.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
       accountBootstrapRefreshRequired.current = false;
@@ -2072,6 +2075,7 @@ function AppShell({
       setMembershipGate(null);
       persistedLearningCursor.current =
         hydration.persistedUserState.learningCursor;
+      persistedLocalProgress.current = hydration.persistedUserState.localLearningProgress ?? null;
       unreconciledCheckInDayKeyRef.current = hydration.pendingCheckInDayKey;
       setCheckedInDayKey(hydration.persistedUserState.checkedInDayKey);
       setSpaceCardStateById(hydration.persistedUserState.spaceCardStateById);
@@ -3284,6 +3288,16 @@ function AppShell({
     ],
   );
 
+  // Today's development counts must not be relabelled as the next day's work.
+  const localProgressDay = useRef(todayKey);
+  useEffect(() => {
+    if (runtimeAccountBootstrapMode === 'local' && localProgressDay.current !== todayKey) {
+      localProgressDay.current = todayKey;
+      persistedLocalProgress.current = null;
+      resetLearningDeck();
+    }
+  }, [todayKey, runtimeAccountBootstrapMode, resetLearningDeck]);
+
   const reconcileLearningDeckState = useCallback(
     (
       stateMap: Record<string, SpaceCardState> = spaceCardStateById,
@@ -3581,8 +3595,29 @@ function AppShell({
       };
     }
 
+    if (runtimeAccountBootstrapMode === 'local' &&
+        learningSession?.schedulingMode === 'local' && learningBootstrapStatus === 'ready') {
+      // A day rollover schedules a reset before the next render. Do not write
+      // yesterday's results during that intervening render.
+      if ([...learningCompletedResults, ...reviewCompletedResults].some(
+        result => getChinaDayKey(new Date(result.completedAt)) !== todayKey,
+      )) return;
+      persistedLocalProgress.current = {
+        dayKey: todayKey,
+        sourceId: learningSession.sourceId,
+        track: learningSession.track,
+        phase: learningPhase,
+        cursorCardId: currentLearningCard?.card_id ?? null,
+        learningResults: learningCompletedResults,
+        reviewResults: reviewCompletedResults,
+        reviewCardIds: reviewSessionCards.map(card => card.card_id),
+      };
+    }
+
     userStateStore
       .save(authState.phoneNumber, {
+        ...(runtimeAccountBootstrapMode === 'local'
+          ? {localLearningProgress: persistedLocalProgress.current} : {}),
         checkedInDayKey,
         learningCursor: persistedLearningCursor.current,
         spaceCardStateById,
@@ -3601,6 +3636,12 @@ function AppShell({
     persistenceHydrated,
     spaceCardStateById,
     userStateStore,
+    runtimeAccountBootstrapMode,
+    learningBootstrapStatus,
+    learningCompletedResults,
+    reviewCompletedResults,
+    reviewSessionCards,
+    todayKey,
   ]);
 
   useEffect(() => {
@@ -4082,14 +4123,26 @@ function AppShell({
           setMembershipState(effectiveMembershipState);
         }
 
+        const storedProgress = persistedLocalProgress.current;
+        const localProgress = runtimeAccountBootstrapMode === 'local' &&
+          session.schedulingMode === 'local' && storedProgress?.dayKey === todayKey &&
+          storedProgress.sourceId === session.sourceId && storedProgress.track === session.track
+          ? storedProgress : null;
+        const matchingResults = (results: LearningCardResult[]) => results.filter(result =>
+          session.catalogCards.some(card => card.card_id === result.cardId &&
+            card.interaction_id === result.interactionId));
+        const restoredReviewCards = localProgress?.reviewCardIds.flatMap(id => {
+          const card = session.cards.find(candidate => candidate.card_id === id);
+          return card && !readSpaceCardState(id).isSleeping ? [card] : [];
+        }) ?? [];
         const canonicalLearningState = accountBootstrapSnapshot
           ? resolveAccountBootstrapLearningState(
               accountBootstrapSnapshot,
               session,
             )
           : {
-              learningResults: [],
-              reviewResults: [],
+              learningResults: matchingResults(localProgress?.learningResults ?? []),
+              reviewResults: matchingResults(localProgress?.reviewResults ?? []),
             };
 
         const preservesServerAttempt =
@@ -4116,9 +4169,11 @@ function AppShell({
           session.schedulingMode === 'server' &&
           session.serverSelection?.phase === 'review'
             ? 'review'
-            : 'learning';
+            : localProgress?.phase === 'review' && restoredReviewCards.length > 0
+            ? 'review' : 'learning';
         setLearningPhase(scheduledPhase);
-        setReviewSessionCards(scheduledPhase === 'review' ? session.cards : []);
+        setReviewSessionCards(scheduledPhase === 'review'
+          ? session.schedulingMode === 'server' ? session.cards : restoredReviewCards : []);
         setReviewCompletedResults(canonicalLearningState.reviewResults);
         const nextVisibleCards =
           session.schedulingMode === 'server'
@@ -4142,10 +4197,15 @@ function AppShell({
                 card => card.card_id === restoredCursor.cardId,
               )
             : -1;
-        const nextIndex = restoredIndex >= 0 ? restoredIndex : 0;
+        const restoredActiveCards = scheduledPhase === 'review' && session.schedulingMode === 'local'
+          ? restoredReviewCards : nextVisibleCards;
+        const progressIndex = localProgress === null ? -1 : localProgress.cursorCardId === null
+          ? restoredActiveCards.length
+          : restoredActiveCards.findIndex(card => card.card_id === localProgress.cursorCardId);
+        const nextIndex = progressIndex >= 0 ? progressIndex : restoredIndex >= 0 ? restoredIndex : 0;
 
         setLearningIndex(nextIndex);
-        const nextCard = nextVisibleCards[nextIndex];
+        const nextCard = restoredActiveCards[nextIndex];
         if (preservesServerAttempt && nextCard) {
           setLearningCardState(current => current === null ? null : {
             ...current,
@@ -4211,6 +4271,7 @@ function AppShell({
     runtimeAccountBootstrapMode,
     runtimeLearningEventsMode,
     runtimeMembershipRepositoryMode,
+    todayKey,
   ]);
 
   useEffect(() => {

@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   changes:
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -62,7 +62,7 @@ jobs:
 
   design-artifact-gate:
     needs: changes
-    if: always() && github.event_name == 'pull_request'
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -203,7 +203,7 @@ jobs:
 
   mobile-quality:
     needs: changes
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -271,7 +271,7 @@ jobs:
 
   web-quality:
     needs: changes
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -331,6 +331,12 @@ jobs:
         if: env.RUN_GATE == 'true'
         run: npm test
 
+      - name: Verify protected responses in Chromium
+        if: env.RUN_GATE == 'true'
+        run: |
+          npx playwright-core install --with-deps chromium
+          npm run test:browser:transport
+
       - name: Build production Web app
         if: env.RUN_GATE == 'true'
         run: npm run build
@@ -341,7 +347,7 @@ jobs:
 
   backend-contract:
     needs: changes
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -390,7 +396,7 @@ jobs:
 
   dependency-security:
     needs: changes
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -451,7 +457,7 @@ jobs:
 
   ios-release:
     needs: changes
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ${{ needs.changes.outputs.native == 'true' && 'macos-latest' || 'ubuntu-latest' }}
     timeout-minutes: 120
     env:
@@ -608,7 +614,7 @@ jobs:
 
   android-release:
     needs: changes
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -740,7 +746,7 @@ jobs:
 
   evidence-archive:
     needs: changes
-    if: always()
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:

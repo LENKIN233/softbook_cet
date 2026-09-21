@@ -1105,6 +1105,7 @@ test('result detail reads as a resolved card without raw metadata', () => {
     selectedOptionId: 'unclear',
   };
 
+  const onAdvanceCard = jest.fn();
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   ReactTestRenderer.act(() => {
@@ -1114,7 +1115,7 @@ test('result detail reads as a resolved card without raw metadata', () => {
         cardState={cardState}
         currentIndex={1}
         isLastCard={false}
-        onAdvanceCard={jest.fn()}
+        onAdvanceCard={onAdvanceCard}
         onBackToPractice={jest.fn()}
         palette={palette}
         phase="learning"
@@ -1134,6 +1135,12 @@ test('result detail reads as a resolved card without raw metadata', () => {
   });
 
   const output = JSON.stringify(tree!.toJSON());
+  const explanationScroll = tree!.root.findByProps({testID: 'learning-detail-resolved-card'});
+  expect(explanationScroll.findAllByProps({testID: 'learning-next-button'})).toHaveLength(0);
+  const dock = tree!.root.findByProps({testID: 'learning-detail-action-dock'});
+  ReactTestRenderer.act(() => dock.findByProps({testID: 'learning-next-button'}).props.onPress());
+  expect(onAdvanceCard).toHaveBeenCalledTimes(1);
+
 
   expect(
     tree!.root.findByProps({
