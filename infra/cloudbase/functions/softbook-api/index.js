@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const {isIP} = require('node:net');
+const {createCloudBaseContentAssetUrlsResolver} = require('./content-asset-urls');
 const {
   assertCloudBaseAccountSessionAuthority,
   assertCloudBaseAccountWriteAllowed,
@@ -465,8 +466,9 @@ function createSoftbookApi(options = {}) {
     downloadTtlSeconds: options.contentManifestDownloadTtlSeconds,
     now: config.now,
     runtimeMode,
-    resolveDownloadUrl:
-      options.contentAssetUrlResolver ?? createDefaultContentAssetUrlResolver(),
+    resolveDownloadUrl: options.contentAssetUrlResolver,
+    resolveDownloadUrls: options.contentAssetUrlsResolver ??
+      (options.contentAssetUrlResolver ? null : createDefaultContentAssetUrlsResolver()),
     signer:
       options.contentManifestSigner ?? readContentManifestSignerFromEnv(),
     store,
@@ -1124,38 +1126,12 @@ function readContentManifestSignerFromEnv() {
   return createContentManifestSigner(keyId, privateKeyPem);
 }
 
-function createDefaultContentAssetUrlResolver() {
+function createDefaultContentAssetUrlsResolver() {
   if ((process.env.SOFTBOOK_STORE_MODE ?? 'memory') !== 'cloudbase') {
     return null;
   }
 
-  const app = createCloudBaseApp();
-
-  return async ({asset, expiresAt, issuedAt}) => {
-    const maxAge = Math.max(
-      1,
-      Math.floor((expiresAt.getTime() - issuedAt.getTime()) / 1000),
-    );
-    const result = await app.getTempFileURL({
-      fileList: [{fileID: asset.storage_file_id, maxAge}],
-    });
-    const item = result.fileList?.[0];
-
-    if (
-      result.fileList?.length !== 1 ||
-      item?.fileID !== asset.storage_file_id ||
-      item.code ||
-      !item.tempFileURL
-    ) {
-      throw httpError(
-        503,
-        'content_asset_delivery_unavailable',
-        'CloudBase did not return the requested content asset URL.',
-      );
-    }
-
-    return item.tempFileURL;
-  };
+  return createCloudBaseContentAssetUrlsResolver(createCloudBaseApp());
 }
 
 function createMemoryStore(options = {}) {

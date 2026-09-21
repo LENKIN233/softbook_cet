@@ -835,7 +835,11 @@ test('audio card assets are canonical, exact, and fully referenced', () => {
   );
 });
 
-test('content manifest is authenticated, release-bound, signed, and storage-private', async () => {
+for (const resolverMode of ['single', 'batch']) {
+  const resolverOptions = resolve => resolverMode === 'batch'
+    ? {contentAssetUrlsResolver: ({assets, ...context}) => Promise.all(assets.map(asset => resolve({asset, ...context})))}
+    : {contentAssetUrlResolver: resolve};
+test(`content manifest is authenticated, release-bound, signed, and storage-private (${resolverMode})`, async () => {
   const store = createMemoryStore();
   const source = validateCardSourceForImport(
     createAudioReleasedCardSource('cet4'),
@@ -844,8 +848,8 @@ test('content manifest is authenticated, release-bound, signed, and storage-priv
   store.snapshot().cardSources.set('cet4', source);
   const {privateKey, publicKey} = crypto.generateKeyPairSync('ed25519');
   const api = createTestApi({
-    contentAssetUrlResolver: async ({asset}) =>
-      `https://private-content.example/${asset.asset_id}.mp3?token=opaque`,
+    ...resolverOptions(async ({asset}) =>
+      `https://private-content.example/${asset.asset_id}.mp3?token=opaque`),
     contentManifestDownloadTtlSeconds: 600,
     contentManifestSigner: {
       keyId: 'content-key-2026-01',
@@ -951,7 +955,7 @@ test('content manifest is authenticated, release-bound, signed, and storage-priv
   assert.equal(unauthenticated.statusCode, 401);
 });
 
-test('content manifest grants download URLs only for the canonical membership prefix', async () => {
+test(`content manifest grants only the canonical membership prefix (${resolverMode})`, async () => {
   const store = createMemoryStore();
   const source = validateCardSourceForImport(
     createMultiAudioReleasedCardSource('cet4'),
@@ -972,10 +976,10 @@ test('content manifest grants download URLs only for the canonical membership pr
   const {privateKey} = crypto.generateKeyPairSync('ed25519');
   const requestedAssets = [];
   const api = createTestApi({
-    contentAssetUrlResolver: async ({asset}) => {
+    ...resolverOptions(async ({asset}) => {
       requestedAssets.push(asset.asset_id);
       return `https://private-content.example/${asset.asset_id}.mp3?token=opaque`;
-    },
+    }),
     contentManifestSigner: {keyId: 'content-key-2026-01', privateKey},
     store,
   });
@@ -1016,6 +1020,8 @@ test('content manifest grants download URLs only for the canonical membership pr
   });
   assert.deepEqual(trialNotStarted.body.data.downloads, []);
 });
+
+}
 
 test('content manifest fails closed without delivery or signing configuration', async () => {
   const store = createMemoryStore();
