@@ -78,6 +78,7 @@ test('learning compact mode covers 320dp and short phone viewports', () => {
 });
 
 test('opening help does not count as using a hint or peek', () => {
+  const renderErrors = jest.spyOn(console, 'error');
   const session = createLocalLearningSession('cet4');
   const card = session.cards.find(item => item.hint_layer)!;
   const onToggleHint = jest.fn();
@@ -102,6 +103,9 @@ test('opening help does not count as using a hint or peek', () => {
   expect(onToggleHint).toHaveBeenCalledTimes(1);
   expect(onTogglePeek).not.toHaveBeenCalled();
   ReactTestRenderer.act(() => tree.unmount());
+  const duplicateKeys = renderErrors.mock.calls.filter(([message]) => String(message).includes('same key'));
+  renderErrors.mockRestore();
+  expect(duplicateKeys).toHaveLength(0);
 });
 
 test('all five interactions keep one stable card envelope and separated support controls', () => {

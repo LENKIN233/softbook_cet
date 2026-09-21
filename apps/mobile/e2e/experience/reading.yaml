@@ -1,8 +1,8 @@
-appId: com.softbook.cet
+appId: com.softbook.cet.experience
 name: read-material-and-correction
 ---
 # Dedicated development simulator only. No remote SMS or account is used.
-- launchApp
+# Preparation leaves this app on the selected card; relaunch would reopen the local start page.
 - extendedWaitUntil:
     visible:
       id: learning-option-1
@@ -15,7 +15,7 @@ name: read-material-and-correction
     timeout: 10000
 - takeScreenshot: options
 - tapOn:
-    id: learning-option-2
+    id: learning-option-${WRONG_OPTION_INDEX}
 - tapOn:
     id: learning-submit-button
 - assertVisible:
@@ -44,22 +44,27 @@ name: read-material-and-correction
 - takeScreenshot: material
 - tapOn:
     id: learning-help-button
-- tapOn:
-    id: learning-peek-button
 - scrollUntilVisible:
     element:
-      id: learning-support-layer
+      id: learning-peek-button
     direction: DOWN
     timeout: 10000
+- tapOn:
+    id: learning-peek-button
 - assertVisible:
     id: learning-help-content
+- scrollUntilVisible:
+    element:
+      id: learning-elimination-passage
+    direction: UP
+    timeout: 10000
 - takeScreenshot: material-with-support
 - runFlow:
     when:
       platform: Android
     commands:
       - tapOn:
-          id: learning-option-1
+          id: learning-elimination-1
       - tapOn:
           id: learning-submit-button
       - scrollUntilVisible:

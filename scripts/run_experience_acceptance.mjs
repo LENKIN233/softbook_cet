@@ -61,10 +61,20 @@ try {
     'options': choice.options.map(option => option.text),
   };
   const realCards = require(join(root, 'infra/cloudbase/functions/softbook-api/card-content')).cet4.cards.slice().sort((a, b) => a.card_id.localeCompare(b.card_id));
-  const realChoice = realCards[0];
+  const sampleIds = JSON.parse(readFileSync(join(root, 'apps/mobile/e2e/experience/reading-cards.json'), 'utf8'));
+  if (!Array.isArray(sampleIds) || sampleIds.length !== 2 || new Set(sampleIds).size !== 2) throw new Error('The reading journey requires two distinct source cards.');
+  const [realChoice, realMaterial] = sampleIds.map(id => realCards.find(card => card.card_id === id));
+  if (realChoice?.interaction_id !== 'multiple_choice' || realMaterial?.interaction_id !== 'elimination') {
+    throw new Error('The selected real reading samples changed; update the journey and calibration together.');
+  }
   const realAnswer = realChoice.options.find(option => option.id === realChoice.answer_key.correct_option);
-  const expected = {material: realCards[1].front.support, answer: `${realAnswer.label} ${realAnswer.text}`, options: realChoice.options.map(option => option.text)};
-  report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
+  const wrongOptionIndex = realChoice.options.findIndex(option => option.id !== realChoice.answer_key.correct_option) + 1;
+  if (!realAnswer || wrongOptionIndex < 1) throw new Error('The choice sample needs a correct answer and a distractor.');
+  const requiredMaterial = realMaterial.front.support.split('\n\n')[0];
+  if (!realMaterial.elimination_items.every(item => requiredMaterial.includes(item.text))) throw new Error('The entire selected sentence must be covered by the reading expectation.');
+  const expected = {material: requiredMaterial, answer: `${realAnswer.label} ${realAnswer.text}`, options: realChoice.options.map(option => option.text)};
+  report.sample_card_ids = sampleIds;
+  report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/index.experience.js', 'apps/mobile/e2e/experience/reading-cards.json', 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
     'apps/mobile/src/learning/presentation.ts', 'apps/mobile/src/learning/EliminationPassageText.tsx',
     'apps/mobile/src/space/SpaceSurface.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',
@@ -87,7 +97,7 @@ try {
   report.inputs['apps/mobile/e2e/experience/known-good/real-listening-options.png'] = positive.image_sha256;
   if (!report.positive_calibration.readable) throw new Error('Known readable Chinese options were rejected; check OCR language priority.');
   if (!options.calibrateOnly) {
-    captureExperience({device: options.device, output, run});
+    captureExperience({device: options.device, output, run, wrongOptionIndex});
     const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
     function capturedFiles(directory) {
       return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {

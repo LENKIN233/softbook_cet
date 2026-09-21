@@ -31,13 +31,13 @@
 
 ### 当前落地范围
 
-`apps/mobile/e2e/experience/reading.yaml` 运行两个真实开发内容样本：
+`apps/mobile/e2e/experience/reading.yaml` 通过独立 `.experience` Debug 包运行 `reading-cards.json` 指定的两个真实卡库样本：
 四选一先读四个选项正文，答错后在结果首层及展开解析中读取正确答案；消除题读取完整原句，打开提示后仍能读取原句。
 选项检测以本轮实际出现的“只有字母、正文宽度被挤没”截图作失败校准。
 同一 flow 在 Android 上还执行系统 Back，验证解析返回卡面、盒内列表返回概览、
 辅助页面返回学习。iOS 会跳过这一平台专有分支，不得据此声称 Android 已实测。
 
-在 macOS 上，对已安装当前 Debug app、已启动 Metro 的**专用可清空测试模拟器**执行：
+在 macOS 上，对已安装当前 `.experience` Debug app、已启动 Metro 的**专用可清空测试模拟器**执行：
 
 ```sh
 node scripts/run_experience_acceptance.mjs --device <device-id> --output <new-output-directory>
@@ -45,6 +45,8 @@ node scripts/run_experience_acceptance.mjs --device <device-id> --output <new-ou
 
 同一流程支持 iOS 和 Android；OCR 使用系统 Vision，不发送图片到外部服务。
 该命令会清空指定模拟器内测试应用的数据，禁止对用户日常设备执行。
+`index.experience.js` 只在 Debug 下选取这两个已导出的真实卡片，不进入正常本地或 Release 入口。卡库排序变化不会自动更换验收对象，样本类型变化则要求同步修订流程。
+
 runner 先用独立的 420 秒预算安装驱动、清空应用并完成开发测试登录，确认学习卡就绪后，
 再复用驱动执行原有 240 秒阅读流程；
 任一阶段失败立即停止，不重试。准备日志与阅读截图分目录保留，不能互相充当证据。

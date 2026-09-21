@@ -34,7 +34,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 
   private func softbookInitialProperties() -> [String: Any]? {
-#if SOFTBOOK_DEVICE_LOCAL || SOFTBOOK_LOCAL_BACKEND
+#if SOFTBOOK_DEVICE_LOCAL || SOFTBOOK_LOCAL_BACKEND || SOFTBOOK_EXPERIENCE
     return nil
 #elseif DEBUG
     let environment = ProcessInfo.processInfo.environment
@@ -101,7 +101,9 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
   }
 
   override func bundleURL() -> URL? {
-#if SOFTBOOK_DEVICE_LOCAL || SOFTBOOK_LOCAL_BACKEND
+#if DEBUG && SOFTBOOK_EXPERIENCE
+    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index.experience")
+#elseif SOFTBOOK_DEVICE_LOCAL || SOFTBOOK_LOCAL_BACKEND
     Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #elseif DEBUG
     RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")

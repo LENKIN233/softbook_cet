@@ -37,6 +37,18 @@ it('keeps every distinct front material while removing exact duplicate transport
   ).toEqual(['Second required paragraph']);
 });
 
+it('removes only an explicitly labelled verbatim repeat of the visible task', () => {
+  const original = elimination.front.support;
+  const card = {...elimination, front: {...elimination.front, prompt: 'Keep the core sentence.',
+    support: `${original}\n\n任务：Keep the core sentence.`, context: '任务：Keep the core sentence.'}};
+  expect(frontMaterial(card)).toEqual([original]);
+  const passage = eliminationPassage(card)!;
+  expect(passage.source).toBe(original);
+  expect(passage.segments.map(segment => segment.text).join('')).toBe(original);
+  const different = {...card, front: {...card.front, support: `${original}\n\n任务：Keep the condition too.`}};
+  expect(frontMaterial(different)).toEqual([different.front.support]);
+});
+
 it('maps every selectable phrase once and reconstructs the original without loss', () => {
   const passage = eliminationPassage(elimination)!;
   expect(passage.segments.map(segment => segment.text).join('')).toBe(

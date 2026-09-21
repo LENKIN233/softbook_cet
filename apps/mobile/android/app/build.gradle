@@ -16,6 +16,7 @@ if (localStudyRequested && gradle.startParameter.taskNames.any { it.toLowerCase(
 }
 
 react {
+    debuggableVariants = ["debug", "debugOptimized", "experience"]
     if (localStudyRequested && localBackendRequested) { throw new GradleException("Choose one local entry.") }
     if (localStudyRequested) { entryFile = file("../../index.local.js") }
     if (localBackendRequested) { entryFile = file("../../index.backend.js") }
@@ -138,6 +139,7 @@ android {
     namespace "com.softbook.cet"
     defaultConfig {
         applicationId "com.softbook.cet"
+        buildConfigField "boolean", "SOFTBOOK_EXPERIENCE", "false"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -184,6 +186,13 @@ android {
             buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_BASE_URL", buildConfigString(localProductBaseUrl)
             buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_TRACK", buildConfigString(localProductTrack)
             buildConfigField "String", "SOFTBOOK_LOCAL_PRODUCT_PUBLIC_KEYS", buildConfigString(localProductPublicKeys)
+        }
+        experience {
+            initWith debug
+            applicationIdSuffix '.experience'
+            matchingFallbacks = ['debug']
+            buildConfigField "boolean", "SOFTBOOK_EXPERIENCE", "true"
+            manifestPlaceholders = [usesCleartextTraffic: 'true']
         }
         release {
             if (releaseSigningConfigured) {

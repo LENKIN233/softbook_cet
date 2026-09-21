@@ -778,7 +778,7 @@ export function LearningSurface({
                   ]}
                 >
                   <InteractionBody
-                    key={`${currentCard.card_id}:${audioAttemptId ?? phase}`}
+                    key={`interaction:${currentCard.card_id}:${audioAttemptId ?? phase}`}
                     card={currentCard}
                     cardState={currentCardState}
                     currentResult={currentResult}
@@ -790,7 +790,7 @@ export function LearningSurface({
                     compact={isCompactPhone}
                   />
                   <LearningHelp
-                    key={`${currentCard.card_id}:${audioAttemptId ?? phase}`}
+                    key={`help:${currentCard.card_id}:${audioAttemptId ?? phase}`}
                     card={currentCard} state={currentCardState} palette={palette}
                     onToggleHint={onToggleHint} onTogglePeek={onTogglePeek}
                   />
@@ -1912,6 +1912,7 @@ export function LearningResultDetailSurface({
     '当前卡盒',
   );
   const resultTone = getResultTone(result, palette);
+  const courseName = card.track === 'cet6' ? '英语六级' : '英语四级';
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const primaryAction = getLibraryActionColors(detailLibraryTone.accent, palette);
@@ -1996,7 +1997,7 @@ export function LearningResultDetailSurface({
               </Text>
             </View>
           </View>
-          <View
+          {sessionCardCount > 1 ? <View
             style={[
               styles.cardProgressCluster,
               isCompactPhone ? styles.cardProgressClusterCompact : null,
@@ -2025,7 +2026,7 @@ export function LearningResultDetailSurface({
                 ]}
               />
             </View>
-          </View>
+          </View> : null}
         </View>
 
         {!isCompactPhone ? (
