@@ -408,6 +408,10 @@ Within one warm function instance, all CloudBase transactions share one serial
 runner and the next transaction waits for a 25 ms post-settlement cooldown.
 Injected database adapters skip the real timer unless a test supplies it.
 Cross-instance contention remains bounded by the exact busy retry above.
+Operations within a single transaction must also be awaited in sequence. The
+session fence reads deletion, session and account records serially in the same
+snapshot; live FlexDB probes reproduced busy failures for parallel reads of
+independent documents. Retrying an unchanged parallel read is insufficient.
 Every challenge stores account, purpose, collision-safe delivery reservation,
 provider deadline, nullable provider ID, and expected account instance; every
 completion conditionally matches that exact pending intent. Every protected account read and
