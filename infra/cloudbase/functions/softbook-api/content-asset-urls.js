@@ -16,6 +16,7 @@ function createCloudBaseContentAssetUrlsResolver(app) {
         try {
           response = await app.getTempFileURL({
             fileList: batch.map(fileID => ({fileID, maxAge})),
+            customReqOpts: {timeout: 5000},
           }, {timeout: 5000});
         } catch {
           failed = true;
@@ -28,7 +29,7 @@ function createCloudBaseContentAssetUrlsResolver(app) {
           throw deliveryError();
         }
         for (const item of response.fileList) {
-          if (!expected.has(item?.fileID) || returned.has(item.fileID) || item.code ||
+          if (!expected.has(item?.fileID) || returned.has(item.fileID) || (item.code && item.code !== 'SUCCESS') ||
               typeof item.tempFileURL !== 'string' || !item.tempFileURL) {
             failed = true;
             throw deliveryError();

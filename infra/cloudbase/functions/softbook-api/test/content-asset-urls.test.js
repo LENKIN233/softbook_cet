@@ -9,13 +9,14 @@ test('301 private audio URLs use seven bounded batches and retain exact asset or
   let active = 0;
   let peak = 0;
   const sizes = [];
-  const resolve = createCloudBaseContentAssetUrlsResolver({async getTempFileURL({fileList}, options) {
+  const resolve = createCloudBaseContentAssetUrlsResolver({async getTempFileURL({fileList, customReqOpts}, options) {
     active += 1; peak = Math.max(peak, active); sizes.push(fileList.length);
     assert.equal(options.timeout, 5000);
+    assert.equal(customReqOpts.timeout, 5000);
     assert.ok(fileList.every(item => item.maxAge === 900));
     await new Promise(done => setImmediate(done));
     active -= 1;
-    return {fileList: fileList.slice().reverse().map(({fileID}) => ({fileID, tempFileURL: `https://private.example/${fileID.slice(fileID.lastIndexOf('/') + 1)}`}))};
+    return {fileList: fileList.slice().reverse().map(({fileID}) => ({code: 'SUCCESS', fileID, tempFileURL: `https://private.example/${fileID.slice(fileID.lastIndexOf('/') + 1)}`}))};
   }});
   const input = [...assets, {...assets[0], asset_id: 'alias'}];
   const urls = await resolve({assets: input, ...context});
@@ -23,6 +24,13 @@ test('301 private audio URLs use seven bounded batches and retain exact asset or
   assert.equal(peak, 4);
   assert.equal(active, 0);
   assert.deepEqual(urls, [...assets.map((_, i) => `https://private.example/${i}`), 'https://private.example/0']);
+});
+
+test('legacy successful records may omit the provider status', async () => {
+  const resolve = createCloudBaseContentAssetUrlsResolver({async getTempFileURL({fileList}) {
+    return {fileList: fileList.map(({fileID}) => ({fileID, tempFileURL: 'https://private.example/audio'}))};
+  }});
+  assert.deepEqual(await resolve({assets: assets.slice(0, 1), ...context}), ['https://private.example/audio']);
 });
 
 test('empty authorized prefixes do not request any private URL', async () => {
