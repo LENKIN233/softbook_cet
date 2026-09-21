@@ -53,9 +53,6 @@ function createContentManifestV1Service(options) {
         {access: serializedAccess, manifest},
         requireSigner(options.signer),
       );
-      const resolveDownloadUrl = requireDownloadUrlResolver(
-        options.resolveDownloadUrl,
-      );
       const downloadTtlExpiresAt = new Date(
         issuedAt.getTime() +
           (options.downloadTtlSeconds ?? DOWNLOAD_TTL_SECONDS) * 1000,
@@ -69,21 +66,21 @@ function createContentManifestV1Service(options) {
               ),
             )
           : downloadTtlExpiresAt;
-      const downloads = await Promise.all(
-        access.assets.map(async asset => ({
+      const context = {expiresAt, issuedAt, release: cardSource.release, track};
+      const resolveOne = typeof options.resolveDownloadUrls === 'function'
+        ? null : requireDownloadUrlResolver(options.resolveDownloadUrl);
+      const urls = typeof options.resolveDownloadUrls === 'function'
+        ? await options.resolveDownloadUrls({assets: access.assets, ...context})
+        : await Promise.all(access.assets.map(asset =>
+            resolveOne({asset, ...context})));
+      if (!Array.isArray(urls) || urls.length !== access.assets.length) {
+        throw contentManifestError(503, 'content_asset_delivery_unavailable', 'Content asset URL batch is incomplete.');
+      }
+      const downloads = access.assets.map((asset, index) => ({
           asset_id: asset.asset_id,
           expires_at: expiresAt.toISOString(),
-          url: requireHttpsUrl(
-            await resolveDownloadUrl({
-              asset,
-              expiresAt,
-              issuedAt,
-              release: cardSource.release,
-              track,
-            }),
-          ),
-        })),
-      );
+          url: requireHttpsUrl(urls[index]),
+        }));
 
       return {
         access: serializedAccess,
