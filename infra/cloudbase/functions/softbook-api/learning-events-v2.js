@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const {normalizeAnswerEvidence, assertAnswerEvidenceMatchesCard} = require('./learning-answer-evidence');
 const {
   isAccountDeletionPendingError,
 } = require('./account-write-fence');
@@ -161,7 +162,7 @@ function parseRequest(body, batchLimit, session) {
 
 function parseEvent(value, index, session, track) {
   const label = `events[${index}]`;
-  const event = requireExactObject(value, EVENT_FIELDS, label);
+  const event = requireExactObject(value, value && Object.hasOwn(value, 'answer_evidence') ? [...EVENT_FIELDS, 'answer_evidence'] : EVENT_FIELDS, label);
   const eventId = requireOpaqueId(event.event_id, `${label}.event_id`);
   const selectionId = requireSelectionId(
     event.selection_id,
@@ -229,6 +230,13 @@ function parseEvent(value, index, session, track) {
     },
   };
 
+  if (Object.hasOwn(event, 'answer_evidence')) {
+    try {
+      payload.answer_evidence = normalizeAnswerEvidence(event.answer_evidence, interactionId);
+      if (payload.answer_evidence === undefined) throw new Error('Missing answer evidence.');
+    } catch (error) { throw invalidRequest(error.message); }
+  }
+
   return {
     clientOccurredAtMs: clientTime,
     digest: sha256(stableJsonStringify({payload, track})),
@@ -285,6 +293,9 @@ async function validateNewEvents(config, events, readContentVersion, now) {
         'The submitted interaction does not match the versioned card.',
       );
     }
+
+    try { assertAnswerEvidenceMatchesCard(event.payload, card); }
+    catch (error) { throw invalidRequest(error.message); }
 
     return {
       ...event,

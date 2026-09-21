@@ -16,7 +16,12 @@
       "presentation_policy": "不自动播放，没有字幕（背面可以有）"
     },
     "learning_path": {
-      "default_strategy": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+      "default_strategy": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习",
+      "jev_next_update": {
+        "request": "投入产品中但是另开一个分支，做为下一次更新的内容",
+        "delivery": "separate next-update branch; preserve current workspace; no merge or release in this task",
+        "algorithm": "keep FSRS memory timing; add evidence-gated Jev weakness detection and candidate ranking with deterministic fallback"
+      }
     }
   },
   "product_intent": {

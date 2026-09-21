@@ -151,6 +151,7 @@ export type LearningCardResultOutcome =
   | 'review';
 
 export type LearningCardResult = {
+  selectedOptionId?: string;
   cardId: string;
   interactionId: LearningInteractionId;
   outcome: LearningCardResultOutcome;
@@ -161,6 +162,7 @@ export type LearningCardResult = {
 };
 
 export type LearningServerSelection = {
+  answerEvidenceSchemaVersion?: 'learning-answer-evidence.v1';
   cardId: string;
   dueAt: string | null;
   phase: 'learning' | 'review';

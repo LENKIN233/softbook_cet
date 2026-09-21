@@ -5451,6 +5451,7 @@ function AppShell({
       (async () => {
         try {
           await learningEventSyncRepository.enqueueCompletion({
+            ...(learningSession.serverSelection?.answerEvidenceSchemaVersion ? {answerEvidenceSchemaVersion: learningSession.serverSelection.answerEvidenceSchemaVersion} : {}),
             accountPhoneNumber,
             contentVersion,
             phase: completedPhase,

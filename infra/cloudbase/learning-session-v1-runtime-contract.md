@@ -36,6 +36,63 @@ Referenced active specs:
 
 ## Request
 
+### Next-update Jev advisor
+
+The optional semantic advisor is owned by
+`spec/account-sync-contract.json#server_scheduler_v1.semantic_advisor` and
+implemented in `functions/softbook-api/jev-learning-advisor.js`. This branch
+does not deploy or enable it on any receiver. FSRS remains the memory-state
+authority; the advisor only ranks the first eight eligible new cards, or
+reviews sharing the exact earliest due time. An existing cursor always wins.
+
+The advisor resolves multiple-choice error evidence from the exact current
+canonical card source. It never accepts client-provided explanations, skill
+labels or reference answers. It uses the latest result per card, requires at
+least two supported errors on distinct cards, excludes inaccessible/sleeping
+cards, and ages evidence by FSRS's server acceptance timestamp. The current
+taxonomy covers vocabulary, syntax, contrast, inference and main idea, with
+an explicit abstention. Candidates are classified from canonical content in
+the same batched request; no new content tags or formal card assets are authored.
+Missing transcripts or oversized text cause fallback rather than truncation.
+
+Inference runs outside storage transactions and has a bounded deadline. A
+session read performs at most one model recommendation, then rereads all
+canonical inputs with a fresh clock. Changed candidate, learning, membership,
+space, content or cursor authority invalidates the recommendation. Both memory
+and CloudBase cursor writes additionally check content identity and physical
+space revision in the cursor transaction. Existing account-session fences,
+learning watermark checks and post-write membership checks remain in force.
+
+Server configuration:
+
+| Variable | Behavior |
+| --- | --- |
+| `SOFTBOOK_JEV_MODE=off` | Default. Original ordering and no provider requests. |
+| `SOFTBOOK_JEV_MODE=shadow` | Collect a recommendation while keeping original ordering. |
+| `SOFTBOOK_JEV_MODE=rerank` | Apply supported recommendations within the permitted shortlist. |
+| `TYPESAFE_API_KEY` | Server-only TypeSafe credential; never a Web or mobile build variable. |
+
+The model is pinned to `jev-1.13.0`. The provider has a 2.5-second deadline,
+four concurrent calls and 30 calls/minute per process, a bounded account-scoped
+five-minute cache and a 30-second circuit breaker for auth/rate/overload errors.
+These are process-local controls, not an account-wide billing cap. The optional
+observer receives only model/policy, status, reason, latency and token/cost
+metadata. It receives neither identities nor question/answer content.
+
+New clients advertise `Accept: application/json; profile=learning-answer-evidence.v1`.
+Only these requests receive the optional selection field
+`answer_evidence_schema_version: "learning-answer-evidence.v1"`. Plain legacy
+requests receive the unchanged DTO. The Accept parameter uses a token value
+without quotes and needs no additional CORS request header. Updated clients
+accept both forms and upload the extension only after negotiation.
+
+Deploy the evidence-capable backend before new clients. To disable semantic
+ranking, set `SOFTBOOK_JEV_MODE=off`; retain evidence parsing so already queued
+immutable events can replay. Rolling the backend back to code predating the
+evidence extension is not compatible with queued extended events. Re-enabling
+ranking does not reset FSRS history or delete evidence. Production activation,
+credentials and learning-effect claims require their own observed evidence.
+
 ```http
 GET /v2/learning/session?track=cet4
 Authorization: Bearer <access_token>

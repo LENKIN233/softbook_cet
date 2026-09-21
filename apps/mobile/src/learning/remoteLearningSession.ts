@@ -143,7 +143,7 @@ export async function loadRemoteLearningSession(
       method: 'GET',
       headers: {
         ...createSoftbookClientHeaders(config.clientKind, config.headers),
-        Accept: 'application/json',
+        Accept: 'application/json; profile=learning-answer-evidence.v1',
         Authorization: `Bearer ${context.authToken}`,
         ...(config.apiKey
           ? { [config.apiKeyHeader ?? 'x-api-key']: config.apiKey }
@@ -503,7 +503,8 @@ function parseSelection(candidate: unknown): LearningServerSelection | null {
 
   const selection = requireExactObject(
     candidate,
-    ['selection_id', 'card_id', 'phase', 'reason', 'due_at'],
+    ['selection_id', 'card_id', 'phase', 'reason', 'due_at',
+      ...(isObject(candidate) && Object.prototype.hasOwnProperty.call(candidate, 'answer_evidence_schema_version') ? ['answer_evidence_schema_version'] : [])],
     'response.data.selection',
   );
   const selectionId = requirePattern(
@@ -543,7 +544,13 @@ function parseSelection(candidate: unknown): LearningServerSelection | null {
     );
   }
 
-  return { cardId, dueAt, phase, reason, selectionId };
+  const supportsEvidence = Object.prototype.hasOwnProperty.call(selection, 'answer_evidence_schema_version');
+  if (supportsEvidence && selection.answer_evidence_schema_version !== 'learning-answer-evidence.v1') {
+    throw new Error('Unsupported learning answer evidence capability.');
+  }
+  return { cardId, dueAt, phase, reason, selectionId,
+    ...(supportsEvidence ? {answerEvidenceSchemaVersion: 'learning-answer-evidence.v1' as const} : {}),
+  };
 }
 
 function appendTrack(

@@ -1015,7 +1015,7 @@ describe('authenticated Web remote orchestration', () => {
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
     networkAvailable = false;
-    const result = createLearningResult();
+    const result = {...createLearningResult(), interactionId: 'multiple_choice' as const, outcome: 'incorrect' as const, selectedOptionId: 'wrong'};
     expect(await controller.completeCurrentCard(result)).toEqual({
       pendingEventCount: 1,
       rejectedEventCount: 0,
@@ -1027,6 +1027,7 @@ describe('authenticated Web remote orchestration', () => {
     await expect(
       controller.completeCurrentCard({...result, outcome: 'review'}),
     ).rejects.toThrow('must match the durably persisted answer');
+    await expect(controller.completeCurrentCard({...result, selectedOptionId: 'another_wrong'})).rejects.toThrow('must match the durably persisted answer');
     expect(pendingEventCount).toBe(1);
     expect(enqueueCount).toBe(1);
 

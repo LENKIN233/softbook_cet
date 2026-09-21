@@ -28,6 +28,21 @@ const {
 const {pilotEntitlementInternals} = require('../pilot-entitlement-v1');
 
 const fixedNow = new Date('2026-04-30T12:00:00.000Z');
+
+test('CloudBase advisor cursor guard binds content and physical-space revision in the write transaction', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const source = await store.getCardSource('cet4');
+  const accountKey = 'account:jev-guard';
+  const state = await store.getSpaceState('13800138000', '2026-04-30', {accountKey, acknowledgedAt: fixedNow.toISOString()});
+  const input = {accountKey, cursor: null, expectedRevision: 0, learningAcknowledgedAt: null, learningServerSequence: 0,
+    track: 'cet4', updatedAt: fixedNow.toISOString(),
+    selectionGuard: {spaceRevision: state.revision, contentVersion: source.content_version, sourceId: source.source.id}};
+  for (const changed of [{spaceRevision: state.revision+1}, {contentVersion: `sha256:${'f'.repeat(64)}`}, {sourceId: 'changed-source'}]) {
+    assert.equal(await store.saveLearningSessionCursor({...input, selectionGuard: {...input.selectionGuard, ...changed}}), false);
+  }
+  assert.equal(await store.saveLearningSessionCursor(input), true);
+});
 const BETA_BACKEND_DEPLOYMENT_ID =
   `backend-deployment:sha256:${'b'.repeat(64)}`;
 const ACCOUNT_INSTANCE_ID = `account_${'a'.repeat(24)}`;
