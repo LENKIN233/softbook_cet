@@ -1,3 +1,4 @@
+import {filterSpaceCards, type SpaceCardFilter} from './cardFilters';
 import { spaceCardPreview } from '../learning/presentation';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -111,6 +112,7 @@ export type SpaceStatusRail = {
 export function SpaceSurface({
   cardStateById,
   currentLearningCard,
+  pendingReviewIds = [],
   deviceClass,
   onBackToOverview,
   onOpenCardList,
@@ -127,6 +129,7 @@ export function SpaceSurface({
 }: {
   cardStateById: Record<string, { isFavorited: boolean; isSleeping: boolean }>;
   currentLearningCard: LearningCard | null;
+  pendingReviewIds?: string[];
   deviceClass: DeviceClass;
   onBackToOverview?: () => void;
   onOpenCardList?: () => void;
@@ -144,6 +147,9 @@ export function SpaceSurface({
   const { height: viewportHeight, width: viewportWidth } =
     useWindowDimensions();
   const usesShortViewport = isShortSpaceViewport(viewportWidth, viewportHeight);
+  const [filter, setFilter] = useState<SpaceCardFilter>('all');
+  const [filterLimit, setFilterLimit] = useState(40);
+  const matches = filterSpaceCards(spaceCards, filter, Object.keys(cardStateById).filter(id => cardStateById[id].isFavorited), pendingReviewIds);
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const focusedSelection = useMemo(() => {
     if (!currentLearningCard) {
@@ -397,7 +403,7 @@ export function SpaceSurface({
             testID="space-address-shelf"
           >
             <Text style={[styles.eyebrow, { color: emptyTone.accent }]}>
-              空间地址
+              卡片位置
             </Text>
             <Text style={[styles.title, { color: palette.text }]}>
               当前卡盒
@@ -492,7 +498,7 @@ export function SpaceSurface({
                   />
                 ) : null}
                 <ActionChip
-                  label="回学习"
+                  label="继续学习"
                   onPress={onReturnToLearning}
                   palette={palette}
                   testID="space-return-learning"
@@ -620,12 +626,12 @@ export function SpaceSurface({
                     testID="space-empty-card-slot"
                   >
                     <Text style={[styles.cardPrompt, { color: palette.text }]}>
-                      当前卡盒暂无可展示卡片
+                      这个卡盒还没有卡片
                     </Text>
                     <Text
                       style={[styles.cardMeta, { color: palette.textMuted }]}
                     >
-                      本轮暂时没有符合条件的卡片；可以继续学习或稍后再看。
+                      这个卡盒暂时没有卡片，可以先继续学习。
                     </Text>
                   </View>
                 )}
@@ -652,6 +658,20 @@ export function SpaceSurface({
   const isFavorited = Boolean(selectedState?.isFavorited);
   const isSleeping = Boolean(selectedState?.isSleeping);
   const cardDisplayIndex = safeSelectedCardIndex + 1;
+  const openFilteredCard = (card: LearningCard) => {
+    const position = resolveSpacePosition(seed, card);
+    if (!position) return;
+    setSelectionMode('manual');
+    const library = seed.libraries[position.libraryIndex - 1];
+    const group = library.groups[position.groupIndex - 1];
+    const box = group.boxes[position.boxIndex - 1];
+    setSelectedLibraryName(library.libraryName);
+    setSelectedGroupName(group.groupName);
+    setSelectedBoxRef(box.boxRef);
+    setSelectedCardIndex(Math.max(0, box.cards.findIndex(item => item.cardId === card.card_id)));
+    setFilter('all');
+    onOpenCardList?.();
+  };
   const inspectCard = (cardId: string) => {
     setSelectionMode('manual');
     setSelectedCardIndex(
@@ -677,7 +697,45 @@ export function SpaceSurface({
           </View>
         ) : null}
         {stateRailStack}
-        {screen === 'overview' ? (
+        <View style={styles.filterBar} accessibilityRole="toolbar" testID="space-filter-bar">
+          {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习']] as const).map(([value, label, name]) => <Pressable key={value}
+            accessibilityRole="button" accessibilityLabel={name} accessibilityState={{selected: filter === value}}
+            onPress={() => {setFilter(value); setFilterLimit(40);}} style={[styles.filterButton, {borderBottomColor: filter === value ? palette.accent : 'transparent'}]} testID={`space-filter-${value}`}>
+            <Text style={{color: filter === value ? palette.text : palette.textMuted}}>{label}</Text>
+          </Pressable>)}
+        </View>
+        {filter !== 'all' ? <View style={styles.filterResults} testID="space-filter-results">
+          <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。' : '目前没有待复习的卡片。'}</Text>
+          {matches.slice(0, filterLimit).map((item, index) => {
+            const locationLabel = formatSpacePathByNames(
+              item.space_metadata.library,
+              item.space_metadata.group,
+              item.space_metadata.box,
+            );
+            const previewTitle = spaceCardPreview(item).title;
+            const isCurrent = item.card_id === currentLearningCard?.card_id;
+            return (
+              <Pressable
+                key={item.card_id}
+                accessibilityRole="button"
+                onPress={() => openFilteredCard(item)}
+                style={[styles.filteredCard, {borderBottomColor: palette.border}]}
+                testID={`space-filter-card-${index}`}
+              >
+                <Text style={[styles.spaceMeta, {color: palette.textMuted}]}>
+                  {locationLabel}
+                </Text>
+                <Text style={[styles.previewPrompt, {color: palette.text}]}>
+                  {previewTitle}
+                </Text>
+                {isCurrent ? (
+                  <Text style={{color: palette.accent}}>当前学习</Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
+          {matches.length > filterLimit ? <Pressable accessibilityRole="button" style={styles.filterButton} onPress={() => setFilterLimit(value => value + 40)}><Text style={{color: palette.text}}>显示更多</Text></Pressable> : null}
+        </View> : screen === 'overview' ? (
           <View style={styles.spaceComposition} testID="space-current-box-tray">
             <View style={styles.shelfNavigator} testID="space-browse-rail">
               <ScrollView
@@ -864,7 +922,7 @@ export function SpaceSurface({
                       { color: palette.textMuted },
                     ]}
                   >
-                    回到当前卡所在位置 →
+                    查看当前卡片 →
                   </Text>
                 </Pressable>
               ) : null}
@@ -890,7 +948,7 @@ export function SpaceSurface({
                   <Text
                     style={[styles.spaceMeta, { color: palette.textMuted }]}
                   >{`${selectedBoxCards.length} 张${
-                    selectedBoxIsCurrent ? ' · 当前学习所在盒' : ''
+                    selectedBoxIsCurrent ? ' · 正在学习' : ''
                   }`}</Text>
                 </View>
                 <Pressable
@@ -1102,8 +1160,8 @@ export function SpaceSurface({
                         accessibilityRole="switch"
                         accessibilityLabel={
                           isSleeping
-                            ? '将当前卡移出休眠区'
-                            : '将当前卡放入休眠区'
+                            ? '恢复学习这张卡'
+                            : '暂不学习这张卡'
                         }
                         accessibilityState={{ checked: isSleeping }}
                         onPress={() => {
@@ -1126,7 +1184,7 @@ export function SpaceSurface({
                             isSleeping ? 'active' : 'inactive'
                           }-${cardDisplayIndex}`}
                         >
-                          {isSleeping ? '移出休眠' : '放入休眠'}
+                          {isSleeping ? '恢复学习' : '暂不学习这张卡'}
                         </Text>
                       </Pressable>
                     </>
@@ -1192,7 +1250,7 @@ export function SpaceSurface({
           ) : null}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="回到当前学习卡"
+            accessibilityLabel="继续学习"
             onPress={onReturnToLearning}
             style={[
               styles.returnAction,
@@ -1203,7 +1261,7 @@ export function SpaceSurface({
             <Text
               style={[styles.returnActionText, { color: primaryActionText }]}
             >
-              回到刚才的学习卡 →
+              继续学习
             </Text>
           </Pressable>
         </View>
@@ -1603,6 +1661,10 @@ function buildOverviewDeckCards(
 }
 
 const styles = StyleSheet.create({
+  filterBar: {flexDirection: 'row', flexWrap: 'wrap', gap: 16},
+  filterButton: {minHeight: 44, justifyContent: 'center', paddingHorizontal: 4, paddingVertical: 10, borderBottomWidth: 2},
+  filterResults: {gap: 12},
+  filteredCard: {minHeight: 64, paddingVertical: 16, borderBottomWidth: 1, gap: 8},
   spaceComposition: { gap: 18 },
   spaceLocation: { fontSize: 12, lineHeight: 20 },
   spaceSectionTitle: { fontSize: 18, lineHeight: 27, fontWeight: '600' },

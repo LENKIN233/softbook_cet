@@ -4,11 +4,11 @@ const REMOTE_STATUS_ERROR_PATTERN =
 function getKnownRemoteErrorCopy(type: string): string | null {
   switch (type) {
     case 'auth request-code':
-      return '验证码暂时没发出。';
+      return '验证码发送失败，请重试。';
     case 'auth verify-code':
-      return '验证码暂时没通过。';
+      return '验证码验证失败，请重试。';
     case 'learning card source request':
-      return '学习卡片加载暂时失败。';
+      return '卡片加载失败，请重试。';
     case 'learning state sync':
       return '学习记录暂时没有更新。';
     case 'membership entitlement request':
@@ -16,7 +16,7 @@ function getKnownRemoteErrorCopy(type: string): string | null {
     case 'membership mutation':
       return '会员状态更新暂时失败。';
     case 'progress sync':
-      return '今天的进展暂时没有更新。';
+      return '今日进度更新失败，请重试。';
     case 'space state sync':
       return '卡片位置暂时没有更新。';
     default:
@@ -33,7 +33,7 @@ export function getUserFacingErrorMessage(
   fallback: string,
 ): string {
   if (findClientUpdateRequiredError(error)) {
-    return '当前版本需要更新；请安装最新版本后继续，登录状态会保留。';
+    return '请更新到最新版本，更新后可继续学习。';
   }
   if (!(error instanceof Error)) {
     return fallback;

@@ -2,6 +2,38 @@
   "version": "vnext-12",
   "active_documents": [
     {
+      "path": "docs/local-backend.md",
+      "authority": "local_backend_usage_guide",
+      "audience": [
+        "user",
+        "agent"
+      ],
+      "load_when": [
+        "local_backend_task"
+      ],
+      "depends_on": [
+        "spec/account-sync-contract.json",
+        "spec/runtime-boundaries.json"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/local-study.md",
+      "authority": "device_local_usage_guide",
+      "audience": [
+        "user",
+        "agent"
+      ],
+      "load_when": [
+        "device_local_learning_task"
+      ],
+      "depends_on": [
+        "spec/runtime-boundaries.json",
+        "spec/account-sync-contract.json"
+      ],
+      "status": "active"
+    },
+    {
       "path": "AGENTS.md",
       "authority": "agent_entrypoint",
       "audience": [

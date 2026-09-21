@@ -6,33 +6,10 @@ name: prepare-reading-device
 - launchApp
 - extendedWaitUntil:
     visible:
-      id: 'auth-phone-input|route-tab-mine'
+      id: local-start-learning-button
     timeout: 60000
-- runFlow:
-    when:
-      visible:
-        id: route-tab-mine
-    commands:
-      - tapOn:
-          id: route-tab-mine
-      - tapOn:
-          id: mine-account-logout-button
-- assertVisible:
-    id: auth-phone-input
 - tapOn:
-    id: auth-phone-input
-- inputText: '13800000000'
-- tapOn:
-    id: auth-gate-keyboard-dismiss-target
-- tapOn:
-    id: auth-request-code-button
-- tapOn:
-    id: auth-code-input
-- inputText: '2468'
-- tapOn:
-    id: auth-gate-keyboard-dismiss-target
-- tapOn:
-    id: auth-submit-button
+    id: local-start-learning-button
 - extendedWaitUntil:
     visible:
       id: learning-option-1

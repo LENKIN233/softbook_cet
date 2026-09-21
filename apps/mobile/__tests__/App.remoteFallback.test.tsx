@@ -177,7 +177,7 @@ test('fails closed when the remote runtime source is unavailable', async () => {
   await waitForLearningFailure(root);
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('本轮学习暂时不可用');
+  expect(output).toContain('卡片加载失败');
   expect(output).toContain('重新加载');
   expect(output).not.toContain('however');
   expect(fetchMock).toHaveBeenCalledWith(

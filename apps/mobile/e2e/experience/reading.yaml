@@ -43,6 +43,8 @@ name: read-material-and-correction
 - waitForAnimationToEnd
 - takeScreenshot: material
 - tapOn:
+    id: learning-help-button
+- tapOn:
     id: learning-peek-button
 - scrollUntilVisible:
     element:
@@ -50,7 +52,7 @@ name: read-material-and-correction
     direction: DOWN
     timeout: 10000
 - assertVisible:
-    id: learning-support-layer
+    id: learning-help-content
 - takeScreenshot: material-with-support
 - runFlow:
     when:

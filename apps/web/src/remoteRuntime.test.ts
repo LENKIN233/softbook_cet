@@ -29,6 +29,48 @@ import {
 const PHONE = '13800138000';
 
 describe('authenticated Web remote orchestration', () => {
+  it('switches between authenticated tracks and retains the current track when the next one cannot load', async () => {
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const bootstrapLoad = vi.fn(async (track: 'cet4' | 'cet6') => ({...createBootstrapFixture(createInitialMembershipState()), track}));
+    const loadSession = vi.fn(async (_context, track: 'cet4' | 'cet6') => ({...createLearningSessionFixture(null), track}));
+    const stopAudio = vi.fn();
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {load: bootstrapLoad}, authRepository, authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {continueRound: async () => undefined, loadSession},
+      mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', stopAudio, track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    const auth = authSessionCoordinator.getCurrentSession();
+    expect((await controller.switchTrack('cet6')).learningSession.track).toBe('cet6');
+    expect((await controller.loadAuthenticatedState()).bootstrap.track).toBe('cet6');
+    expect(authSessionCoordinator.getCurrentSession()).toEqual(auth);
+    expect(stopAudio).toHaveBeenCalled();
+    bootstrapLoad.mockImplementationOnce(async track => ({...createBootstrapFixture(createInitialMembershipState()), track})).mockRejectedValueOnce(new Error('track unavailable'));
+    await expect(controller.switchTrack('cet4')).rejects.toThrow('track unavailable');
+    expect((await controller.loadAuthenticatedState()).learningSession.track).toBe('cet6');
+    expect((await controller.switchTrack('cet4')).bootstrap.track).toBe('cet4');
+  });
+
+  it('keeps queued results before switching tracks', async () => {
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const events = createEmptyEventSyncRepository();
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {load: async () => createBootstrapFixture(createInitialMembershipState())}, authRepository, authSessionCoordinator,
+      learningEventSyncRepository: events,
+      learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
+      mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    vi.spyOn(events, 'startReplay').mockResolvedValueOnce({acknowledgements: [], acknowledgedEntries: [], rejectedEntries: [], rejectedCount: 0, pendingCount: 1});
+    await expect(controller.switchTrack('cet6')).rejects.toThrow('仍有学习结果等待服务端确认');
+    expect((await controller.loadAuthenticatedState()).learningSession.track).toBe('cet4');
+  });
+
   it('prepares durable storage before ordinary SMS and leaves an active learning session in its bound epoch', async () => {
     localStorage.clear();
     const stateStore = createWebAccountDeletionStateStore(localStorage);

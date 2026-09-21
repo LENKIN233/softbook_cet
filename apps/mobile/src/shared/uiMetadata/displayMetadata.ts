@@ -3,7 +3,7 @@ export type LearningSessionDisplayPhase = 'learning' | 'review';
 export function formatLearningSessionDisplayLabel(
   phase: LearningSessionDisplayPhase,
 ) {
-  return phase === 'review' ? '本轮回看' : '本轮学习';
+  return phase === 'review' ? '本轮复习' : '本轮学习';
 }
 
 export function formatSpaceLibraryLabel(index: number) {

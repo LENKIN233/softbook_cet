@@ -114,13 +114,19 @@ export function createUserStateStore(
 
         return payload.state;
       } catch (error) {
-        console.warn('[UserStateStore] Discarding invalid user state.', error);
+        automaticWritesEnabled = false;
+        console.warn('[UserStateStore] Preserving invalid user state for recovery.', error);
 
         try {
-          await enqueueWrite(() => storage.removeItem(storageKey));
+          await enqueueWrite(async () => {
+            const backupKey = `${storageKey}/recovery/${Date.now()}`;
+            await storage.setItem(backupKey, rawValue!);
+            if (await storage.getItem(backupKey) !== rawValue) throw new Error('Recovery backup could not be verified.');
+            automaticWritesEnabled = true;
+          });
         } catch (clearError) {
           console.warn(
-            '[UserStateStore] Failed to clear invalid user state.',
+            '[UserStateStore] Failed to preserve invalid user state.',
             clearError,
           );
         }

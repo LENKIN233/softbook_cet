@@ -9,8 +9,8 @@
     "e2e:android:maestro": "maestro test e2e/maestro/android-remote-smoke.yaml",
     "e2e:ios:maestro": "maestro test e2e/maestro/ios-smoke.yaml",
     "ios": "react-native run-ios",
-    "product:local:android": "node ../../scripts/run_local_product.mjs --target android",
-    "product:local:ios": "node ../../scripts/run_local_product.mjs --target ios",
+    "product:local:android": "npm run android:backend",
+    "product:local:ios": "npm run ios:backend",
     "lint": "eslint .",
     "design-metadata-leak-scan": "node ../../scripts/check_design_metadata_leaks.mjs",
     "metadata-leak-scan": "node scripts/check-metadata-leaks.mjs",
@@ -21,7 +21,14 @@
     "test:audio-bundle-candidate-acceptance": "jest --config jest.audio-bundle-candidate-acceptance.config.js --runInBand --no-watchman",
     "test:controlled-pilot-acceptance": "jest --config jest.controlled-pilot-acceptance.config.js --runInBand --no-watchman",
     "test:brace-expansion-compat": "node ../../scripts/verify_minimatch_brace_expansion.mjs && node scripts/verify-modern-minimatch.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "android:local": "npm run android:backend",
+    "bundle:ios:local": "react-native bundle --entry-file index.local.js --platform ios --dev false --bundle-output ../../exports/repair-and-build/ios-local/main.jsbundle --assets-dest ../../exports/repair-and-build/ios-local",
+    "android:backend": "cd android && ./gradlew :app:assembleBackend -PsoftbookLocalBackend=true -PreactNativeArchitectures=arm64-v8a --no-daemon --max-workers=2",
+    "ios:backend": "node ../../scripts/build_ios_local.mjs --backend",
+    "android:device": "cd android && ./gradlew :app:assembleLocal -PsoftbookLocalStudy=true -PreactNativeArchitectures=arm64-v8a --no-daemon --max-workers=2",
+    "product:receiver:android": "node ../../scripts/run_local_product.mjs --target android",
+    "product:receiver:ios": "node ../../scripts/run_local_product.mjs --target ios"
   },
   "dependencies": {
     "@noble/ed25519": "3.1.0",
@@ -31,7 +38,7 @@
     "@react-native/new-app-screen": "0.85.2",
     "react": "19.2.3",
     "react-native": "0.85.2",
-    "react-native-blob-util": "0.24.10",
+    "react-native-blob-util": "0.24.11",
     "react-native-keychain": "^10.0.0",
     "react-native-safe-area-context": "^5.5.2"
   },

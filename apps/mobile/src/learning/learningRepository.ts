@@ -13,7 +13,7 @@ import {
   createLearningSession,
 } from './session';
 import { LearningCardSource, localLearningCardSource } from './localCardSource';
-import {BUNDLED_CARD_SOURCE_ID} from './bundledCardLibrary';
+import {BUNDLED_CARD_SOURCE_ID, bundledContentVersion} from './bundledCardLibrary';
 
 export type LearningRepositoryMode = 'local' | 'remote';
 
@@ -81,6 +81,7 @@ export function createLearningSessionRepository(
         localSource.sourceLabel,
         cards,
         cardCount,
+        bundled ? bundledContentVersion(track) : null,
       );
     if (bundled) session.cards = cards.slice(0, cardCount);
     return assertNonEmptySession(session);

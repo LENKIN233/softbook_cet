@@ -52,11 +52,11 @@ export function AccountDeletionRecoverySurface({
   const title =
     phoneNumber === null
       ? busy === 'checking'
-        ? '正在恢复账户状态'
-        : '账户状态暂时无法读取'
+        ? '正在检查账号状态'
+        : '暂时无法加载账号信息'
       : accepted
-      ? '账户仍在清理'
-      : '确认上次删除申请';
+      ? '注销仍在处理中'
+      : '查询注销进度';
   useEffect(() => {
     AccessibilityInfo.announceForAccessibility(error ?? title);
   }, [error, title]);
@@ -76,7 +76,7 @@ export function AccountDeletionRecoverySurface({
         ]}
       >
         <Text style={[styles.eyebrow, { color: palette.accent }]}>
-          账户恢复
+          账号状态
         </Text>
         <Text
           accessibilityRole="header"
@@ -86,10 +86,10 @@ export function AccountDeletionRecoverySurface({
         </Text>
         <Text style={[styles.copy, { color: palette.textMuted }]}>
           {phoneNumber === null
-            ? '恢复完成前暂时不能登录。请稍后重试。'
+            ? '暂时无法确认账号状态，请稍后重试登录。'
             : accepted
-            ? '删除申请已接收，暂时不能重新登录。验证手机号可以查询清理进度。'
-            : '上次删除申请没有收到确认。请验证手机号，查询这次申请的状态。'}
+            ? '注销申请已收到，暂时不能登录。验证手机号后可查询进度。'
+            : '还没收到注销结果，请验证手机号后查询。'}
         </Text>
         {phoneNumber !== null ? (
           <>
@@ -97,17 +97,17 @@ export function AccountDeletionRecoverySurface({
               style={[styles.phone, { color: palette.text }]}
             >{`${phoneNumber.slice(0, 3)}****${phoneNumber.slice(-4)}`}</Text>
             <Text style={[styles.copy, { color: palette.textMuted }]}>
-              短信仅用于查询删除状态，不会登录账户。
+              此验证码仅用于查询注销进度，不会登录账号。
             </Text>
             {hasChallenge ? (
               <>
                 <TextInput
-                  accessibilityLabel="删除状态查询验证码"
+                  accessibilityLabel="查询验证码"
                   editable={busy === null}
                   keyboardType="number-pad"
                   maxLength={6}
                   onChangeText={onChangeCode}
-                  placeholder="输入 6 位查询验证码"
+                  placeholder="输入 6 位验证码"
                   placeholderTextColor={palette.textMuted}
                   style={[
                     styles.input,
@@ -144,7 +144,7 @@ export function AccountDeletionRecoverySurface({
                       },
                     ]}
                   >
-                    {busy === 'verify_code' ? '正在查询' : '查询删除状态'}
+                    {busy === 'verify_code' ? '正在查询' : '查询注销进度'}
                   </Text>
                 </Pressable>
               </>
@@ -176,12 +176,12 @@ export function AccountDeletionRecoverySurface({
                 ]}
               >
                 {busy === 'request_code'
-                  ? '正在请求验证码'
+                  ? '正在发送验证码'
                   : remaining > 0
                   ? `${remaining} 秒后可重发`
                   : hasChallenge
-                  ? '重新获取查询验证码'
-                  : '获取查询验证码'}
+                  ? '重新获取验证码'
+                  : '获取验证码'}
               </Text>
             </Pressable>
           </>
@@ -196,7 +196,7 @@ export function AccountDeletionRecoverySurface({
             <Text
               style={[styles.buttonText, { color: palette.primaryActionText }]}
             >
-              {busy === 'checking' ? '正在读取' : '重新读取账户状态'}
+              {busy === 'checking' ? '正在读取' : '重试'}
             </Text>
           </Pressable>
         )}

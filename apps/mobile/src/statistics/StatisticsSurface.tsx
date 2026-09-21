@@ -38,6 +38,7 @@ type DeviceClass = 'phone' | 'tablet';
 
 export function StatisticsSurface({
   canCheckInToday,
+  cumulativeLearnedCount,
   deviceClass,
   hasCheckedInToday,
   learningCompletedCount,
@@ -51,6 +52,7 @@ export function StatisticsSurface({
   syncStatusLabel,
 }: {
   canCheckInToday: boolean;
+  cumulativeLearnedCount?: number;
   deviceClass: DeviceClass;
   hasCheckedInToday: boolean;
   learningCompletedCount: number;
@@ -67,54 +69,24 @@ export function StatisticsSurface({
   const usesCompactLayout =
     deviceClass === 'phone' && (height < 800 || width < 370);
   const usesAccessibilityLayout = fontScale >= 1.3;
+  const metricGrid =
+    deviceClass === 'phone' &&
+    !usesAccessibilityLayout &&
+    cumulativeLearnedCount !== undefined;
   const totalCompletedCount = learningCompletedCount + reviewCompletedCount;
   const hasLearningProgress = totalCompletedCount > 0;
-  const checkInTitle = hasCheckedInToday
-    ? '已签到'
-    : canCheckInToday
-    ? '可签到'
-    : '待学习';
   const checkInSummary = hasCheckedInToday
     ? '今天已签到。'
     : canCheckInToday
     ? '完成学习后可以签到。'
     : '完成 1 张后可以签到。';
-  const reviewStatus =
-    reviewCompletedCount > 0
-      ? `已回看 ${reviewCompletedCount} · 待回看 ${pendingReviewCount}`
-      : pendingReviewCount > 0
-      ? `${pendingReviewCount} 张待回看`
-      : totalCompletedCount > 0
-      ? '首轮完成'
-      : '暂无今日进展';
-  const dailyTitle = hasCheckedInToday
-    ? hasLearningProgress
-      ? '今天已完成'
-      : '今天已签到'
-    : hasLearningProgress
-    ? '今天的进度'
-    : '还没有学习记录';
-  const dailySummary = hasCheckedInToday
-    ? hasLearningProgress
-      ? `完成 ${totalCompletedCount} · 回看 ${reviewCompletedCount}`
-      : '还没有学习记录。'
-    : pendingReviewCount > 0
-    ? `还有 ${pendingReviewCount} 张卡需要回看。`
-    : hasLearningProgress
-    ? `完成 ${totalCompletedCount} 张`
-    : '完成第一张后，这里会显示进度。';
   const nextStepIsReview = pendingReviewCount > 0;
-  const nextStepTitle = nextStepIsReview
-    ? '先回看'
-    : hasLearningProgress
-    ? '回到学习'
-    : '开始第一张';
   const nextStepSummary = nextStepIsReview
-    ? `还有 ${pendingReviewCount} 张卡需要回看。`
+    ? `还有 ${pendingReviewCount} 张卡需要复习。`
     : hasLearningProgress
     ? '按顺序继续下一张。'
     : '先完成第一张。';
-  const nextStepButtonLabel = nextStepIsReview ? '开始回看' : '继续学习';
+  const nextStepButtonLabel = nextStepIsReview ? '开始复习' : '继续学习';
   const nextStepButtonTestID = nextStepIsReview
     ? 'statistics-start-review-button'
     : 'statistics-go-learning-button';
@@ -123,33 +95,6 @@ export function StatisticsSurface({
     hasCheckedInToday && syncStatusLabel === '已记录'
       ? undefined
       : syncStatusDetail;
-  const dailyRailTarget = Math.max(
-    totalCompletedCount + pendingReviewCount,
-    hasLearningProgress ? totalCompletedCount : 1,
-    1,
-  );
-  const dailyRailProgress = Math.min(
-    1,
-    totalCompletedCount / dailyRailTarget,
-  );
-  const dailyRailFillPercent = hasLearningProgress
-    ? Math.max(14, Math.round(dailyRailProgress * 100))
-    : 8;
-  const dailyRailFill = `${dailyRailFillPercent}%` as ViewStyle['width'];
-  const dailyRailTone = nextStepIsReview
-    ? palette.warning
-    : hasCheckedInToday
-    ? palette.success
-    : palette.accent;
-  const dailyRailLabel = nextStepIsReview
-    ? `${pendingReviewCount} 张回看待处理`
-    : hasCheckedInToday
-    ? hasLearningProgress
-      ? '今日已签到'
-      : '今日已签到'
-    : canCheckInToday
-    ? '可以签到'
-    : '完成一张后可签到';
   const checkInButtonBackground = hasCheckedInToday
     ? palette.panelStrong
     : canCheckInToday
@@ -184,288 +129,194 @@ export function StatisticsSurface({
         ]}
         testID="statistics-day-object"
       >
-        <View
-          style={[
-            styles.dailyHeader,
-            usesAccessibilityLayout ? styles.dailyHeaderAccessible : null,
-          ]}
-        >
-          <View style={styles.dailyHeading}>
-            <View style={styles.dailyEyebrowRow}>
-              <View
-                style={[
-                  styles.dailySignal,
-                  { backgroundColor: palette.accent },
-                ]}
-              />
-              <Text style={[styles.eyebrow, { color: palette.accent }]}>
-                今日学习
-              </Text>
-            </View>
-            <Text style={[styles.title, { color: palette.text }]}>
-              {dailyTitle}
-            </Text>
-            <Text style={[styles.summary, { color: palette.textMuted }]}>
-              {dailySummary}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.checkInStatusPill,
-              {
-                backgroundColor: hasCheckedInToday
-                  ? palette.accentSoft
-                  : hexToRgba(palette.accent, 0.07),
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.checkInStatusText,
-                {
-                  color: hasCheckedInToday
-                    ? palette.accentStrong
-                    : palette.accentStrong,
-                },
-              ]}
-            >
-              {checkInTitle}
-            </Text>
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.progressDock,
-            {
-              backgroundColor: hexToRgba(dailyRailTone, 0.085),
-              borderColor: 'transparent',
-            },
-          ]}
-          testID="statistics-progress-dock"
-        >
-          <View style={styles.progressHeader}>
-            <View style={styles.progressCopy}>
-              <Text
-                style={[styles.progressEyebrow, { color: dailyRailTone }]}
-              >
-                今日进度
-              </Text>
-              <Text
-                numberOfLines={usesAccessibilityLayout ? undefined : 1}
-                style={[styles.progressTitle, { color: palette.text }]}
-                testID="statistics-progress-label"
-              >
-                {dailyRailLabel}
-              </Text>
-            </View>
-            <Text
-              style={[styles.progressRatio, { color: palette.text }]}
-              testID="statistics-progress-ratio"
-            >
-              {`${totalCompletedCount}/${dailyRailTarget}`}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.progressTrack,
-              { backgroundColor: hexToRgba(dailyRailTone, 0.12) },
-            ]}
-            testID="statistics-progress-rail"
-          >
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: dailyRailTone,
-                  width: dailyRailFill,
-                },
-              ]}
-              testID="statistics-progress-fill"
-            />
-          </View>
-        </View>
+        <Text style={[styles.title, { color: palette.text }]}>学习统计</Text>
+        {!hasLearningProgress ? (
+          <Text style={[styles.summary, { color: palette.textMuted }]}>
+            完成第一张后，这里会显示记录。
+          </Text>
+        ) : null}
       </SurfaceCard>
 
       <View
         style={[
           styles.metricLedger,
           usesAccessibilityLayout ? styles.metricLedgerAccessible : null,
+          metricGrid ? styles.metricLedgerGrid : null,
         ]}
         testID="statistics-metric-strip"
       >
         <MetricLedgerRow
-          detail={`首轮 ${learningCompletedCount}`}
+          grid={metricGrid}
+          detail={`学习 ${learningCompletedCount} 张`}
           label="今日完成"
           palette={palette}
           testID="statistics-metric-completed"
           value={`${totalCompletedCount}`}
         />
         <MetricLedgerRow
-          label="需要回看"
+          grid={metricGrid}
+          label="待复习"
           palette={palette}
           testID="statistics-metric-pending-review"
           tone={pendingReviewCount > 0 ? 'warning' : 'success'}
           value={`${pendingReviewCount}`}
         />
         <MetricLedgerRow
-          label="今日回看"
+          grid={metricGrid}
+          label="今日复习"
           palette={palette}
           testID="statistics-metric-review"
           value={`${reviewCompletedCount}`}
         />
+        {cumulativeLearnedCount !== undefined ? (
+          <MetricLedgerRow
+            grid={metricGrid}
+            label="累计学过"
+            palette={palette}
+            testID="statistics-metric-cumulative"
+            value={`${cumulativeLearnedCount}`}
+          />
+        ) : null}
       </View>
 
+      <View
+        style={[
+          styles.actionDock,
+          {
+            backgroundColor: 'transparent',
+            borderColor: 'transparent',
+          },
+        ]}
+        testID="statistics-action-dock"
+      >
         <View
           style={[
-            styles.actionDock,
+            styles.actionObjectRow,
+            styles.nextStepRow,
+            usesAccessibilityLayout ? styles.nextStepRowAccessible : null,
             {
-              backgroundColor: palette.panel,
+              backgroundColor: 'transparent',
               borderColor: 'transparent',
             },
           ]}
-          testID="statistics-action-dock"
+          testID="statistics-next-step-card"
         >
-          <View
+          <View style={styles.nextStepCopy}>
+            <Text style={[styles.cardSummary, { color: palette.textMuted }]}>
+              {nextStepSummary}
+            </Text>
+          </View>
+          <Pressable
+            onPress={onPressNextStep}
             style={[
-              styles.actionObjectRow,
-              styles.nextStepRow,
-              usesAccessibilityLayout ? styles.nextStepRowAccessible : null,
+              styles.primaryButton,
+              styles.nextStepButton,
+              usesAccessibilityLayout ? styles.nextStepButtonAccessible : null,
               {
-                backgroundColor: palette.accentSoft,
-                borderColor: 'transparent',
+                backgroundColor: nextStepIsReview
+                  ? palette.warning
+                  : palette.primaryActionSurface,
+                borderColor: nextStepIsReview
+                  ? palette.warning
+                  : palette.primaryActionSurface,
               },
             ]}
-            testID="statistics-next-step-card"
+            testID={nextStepButtonTestID}
           >
-            <View style={styles.nextStepCopy}>
-              <Text
-                style={[
-                  styles.nextStepEyebrow,
-                  {
-                    color: nextStepIsReview ? palette.warning : palette.accent,
-                  },
-                ]}
-              >
-                下一步
-              </Text>
-              <Text style={[styles.nextStepTitle, { color: palette.text }]}>
-                {nextStepTitle}
-              </Text>
-              <Text style={[styles.cardSummary, { color: palette.textMuted }]}>
-                {nextStepSummary}
-              </Text>
-            </View>
-            <Pressable
-              onPress={onPressNextStep}
+            <Text
               style={[
-                styles.primaryButton,
-                styles.nextStepButton,
-                usesAccessibilityLayout
-                  ? styles.nextStepButtonAccessible
-                  : null,
+                styles.primaryButtonLabel,
                 {
-                  backgroundColor: nextStepIsReview
-                    ? palette.warning
-                    : palette.primaryActionSurface,
-                  borderColor: nextStepIsReview
-                    ? palette.warning
-                    : palette.primaryActionSurface,
+                  color: nextStepIsReview
+                    ? palette.warningText
+                    : palette.primaryActionText,
                 },
               ]}
-              testID={nextStepButtonTestID}
             >
-              <Text
-                style={[
-                  styles.primaryButtonLabel,
-                  {
-                    color: nextStepIsReview
-                      ? palette.warningText
-                      : palette.primaryActionText,
-                  },
-                ]}
-              >
-                {nextStepButtonLabel}
-              </Text>
-            </Pressable>
+              {nextStepButtonLabel}
+            </Text>
+          </Pressable>
+        </View>
+
+        <View
+          pointerEvents="none"
+          style={[
+            styles.actionDockDivider,
+            {
+              backgroundColor: hexToRgba(palette.textMuted, 0.12),
+            },
+          ]}
+        />
+
+        <View
+          style={[
+            styles.actionObjectRow,
+            {
+              backgroundColor: hexToRgba(palette.success, 0.085),
+              borderColor: 'transparent',
+            },
+            styles.checkInDockRow,
+            usesAccessibilityLayout ? styles.checkInDockRowAccessible : null,
+            deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
+          ]}
+          testID="statistics-checkin-card"
+        >
+          <View style={styles.checkInCopy}>
+            <Text style={[styles.checkInTitle, { color: palette.text }]}>
+              签到
+            </Text>
+            <Text
+              style={[styles.cardSummary, { color: palette.textMuted }]}
+              testID="statistics-checkin-summary"
+            >
+              {checkInSummary}
+            </Text>
           </View>
-
-          <View
-            pointerEvents="none"
+          <Pressable
+            disabled={!canCheckInToday || hasCheckedInToday}
+            onPress={onCheckIn}
             style={[
-              styles.actionDockDivider,
+              styles.primaryButton,
+              styles.dailyPrimaryButton,
+              usesAccessibilityLayout
+                ? styles.dailyPrimaryButtonAccessible
+                : null,
               {
-                backgroundColor: hexToRgba(palette.textMuted, 0.12),
+                backgroundColor: checkInButtonBackground,
+                borderColor: checkInButtonBorder,
               },
             ]}
-          />
-
-          <View
-            style={[
-              styles.actionObjectRow,
-              {
-                backgroundColor: hexToRgba(palette.success, 0.085),
-                borderColor: 'transparent',
-              },
-              styles.checkInDockRow,
-              usesAccessibilityLayout ? styles.checkInDockRowAccessible : null,
-              deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
-            ]}
-            testID="statistics-checkin-card"
+            testID="statistics-checkin-button"
           >
-            <View style={styles.checkInCopy}>
-              <Text style={[styles.checkInTitle, { color: palette.text }]}>
-                签到
-              </Text>
-              <Text
-                style={[styles.cardSummary, { color: palette.textMuted }]}
-                testID="statistics-checkin-summary"
-              >
-                {checkInSummary}
-              </Text>
-            </View>
-            <Pressable
-              disabled={!canCheckInToday || hasCheckedInToday}
-              onPress={onCheckIn}
+            <Text
               style={[
-                styles.primaryButton,
-                styles.dailyPrimaryButton,
-                usesAccessibilityLayout
-                  ? styles.dailyPrimaryButtonAccessible
-                  : null,
-                {
-                  backgroundColor: checkInButtonBackground,
-                  borderColor: checkInButtonBorder,
-                },
+                styles.primaryButtonLabel,
+                { color: checkInButtonLabelColor },
               ]}
-              testID="statistics-checkin-button"
+              testID={
+                hasCheckedInToday
+                  ? 'statistics-checkin-complete-label'
+                  : 'statistics-checkin-ready-label'
+              }
             >
-              <Text
-                style={[
-                  styles.primaryButtonLabel,
-                  { color: checkInButtonLabelColor },
-                ]}
-                testID={
-                  hasCheckedInToday
-                    ? 'statistics-checkin-complete-label'
-                    : 'statistics-checkin-ready-label'
-                }
-              >
-                {hasCheckedInToday ? '今日已签到' : '签到'}
-              </Text>
-            </Pressable>
-          </View>
+              {hasCheckedInToday ? '今日已签到' : '签到'}
+            </Text>
+          </Pressable>
+        </View>
 
-          <View
-            pointerEvents="none"
-            style={[
-              styles.actionDockDivider,
-              {
-                backgroundColor: hexToRgba(palette.textMuted, 0.1),
-              },
-            ]}
-          />
+        <View
+          pointerEvents="none"
+          style={[
+            styles.actionDockDivider,
+            {
+              backgroundColor: hexToRgba(palette.textMuted, 0.1),
+            },
+          ]}
+        />
 
+        {!['已记录', '已同步', '暂无记录', '已保存在本机'].includes(
+          syncStatusLabel,
+        ) ? (
           <View style={styles.statusLedger} testID="statistics-status-ledger">
             <View
               style={[
@@ -474,12 +325,6 @@ export function StatisticsSurface({
               ]}
               testID="statistics-ledger-rail"
             >
-              <LedgerRow
-                label="回看"
-                palette={palette}
-                testID="statistics-review-status"
-                value={reviewStatus}
-              />
               <LedgerRow
                 detail={syncLedgerDetail}
                 detailTestID="statistics-sync-detail"
@@ -490,12 +335,14 @@ export function StatisticsSurface({
               />
             </View>
           </View>
-        </View>
+        ) : null}
+      </View>
     </ScrollView>
   );
 }
 
 function MetricLedgerRow({
+  grid = false,
   detail,
   label,
   palette,
@@ -503,6 +350,7 @@ function MetricLedgerRow({
   tone,
   value,
 }: {
+  grid?: boolean;
   detail?: string;
   label: string;
   palette: StatisticsPalette;
@@ -523,8 +371,9 @@ function MetricLedgerRow({
     <View
       style={[
         styles.metricLedgerRow,
+        grid ? styles.metricLedgerRowGrid : null,
         {
-          backgroundColor: palette.panel,
+          backgroundColor: 'transparent',
           borderColor: 'transparent',
         },
       ]}
@@ -566,7 +415,7 @@ function SurfaceCard({
       style={[
         styles.surfaceCard,
         style,
-        { backgroundColor: palette.panel, borderColor: 'transparent' },
+        { backgroundColor: 'transparent', borderColor: palette.border },
       ]}
       testID={testID}
     >
@@ -647,7 +496,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     lineHeight: 27,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   summary: {
     fontSize: 12,
@@ -658,6 +507,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 7,
   },
+  metricLedgerGrid: { flexWrap: 'wrap' },
+  metricLedgerRowGrid: { flexBasis: '45%', flexGrow: 1, flexShrink: 1 },
   metricLedgerAccessible: {
     flexDirection: 'column',
   },
@@ -675,7 +526,7 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 28,
-    fontWeight: '900',
+    fontWeight: '600',
     fontVariant: ['tabular-nums'],
     lineHeight: 28,
     minWidth: 0,
@@ -683,7 +534,7 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 17,
   },
   metricCopy: {
@@ -698,7 +549,7 @@ const styles = StyleSheet.create({
   },
   surfaceCard: {
     borderWidth: 0,
-    borderRadius: 26,
+    borderRadius: 0,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 8,
@@ -749,7 +600,7 @@ const styles = StyleSheet.create({
   },
   checkInStatusText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   progressDock: {
     borderRadius: 16,
@@ -771,17 +622,17 @@ const styles = StyleSheet.create({
   },
   progressEyebrow: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 15,
   },
   progressTitle: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 20,
   },
   progressRatio: {
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: '600',
     fontVariant: ['tabular-nums'],
     lineHeight: 24,
   },
@@ -803,9 +654,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 10,
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0,
     shadowRadius: 24,
-    elevation: 2,
+    elevation: 0,
   },
   actionObjectRow: {
     borderRadius: 19,
@@ -832,12 +683,12 @@ const styles = StyleSheet.create({
   },
   nextStepEyebrow: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0,
   },
   nextStepTitle: {
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 21,
   },
   checkInDockRow: {
@@ -862,7 +713,7 @@ const styles = StyleSheet.create({
   },
   checkInTitle: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   primaryButton: {
@@ -905,7 +756,7 @@ const styles = StyleSheet.create({
   },
   ledgerLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0,
   },
   ledgerValue: {

@@ -136,7 +136,7 @@ describe('UserStateStore', () => {
     });
   });
 
-  it('removes malformed data and degrades to an empty state', async () => {
+  it('preserves malformed data in a verified backup before allowing recovery', async () => {
     const { storage, values } = createStorage({
       [USER_STATE_STORAGE_KEY]: JSON.stringify({ schema_version: 'unknown' }),
     });
@@ -148,7 +148,8 @@ describe('UserStateStore', () => {
     await expect(store.load('13800138000')).resolves.toEqual(
       createEmptyPersistedUserState(),
     );
-    expect(values[USER_STATE_STORAGE_KEY]).toBeUndefined();
+    expect(values[USER_STATE_STORAGE_KEY]).toBe(JSON.stringify({schema_version: 'unknown'}));
+    expect(Object.entries(values).some(([key, value]) => key.startsWith(`${USER_STATE_STORAGE_KEY}/recovery/`) && value === values[USER_STATE_STORAGE_KEY])).toBe(true);
 
     warn.mockRestore();
   });

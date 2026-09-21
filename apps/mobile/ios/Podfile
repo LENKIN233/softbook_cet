@@ -40,5 +40,14 @@ target 'SoftbookCET' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    # Resource-only pods can retain obsolete targets after an Xcode upgrade.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |configuration|
+        value = configuration.build_settings['IPHONEOS_DEPLOYMENT_TARGET']
+        if value && value.to_f < min_ios_version_supported.to_f
+          configuration.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios_version_supported
+        end
+      end
+    end
   end
 end

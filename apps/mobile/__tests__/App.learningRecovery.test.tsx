@@ -41,6 +41,9 @@ async function settle() {
   for(let i=0;i<8;i++) await act(async()=>{await new Promise(resolve=>setTimeout(resolve,0));});
 }
 async function press(root:ReactTestRenderer.ReactTestInstance,id:string) {
+  if (['learning-hint-button','learning-peek-button'].includes(id) && !root.findAllByProps({testID:id}).length) {
+    await act(async()=>{root.findByProps({testID:'learning-help-button'}).props.onPress();await Promise.resolve();});
+  }
   await act(async()=>{root.findByProps({testID:id}).props.onPress();await Promise.resolve();});
 }
 async function login() {
@@ -57,6 +60,39 @@ async function inspectSpace(root:ReactTestRenderer.ReactTestInstance) {
   await press(root,'route-tab-space'); await settle();
   await press(root,'space-open-card-list');
 }
+it('switches authenticated tracks without losing the old track when the next load fails', async () => {
+  const runtime = createRuntime();
+  const originalLoad = mockLoadSession.getMockImplementation()!;
+  const baseSix = createLocalLearningSession('cet6');
+  const six = {...baseSix, contentVersion: `sha256:${'b'.repeat(64)}`, membershipStage: 'premium' as const,
+    schedulingMode: 'server' as const, cards: [baseSix.catalogCards[0]], serverSelection: {cardId: baseSix.catalogCards[0].card_id, selectionId: 'sel_six_first_selection', phase: 'learning' as const, reason: 'catalog_new' as const, dueAt: null}};
+  let failSix = true;
+  mockLoadSession.mockImplementation(async (context, track) => {
+    if (track === 'cet6') {if (failSix) throw new Error('Unavailable'); return six;}
+    return originalLoad(context, track);
+  });
+  const fetchFour = global.fetch;
+  global.fetch = jest.fn(async (input, init) => {
+    const url = String(input);
+    if (url.includes('/v2/bootstrap?') && new URL(url).searchParams.get('track') === 'cet6') return createJsonResponse(createAccountBootstrapPayload(six, 'premium', [])) as never;
+    return fetchFour(input, init);
+  });
+  const {root} = await login();
+  await press(root, 'route-tab-mine'); await settle();
+  await press(root, 'mine-track-cet6'); await settle();
+  expect(root.findByProps({testID: 'mine-track-cet4'}).props.accessibilityState.selected).toBe(true);
+  failSix = false;
+  await press(root, 'mine-track-cet6'); await settle();
+  expect(root.findByProps({testID: 'mine-track-cet6'}).props.accessibilityState.selected).toBe(true);
+  await press(root, 'route-tab-learning'); await settle();
+  expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(six.cards[0].card_id);
+  await press(root, 'route-tab-mine'); await settle();
+  await press(root, 'mine-track-cet4'); await settle();
+  expect(root.findByProps({testID: 'mine-track-cet4'}).props.accessibilityState.selected).toBe(true);
+  await press(root, 'route-tab-learning'); await settle();
+  expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(runtime.base.cards[0].card_id);
+});
+
 function createRuntime() {
   const base={...createLocalLearningSession('cet4'),contentVersion:TEST_CONTENT_VERSION,membershipStage:'premium' as const};
   let selectedId:string|null=base.catalogCards[0].card_id;
@@ -183,7 +219,7 @@ test('hides a durable offline sleep without inventing a next card, then recovers
   const {root,tree}=await login(); await inspectSpace(root);
   await press(root,'space-sleep-1'); await settle(); await press(root,'space-return-learning');
   expect(root.findByProps({testID:'learning-empty-session'})).toBeTruthy();
-  expect(JSON.stringify(tree.toJSON())).toContain('这张卡已放入休眠');
+  expect(JSON.stringify(tree.toJSON())).toContain('这张卡已暂停学习');
   expect(JSON.stringify(tree.toJSON())).not.toContain(runtime.base.cards[0].front.prompt);
   expect(mockLoadSession).toHaveBeenCalledTimes(1);
   runtime.setOnline(true);

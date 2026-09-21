@@ -172,7 +172,7 @@ test('candidate cards parse, bind declared audio, and complete through Mobile Le
       });
       if (
         audioControl.props.accessibilityRole !== 'button' ||
-        audioControl.props.accessibilityLabel !== '播放听力'
+        audioControl.props.accessibilityLabel !== '播放音频'
       ) {
         throw new Error(`Audio control for ${card.card_id} is invalid.`);
       }

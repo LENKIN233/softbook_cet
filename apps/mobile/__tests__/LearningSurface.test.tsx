@@ -49,11 +49,59 @@ function visibleText(node: unknown): string {
   return '';
 }
 
+test('a confident flip self-assessment never appears as an automatically correct answer', () => {
+  const session = createLocalLearningSession('cet4');
+  const card = session.cards.find(candidate => candidate.interaction_id === 'flip')!;
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<LearningResultDetailSurface
+      card={card}
+      cardState={{...createLearningCardState(card), isFlipped: true, flipConfidence: 'confident'}}
+      currentIndex={0} isLastCard={false} palette={palette} phase="learning"
+      onAdvanceCard={jest.fn()} onBackToPractice={jest.fn()}
+      sessionCardCount={5} sessionLabel={session.sourceLabel}
+      result={{cardId: card.card_id, interactionId: 'flip', outcome: 'confident',
+        completedAt: '2026-09-19T00:00:00.000Z', isFavorited: false, usedHint: false, usedPeek: false}}
+    />);
+  });
+  const text = visibleText(tree.toJSON());
+  expect(text).toContain('有把握');
+  expect(text).toContain('这是你的自评结果');
+  expect(text).not.toMatch(/回答正确|你的答案正确|已答对/);
+});
+
 test('learning compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactLearningViewport(320, 693)).toBe(true);
   expect(isCompactLearningViewport(393, 700)).toBe(true);
   expect(isCompactLearningViewport(393, 850)).toBe(true);
   expect(isCompactLearningViewport(744, 1133)).toBe(false);
+});
+
+test('opening help does not count as using a hint or peek', () => {
+  const session = createLocalLearningSession('cet4');
+  const card = session.cards.find(item => item.hint_layer)!;
+  const onToggleHint = jest.fn();
+  const onTogglePeek = jest.fn();
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<LearningSurface
+      audioAttemptId={null} palette={palette} sessionCards={session.cards} sessionLabel={session.sourceLabel}
+      phase="learning" currentCard={card} currentCardState={createLearningCardState(card)} currentIndex={0}
+      currentResult={null} completedResults={[]} reviewCandidateCount={0}
+      onToggleHint={onToggleHint} onTogglePeek={onTogglePeek} onToggleFavorite={jest.fn()}
+      onFlip={jest.fn()} onSetFlipConfidence={jest.fn()} onSelectOption={jest.fn()}
+      onSetLockSelection={jest.fn()} onToggleEliminationItem={jest.fn()} onSelectSwipeState={jest.fn()}
+      onSubmitCurrentCard={jest.fn()} onAdvanceCard={jest.fn()} onRestartDeck={jest.fn()}
+    />);
+  });
+  expect(tree.root.findAllByProps({testID: 'learning-hint-button'})).toHaveLength(0);
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-help-button'}).props.onPress());
+  expect(onToggleHint).not.toHaveBeenCalled();
+  expect(onTogglePeek).not.toHaveBeenCalled();
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-hint-button'}).props.onPress());
+  expect(onToggleHint).toHaveBeenCalledTimes(1);
+  expect(onTogglePeek).not.toHaveBeenCalled();
+  ReactTestRenderer.act(() => tree.unmount());
 });
 
 test('all five interactions keep one stable card envelope and separated support controls', () => {
@@ -111,7 +159,7 @@ test('all five interactions keep one stable card envelope and separated support 
     envelopeHeights.push(envelope.height);
     const taskRegion = tree!.root.findByProps({testID: 'learning-card-task-band'});
     expect(taskRegion.props.scrollEnabled).not.toBe(false);
-    for (const target of ['learning-peek-button', 'learning-favorite-button']) {
+    for (const target of ['learning-help-button', 'learning-favorite-button']) {
       expect(StyleSheet.flatten(tree!.root.findByProps({testID: target}).props.style).minHeight).toBeGreaterThanOrEqual(44);
     }
     const actionDock = tree!.root.findAllByProps({
@@ -275,7 +323,7 @@ test.each(['lock', 'elimination', 'swipe'] as const)(
     });
 
     expect(
-      tree!.root.findByProps({ testID: 'learning-support-layer' }),
+      tree!.root.findByProps({ testID: 'learning-help-content' }),
     ).toBeTruthy();
     expect(visibleText(tree!.toJSON())).toContain(card.front.support);
     expect(visibleText(tree!.toJSON())).toContain(card.front.context);
@@ -383,7 +431,7 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
 
   const control = tree!.root.findByProps({ testID: 'learning-audio-control' });
   expect(control.props.accessibilityRole).toBe('button');
-  expect(control.props.accessibilityLabel).toBe('播放听力');
+  expect(control.props.accessibilityLabel).toBe('播放音频');
   expect(control.props.accessibilityState).toEqual({
     busy: false,
     disabled: false,
@@ -483,20 +531,20 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('LEAK_SENTINEL_INTERNAL_SOURCE_7A');
   expect(output).not.toContain('本组第');
   expect(output).not.toContain('这一组学习卡');
-  expect(output).not.toContain('这组回看卡');
+  expect(output).not.toContain('这组复习卡');
   expect(output).not.toContain('这一组已经按学习节奏走完');
   expect(output).not.toContain('再练一轮这一组');
-  expect(output).not.toContain('回看这一组');
+  expect(output).not.toContain('复习这一组');
   expect(output).not.toContain('系统顺序');
   expect(output).not.toContain('系统顺序学习');
   expect(output).not.toContain('当前学习会话');
   expect(output).toContain('查看答案');
   expect(tree!.root.findByProps({testID:'learning-peek-button'}).props.accessibilityState.expanded).toBe(true);
-  expect(output).not.toContain('先翻面，看完解析后选有把握或再回看。');
+  expect(output).not.toContain('先翻面，看完解析后选有把握或需要复习。');
   expect(output).toContain('查看提示');
   expect(output).not.toContain('要一点线索');
   expect(output).not.toContain('收起这点线索');
-  expect(output).toContain('解题线索');
+  expect(output).toContain('收起思路');
   expect(output).toContain(currentCard.analysis.exam_tip);
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
@@ -506,6 +554,7 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('这张在：');
   expect(output).not.toContain('当前位置：');
   expect(tree!.root.findByProps({testID:'learning-current-card'})).toBeTruthy();
+  ReactTestRenderer.act(() => {const help = tree!.root.findByProps({testID: 'learning-help-button'}); if (!help.props.accessibilityState.expanded) help.props.onPress();});
   for (const target of ['learning-peek-button', 'learning-hint-button', 'learning-flip-button']) {
     expect(tree!.root.findByProps({testID:target}).props.onPress).toBeDefined();
   }
@@ -1027,12 +1076,12 @@ test('completion state keeps the next step primary instead of a metric dashboard
   const output = JSON.stringify(tree!.toJSON());
 
   expect(output).toContain('下一步');
-  expect(output).toContain('开始回看这 ');
+  expect(output).toContain('开始复习这 ');
   expect(output).toContain('1');
   expect(output).toContain(' 张卡');
   expect(output).not.toContain('完成明细');
-  expect(output).not.toContain('自动判对');
-  expect(output).not.toContain('自动判错');
+  expect(output).not.toContain('回答正确');
+  expect(output).not.toContain('回答错误');
 });
 
 test('controlled-pilot round completion reuses the completion card with one canonical continue action', () => {
@@ -1077,7 +1126,7 @@ test('controlled-pilot round completion reuses the completion card with one cano
   const output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('完成 5 张卡');
   expect(output).toContain('5/5');
-  expect(output).toContain('回看 2');
+  expect(output).toContain('复习 2');
   expect(output).not.toContain('卡源');
   expect(output).toContain(session.catalogCards[0].space_metadata.library);
   expect(
@@ -1185,7 +1234,7 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(output).not.toContain('位置保持');
   expect(output).not.toContain('本轮盒节奏保持');
   expect(output).not.toContain('下一张仍按本轮盒继续');
-  expect(output).toContain('继续下一张');
+  expect(output).toContain('下一张');
   expect(output).not.toContain('knowledge_ref');
   expect(output).not.toContain('box_ref');
   expect(output).not.toContain(card.knowledge_ref);

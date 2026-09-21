@@ -1,3 +1,8 @@
+import {LocalStudyApp} from './src/local/LocalStudyApp';
+import {localLearningCardSource} from './src/learning/localCardSource';
+import {reviewCardIds, latestCardResults} from './src/space/cardFilters';
+import {authFailure, type AuthFailureKind} from './src/auth/authErrorCopy';
+import {endsLocalBatch, localBatch, localResumeIndex} from './src/learning/localBatch';
 import {NativeMotionProvider, useCardMotion} from './src/learning/NativeMotion';
 import React, {
   startTransition,
@@ -189,6 +194,8 @@ import {
   resolveLibraryTone,
 } from './src/visual/tokens';
 
+const LOCAL_DEVICE_OWNER = '00000000000'; // Local-only identity, never submitted to SMS.
+
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type DeviceClass = 'phone' | 'tablet';
 type AuthStage = 'logged_out' | 'code_sent' | 'authenticated';
@@ -197,6 +204,7 @@ type LearningSurfaceScreen = 'practice' | 'result_detail';
 
 type AppProps = {
   softbookRemoteRuntimeProfile?: SoftbookRemoteRuntimeProfile;
+  deviceOnly?: boolean;
 };
 
 type ShellRoute = {
@@ -279,6 +287,7 @@ type AuthState = {
   pendingAction: 'request_code' | 'verify_code' | null;
   resendAvailableAt: number;
   errorAction?: 'request_code' | 'verify_code' | 'save_session';
+  errorKind?: AuthFailureKind;
   smsCode: string;
   error: string | null;
 };
@@ -349,6 +358,7 @@ type AuthHandlers = {
   onResetPhone: () => void;
   onRequestCode: () => void;
   onSubmitCode: () => void;
+  onStartLocal: () => void;
   onOpenUpdate: () => void;
   onLogout: () => Promise<void>;
 };
@@ -410,7 +420,7 @@ const LIGHT_PALETTE: Palette = {
 const AUTH_KEYBOARD_ACCESSORY_ID = 'auth-keyboard-accessory';
 const SMS_CODE_CELL_COUNT = 6;
 const CLIENT_UPDATE_REQUIRED_COPY =
-  '当前版本需要更新；请安装最新版本后继续，登录状态会保留。';
+  '请更新到最新版本，更新后可继续学习。';
 
 const INITIAL_AUTH_STATE: AuthState = {
   authToken: null,
@@ -430,14 +440,14 @@ const INITIAL_PROGRESS_SYNC_STATE: ProgressSyncState = {
 };
 
 const INITIAL_LEARNING_STATE_SYNC_STATE: LearningStateSyncState = {
-  detail: '当前还没有需要同步的学习作答状态。',
-  label: '等待学习状态',
+  detail: '还没有答题记录。',
+  label: '暂无答题记录',
   state: 'idle',
 };
 
 const INITIAL_SPACE_STATE_SYNC_STATE: SpaceStateSyncState = {
-  detail: '当前还没有需要同步的空间状态。',
-  label: '等待空间状态',
+  detail: '还没有收藏或休眠记录。',
+  label: '暂无操作记录',
   state: 'idle',
 };
 
@@ -455,6 +465,7 @@ function createEntitlementPendingMembershipState(): MembershipState {
 
 function App({
   softbookRemoteRuntimeProfile,
+  deviceOnly = false,
 }: AppProps = {}): React.JSX.Element {
   const runtimeConfig = useMemo(() => {
     if (softbookRemoteRuntimeProfile) {
@@ -466,9 +477,15 @@ function App({
     return readSoftbookAppRuntimeConfig();
   }, [softbookRemoteRuntimeProfile]);
 
+  if (!deviceOnly && localLearningCardSource.sourceId === 'bundled-card-make-v1' && runtimeConfig?.auth?.mode !== 'remote') {
+    return <SafeAreaProvider><View style={{flex: 1, justifyContent: 'center', padding: 24}}><Text>服务尚未配置，请启动本地后端后重新打开应用。</Text></View></SafeAreaProvider>;
+  }
+
   return (
     <SafeAreaProvider>
-      <NativeMotionProvider><AppShell runtimeConfig={runtimeConfig} /></NativeMotionProvider>
+      <NativeMotionProvider>{deviceOnly && localLearningCardSource.sourceId === 'bundled-card-make-v1' && ['auth','accountBootstrap','contentManifest','learningSource','membership','progressSync','spaceState','learningState'].every(key => (runtimeConfig as Record<string, {mode?: string}> | undefined)?.[key]?.mode !== 'remote')
+        ? <LocalStudyApp initialTrack={resolveLearningTrack(runtimeConfig)} palette={LIGHT_PALETTE} />
+        : <AppShell runtimeConfig={runtimeConfig} />}</NativeMotionProvider>
     </SafeAreaProvider>
   );
 }
@@ -479,10 +496,10 @@ function AppShell({
   runtimeConfig: SoftbookAppRuntimeConfig | undefined;
 }) {
   const palette = LIGHT_PALETTE;
-  const learningTrack = useMemo(
-    () => resolveLearningTrack(runtimeConfig),
-    [runtimeConfig],
-  );
+  const [learningTrack, setLearningTrack] = useState(() => resolveLearningTrack(runtimeConfig));
+  const [trackSwitchPending, setTrackSwitchPending] = useState(false);
+  const trackSwitchInFlight = useRef(false);
+  const [trackSwitchError, setTrackSwitchError] = useState<string | null>(null);
   const authRepositoryConfig = useMemo(
     () => resolveAuthRepositoryConfig(runtimeConfig),
     [runtimeConfig],
@@ -534,6 +551,7 @@ function AppShell({
         shouldPreserveAuthorizationRejection:
           isAccountSessionQuarantined,
         beforeSessionInvalidation: async ({session, reason}) => {
+          if (session.mode === 'local' && authRepositoryConfig.mode === 'local') return;
           const lifetime = deletionRecoveryLifetimeRef.current;
           const generation = lifetime.generation;
           const assertActive = () => {
@@ -555,7 +573,7 @@ function AppShell({
             phoneNumber: session.phoneNumber,
             sessionScopeKey: getAuthSessionScopeKey(session),
             error: reason === 'authorization_invalidated'
-              ? '登录已失效，请重新验证手机号。'
+              ? '登录已失效，请重新登录。'
               : null,
             revokeRemote: false,
           };
@@ -574,6 +592,7 @@ function AppShell({
       }),
     [
       authRepository,
+      authRepositoryConfig.mode,
       authSessionStore,
       accountLogoutCleanupStore,
       isAccountSessionQuarantined,
@@ -801,6 +820,9 @@ function AppShell({
     string | null
   >(null);
   const [learningIndex, setLearningIndex] = useState(0);
+  const authenticationInFlight = useRef(false);
+  const [localBatchComplete, setLocalBatchComplete] = useState(false);
+  const localResumeCardId = useRef<string | null>(null);
   const [localLearningAttemptGeneration, setLocalLearningAttemptGeneration] =
     useState(0);
   const [learningCardState, setLearningCardState] =
@@ -1151,7 +1173,7 @@ function AppShell({
       }
 
       await clearAuthenticatedSession(
-        '登录已失效，请重新验证手机号。',
+        '登录已失效，请重新登录。',
         false,
         originPhoneNumber,
       );
@@ -1571,7 +1593,7 @@ function AppShell({
         };
         await completeAcceptedAccountDeletionCleanup();
       } catch {
-        if (isCurrent()) setDeletionRecoveryError('删除状态暂时无法查询，请稍后重试。不会因此登录或新建账户。');
+        if (isCurrent()) setDeletionRecoveryError('注销进度查询失败，请稍后重试。');
       } finally {
         if (deletionRecoveryRequestRef.current === operation) {
           deletionRecoveryRequestRef.current = null;
@@ -1747,6 +1769,7 @@ function AppShell({
     [learningSession, membershipState, readSpaceCardState, spaceCardStateById],
   );
   const visibleLearningCards = resolveVisibleLearningCards();
+  const resumeLearningIndex = localResumeIndex(learningSession?.cards ?? [], visibleLearningCards, localResumeCardId.current);
   const sleepingAccessibleCards = resolveSleepingAccessibleCards();
   const recoverableSleepingCard = sleepingAccessibleCards[0] ?? null;
   const activeSessionCards =
@@ -1756,6 +1779,12 @@ function AppShell({
       ? reviewCompletedResults
       : learningCompletedResults;
   const currentLearningCard = activeSessionCards[learningIndex] ?? null;
+  const isLocalLearning = learningSession?.schedulingMode === 'local';
+  const localGroup = localBatch(activeSessionCards.length, learningIndex, localBatchComplete);
+  const presentedCards = isLocalLearning ? activeSessionCards.slice(localGroup.start, localGroup.end) : activeSessionCards;
+  const presentedResults = isLocalLearning ? activeCompletedResults.filter(result => presentedCards.some(card => card.card_id === result.cardId)) : activeCompletedResults;
+  const presentedIndex = isLocalLearning ? localGroup.index : learningIndex;
+  useEffect(() => { setLocalBatchComplete(false); }, [learningSession?.sourceId, learningSession?.track, authState.phoneNumber]);
   const learningAudioAttemptId =
     learningSession?.schedulingMode === 'server'
       ? learningSession.serverSelection?.selectionId ?? null
@@ -1797,6 +1826,11 @@ function AppShell({
       }
     : palette;
   currentLearningCardIdRef.current = currentLearningCard?.card_id ?? null;
+  const catalogResultIds = new Set((learningSession?.catalogCards ?? []).map(card => card.card_id));
+  const catalogResults = latestCardResults(runtimeAccountBootstrapMode === 'remote'
+    ? mappedAccountBootstrapSnapshot?.content.version === learningSession?.contentVersion ? mappedAccountBootstrapSnapshot?.learning.cardStates ?? [] : []
+    : [...learningCompletedResults, ...reviewCompletedResults]).filter(result => catalogResultIds.has(result.cardId));
+  const pendingSpaceReviewIds = reviewCardIds(catalogResults, Object.keys(spaceCardStateById).filter(id => spaceCardStateById[id].isSleeping));
   const reviewCandidateCards =
     learningSession?.schedulingMode === 'server'
       ? []
@@ -1960,8 +1994,8 @@ function AppShell({
             pendingLearningEventCount: 0,
             membershipErrorMessage: `${getUserFacingErrorMessage(
               error,
-              '账户状态暂时无法读取。',
-            )} 已保留登录；服务恢复前不会上传本地状态。`,
+              '暂时无法加载账号信息。',
+            )} 登录信息已保留，连接恢复后会重试。`,
             membershipRefreshSucceeded: false,
             membershipState: createEntitlementPendingMembershipState(),
             persistedUserState:
@@ -2001,7 +2035,7 @@ function AppShell({
             errorMessage: `${getUserFacingErrorMessage(
               error,
               '会员状态暂时无法读取。',
-            )} 已恢复登录；联网后会自动更新会员权益。`,
+            )} 已登录，联网后会更新会员信息。`,
             refreshSucceeded: false,
             state: createEntitlementPendingMembershipState(),
           };
@@ -2095,6 +2129,7 @@ function AppShell({
       accountBootstrapSnapshot.dayKey === todayKey &&
       accountBootstrapSnapshot.track === learningTrack);
   const canWriteAccountState =
+    !trackSwitchPending &&
     isAccountStateReconciled &&
     accountLogoutState === 'idle' &&
     accountDeletionOriginRef.current === null &&
@@ -2404,7 +2439,7 @@ function AppShell({
     accountBootstrapHydrationSettledRef.current = false;
     setAccountBootstrapHydrationSettled(false);
     setProgressSyncState({
-      detail: '日期已更新，正在确认今天的学习进展。',
+      detail: '日期已更新，正在签到。',
       label: '更新中',
       state: 'syncing',
     });
@@ -2430,7 +2465,7 @@ function AppShell({
       .then(succeeded => {
         if (!succeeded && canReportRolloverFailure()) {
           setProgressSyncState({
-            detail: '今天的学习进展暂时无法确认。',
+            detail: '今天的学习进度暂时无法确认。',
             label: '待更新',
             state: 'error',
           });
@@ -2448,7 +2483,7 @@ function AppShell({
         setProgressSyncState({
           detail: getUserFacingErrorMessage(
             error,
-            '今天的学习进展暂时无法确认。',
+            '今天的学习进度暂时无法确认。',
           ),
           label: '待更新',
           state: 'error',
@@ -2562,7 +2597,7 @@ function AppShell({
               error,
               '本地答题记录暂时无法读取。',
             ),
-            label: '同步受阻',
+            label: '同步失败',
             state: 'error',
           });
           return;
@@ -2579,9 +2614,9 @@ function AppShell({
         setProgressSyncState({
           detail: getUserFacingErrorMessage(
             error,
-            '本地待同步操作暂时无法读取。',
+            '待同步记录读取失败，请重试。',
           ),
-          label: '同步受阻',
+          label: '同步失败',
           state: 'error',
         });
         return;
@@ -2625,7 +2660,7 @@ function AppShell({
             setLearningSession(null);
             setLearningCardState(null);
             setLearningBootstrapStatus('error');
-            setLearningBootstrapError('当前内容暂时无法确认，答题记录已保留。');
+            setLearningBootstrapError('卡片更新失败，答题记录已保留。');
             return;
           }
 
@@ -2645,7 +2680,7 @@ function AppShell({
           setLearningBootstrapError(
             getUserFacingErrorMessage(
               error,
-              '当前内容暂时无法确认，答题记录已保留。',
+              '卡片更新失败，答题记录已保留。',
             ),
           );
           return;
@@ -2679,7 +2714,7 @@ function AppShell({
 
           if (queuedLearningEventCount > 0) {
             setLearningStateSyncState({
-              detail: '答题记录已安全保存在本机，账户状态恢复后会继续同步。',
+              detail: '答题记录已保存在本机，稍后会重试同步。',
               label: '待重试',
               state: 'error',
             });
@@ -2701,7 +2736,7 @@ function AppShell({
         }
 
         setLearningStateSyncState({
-          detail: '正在提交本机安全保存的答题记录。',
+          detail: '正在同步答题记录。',
           label: '同步中',
           state: 'syncing',
         });
@@ -2758,11 +2793,11 @@ function AppShell({
                 if (!bootstrapRefreshed) {
                   setLearningBootstrapStatus('error');
                   setLearningBootstrapError(
-                    '账户学习状态尚未刷新，重新确认后再继续下一张。',
+                    '学习进度还未更新，请刷新后继续。',
                   );
                   setLearningStateSyncState({
                     detail: hasNewRejection
-                      ? '这次结果未计入，联网后会重新读取学习安排。'
+                      ? '这次结果未计入，联网后会刷新学习进度。'
                       : '答题记录已保存，联网后会自动更新学习状态。',
                     label: '待刷新',
                     state: 'error',
@@ -2784,12 +2819,12 @@ function AppShell({
 
                 setLearningBootstrapStatus('error');
                 setLearningBootstrapError(
-                  '账户学习状态刷新失败，重新确认后再继续下一张。',
+                  '学习进度更新失败，请重试后继续。',
                 );
                 setLearningStateSyncState({
                   detail: `${getUserFacingErrorMessage(
                     error,
-                    '账户学习状态刷新失败。',
+                    '学习进度更新失败。',
                   )} 服务恢复后会自动再试。`,
                   label: '待刷新',
                   state: 'error',
@@ -2799,7 +2834,7 @@ function AppShell({
             }
 
             setLearningStateSyncState({
-              detail: hasNewRejection ? '这次结果未计入，请重新读取学习安排。' : '当前答题记录已同步。',
+              detail: hasNewRejection ? '这次结果未计入，请刷新学习进度。' : '当前答题记录已同步。',
               label: hasNewRejection ? '未计入' : '已同步',
               state: hasNewRejection ? 'error' : 'synced',
             });
@@ -2843,7 +2878,7 @@ function AppShell({
           setLearningStateSyncState({
             detail: `${getUserFacingErrorMessage(
               error,
-              '学习状态同步失败。',
+              '学习记录同步失败。',
             )} 答题记录已保存在本机，网络恢复后会自动再试。`,
             label: '待重试',
             state: 'error',
@@ -3064,7 +3099,7 @@ function AppShell({
       ) {
         setSpaceStateSyncState({
           detail:
-            '空间操作已安全保存在本机，网络恢复后会自动再试，当前空间仍可继续使用。',
+            '设置已保存在本机，联网后会同步。',
           label: '待重试',
           state: 'error',
         });
@@ -3112,7 +3147,7 @@ function AppShell({
             mutationReplayRequestedAfterCurrent.current =
               replaySessionScopeKey;
             setSpaceStateSyncState({
-              detail: '已取得更新后的账户状态，正在重新提交。',
+              detail: '进度已更新，正在重试保存。',
               label: '确认中',
               state: 'syncing',
             });
@@ -3130,7 +3165,7 @@ function AppShell({
             }
             setSpaceStateSyncState({
               detail:
-                '这项操作仍安全保存在本机，内容状态更新后会再次确认。',
+                '设置已保存在本机，稍后会重试同步。',
               label: '待更新',
               state: 'error',
             });
@@ -3146,7 +3181,7 @@ function AppShell({
             });
           } else if (remainingPendingSpaceActionCount > 0) {
             setSpaceStateSyncState({
-              detail: '部分空间操作仍安全保存在本机，网络恢复后会自动再试。',
+              detail: '部分设置还未同步，联网后会自动重试。',
               label: '待重试',
               state: 'error',
             });
@@ -3266,6 +3301,7 @@ function AppShell({
       );
 
       setLearningIndex(0);
+      setLocalBatchComplete(false);
       setLearningPhase('learning');
       setLearningCurrentResult(null);
       setLearningRoundContinuePending(false);
@@ -3399,7 +3435,7 @@ function AppShell({
       } catch {
         if (!isCancelled) {
           setDeletionRecoveryReadBlocked(true);
-          setDeletionRecoveryError('上次账户状态暂时无法读取，请重试。');
+          setDeletionRecoveryError('上次暂时无法加载账号信息，请重试。');
         }
         return;
       }
@@ -3476,7 +3512,7 @@ function AppShell({
       if (session === null) {
         if (restoringSessionScopeKey !== null) {
           await persistenceHydrationCallbacksRef.current.clearSession(
-            '登录已失效，请重新验证手机号。',
+            '登录已失效，请重新登录。',
             false,
             restoringAccountPhoneNumber,
           );
@@ -3550,7 +3586,7 @@ function AppShell({
           )
         ) {
           await persistenceHydrationCallbacksRef.current.clearSession(
-            '登录已失效，请重新验证手机号。',
+            '登录已失效，请重新登录。',
             false,
             restoringAccountPhoneNumber,
           );
@@ -3685,7 +3721,7 @@ function AppShell({
         // A successful reload must still match its original account and selection.
         setLearningBootstrapStatus('error');
         setLearningBootstrapError(
-          '账户状态暂时无法读取，服务恢复后再加载本轮卡片。',
+          '暂时无法加载账号信息，服务恢复后再加载本轮卡片。',
         );
       }
       return;
@@ -4020,7 +4056,7 @@ function AppShell({
       setLearningSession(null);
       setLearningCardState(null);
       setLearningBootstrapStatus('error');
-      setLearningBootstrapError('当前登录状态不可用，本轮卡片无法加载。');
+      setLearningBootstrapError('登录已失效，请重新登录。');
       return;
     }
 
@@ -4036,7 +4072,7 @@ function AppShell({
       setLearningSession(null);
       setLearningCardState(null);
       setLearningBootstrapStatus('error');
-      setLearningBootstrapError('当前登录状态不可用，本轮卡片无法加载。');
+      setLearningBootstrapError('登录已失效，请重新登录。');
       return;
     }
 
@@ -4240,7 +4276,7 @@ function AppShell({
         // a transient load failure must not erase sticky assistance or mistakes.
         setLearningBootstrapStatus('error');
         setLearningBootstrapError(
-          getUserFacingErrorMessage(error, '本轮卡片加载失败。'),
+          getUserFacingErrorMessage(error, '卡片加载失败。'),
         );
         if (
           runtimeAccountBootstrapMode === 'remote' &&
@@ -4362,7 +4398,7 @@ function AppShell({
       setLearningCardState(null);
       setLearningBootstrapStatus('error');
       setLearningBootstrapError(
-        getUserFacingErrorMessage(error, '本轮卡片加载失败。'),
+        getUserFacingErrorMessage(error, '卡片加载失败。'),
       );
     }
   }, [
@@ -4438,7 +4474,7 @@ function AppShell({
         setProgressSyncState({
           detail: checkInWasJustConfirmed
             ? '签到已更新。'
-            : '今天的学习进展已恢复。',
+            : '今天的学习进度已恢复。',
           label: '已同步',
           state: 'synced',
         });
@@ -4547,7 +4583,7 @@ function AppShell({
     }
 
     if (runtimeMembershipRepositoryMode === 'remote' && !canWriteAccountState) {
-      setMembershipError('账户状态确认中，请稍后重试。');
+      setMembershipError('正在加载账号信息，请稍后重试。');
       retryCanonicalAccountBootstrap().catch(() => undefined);
       return;
     }
@@ -4585,11 +4621,232 @@ function AppShell({
   };
 
   const handleSelectRoute = (nextRoute: RouteKey) => {
+    if (trackSwitchInFlight.current) return;
     if (pendingRoute.current === nextRoute) return;
     routeMotion.cancel(); pendingRoute.current = nextRoute;
     if (nextRoute === activeRoute) {pendingRoute.current = null; applySelectedRoute(nextRoute); return;}
     routeMotion.perform(nextRoute === 'space' ? 'space' : 'focus', () => {pendingRoute.current = null; applySelectedRoute(nextRoute);});
   };
+
+  function submitAuthentication(localStart: boolean) {
+    if (authenticationInFlight.current || (localStart && authRepositoryConfig.mode !== 'local')) return;
+
+    if (
+      !persistenceHydrated ||
+      deletionRecoveryReadBlocked ||
+      deletionRecoveryReceiptRef.current !== null ||
+      accountLogoutState !== 'idle' ||
+      pendingAccountLogoutCleanupRef.current !== null ||
+      accountDeletionOriginRef.current !== null ||
+      acceptedAccountDeletionCleanupRef.current !== null ||
+      authState.pendingAction !== null
+    ) {
+      return;
+    }
+
+    if (!localStart && authState.stage !== 'code_sent') {
+      setAuthState(current => ({
+        ...current,
+        error: '请先请求验证码。',
+      }));
+      return;
+    }
+
+    if (!localStart && authState.challenge === null) {
+      setAuthState(current => ({
+        ...current,
+        error: '验证码请求已失效，请重新获取。',
+        stage: 'logged_out',
+      }));
+      return;
+    }
+
+    if (!localStart && !isSmsCodeReady(authState.smsCode)) {
+      setAuthState(current => ({
+        ...current,
+        error: '请输入 4-6 位验证码。',
+      }));
+      return;
+    }
+
+    authenticationInFlight.current = true;
+    const phoneNumber = localStart ? LOCAL_DEVICE_OWNER : authState.phoneNumber;
+    const smsCode = authState.smsCode;
+    const challenge = authState.challenge;
+    setAuthState(current => ({
+      ...current,
+      error: null,
+      errorAction: undefined,
+      errorKind: undefined,
+      pendingAction: 'verify_code',
+    }));
+    setMembershipError(null);
+    setMembershipPendingAction(null);
+
+    let loginStage: 'verify_code' | 'save_session' | 'hydrate_account' = 'verify_code';
+    let sessionEstablished = false;
+    let establishedSessionScopeKey: string | null = null;
+
+    (async () => {
+      const pendingAccountLogoutCleanup =
+        await accountLogoutCleanupStore.load();
+      if (pendingAccountLogoutCleanup !== null) {
+        pendingAccountLogoutCleanupRef.current = {
+          phoneNumber: pendingAccountLogoutCleanup.phoneNumber,
+          sessionScopeKey: null,
+          error: null,
+          revokeRemote: false,
+        };
+        await clearAuthenticatedSession();
+        throw new Error('Account cleanup must finish before authentication.');
+      }
+      const pendingAccountDeletionCleanup =
+        await accountDeletionCleanupStore.load();
+      if (pendingAccountDeletionCleanup !== null) {
+        acceptedAccountDeletionCleanupRef.current = {
+          phoneNumber: pendingAccountDeletionCleanup.phoneNumber,
+          sessionScopeKey: null,
+        };
+        await completeAcceptedAccountDeletionCleanup();
+        throw new Error(
+          'Account deletion cleanup must finish before authentication.',
+        );
+      }
+      const session: AuthSession = localStart
+        ? {mode: 'local', phoneNumber: LOCAL_DEVICE_OWNER}
+        : await authRepository.verifySmsCode({challenge: challenge!, phoneNumber, smsCode});
+      smsChallengesByPhone.current.delete(phoneNumber);
+      loginStage = 'save_session';
+      await authSessionCoordinator.establish(session);
+      sessionEstablished = true;
+      establishedSessionScopeKey = getAuthSessionScopeKey(session);
+
+      if (establishedSessionScopeKey === null) {
+        throw new Error('Authenticated session scope is unavailable.');
+      }
+
+      loginStage = 'hydrate_account';
+      const hydration = await loadAuthenticatedRuntimeHydration(session);
+
+      return {
+        hydration,
+        session,
+      };
+    })()
+      .then(({ hydration, session }) => {
+        if (
+          establishedSessionScopeKey === null ||
+          getAuthSessionScopeKey(
+            authSessionCoordinator.getCurrentSession(),
+          ) !== establishedSessionScopeKey
+        ) {
+          return;
+        }
+
+        if (runtimeMembershipRepositoryMode === 'remote') {
+          lastMembershipRefreshKey.current =
+            hydration.membershipRefreshSucceeded ? activeRoute : null;
+          pendingMembershipRefreshKey.current = null;
+        }
+        applyAuthenticatedRuntimeHydration(hydration);
+        setAuthState(current => ({
+          ...current,
+          authToken: getAuthAccessToken(session) ?? null,
+          challenge: null,
+          error: null,
+          pendingAction: null,
+          phoneNumber: session.phoneNumber,
+          smsCode: '',
+          stage: 'authenticated',
+        }));
+      })
+      .catch(async (error: unknown) => {
+        const establishedSessionIsCurrent =
+          establishedSessionScopeKey !== null &&
+          getAuthSessionScopeKey(
+            authSessionCoordinator.getCurrentSession(),
+          ) === establishedSessionScopeKey;
+
+        if (
+          sessionEstablished &&
+          establishedSessionScopeKey !== null &&
+          (await clearOriginSessionAfterAuthorizationError(
+            error,
+            establishedSessionScopeKey,
+            phoneNumber,
+          ))
+        ) {
+          return;
+        }
+
+        if (
+          isRemoteRequestCancellationError(error) ||
+          (sessionEstablished && !establishedSessionIsCurrent)
+        ) {
+          return;
+        }
+
+        if (
+          sessionEstablished &&
+          establishedSessionIsCurrent &&
+          findClientUpdateRequiredError(error)
+        ) {
+          accountBootstrapIntegrityBlockedRef.current = true;
+          setAccountBootstrapIntegrityBlocked(true);
+          setLearningBootstrapStatus('error');
+          setLearningBootstrapError(CLIENT_UPDATE_REQUIRED_COPY);
+          setMembershipError(CLIENT_UPDATE_REQUIRED_COPY);
+          const retainedSession = authSessionCoordinator.getCurrentSession();
+          setAuthState({
+            ...INITIAL_AUTH_STATE,
+            authToken:
+              retainedSession === null
+                ? null
+                : getAuthAccessToken(retainedSession) ?? null,
+            error: CLIENT_UPDATE_REQUIRED_COPY,
+            phoneNumber,
+            stage: 'authenticated',
+          });
+          return;
+        }
+
+        if (sessionEstablished) {
+          try {
+            await authSessionCoordinator.invalidate();
+          } catch (clearError) {
+            console.warn(
+              '[AppPersistence] Failed to roll back incomplete login.',
+              clearError,
+            );
+          }
+        }
+
+        if (loginStage === 'save_session') {
+          // Verification has already consumed this challenge. Retain only
+          // the phone's resend deadline; retry must request a fresh code.
+          setAuthState(current => ({
+            ...current,
+            authToken: null,
+            challenge: null,
+            error: '本机暂时无法保存登录状态。',
+            errorAction: 'save_session',
+            pendingAction: null,
+            smsCode: '',
+            stage: 'logged_out',
+          }));
+          return;
+        }
+
+        setAuthState(current => ({
+          ...current,
+          error: authFailure(error).message,
+          errorKind: authFailure(error).kind,
+          errorAction: 'verify_code',
+          pendingAction: null,
+        }));
+      })
+      .finally(() => { authenticationInFlight.current = false; });
+  }
 
   const authHandlers: AuthHandlers = {
     onChangePhone: value => {
@@ -4606,6 +4863,7 @@ function AppShell({
           current.phoneNumber === phoneNumber ? current.challenge : challenge,
         error: null,
         errorAction: undefined,
+        errorKind: undefined,
         phoneNumber,
         resendAvailableAt: smsResendAvailableAtByPhone.current.get(phoneNumber) ?? 0,
         smsCode: current.phoneNumber === phoneNumber ? current.smsCode : '',
@@ -4622,6 +4880,7 @@ function AppShell({
         smsCode: value.replace(/[^\d]/g, '').slice(0, 6),
         error: null,
         errorAction: undefined,
+        errorKind: undefined,
       }));
     },
     onResetPhone: () => {
@@ -4630,6 +4889,7 @@ function AppShell({
         challenge: null,
         error: null,
         errorAction: undefined,
+        errorKind: undefined,
         pendingAction: null,
         phoneNumber: '',
         resendAvailableAt: 0,
@@ -4646,7 +4906,7 @@ function AppShell({
         setAuthState(current => ({
           ...current,
           error:
-            '当前版本需要更新；请从原内测分发渠道安装最新版，登录状态会保留。',
+            '请从原内测渠道安装最新版本，更新后可继续学习。',
         }));
       });
     },
@@ -4670,7 +4930,7 @@ function AppShell({
       if (!isPhoneNumberReady(authState.phoneNumber)) {
         setAuthState(current => ({
           ...current,
-          error: '请输入 11 位手机号后再请求验证码。',
+          error: '请输入 11 位手机号。',
         }));
         return;
       }
@@ -4680,6 +4940,7 @@ function AppShell({
         ...current,
         error: null,
         errorAction: undefined,
+        errorKind: undefined,
         pendingAction: 'request_code',
       }));
 
@@ -4719,231 +4980,28 @@ function AppShell({
           setAuthState(current => ({
             ...current,
             error: rateLimited
-              ? '请求较频繁，请稍后再试。已收到的验证码仍可填写。'
-              : getUserFacingErrorMessage(error, '验证码请求暂时失败。'),
+              ? '操作太频繁，请稍后重试。已收到的验证码仍可使用。'
+              : getUserFacingErrorMessage(error, '验证码发送失败，请重试。'),
             errorAction: 'request_code',
             pendingAction: null,
             resendAvailableAt: smsResendAvailableAtByPhone.current.get(current.phoneNumber) ?? 0,
           }));
         });
     },
-    onSubmitCode: () => {
-      if (
-        !persistenceHydrated ||
-        deletionRecoveryReadBlocked ||
-        deletionRecoveryReceiptRef.current !== null ||
-        accountLogoutState !== 'idle' ||
-        pendingAccountLogoutCleanupRef.current !== null ||
-        accountDeletionOriginRef.current !== null ||
-        acceptedAccountDeletionCleanupRef.current !== null ||
-        authState.pendingAction !== null
-      ) {
-        return;
-      }
-
-      if (authState.stage !== 'code_sent') {
-        setAuthState(current => ({
-          ...current,
-          error: '请先请求验证码。',
-        }));
-        return;
-      }
-
-      if (authState.challenge === null) {
-        setAuthState(current => ({
-          ...current,
-          error: '验证码请求已失效，请重新获取。',
-          stage: 'logged_out',
-        }));
-        return;
-      }
-
-      if (!isSmsCodeReady(authState.smsCode)) {
-        setAuthState(current => ({
-          ...current,
-          error: '请输入 4-6 位验证码。',
-        }));
-        return;
-      }
-
-      const phoneNumber = authState.phoneNumber;
-      const smsCode = authState.smsCode;
-      const challenge = authState.challenge;
-      setAuthState(current => ({
-        ...current,
-        error: null,
-        errorAction: undefined,
-        pendingAction: 'verify_code',
-      }));
-      setMembershipError(null);
-      setMembershipPendingAction(null);
-
-      let loginStage: 'verify_code' | 'save_session' | 'hydrate_account' = 'verify_code';
-      let sessionEstablished = false;
-      let establishedSessionScopeKey: string | null = null;
-
-      (async () => {
-        const pendingAccountLogoutCleanup =
-          await accountLogoutCleanupStore.load();
-        if (pendingAccountLogoutCleanup !== null) {
-          pendingAccountLogoutCleanupRef.current = {
-            phoneNumber: pendingAccountLogoutCleanup.phoneNumber,
-            sessionScopeKey: null,
-            error: null,
-            revokeRemote: false,
-          };
-          await clearAuthenticatedSession();
-          throw new Error('Account cleanup must finish before authentication.');
+    onSubmitCode: () => submitAuthentication(false),
+    onStartLocal: () => submitAuthentication(true),
+    onLogout: async () => {
+      if (authRepositoryConfig.mode === 'local') {
+        try {
+          await userStateStore.save(authState.phoneNumber, {checkedInDayKey, learningCursor: persistedLearningCursor.current, spaceCardStateById});
+          await authSessionCoordinator.invalidate();
+          resetRuntimeAfterLogout(null);
+        } catch {
+          setAuthState(current => ({...current, error: '记录还没保存，请重试后返回首页。'}));
         }
-        const pendingAccountDeletionCleanup =
-          await accountDeletionCleanupStore.load();
-        if (pendingAccountDeletionCleanup !== null) {
-          acceptedAccountDeletionCleanupRef.current = {
-            phoneNumber: pendingAccountDeletionCleanup.phoneNumber,
-            sessionScopeKey: null,
-          };
-          await completeAcceptedAccountDeletionCleanup();
-          throw new Error(
-            'Account deletion cleanup must finish before authentication.',
-          );
-        }
-        const session = await authRepository.verifySmsCode({
-          challenge,
-          phoneNumber,
-          smsCode,
-        });
-        smsChallengesByPhone.current.delete(phoneNumber);
-        loginStage = 'save_session';
-        await authSessionCoordinator.establish(session);
-        sessionEstablished = true;
-        establishedSessionScopeKey = getAuthSessionScopeKey(session);
-
-        if (establishedSessionScopeKey === null) {
-          throw new Error('Authenticated session scope is unavailable.');
-        }
-
-        loginStage = 'hydrate_account';
-        const hydration = await loadAuthenticatedRuntimeHydration(session);
-
-        return {
-          hydration,
-          session,
-        };
-      })()
-        .then(({ hydration, session }) => {
-          if (
-            establishedSessionScopeKey === null ||
-            getAuthSessionScopeKey(
-              authSessionCoordinator.getCurrentSession(),
-            ) !== establishedSessionScopeKey
-          ) {
-            return;
-          }
-
-          if (runtimeMembershipRepositoryMode === 'remote') {
-            lastMembershipRefreshKey.current =
-              hydration.membershipRefreshSucceeded ? activeRoute : null;
-            pendingMembershipRefreshKey.current = null;
-          }
-          applyAuthenticatedRuntimeHydration(hydration);
-          setAuthState(current => ({
-            ...current,
-            authToken: getAuthAccessToken(session) ?? null,
-            challenge: null,
-            error: null,
-            pendingAction: null,
-            phoneNumber: session.phoneNumber,
-            smsCode: '',
-            stage: 'authenticated',
-          }));
-        })
-        .catch(async (error: unknown) => {
-          const establishedSessionIsCurrent =
-            establishedSessionScopeKey !== null &&
-            getAuthSessionScopeKey(
-              authSessionCoordinator.getCurrentSession(),
-            ) === establishedSessionScopeKey;
-
-          if (
-            sessionEstablished &&
-            establishedSessionScopeKey !== null &&
-            (await clearOriginSessionAfterAuthorizationError(
-              error,
-              establishedSessionScopeKey,
-              phoneNumber,
-            ))
-          ) {
-            return;
-          }
-
-          if (
-            isRemoteRequestCancellationError(error) ||
-            (sessionEstablished && !establishedSessionIsCurrent)
-          ) {
-            return;
-          }
-
-          if (
-            sessionEstablished &&
-            establishedSessionIsCurrent &&
-            findClientUpdateRequiredError(error)
-          ) {
-            accountBootstrapIntegrityBlockedRef.current = true;
-            setAccountBootstrapIntegrityBlocked(true);
-            setLearningBootstrapStatus('error');
-            setLearningBootstrapError(CLIENT_UPDATE_REQUIRED_COPY);
-            setMembershipError(CLIENT_UPDATE_REQUIRED_COPY);
-            const retainedSession = authSessionCoordinator.getCurrentSession();
-            setAuthState({
-              ...INITIAL_AUTH_STATE,
-              authToken:
-                retainedSession === null
-                  ? null
-                  : getAuthAccessToken(retainedSession) ?? null,
-              error: CLIENT_UPDATE_REQUIRED_COPY,
-              phoneNumber,
-              stage: 'authenticated',
-            });
-            return;
-          }
-
-          if (sessionEstablished) {
-            try {
-              await authSessionCoordinator.invalidate();
-            } catch (clearError) {
-              console.warn(
-                '[AppPersistence] Failed to roll back incomplete login.',
-                clearError,
-              );
-            }
-          }
-
-          if (loginStage === 'save_session') {
-            // Verification has already consumed this challenge. Retain only
-            // the phone's resend deadline; retry must request a fresh code.
-            setAuthState(current => ({
-              ...current,
-              authToken: null,
-              challenge: null,
-              error: '本机暂时无法保存登录状态。',
-              errorAction: 'save_session',
-              pendingAction: null,
-              smsCode: '',
-              stage: 'logged_out',
-            }));
-            return;
-          }
-
-          setAuthState(current => ({
-            ...current,
-            error: getUserFacingErrorMessage(error, '验证码暂时没通过。'),
-            errorAction: 'verify_code',
-            pendingAction: null,
-          }));
-        });
-    },
-    onLogout: () => {
-      return clearAuthenticatedSession(null, true);
+        return;
+      }
+      await clearAuthenticatedSession(null, true);
     },
   };
 
@@ -4963,7 +5021,7 @@ function AppShell({
         runtimeMembershipRepositoryMode === 'remote' &&
         !canWriteAccountState
       ) {
-        setMembershipError('账户状态确认中，请稍后重试。');
+        setMembershipError('正在加载账号信息，请稍后重试。');
         retryCanonicalAccountBootstrap().catch(() => undefined);
         return;
       }
@@ -5036,7 +5094,7 @@ function AppShell({
         runtimeMembershipRepositoryMode === 'remote' &&
         !canWriteAccountState
       ) {
-        setMembershipError('账户状态确认中，请稍后重试。');
+        setMembershipError('正在加载账号信息，请稍后重试。');
         retryCanonicalAccountBootstrap().catch(() => undefined);
         return;
       }
@@ -5077,7 +5135,7 @@ function AppShell({
           }
 
           setMembershipError(
-            getUserFacingErrorMessage(error, '恢复购买提醒暂时无法更新。'),
+            getUserFacingErrorMessage(error, '续费提醒暂时无法更新。'),
           );
           setMembershipPendingAction(null);
         });
@@ -5090,11 +5148,13 @@ function AppShell({
 
     if (learningPhase === 'review') {
       setReviewCompletedResults(nextResults);
+      if (isLocalLearning) setLearningCompletedResults(previous => [...previous.filter(result => result.cardId !== completedResult.cardId), completedResult]);
     } else {
       setLearningCompletedResults(nextResults);
     }
     setLearningCurrentResult(null);
     setLearningScreen('practice');
+    if (isLocalLearning) setLocalBatchComplete(endsLocalBatch(nextIndex, activeSessionCards.length));
 
     if (nextIndex >= activeSessionCards.length) {
       setLearningIndex(nextIndex);
@@ -5126,7 +5186,7 @@ function AppShell({
     ) => {
       if (!canWriteAccountState) {
         setSpaceStateSyncState({
-          detail: '账户状态确认中，请稍后再试。',
+          detail: '正在加载账号信息，请稍后重试。',
           label: '暂不可用',
           state: 'error',
         });
@@ -5144,7 +5204,7 @@ function AppShell({
       if (runtimeSpaceStateMode === 'local') {
         applyAfterDurableWrite(action);
         setSpaceStateSyncState({
-          detail: '空间收藏和休眠状态已记录。',
+          detail: '收藏和休眠设置已保存。',
           label: '已记录',
           state: 'synced',
         });
@@ -5224,7 +5284,7 @@ function AppShell({
           setSpaceStateSyncState({
             detail: getUserFacingErrorMessage(
               error,
-              '空间操作暂时无法安全保存。',
+              '设置保存失败，请重试。',
             ),
             label: '保存失败',
             state: 'error',
@@ -5365,7 +5425,7 @@ function AppShell({
       ) {
         setLearningAdvancePending(true);
         setLearningStateSyncState({
-          detail: '正在同步已安全保留的答题记录，确认后即可继续。',
+          detail: '正在同步答题记录，完成后即可继续。',
           label: '同步中',
           state: 'syncing',
         });
@@ -5389,7 +5449,7 @@ function AppShell({
       if (runtimeLearningEventsMode === 'local') {
         commitLearningCardAdvance(completedResult);
         setLearningStateSyncState({
-          detail: '当前答题记录已记录。',
+          detail: '答题记录已保存。',
           label: '已记录',
           state: 'idle',
         });
@@ -5416,11 +5476,11 @@ function AppShell({
       ) {
         setLearningStateSyncState({
           detail: learningEventRecoveryPending
-            ? '正在恢复上次安全保存的答题记录，确认完成后再继续。'
+            ? '正在恢复上次的答题记录，请稍候。'
             : learningSession?.contentVersion === null
-            ? '当前内容暂时不可用，本次答题未记录。'
-            : '账户状态确认中，本次答题尚未记录，请稍后重试。',
-          label: '记录受阻',
+            ? '卡片暂时不可用，这次作答还未保存。'
+            : '正在加载账号信息，这次作答还未保存，请稍后重试。',
+          label: '暂未保存',
           state: 'error',
         });
         if (learningEventRecoveryPending) {
@@ -5443,7 +5503,7 @@ function AppShell({
       learningEventEnqueueInFlight.current = enqueueOperation;
       setLearningAdvancePending(true);
       setLearningStateSyncState({
-        detail: '正在安全保存本次答题记录。',
+        detail: '正在保存答题记录。',
         label: '记录中',
         state: 'syncing',
       });
@@ -5510,7 +5570,7 @@ function AppShell({
           setLearningStateSyncState({
             detail: getUserFacingErrorMessage(
               error,
-              '本次答题记录无法安全保存，请重试。',
+              '答题记录保存失败，请重试。',
             ),
             label: '记录失败',
             state: 'error',
@@ -5538,6 +5598,8 @@ function AppShell({
         return;
       }
 
+      if (isLocalLearning && learningPhase === 'learning') localResumeCardId.current = visibleLearningCards[learningIndex]?.card_id ?? null;
+      setLocalBatchComplete(false);
       setLearningPhase('review');
       setReviewSessionCards(reviewCandidateCards);
       setReviewCompletedResults([]);
@@ -5548,7 +5610,16 @@ function AppShell({
         createTrackedLearningAttemptState(reviewCandidateCards[0]),
       );
     },
-    onRestartDeck: resetLearningDeck,
+    onRestartDeck: () => {
+      if (isLocalLearning && learningPhase === 'review' && resumeLearningIndex < visibleLearningCards.length) {
+        const index = resumeLearningIndex;
+        setLearningPhase('learning'); setReviewSessionCards([]); setReviewCompletedResults([]);
+        setLearningIndex(index); setLocalBatchComplete(false); setLearningCurrentResult(null);
+        setLearningCardState(createTrackedLearningAttemptState(visibleLearningCards[index]));
+        return;
+      }
+      resetLearningDeck();
+    },
     onContinueRound: () => {
       if (
         learningRoundContinuePending ||
@@ -5635,6 +5706,7 @@ function AppShell({
 
       persistSpaceAction(cardId, 'sleep', nextSleeping, action => {
         const nextStateMap = applyDurableSpaceAction(action);
+        setLocalBatchComplete(false);
         reconcileLearningDeckState(nextStateMap);
       });
     },
@@ -5659,7 +5731,7 @@ function AppShell({
         accountBootstrapHydrationSettledRef.current = false;
         setAccountBootstrapHydrationSettled(false);
         setProgressSyncState({
-          detail: '日期已更新，先确认今天的学习进展再签到。',
+          detail: '日期已更新，先签到再签到。',
           label: '更新中',
           state: 'syncing',
         });
@@ -5691,7 +5763,7 @@ function AppShell({
             }
             if (!succeeded && canReportRolloverFailure()) {
               setProgressSyncState({
-                detail: '今天的学习进展暂时无法确认。',
+                detail: '今天的学习进度暂时无法确认。',
                 label: '待更新',
                 state: 'error',
               });
@@ -5709,7 +5781,7 @@ function AppShell({
             setProgressSyncState({
               detail: getUserFacingErrorMessage(
                 error,
-                '今天的学习进展暂时无法确认。',
+                '今天的学习进度暂时无法确认。',
               ),
               label: '待更新',
               state: 'error',
@@ -5765,7 +5837,7 @@ function AppShell({
         detail:
           pendingLearningEventCount > 0
             ? '答题记录确认后再提交签到。'
-            : '正在安全保存签到。',
+            : '正在保存签到。',
         label: '保存中',
         state: 'syncing',
       });
@@ -5809,7 +5881,7 @@ function AppShell({
           setProgressSyncState({
             detail: getUserFacingErrorMessage(
               error,
-              '今天的签到暂时无法安全保存。',
+              '签到保存失败，请重试。',
             ),
             label: '保存失败',
             state: 'error',
@@ -6006,10 +6078,10 @@ function AppShell({
           state: spaceStateSyncState.state,
           title:
             spaceStateSyncState.state === 'error'
-              ? '空间状态待重试'
+              ? '设置同步失败'
               : spaceStateSyncState.state === 'syncing'
-              ? '正在同步空间状态'
-              : '空间状态已同步',
+              ? '正在同步设置'
+              : '设置已同步',
         }
       : null;
   const learningAdvanceState = {
@@ -6022,7 +6094,7 @@ function AppShell({
         : pendingLearningEventCount > 0 || learningEventRecoveryPending
         ? '这次答案已保留，先完成同步再进入下一张。'
         : learningAdvancePending
-        ? '正在安全保存本次答题记录。'
+        ? '正在保存答题记录。'
         : null,
     needsRetry:
       learningCurrentResult !== null &&
@@ -6032,9 +6104,65 @@ function AppShell({
         learningEventRecoveryPending),
   };
 
+  const switchLearningTrack = async (nextTrack: LearningTrack) => {
+    if (nextTrack === learningTrack || trackSwitchInFlight.current || !canWriteAccountState) return;
+    const session = authSessionCoordinator.getCurrentSession();
+    if (session?.mode !== 'remote' || authenticatedRuntimeContext === null) return;
+    const scopeKey = getAuthSessionScopeKey(session);
+    if (scopeKey === null) return;
+    trackSwitchInFlight.current = true;
+    setTrackSwitchPending(true);
+    setTrackSwitchError(null);
+    try {
+      const pendingSpace = accountBootstrapSnapshot === null ? [] : await mutationQueueRepository.getPendingSpaceActions(session.phoneNumber, {track: learningTrack, contentVersion: accountBootstrapSnapshot.content.version});
+      if (learningAdvancePending || learningRoundContinuePending || spaceActionPersistenceInFlight.current.size > 0 || pendingSpace.length > 0 || pendingLearningEventCountRef.current > 0 || learningEventRecoveryPending || await learningEventSyncRepository.getPendingCount(session.phoneNumber) > 0 || await mutationQueueRepository.hasPendingCheckIn(session.phoneNumber, todayKey)) {
+        throw new Error('还有记录等待同步，请联网同步后再切换。');
+      }
+      const nextSession = await learningSessionRepository.loadSession(authenticatedRuntimeContext, nextTrack);
+      const hydration = await loadAuthenticatedRuntimeHydration(session, {track: nextTrack, forceFresh: true});
+      if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== scopeKey || accountDeletionOriginRef.current !== null || pendingAccountLogoutCleanupRef.current !== null) return;
+      if (hydration.accountBootstrapStatus !== 'ready' || hydration.accountBootstrap === null) throw new Error('暂时无法加载，请稍后再切换。');
+      const canonical = resolveAccountBootstrapLearningState(hydration.accountBootstrap, nextSession);
+      if (nextSession.membershipStage !== null && nextSession.membershipStage !== hydration.membershipState.stage) throw new Error('账号权限尚未更新，请稍后再切换。');
+      // Commit the new track only after both canonical reads have succeeded.
+      learningTrackRef.current = nextTrack;
+      setLearningTrack(nextTrack);
+      applyAuthenticatedRuntimeHydration(hydration, {forceFresh: true});
+      learningSessionScopeKeyRef.current = scopeKey;
+      learningAuthoritySnapshotRef.current = hydration.accountBootstrap;
+      setLearningSession(nextSession);
+      setMappedAccountBootstrapSnapshot(hydration.accountBootstrap);
+      setLearningIndex(0);
+      setLearningCurrentResult(null);
+      setLearningCompletedResults(canonical.learningResults);
+      setReviewCompletedResults(canonical.reviewResults);
+      const phase = nextSession.serverSelection?.phase ?? 'learning';
+      setLearningPhase(phase);
+      setReviewSessionCards(phase === 'review' ? nextSession.cards : []);
+      setLearningCardState(nextSession.cards[0] ? createTrackedLearningAttemptState(nextSession.cards[0]) : null);
+      setLearningRoundContinueError(null);
+      setLearningBootstrapError(null);
+      setLearningBootstrapStatus('ready');
+      setSpaceScreen('overview');
+    } catch (error) {
+      if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === scopeKey) {
+        if (isRemoteAuthorizationError(error)) await clearOriginSessionAfterAuthorizationError(error, scopeKey, session.phoneNumber);
+        else setTrackSwitchError(getUserFacingErrorMessage(error, '切换失败，当前考试和记录已保留。'));
+      }
+    } finally {
+      trackSwitchInFlight.current = false;
+      setTrackSwitchPending(false);
+    }
+  };
+
   const content = route.key === 'mine' ? (
     <MineSurface
+      learningTrack={learningTrack}
+      onSwitchTrack={authRepositoryConfig.mode === 'remote' && runtimeAccountBootstrapMode === 'remote' ? nextTrack => void switchLearningTrack(nextTrack) : undefined}
+      trackSwitchPending={trackSwitchPending || !canWriteAccountState || learningAdvancePending || learningRoundContinuePending}
+      trackSwitchError={trackSwitchError}
       accountDeletionAvailable={accountDeletionRepository !== null}
+      authMode={authRepositoryConfig.mode}
       authState={authState}
       deviceClass={deviceClass}
       handlers={authHandlers}
@@ -6093,25 +6221,26 @@ function AppShell({
       advanceState={learningAdvanceState}
       card={currentLearningCard}
       cardState={learningCardState}
-      currentIndex={learningIndex}
-      isLastCard={learningIndex === activeSessionCards.length - 1}
+      currentIndex={presentedIndex}
+      isLastCard={isLocalLearning && learningIndex + 1 >= localGroup.end}
       onAdvanceCard={() => routeMotion.perform('advance', learningHandlers.onAdvanceCard)}
       onBackToPractice={() => setLearningScreen('practice')}
       palette={palette}
       phase={learningPhase}
       result={learningCurrentResult}
-      sessionCardCount={activeSessionCards.length}
+      sessionCardCount={presentedCards.length}
       sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
     />
   ) : route.key === 'learning' ? (
     <LearningSurface
       advanceState={learningAdvanceState}
       audioAttemptId={learningAudioAttemptId}
+      showCardProgress={learningSession?.schedulingMode !== 'server'}
       allowBundledAudio={learningSession?.schedulingMode === 'local' && learningSession.sourceId === 'bundled-card-make-v1'}
-      completedResults={activeCompletedResults}
+      completedResults={presentedResults}
       contentManifest={learningSession?.contentManifest ?? null}
       refreshAudioDownload={refreshLearningAudioDownload}
-      currentCard={isServerSelectionSleeping ? null : currentLearningCard}
+      currentCard={isServerSelectionSleeping || (isLocalLearning && localBatchComplete) ? null : currentLearningCard}
       currentCardState={isServerSelectionSleeping ? null : learningCardState}
       emptySession={learningSession?.schedulingMode === 'server' ? {
         nextDueAt: learningSession.nextDueAt,
@@ -6120,13 +6249,15 @@ function AppShell({
         onRefresh: retryEmptyLearningSession,
         onOpenSpace: () => handleSelectRoute('space'),
       } : null}
-      currentIndex={learningIndex}
+      currentIndex={presentedIndex}
       currentResult={learningCurrentResult}
       phase={learningPhase}
       onAdvanceCard={learningHandlers.onAdvanceCard}
       onFlip={learningHandlers.onFlip}
       onOpenResultDetail={() => setLearningScreen('result_detail')}
       onRestartDeck={learningHandlers.onRestartDeck}
+      onContinueLocalBatch={isLocalLearning && localBatchComplete && localGroup.hasMore ? () => setLocalBatchComplete(false) : undefined}
+      resumeLocalLearning={isLocalLearning && learningPhase === 'review' && resumeLearningIndex < visibleLearningCards.length}
       onContinueRound={learningHandlers.onContinueRound}
       onStartReview={learningHandlers.onStartReview}
       onSelectOption={learningHandlers.onSelectOption}
@@ -6151,13 +6282,14 @@ function AppShell({
       }
       roundContinueError={learningRoundContinueError}
       roundContinuePending={learningRoundContinuePending}
-      sessionCards={activeSessionCards}
+      sessionCards={presentedCards}
       sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
     />
   ) : route.key === 'space' ? (
     <SpaceSurface
       cardStateById={spaceCardStateById}
       currentLearningCard={activeLearningContextCard}
+      pendingReviewIds={pendingSpaceReviewIds}
       deviceClass={deviceClass}
       onBackToOverview={() => setSpaceScreen('overview')}
       onOpenCardList={() => setSpaceScreen('card_list')}
@@ -6175,6 +6307,7 @@ function AppShell({
   ) : route.key === 'statistics' ? (
     <StatisticsSurface
       canCheckInToday={canCheckInToday}
+      cumulativeLearnedCount={runtimeAccountBootstrapMode === 'remote' && mappedAccountBootstrapSnapshot !== null && learningSession !== null && mappedAccountBootstrapSnapshot.content.version === learningSession.contentVersion ? catalogResults.length : undefined}
       deviceClass={deviceClass}
       hasCheckedInToday={hasCheckedInToday}
       learningCompletedCount={dailyProgressSnapshot.learningCompletedCount}
@@ -6296,6 +6429,7 @@ function AppShell({
         ) : !isAuthenticated ? (
           <View style={styles.standaloneAuthRoot} testID="standalone-auth-root">
             <AuthGate
+              authMode={authRepositoryConfig.mode}
               authState={authState}
               handlers={authHandlers}
               palette={palette}
@@ -6360,17 +6494,17 @@ function LearningBootstrapSurface({
         ]}
       >
         <Text style={[styles.heroEyebrow, { color: palette.accent }]}>
-          学习准备
+          加载卡片
         </Text>
         <Text
           style={[styles.heroTitle, { color: palette.text }]}
           testID={isClientUpdateRequired ? 'auth-error-title' : undefined}
         >
           {isLoading
-            ? '正在准备本轮学习'
+            ? '正在加载卡片'
             : isClientUpdateRequired
             ? '需要安装最新版本'
-            : '本轮学习暂时不可用'}
+            : '卡片加载失败'}
         </Text>
         <Text
           style={[styles.heroSummary, { color: palette.textMuted }]}
@@ -6380,7 +6514,7 @@ function LearningBootstrapSurface({
             ? '正在加载本轮卡片。'
             : isClientUpdateRequired
             ? '登录状态已保留，安装最新版本后可直接继续。'
-            : '已登录，但这次没能拿到可用卡片。可以在这里重试。'}
+            : '卡片加载失败，请重试。'}
         </Text>
       </View>
       <InfoCard
@@ -6390,7 +6524,7 @@ function LearningBootstrapSurface({
           isLoading
             ? ['正在加载本轮卡片。', '加载完成后自动开始。']
             : [
-                error ?? '本轮卡片加载失败。',
+                error ?? '卡片加载失败。',
                 '当前没有答题记录。',
                 '请重新加载。',
               ]
@@ -6427,7 +6561,7 @@ function LearningBootstrapSurface({
             加载中
           </Text>
           <Text style={[styles.authSummary, { color: palette.textMuted }]}>
-            本轮卡片准备好后才会开始当前卡。
+            卡片加载后即可开始。
           </Text>
         </View>
       )}
@@ -6539,19 +6673,19 @@ function AccountDeletionCleanupSurface({
 }) {
   const headingRef = useRef<React.ElementRef<typeof Text>>(null);
   const title = purpose === 'registration'
-    ? pending ? '正在准备重新登录' : '本机清理尚未完成'
+    ? pending ? '正在准备重新登录' : '本机记录还未清理完成'
     : purpose === 'logout'
     ? pending ? '正在退出登录' : '退出尚未完成'
     : purpose === 'deletion_unknown'
-    ? '删除结果尚未确认'
-    : '删除申请已接收';
+    ? '尚未确认注销结果'
+    : '注销申请已收到';
   const summary = purpose === 'registration'
-    ? '已确认当前没有待处理的删除申请。完成本机旧账户数据清理后即可重新验证手机号。'
+    ? '没有待处理的注销申请。清理本机的旧登录记录后，即可重新登录。'
     : purpose === 'logout'
-    ? '这台设备上的账户数据还没有全部清理完成。完成后即可重新登录。'
+    ? '本机记录还未清理完成，请重试退出后再登录。'
     : purpose === 'deletion_unknown'
-    ? '请继续确认这次删除申请。结果确认前，学习和其他账户操作暂不可用。'
-    : '当前账户已不能继续使用，但这台设备上的账户数据还没有全部清理完成。请重新完成本机退出。';
+    ? '注销结果尚未确认，请先查询进度，暂时不能继续学习。'
+    : '注销申请已收到，请重试清理本机记录。';
   const testPrefix = purpose === 'deletion' || purpose === 'registration'
     ? 'account-deletion-cleanup'
     : purpose === 'logout'
@@ -6563,8 +6697,8 @@ function AccountDeletionCleanupSurface({
       purpose !== 'deletion'
         ? `${title}。${summary}`
         : pending
-        ? '删除申请已接收。正在清理这台设备上的账户数据。'
-        : '删除申请已接收。本机账户数据尚未清理完成，请重试。',
+        ? '注销申请已收到，正在清理本机记录。'
+        : '注销申请已收到，本机记录清理失败，请重试。',
     );
     const headingHandle = findNodeHandle(headingRef.current);
     if (headingHandle !== null) {
@@ -6632,10 +6766,10 @@ function AccountDeletionCleanupSurface({
             ]}
           >
             {purpose === 'logout'
-              ? '退出只清理这台设备上的登录和账户数据，不会删除你的学习账户。'
+              ? '退出登录不会注销账号。'
               : purpose === 'deletion_unknown'
-              ? '目前不能判断申请是否已被接收，也不代表账户数据已经清理完成。'
-              : '这里仍不表示服务端账户数据已经全部清理完成。'}
+              ? '尚未确认是否收到注销申请，请查询后再继续。'
+              : '注销还在处理中，请等待账号数据清理完成。'}
           </Text>
         </View>
         <Pressable
@@ -6663,8 +6797,8 @@ function AccountDeletionCleanupSurface({
             ]}
           >
             {purpose === 'deletion_unknown'
-              ? '继续确认删除'
-              : pending ? '正在清理本机数据' : '重新完成本机退出'}
+              ? '查询注销进度'
+              : pending ? '正在清理本机数据' : '重试退出'}
           </Text>
         </Pressable>
         {onQueryStatus ? (
@@ -6693,7 +6827,7 @@ function AccountDeletionAcceptedSurface({
 
   useEffect(() => {
     AccessibilityInfo.announceForAccessibility(
-      '删除申请已提交。当前账户已退出，账户数据仍在继续清理。',
+      '注销申请已提交。当前账户已退出，账户数据仍在继续清理。',
     );
     const headingHandle = findNodeHandle(headingRef.current);
     if (headingHandle !== null) {
@@ -6735,7 +6869,7 @@ function AccountDeletionAcceptedSurface({
           ref={headingRef}
           style={[styles.accountDeletionAcceptedTitle, { color: palette.text }]}
         >
-          删除申请已提交
+          注销申请已提交
         </Text>
         <Text
           style={[
@@ -6743,7 +6877,7 @@ function AccountDeletionAcceptedSurface({
             { color: palette.textMuted },
           ]}
         >
-          当前账户已退出，学习记录和账户数据会继续清理。清理完成前，这个手机号暂时不能再次登录。
+          你已退出登录。账号数据清理完成前，暂时不能用这个手机号重新登录。
         </Text>
         <View
           style={[
@@ -6761,7 +6895,7 @@ function AccountDeletionAcceptedSurface({
               { color: palette.textMuted },
             ]}
           >
-            这表示申请已经被接收，不表示所有数据已经在这一刻清理完成。
+            注销仍在处理中。
           </Text>
         </View>
         <Pressable
@@ -6779,7 +6913,7 @@ function AccountDeletionAcceptedSurface({
               { color: palette.primaryActionText },
             ]}
           >
-            返回手机号验证
+            返回登录
           </Text>
         </Pressable>
       </View>
@@ -6850,7 +6984,7 @@ function AccountDeletionSheet({
                 { color: palette.danger },
               ]}
             >
-              删除学习账户
+              注销账号
             </Text>
             <Text
               accessibilityRole="header"
@@ -6860,10 +6994,10 @@ function AccountDeletionSheet({
               ]}
             >
               {isConfirmation
-                ? '确认永久删除这个账户？'
+                ? '确认注销账号？'
                 : isSubmitting
-                ? '正在提交删除申请'
-                : preparationFailed ? '删除申请尚未发送' : '还没有收到确认'}
+                ? '正在提交注销申请'
+                : preparationFailed ? '注销申请尚未发出' : '还没有收到确认'}
             </Text>
             <Text
               style={[
@@ -6872,12 +7006,12 @@ function AccountDeletionSheet({
               ]}
             >
               {isConfirmation
-                ? '删除申请提交后会退出当前账号，学习进度、空间位置、签到与会员归属都会进入清理。'
+                ? '注销申请受理后，将退出登录并删除学习记录、收藏、休眠设置和会员信息。'
                 : isSubmitting
-                ? '请保持当前画面，等待这次申请得到确认。'
+                ? '请稍候，正在提交注销申请。'
                 : preparationFailed
-                ? '这台设备暂时无法保存恢复信息，尚未发送删除申请。请重试。'
-                : '现在无法判断申请是否已经被接收。重试会继续确认同一次删除，不会新建另一份申请。'}
+                ? '暂时无法提交注销申请，请重试。申请尚未发出。'
+                : '还没收到注销结果，请重试查询。'}
             </Text>
 
             {isConfirmation ? (
@@ -6892,9 +7026,9 @@ function AccountDeletionSheet({
               testID="account-deletion-consequences"
             >
               {[
-                '无法撤销这次申请',
+                '注销申请无法撤销',
                 '清理完成前不能再次登录',
-                '完成后可以重新注册一个空账户',
+                '注销完成后可重新注册，原有记录无法恢复',
               ].map(item => (
                 <Text
                   key={item}
@@ -6947,8 +7081,8 @@ function AccountDeletionSheet({
                   ]}
                 >
                   {isSubmitting
-                    ? '不会重复提交，也不会提前显示删除完成。'
-                    : preparationFailed ? '重试会先保存恢复信息，再发送申请。' : '账户数据是否开始清理，当前都不作结论。'}
+                    ? '注销需要一些时间，请等待结果。'
+                    : preparationFailed ? '请重试提交注销申请。' : '请先查询注销进度。'}
                 </Text>
               </View>
             </View>
@@ -6993,7 +7127,7 @@ function AccountDeletionSheet({
                     { color: palette.text },
                   ]}
                 >
-                  {isConfirmation ? '保留账户' : '返回我的'}
+                  {isConfirmation ? '暂不注销' : '返回我的'}
                 </Text>
               </Pressable>
               <Pressable
@@ -7013,7 +7147,7 @@ function AccountDeletionSheet({
                     { color: palette.panel },
                   ]}
                 >
-                  {isConfirmation ? '确认删除账户' : '重新确认'}
+                  {isConfirmation ? '确认注销账号' : '重新确认'}
                 </Text>
               </Pressable>
             </View>
@@ -7459,9 +7593,9 @@ function ShellHeader({
           {route.key === 'learning'
             ? '继续今天的学习。'
             : route.key === 'space'
-            ? '查看卡片位置、收藏和休眠。'
+            ? '查看卡片、收藏和休眠设置。'
             : route.key === 'statistics'
-            ? '查看今天的完成和回看。'
+            ? '查看今天的学习和复习记录。'
             : '管理账号和会员。'}
         </Text>
       </View>
@@ -7540,6 +7674,7 @@ function AuthStatusBadge({
 }
 
 function AuthGate({
+  authMode = 'remote',
   authState,
   cardTestID,
   embedded = false,
@@ -7548,6 +7683,7 @@ function AuthGate({
   route,
   standalone = false,
 }: {
+  authMode?: 'local' | 'remote';
   authState: AuthState;
   cardTestID?: string;
   embedded?: boolean;
@@ -7556,7 +7692,19 @@ function AuthGate({
   route: ShellRoute;
   standalone?: boolean;
 }) {
+  if (authMode === 'local') {
+    return <View style={[styles.authPanel, {backgroundColor: palette.panel}]} testID="local-learning-entry">
+      <Text style={[styles.authGateTitle, {color: palette.text}]}>在这台设备上学习</Text>
+      <Text style={[styles.authGateSummary, {color: palette.textMuted}]}>无需手机号或验证码。</Text>
+      {authState.error ? <Text accessibilityLiveRegion="polite" style={{color: palette.danger}}>{authState.error}</Text> : null}
+      <Pressable accessibilityRole="button" disabled={authState.pendingAction !== null} onPress={handlers.onStartLocal}
+        style={[styles.primaryButton, {backgroundColor: palette.accent}]} testID="local-start-learning-button">
+        <Text style={[styles.primaryButtonLabel, {color: palette.primaryActionText}]}>{authState.pendingAction !== null ? '正在准备…' : '开始学习'}</Text>
+      </Pressable>
+    </View>;
+  }
   const hasSentCode = authState.stage === 'code_sent';
+
   const isMineAccountGate = embedded && route.key === 'mine';
   const isRouteObjectGate = !standalone && route.key !== 'mine';
   const isCompactAuthGate = isMineAccountGate || isRouteObjectGate;
@@ -7613,6 +7761,9 @@ function AuthGate({
           retainedTitle: '保存学习进度',
           returnTarget: '学习',
         };
+
+  const gateTitle = authGateContent.gateTitle;
+  const gateSummary = authGateContent.gateSummary;
 
   return (
     <View
@@ -7707,14 +7858,14 @@ function AuthGate({
                   ]}
                   testID="auth-gate-title"
                 >
-                  {authGateContent.gateTitle}
+                  {gateTitle}
                 </Text>
                 <Text
                   onPress={Keyboard.dismiss}
                   style={[styles.authGateSummary, { color: palette.textMuted }]}
                   testID="auth-gate-keyboard-dismiss-target"
                 >
-                  {authGateContent.gateSummary}
+                  {gateSummary}
                 </Text>
               </View>
             </View>
@@ -7740,7 +7891,7 @@ function AuthGate({
                         { color: palette.text },
                       ]}
                     >
-                      {hasSentCode ? '验证码已发' : '短信登录'}
+                      {hasSentCode ? '输入验证码' : '短信登录'}
                     </Text>
                     <Text
                       style={[
@@ -7761,14 +7912,14 @@ function AuthGate({
                 ]}
                 testID="auth-gate-title"
               >
-                {authGateContent.gateTitle}
+                {gateTitle}
               </Text>
               <Text
                 onPress={Keyboard.dismiss}
                 style={[styles.authGateSummary, { color: palette.textMuted }]}
                 testID="auth-gate-keyboard-dismiss-target"
               >
-                {authGateContent.gateSummary}
+                {gateSummary}
               </Text>
             </>
           )}
@@ -7874,7 +8025,12 @@ function AuthGate({
 }
 
 function MineSurface({
+  learningTrack,
+  onSwitchTrack,
+  trackSwitchPending,
+  trackSwitchError,
   accountDeletionAvailable,
+  authMode,
   authState,
   deviceClass,
   handlers,
@@ -7890,7 +8046,12 @@ function MineSurface({
   palette,
   progressSyncState,
 }: {
+  learningTrack: LearningTrack;
+  onSwitchTrack?: (track: LearningTrack) => void;
+  trackSwitchPending: boolean;
+  trackSwitchError: string | null;
   accountDeletionAvailable: boolean;
+  authMode: 'local' | 'remote';
   authState: AuthState;
   deviceClass: DeviceClass;
   handlers: AuthHandlers;
@@ -7945,6 +8106,7 @@ function MineSurface({
         testID="mine-surface"
       >
         <AuthGate
+          authMode={authMode}
           authState={authState}
           cardTestID="mine-profile-card"
           embedded
@@ -7989,7 +8151,7 @@ function MineSurface({
                   { color: palette.accent },
                 ]}
               >
-                账号与权益
+                我的会员
               </Text>
             </View>
             <View
@@ -8020,7 +8182,7 @@ function MineSurface({
               { color: palette.text },
             ]}
           >
-            继续用完整路线备考。
+            会员与试用
           </Text>
           <Text
             style={[
@@ -8029,7 +8191,7 @@ function MineSurface({
               { color: palette.textMuted },
             ]}
           >
-            会员、购买和登录状态都在这里处理。
+            查看会员状态，管理登录账号。
           </Text>
           <View
             style={[
@@ -8042,7 +8204,7 @@ function MineSurface({
             testID="mine-account-ledger"
           >
             <MineAccountRow
-              label="手机号"
+              label={authMode === 'local' ? '学习档案' : '手机号'}
               palette={palette}
               value={profileName}
               valueTestID="mine-profile-phone"
@@ -8054,7 +8216,7 @@ function MineSurface({
               valueTestID="mine-profile-sync"
             />
             <MineAccountRow
-              label="学习路线"
+              label="学习顺序"
               last
               palette={palette}
               value="系统推荐"
@@ -8062,6 +8224,33 @@ function MineSurface({
             />
           </View>
         </View>
+        {onSwitchTrack ? <View style={{paddingVertical: 16, gap: 12}}>
+          <Text accessibilityRole="header" style={{color: palette.text, fontSize: 18, fontWeight: '600'}}>备考科目</Text>
+          <View style={{flexDirection: 'row', gap: 12}}>
+            {([
+              {value: 'cet4', label: '英语四级'},
+              {value: 'cet6', label: '英语六级'},
+            ] as const).map(({value, label}) => (
+              <Pressable
+                key={value}
+                testID={`mine-track-${value}`}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                accessibilityState={{selected: learningTrack === value, disabled: trackSwitchPending}}
+                disabled={trackSwitchPending}
+                onPress={() => onSwitchTrack(value)}
+                style={{flex: 1, padding: 14, borderRadius: 12, borderWidth: 1,
+                  borderColor: palette.border,
+                  backgroundColor: learningTrack === value ? palette.accentSoft : palette.panel}}
+              >
+                <Text style={{color: palette.text, textAlign: 'center', fontWeight: '600'}}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={{color: palette.textMuted}}>四六级的学习进度分别保存，切换后可以接着学。</Text>
+          {trackSwitchPending ? <Text accessibilityRole="text" style={{color: palette.textMuted}}>正在同步账号…</Text> : null}
+          {trackSwitchError ? <Text accessibilityRole="alert" style={{color: palette.text}}>{trackSwitchError}</Text> : null}
+        </View> : null}
         <MembershipHostCard
             compact={isCompactPhone}
             deviceClass={deviceClass}
@@ -8106,7 +8295,7 @@ function MineSurface({
               </Text>
             </View>
             <Pressable
-              accessibilityHint="退出当前学习账户并返回手机号验证"
+              accessibilityHint="退出当前学习账户并返回登录"
               accessibilityRole="button"
               disabled={authState.pendingAction !== null}
               onPress={() => void handlers.onLogout()}
@@ -8177,7 +8366,7 @@ function MineSurface({
                     { color: palette.danger },
                   ]}
                 >
-                  删除账户
+                  注销账号
                 </Text>
               </Pressable>
             </View>
@@ -8253,14 +8442,14 @@ function MembershipHostCard({
   const benefitSummary = [
     { label: '完整卡库', open: access.completeCardLibrary },
     { label: '完整空间', open: access.completePhysicalSpace },
-    { label: '智能回看', open: access.completeAlgorithm },
+    { label: '智能复习', open: access.completeAlgorithm },
   ];
   const isTrialAvailable = membershipState.stage === 'trial_available';
   const focusCopy =
     focusGate === null
       ? null
       : focusGate === 'review'
-      ? '回看需要试用或会员。开通后继续本轮回看。'
+      ? '复习需要试用或会员。开通后继续本轮复习。'
       : focusGate === 'space'
       ? '完整空间需要试用或会员。'
       : '完整卡库需要试用或会员。';
@@ -8331,7 +8520,7 @@ function MembershipHostCard({
           <Text
             style={[styles.membershipFocusTitle, { color: palette.warning }]}
           >
-            升级后继续
+            会员功能
           </Text>
           <Text style={[styles.authSummary, { color: palette.textMuted }]}>
             {focusCopy}
@@ -8387,7 +8576,7 @@ function MembershipHostCard({
                 { color: palette.textMuted },
               ]}
             >
-              开通后可使用完整空间和回看。
+              试用期间可使用全部卡片、空间和复习功能。
             </Text>
           </View>
           <View style={styles.membershipAccessCompactActions}>
@@ -8432,7 +8621,7 @@ function MembershipHostCard({
                   { color: palette.accentStrong },
                 ]}
               >
-                {membershipPendingAction === 'purchase' ? '同步中' : '开会员'}
+                {membershipPendingAction === 'purchase' ? '同步中' : '开通会员'}
               </Text>
               </Pressable>
             ) : (
@@ -8514,15 +8703,15 @@ function MembershipHostCard({
           ]}
         >
           <Text style={[styles.membershipFocusTitle, { color: palette.text }]}>
-            {purchaseAvailable ? '恢复购买提醒' : '封闭内测权益'}
+            {purchaseAvailable ? '续费提醒' : '内测资格'}
           </Text>
           <Text
             style={[styles.membershipSummary, { color: palette.textMuted }]}
           >
             {purchaseAvailable
               ? membershipState.lastExperienceEndedBy === 'premium'
-                ? '会员体验结束后，恢复购买可继续保留完整空间、完整卡库和智能回看。'
-                : '完整试用结束后，恢复购买可继续完整空间与智能回看。'
+                ? '会员已到期，续费后可继续使用全部卡片和复习功能。'
+                : '试用已结束，开通会员可继续使用全部卡片和复习功能。'
                 : '获得内测资格后即可使用。'}
           </Text>
           <Pressable
@@ -8539,7 +8728,7 @@ function MembershipHostCard({
             <Text
               style={[styles.secondaryButtonLabel, { color: palette.text }]}
             >
-              收起恢复购买提醒
+              收起续费提醒
             </Text>
           </Pressable>
         </View>
@@ -8633,8 +8822,8 @@ function MembershipActionGroup({
           style={[styles.primaryButtonLabel, { color: actionText }]}
         >
           {membershipPendingAction === 'start_trial'
-            ? '正在开通完整试用'
-            : '开始完整试用'}
+            ? '正在开通试用'
+            : '开始试用'}
         </Text>
       </Pressable>
       {purchaseAvailable ? (
@@ -8739,8 +8928,8 @@ function MembershipActionGroup({
           style={[styles.primaryButtonLabel, { color: actionText }]}
         >
           {membershipPendingAction === 'purchase'
-            ? '正在恢复购买'
-            : '恢复购买并开通会员'}
+            ? '正在续费'
+            : '续费会员'}
         </Text>
         </Pressable>
       ) : operatorEntitlementCopy}
@@ -8760,7 +8949,7 @@ function PhoneSmsPanel({
   stateLabel,
   title,
   summary,
-  successMessage = '已完成登录。',
+  successMessage = '已登录。',
 }: {
   accountDock?: boolean;
   authState: AuthState;
@@ -8785,8 +8974,7 @@ function PhoneSmsPanel({
   const isClientUpdateRequired =
     isAuthenticated && authState.error === CLIENT_UPDATE_REQUIRED_COPY;
   const hasCodeError =
-    hasAuthError && hasRequestedCode && !isClientUpdateRequired &&
-    authState.errorAction !== 'request_code';
+    hasAuthError && hasRequestedCode && authState.errorKind === 'invalid_code';
   const isExpiredSessionError =
     hasAuthError &&
     !hasRequestedCode &&
@@ -8803,13 +8991,13 @@ function PhoneSmsPanel({
     authState.pendingAction === 'request_code'
       ? '发送中'
       : canRequestCode
-      ? '可发送'
+      ? '可以继续'
       : '待输入';
   const requestDockTitle =
     authState.pendingAction === 'request_code'
       ? '正在发送验证码'
       : canRequestCode
-      ? '手机号可用'
+      ? '可以继续'
       : accountDock
       ? '填写手机号'
       : '手机号';
@@ -8820,7 +9008,7 @@ function PhoneSmsPanel({
       ? '可以获取验证码。'
       : '输入手机号获取验证码。';
   const dockSummary = hasRequestedCode
-    ? `验证码已发送，登录后返回${returnTarget}。`
+    ? `填写验证码，登录后返回${returnTarget}。`
     : requestDockDetail;
   const requestStatusTone = canRequestCode ? palette.success : palette.accent;
   const authErrorTitle = isSessionSaveError
@@ -8831,11 +9019,14 @@ function PhoneSmsPanel({
     ? '登录已失效'
     : hasCodeError
     ? '验证码不正确'
-    : '验证码发送失败';
+    : authState.errorKind === 'expired_code' ? '验证码已失效'
+    : authState.errorKind === 'network' ? '连接失败'
+    : authState.errorKind === 'throttled' ? '操作太频繁'
+    : authState.errorAction === 'request_code' ? '验证码发送失败' : '登录未完成';
   const authErrorDetail = isSessionSaveError
     ? resendRemainingSeconds > 0
-      ? '请等待短信间隔结束，再重新获取验证码登录。'
-      : '请稍后重新获取验证码登录。'
+      ? '倒计时结束后，请重新获取验证码。'
+      : '请重新获取验证码后登录。'
     : isClientUpdateRequired
     ? '登录状态已保留，更新后可直接继续。'
     : isExpiredSessionError
@@ -8844,7 +9035,7 @@ function PhoneSmsPanel({
     ? authState.error ?? '重发暂时失败，仍可填写已收到的验证码。'
     : hasCodeError
     ? '请检查验证码后重试。'
-    : '请检查手机号后重试。';
+    : authState.error ?? '请稍后重试。';
   const codeActionTone = hasCodeError ? palette.warning : palette.accent;
   const submitCodeButtonBackground = canSubmitCode
     ? codeActionTone
@@ -8981,13 +9172,13 @@ function PhoneSmsPanel({
                 style={[styles.authCodeSentTitle, { color: palette.text }]}
                 testID="auth-code-sent-title"
               >
-                {hasCodeError ? '验证码不正确' : '验证码已发送'}
+                {isSessionSaveError ? '登录未完成' : hasCodeError ? '请检查验证码' : '请输入验证码'}
               </Text>
               <Text
                 numberOfLines={1}
                 style={[styles.authCodeSentMeta, { color: palette.textMuted }]}
               >
-                已发送到 {maskPhoneNumber(authState.phoneNumber)}
+                {`登录手机号：${maskPhoneNumber(authState.phoneNumber)}`}
               </Text>
             </View>
             <Pressable
@@ -9007,7 +9198,7 @@ function PhoneSmsPanel({
                 style={[styles.authCodeResendLabel, { color: palette.text }]}
               >
                 {authState.pendingAction === 'request_code'
-                  ? '请求中'
+                  ? '发送中'
                   : resendRemainingSeconds > 0
                   ? `${resendRemainingSeconds} 秒后重发`
                   : '重新发送'}
@@ -9038,7 +9229,7 @@ function PhoneSmsPanel({
                 { color: palette.textMuted },
               ]}
             >
-              {`输入 4-6 位验证码，登录后返回${returnTarget}。`}
+              {'请输入短信中的验证码。'}
             </Text>
           ) : null}
           <View
@@ -9117,8 +9308,8 @@ function PhoneSmsPanel({
                 })}
               </View>
               <TextInput
-                accessibilityHint="输入短信中收到的四到六位验证码"
-                accessibilityLabel="短信验证码"
+                accessibilityHint={'输入短信中的验证码'}
+                accessibilityLabel={'短信验证码'}
                 accessibilityState={{
                   disabled: isPending || isAuthenticated,
                 }}
@@ -9162,7 +9353,7 @@ function PhoneSmsPanel({
                     : hasCodeError && canSubmitCode
                     ? '重新验证'
                     : canSubmitCode
-                    ? '完成登录'
+                    ? '登录'
                     : '输入验证码'}
                 </Text>
               </Pressable>
@@ -9441,6 +9632,7 @@ export function isCompactMineViewport(width: number, height: number) {
 }
 
 function maskPhoneNumber(phoneNumber: string) {
+  if (phoneNumber === LOCAL_DEVICE_OWNER) return '本地学习';
   if (phoneNumber.length !== 11) {
     return phoneNumber || '未填写手机号';
   }
@@ -9521,17 +9713,17 @@ function getMembershipCardSummary(
 ) {
   switch (membershipState.stage) {
     case 'trial_available':
-      return '开始学习时启用试用，可使用完整卡库、空间和回看。';
+      return '开始学习后即可试用全部卡片、空间和复习功能。';
     case 'trial':
       return mode === 'remote'
         ? `试用还剩 ${Math.ceil(
             membershipState.trialRemainingSeconds / (24 * 60 * 60),
-          )} 天，完整卡库、空间和回看已开启。`
+          )} 天，完整卡库、空间和复习已开启。`
         : `已开始 ${membershipState.trialDurationDays} 天试用。`;
     case 'free':
-      return '当前保留基础学习；完整空间、卡库和回看需要会员。';
+      return '你仍可学习免费卡片，会员可使用全部卡片、空间和复习。';
     case 'premium':
-      return '会员已开通，可使用完整卡库、空间和回看。';
+      return '会员已开通，可使用完整卡库、空间和复习。';
   }
 }
 
@@ -9992,8 +10184,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   authGateTitle: {
-    fontSize: 27,
-    fontWeight: '800',
+    fontSize: 25,
+    fontWeight: '600',
     lineHeight: 33,
   },
   authGateTitleRouteObject: {
@@ -10915,7 +11107,7 @@ const styles = StyleSheet.create({
   },
   mineAccountTitle: {
     fontSize: 21,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 25,
   },
   mineAccountTitleCompact: {

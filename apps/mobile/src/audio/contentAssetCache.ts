@@ -1,3 +1,4 @@
+import {isLocalBackendAssetUrl} from '../runtime/localBackendTransport';
 import type {
   ContentAssetDownload,
   ContentManifestAsset,
@@ -257,7 +258,7 @@ export function assertContentAssetCredentialFreeHttps(
     throw new Error(`Content asset ${label} is invalid.`);
   }
 
-  if (url.protocol !== 'https:' || url.username || url.password) {
+  if ((url.protocol !== 'https:' && !isLocalBackendAssetUrl(url)) || url.username || url.password) {
     throw new Error(
       `Content asset ${label} requires credential-free HTTPS.`,
     );

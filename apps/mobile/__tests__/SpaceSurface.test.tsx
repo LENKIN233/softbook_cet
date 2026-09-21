@@ -26,6 +26,33 @@ const palette = {
   warning: '#B77900',
 };
 
+test('a filtered favorite opens its original box without changing the current learning card', () => {
+  const session = createLocalLearningSession('cet4');
+  const current = session.cards[0];
+  const favorite = session.cards.find(card => card.space_metadata.box_ref !== current.space_metadata.box_ref)!;
+  const onOpenCardList = jest.fn();
+  const onReturnToLearning = jest.fn();
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<SpaceSurface
+      cardStateById={{[favorite.card_id]: {isFavorited: true, isSleeping: false}}}
+      currentLearningCard={current} deviceClass="phone" palette={palette} spaceCards={session.cards}
+      pendingReviewIds={[current.card_id]} onOpenCardList={onOpenCardList}
+      onReturnToLearning={onReturnToLearning} onToggleFavoriteTag={jest.fn()} onToggleSleepState={jest.fn()}
+    />);
+  });
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-filter-favorites'}).props.onPress());
+  expect(collectTestIDs(tree.toJSON()).filter(id => id.startsWith('space-filter-card-'))).toEqual(['space-filter-card-0']);
+  const result = tree.root.findByProps({testID: 'space-filter-card-0'});
+  expect(collectRenderedText(tree.toJSON()).join('')).toContain(favorite.space_metadata.box);
+  ReactTestRenderer.act(() => result.props.onPress());
+  expect(onOpenCardList).toHaveBeenCalledTimes(1);
+  expect(onReturnToLearning).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({testID: 'space-filter-results'})).toHaveLength(0);
+  expect(tree.root.findByType(SpaceSurface).props.currentLearningCard.card_id).toBe(current.card_id);
+  ReactTestRenderer.act(() => tree.unmount());
+});
+
 type TestRendererNode =
   | ReactTestRenderer.ReactTestRendererJSON
   | ReactTestRenderer.ReactTestRendererJSON[]
@@ -132,7 +159,7 @@ test('keeps a physical Space outline when no cards are visible', () => {
   ).toBeGreaterThan(0);
   expect(output).toContain('暂无卡片');
   expect(output).toContain('这里还没有卡片');
-  expect(output).toContain('本轮暂时没有符合条件的卡片');
+  expect(output).toContain('这个卡盒暂时没有卡片');
   expect(output).toContain('当前卡盒');
   expect(renderedText).not.toContain(currentCard.space_metadata.library);
   expect(renderedText).not.toContain(currentCard.space_metadata.group);
@@ -335,7 +362,7 @@ test('places Space state rail between address context and current box', () => {
           detail: '正在同步空间里的收藏标签和休眠状态。',
           label: '同步中',
           state: 'syncing',
-          title: '正在同步空间状态',
+          title: '正在同步设置',
         }}
       />,
     );
@@ -458,7 +485,7 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(renderedText).toContain('查看卡片');
   expect(renderedText).toContain('休眠区');
   expect(renderedText).toContain('暂无休眠');
-  expect(renderedText).toContain('回到刚才的学习卡');
+  expect(renderedText).toContain('继续学习');
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
   ).toBeGreaterThan(0);
@@ -549,7 +576,7 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
         detail: '空间状态已与账号记录对齐。',
         label: '已同步',
         state: 'synced',
-        title: '空间状态已同步',
+        title: '设置已同步',
       }}
     />
   );

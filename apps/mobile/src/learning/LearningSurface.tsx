@@ -1,6 +1,8 @@
+import {isLongQuestion, stackChoiceOptions} from './readability';
+import {resultFeedback} from './resultFeedback';
 import {EliminationPassageText} from './EliminationPassageText';
 import {answerComparison, eliminationPassage, frontMaterial, spaceCardPreview} from './presentation';
-import {useCardMotion, useReducedMotion, MotionView, MotionPresence, MotionPressable, LockMotionGlyph, StrikeText} from './NativeMotion';
+import {useCardMotion, useReducedMotion, MotionView, MotionPressable, LockMotionGlyph, StrikeText} from './NativeMotion';
 import React from 'react';
 import type { DimensionValue } from 'react-native';
 import {
@@ -61,7 +63,10 @@ export type LearningSurfacePalette = {
 type LearningSurfaceProps = {
   advanceState?: LearningAdvanceState;
   audioAttemptId: string | null;
+  onContinueLocalBatch?: () => void;
+  resumeLocalLearning?: boolean;
   allowBundledAudio?: boolean;
+  showCardProgress?: boolean;
   palette: LearningSurfacePalette;
   contentManifest?: VerifiedContentManifest | null;
   refreshAudioDownload?: RefreshLearningAudioDownload;
@@ -170,7 +175,10 @@ export function isCompactLearningViewport(width: number, height: number) {
 export function LearningSurface({
   advanceState = DEFAULT_LEARNING_ADVANCE_STATE,
   audioAttemptId,
+  onContinueLocalBatch,
+  resumeLocalLearning = false,
   allowBundledAudio = false,
+  showCardProgress = true,
   palette,
   contentManifest = null,
   refreshAudioDownload,
@@ -244,20 +252,20 @@ export function LearningSurface({
           showsVerticalScrollIndicator={false} testID="learning-empty-session">
           <View style={[styles.heroCard, styles.completeHeroCard, {backgroundColor: palette.panel, borderColor: palette.border}]}>
             <Text style={[styles.heroTitle, {color: palette.text}]}>
-              {emptySession.pendingSleep ? '这张卡已放入休眠' : emptySession.pendingSync ? '正在更新学习安排' : dueLabel ? '当前没有到期卡' : '当前没有可学习的卡片'}
+              {emptySession.pendingSleep ? '这张卡已暂停学习' : emptySession.pendingSync ? '正在更新学习安排' : dueLabel ? '暂时没有需要复习的卡片' : '当前没有可学习的卡片'}
             </Text>
             <Text style={[styles.heroSummary, {color: palette.textMuted}]}>
               {emptySession.pendingSleep
-                ? '休眠中的卡不会继续出题。同步完成后会更新学习安排，也可以回空间移出休眠。'
+                ? '休眠中的卡不会继续出题。同步完成后会更新学习安排，也可以回空间恢复学习。'
                 : emptySession.pendingSync
                 ? '本次答案已保留，确认后会更新学习安排。'
                 : dueLabel
-                ? '可以先休息，到期后再回来继续。'
-                : '可以查看空间中的卡片，或重新检查学习安排。'}
+                ? '下次复习时间会显示在下方。'
+                : '可以到空间查看卡片，或刷新学习进度。'}
             </Text>
             {dueLabel && !emptySession.pendingSleep && !emptySession.pendingSync ? (
               <Text style={[styles.resultExplanationBody, {color: palette.text}]} testID="learning-next-due-at">
-                下一次回看：{dueLabel}
+                下一次复习：{dueLabel}
               </Text>
             ) : null}
           </View>
@@ -266,7 +274,7 @@ export function LearningSurface({
               style={[styles.primaryButton, {backgroundColor: action.surface}]}
               testID="learning-refresh-session-button">
               <Text style={[styles.primaryButtonLabel, {color: action.text}]}>
-                {emptySession.pendingSleep || emptySession.pendingSync ? '重试同步' : '重新检查学习安排'}
+                {emptySession.pendingSleep || emptySession.pendingSync ? '重试同步' : '刷新学习进度'}
               </Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={emptySession.onOpenSpace}
@@ -319,18 +327,18 @@ export function LearningSurface({
         >
           <Text style={[styles.heroTitle, { color: palette.text }]}>
             {roundCompletion
-              ? '完成 5 张卡'
+              ? '本轮完成'
               : isReviewPhase
-              ? '回看完成'
-              : '本轮完成'}
+              ? '复习完成'
+              : '本组完成'}
           </Text>
           <Text style={[styles.heroSummary, { color: palette.textMuted }]}>
             {roundCompletion
               ? roundCompletion.reviewCardCount > 0
-                ? `完成 5 张卡，${roundCompletion.reviewCardCount} 张需要回看。`
-                : '完成 5 张卡，没有需要回看的卡。'
+                ? `完成 ${roundCompletion.completedCount} 张卡，${roundCompletion.reviewCardCount} 张需要复习。`
+                : `完成 ${roundCompletion.completedCount} 张卡，没有需要复习的卡。`
               : isReviewPhase
-              ? `完成 ${sessionCards.length} 张回看。`
+              ? `完成 ${sessionCards.length} 张复习。`
               : `完成 ${sessionCards.length} 张卡。`}
           </Text>
           <View style={styles.metricWrap}>
@@ -348,10 +356,10 @@ export function LearningSurface({
               value={
                 roundCompletion
                   ? roundCompletion.reviewCardCount > 0
-                    ? `回看 ${roundCompletion.reviewCardCount}`
+                    ? `复习 ${roundCompletion.reviewCardCount}`
                     : '无'
                   : !isReviewPhase && reviewCandidateCount > 0
-                  ? `回看 ${reviewCandidateCount}`
+                  ? `复习 ${reviewCandidateCount}`
                   : '无'
               }
               palette={palette}
@@ -378,7 +386,7 @@ export function LearningSurface({
               ? `${roundShelf} · ${roundSection} · ${roundContainer}`
               : isReviewPhase
               ? '之后还会继续练习不熟的内容。'
-              : '需要再看的卡已加入回看。'}
+              : '需要再看的卡已加入复习。'}
           </Text>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>
             下一步
@@ -388,12 +396,12 @@ export function LearningSurface({
           >
             {roundCompletion
               ? roundCompletion.reviewCardCount > 0
-                ? `有 ${roundCompletion.reviewCardCount} 张需要回看。`
-                : '本轮没有需要回看的卡。'
+                ? `有 ${roundCompletion.reviewCardCount} 张需要复习。`
+                : '这一轮没有需要复习的卡片。'
               : isReviewPhase
-              ? '本轮回看完成。'
+              ? '本组复习完成。'
               : reviewCandidateCount > 0
-              ? `先回看这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
+              ? `先复习这 ${reviewCandidateCount} 张卡，再继续新一轮学习。`
               : '可以再练一遍。'}
           </Text>
           {!roundCompletion &&
@@ -414,7 +422,7 @@ export function LearningSurface({
                   { color: '#0B0B14' },
                 ]}
               >
-                开始回看这 {reviewCandidateCount} 张卡
+                开始复习这 {reviewCandidateCount} 张卡
               </Text>
             </Pressable>
           ) : null}
@@ -436,7 +444,7 @@ export function LearningSurface({
             onPress={
               roundCompletion && onContinueRound
                 ? onContinueRound
-                : onRestartDeck
+                : onContinueLocalBatch ?? onRestartDeck
             }
             style={[
               styles.primaryButton,
@@ -455,8 +463,10 @@ export function LearningSurface({
                 ? roundContinuePending
                   ? '正在继续…'
                   : '继续下一轮'
+                : onContinueLocalBatch ? '继续下一组'
+                : resumeLocalLearning ? '继续学习'
                 : isReviewPhase
-                ? '回到首轮重新开始'
+                ? '重新开始学习'
                 : '再练一遍'}
             </Text>
           </Pressable>
@@ -478,44 +488,11 @@ export function LearningSurface({
     currentIndex + 1,
     sessionCards.length,
   )}/${Math.max(sessionCards.length, 1)}`;
-  const supportLayer = (() => {
-    const peekBody = currentCard.analysis.exam_tip;
-
-    if (
-      currentCardState.isPeeked &&
-      currentCard.hint_layer?.content &&
-      currentCardState.isHintVisible
-    ) {
-      return {
-        title: '解题线索',
-        body: [...new Set([peekBody, currentCard.hint_layer.content])].join('\n\n'),
-        tone: palette.text,
-      };
-    }
-
-    if (currentCard.hint_layer && currentCardState.isHintVisible) {
-      return {
-        title: '提示',
-        body: currentCard.hint_layer.content,
-        tone: tone.accent,
-      };
-    }
-
-    if (currentCardState.isPeeked) {
-      return {
-        title: '解题线索',
-        body: peekBody,
-        tone: palette.text,
-      };
-    }
-
-    return null;
-  })();
   const canSubmitCurrentCard = canSubmitLearningCard(
     currentCard,
     currentCardState,
   );
-  const submissionLabel = currentCard.interaction_id === 'elimination' ? '确认句干' : '确认答案';
+  const submissionLabel = '提交答案';
   const primaryAction = getLibraryActionColors(tone.accent, palette);
   const audioSelection = (() => {
     if (!currentCard.audio || audioAttemptId === null) {
@@ -593,7 +570,7 @@ export function LearningSurface({
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
                 testID="learning-progress-label"
               >
-                {`${isReviewPhase ? '回看 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
+                {`${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
               </Text>
               <Text
                 style={[
@@ -606,7 +583,7 @@ export function LearningSurface({
               </Text>
             </View>
           </View>
-          <View
+          {showCardProgress ? <View
             style={[
               styles.cardProgressCluster,
               isCompactPhone ? styles.cardProgressClusterCompact : null,
@@ -635,7 +612,7 @@ export function LearningSurface({
                 ]}
               />
             </View>
-          </View>
+          </View> : null}
           <View
             style={[
               styles.cardIdentityTools,
@@ -700,7 +677,7 @@ export function LearningSurface({
                   : null,
               ]}
               nestedScrollEnabled
-              showsVerticalScrollIndicator={isAccessibilityText}
+              showsVerticalScrollIndicator
               style={[
                 styles.cardTaskBand,
                 {
@@ -735,6 +712,7 @@ export function LearningSurface({
                       styles.cardPrompt,
                       styles.cardPromptOneScreen,
                       isCompactPhone ? styles.cardPromptOneScreenCompact : null,
+                      (isAccessibilityText || isLongQuestion(currentCard.front.prompt)) ? styles.longQuestion : null,
                       { color: palette.text },
                     ]}
                   >
@@ -777,7 +755,7 @@ export function LearningSurface({
                     palette={palette}
                     result={currentResult}
                     onAdvanceCard={() => cardMotion.perform('advance', onAdvanceCard)}
-                    isLastCard={currentIndex === sessionCards.length - 1}
+                    isLastCard={!emptySession && currentIndex === sessionCards.length - 1}
                   />
                 )
               ) : (
@@ -810,73 +788,11 @@ export function LearningSurface({
                     onSelectSwipeState={onSelectSwipeState}
                     compact={isCompactPhone}
                   />
-                  <View style={styles.learningHelpTools}>
-        {currentResult === null && currentCard.hint_layer ? (
-          <Pressable
-            accessibilityLabel={
-              currentCardState.isHintVisible ? '收起提示' : '查看提示'
-            }
-            accessibilityRole="button"
-            accessibilityState={{ expanded: currentCardState.isHintVisible }}
-            onPress={onToggleHint}
-            style={[
-              styles.cardEdgeHint,
-              isCompactPhone ? styles.cardEdgeHintCompact : null,
-              {
-                backgroundColor: currentCardState.isHintVisible
-                  ? 'transparent'
-                  : 'transparent',
-                borderColor: currentCardState.isHintVisible
-                  ? 'transparent'
-                  : 'transparent',
-              },
-            ]}
-            testID="learning-hint-button"
-          >
-            <Text
-              style={[
-                styles.cardEdgeHintLabel,
-                {
-                  color: currentCardState.isHintVisible
-                    ? tone.accent
-                    : palette.textMuted,
-                },
-              ]}
-            >
-              {currentCardState.isHintVisible ? '收起提示' : '查看提示'}
-            </Text>
-          </Pressable>
-        ) : null}
-                    <Pressable accessibilityRole="button" accessibilityLabel={currentCardState.isPeeked ? '收起思路' : '解题思路'} accessibilityState={{expanded:currentCardState.isPeeked}} onPress={onTogglePeek} style={styles.helpTextButton} testID="learning-peek-button"><Text style={[styles.helpTextLabel,{color:palette.textMuted}]}>{currentCardState.isPeeked ? '收起思路' : '解题思路'}</Text></Pressable>
-                  </View>
-                  <MotionPresence>{supportLayer ? (
-                    <View testID="learning-support-layer"
-                      style={[
-                        styles.denseSupportLayer,
-                        {
-                          backgroundColor: palette.panelStrong,
-                          borderColor: palette.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.denseSupportTitle,
-                          { color: supportLayer.tone },
-                        ]}
-                      >
-                        {supportLayer.title}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.denseSupportBody,
-                          { color: palette.textMuted },
-                        ]}
-                      >
-                        {supportLayer.body}
-                      </Text>
-                    </View>
-                  ) : null}</MotionPresence>
+                  <LearningHelp
+                    key={`${currentCard.card_id}:${audioAttemptId ?? phase}`}
+                    card={currentCard} state={currentCardState} palette={palette}
+                    onToggleHint={onToggleHint} onTogglePeek={onTogglePeek}
+                  />
                 </View>
               )}
             </ScrollView>
@@ -907,9 +823,9 @@ export function LearningSurface({
                   ? '正在保存…'
                   : advanceState.needsRetry
                   ? '重试保存'
-                  : currentIndex === sessionCards.length - 1
-                  ? '完成本轮学习'
-                  : '继续下一张'}
+                  : !emptySession && currentIndex === sessionCards.length - 1
+                  ? '完成本组'
+                  : '下一张'}
               </Text>
             </Pressable>
             {advanceState.detail ? (
@@ -999,7 +915,7 @@ export function LearningSurface({
                   </Text>
                 </Pressable>
                 <Pressable
-                  accessibilityLabel="自评再回看"
+                  accessibilityLabel="自评需要复习"
                   accessibilityRole="radio"
                   accessibilityState={{
                     checked: currentCardState.flipConfidence === 'review',
@@ -1025,7 +941,7 @@ export function LearningSurface({
                       { color: '#72530D' },
                     ]}
                   >
-                    再回看
+                    需要复习
                   </Text>
                 </Pressable>
               </View>
@@ -1040,6 +956,38 @@ export function LearningSurface({
       </Animated.View>
     </View>
   );
+}
+
+function LearningHelp({card, state, palette, onToggleHint, onTogglePeek}: {
+  card: LearningCard; state: LearningCardState; palette: LearningSurfacePalette;
+  onToggleHint: () => void; onTogglePeek: () => void;
+}) {
+  const [open, setOpen] = React.useState(state.isHintVisible || state.isPeeked);
+  return <View style={styles.learningHelpTools}>
+    <Pressable accessibilityRole="button" accessibilityState={{expanded: open}}
+      onPress={() => {
+        if (open) {if (state.isHintVisible) onToggleHint(); if (state.isPeeked) onTogglePeek();}
+        setOpen(value => !value);
+      }} style={styles.helpTextButton} testID="learning-help-button">
+      <Text style={[styles.helpTextLabel, {color: palette.textMuted}]}>{open ? '收起帮助' : '需要帮助'}</Text>
+    </Pressable>
+    {open ? <View style={[styles.helpContents, {borderLeftColor: palette.border}]} testID="learning-help-content">
+      {card.hint_layer ? <View>
+        <Pressable accessibilityRole="button" accessibilityState={{expanded: state.isHintVisible}}
+          onPress={onToggleHint} style={styles.helpTextButton} testID="learning-hint-button">
+          <Text style={[styles.helpTextLabel, {color: palette.text}]}>{state.isHintVisible ? '收起提示' : '查看提示'}</Text>
+        </Pressable>
+        {state.isHintVisible ? <Text style={[styles.cardSupport, {color: palette.textMuted}]}>{card.hint_layer.content}</Text> : null}
+      </View> : null}
+      <View>
+        <Pressable accessibilityRole="button" accessibilityState={{expanded: state.isPeeked}}
+          onPress={onTogglePeek} style={styles.helpTextButton} testID="learning-peek-button">
+          <Text style={[styles.helpTextLabel, {color: palette.text}]}>{state.isPeeked ? '收起思路' : '解题思路'}</Text>
+        </Pressable>
+        {state.isPeeked ? <Text style={[styles.cardSupport, {color: palette.textMuted}]}>{card.analysis.exam_tip}</Text> : null}
+      </View>
+    </View> : null}
+  </View>;
 }
 
 function InteractionBody({
@@ -1063,7 +1011,9 @@ function InteractionBody({
   onToggleEliminationItem: (itemId: string) => void;
   onSelectSwipeState: (stateId: string) => void;
 }) {
-  const {fontScale} = useWindowDimensions();
+  const {fontScale, width} = useWindowDimensions();
+  const [optionsWidth, setOptionsWidth] = React.useState<number | null>(null);
+  const stackOptions = card.interaction_id === 'multiple_choice' && stackChoiceOptions(card.options, optionsWidth ?? width - 64, fontScale);
   const libraryTone = resolveLibraryTone(card.space_metadata.library);
   const tone = {
     accent: libraryTone.accent,
@@ -1098,6 +1048,7 @@ function InteractionBody({
               style={[
                 styles.revealText,
                 compact ? styles.revealTextCompact : null,
+                isLongQuestion(card.back_text) ? styles.longQuestion : null,
                 { color: palette.text },
               ]}
             >
@@ -1118,6 +1069,7 @@ function InteractionBody({
         >
           <View
             style={[styles.optionGrid, styles.optionGridWorkArea]}
+            onLayout={event => setOptionsWidth(event.nativeEvent.layout.width)}
             testID="learning-option-grid"
           >
             {card.options.map((option, optionIndex) => {
@@ -1162,7 +1114,7 @@ function InteractionBody({
                   style={[
                     styles.optionCard,
                     compact ? styles.optionCardCompact : null,
-                    fontScale >= 1.3 ? styles.optionCardAccessible : null,
+                    stackOptions ? styles.optionCardAccessible : null,
                     isSelected ? styles.optionCardSelected : null,
                     {
                       backgroundColor: optionStateTint,
@@ -1223,7 +1175,7 @@ function InteractionBody({
           <View
             style={[styles.lockList, compact ? styles.lockListCompact : null]}
           >
-            <Text style={[styles.formingSentence,{color:palette.text,borderColor:palette.border}]} testID="learning-forming-sentence">{formingSentence}</Text>
+            <Text style={[styles.formingSentence,{color:palette.text,borderColor:palette.border}]} accessibilityLabel={`已填写的内容：${formingSentence}`} testID="learning-forming-sentence">{formingSentence}</Text>
           {card.lock_slots.map((slot, index) => {
               const selectedValue = cardState.lockSelections[slot.id];
               const expectedValue = card.answer_key.lock_pattern[index];
@@ -1460,7 +1412,7 @@ function InteractionBody({
                         { color: palette.text },
                       ]}
                     >
-                      已剥离
+                      已删除
                     </Text>
                   ) : null}
                 </MotionPressable>
@@ -1793,12 +1745,12 @@ function getResolvedAnswerRows(
         {
           label: '你的判断',
           displayText:
-            cardState.flipConfidence === 'review' ? '再回看' : '有把握',
+            cardState.flipConfidence === 'review' ? '需要复习' : '有把握',
           testID: 'learning-detail-selected-answer',
           tone: cardState.flipConfidence === 'review' ? 'warning' : 'success',
         },
         {
-          label: '卡背要点',
+          label: '答案要点',
           displayText: card.back_text,
           testID: 'learning-detail-correct-answer',
         },
@@ -1830,7 +1782,7 @@ function getResolvedAnswerRows(
     case 'lock':
       return [
         {
-          label: '你的锁位',
+          label: '你的答案',
           displayText: card.lock_slots
             .map(
               slot =>
@@ -1861,14 +1813,14 @@ function getResolvedAnswerRows(
 
       return [
         {
-          label: '你点掉的部分',
+          label: '你删除的部分',
           displayText: selectedItems.length
             ? selectedItems.map(item => item.text).join(' · ')
-            : '未点掉干扰项',
+            : '未删除任何内容',
           testID: 'learning-detail-selected-answer',
         },
         {
-          label: '应先剥离',
+          label: '应删除的部分',
           displayText: correctItems.map(item => item.text).join(' · '),
           testID: 'learning-detail-correct-answer',
           tone: 'success',
@@ -1893,7 +1845,7 @@ function getResolvedAnswerRows(
           tone: selectedState?.id === correctState?.id ? 'success' : 'warning',
         },
         {
-          label: '稳妥判断',
+          label: '正确判断',
           displayText: correctState
             ? `${correctState.label} · ${correctState.description}`
             : '待确认',
@@ -1961,12 +1913,11 @@ export function LearningResultDetailSurface({
   const resultTone = getResultTone(result, palette);
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
-  const isPositive =
-    result.outcome === 'correct' || result.outcome === 'confident';
   const primaryAction = getLibraryActionColors(detailLibraryTone.accent, palette);
   const neutralAction = getNeutralActionSurface(palette);
-  const detailOutcomeTitle = isPositive ? '回答正确' : '需要回看';
-  const detailOutcomeCaption = isPositive ? '你的答案正确' : '这张卡已加入回看';
+  const feedback = resultFeedback(result.outcome);
+  const detailOutcomeTitle = feedback.title;
+  const detailOutcomeCaption = feedback.caption;
   const boundedSessionCardCount = Math.max(sessionCardCount, 1);
   const progressOrdinal = Math.min(currentIndex + 1, boundedSessionCardCount);
   const progressPercent = `${Math.max(
@@ -2027,10 +1978,10 @@ export function LearningResultDetailSurface({
               >
                 {isCompactPhone
                   ? `${
-                      phase === 'review' ? '本轮回看' : displaySessionLabel
+                      phase === 'review' ? '本轮复习' : displaySessionLabel
                     } · ${visibleContainerName}`
                   : phase === 'review'
-                  ? '本轮回看'
+                  ? '本轮复习'
                   : displaySessionLabel}
               </Text>
               <Text
@@ -2104,7 +2055,7 @@ export function LearningResultDetailSurface({
                 numberOfLines={1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
-                {`${isReviewPhase ? '回看 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
+                {`${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
               </Text>
             </View>
             <Pressable
@@ -2148,7 +2099,7 @@ export function LearningResultDetailSurface({
               ]}
             >
               <Text style={[styles.detailStateText, { color: resultTone }]}>
-                {isPositive ? '已答对' : '待回看'}
+                {feedback.badge}
               </Text>
             </View>
             <Text
@@ -2289,7 +2240,7 @@ export function LearningResultDetailSurface({
               ]}
               testID="learning-detail-analysis-tip"
             >
-              过级提醒：{card.analysis.exam_tip}
+              考试提示：{card.analysis.exam_tip}
             </Text>
             <AudioTranscript key={card.card_id} card={card} palette={palette} />
           </View>
@@ -2316,8 +2267,8 @@ export function LearningResultDetailSurface({
               : advanceState.needsRetry
               ? '重试保存'
               : isLastCard
-              ? '完成本轮学习'
-              : '继续下一张'}
+              ? '完成本组'
+              : '下一张'}
           </Text>
         </Pressable>
         {advanceState.detail ? (
@@ -2350,15 +2301,15 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
   const questionContext = spaceCardPreview(card);
   return <View style={styles.answerSummary} testID="learning-result-summary">
     <Text style={[styles.answerEyebrow, {color: palette.success}]}>{answerLabel}</Text>
-    <Text style={[styles.answerHeadline, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
+    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
     {comparison.selected && comparison.selected !== comparison.correct ? <View style={styles.answerSelectionRow}>
       <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>你的选择</Text>
       <Text style={[styles.answerSelection, {color: palette.danger}]}>{comparison.selected}</Text>
     </View> : null}
-    {result.outcome === 'confident' || result.outcome === 'review' ? <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{result.outcome === 'confident' ? '有把握' : '再回看'}</Text> : null}
+    {result.outcome === 'confident' || result.outcome === 'review' ? <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{result.outcome === 'confident' ? '有把握' : '需要复习'}</Text> : null}
     {card.interaction_id === 'lock' && result.outcome === 'incorrect' ? (
       <Text style={[styles.answerEyebrow, {color: palette.warning}]}>
-        已解锁，稍后再回看
+        已解锁，稍后复习
       </Text>
     ) : null}
     <Text style={[styles.answerQuestion, {color: palette.textMuted, borderColor: palette.border}]}>{[questionContext.title, ...questionContext.detail].join('\n\n')}</Text>
@@ -2400,8 +2351,6 @@ function ResultPanel({
   isLastCard: boolean;
 }) {
   const borderTone = getResultTone(result, palette);
-  const isPositive =
-    result.outcome === 'correct' || result.outcome === 'confident';
   const primaryAction = getPrimaryActionColors(palette);
 
   return (
@@ -2416,7 +2365,7 @@ function ResultPanel({
     >
       <View style={styles.resultHeader}>
         <Text style={[styles.sectionTitle, { color: palette.text }]}>
-          {isPositive ? '这张卡已稳住' : '这张卡需要回看'}
+          {resultFeedback(result.outcome).title}
         </Text>
         <ResultBadge result={result} palette={palette} />
       </View>
@@ -2429,7 +2378,7 @@ function ResultPanel({
         {card.analysis.summary}
       </Text>
       <Text style={[styles.resultTip, { color: palette.textMuted }]}>
-        过级提醒：{card.analysis.exam_tip}
+        考试提示：{card.analysis.exam_tip}
       </Text>
       <AudioTranscript key={card.card_id} card={card} palette={palette} />
       <View
@@ -2443,10 +2392,10 @@ function ResultPanel({
         testID="learning-settle-panel"
       >
         <Text style={[styles.settleTitle, { color: palette.success }]}>
-          本次判断已完成
+          已作答
         </Text>
         <Text style={[styles.settleText, { color: palette.textMuted }]}>
-          查看解析后继续；进入下一张前会先安全保存本次答题记录。
+          看完解析后，下一张。
         </Text>
       </View>
       <Pressable
@@ -2466,7 +2415,7 @@ function ResultPanel({
             : advanceState.needsRetry
             ? '重试保存'
             : isLastCard
-            ? '完成本轮学习'
+            ? '完成本组'
             : '下一张'}
         </Text>
       </Pressable>
@@ -2535,14 +2484,14 @@ function ResultBadge({
   const badgeTone = getResultTone(result, palette);
   const label =
     result.interactionId === 'lock' && outcome === 'incorrect'
-      ? '已解锁，稍后再回看'
+      ? '已解锁，稍后复习'
       : outcome === 'correct'
-      ? '自动判对'
+      ? '回答正确'
       : outcome === 'incorrect'
-      ? '自动判错'
+      ? '回答错误'
       : outcome === 'confident'
-      ? '翻面有把握'
-      : '翻面回看';
+      ? '有把握'
+      : '需要复习';
 
   return (
     <View
@@ -2569,6 +2518,8 @@ const styles = StyleSheet.create({
 
   answerSummary: {gap: 12},
   answerEyebrow: {fontSize: 12, lineHeight: 18, fontWeight: '500'},
+  helpContents: {width: '100%', gap: 12, paddingLeft: 12, borderLeftWidth: 1},
+  longQuestion: {fontSize: 18, lineHeight: 29, fontWeight: '500'},
   answerHeadline: {fontSize: 27, lineHeight: 36, fontWeight: '600'},
   answerSelectionRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', marginBottom: 8},
   answerSelection: {fontSize: 16, lineHeight: 24, flexShrink: 1},

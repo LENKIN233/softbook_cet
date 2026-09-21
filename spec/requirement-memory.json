@@ -17,18 +17,31 @@
     },
     "learning_path": {
       "default_strategy": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
+    },
+    "deployment": {
+      "local_backend": "以本地为后端，只是暂时解决方案，最终还是要上线的"
     }
   },
   "product_intent": {
     "goal": "Let users pass CET4/CET6 more easily by brushing knowledge points through cards.",
     "user_value_per_short_session": "Master a concrete subset of CET knowledge points.",
-    "irreducible_constructs": ["cards", "interaction", "knowledge_points"]
+    "irreducible_constructs": [
+      "cards",
+      "interaction",
+      "knowledge_points"
+    ]
   },
   "user_and_context": {
     "primary_users": "Chinese college students preparing for CET4/CET6",
     "shared_group_similarity": "CET4 and CET6 users are highly similar, but CET6 has higher difficulty and requires passing CET4 first",
-    "main_scenarios": ["fragmented_time_card_brushing", "score_boosting"],
-    "non_target_users": ["word_only_learners", "non_CET_users"]
+    "main_scenarios": [
+      "fragmented_time_card_brushing",
+      "score_boosting"
+    ],
+    "non_target_users": [
+      "word_only_learners",
+      "non_CET_users"
+    ]
   },
   "product_philosophy": {
     "product_first_over_algorithm": true,
@@ -44,7 +57,11 @@
     "if_product_conflicts_with_api_or_algorithm": "change_api_or_algorithm_first"
   },
   "platform_requirements": {
-    "release_targets": ["ios_app", "android_app", "web"],
+    "release_targets": [
+      "ios_app",
+      "android_app",
+      "web"
+    ],
     "harmonyos_is_not_in_scope_now": true,
     "pc_means_web_on_personal_computer_sized_screens": true,
     "phone_tablet_pc_web_each_need_dedicated_ui_and_page_design": true,
@@ -69,7 +86,8 @@
   "authentication_policy": {
     "login_is_required_before_learning": true,
     "guest_learning_before_authentication": false,
-    "primary_login_method": "phone_sms_code"
+    "primary_login_method": "phone_sms_code",
+    "local_backend_preserves_login_and_server_authority": true
   },
   "learning_model": {
     "single_card_flow": true,
@@ -82,7 +100,10 @@
     "is_core_differentiator": true,
     "is_navigation_icon": true,
     "all_cards_physically_exist": true,
-    "interaction_changes_physical_state": ["position", "other_form_if_needed"],
+    "interaction_changes_physical_state": [
+      "position",
+      "other_form_if_needed"
+    ],
     "user_should_see": [
       "card_current_physical_position",
       "every_box_and_its_contents",
@@ -90,7 +111,10 @@
     ],
     "favorite_is_tag_not_box": true,
     "sleep_is_box_or_zone_affecting_learning_flow": true,
-    "position_is_driven_by": ["algorithm", "user_operations"],
+    "position_is_driven_by": [
+      "algorithm",
+      "user_operations"
+    ],
     "user_has_some_position_power": true
   },
   "interaction_contract": {
@@ -160,7 +184,10 @@
   "actions_visibility": {
     "show_only_if_useful_for_learning_or_card_management": true,
     "reduce_total_operations": true,
-    "confirmed_user_facing_actions": ["peek", "favorite"],
+    "confirmed_user_facing_actions": [
+      "peek",
+      "favorite"
+    ],
     "other_states_follow_algorithm_and_review_needs": true,
     "avoid_interruptions": [
       "spending_too_much_time_deciding_mastery",
@@ -174,7 +201,11 @@
       "paid_conversion"
     ],
     "premium_core_value": "smarter_guidance_for_passing_exam",
-    "free_user_should_perceive_value_in": ["content", "algorithm", "physical_space"],
+    "free_user_should_perceive_value_in": [
+      "content",
+      "algorithm",
+      "physical_space"
+    ],
     "trial_days": {
       "min": 3,
       "max": 7

@@ -79,7 +79,8 @@ function createContentManifestV1Service(options) {
       const downloads = access.assets.map((asset, index) => ({
           asset_id: asset.asset_id,
           expires_at: expiresAt.toISOString(),
-          url: requireHttpsUrl(urls[index]),
+          url: requireHttpsUrl(urls[index],
+            runtimeMode === 'development' ? options.localAssetOrigin : undefined),
         }));
 
       return {
@@ -340,7 +341,7 @@ function requireContentVersion(value) {
   return value;
 }
 
-function requireHttpsUrl(value) {
+function requireHttpsUrl(value, localOrigin) {
   if (typeof value !== 'string') {
     throw contentManifestError(
       503,
@@ -361,7 +362,8 @@ function requireHttpsUrl(value) {
     );
   }
 
-  if (url.protocol !== 'https:' || url.username || url.password) {
+  const localAllowed = typeof localOrigin === 'string' && url.origin === localOrigin && url.protocol === 'http:' && url.hostname === '127.0.0.1' && url.port && url.pathname.startsWith('/local-assets/') && !url.hash;
+  if ((!localAllowed && url.protocol !== 'https:') || url.username || url.password) {
     throw contentManifestError(
       503,
       'content_asset_delivery_unavailable',
