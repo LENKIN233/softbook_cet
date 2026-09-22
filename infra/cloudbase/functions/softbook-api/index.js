@@ -506,13 +506,14 @@ function createSoftbookApi(options = {}) {
   });
 
   return {
-    handleCloudBaseEvent: async event => {
+    handleCloudBaseEvent: async (event, invocationContext) => {
       // CloudBase HTTP injects the source IP per invocation, outside event.body
       // and user-controlled forwarded headers. Read it now, never at cold start.
       const platformIp = options.platformClientIp
         ? options.platformClientIp()
         : process.env.TCB_SOURCE_IP;
       const request = parseCloudBaseEvent(event, platformIp);
+      request.invocationContext = invocationContext;
       const response = await handleHttpRequest(config, request);
       return toCloudBaseResponse(response);
     },
@@ -780,6 +781,7 @@ async function handleHttpRequest(config, request) {
       return jsonResponse(200, {
         data: await config.contentManifestV1.read({
           accountKey: session.accountKey,
+          invocationContext: request.invocationContext,
           contentVersion: request.query.content_version,
           phoneNumber: session.phoneNumber,
           sessionAuthority: session,
@@ -1131,7 +1133,7 @@ function createDefaultContentAssetUrlsResolver() {
     return null;
   }
 
-  return createCloudBaseContentAssetUrlsResolver(createCloudBaseApp());
+  return createCloudBaseContentAssetUrlsResolver();
 }
 
 function createMemoryStore(options = {}) {

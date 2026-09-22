@@ -835,6 +835,39 @@ test('audio card assets are canonical, exact, and fully referenced', () => {
   );
 });
 
+test('manifest signs with trusted invocation context and a whole-second expiry', async () => {
+  const store = createMemoryStore();
+  const source = validateCardSourceForImport(createAudioReleasedCardSource('cet4'), 'cet4');
+  store.snapshot().cardSources.set('cet4', source);
+  const {privateKey} = crypto.generateKeyPairSync('ed25519');
+  const now = new Date(fixedNow.getTime() + 875);
+  let observed;
+  const api = createTestApi({
+    now: () => now,
+    contentAssetUrlsResolver: async input => {
+      observed = input;
+      return input.assets.map(() => 'https://private-content.example/audio.mp3');
+    },
+    contentManifestSigner: {keyId: 'context-test-key', privateKey},
+    store,
+  });
+  await store.startTrial('13800138000', now.toISOString());
+  const session = await authenticatedV2Session(api);
+  const trustedContext = {environment: JSON.stringify({TENCENTCLOUD_SECRETKEY: 'trusted-runtime-only'})};
+  const response = await api.handleCloudBaseEvent({
+    httpMethod: 'GET', path: '/v2/content/manifest',
+    headers: {authorization: `Bearer ${session.access_token}`},
+    queryStringParameters: {track: 'cet4', content_version: source.content_version},
+    invocationContext: {environment: 'client-supplied-context'},
+  }, trustedContext);
+  assert.equal(response.statusCode, 200);
+  assert.equal(observed.invocationContext, trustedContext);
+  assert.equal(observed.expiresAt.getTime(), fixedNow.getTime() + 900000);
+  assert.equal(JSON.parse(response.body).data.downloads[0].expires_at, observed.expiresAt.toISOString());
+  assert.equal(response.body.includes('trusted-runtime-only'), false);
+  assert.equal(response.body.includes('client-supplied-context'), false);
+});
+
 for (const resolverMode of ['single', 'batch']) {
   const resolverOptions = resolve => resolverMode === 'batch'
     ? {contentAssetUrlsResolver: ({assets, ...context}) => Promise.all(assets.map(asset => resolve({asset, ...context})))}
