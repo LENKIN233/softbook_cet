@@ -541,7 +541,9 @@ jobs:
 
       - name: Prepare experience simulator
         if: env.RUN_GATE == 'true'
-        timeout-minutes: 5
+        # Cold hosted runtimes can need more than five minutes to finish booting.
+        # Keep this preparation budget separate from the bounded reading flow.
+        timeout-minutes: 10
         working-directory: ${{ github.workspace }}
         run: bash scripts/run_ios_experience_ci.sh prepare
 
