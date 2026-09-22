@@ -66,7 +66,9 @@ function createContentManifestV1Service(options) {
               ),
             )
           : downloadTtlExpiresAt;
-      const context = {expiresAt, issuedAt, release: cardSource.release, track};
+      // COS windows have whole-second precision; never extend the release.
+      expiresAt.setMilliseconds(0);
+      const context = {expiresAt, issuedAt, invocationContext: input.invocationContext, release: cardSource.release, track};
       const resolveOne = typeof options.resolveDownloadUrls === 'function'
         ? null : requireDownloadUrlResolver(options.resolveDownloadUrl);
       const urls = typeof options.resolveDownloadUrls === 'function'

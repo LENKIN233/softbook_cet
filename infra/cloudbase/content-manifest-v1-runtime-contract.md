@@ -103,12 +103,17 @@ Rules:
 - Missing signing or private-download configuration fails with 503. There is
   no unsigned or public-URL fallback.
 
-The CloudBase resolver requests at most 50 storage URLs per call, with at most
-four batches in flight. It receives only the already-authorized asset prefix,
-maps provider results by exact file ID, and rejects missing, duplicate,
-unexpected or failed entries without returning a partial manifest. Duplicate
-storage references are fetched once per request. Existing single-asset resolver
-overrides remain supported for local adapters and tests.
+The CloudBase resolver signs COS GET URLs locally for only the already-authorized
+asset prefix. Classic CloudBase `getTempFileURL` does not enforce its `maxAge`
+parameter and must not supply expiry-bound product URLs. COS signatures use fresh
+temporary credentials from the trusted function invocation, bind the exact host
+and object key, and end before the advertised exclusive whole-second boundary.
+The advertised time is rounded down, never past a pilot's release deadline.
+Duplicate storage references are signed once per request; an invalid environment,
+object path, credential or signature fails the whole manifest with 503. Existing
+single-asset resolver overrides remain supported for local adapters and tests.
+The existing storage bucket must allow cross-origin GET/HEAD for signed Web
+downloads; CORS permission does not replace the private object signature.
 
 ## Response
 
