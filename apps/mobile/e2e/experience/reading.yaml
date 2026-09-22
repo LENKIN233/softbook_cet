@@ -9,6 +9,9 @@ name: read-material-and-correction
     timeout: 60000
 - tapOn:
     id: learning-audio-control
+    # Observe playback before a short clip ends; the default iOS settle wait
+    # outlasted actual native playback in the captured CI failure.
+    waitToSettleTimeoutMs: 500
 - extendedWaitUntil:
     visible:
       id: learning-audio-state-playing
