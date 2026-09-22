@@ -86,6 +86,23 @@ try {
   report.inputs['apps/mobile/e2e/experience/known-good/real-listening-options.json'] = hash(readFileSync(positivePath));
   report.inputs['apps/mobile/e2e/experience/known-good/real-listening-options.png'] = positive.image_sha256;
   if (!report.positive_calibration.readable) throw new Error('Known readable Chinese options were rejected; check OCR language priority.');
+  const androidPositivePath = join(root, 'apps/mobile/e2e/experience/known-good/android-wrapped-glyph.json');
+  const androidPositive = JSON.parse(readFileSync(androidPositivePath, 'utf8'));
+  const androidImage = join(dirname(androidPositivePath), androidPositive.image);
+  if (hash(readFileSync(androidImage)) !== androidPositive.image_sha256) throw new Error('Android OCR fixture bytes changed.');
+  const androidPixels = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', androidImage], 'android-calibration-ocr.log'));
+  report.android_calibration = {image_sha256: androidPositive.image_sha256, source_run: androidPositive.source_run,
+    readable: readable(androidPixels[0], androidPositive.expected)};
+  for (const path of [androidPositivePath, androidImage]) report.inputs[path.slice(root.length + 1)] = hash(readFileSync(path));
+  if (!report.android_calibration.readable) throw new Error('Known readable Android wrapped glyph was rejected.');
+  const glyphControls = ['wrong-glyph', 'missing-glyph'].map(kind => ({kind, path: join(fixtureRoot, `${kind}.png`)}));
+  const glyphPixels = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...glyphControls.map(item => item.path)], 'glyph-calibration-ocr.log'));
+  report.glyph_calibration = glyphControls.map(({kind, path}, index) => {
+    report.inputs[path.slice(root.length + 1)] = hash(readFileSync(path));
+    return {kind, image_sha256: hash(readFileSync(path)),
+      rejected: !readable(glyphPixels[index], androidPositive.expected[2])};
+  });
+  if (report.glyph_calibration.some(item => !item.rejected)) throw new Error('Wrong or missing glyph pixels were accepted.');
   if (!options.calibrateOnly) {
     captureExperience({device: options.device, output, run});
     const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
