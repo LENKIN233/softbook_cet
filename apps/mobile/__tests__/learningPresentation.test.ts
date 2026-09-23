@@ -2,10 +2,11 @@ import {
   answerComparison,
   eliminationPassage,
   frontMaterial,
-  survivingPassage,
 } from '../src/learning/presentation';
 import { localLearningCardRecords } from './fixtures/interactionCards';
 import { createLearningCardState } from '../src/learning/sessionCore';
+import { bundledCardLibrary } from '../src/learning/bundledCardLibrary';
+import { normalizeLearningCardRecord } from '../src/learning/sourceContract';
 import type { EliminationCard } from '../src/learning/model';
 
 const elimination = localLearningCardRecords.find(
@@ -49,7 +50,7 @@ it('removes only an explicitly labelled verbatim repeat of the visible task', ()
   expect(frontMaterial(different)).toEqual([different.front.support]);
 });
 
-it('maps every selectable phrase once and reconstructs the original without loss', () => {
+it('maps every selectable phrase once while preserving the original sentence', () => {
   const passage = eliminationPassage(elimination)!;
   expect(passage.segments.map(segment => segment.text).join('')).toBe(
     elimination.front.support,
@@ -59,10 +60,6 @@ it('maps every selectable phrase once and reconstructs the original without loss
       .flatMap(segment => (segment.itemId ? [segment.itemId] : []))
       .sort(),
   ).toEqual(elimination.elimination_items.map(item => item.id).sort());
-  expect(survivingPassage(passage, elimination.answer_key.correct_items)).toBe(
-    '目标句：The students remember the pattern.',
-  );
-  expect(survivingPassage(passage, [])).toBe(elimination.front.support);
 });
 
 it('falls back without inventing spans when a phrase repeats, overlaps or is missing', () => {
@@ -111,4 +108,28 @@ it('shows the actual selected and correct option text rather than an outcome-onl
     correct: 'B · unclear',
     selected: 'A · urgent',
   });
+});
+
+it.each([
+  ['012103', 'with many traveling from nearby towns · only a few cycling in warm weather'],
+  ['012003', 'all the messages I was getting · were that I would never be taken seriously · given raises at the same rate as men'],
+  ['061203', 'the conclusion · should be interpreted · with caution'],
+  ['061205', 'several variables · were measured · only once'],
+])('shows only verified deletion choices for real elimination card %s', (id, expected) => {
+  const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === id);
+  if (record?.interaction_id !== 'elimination') throw new Error(`Missing real elimination card ${id}`);
+  const card = normalizeLearningCardRecord(record) as EliminationCard;
+  const state = createLearningCardState(card);
+  state.eliminatedItemIds = card.answer_key.correct_items;
+  expect(answerComparison(card, state).correct).toBe(expected);
+});
+
+it('removes an inline verbatim task repeat without dropping a different instruction', () => {
+  const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === '061203');
+  if (record?.interaction_id !== 'elimination') throw new Error('Missing real elimination card 061203');
+  const card = normalizeLearningCardRecord(record) as EliminationCard;
+  expect(frontMaterial(card)).toEqual([
+    '句子：Because the sample size was limited, the conclusion should be interpreted with caution.',
+  ]);
+  expect(eliminationPassage(card)?.source).toBe(frontMaterial(card)[0]);
 });

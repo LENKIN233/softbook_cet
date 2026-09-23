@@ -69,23 +69,32 @@ name: read-material-and-correction
     direction: UP
     timeout: 10000
 - takeScreenshot: material-with-support
+- tapOn:
+    id: learning-elimination-1
+- tapOn:
+    id: learning-submit-button
+- assertVisible:
+    id: learning-correct-answer
+- takeScreenshot: elimination-answer
+- scrollUntilVisible:
+    element:
+      id: learning-open-result-detail-button
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: learning-open-result-detail-button
+- assertVisible:
+    id: learning-result-detail-screen
+- scrollUntilVisible:
+    element:
+      id: learning-detail-correct-answer
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: elimination-detail
 - runFlow:
     when:
       platform: Android
     commands:
-      - tapOn:
-          id: learning-elimination-1
-      - tapOn:
-          id: learning-submit-button
-      - scrollUntilVisible:
-          element:
-            id: learning-open-result-detail-button
-          direction: DOWN
-          timeout: 10000
-      - tapOn:
-          id: learning-open-result-detail-button
-      - assertVisible:
-          id: learning-result-detail-screen
       - takeScreenshot: android-detail-before-back
       - back
       - assertVisible:

@@ -10,7 +10,21 @@ export function EliminationPassageText({
   disabled: boolean; onToggle: (id: string) => void;
   textColor: string; mutedColor: string; selectionSurface: string;
 }) {
-  const parts = segments.flatMap((segment, index) => {
+  // Keep punctuation attached to the preceding touch target so flex wrapping
+  // cannot strand a period or comma on its own line on narrow phones.
+  const displaySegments = segments.map(segment => ({...segment}));
+  for (let index = 1; index < displaySegments.length; index += 1) {
+    const segment = displaySegments[index];
+    const previous = displaySegments[index - 1];
+    const punctuation = !segment.itemId && previous.itemId
+      ? segment.text.match(/^[.,!?;:，。！？；：](?=\s|$)/)?.[0]
+      : null;
+    if (punctuation) {
+      previous.text += punctuation;
+      segment.text = segment.text.slice(punctuation.length);
+    }
+  }
+  const parts = displaySegments.flatMap((segment, index) => {
     const itemId = segment.itemId;
     if (!itemId) {
       return (segment.text.match(/\S+\s*|\s+/g) ?? []).map((word, wordIndex) => (

@@ -9,8 +9,10 @@ function withoutRepeatedTask(text: string, prompt: string) {
   for (const prefix of ['任务：', '任务:', '任务: ', 'Task: ', 'Task:']) {
     const repeated = `${prefix}${prompt.trim()}`;
     if (value === repeated) return prompt.trim();
-    const suffix = `\n\n${repeated}`;
-    if (value.endsWith(suffix)) return value.slice(0, -suffix.length).trimEnd();
+    for (const separator of ['\n\n', '\n', ' ']) {
+      const suffix = `${separator}${repeated}`;
+      if (value.endsWith(suffix)) return value.slice(0, -suffix.length).trimEnd();
+    }
   }
   return text;
 }
@@ -79,19 +81,6 @@ export function eliminationPassage(
   return null;
 }
 
-export function survivingPassage(
-  passage: EliminationPassage,
-  removedIds: readonly string[],
-) {
-  return passage.segments
-    .filter(segment => !segment.itemId || !removedIds.includes(segment.itemId))
-    .map(segment => segment.text)
-    .join('')
-    .replace(/\s+([.,!?;:])/g, '$1')
-    .replace(/ {2,}/g, ' ')
-    .trim();
-}
-
 export function answerComparison(card: LearningCard, state: LearningCardState) {
   if (card.interaction_id === 'flip')
     return { correct: card.back_text, selected: null };
@@ -118,20 +107,14 @@ export function answerComparison(card: LearningCard, state: LearningCardState) {
       selected: stateText(state.swipeSelection),
     };
   }
-  const passage = eliminationPassage(card);
-  return passage
-    ? {
-        correct: survivingPassage(passage, card.answer_key.correct_items),
-        selected: survivingPassage(passage, state.eliminatedItemIds),
-      }
-    : {
-        correct: card.elimination_items
-          .filter(item => !card.answer_key.correct_items.includes(item.id))
-          .map(item => item.text)
-          .join('；'),
-        selected: card.elimination_items
-          .filter(item => !state.eliminatedItemIds.includes(item.id))
-          .map(item => item.text)
-          .join('；'),
-      };
+  const itemText = (ids: readonly string[]) => card.elimination_items
+    .filter(item => ids.includes(item.id))
+    .map(item => item.text)
+    .join(' · ');
+  // These are the exact choices being graded. Rejoining the remaining text can
+  // leave non-selectable connectors behind and teach an ungrammatical sentence.
+  return {
+    correct: itemText(card.answer_key.correct_items),
+    selected: itemText(state.eliminatedItemIds) || '未划去任何内容',
+  };
 }

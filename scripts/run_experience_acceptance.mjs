@@ -72,7 +72,13 @@ try {
   if (!realAnswer || wrongOptionIndex < 1) throw new Error('The choice sample needs a correct answer and a distractor.');
   const requiredMaterial = realMaterial.front.support.split('\n\n')[0];
   if (!realMaterial.elimination_items.every(item => requiredMaterial.includes(item.text))) throw new Error('The entire selected sentence must be covered by the reading expectation.');
-  const expected = {material: requiredMaterial, answer: `${realAnswer.label} ${realAnswer.text}`, options: realChoice.options.map(option => option.text)};
+  const expectedDeletions = realMaterial.elimination_items
+    .filter(item => realMaterial.answer_key.correct_items.includes(item.id))
+    .map(item => item.text);
+  if (expectedDeletions.length < 2 || realMaterial.card_id !== '012103') {
+    throw new Error('Update the elimination feedback calibration for the selected real card.');
+  }
+  const expected = {material: requiredMaterial, answer: `${realAnswer.label} ${realAnswer.text}`, options: realChoice.options.map(option => option.text), elimination: expectedDeletions};
   report.sample_card_ids = sampleIds;
   report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/index.experience.js', 'apps/mobile/e2e/experience/reading-cards.json', 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
     'apps/mobile/src/learning/presentation.ts', 'apps/mobile/src/learning/EliminationPassageText.tsx',
@@ -98,7 +104,7 @@ try {
   if (!report.positive_calibration.readable) throw new Error('Known readable Chinese options were rejected; check OCR language priority.');
   if (!options.calibrateOnly) {
     captureExperience({device: options.device, output, run, wrongOptionIndex});
-    const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
+    const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer'], ['elimination-answer', 'elimination'], ['elimination-detail', 'elimination']];
     function capturedFiles(directory) {
       return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
         const path = join(directory, entry.name);
@@ -116,6 +122,14 @@ try {
       screenshot: paths[index], image_sha256: hash(readFileSync(paths[index])),
       readable: readable(observations[index], expected[kind], {answer: kind === 'answer'})}));
     if (report.journeys.some(item => !item.readable)) throw new Error('Required reading material or correct answer is not readable in the actual screenshot.');
+    // Calibrated against the 3c4492 Android capture: this used to be displayed
+    // as the "correct" core even though the coordinated clause was removed.
+    report.elimination_feedback = {
+      expected_deletions: expectedDeletions,
+      malformed_core_visible: readable(observations[samples.findIndex(([name]) => name === 'elimination-answer')],
+        'Most customers choose private cars, and.', {answer: true}),
+    };
+    if (report.elimination_feedback.malformed_core_visible) throw new Error('The current elimination answer still teaches a malformed core sentence.');
   }
   if (run('git', ['rev-parse', 'HEAD']).trim() !== report.head ||
       hash(run('git', ['diff', '--binary', 'HEAD'])) !== report.diff_sha256 ||
