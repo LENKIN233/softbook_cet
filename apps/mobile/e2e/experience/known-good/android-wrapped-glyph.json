@@ -1,0 +1,14 @@
+{
+  "schema_version": "experience-positive-fixture.v1",
+  "source_run": "local-android-capture-2026-09-21T02:09:37+08:00",
+  "tested_commit": "6f356deaa03e07ac6a9e84fc5b15dcd4089c5c63",
+  "image": "android-wrapped-glyph.png",
+  "image_sha256": "0a86ec44ce1e43eceb0889f8bb1a81b9c997912adaca817a56040c03929f1a3d",
+  "expected": [
+    "电动公交与柴油车队的运营成本和排放对比",
+    "游客如何购买城市交通通票",
+    "学生使用校园咨询服务的原因",
+    "暴雨导致公交线路临时调整"
+  ],
+  "source_report_sha256": "da11fc1cdc4c9179d73d7753b693a5e3b3cbfb82164f80a0ed06d3aa6719fde7"
+}
