@@ -669,6 +669,7 @@ export function LearningSurface({
               contentContainerStyle={[
                 styles.cardTaskBandContent,
                 isCompactPhone ? styles.cardTaskBandContentCompact : null,
+                currentResult && onOpenResultDetail ? styles.cardTaskBandWithResultDock : null,
                 shouldCenterShortFlip
                   ? styles.cardTaskBandContentCentered
                   : null,
@@ -2960,6 +2961,9 @@ const styles = StyleSheet.create({
   },
   cardTaskBandContentCompact: {
     gap: 12, padding: 0, paddingBottom: 12,
+  },
+  cardTaskBandWithResultDock: {
+    paddingBottom: 112,
   },
   cardTaskBandContentCentered: {
     gap: 16, justifyContent: 'flex-start',

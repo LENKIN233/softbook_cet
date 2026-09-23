@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {captureExperience} from './lib/experience_capture.mjs';
-import {readableExperienceText} from './lib/experience_text_match.mjs';
+import {readableBilingualExperienceText, readableExperienceText} from './lib/experience_text_match.mjs';
 
 test('wrapped answers tolerate only standalone answer-column labels', () => {
   const observation = {lines: [
@@ -34,6 +34,26 @@ test('result labels merged into a wrapped deletion answer do not hide actual wor
   assert.equal(readableExperienceText({lines: observation.lines.map(line =>
     line.text.includes('towns') ? {text: '应删除的部分 · only a few cycling in warm'} : line)},
   expected, {answer: true}), false);
+});
+
+test('two language priorities must find the same actual material without inventing missing English', () => {
+  const expected = '模拟句子：Most customers choose private cars, with many traveling from nearby towns and only a few cycling in warm weather.';
+  const primary = {lines: [
+    {text: '模拟句子：Most customers choose'},
+    {text: 'private cars,'},
+    {text: 'with many traveling from nearby towns'},
+    {text: 'and only a few cycing in warm weather.'},
+  ]};
+  const englishFirst = {lines: [
+    {text: 'Most customers choose private cars,'},
+    {text: 'with many traveling from nearby towns'},
+    {text: 'and only a few cycling in warm weather.'},
+  ]};
+  assert.equal(readableExperienceText(primary, expected), false);
+  assert.equal(readableBilingualExperienceText(primary, englishFirst, expected), true);
+  assert.equal(readableBilingualExperienceText({lines: primary.lines.slice(1)}, englishFirst, expected), false);
+  assert.equal(readableBilingualExperienceText(primary,
+    {lines: englishFirst.lines.filter(line => !line.text.includes('nearby towns'))}, expected), false);
 });
 
 function exercise(durations, failure = null) {

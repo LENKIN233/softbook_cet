@@ -16,3 +16,10 @@ export function readableExperienceText(observation, expected, {answer = false} =
   return (Array.isArray(expected) ? expected : [expected])
     .every(value => visible.includes(normalize(value)));
 }
+
+export function readableBilingualExperienceText(primary, englishFirst, expected) {
+  const firstEnglish = expected.search(/[A-Za-z]/);
+  if (firstEnglish <= 0) return false;
+  return readableExperienceText(primary, expected.slice(0, firstEnglish)) &&
+    readableExperienceText(englishFirst, expected.slice(firstEnglish));
+}

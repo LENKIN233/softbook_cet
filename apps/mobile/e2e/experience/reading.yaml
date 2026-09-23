@@ -8,6 +8,18 @@ name: read-material-and-correction
       id: learning-option-1
     timeout: 60000
 - tapOn:
+    id: learning-help-button
+- extendedWaitUntil:
+    visible:
+      id: learning-help-content
+    timeout: 10000
+- takeScreenshot: driver-help-open
+- tapOn:
+    id: learning-help-button
+- assertNotVisible:
+    id: learning-help-content
+- takeScreenshot: driver-help-closed
+- tapOn:
     id: learning-audio-control
 - extendedWaitUntil:
     visible:
@@ -89,7 +101,9 @@ name: read-material-and-correction
     element:
       id: learning-open-result-detail-button
     direction: DOWN
+    centerElement: true
     timeout: 10000
+- waitForAnimationToEnd
 - tapOn:
     id: learning-open-result-detail-button
 - assertVisible:

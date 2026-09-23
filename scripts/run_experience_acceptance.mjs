@@ -7,7 +7,7 @@ import {dirname, resolve, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {captureExperience} from './lib/experience_capture.mjs';
-import {readableExperienceText as readable} from './lib/experience_text_match.mjs';
+import {readableBilingualExperienceText, readableExperienceText as readable} from './lib/experience_text_match.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const options = {device: null, output: null, calibrateOnly: false};
@@ -112,6 +112,11 @@ try {
       });
     }
     const files = capturedFiles(join(output, 'capture'));
+    report.driver_preflight = Object.fromEntries(['driver-help-open', 'driver-help-closed'].map(name => {
+      const matches = files.filter(path => path.endsWith(`/takeScreenshot/${name}.png`));
+      if (matches.length !== 1) throw new Error(`Expected one fresh ${name} screenshot, found ${matches.length}`);
+      return [name, {screenshot: matches[0], image_sha256: hash(readFileSync(matches[0]))}];
+    }));
     const marked = files.filter(path => path.endsWith('/takeScreenshot/material-with-correct-spans-marked.png'));
     if (marked.length !== 1) throw new Error('Missing one fresh selected-span screenshot.');
     report.marked_elimination = {screenshot: marked[0], image_sha256: hash(readFileSync(marked[0]))};
@@ -121,9 +126,30 @@ try {
       return matches[0];
     });
     const observations = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...paths], 'journey-ocr.log'));
-    report.journeys = samples.map(([name, kind], index) => ({name, expected: expected[kind],
-      screenshot: paths[index], image_sha256: hash(readFileSync(paths[index])),
-      readable: readable(observations[index], expected[kind], {answer: kind === 'answer' || kind === 'elimination'})}));
+    const unreadableMaterial = samples.flatMap(([, kind], index) => kind === 'material' &&
+      !readable(observations[index], expected.material) ? [index] : []);
+    const englishMaterial = new Map();
+    if (unreadableMaterial.length) {
+      const alternates = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', '--english-first',
+        ...unreadableMaterial.map(index => paths[index])], 'material-english-ocr.log'));
+      if (!Array.isArray(alternates) || alternates.length !== unreadableMaterial.length) {
+        throw new Error('English-priority OCR did not return the exact requested screenshots.');
+      }
+      unreadableMaterial.forEach((index, offset) => {
+        if (alternates[offset].path !== paths[index]) throw new Error('English-priority OCR image identity changed.');
+        englishMaterial.set(index, alternates[offset]);
+      });
+    }
+    report.journeys = samples.map(([name, kind], index) => {
+      const primaryReadable = readable(observations[index], expected[kind],
+        {answer: kind === 'answer' || kind === 'elimination'});
+      const bilingualReadable = kind === 'material' && englishMaterial.has(index) &&
+        readableBilingualExperienceText(observations[index], englishMaterial.get(index), expected.material);
+      return {name, expected: expected[kind], screenshot: paths[index],
+        image_sha256: hash(readFileSync(paths[index])),
+        readable: primaryReadable || bilingualReadable,
+        ocr_mode: primaryReadable ? 'chinese_first' : bilingualReadable ? 'bilingual_same_image' : 'unreadable'};
+    });
     if (report.journeys.some(item => !item.readable)) throw new Error('Required reading material or correct answer is not readable in the actual screenshot.');
     // Calibrated against the 3c4492 Android capture: this used to be displayed
     // as the "correct" core even though the coordinated clause was removed.
