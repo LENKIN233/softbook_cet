@@ -1,8 +1,9 @@
 appId: com.softbook.cet.experience
 name: read-material-and-correction
 ---
-# Dedicated development simulator only. No remote SMS or account is used.
-# Preparation leaves this app on the selected card; relaunch would reopen the local start page.
+# Dedicated development simulator only. Keep preparation and reading in one
+# Maestro session so the iOS driver is not restarted between them.
+- runFlow: prepare.yaml
 - extendedWaitUntil:
     visible:
       id: learning-option-1

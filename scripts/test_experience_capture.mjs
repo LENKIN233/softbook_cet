@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import {captureExperience} from './lib/experience_capture.mjs';
 import {readableBilingualExperienceText, readableExperienceText} from './lib/experience_text_match.mjs';
 
@@ -72,39 +73,28 @@ function exercise(durations, failure = null) {
   return {calls, elapsed, error};
 }
 
-test('slow observed preparation leaves a full reading budget', () => {
-  // Incident: driver startup + clearState + first keyboard input consumed the reading budget.
-  const result = exercise([310000, 150000]);
-  assert.ok(result.elapsed > 240000);
+test('cold preparation and reading use one iOS driver session', () => {
+  // Hosted iOS passed preparation, then the second Maestro process could not
+  // restart XCTest; keep both stages inside the same bounded flow.
+  const result = exercise([400000]);
   assert.equal(result.error, undefined);
-  assert.equal(result.calls.length, 2);
-  const [prepare, reading] = result.calls;
-  assert.ok(prepare.args.includes('apps/mobile/e2e/experience/prepare.yaml'));
-  assert.ok(reading.args.includes('--no-reinstall-driver'));
-  assert.ok(prepare.args.includes('/fresh/preparation'));
+  assert.equal(result.calls.length, 1);
+  const [reading] = result.calls;
+  assert.ok(reading.args.includes('apps/mobile/e2e/experience/reading.yaml'));
   assert.ok(reading.args.includes('/fresh/capture'));
+  assert.equal(reading.timeout, 660000);
+  assert.match(readFileSync(new URL('../apps/mobile/e2e/experience/reading.yaml', import.meta.url), 'utf8'),
+    /- runFlow: prepare\.yaml/);
 });
 
-test('preparation timeout never starts a journey', () => {
-  const result = exercise([420001, 1]);
-  assert.match(result.error.message, /timeout: preparation.log/);
-  assert.equal(result.calls.length, 1);
-});
-
-test('preparation failure cannot reuse old app state', () => {
-  const result = exercise([1, 1], 0);
-  assert.match(result.error.message, /assertion: preparation.log/);
-  assert.equal(result.calls.length, 1);
-});
-
-test('reading retains its 240 second cap and is never retried', () => {
-  const result = exercise([1, 240001]);
+test('cold setup and reading remain bounded together', () => {
+  const result = exercise([660001]);
   assert.match(result.error.message, /timeout: maestro.log/);
-  assert.equal(result.calls.length, 2);
+  assert.equal(result.calls.length, 1);
 });
 
-test('UI assertion failure propagates without a retry', () => {
-  const result = exercise([1, 1], 1);
+test('preparation or reading assertion failure cannot retry stale app state', () => {
+  const result = exercise([1], 0);
   assert.match(result.error.message, /assertion: maestro.log/);
-  assert.equal(result.calls.length, 2);
+  assert.equal(result.calls.length, 1);
 });
