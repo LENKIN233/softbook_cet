@@ -1,3 +1,7 @@
+import React from 'react';
+import Renderer from 'react-test-renderer';
+import {Text} from 'react-native';
+import {EliminationPassageText} from '../src/learning/EliminationPassageText';
 import {
   answerComparison,
   eliminationPassage,
@@ -124,6 +128,29 @@ it.each([
   expect(answerComparison(card, state).correct).toBe(expected);
 });
 
+it('removes a selected clause comma from the actual passage rendering', () => {
+  const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === '012103');
+  if (record?.interaction_id !== 'elimination') throw new Error('Missing real elimination card 012103');
+  const card = normalizeLearningCardRecord(record) as EliminationCard;
+  const passage = eliminationPassage(card);
+  if (!passage) throw new Error('Missing real sentence mapping');
+  let tree!: Renderer.ReactTestRenderer;
+  Renderer.act(() => {
+    tree = Renderer.create(React.createElement(EliminationPassageText, {
+      segments: passage.segments,
+      selectedIds: card.answer_key.correct_items,
+      optionOrder: card.elimination_items.map(item => item.id),
+      disabled: false,
+      onToggle: jest.fn(),
+      textColor: '#20232B', mutedColor: '#69707A', selectionSurface: '#FFF0E6',
+    }));
+  });
+  const visible = tree.root.findAllByType(Text).map(node => node.props.children);
+  expect(visible).toContain('private cars');
+  expect(visible).not.toContain('private cars,');
+  Renderer.act(() => tree.unmount());
+});
+
 it('removes an inline verbatim task repeat without dropping a different instruction', () => {
   const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === '061203');
   if (record?.interaction_id !== 'elimination') throw new Error('Missing real elimination card 061203');
@@ -132,4 +159,21 @@ it('removes an inline verbatim task repeat without dropping a different instruct
     '句子：Because the sample size was limited, the conclusion should be interpreted with caution.',
   ]);
   expect(eliminationPassage(card)?.source).toBe(frontMaterial(card)[0]);
+});
+
+it.each([
+  ['012103', '模拟句子：Most customers choose private cars.'],
+  ['012003', '阅读片段：The greatest challenge for me was continuing to believe in myself.'],
+  ['061203', '句子：Because the sample size was limited.'],
+  ['061205', '句子：While the dataset appears comprehensive.'],
+])('deleting the actual correct spans leaves the intact source core in %s', (id, expected) => {
+  const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === id);
+  if (record?.interaction_id !== 'elimination') throw new Error(`Missing real elimination card ${id}`);
+  const card = normalizeLearningCardRecord(record) as EliminationCard;
+  const passage = eliminationPassage(card);
+  if (!passage) throw new Error(`No mapped sentence for ${id}`);
+  expect(passage.segments.map(segment => segment.text).join('')).toBe(passage.source);
+  expect(passage.segments
+    .filter(segment => !segment.itemId || !card.answer_key.correct_items.includes(segment.itemId))
+    .map(segment => segment.text).join('')).toBe(expected);
 });

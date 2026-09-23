@@ -70,6 +70,15 @@ name: read-material-and-correction
     timeout: 10000
 - takeScreenshot: material-with-support
 - tapOn:
+    id: learning-elimination-4
+- tapOn:
+    id: learning-elimination-5
+- takeScreenshot: material-with-correct-spans-marked
+- tapOn:
+    id: learning-elimination-4
+- tapOn:
+    id: learning-elimination-5
+- tapOn:
     id: learning-elimination-1
 - tapOn:
     id: learning-submit-button

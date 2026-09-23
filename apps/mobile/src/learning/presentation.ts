@@ -67,12 +67,26 @@ export function eliminationPassage(
       )
     )
       continue;
+    const correctIds = new Set(card.answer_key.correct_items);
+    for (let index = 1; index < spans.length; index += 1) {
+      const previous = spans[index - 1];
+      const current = spans[index];
+      const between = source.slice(previous.end, current.start);
+      if (
+        correctIds.has(current.item.id) &&
+        (correctIds.has(previous.item.id) ||
+          /^\s*(?:[,;—–]\s*)?(?:and|or|when|because|while)\s+$/i.test(between) ||
+          /^[,;—–]\s*$/.test(between))
+      ) {
+        current.start = previous.end;
+      }
+    }
     const segments: PassageSegment[] = [];
     let cursor = 0;
     for (const span of spans) {
       if (span.start > cursor)
         segments.push({ text: source.slice(cursor, span.start) });
-      segments.push({ text: span.item.text, itemId: span.item.id });
+      segments.push({ text: source.slice(span.start, span.end), itemId: span.item.id });
       cursor = span.end;
     }
     if (cursor < source.length) segments.push({ text: source.slice(cursor) });

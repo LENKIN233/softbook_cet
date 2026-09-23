@@ -112,6 +112,9 @@ try {
       });
     }
     const files = capturedFiles(join(output, 'capture'));
+    const marked = files.filter(path => path.endsWith('/takeScreenshot/material-with-correct-spans-marked.png'));
+    if (marked.length !== 1) throw new Error('Missing one fresh selected-span screenshot.');
+    report.marked_elimination = {screenshot: marked[0], image_sha256: hash(readFileSync(marked[0]))};
     const paths = samples.map(([name]) => {
       const matches = files.filter(path => path.endsWith(`/takeScreenshot/${name}.png`));
       if (matches.length !== 1) throw new Error(`Expected one fresh ${name} screenshot, found ${matches.length}`);
@@ -120,7 +123,7 @@ try {
     const observations = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...paths], 'journey-ocr.log'));
     report.journeys = samples.map(([name, kind], index) => ({name, expected: expected[kind],
       screenshot: paths[index], image_sha256: hash(readFileSync(paths[index])),
-      readable: readable(observations[index], expected[kind], {answer: kind === 'answer'})}));
+      readable: readable(observations[index], expected[kind], {answer: kind === 'answer' || kind === 'elimination'})}));
     if (report.journeys.some(item => !item.readable)) throw new Error('Required reading material or correct answer is not readable in the actual screenshot.');
     // Calibrated against the 3c4492 Android capture: this used to be displayed
     // as the "correct" core even though the coordinated clause was removed.
