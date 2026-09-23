@@ -8,12 +8,19 @@
     "build:bundle": "tsc -b && vite build && node scripts/verify-production-boundary.mjs",
     "dev": "vite",
     "lint": "eslint src --max-warnings=0",
-    "pretest": "node ../../scripts/test_build_web_release_runtime_config.mjs && node --test ../../scripts/test_run_local_product.mjs",
-    "product:local": "node ../../scripts/run_local_product.mjs --target web",
+    "pretest": "node ../../scripts/test_build_web_release_runtime_config.mjs && node --test ../../scripts/test_run_local_product.mjs ../../scripts/test_local_learning_state.mjs ../../scripts/test_design_refinement.mjs",
+    "product:local": "npm run build:backend && npm run start:backend",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
-    "test:browser:transport": "node scripts/test-browser-transport.mjs"
+    "test:browser:transport": "node scripts/test-browser-transport.mjs",
+    "build:local": "npm run build:backend",
+    "start:local": "npm run start:backend",
+    "build:backend": "tsc -b && vite build --mode backend --outDir dist-backend",
+    "start:backend": "node ../../scripts/run_local_backend.mjs",
+    "build:device": "tsc -b && vite build --mode device --outDir dist-local",
+    "start:device": "node ../../scripts/serve_local_study.mjs",
+    "product:receiver": "node ../../scripts/run_local_product.mjs --target web"
   },
   "dependencies": {
     "react": "19.2.3",

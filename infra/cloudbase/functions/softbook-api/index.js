@@ -463,6 +463,7 @@ function createSoftbookApi(options = {}) {
     store,
   });
   config.contentManifestV1 = createContentManifestV1Service({
+    localAssetOrigin: options.localAssetOrigin,
     downloadTtlSeconds: options.contentManifestDownloadTtlSeconds,
     now: config.now,
     runtimeMode,

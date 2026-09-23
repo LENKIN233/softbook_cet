@@ -37,7 +37,7 @@ The shared PC Web grammar is:
 
 ### Auth
 
-Before authentication, show a calm identity gate with phone SMS verification. Do not reveal an operable Learning shell behind it. Product value may be stated through object language, not marketing claims.
+For remote accounts, show a calm identity gate with phone SMS verification. The explicit device-local build instead starts with CET4/CET6 selection and never requests a phone number. Do not reveal an operable Learning shell behind it. Product value may be stated through object language, not marketing claims.
 
 ### Learning And Review
 
@@ -48,7 +48,7 @@ even when the previous answer required a long scroll. An update to the same
 selection preserves its reading position and draft. A supplied listening
 transcript is collapsed under the resolved answer and can be opened explicitly;
 it never appears before answering. A corrected lock attempt is completed with
-“已解锁，稍后再回看”, following the attempt assessment in `spec/interactions.json`.
+“已解锁，稍后复习”, following the attempt assessment in `spec/interactions.json`.
 
 For a resolved multiple-choice card, the attached slip explicitly labels the
 learner's choice and the correct answer before the explanation. Show each option
@@ -65,9 +65,11 @@ The “当前学习” marker follows the Learning session card, independently o
 A selected non-current active card is labelled “正在浏览”; selection continues to drive the inspector and its highlight. Browsing another card or box does not change the Learning card, draft answer, resolved feedback, or session position.
 The observed failure was that selecting a sibling moved “当前学习” to that sibling even though returning resumed the original card.
 
+The shared help entry reveals separate hint and exam-tip actions; only requesting the content marks its existing assistance event. Audio appears after the front task/material and before answer choices. Long text remains intact and receives reading typography; long options stack. Space offers cross-box favorite and pending-review filters over the accessible catalog, with original addresses and a return to the owning box. Filtering never changes the Learning cursor.
+
 ### Statistics
 
-Statistics uses a quiet daily ledger and tabular numerals. It does not become the default home, achievement wall, or chart dashboard.
+Statistics uses a quiet daily ledger and tabular numerals. Daily completion is a count, never a fraction of the full catalog. Cumulative coverage is shown only from available complete history; the device-local v2 profile now persists history on both Web and native; account and device-local data retain separate authority. Normal saved state is quiet. It does not become the default home, achievement wall, or chart dashboard.
 User-facing copy describes today's completed work and what needs revisiting;
 it does not explain rejected design patterns or implementation choices.
 
@@ -100,7 +102,7 @@ These are recorded in `docs/design/rejected/pc-web-core-surface-failures-v1.md`.
 - Primary task: perform the current interaction.
 - Primary action: the interaction's own operation or the next-card continuation after resolution.
 - Secondary actions: hint, peek, favorite, audio, and compact Space address in the right context rail or attached object layer.
-- Feedback: auto-scored interactions attach a concise result; flip alone exposes 有把握 / 再回看.
+- Feedback: auto-scored interactions attach a concise result; flip alone exposes 有把握 / 需要复习.
 - Recovery: cancelled swipe returns to center; missing content or audio preserves the current object and offers a narrow retry; queued sync does not expose technical state.
 - Learning to Space continuity: the right rail shows the owning address and opens the dedicated tree / box / inspector Space composition.
 

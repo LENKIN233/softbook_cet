@@ -38,6 +38,14 @@
     "用空间化方式帮助记忆和复习"
   ],
   "learning_experience": {
+    "local_learning_groups": {
+      "presentation_size": 5,
+      "continuation": "retain_the_full_catalog_and_stable_card_ids_for_each_group; pause_wake_changes_never_relabel_a_completed_group",
+      "review_return": "restore_the_exact_learning_group_draft_and_feedback_after_review",
+      "local_course_order": "alternate_short_subject_blocks_preserving_authored_order_within_each_subject",
+      "local_review_schedule": "failed_or_uncertain_answers_are_reviewable_immediately_and_due_after_10_minutes; successful_attempts_use_1_3_7_14_30_60_day_intervals; this_is_a_basic_product_heuristic_not_a_validated_exam_outcome_claim",
+      "remote_boundary": "remote_sessions_continue_to_use_server_scheduling"
+    },
     "single_card_flow": true,
     "default_learning_path": "system_sequenced_single_flow",
     "module_browsing_role": "secondary_entry_for_targeted_review_not_primary_learning_mode",

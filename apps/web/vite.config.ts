@@ -3,6 +3,7 @@ import {defineConfig} from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  resolve: {dedupe: ['react', 'react-dom'], alias: {react: path.resolve(import.meta.dirname, 'node_modules/react')}},
   html: {
     cspNonce: 'softbook-web',
   },

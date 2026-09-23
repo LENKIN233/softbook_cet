@@ -36,12 +36,12 @@ test('does not trust concise Chinese exception copy', () => {
 });
 
 test.each([
-  ['auth request-code', '验证码暂时没发出。'],
-  ['auth verify-code', '验证码暂时没通过。'],
-  ['learning card source request', '学习卡片加载暂时失败。'],
+  ['auth request-code', '验证码发送失败，请重试。'],
+  ['auth verify-code', '验证码验证失败，请重试。'],
+  ['learning card source request', '卡片加载失败，请重试。'],
   ['membership entitlement request', '会员状态暂时无法读取。'],
   ['membership mutation', '会员状态更新暂时失败。'],
-  ['progress sync', '今天的进展暂时没有更新。'],
+  ['progress sync', '今日进度更新失败，请重试。'],
   ['learning state sync', '学习记录暂时没有更新。'],
   ['space state sync', '卡片位置暂时没有更新。'],
 ])('maps the known %s remote failure', (type, expected) => {

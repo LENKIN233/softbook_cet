@@ -1,980 +1,818 @@
 [
   {
-    "card_id": "131303",
+    "card_id": "162107",
     "track": "cet6",
-    "knowledge_ref": "1313",
+    "knowledge_ref": "1621",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级题干快判：给定任务描述，判断是否属于书信开头并说明依据。",
-      "support": "六级题干快判：给定任务描述，判断是否属于书信开头并说明依据。",
-      "context": "六级题干快判：给定任务描述，判断是否属于书信开头并说明依据。"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "阅读：If the supplier were to withdraw next month, we would need another source of materials.\n\n这句话是否已确认供应商将退出？",
+      "support": "阅读：If the supplier were to withdraw next month, we would need another source of materials.\n\n这句话是否已确认供应商将退出？",
+      "context": "阅读：If the supplier were to withdraw next month, we would need another source of materials.\n\n这句话是否已确认供应商将退出？"
     },
     "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：本卡聚焦“书信开头”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "识别预案式未来假设",
+      "summary": "were to withdraw 与 next month 构成较有距离感的未来假设，would need 推演应对需要。假设本身不是事件已确定发生的公告，不能将其改写为 supplier will definitely withdraw。",
+      "exam_tip": "预案讨论中的事件可能只是条件设想。"
     },
     "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
+      "box_ref": "1621",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "阅读"
     },
-    "back_text": "【六级独立内容】书信开头标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 书信开头 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "没有，它在讨论供应商若退出时需要的备选方案。"
   },
   {
-    "card_id": "131304",
+    "card_id": "162108",
     "track": "cet6",
-    "knowledge_ref": "1313",
+    "knowledge_ref": "1621",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "高频误判纠偏：哪类题最容易被误判成书信开头？",
-      "support": "高频误判纠偏：哪类题最容易被误判成书信开头？",
-      "context": "高频误判纠偏：哪类题最容易被误判成书信开头？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "阅读：Had the panel explained the criteria earlier, fewer disputes might have arisen.\n\n用 if 改写，并说明 might 保留了什么。",
+      "support": "阅读：Had the panel explained the criteria earlier, fewer disputes might have arisen.\n\n用 if 改写，并说明 might 保留了什么。",
+      "context": "阅读：Had the panel explained the criteria earlier, fewer disputes might have arisen.\n\n用 if 改写，并说明 might 保留了什么。"
     },
     "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：本卡聚焦“书信开头”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "还原省略 if 的倒装条件句",
+      "summary": "Had + 主语 + 过去分词在此是省略 if 的条件倒装；还原后 had 回到主语后。结果中的 might have 与 would have 强度不同，不能在改写时随意加强。",
+      "exam_tip": "结构还原时保持情态动词的确定程度。"
     },
     "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
+      "box_ref": "1621",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "阅读"
     },
-    "back_text": "【六级独立内容】书信开头标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 书信开头 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If the panel had explained the criteria earlier, fewer disputes might have arisen.\nmight 保留可能性，没有保证争议一定减少。"
   },
   {
-    "card_id": "131305",
+    "card_id": "162201",
     "track": "cet6",
-    "knowledge_ref": "1313",
+    "knowledge_ref": "1622",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "进阶诊断：同一主题下如何区分书信开头与相邻文体？",
-      "support": "进阶诊断：同一主题下如何区分书信开头与相邻文体？",
-      "context": "进阶诊断：同一主题下如何区分书信开头与相邻文体？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "汉译英：如果我去年开始练习口语，现在会更有信心。请保留过去条件与现在结果的区别。",
+      "support": "汉译英：如果我去年开始练习口语，现在会更有信心。请保留过去条件与现在结果的区别。",
+      "context": "汉译英：如果我去年开始练习口语，现在会更有信心。请保留过去条件与现在结果的区别。"
     },
     "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：本卡聚焦“书信开头”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "翻译过去条件对现在的影响",
+      "summary": "last year 要求过去条件 had started，now 对应当前结果 would be。若写 would have been confident，则通常把结果也移到过去，偏离原句的时间关系。",
+      "exam_tip": "中译英先分别标出条件和结果的时间。"
     },
     "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
+      "box_ref": "1622",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】书信开头标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 书信开头 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If I had started practising speaking last year, I would be more confident now."
   },
   {
-    "card_id": "131306",
+    "card_id": "162202",
     "track": "cet6",
-    "knowledge_ref": "1313",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "填空：完成一个书信开头高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}",
-      "support": "填空：完成一个书信开头高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}",
-      "context": "填空：完成一个书信开头高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：本卡聚焦“书信开头”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
-    },
-    "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "however",
-          "therefore",
-          "whereas",
-          "consequently",
-          "notably"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "however"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131307",
-    "track": "cet6",
-    "knowledge_ref": "1313",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "书信开头填空：选出最符合正式函件的任务动词，完成下句（写给学校图书馆馆长）。\n\nI am writing on behalf of the Student Union to ______ the possibility of extending the library's operating hours during the final examination period.\n\n请将空缺补全：{{blank}}",
-      "support": "书信开头填空：选出最符合正式函件的任务动词，完成下句（写给学校图书馆馆长）。\n\nI am writing on behalf of the Student Union to ______ the possibility of extending the library's operating hours during the final examination period.\n\n请将空缺补全：{{blank}}",
-      "context": "书信开头填空：选出最符合正式函件的任务动词，完成下句（写给学校图书馆馆长）。\n\nI am writing on behalf of the Student Union to ______ the possibility of extending the library's operating hours during the final examination period.\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：本卡聚焦“书信开头”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "书信动词筛选两步：①确认收件人等级（上级/平级）；②确认任务功能（提议/请求/说明）。"
-    },
-    "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "propose",
-          "guess",
-          "think",
-          "hope",
-          "like"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "propose"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131308",
-    "track": "cet6",
-    "knowledge_ref": "1313",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "书信开头填空：选出最准确体现写信者身份授权的介词短语，完成下句。\n\n______ a representative of the International Student Association, I am writing to request a meeting to discuss the current accommodation allocation process.\n\n请将空缺补全：{{blank}}",
-      "support": "书信开头填空：选出最准确体现写信者身份授权的介词短语，完成下句。\n\n______ a representative of the International Student Association, I am writing to request a meeting to discuss the current accommodation allocation process.\n\n请将空缺补全：{{blank}}",
-      "context": "书信开头填空：选出最准确体现写信者身份授权的介词短语，完成下句。\n\n______ a representative of the International Student Association, I am writing to request a meeting to discuss the current accommodation allocation process.\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：本卡聚焦“书信开头”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "As a [身份] vs On behalf of [组织]：前者强调个人角色，后者强调组织代表，可组合使用。"
-    },
-    "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "As",
-          "Like",
-          "Being",
-          "For",
-          "Though"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "As"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131309",
-    "track": "cet6",
-    "knowledge_ref": "1313",
+    "knowledge_ref": "1622",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级评分视角：书信开头在任务完成度中的关键扣分点是什么？",
-      "support": "六级评分视角：书信开头在任务完成度中的关键扣分点是什么？",
-      "context": "六级评分视角：书信开头在任务完成度中的关键扣分点是什么？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "汉译英：如果图书馆离宿舍更近，我就能更经常去。用条件句表达，不增加过去日期。",
+      "support": "汉译英：如果图书馆离宿舍更近，我就能更经常去。用条件句表达，不增加过去日期。",
+      "context": "汉译英：如果图书馆离宿舍更近，我就能更经常去。用条件句表达，不增加过去日期。"
     },
     "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：本卡聚焦“书信开头”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：先用信号词或句法骨架定位信息重心，再根据上下文完成含义确认，避免只看单个词就下结论。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是把定义性描述当答案本身，忽略语境中真正限制条件。纠偏时先问“这句话在当前语境里解决了什么问题”。下次遇到同类题时，直接执行：先圈出触发信号，再用一句话复述该句对主题的贡献。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "翻译与当前现实有距离的假设",
+      "summary": "were closer 表达当前位置的假设，could go 表达在该条件下具备的可能或能力。原句没有说过去住在哪里，所以不宜改成 had been closer 与 could have gone。",
+      "exam_tip": "选择虚拟形式前先确认是否真的涉及过去。"
     },
     "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
+      "box_ref": "1622",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】书信开头标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 书信开头 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If the library were closer to my residence, I could go there more often."
   },
   {
-    "card_id": "131310",
+    "card_id": "162203",
     "track": "cet6",
-    "knowledge_ref": "1313",
+    "knowledge_ref": "1622",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "压轴改写：把低阶句改成符合六级书信开头标准的表达。",
-      "support": "压轴改写：把低阶句改成符合六级书信开头标准的表达。",
-      "context": "压轴改写：把低阶句改成符合六级书信开头标准的表达。"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "汉译英：如果我们提前订票，本来可以少花一些钱。请保留“可能做到”的语气。",
+      "support": "汉译英：如果我们提前订票，本来可以少花一些钱。请保留“可能做到”的语气。",
+      "context": "汉译英：如果我们提前订票，本来可以少花一些钱。请保留“可能做到”的语气。"
     },
     "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：本卡聚焦“书信开头”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "翻译过去未实现的可能结果",
+      "summary": "had booked 表示过去未实现的条件，could have spent 对应过去可能的节省。不能改成现在或将来的 will spend；也不要补造具体节省金额。",
+      "exam_tip": "could have 表示过去可能性，不等于对结果的无条件保证。"
     },
     "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
+      "box_ref": "1622",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】书信开头标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 书信开头 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If we had booked the tickets earlier, we could have spent less money."
   },
   {
-    "card_id": "131311",
+    "card_id": "162204",
     "track": "cet6",
-    "knowledge_ref": "1313",
+    "knowledge_ref": "1622",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级进阶：同样是“书信开头”，如何根据收信人身份（权威/平级/下级）准确选择语域层级，并在首段完成身份授权与任务声明？",
-      "support": "六级进阶：同样是“书信开头”，如何根据收信人身份（权威/平级/下级）准确选择语域层级，并在首段完成身份授权与任务声明？",
-      "context": "六级进阶：同样是“书信开头”，如何根据收信人身份（权威/平级/下级）准确选择语域层级，并在首段完成身份授权与任务声明？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "汉译英：导师建议我们重新核查数据。请使用动词原形虚拟形式。",
+      "support": "汉译英：导师建议我们重新核查数据。请使用动词原形虚拟形式。",
+      "context": "汉译英：导师建议我们重新核查数据。请使用动词原形虚拟形式。"
     },
     "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：六级书信任务通常给出明确的收件人身份（如“write to the community center director”/ “write to a fellow student”）。拿到题时第一步：确认收件人的权威层级，因为这决定了整封信的语域基调。如果题目没有明确指定，看情境词（官方机构/组织→formal；朋友/同学→semi-formal；公众→neutral）。\n\n② 核心规律：六级书信语域层级选择标准——①正式（写给官员/教授/机构）：避免缩写（don’t→do not）、使用正式词汇（request/inform/propose/address vs. tell/want/talk about）、第三人称或组织身份授权；②半正式（写给同学/朋友）：可用第一人称，缩写可接受，语气温暖但有条理；③中性（公众/读者来信）：清晰为主，不过分正式或口语。首段一旦语域定调，全文必须保持一致——首段 formal，正文段出现口语词，是六级高频失分点。\n\n③ 验证与纠偏：检查首段是否①点明了身份授权来源（As a student/On behalf of X）；②使用了与收件人等级匹配的任务动词（inform/request for formal；suggest/share for semi-formal）；③没有出现语域冲突表达（formal信里出现 I really think/kinda/gonna 等）。常见误判：认为越正式越好，把写给朋友的建议信用了全套 formal 术语，导致语域与社交语境不符——六级评卷会扣语域匹配度分。",
-      "exam_tip": "先定收件人权威度（上级/平级/下级），再定语域（formal/semi-formal/neutral），再写。"
+      "title": "按指定形式翻译建议",
+      "summary": "题目指定原形虚拟形式，因此从句用 check，而不随主句 suggested 变为 checked。英式表达中也常见 should check，但这里练习的是省去 should 的形式；建议不表示动作已经完成。",
+      "exam_tip": "形式选择应回应明确任务，而非把一种变体说成唯一英语用法。"
     },
     "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
+      "box_ref": "1622",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "翻译"
     },
-    "back_text": "六级书信语域三段式：\n1) 语域校准：先判断收件人权威度（上级/平级/下级），选择 formal/semi-formal/neutral 语域\n2) 身份授权句（以什么身份写：As a student representative / On behalf of [组织]）\n3) 任务声明句（I am writing to [inform/request/propose/appeal] …）\n\n六级书信的核心考查：收件人≠语域——写给教授用 formal，写给同学用 semi-formal，写给公众用 neutral。语域误选是六级书信最常见失分点。"
+    "back_text": "The supervisor suggested that we check the data again."
   },
   {
-    "card_id": "131312",
+    "card_id": "162205",
     "track": "cet6",
-    "knowledge_ref": "1313",
+    "knowledge_ref": "1622",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级诊断：下面这封信的开头在六级语域标准下有哪些失配问题？（假设收件人为大学招生办主任）\n“Hi there! I’m a student from XXX University and I really want to apply to your program. It seems like a great opportunity for me!”\n请先独立定位，再下滑查看提示。",
-      "support": "六级诊断：下面这封信的开头在六级语域标准下有哪些失配问题？（假设收件人为大学招生办主任）\n“Hi there! I’m a student from XXX University and I really want to apply to your program. It seems like a great opportunity for me!”\n请先独立定位，再下滑查看提示。",
-      "context": "六级诊断：下面这封信的开头在六级语域标准下有哪些失配问题？（假设收件人为大学招生办主任）\n“Hi there! I’m a student from XXX University and I really want to apply to your program. It seems like a great opportunity for me!”\n请先独立定位，再下滑查看提示。"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "汉译英：要不是她及时提醒，我们本会错过最后一班车。请写出一种准确译法。",
+      "support": "汉译英：要不是她及时提醒，我们本会错过最后一班车。请写出一种准确译法。",
+      "context": "汉译英：要不是她及时提醒，我们本会错过最后一班车。请写出一种准确译法。"
     },
     "analysis": {
-      "title": "书信开头训练",
-      "summary": "① 识别信号：“Hi there!”是六级书信语域测试的最强失配信号——招生办主任属权威机构代表，这一称呼直接触发“语域严重失配”扣分，不需要后续内容就已经影响语言维度评分。“I really want”中的“really”是情感加强词，在 formal register 中应避免，替换为“I am particularly keen to” / “I strongly desire to”。\n\n② 核心规律：六级书信语域失配通常发生在三个节点：①称呼语（greeting）选择错误；②任务动词等级错误（want→wish/intend；like→prefer/appreciate）；③情感形容词口语化（great/nice/amazing→valuable/significant/compelling）。书信语域分层本质上是社交角色认知考查——考生能否准确判断写信者与收件人的社会关系并选择相应语言。首段语域失配会降低全文“语言”维度评级，即使正文语法正确，整体语域评分也受损。\n\n③ 验证与纠偏：书信开头自测四问：①称呼语（greeting）是否匹配收件人身份？②任务动词（want/like vs. wish/request/propose）是否匹配语域？③是否有明确的身份授权句（As a [身份]/On behalf of [组织]）？④是否有清晰的任务声明（I am writing to [formal 动词]）？四问任有一否则重写受影响部分。纠偏优先级：①先改称呼语（最显眼）；②再改任务动词（评分权重高）；③最后改情感形容词（影响语言维度）。",
-      "exam_tip": "称呼语是语域第一判断点：招生官/教授用“Dear [Title/Name]”，绝不用“Hi/Hey”。"
+      "title": "翻译若非某事的过去假设",
+      "summary": "But for 在这个过去语境中相当于 If it had not been for，would have missed 是未实现的假想后果。实际含义通常是提醒帮助大家赶上了车，不能把 missed 直接当成已经误车。",
+      "exam_tip": "反事实句要结合条件和结果一起还原实际背景。"
     },
     "space_metadata": {
-      "box_ref": "1313",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "书信开头"
+      "box_ref": "1622",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "翻译"
     },
-    "back_text": "六级层面的问题：\n1) 称呼语语域错误——“Hi there!”属非正式社交语言，写给招生官应用“Dear Admissions Director” / “Dear [Title] [Last Name]”。\n2) 语域整体不匹配——“I really want” / “It seems like” / “great opportunity” 均属 semi-formal 到 informal 表达，formal 书信要求：I am writing to express my strong interest / I wish to apply for。\n3) 缺乏身份授权——没有说明写信者的身份，阅卷者无法评估“任务完成度”。\n\n改写：“Dear Admissions Director, I am writing on behalf of [身份/组织] to formally express my interest in [项目名]. I would like to briefly outline my qualifications and reasons for applying.”"
+    "back_text": "But for her timely reminder, we would have missed the last bus."
   },
   {
-    "card_id": "131401",
+    "card_id": "162206",
     "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1622",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级数据描述核心定义：在高阶写作评分中，如何判定这类文体？",
-      "support": "六级数据描述核心定义：在高阶写作评分中，如何判定这类文体？",
-      "context": "六级数据描述核心定义：在高阶写作评分中，如何判定这类文体？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "汉译英：我真希望当时没有删掉那封邮件。请用 wish。",
+      "support": "汉译英：我真希望当时没有删掉那封邮件。请用 wish。",
+      "context": "汉译英：我真希望当时没有删掉那封邮件。请用 wish。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：先用信号词或句法骨架定位信息重心，再根据上下文完成含义确认，避免只看单个词就下结论。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是把定义性描述当答案本身，忽略语境中真正限制条件。纠偏时先问“这句话在当前语境里解决了什么问题”。下次遇到同类题时，直接执行：先圈出触发信号，再用一句话复述该句对主题的贡献。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "翻译 wish 表达的过去遗憾",
+      "summary": "had not deleted 是对过去行为的相反愿望，通常暗示邮件实际已删。不能写 I wish I do not delete... 来表达已经发生的删除，也不能把 not 放到 wish 前改变为“不希望”。",
+      "exam_tip": "注意否定词应该落在所后悔的行为上。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1622",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】数据描述标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 数据描述 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "I wish I had not deleted that email."
   },
   {
-    "card_id": "131402",
+    "card_id": "162207",
     "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1622",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级数据描述结构框架：请给出可直接套用的三段或四段逻辑。",
-      "support": "六级数据描述结构框架：请给出可直接套用的三段或四段逻辑。",
-      "context": "六级数据描述结构框架：请给出可直接套用的三段或四段逻辑。"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "汉译英：如果负责人下周退出，我们就得重新安排进度。请使用 were to 表达预案式假设。",
+      "support": "汉译英：如果负责人下周退出，我们就得重新安排进度。请使用 were to 表达预案式假设。",
+      "context": "汉译英：如果负责人下周退出，我们就得重新安排进度。请使用 were to 表达预案式假设。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：先用信号词或句法骨架定位信息重心，再根据上下文完成含义确认，避免只看单个词就下结论。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是把定义性描述当答案本身，忽略语境中真正限制条件。纠偏时先问“这句话在当前语境里解决了什么问题”。下次遇到同类题时，直接执行：先圈出触发信号，再用一句话复述该句对主题的贡献。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "翻译未确认发生的未来条件",
+      "summary": "were to 表示较有距离感的未来设想，next week 给出时间。would have to 中的 have to 是不得不，不是 would have done 的完成结构，不能混淆两个 have。",
+      "exam_tip": "区分 have to 表义结构与完成时助动词。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1622",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】数据描述标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 数据描述 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If the person in charge were to withdraw next week, we would have to revise the schedule."
   },
   {
-    "card_id": "131403",
+    "card_id": "162208",
     "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1622",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级题干快判：给定任务描述，判断是否属于数据描述并说明依据。",
-      "support": "六级题干快判：给定任务描述，判断是否属于数据描述并说明依据。",
-      "context": "六级题干快判：给定任务描述，判断是否属于数据描述并说明依据。"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "把 If we had known about the delay, we would have changed the plan 改为省略 if 的形式。",
+      "support": "把 If we had known about the delay, we would have changed the plan 改为省略 if 的形式。",
+      "context": "把 If we had known about the delay, we would have changed the plan 改为省略 if 的形式。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "用倒装表达过去条件",
+      "summary": "将条件部分的 had 移到主语 we 前，并去掉 if，后面的过去分词 known 与主句保持不变。不能同时保留 If had we...，也不能把主句一起倒装。",
+      "exam_tip": "省略 if 的倒装只改条件部分的助动词位置。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1622",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】数据描述标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 数据描述 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "Had we known about the delay, we would have changed the plan."
   },
   {
-    "card_id": "131404",
+    "card_id": "162301",
     "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1623",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "高频误判纠偏：哪类题最容易被误判成数据描述？",
-      "support": "高频误判纠偏：哪类题最容易被误判成数据描述？",
-      "context": "高频误判纠偏：哪类题最容易被误判成数据描述？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "写一句支持延长周末开放时间的英文，使用 if 条件句说明它可能给学生带来的帮助，避免保证所有人都受益。",
+      "support": "写一句支持延长周末开放时间的英文，使用 if 条件句说明它可能给学生带来的帮助，避免保证所有人都受益。",
+      "context": "写一句支持延长周末开放时间的英文，使用 if 条件句说明它可能给学生带来的帮助，避免保证所有人都受益。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "用假设说明建议的可能作用",
+      "summary": "条件 stayed open 与结果 could have 表达一种建议情境，受益者限定为白天有安排的人。这里的 have 是拥有时间，不是完成时；句子没有保证每个学生都一定使用图书馆。",
+      "exam_tip": "用假设论证时说明受益对象和可能机制。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1623",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "写作"
     },
-    "back_text": "【六级独立内容】数据描述标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 数据描述 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If the library stayed open later at weekends, students with daytime commitments could have more time to study there."
   },
   {
-    "card_id": "131405",
+    "card_id": "162302",
     "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1623",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "进阶诊断：同一主题下如何区分数据描述与相邻文体？",
-      "support": "进阶诊断：同一主题下如何区分数据描述与相邻文体？",
-      "context": "进阶诊断：同一主题下如何区分数据描述与相邻文体？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "你认为只发提醒邮件未必能解决流程不清的问题。请用 if 写一句更具体的建议。",
+      "support": "你认为只发提醒邮件未必能解决流程不清的问题。请用 if 写一句更具体的建议。",
+      "context": "你认为只发提醒邮件未必能解决流程不清的问题。请用 if 写一句更具体的建议。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "用假设比较替代方案",
+      "summary": "假设把改善放在解释步骤，might need 表示可能减少提醒需求。它没有说邮件完全无用，也没有在缺少数据时声称一定减少到零。",
+      "exam_tip": "假设句可以比较做法，但语气应与依据相称。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1623",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "写作"
     },
-    "back_text": "【六级独立内容】数据描述标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 数据描述 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If staff received a clear explanation of each step, they might need fewer reminder emails."
   },
   {
-    "card_id": "131406",
+    "card_id": "162303",
     "track": "cet6",
-    "knowledge_ref": "1314",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "填空：完成一个数据描述高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}",
-      "support": "填空：完成一个数据描述高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}",
-      "context": "填空：完成一个数据描述高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
-    },
-    "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "however",
-          "therefore",
-          "whereas",
-          "consequently",
-          "notably"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "however"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131407",
-    "track": "cet6",
-    "knowledge_ref": "1314",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "数据描述填空：选出最能精准表达数据显著上升的学术动词，完成下句。\n\nThe share of renewable energy in the national electricity mix ______ from 18% in 2018 to 34% in 2023, owing largely to subsidized solar panel deployment.\n\n请将空缺补全：{{blank}}",
-      "support": "数据描述填空：选出最能精准表达数据显著上升的学术动词，完成下句。\n\nThe share of renewable energy in the national electricity mix ______ from 18% in 2018 to 34% in 2023, owing largely to subsidized solar panel deployment.\n\n请将空缺补全：{{blank}}",
-      "context": "数据描述填空：选出最能精准表达数据显著上升的学术动词，完成下句。\n\nThe share of renewable energy in the national electricity mix ______ from 18% in 2018 to 34% in 2023, owing largely to subsidized solar panel deployment.\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "数据幅度词档：surged/soared（大幅）/ rose/increased（中等）/ edged up（小幅）。"
-    },
-    "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "surged",
-          "raised",
-          "improved",
-          "grew up",
-          "been increased"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "surged"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131408",
-    "track": "cet6",
-    "knowledge_ref": "1314",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "数据描述填空：选出最能体现数据推断有限性的连接词，完成下句。\n\nThe correlation between screen time and sleep quality is statistically significant; ______, this does not establish a direct causal relationship without controlling for other variables.\n\n请将空缺补全：{{blank}}",
-      "support": "数据描述填空：选出最能体现数据推断有限性的连接词，完成下句。\n\nThe correlation between screen time and sleep quality is statistically significant; ______, this does not establish a direct causal relationship without controlling for other variables.\n\n请将空缺补全：{{blank}}",
-      "context": "数据描述填空：选出最能体现数据推断有限性的连接词，完成下句。\n\nThe correlation between screen time and sleep quality is statistically significant; ______, this does not establish a direct causal relationship without controlling for other variables.\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "推断限制句型：[数据结论]; however, [推断边界] ——体现“相关性≠因果性”的学术诚实性。"
-    },
-    "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "however",
-          "therefore",
-          "consequently",
-          "thus",
-          "hence"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "however"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131409",
-    "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1623",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级评分视角：数据描述在任务完成度中的关键扣分点是什么？",
-      "support": "六级评分视角：数据描述在任务完成度中的关键扣分点是什么？",
-      "context": "六级评分视角：数据描述在任务完成度中的关键扣分点是什么？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "项目因未核对房间容量而临时换场。请写一句过去条件句，总结提前核对可能避免的麻烦。",
+      "support": "项目因未核对房间容量而临时换场。请写一句过去条件句，总结提前核对可能避免的麻烦。",
+      "context": "项目因未核对房间容量而临时换场。请写一句过去条件句，总结提前核对可能避免的麻烦。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：先用信号词或句法骨架定位信息重心，再根据上下文完成含义确认，避免只看单个词就下结论。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是把定义性描述当答案本身，忽略语境中真正限制条件。纠偏时先问“这句话在当前语境里解决了什么问题”。下次遇到同类题时，直接执行：先圈出触发信号，再用一句话复述该句对主题的贡献。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "用过去假设解释教训",
+      "summary": "had checked 指未做的事前检查，might have avoided 表示可能避免的结果。用过去假设总结经验，不等于已经证明所有突发问题都由这一点导致。",
+      "exam_tip": "总结教训时保留可能性和具体事件范围。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1623",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "写作"
     },
-    "back_text": "【六级独立内容】数据描述标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 数据描述 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If we had checked the room's capacity in advance, we might have avoided the last-minute change of venue."
   },
   {
-    "card_id": "131410",
+    "card_id": "162304",
     "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1623",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "压轴改写：把低阶句改成符合六级数据描述标准的表达。",
-      "support": "压轴改写：把低阶句改成符合六级数据描述标准的表达。",
-      "context": "压轴改写：把低阶句改成符合六级数据描述标准的表达。"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "给学校写一句正式建议：建议每份活动通知都包含无障碍信息。使用 recommend that。",
+      "support": "给学校写一句正式建议：建议每份活动通知都包含无障碍信息。使用 recommend that。",
+      "context": "给学校写一句正式建议：建议每份活动通知都包含无障碍信息。使用 recommend that。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：本卡聚焦“数据描述”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "用建议从句表达改进措施",
+      "summary": "include 使用动词原形虚拟形式，every event notice 是从句主语。recommend 的宾语是完整建议内容，不应写成 recommend every notice to include... 来机械照搬其他动词结构。",
+      "exam_tip": "熟悉一个动词时，也要核对它实际允许的补语结构。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1623",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "写作"
     },
-    "back_text": "【六级独立内容】数据描述标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 数据描述 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "I recommend that every event notice include information about accessibility."
   },
   {
-    "card_id": "131411",
+    "card_id": "162305",
     "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1623",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级进阶：同样是“数据描述”，如何做到数据选择性摘取（只取关键趋势）并用学术数据描述句式准确表达增减幅度？",
-      "support": "六级进阶：同样是“数据描述”，如何做到数据选择性摘取（只取关键趋势）并用学术数据描述句式准确表达增减幅度？",
-      "context": "六级进阶：同样是“数据描述”，如何做到数据选择性摘取（只取关键趋势）并用学术数据描述句式准确表达增减幅度？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "写一句 If I were responsible... 开头的建议，提出先试行小范围方案再决定扩展。",
+      "support": "写一句 If I were responsible... 开头的建议，提出先试行小范围方案再决定扩展。",
+      "context": "写一句 If I were responsible... 开头的建议，提出先试行小范围方案再决定扩展。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：六级数据描述任务通常嵌入在图表作文或分析性说明文中，主要考查“数据解读选择性”——面对多组数据，能否判断哪条趋势最能支持当前论点，只描述那条，而不是把所有数字全部翻译一遍。数据选择性是六级数据描述与四级的核心区分点。\n\n② 核心规律：六级数据描述句式的标准框架是：[主语（X）] + [动词（rose/fell/increased/decreased）] + [by + 幅度（Y%/twofold）] + [from + 起点时间] + [to + 终点时间] + [reaching/peaking at + 峰值（Z）in + 年份]。缺少幅度或时间区间的数据描述句被视为“不精准转述”，在六级内容维度失分。学术句式要求：避免 go up/go down（改用 rise/increase/surge/soar/fall/decline/drop/plunge），避免 a lot（改用 significantly/substantially/considerably/marginally/slightly 根据实际幅度）。\n\n③ 验证与纠偏：数据句自查两步——①量化完整性检查：数字+变化词+幅度+时间区间四要素是否全齐；②学术化检查：是否出现了 go up/go down/a lot/very much 等口语副词。常见误判：认为每个数据点都要描述才“完整”，结果写出超长数据堆砌段。纠偏：先找图表中最大差值或拐点，只描述这一点，其余数据用“other indicators also show”一笔带过。",
-      "exam_tip": "数据句四要素：变化动词+幅度（%/倍数）+起止时间+峰值，缺一不完整。"
+      "title": "在正式建议中使用 were",
+      "summary": "If I were... 明确这是设想自己负责时的做法，would test 给出建议。before deciding... 保留先验证后扩展的顺序，不把尚未发生的试点写成现有事实。",
+      "exam_tip": "假设身份下的建议仍要有清楚的行动顺序。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1623",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "写作"
     },
-    "back_text": "六级数据描述三原则：\n1) 选择性摘取（只描述图表中最显著的1-2个趋势，不逐点罗列所有数字）\n2) 精准量化（增减幅度必须附：百分比/倍数/绝对值 + 时间区间 + 单位）\n3) 学术句式（The data indicates that X rose/fell by Y% from A to B, peaking/bottoming at Z in [year]）\n\n六级数据描述≠翻译图表——要选择能支持你论点的核心数据，配合分析意图使用。"
+    "back_text": "If I were responsible for the programme, I would test it on a small scale before deciding whether to expand it."
   },
   {
-    "card_id": "131412",
+    "card_id": "162306",
     "track": "cet6",
-    "knowledge_ref": "1314",
+    "knowledge_ref": "1623",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级诊断：下面这段数据描述在六级标准下为什么不够精准？\n“The chart shows that the numbers went up a lot in recent years. It’s clear that more and more people are interested in this.”\n请先独立定位，再下滑查看提示。",
-      "support": "六级诊断：下面这段数据描述在六级标准下为什么不够精准？\n“The chart shows that the numbers went up a lot in recent years. It’s clear that more and more people are interested in this.”\n请先独立定位，再下滑查看提示。",
-      "context": "六级诊断：下面这段数据描述在六级标准下为什么不够精准？\n“The chart shows that the numbers went up a lot in recent years. It’s clear that more and more people are interested in this.”\n请先独立定位，再下滑查看提示。"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "团队错过截止日，其中一项原因是沟通不清。请用过去假设写一句反思，但不声称这是唯一原因。",
+      "support": "团队错过截止日，其中一项原因是沟通不清。请用过去假设写一句反思，但不声称这是唯一原因。",
+      "context": "团队错过截止日，其中一项原因是沟通不清。请用过去假设写一句反思，但不声称这是唯一原因。"
     },
     "analysis": {
-      "title": "数据描述训练",
-      "summary": "① 识别信号：“went up a lot”是六级数据描述评卷最敏感的低分触发词组合——“went up”（非学术量化动词）+ “a lot”（模糊副词）+ “in recent years”（不精确时间）三重失误同时出现，直接拉低数据描述精准度评分。“It’s clear that”是另一个形式上看似自信实则空洞的口语化推断表达，六级评卷不认可这种“断言式推断”，需要用 suggest/indicate/demonstrate 等主张词替代。\n\n② 核心规律：六级数据描述的学术标准体现在“量化精度”和“推断链”两个维度。量化精度：变化动词（rise/fall/increase/decrease）+ 幅度副词（significantly/marginally）+ 具体数字+百分比 + 时间区间（from X to Y）。推断链：数据句→推断句（This suggests/indicates that…）→意义句（reflecting a trend toward…），三步缺一则论证链不完整。“It’s clear”跳过了推断步骤，是学术写作的禁用表达之一。\n\n③ 验证与纠偏：数据段自测三项：①数据句是否有具体数字+幅度副词+时间区间+变化动词四要素；②推断句是否用了suggest/indicate/demonstrate（不是“it’s clear/obvious”）；③推断内容是否是数据的合理外推（不是跳跃性断言）。纠偏顺序：①先替换“went up”为具体动词（rose/increased/surged）；②加入幅度（by 30%/twofold）和时间（from 2018 to 2023）；③把“It’s clear that”改为“This increase suggests/indicates that”。",
-      "exam_tip": "禁用：went up/went down/a lot/it’s clear → 改为：rose/fell/significantly/This suggests。"
+      "title": "避免用反事实句推卸全部责任",
+      "summary": "might have reduced the risk 比 would certainly have solved every problem 更符合仅知道一个相关因素的情况。反思应指出可改进的行为，不借一个假设断言所有其他因素都不存在。",
+      "exam_tip": "反事实推理也要与已知原因范围保持一致。"
     },
     "space_metadata": {
-      "box_ref": "1314",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "数据描述"
+      "box_ref": "1623",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "写作"
     },
-    "back_text": "六级层面的问题：\n1) 量化不精准——“went up a lot” 缺乏具体幅度、时间区间和单位。\n2) 时间表达不精准——“in recent years”不是可量化时间段，六级要求具体year范围。\n3) 解读跳跃——从“数字上升”直接到“人们感兴趣”缺乏推断链接词（This increase suggests/indicates that…）。\n4) 语域问题：“went up” “a lot” “it’s clear”均为口语表达，六级数据描述要求学术量化动词。\n\n改写方向：“The data indicates that X rose by approximately Y% from [year A] to [year B], reaching Z. This substantial increase suggests a growing preference for X among [目标人群].”"
+    "back_text": "If we had communicated the deadline more clearly, we might have reduced the risk of missing it."
   },
   {
-    "card_id": "131501",
+    "card_id": "162307",
     "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1623",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级趋势分析核心定义：在高阶写作评分中，如何判定这类文体？",
-      "support": "六级趋势分析核心定义：在高阶写作评分中，如何判定这类文体？",
-      "context": "六级趋势分析核心定义：在高阶写作评分中，如何判定这类文体？"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "写一句：假如系统在登记期间故障，工作人员会启用纸质备份。要求用 were to。",
+      "support": "写一句：假如系统在登记期间故障，工作人员会启用纸质备份。要求用 were to。",
+      "context": "写一句：假如系统在登记期间故障，工作人员会启用纸质备份。要求用 were to。"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：先用信号词或句法骨架定位信息重心，再根据上下文完成含义确认，避免只看单个词就下结论。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是把定义性描述当答案本身，忽略语境中真正限制条件。纠偏时先问“这句话在当前语境里解决了什么问题”。下次遇到同类题时，直接执行：先圈出触发信号，再用一句话复述该句对主题的贡献。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "用 were to 说明风险预案",
+      "summary": "条件限定登记期间故障，结果给出具体替代动作。were to 并没有宣布系统将故障，纸质备份也不是已经启用；这是预案与实际状态的区别。",
+      "exam_tip": "风险预案要写明触发条件和对应行动。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1623",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "写作"
     },
-    "back_text": "【六级独立内容】趋势分析标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 趋势分析 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If the system were to fail during registration, staff would use the paper backup."
   },
   {
-    "card_id": "131502",
+    "card_id": "162308",
     "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1623",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级趋势分析结构框架：请给出可直接套用的三段或四段逻辑。",
-      "support": "六级趋势分析结构框架：请给出可直接套用的三段或四段逻辑。",
-      "context": "六级趋势分析结构框架：请给出可直接套用的三段或四段逻辑。"
+      "eyebrow": "这张练习 | 虚拟语气",
+      "prompt": "修正：If we had provided clearer guidance last term, students will make fewer mistakes then. 要表达上学期本可减少错误。",
+      "support": "修正：If we had provided clearer guidance last term, students will make fewer mistakes then. 要表达上学期本可减少错误。",
+      "context": "修正：If we had provided clearer guidance last term, students will make fewer mistakes then. 要表达上学期本可减少错误。"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：先用信号词或句法骨架定位信息重心，再根据上下文完成含义确认，避免只看单个词就下结论。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是把定义性描述当答案本身，忽略语境中真正限制条件。纠偏时先问“这句话在当前语境里解决了什么问题”。下次遇到同类题时，直接执行：先圈出触发信号，再用一句话复述该句对主题的贡献。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "保持虚拟论证中的时间一致",
+      "summary": "last term 与 then 都指过去，结果不能用将来的 will make。might have made 保留可能减少错误，而不是把假设改成已经观察到的结果。",
+      "exam_tip": "同一过去假设中的条件与结果应共享相符的时间参照。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1623",
+      "library": "语法",
+      "group": "虚拟语气",
+      "box": "写作"
     },
-    "back_text": "【六级独立内容】趋势分析标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 趋势分析 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "If we had provided clearer guidance last term, students might have made fewer mistakes then."
   },
   {
-    "card_id": "131503",
+    "card_id": "163001",
     "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1630",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级题干快判：给定任务描述，判断是否属于趋势分析并说明依据。",
-      "support": "六级题干快判：给定任务描述，判断是否属于趋势分析并说明依据。",
-      "context": "六级题干快判：给定任务描述，判断是否属于趋势分析并说明依据。"
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "汉译英：报告在发现错误后被修改了。题目关注报告的处理经过，未说明是谁修改。",
+      "support": "汉译英：报告在发现错误后被修改了。题目关注报告的处理经过，未说明是谁修改。",
+      "context": "汉译英：报告在发现错误后被修改了。题目关注报告的处理经过，未说明是谁修改。"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "翻译时根据重点选择主被动",
+      "summary": "两个被动结构将报告和错误的处理过程放在前面，没有补造执行者。主动语态也可在知道主体且需要强调它时使用；被动并不天然更客观或更高级。",
+      "exam_tip": "语态选择取决于信息重点和已知主体。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1630",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】趋势分析标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 趋势分析 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "The report was revised after the error was found."
   },
   {
-    "card_id": "131504",
+    "card_id": "163002",
     "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1630",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "高频误判纠偏：哪类题最容易被误判成趋势分析？",
-      "support": "高频误判纠偏：哪类题最容易被误判成趋势分析？",
-      "context": "高频误判纠偏：哪类题最容易被误判成趋势分析？"
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "汉译英：管理员检查了所有申请并通知了未提交附件的人。原句强调管理员做了什么。",
+      "support": "汉译英：管理员检查了所有申请并通知了未提交附件的人。原句强调管理员做了什么。",
+      "context": "汉译英：管理员检查了所有申请并通知了未提交附件的人。原句强调管理员做了什么。"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "保持主动译文中的责任主体",
+      "summary": "主动主语保留责任主体，checked 与 contacted 并列。没有必要为了正式而改成多层被动；had not submitted 说明联系这些人的原因已经存在。",
+      "exam_tip": "当主体及其责任重要时，主动表达通常更直接。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1630",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】趋势分析标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 趋势分析 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "The administrator checked all the applications and contacted those who had not submitted the attachments."
   },
   {
-    "card_id": "131505",
+    "card_id": "163003",
     "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1630",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "进阶诊断：同一主题下如何区分趋势分析与相邻文体？",
-      "support": "进阶诊断：同一主题下如何区分趋势分析与相邻文体？",
-      "context": "进阶诊断：同一主题下如何区分趋势分析与相邻文体？"
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "汉译英：设备在使用前应经过检查。使用 should。",
+      "support": "汉译英：设备在使用前应经过检查。使用 should。",
+      "context": "汉译英：设备在使用前应经过检查。使用 should。"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "翻译情态被动结构",
+      "summary": "equipment 承受检查动作，should 后接 be，再接过去分词 checked。不能写 should checked 或 should be checking 来表达同样的被动要求。",
+      "exam_tip": "情态被动的核心顺序是情态动词加 be 加过去分词。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1630",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】趋势分析标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 趋势分析 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "The equipment should be checked before use."
   },
   {
-    "card_id": "131506",
+    "card_id": "163004",
     "track": "cet6",
-    "knowledge_ref": "1315",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "填空：完成一个趋势分析高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}",
-      "support": "填空：完成一个趋势分析高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}",
-      "context": "填空：完成一个趋势分析高分句骨架（含学术连接词）。\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
-    },
-    "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "however",
-          "therefore",
-          "whereas",
-          "consequently",
-          "notably"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "however"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131507",
-    "track": "cet6",
-    "knowledge_ref": "1315",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "趋势分析填空：选出最准确表达因果归因关系的动词短语，完成下句。\n\nThe sustained decline in birth rates observed across East Asian economies can largely be ______ the rising cost of child-rearing, combined with increased female workforce participation.\n\n请将空缺补全：{{blank}}",
-      "support": "趋势分析填空：选出最准确表达因果归因关系的动词短语，完成下句。\n\nThe sustained decline in birth rates observed across East Asian economies can largely be ______ the rising cost of child-rearing, combined with increased female workforce participation.\n\n请将空缺补全：{{blank}}",
-      "context": "趋势分析填空：选出最准确表达因果归因关系的动词短语，完成下句。\n\nThe sustained decline in birth rates observed across East Asian economies can largely be ______ the rising cost of child-rearing, combined with increased female workforce participation.\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "归因动词首选：be attributed to（客观中性）；不用 be blamed for（带负面评价）。"
-    },
-    "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "attributed to",
-          "blamed for",
-          "linked with",
-          "caused by",
-          "related on"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "attributed to"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131508",
-    "track": "cet6",
-    "knowledge_ref": "1315",
-    "interaction_id": "lock",
-    "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "趋势分析填空：选出最能体现学术预测审慎性的情态动词，完成下句。\n\nGiven the current demographic trajectory, birth rates in urban areas ______ continue to decline over the next two decades, unless significant policy incentives are introduced.\n\n请将空缺补全：{{blank}}",
-      "support": "趋势分析填空：选出最能体现学术预测审慎性的情态动词，完成下句。\n\nGiven the current demographic trajectory, birth rates in urban areas ______ continue to decline over the next two decades, unless significant policy incentives are introduced.\n\n请将空缺补全：{{blank}}",
-      "context": "趋势分析填空：选出最能体现学术预测审慎性的情态动词，完成下句。\n\nGiven the current demographic trajectory, birth rates in urban areas ______ continue to decline over the next two decades, unless significant policy incentives are introduced.\n\n请将空缺补全：{{blank}}"
-    },
-    "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：填空题先判空格语法角色，再判语义方向，最后在词库中做形式匹配（词性/搭配/逻辑关系）。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是只按词义熟悉度选词，忽略搭配和句法位置。纠偏时先做词性过滤，再做语义验证。下次遇到同类题时，直接执行：固定流程：语法定位→候选过滤→代回通读。",
-      "exam_tip": "学术预测禁用 will（太绝对），优先用 are likely to / are expected to。"
-    },
-    "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
-    },
-    "lock_slots": [
-      {
-        "id": "slot_1",
-        "label": "空 1",
-        "options": [
-          "are likely to",
-          "will",
-          "must",
-          "should",
-          "would like to"
-        ]
-      }
-    ],
-    "answer_key": {
-      "lock_pattern": [
-        "are likely to"
-      ]
-    },
-    "auto_scoring": true
-  },
-  {
-    "card_id": "131509",
-    "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1630",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级评分视角：趋势分析在任务完成度中的关键扣分点是什么？",
-      "support": "六级评分视角：趋势分析在任务完成度中的关键扣分点是什么？",
-      "context": "六级评分视角：趋势分析在任务完成度中的关键扣分点是什么？"
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "汉译英：这个问题在复核时及时被发现。无需增加是谁发现的问题。",
+      "support": "汉译英：这个问题在复核时及时被发现。无需增加是谁发现的问题。",
+      "context": "汉译英：这个问题在复核时及时被发现。无需增加是谁发现的问题。"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：先用信号词或句法骨架定位信息重心，再根据上下文完成含义确认，避免只看单个词就下结论。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是把定义性描述当答案本身，忽略语境中真正限制条件。纠偏时先问“这句话在当前语境里解决了什么问题”。下次遇到同类题时，直接执行：先圈出触发信号，再用一句话复述该句对主题的贡献。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "保留问题被发现的叙述焦点",
+      "summary": "was identified 保留问题作为叙述重点，in time 表示及时，during 表示复核期间。on time通常指按预定时刻，不宜机械替换此处及时发现的含义。",
+      "exam_tip": "语态与时间介词都可能影响译文的信息重点。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1630",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】趋势分析标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 趋势分析 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "The problem was identified in time during the review."
   },
   {
-    "card_id": "131510",
+    "card_id": "163005",
     "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1630",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "压轴改写：把低阶句改成符合六级趋势分析标准的表达。",
-      "support": "压轴改写：把低阶句改成符合六级趋势分析标准的表达。",
-      "context": "压轴改写：把低阶句改成符合六级趋势分析标准的表达。"
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "改正：The accident was happened during the test. 并说明原因。",
+      "support": "改正：The accident was happened during the test. 并说明原因。",
+      "context": "改正：The accident was happened during the test. 并说明原因。"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：本卡聚焦“趋势分析”。先从题面中抓取可验证线索（如关键词、限定词、句法位置或语义转折），避免被表面词汇带偏。优先抓题面中的限定词、句法位置或语义转折。\n\n② 核心规律：下滑提示用于分层暴露线索：先自主判断，再用提示校准思路，目标是形成可复用的判断路径。 这类题的本质不是记答案，而是建立稳定的判断顺序。你需要先判定信息结构，再做选项/填空/动作匹配；如果顺序颠倒，就容易被干扰项误导。\n\n③ 验证与纠偏：回到题面逐项核对对象、关系和限定范围。常见误判是一上来就依赖提示，导致不会独立推理。纠偏时先给自己一次无提示判断，再对照提示修正。下次遇到同类题时，直接执行：先写出初判依据，再下滑查看提示并比对差异。",
-      "exam_tip": "先判断信息结构，再做答案选择，避免词面匹配先行。"
+      "title": "避免给不及物动词强加被动",
+      "summary": "happen 在这里是不及物动词，表示事件发生，不接受把事件作为受事的被动结构。去掉 was 后，happened 自己承担过去时谓语；不是所有中文含“被”或结果意味的句子都需要英文被动。",
+      "exam_tip": "先核对动词是否及物，再决定能否使用被动。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1630",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "翻译"
     },
-    "back_text": "【六级独立内容】趋势分析标准答案与示例。\\n\\n建议写法：先明确任务边界，再给出可执行的句法框架，最后补上逻辑限制条件。\\n示例（CET6级）：In light of the task requirement, this 趋势分析 response should prioritize precision, coherence, and evidence-based wording.\\n\\n可迁移要点：\\n1. 先判任务类型，不套错模板；\\n2. 使用学术连接词（however, consequently, whereas）；\\n3. 增加限定语避免绝对化。"
+    "back_text": "The accident happened during the test."
   },
   {
-    "card_id": "131511",
+    "card_id": "163006",
     "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1630",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级进阶：同样是“趋势分析”，如何在段落中完成“趋势命名→驱动因素解析→后续预测”的三层分析结构？",
-      "support": "六级进阶：同样是“趋势分析”，如何在段落中完成“趋势命名→驱动因素解析→后续预测”的三层分析结构？",
-      "context": "六级进阶：同样是“趋势分析”，如何在段落中完成“趋势命名→驱动因素解析→后续预测”的三层分析结构？"
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "原句：The laboratory assistant labelled the samples, not the visiting students. 如果改为 The samples were labelled，丢掉了什么？",
+      "support": "原句：The laboratory assistant labelled the samples, not the visiting students. 如果改为 The samples were labelled，丢掉了什么？",
+      "context": "原句：The laboratory assistant labelled the samples, not the visiting students. 如果改为 The samples were labelled，丢掉了什么？"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：六级趋势分析考查点是“分析深度”——从数据描述（what）→因素解析（why）→趋势预测（what next）的完整分析链。拿到题时判断：这道题的图表/题干是否暗示了驱动因素（如政策变化、技术进步、社会变迁）？如果有暗示，直接利用；如果没有，用通用因素类型（经济/人口/政策/技术）框架分析。\n\n② 核心规律：六级趋势分析与四级的核心区分在“解释层”和“预测层”——四级只要求描述趋势，六级要求①解释趋势（This can be attributed to X, as evidenced by Y）；②预测趋势方向（Given the current trajectory, X is likely to Z）；③给出预测条件限定（particularly if/unless/provided that…）。预测有条件限定比无条件断言更符合六级学术写作标准——展示“我知道未来不确定，但基于当前证据，最可能的方向是X”。\n\n③ 验证与纠偏：趋势分析三层检查：①是否有精准的趋势命名（变化方向+幅度描述词+时间段）；②是否有因果归因（be attributed to/stem from/result from）；③是否有条件限定的预测（likely to/expected to + if/unless/provided that）。常见误判：认为预测是“猜测”不敢写，导致分析停在描述层。纠偏：预测句用 be likely to/be expected to（表可能性），不用 will（表绝对确定），加条件句（if current policies continue/unless major disruptions occur）提升预测学术严谨度。",
-      "exam_tip": "因果词精准化：be attributed to/stem from/result from/be driven by，替换 because of。"
+      "title": "避免被动改写丢失必要主体",
+      "summary": "被动可以省略不重要的施事者，但此处人物对比就是信息重点。保留 by 短语才能维持原意，不能把简洁当作删除责任信息的理由。",
+      "exam_tip": "省略施事者前先判断身份是否正是题目重点。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1630",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "翻译"
     },
-    "back_text": "六级趋势分析三层结构：\n1) 趋势命名句（The data reveals a [steady/sharp/gradual] [rise/decline/stabilization] in X over [time period]）\n2) 驱动因素解析（This can be attributed to [factor A] and [factor B]，使用因果词组 be attributed to/stem from/result from/be driven by）\n3) 后续预测（Given this trajectory, X is likely to [continue/reverse/plateau], particularly if [条件句]）\n\n六级趋势分析评卷重点：必须从“描述”升级到“解释”再到“预测”，三层缺一则分析完整度不足。"
+    "back_text": "丢掉了实际负责标记的是实验助理、而非访学生这一关键对照。可写：The samples were labelled by the laboratory assistant, not by the visiting students."
   },
   {
-    "card_id": "131512",
+    "card_id": "163007",
     "track": "cet6",
-    "knowledge_ref": "1315",
+    "knowledge_ref": "1630",
     "interaction_id": "flip",
     "front": {
-      "eyebrow": "这张练习 | 模板句式",
-      "prompt": "六级诊断：下面这段趋势分析在六级标准下深度为何不够？\n“The graph shows an upward trend. This is because many factors have an influence. In the future, this trend will continue.”\n请先独立定位，再下滑查看提示。",
-      "support": "六级诊断：下面这段趋势分析在六级标准下深度为何不够？\n“The graph shows an upward trend. This is because many factors have an influence. In the future, this trend will continue.”\n请先独立定位，再下滑查看提示。",
-      "context": "六级诊断：下面这段趋势分析在六级标准下深度为何不够？\n“The graph shows an upward trend. This is because many factors have an influence. In the future, this trend will continue.”\n请先独立定位，再下滑查看提示。"
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "汉译英：我们到达前，房间已经打扫过了。请突出先前完成的状态。",
+      "support": "汉译英：我们到达前，房间已经打扫过了。请突出先前完成的状态。",
+      "context": "汉译英：我们到达前，房间已经打扫过了。请突出先前完成的状态。"
     },
     "analysis": {
-      "title": "趋势分析训练",
-      "summary": "① 识别信号：“many factors have an influence”是六级趋势分析最严重的归因虚空表达——等同于说“有原因”而不说“是什么原因”，完全没有完成因素解析任务。“this trend will continue”中的“will”在学术写作中表过强的确定性，不符合六级对趋势预测的学术严谨要求。这两处失误的组合导致“分析深度”维度评分极低。\n\n② 核心规律：趋势分析的因素解析层要求：①至少命名一到两个具体驱动因素（不能用“many factors”替代）；②使用因果词链接（This can be attributed to X/is driven by Y/stems from Z）；③因素内容要有合理的因果推断链，不能只说“因为A，所以B”而不解释A如何导致B。预测层要求：①用 be likely to/be expected to（非 will）；②加条件限定（if/unless/provided that）；③条件要有实质内容（不是“if conditions change”式空洞条件）。\n\n③ 验证与纠偏：使用三层分析完整度清单：①趋势命名是否有变化方向+幅度+时间三要素？②因素解析是否命名了具体因素+因果链接词？③预测是否用了可能性词+条件限制？三层任何一层为“空洞”则整段无有效分析，需从该层重写。纠偏逻辑：先填因素（从题目背景/常识中挑1-2个具体原因），用because of/be attributed to连接，再改预测动词（will→is likely to），最后加一个条件句（if [具体条件]）。",
-      "exam_tip": "“many factors”必须替换为1-2个命名因素，用 be attributed to/driven by 链接。"
+      "title": "让时态与被动结构共同匹配",
+      "summary": "had been cleaned 是过去完成时被动，先于过去参照点 arrived。been 是被动完成结构的一部分，不能省成 had cleaned，否则房间会被误写成动作执行者。",
+      "exam_tip": "时态先后与主被动关系需要同时检查。"
     },
     "space_metadata": {
-      "box_ref": "1315",
-      "library": "写作",
-      "group": "模版句式",
-      "box": "趋势分析"
+      "box_ref": "1630",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "翻译"
     },
-    "back_text": "六级层面的问题：\n1) 趋势描述不精准——“an upward trend”缺乏时间区间、幅度和具体数据锚点。\n2) 因素归因虚空——“many factors have an influence”没有命名任何一个因素，等于没有解释。\n3) 预测过度确定——“will continue”是绝对断言，六级学术标准应用“is likely to continue”并加条件限定。\n\n改写方向：“The data reveals a [幅度形容词] rise in X from [Year A] to [Year B]. This upward trajectory can be attributed to [因素A] and [因素B]. Given these conditions, X is likely to maintain this trend, provided that [条件限定].”"
+    "back_text": "The room had already been cleaned before we arrived."
+  },
+  {
+    "card_id": "163008",
+    "track": "cet6",
+    "knowledge_ref": "1630",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "比较：We tested three settings. Three settings were tested. 两句主要改变了什么，而不是谁更高级？",
+      "support": "比较：We tested three settings. Three settings were tested. 两句主要改变了什么，而不是谁更高级？",
+      "context": "比较：We tested three settings. Three settings were tested. 两句主要改变了什么，而不是谁更高级？"
+    },
+    "analysis": {
+      "title": "比较两种语态而不建立等级",
+      "summary": "两句都可在合适语境中使用。被动可能适合执行者无关的段落，主动可能更清楚地说明研究者行动；不能仅凭语态给出高低等级或固定分数。",
+      "exam_tip": "按语篇需要选择语态，不把一种形式当成普遍优胜答案。"
+    },
+    "space_metadata": {
+      "box_ref": "1630",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "翻译"
+    },
+    "back_text": "主要改变信息焦点：第一句突出我们实施测试，第二句突出三个设置接受测试。"
+  },
+  {
+    "card_id": "163101",
+    "track": "cet6",
+    "knowledge_ref": "1631",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "阅读：Several documents were removed before the inspection. 仅据此能确定是谁移走的吗？",
+      "support": "阅读：Several documents were removed before the inspection. 仅据此能确定是谁移走的吗？",
+      "context": "阅读：Several documents were removed before the inspection. 仅据此能确定是谁移走的吗？"
+    },
+    "analysis": {
+      "title": "从被动句区分已知与未知施事者",
+      "summary": "were removed 表示被动事件，before the inspection 说明时间关系。不能自行补成检查人员、管理员或文件作者做的，尤其不能把时间相邻者当成执行者。",
+      "exam_tip": "被动句省略的信息不能靠常识自动补成事实。"
+    },
+    "space_metadata": {
+      "box_ref": "1631",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "阅读"
+    },
+    "back_text": "不能，只知道文件在检查前被移走，句子没有说明施事者。"
+  },
+  {
+    "card_id": "163102",
+    "track": "cet6",
+    "knowledge_ref": "1631",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "阅读：The applications have been reviewed, but no decision has been announced. 哪项已经完成，哪项尚未发生？",
+      "support": "阅读：The applications have been reviewed, but no decision has been announced. 哪项已经完成，哪项尚未发生？",
+      "context": "阅读：The applications have been reviewed, but no decision has been announced. 哪项已经完成，哪项尚未发生？"
+    },
+    "analysis": {
+      "title": "识别完成时被动表达的结果",
+      "summary": "have been reviewed 是完成时被动，no...announced 否定公布。审阅完成不等于已经批准，也不等于申请者已经知道结果。",
+      "exam_tip": "将不同动作的完成状态逐项区分。"
+    },
+    "space_metadata": {
+      "box_ref": "1631",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "阅读"
+    },
+    "back_text": "申请审阅已完成，决定尚未公布。"
+  },
+  {
+    "card_id": "163103",
+    "track": "cet6",
+    "knowledge_ref": "1631",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "阅读：All entries must be checked before publication. 这能证明所有条目都已检查吗？",
+      "support": "阅读：All entries must be checked before publication. 这能证明所有条目都已检查吗？",
+      "context": "阅读：All entries must be checked before publication. 这能证明所有条目都已检查吗？"
+    },
+    "analysis": {
+      "title": "区分被要求与已经执行",
+      "summary": "must be checked 是情态被动，表达必须做的动作。若要陈述已完成，需有 have been checked 等适当语境与信息，不能把义务直接当成事实。",
+      "exam_tip": "情态意义与完成状态是两个不同维度。"
+    },
+    "space_metadata": {
+      "box_ref": "1631",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "阅读"
+    },
+    "back_text": "不能。这是在提出出版前的要求，并非报告要求已经执行。"
+  },
+  {
+    "card_id": "163104",
+    "track": "cet6",
+    "knowledge_ref": "1631",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "阅读：The proposal was criticised by residents but supported by the planning committee. 两方态度分别是什么？",
+      "support": "阅读：The proposal was criticised by residents but supported by the planning committee. 两方态度分别是什么？",
+      "context": "阅读：The proposal was criticised by residents but supported by the planning committee. 两方态度分别是什么？"
+    },
+    "analysis": {
+      "title": "把被动与主动角色对应",
+      "summary": "proposal 承受两种评价，两个 by 短语标明各自施事者。but 对照态度，不能因为主语是提案就把提案误读为批评居民的人。",
+      "exam_tip": "先确定受事，再把各个 by 短语与对应动作配对。"
+    },
+    "space_metadata": {
+      "box_ref": "1631",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "阅读"
+    },
+    "back_text": "居民批评提案，规划委员会支持提案。"
+  },
+  {
+    "card_id": "163105",
+    "track": "cet6",
+    "knowledge_ref": "1631",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "阅读：The files were checked, copied and stored securely. 是不是只有 checked 属于被动？",
+      "support": "阅读：The files were checked, copied and stored securely. 是不是只有 checked 属于被动？",
+      "context": "阅读：The files were checked, copied and stored securely. 是不是只有 checked 属于被动？"
+    },
+    "analysis": {
+      "title": "识别句中省略的重复被动成分",
+      "summary": "三个动作都作用于 files，后两项省略了重复的 were。不能因其前面没有再次写出助动词，就把后两项当成文件主动执行的动作。",
+      "exam_tip": "并列结构可以共享助动词，仍需保持一致的角色关系。"
+    },
+    "space_metadata": {
+      "box_ref": "1631",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "阅读"
+    },
+    "back_text": "不是。were 可以由 checked、copied、stored 这三个并列过去分词共享。"
+  },
+  {
+    "card_id": "163106",
+    "track": "cet6",
+    "knowledge_ref": "1631",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "阅读：The door was closed when we arrived. 这句话一定说明有人在我们到达的一刻关门吗？",
+      "support": "阅读：The door was closed when we arrived. 这句话一定说明有人在我们到达的一刻关门吗？",
+      "context": "阅读：The door was closed when we arrived. 这句话一定说明有人在我们到达的一刻关门吗？"
+    },
+    "analysis": {
+      "title": "区分状态描述与行为证据",
+      "summary": "when we arrived 提供观察时点，was closed 在该语境中可以侧重状态。不能从状态直接推出某个特定人的行为，也不能把观察时刻等同于动作发生时刻。",
+      "exam_tip": "状态与造成状态的动作需要不同证据。"
+    },
+    "space_metadata": {
+      "box_ref": "1631",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "阅读"
+    },
+    "back_text": "不一定。它可以描述到达时门处于关闭状态，没有给出具体关门时刻或执行者。"
+  },
+  {
+    "card_id": "163107",
+    "track": "cet6",
+    "knowledge_ref": "1631",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "阅读：The manuscript had been revised before it was sent for external review. 哪个动作先发生？",
+      "support": "阅读：The manuscript had been revised before it was sent for external review. 哪个动作先发生？",
+      "context": "阅读：The manuscript had been revised before it was sent for external review. 哪个动作先发生？"
+    },
+    "analysis": {
+      "title": "结合过去完成时确定事件顺序",
+      "summary": "had been revised 是相对送审这一过去事件更早的动作，was sent 是后续动作。两者都为被动，不能把 had 当成稿件拥有某物的实义动词。",
+      "exam_tip": "时态和 before 共同说明事件先后。"
+    },
+    "space_metadata": {
+      "box_ref": "1631",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "阅读"
+    },
+    "back_text": "修改先发生，之后才送外部评审。"
+  },
+  {
+    "card_id": "163108",
+    "track": "cet6",
+    "knowledge_ref": "1631",
+    "interaction_id": "flip",
+    "front": {
+      "eyebrow": "这张练习 | 主/被动语态",
+      "prompt": "阅读：The assumptions were left undefined, which weakened the argument. 仅凭被动语态能否认定作者故意隐瞒定义？",
+      "support": "阅读：The assumptions were left undefined, which weakened the argument. 仅凭被动语态能否认定作者故意隐瞒定义？",
+      "context": "阅读：The assumptions were left undefined, which weakened the argument. 仅凭被动语态能否认定作者故意隐瞒定义？"
+    },
+    "analysis": {
+      "title": "避免从省略主体推断作者动机",
+      "summary": "were left undefined 将焦点放在文本状态，which 引出影响。故意隐瞒需要额外证据，不能由省略执行者直接推断作者的心理动机。",
+      "exam_tip": "语态选择本身不能证明行为者的意图。"
+    },
+    "space_metadata": {
+      "box_ref": "1631",
+      "library": "语法",
+      "group": "主/被动语态",
+      "box": "阅读"
+    },
+    "back_text": "不能。句子报告假设没有被定义及其影响，没有说明是否故意或由谁造成。"
   }
 ]

@@ -143,7 +143,7 @@ export function createAuthRepository(
           },
         );
 
-        assertRemoteResponse(response, 'request-code');
+        await assertRemoteResponse(response, 'request-code');
 
         return (
           remoteConfig.parseRequestCodePayload ??
@@ -187,7 +187,7 @@ export function createAuthRepository(
           },
         );
 
-        assertRemoteResponse(response, 'verify-code');
+        await assertRemoteResponse(response, 'verify-code');
 
         return (
           remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
@@ -215,7 +215,7 @@ export function createAuthRepository(
           },
         );
 
-        assertRemoteResponse(response, 'refresh');
+        await assertRemoteResponse(response, 'refresh');
 
         return (
           remoteConfig.parseSessionPayload ?? parseSoftbookRemoteAuthSession
@@ -247,7 +247,7 @@ export function createAuthRepository(
           },
         );
 
-        assertRemoteResponse(response, 'logout');
+        await assertRemoteResponse(response, 'logout');
       }, requestOptions);
     },
   };
@@ -355,11 +355,18 @@ function assertChallengeMatchesInput(
   }
 }
 
-function assertRemoteResponse(response: FetchLikeResponse, operation: string) {
+async function assertRemoteResponse(response: FetchLikeResponse, operation: string) {
   if (!response.ok) {
+    let code: string | null = null;
+    try {
+      const body = await response.json() as {error?: {code?: unknown}} | null;
+      const candidate = body?.error?.code;
+      if (typeof candidate === 'string' && /^[a-z0-9_]{1,80}$/.test(candidate)) code = candidate;
+    } catch { /* Invalid error bodies stay generic and never become visible copy. */ }
     throw new RemoteHttpError(
       `Remote auth ${operation} failed with ${response.status}.`,
       response.status,
+      code,
     );
   }
 }

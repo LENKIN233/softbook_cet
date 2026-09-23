@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import {captureExperience} from './lib/experience_capture.mjs';
-import {readableExperienceText} from './lib/experience_text_match.mjs';
+import {readableBilingualExperienceText, readableExperienceText} from './lib/experience_text_match.mjs';
 
 test('wrapped answers tolerate only standalone answer-column labels', () => {
   const observation = {lines: [
@@ -17,6 +18,43 @@ test('wrapped answers tolerate only standalone answer-column labels', () => {
   assert.equal(readableExperienceText({lines: [{text: '原天'}]}, '原因', {answer: true}), false);
   assert.equal(readableExperienceText({lines: observation.lines.map(line =>
     line.text === '正确答案' ? {text: '遗漏的正文'} : line)}, expected, {answer: true}), false);
+});
+
+test('result labels merged into a wrapped deletion answer do not hide actual words', () => {
+  const observation = {lines: [
+    {text: 'with many traveling from nearby'},
+    {text: '应删除的部分towns · only a few cycling in warm'},
+    {text: 'weather'},
+  ]};
+  const expected = [
+    'with many traveling from nearby towns',
+    'only a few cycling in warm weather',
+  ];
+  assert.equal(readableExperienceText(observation, expected, {answer: true}), true);
+  assert.equal(readableExperienceText(observation, expected), false);
+  assert.equal(readableExperienceText({lines: observation.lines.map(line =>
+    line.text.includes('towns') ? {text: '应删除的部分 · only a few cycling in warm'} : line)},
+  expected, {answer: true}), false);
+});
+
+test('two language priorities must find the same actual material without inventing missing English', () => {
+  const expected = '模拟句子：Most customers choose private cars, with many traveling from nearby towns and only a few cycling in warm weather.';
+  const primary = {lines: [
+    {text: '模拟句子：Most customers choose'},
+    {text: 'private cars,'},
+    {text: 'with many traveling from nearby towns'},
+    {text: 'and only a few cycing in warm weather.'},
+  ]};
+  const englishFirst = {lines: [
+    {text: 'Most customers choose private cars,'},
+    {text: 'with many traveling from nearby towns'},
+    {text: 'and only a few cycling in warm weather.'},
+  ]};
+  assert.equal(readableExperienceText(primary, expected), false);
+  assert.equal(readableBilingualExperienceText(primary, englishFirst, expected), true);
+  assert.equal(readableBilingualExperienceText({lines: primary.lines.slice(1)}, englishFirst, expected), false);
+  assert.equal(readableBilingualExperienceText(primary,
+    {lines: englishFirst.lines.filter(line => !line.text.includes('nearby towns'))}, expected), false);
 });
 
 function exercise(durations, failure = null) {
@@ -35,39 +73,28 @@ function exercise(durations, failure = null) {
   return {calls, elapsed, error};
 }
 
-test('slow observed preparation leaves a full reading budget', () => {
-  // Incident: driver startup + clearState + first keyboard input consumed the reading budget.
-  const result = exercise([310000, 150000]);
-  assert.ok(result.elapsed > 240000);
+test('cold preparation and reading use one iOS driver session', () => {
+  // Hosted iOS passed preparation, then the second Maestro process could not
+  // restart XCTest; keep both stages inside the same bounded flow.
+  const result = exercise([400000]);
   assert.equal(result.error, undefined);
-  assert.equal(result.calls.length, 2);
-  const [prepare, reading] = result.calls;
-  assert.ok(prepare.args.includes('apps/mobile/e2e/experience/prepare.yaml'));
-  assert.ok(reading.args.includes('--no-reinstall-driver'));
-  assert.ok(prepare.args.includes('/fresh/preparation'));
+  assert.equal(result.calls.length, 1);
+  const [reading] = result.calls;
+  assert.ok(reading.args.includes('apps/mobile/e2e/experience/reading.yaml'));
   assert.ok(reading.args.includes('/fresh/capture'));
+  assert.equal(reading.timeout, 660000);
+  assert.match(readFileSync(new URL('../apps/mobile/e2e/experience/reading.yaml', import.meta.url), 'utf8'),
+    /- runFlow: prepare\.yaml/);
 });
 
-test('preparation timeout never starts a journey', () => {
-  const result = exercise([420001, 1]);
-  assert.match(result.error.message, /timeout: preparation.log/);
-  assert.equal(result.calls.length, 1);
-});
-
-test('preparation failure cannot reuse old app state', () => {
-  const result = exercise([1, 1], 0);
-  assert.match(result.error.message, /assertion: preparation.log/);
-  assert.equal(result.calls.length, 1);
-});
-
-test('reading retains its 240 second cap and is never retried', () => {
-  const result = exercise([1, 240001]);
+test('cold setup and reading remain bounded together', () => {
+  const result = exercise([660001]);
   assert.match(result.error.message, /timeout: maestro.log/);
-  assert.equal(result.calls.length, 2);
+  assert.equal(result.calls.length, 1);
 });
 
-test('UI assertion failure propagates without a retry', () => {
-  const result = exercise([1, 1], 1);
+test('preparation or reading assertion failure cannot retry stale app state', () => {
+  const result = exercise([1], 0);
   assert.match(result.error.message, /assertion: maestro.log/);
-  assert.equal(result.calls.length, 2);
+  assert.equal(result.calls.length, 1);
 });

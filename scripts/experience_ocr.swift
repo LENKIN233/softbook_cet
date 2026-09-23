@@ -3,10 +3,10 @@ import Foundation
 import Vision
 import ImageIO
 
-func recognize(_ url: URL, region: CGRect? = nil) throws -> [(VNRecognizedText, CGRect)] {
+func recognize(_ url: URL, region: CGRect? = nil, englishFirst: Bool = false) throws -> [(VNRecognizedText, CGRect)] {
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
-    request.recognitionLanguages = ["zh-Hans", "en-US"]
+    request.recognitionLanguages = englishFirst ? ["en-US", "zh-Hans"] : ["zh-Hans", "en-US"]
     request.usesLanguageCorrection = false
     if let region = region { request.regionOfInterest = region }
     try VNImageRequestHandler(url: url).perform([request])
@@ -24,10 +24,13 @@ func recognize(_ url: URL, region: CGRect? = nil) throws -> [(VNRecognizedText, 
 }
 
 var output: [[String: Any]] = []
+let arguments = Array(CommandLine.arguments.dropFirst())
+let englishFirst = arguments.first == "--english-first"
+let paths = englishFirst ? Array(arguments.dropFirst()) : arguments
 do {
-    for path in CommandLine.arguments.dropFirst() {
+    for path in paths {
         let url = URL(fileURLWithPath: path)
-        let observations = try recognize(url)
+        let observations = try recognize(url, englishFirst: englishFirst)
         var regions: [Int: [(VNRecognizedText, CGRect)]] = [:]
         let lines = try observations.map { original, box -> [String: Any] in
             var candidate = original
@@ -38,7 +41,7 @@ do {
                 let half = box.midX < 0.5 ? 0 : 1
                 let region = CGRect(x: Double(half) * 0.5, y: 0, width: 0.5, height: 1)
                 if region.contains(box) {
-                    if regions[half] == nil { regions[half] = try recognize(url, region: region) }
+                    if regions[half] == nil { regions[half] = try recognize(url, region: region, englishFirst: englishFirst) }
                     for (retry, retryBox) in regions[half] ?? [] {
                         let overlap = box.intersection(retryBox)
                         let intersection = overlap.isNull ? 0 : overlap.width * overlap.height

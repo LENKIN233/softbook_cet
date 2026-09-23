@@ -118,20 +118,20 @@ export function getAudioPresentation(state: LearningAudioPlaybackState) {
   switch (state.status) {
     case 'loading':
       return {
-        hint: '音频准备完成后会开始播放',
-        label: '正在准备听力…',
+        hint: '加载后开始播放',
+        label: '正在加载音频…',
       };
     case 'playing':
-      return { hint: '暂停当前听力', label: '暂停' };
+      return { hint: '暂停音频', label: '暂停' };
     case 'paused':
-      return { hint: '继续播放当前听力', label: '继续播放' };
+      return { hint: '继续播放音频', label: '继续播放' };
     case 'error':
       return state.reason === 'offline'
-        ? { hint: '联网后重试', label: '连接网络后可播放 · 重试' }
-        : { hint: '重新准备当前听力', label: '暂时无法播放 · 重试' };
+        ? { hint: '联网后重试', label: '网络不可用，点击重试' }
+        : { hint: '重新加载音频', label: '播放失败，点击重试' };
     case 'idle':
     default:
-      return { hint: '播放当前卡片的听力', label: '播放听力' };
+      return { hint: '播放这张卡片的音频', label: '播放音频' };
   }
 }
 

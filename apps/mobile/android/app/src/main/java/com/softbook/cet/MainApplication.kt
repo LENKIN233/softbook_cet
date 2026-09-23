@@ -17,6 +17,8 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           add(SoftbookAudioPlayerPackage())
         },
+      jsMainModulePath =
+        if (BuildConfig.DEBUG && BuildConfig.SOFTBOOK_EXPERIENCE) "index.experience" else "index",
       useDevSupport = BuildConfig.DEBUG,
     )
   }

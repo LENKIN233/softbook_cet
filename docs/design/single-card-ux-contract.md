@@ -56,7 +56,7 @@ Primary action must be visually and spatially dominant. Secondary actions must
 not compete with the current card task.
 
 Do not present more than one primary decision at the same time. For `flip`,
-self-assess remains exactly two choices: `有把握` and `再回看`.
+self-assess remains exactly two choices: `有把握` and `需要复习`.
 
 ## Feedback Rules
 

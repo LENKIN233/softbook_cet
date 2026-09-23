@@ -10,3 +10,8 @@ exports/
 docs/agent-runs/artifacts/
 docs/design/app-screenshots/
 docs/design/search-runs/**/screenshots/
+
+apps/web/dist-local/
+
+apps/web/dist-backend/
+apps/mobile/backend-runtime.local.json

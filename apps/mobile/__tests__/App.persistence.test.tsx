@@ -100,6 +100,13 @@ async function openRoute(
 }
 
 async function login(root: ReactTestRenderer.ReactTestInstance) {
+  if (root.findAllByProps({testID: 'local-start-learning-button'}).length) {
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(root, 'local-start-learning-button').props.onPress();
+      await flushAsyncEffects();
+    });
+    return;
+  }
   await ReactTestRenderer.act(() => {
     root
       .findByProps({ testID: 'auth-phone-input' })
@@ -311,7 +318,7 @@ test('persists a successful login and restores it after relaunch', async () => {
 
   await expect(createAuthSessionStore().load()).resolves.toEqual({
     mode: 'local',
-    phoneNumber: '13800138000',
+    phoneNumber: '00000000000',
   });
 
   await ReactTestRenderer.act(() => {
@@ -321,7 +328,7 @@ test('persists a successful login and restores it after relaunch', async () => {
   const restoredTree = await renderAppAndWaitForLearning();
   await openRoute(restoredTree.root, 'mine');
 
-  expect(JSON.stringify(restoredTree.toJSON())).toContain('138****8000');
+  expect(JSON.stringify(restoredTree.toJSON())).toContain('本地学习');
 });
 
 test('retains completed local learning and its cursor after relaunch', async () => {
@@ -341,7 +348,7 @@ test('retains completed local learning and its cursor after relaunch', async () 
   const restored = await renderAppAndWaitForLearning();
   expect(JSON.stringify(restored.toJSON())).toContain(nextCard.front.prompt);
   await openRoute(restored.root, 'statistics');
-  expect(restored.root.findByProps({testID: 'statistics-progress-ratio'}).props.children).toMatch(/^1\//);
+  expect(restored.root.findByProps({testID: 'statistics-metric-completed-value'}).props.children).toBe('1');
   await ReactTestRenderer.act(() => restored.unmount());
 });
 
@@ -1046,7 +1053,7 @@ test('does not persist canonical state before content version validation', async
   }
 });
 
-test('degrades corrupt user state and clears persistence on logout', async () => {
+test('backs up corrupt local state and preserves the recovered profile when leaving', async () => {
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
   await createAuthSessionStore().save({
@@ -1074,8 +1081,8 @@ test('degrades corrupt user state and clears persistence on logout', async () =>
   await expect(createAuthSessionStore().load()).resolves.toBeNull();
   await expect(
     AsyncStorage.getItem(USER_STATE_STORAGE_KEY),
-  ).resolves.toBeNull();
-  expect(tree.root.findByProps({ testID: 'auth-phone-input' })).toBeTruthy();
+  ).resolves.not.toBeNull();
+  expect(tree.root.findByProps({ testID: 'local-start-learning-button' })).toBeTruthy();
 
   warn.mockRestore();
 });

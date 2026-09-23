@@ -83,7 +83,7 @@
       "violation_is": "product_distortion_risk"
     },
     "self_assess_feedback_scoped_to_flip": {
-      "claim": "The self-assess feedback color family is a 2-level light judgement (confident / review, rendered as 有把握 / 再回看) scoped to spec/interactions.json#flip.scoring_mode=light_self_assess. It must not leak into interactions whose scoring_mode is auto (multiple_choice, lock, elimination, swipe) — those render auto judgement instead. Two levels (not four) is the product_truth: spec/product-core.json#user_cost_minimization explicitly forbids '反复做高成本掌握度判断', and apps/mobile/src/learning/LearningSurface.tsx is the canonical implementation.",
+      "claim": "The self-assess feedback color family is a 2-level light judgement (confident / review, rendered as 有把握 / 需要复习) scoped to spec/interactions.json#flip.scoring_mode=light_self_assess. It must not leak into interactions whose scoring_mode is auto (multiple_choice, lock, elimination, swipe) — those render auto judgement instead. Two levels (not four) is the product_truth: spec/product-core.json#user_cost_minimization explicitly forbids '反复做高成本掌握度判断', and apps/mobile/src/learning/LearningSurface.tsx is the canonical implementation.",
       "binding": [
         "spec/interactions.json",
         "spec/product-core.json",
@@ -238,6 +238,9 @@
       "rationale": "Matches iPhone 15/16 Pro. Using outdated ratios (390/844) makes mocks look like retro-fit stock templates."
     },
     "component_vocabulary_rules": [
+      "Scale long prompts as reading text and switch long options to one column based on text pressure, available width and text scale; never shorten imported material to fit.",
+      "Use one help entry with independent hint and peek reveals; opening the entry alone does not count as assistance. Place available audio near the task before answer options without autoplay.",
+      "Favorites and pending review filter accessible cards without changing ownership or the active Learning selection. Distinguish daily counts, current group progress and verified cumulative coverage.",
       "Use one reading paper for the current task; identity is a quiet address and a small current-library accent.",
       "Keep navigation detached from the learning action zone, with quiet selected states and accessible touch areas.",
       "Progress is one small count and optional thin line, never a separate dominant object.",
@@ -423,7 +426,7 @@
         {
           "id": "Q6",
           "condition": "surface is stats/learning/flip",
-          "question": "Surface-specific: flip uses exactly 2 self-assess pills (有把握 / 再回看); stats uses tabular-nums; learning does not expose module-selection as primary path."
+          "question": "Surface-specific: flip uses exactly 2 self-assess pills (有把握 / 需要复习); stats uses tabular-nums; learning does not expose module-selection as primary path."
         }
       ]
     }

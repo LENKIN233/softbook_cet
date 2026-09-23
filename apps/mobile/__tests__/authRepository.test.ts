@@ -9,6 +9,21 @@ import {RemoteRequestLifecycleError} from '../src/runtime/remoteRequest';
 
 const NOW = new Date('2026-07-20T00:00:00.000Z');
 
+test('preserves a bounded server error code without exposing its message', async () => {
+  const repository = createAuthRepository({
+    mode: 'remote',
+    remoteConfig: createSoftbookRemoteAuthConfig({baseUrl: 'https://api.softbook.example'}),
+    fetchImpl: jest.fn(async () => ({
+      ok: false, status: 401,
+      json: async () => ({error: {code: 'invalid_sms_code', message: 'private provider detail'}}),
+    })),
+  });
+  await expect(repository.requestSmsCode('13800138000')).rejects.toMatchObject({
+    status: 401, code: 'invalid_sms_code',
+    message: 'Remote auth request-code failed with 401.',
+  });
+});
+
 afterEach(() => {
   jest.useRealTimers();
 });

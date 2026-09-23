@@ -219,6 +219,7 @@ export type WebRemoteRuntimeController = {
   dispose: () => void;
   isAuthenticated: () => boolean;
   loadAuthenticatedState: () => Promise<WebRemoteSnapshot>;
+  switchTrack: (track: LearningTrack) => Promise<WebRemoteSnapshot>;
   logout: () => Promise<WebAccountDeletionOutcome | null>;
   playCardAudio: (
     card: LearningCard,
@@ -734,6 +735,8 @@ export function createWebRemoteRuntimeController(
   let deletionRecoveryChallenge: WebAccountDeletionRecoveryChallenge | null =
     null;
   let activeAccountPhoneNumber: string | null = null;
+  let activeTrack = dependencies.track;
+  let trackSwitchInFlight = false;
   let currentBootstrap: AccountBootstrapSnapshot | null = null;
   let currentLearningSession: LearningSession | null = null;
   let persistedLearningResult: LearningCardResult | null = null;
@@ -1429,7 +1432,7 @@ export function createWebRemoteRuntimeController(
     return finishAcceptedAccountDeletion(session.phoneNumber);
   };
 
-  const loadAuthenticatedState = async (): Promise<WebRemoteSnapshot> => {
+  const loadAuthenticatedState = async (requestTrack = activeTrack): Promise<WebRemoteSnapshot> => {
     const context = await requireAuthenticatedContext();
     const requestSessionScopeKey = getAuthSessionScopeKey(
       dependencies.authSessionCoordinator.getCurrentSession(),
@@ -1464,7 +1467,7 @@ export function createWebRemoteRuntimeController(
       requestBootstrapCount += 1;
       const dayKey = getChinaDayKey(now());
       const bootstrap = await dependencies.accountBootstrapRepository.load(
-        dependencies.track,
+        requestTrack,
         dayKey,
         {forceFresh},
       );
@@ -1545,7 +1548,7 @@ export function createWebRemoteRuntimeController(
     const learningSession =
       await dependencies.learningSessionRepository.loadSession(
         context,
-        dependencies.track,
+        requestTrack,
       );
     if (
       learningSession.membershipStage !== null &&
@@ -1661,6 +1664,7 @@ export function createWebRemoteRuntimeController(
         ) {
           dependencies.stopAudio?.();
         }
+        activeTrack = requestTrack;
         currentBootstrap = bootstrap;
         currentLearningSession = learningSession;
         presentedSessionScopeKey = requestSessionScopeKey;
@@ -1897,7 +1901,25 @@ export function createWebRemoteRuntimeController(
       );
     },
 
-    loadAuthenticatedState,
+    loadAuthenticatedState: () => loadAuthenticatedState(),
+
+    async switchTrack(track) {
+      if (track !== 'cet4' && track !== 'cet6') throw new Error('请选择英语四级或六级。');
+      if (trackSwitchInFlight) throw new Error('正在切换，请稍候。');
+      trackSwitchInFlight = true;
+      try {
+        // Reconcile the current track before changing which content owns the screen.
+        const current = await loadAuthenticatedState();
+        if (current.learningSync.pendingEventCount > 0 || current.spaceSync.pendingActionCount > 0 || current.checkInSync.pending) {
+          throw new Error('还有记录等待同步，请联网同步后再切换。');
+        }
+        if (track === activeTrack) return current;
+        dependencies.stopAudio?.();
+        return await loadAuthenticatedState(track);
+      } finally {
+        trackSwitchInFlight = false;
+      }
+    },
 
     async logout() {
       const currentSession =

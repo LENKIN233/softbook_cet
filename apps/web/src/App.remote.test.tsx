@@ -42,12 +42,12 @@ describe('PC Web remote UI authority', () => {
     const controller = createController(initial, {loadAuthenticatedState: vi.fn(async () => next)});
     await authenticateRemote(controller);
     vi.mocked(window.scrollTo).mockClear();
-    fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
+    fireEvent.click(screen.getByRole('button', {name: '收藏'}));
     await act(async () => undefined);
     expect(window.scrollTo).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
-    fireEvent.click(await screen.findByRole('button', {name: '继续下一张'}));
+    fireEvent.click(await screen.findByRole('button', {name: '下一张'}));
     await screen.findByRole('heading', {name: 'Card 2 prompt'});
     expect(window.scrollTo).toHaveBeenCalledWith({behavior: 'auto', top: 0});
   });
@@ -61,7 +61,7 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     expect(screen.queryByText(original)).toBeNull();
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
-    await screen.findByRole('button', {name: '继续下一张'});
+    await screen.findByRole('button', {name: '下一张'});
     expect(screen.getByText(original)).not.toBeVisible();
     fireEvent.click(screen.getByText('听力原文'));
     expect(screen.getByText(original)).toBeVisible();
@@ -85,7 +85,7 @@ describe('PC Web remote UI authority', () => {
     expect(screen.getByRole('button', {name: '翻面看答案'})).toBeEnabled();
     expect(screen.getByText(/这次结果未计入，学习安排已更新/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '统计'}));
-    expect(screen.getByText('已完成').closest('div')).toHaveTextContent('0 / 4');
+    expect(screen.getByText('今日完成').closest('div')).toHaveTextContent('0 张');
     expect(screen.getByText(/1 次学习结果未计入/)).toBeInTheDocument();
   });
 
@@ -97,8 +97,8 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
     await screen.findByRole('heading', {name: '这次结果未计入'});
-    expect(screen.queryByRole('button', {name: '重试同步当前结果'})).toBeNull();
-    fireEvent.click(screen.getByRole('button', {name: '重新读取服务端进度'}));
+    expect(screen.queryByRole('button', {name: '重试同步'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '刷新学习进度'}));
     await screen.findByText(/这次结果未计入，学习安排已更新/);
     expect(complete).toHaveBeenCalledTimes(1);
     expect(load).toHaveBeenCalledTimes(2);
@@ -114,8 +114,8 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
     await screen.findByRole('region', {name: '答案对照'});
-    expect(screen.getByText('已记为有把握')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: '继续下一张'})).toBeEnabled();
+    expect(screen.getByText('有把握')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '下一张'})).toBeEnabled();
     expect(screen.getByText(/1 次学习结果未计入/)).toBeInTheDocument();
   });
 
@@ -130,18 +130,18 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
 
-    fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
-    expect(screen.getByRole('button', {name: '标记喜欢'})).toBeDisabled();
-    expect(screen.queryByRole('button', {name: '已标记喜欢'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '收藏'}));
+    expect(screen.getByRole('button', {name: '收藏'})).toBeDisabled();
+    expect(screen.queryByRole('button', {name: '已收藏'})).toBeNull();
 
     await act(async () => {
       rejectMutation?.(new Error('injected storage failure'));
     });
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '喜欢状态暂时没有更新。',
+      '收藏状态暂时没有更新。',
     );
-    expect(screen.getByRole('button', {name: '标记喜欢'})).toBeEnabled();
-    expect(screen.queryByRole('button', {name: '已标记喜欢'})).toBeNull();
+    expect(screen.getByRole('button', {name: '收藏'})).toBeEnabled();
+    expect(screen.queryByRole('button', {name: '已收藏'})).toBeNull();
   });
 
   it('preserves an unsubmitted card draft across an auxiliary snapshot', async () => {
@@ -155,10 +155,10 @@ describe('PC Web remote UI authority', () => {
 
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
+    fireEvent.click(screen.getByRole('button', {name: '收藏'}));
 
     expect(
-      await screen.findByRole('button', {name: '已标记喜欢'}),
+      await screen.findByRole('button', {name: '已收藏'}),
     ).toBeInTheDocument();
     expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: '翻面看答案'})).toBeNull();
@@ -181,17 +181,17 @@ describe('PC Web remote UI authority', () => {
     }));
     fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
     fireEvent.click(screen.getByRole('button',{name:'空间'}));
-    fireEvent.click(screen.getByRole('button',{name:'移入盒内休眠区'}));
-    await screen.findByRole('button',{name:'唤醒到学习流'});
-    fireEvent.click(screen.getByRole('button',{name:'回到当前学习卡'}));
+    fireEvent.click(screen.getByRole('button',{name:'暂不学习这张卡'}));
+    await screen.findByRole('button',{name:'恢复学习'});
+    fireEvent.click(screen.getByRole('button',{name:'继续学习'}));
     expect(screen.queryByRole('button',{name:'有把握'})).toBeNull();
     expect(screen.queryByText('Card 1 answer')).toBeNull();
     expect(screen.queryByText('Card 2 prompt')).toBeNull();
-    expect(screen.getByRole('heading',{name:'这张卡已放入休眠'})).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    expect(screen.getByRole('heading',{name:'这张卡已暂停学习'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'刷新学习进度'}));
     await screen.findByRole('alert');
-    expect(screen.getByRole('heading',{name:'这张卡已放入休眠'})).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    expect(screen.getByRole('heading',{name:'这张卡已暂停学习'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'刷新学习进度'}));
     await screen.findByRole('heading',{name:'Card 2 prompt'});
     expect(screen.getByRole('button',{name:'翻面看答案'})).toBeEnabled();
     expect(complete).not.toHaveBeenCalled();
@@ -212,30 +212,31 @@ describe('PC Web remote UI authority', () => {
       loadAuthenticatedState:vi.fn(async()=>restored),
     });
     await authenticateRemote(controller);
+    fireEvent.click(screen.getByText('需要帮助', {selector: 'summary'}));
     fireEvent.click(screen.getByRole('button',{name:'查看提示'}));
     fireEvent.click(screen.getByRole('button',{name:'收起提示'}));
     fireEvent.click(screen.getByRole('button',{name:'解题思路'}));
     fireEvent.click(screen.getByRole('button',{name:'收起思路'}));
     fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
     fireEvent.click(screen.getByRole('button',{name:'空间'}));
-    fireEvent.click(screen.getByRole('button',{name:'移入盒内休眠区'}));
-    await screen.findByRole('button',{name:'唤醒到学习流'});
-    fireEvent.click(screen.getByRole('button',{name:'回到当前学习卡'}));
-    expect(screen.getByRole('heading',{name:'这张卡已放入休眠'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'暂不学习这张卡'}));
+    await screen.findByRole('button',{name:'恢复学习'});
+    fireEvent.click(screen.getByRole('button',{name:'继续学习'}));
+    expect(screen.getByRole('heading',{name:'这张卡已暂停学习'})).toBeInTheDocument();
     if(recovery==='wake') {
       fireEvent.click(screen.getByRole('button',{name:'前往空间'}));
-      fireEvent.click(screen.getByRole('button',{name:'唤醒到学习流'}));
-      await screen.findByRole('button',{name:'移入盒内休眠区'});
-      fireEvent.click(screen.getByRole('button',{name:'回到当前学习卡'}));
+      fireEvent.click(screen.getByRole('button',{name:'恢复学习'}));
+      await screen.findByRole('button',{name:'暂不学习这张卡'});
+      fireEvent.click(screen.getByRole('button',{name:'继续学习'}));
     } else {
-      fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
-      await screen.findByText(/空间操作未被服务端接受/);
+      fireEvent.click(screen.getByRole('button',{name:'刷新学习进度'}));
+      expect(await screen.findByRole('alert')).toHaveTextContent('设置未能保存');
     }
     expect(screen.getByRole('button',{name:'有把握'})).toBeEnabled();
     expect(screen.queryByRole('button',{name:'翻面看答案'})).toBeNull();
     expect(controller.completeCurrentCard).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button',{name:'统计'}));
-    expect(screen.getByText('已完成').closest('div')).toHaveTextContent('0 / 4');
+    expect(screen.getByText('今日完成').closest('div')).toHaveTextContent('0 张');
     fireEvent.click(screen.getByRole('button',{name:'学习'}));
     fireEvent.click(screen.getByRole('button',{name:'有把握'}));
     await screen.findByRole('region',{name:'答案对照'});
@@ -251,12 +252,12 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
     fireEvent.click(screen.getByRole('button',{name:'空间'}));
     fireEvent.click(screen.getByRole('button',{name:'Box 2 1 张'}));
-    fireEvent.click(screen.getByRole('button',{name:'移入盒内休眠区'}));
-    await screen.findByRole('button',{name:'唤醒到学习流'});
-    fireEvent.click(screen.getByRole('button',{name:'回到当前学习卡'}));
+    fireEvent.click(screen.getByRole('button',{name:'暂不学习这张卡'}));
+    await screen.findByRole('button',{name:'恢复学习'});
+    fireEvent.click(screen.getByRole('button',{name:'继续学习'}));
     expect(screen.getByRole('button',{name:'有把握'})).toBeEnabled();
     expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
-    expect(screen.queryByRole('heading',{name:'这张卡已放入休眠'})).toBeNull();
+    expect(screen.queryByRole('heading',{name:'这张卡已暂停学习'})).toBeNull();
     expect(controller.completeCurrentCard).not.toHaveBeenCalled();
   });
 
@@ -267,13 +268,13 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
     fireEvent.click(screen.getByRole('button',{name:'有把握'}));
-    await screen.findByRole('button',{name:'继续下一张'});
-    fireEvent.click(screen.getByRole('button',{name:'标记喜欢'}));
-    await screen.findByRole('heading',{name:'这张卡已放入休眠'});
+    await screen.findByRole('button',{name:'下一张'});
+    fireEvent.click(screen.getByRole('button',{name:'收藏'}));
+    await screen.findByRole('heading',{name:'这张卡已暂停学习'});
     fireEvent.keyDown(document.body,{key:'Enter'});
     expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
     expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button',{name:'继续下一张'})).toBeNull();
+    expect(screen.queryByRole('button',{name:'下一张'})).toBeNull();
   });
 
   it('does not let hidden-card keyboard choices change the retained answer',async()=>{
@@ -287,12 +288,12 @@ describe('PC Web remote UI authority', () => {
     const controller=createController(initial,{applySpaceState:vi.fn(async()=>pending)});
     await authenticateRemote(controller);
     fireEvent.keyDown(document.body,{key:'1'});
-    fireEvent.click(screen.getByRole('button',{name:'标记喜欢'}));
-    await screen.findByRole('heading',{name:'这张卡已放入休眠'});
+    fireEvent.click(screen.getByRole('button',{name:'收藏'}));
+    await screen.findByRole('heading',{name:'这张卡已暂停学习'});
     fireEvent.keyDown(document.body,{key:'2'});
     fireEvent.keyDown(document.body,{key:'Enter'});
     expect(controller.completeCurrentCard).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    fireEvent.click(screen.getByRole('button',{name:'刷新学习进度'}));
     const option=await screen.findByRole('button',{name:/alpha$/});
     expect(option).toHaveAttribute('aria-pressed','true');
     expect(screen.getByRole('button',{name:/beta$/})).toHaveAttribute('aria-pressed','false');
@@ -309,9 +310,9 @@ describe('PC Web remote UI authority', () => {
     const controller=createController(initial,{applySpaceState:vi.fn(async()=>pending)});
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button',{name:'wrong subject'}));
-    fireEvent.click(screen.getByRole('button',{name:'标记喜欢'}));
-    await screen.findByRole('heading',{name:'这张卡已放入休眠'});
-    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    fireEvent.click(screen.getByRole('button',{name:'收藏'}));
+    await screen.findByRole('heading',{name:'这张卡已暂停学习'});
+    fireEvent.click(screen.getByRole('button',{name:'刷新学习进度'}));
     expect(await screen.findByRole('button',{name:'wrong subject'})).toHaveAttribute('aria-pressed','true');
     fireEvent.click(screen.getByRole('button',{name:'correct subject'}));
     fireEvent.click(screen.getByRole('button',{name:'correct verb'}));
@@ -332,11 +333,11 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button',{name:'播放音频'}));
-    fireEvent.click(screen.getByRole('button',{name:'标记喜欢'}));
-    await screen.findByRole('heading',{name:'这张卡已放入休眠'});
+    fireEvent.click(screen.getByRole('button',{name:'收藏'}));
+    await screen.findByRole('heading',{name:'这张卡已暂停学习'});
     expect(controller.stopCardAudio).toHaveBeenCalled();
     await act(async()=>finishPlayback('playing'));
-    fireEvent.click(screen.getByRole('button',{name:'重新读取学习安排'}));
+    fireEvent.click(screen.getByRole('button',{name:'刷新学习进度'}));
     await screen.findByRole('button',{name:'播放音频'});
     expect(screen.queryByRole('button',{name:'暂停音频'})).toBeNull();
   });
@@ -349,7 +350,7 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(createController(initial, {applySpaceState: vi.fn(async () => changed)}));
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     expect(screen.getByRole('button', {name: '有把握'})).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
+    fireEvent.click(screen.getByRole('button', {name: '收藏'}));
     await screen.findByRole('button', {name: '翻面看答案'});
     expect(screen.queryByRole('button', {name: '有把握'})).toBeNull();
   });
@@ -362,10 +363,10 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
 
-    expect(screen.getByText('当前学习状态暂时不可用')).toBeInTheDocument();
+    expect(screen.getByText('暂时无法加载学习进度')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '我的'}));
     expect(
-      screen.getByRole('heading', {name: '当前账户状态暂时无法读取'}),
+      screen.getByRole('heading', {name: '暂时无法加载账号信息'}),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '退出登录'})).toBeEnabled();
   });
@@ -384,7 +385,7 @@ describe('PC Web remote UI authority', () => {
 
     expect(
       screen.getByRole('alert'),
-    ).toHaveTextContent('当前版本需要更新；请刷新到最新版本后继续');
+    ).toHaveTextContent('请刷新页面，更新后可继续学习');
     expect(screen.getByRole('navigation', {name: '主要导航'})).toBeInTheDocument();
     expect(screen.queryByLabelText('短信验证码')).toBeNull();
   });
@@ -430,12 +431,12 @@ describe('PC Web remote UI authority', () => {
 
     fireEvent.click(screen.getByRole('button', {name: '退出'}));
     expect(
-      await screen.findByText('退出前的本机记录还在清理'),
+      await screen.findByText('正在退出登录'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
     expect(screen.queryByLabelText('手机号')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', {name: '重试本机清理'}));
+    fireEvent.click(screen.getByRole('button', {name: '重新清理'}));
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
   });
 
@@ -450,9 +451,9 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(createController(snapshot));
 
     expect(
-      screen.getByText('跨端同步 · 2 项空间操作等待同步'),
+      screen.getByText('学习记录 · 2 项设置等待同步'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('跨端同步 · 服务端已确认')).toBeNull();
+    expect(screen.queryByText('学习记录 · 已同步')).toBeNull();
   });
 
   it('shows terminal Space rejection as stopped instead of confirmed', async () => {
@@ -466,21 +467,21 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(createController(snapshot));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '空间操作未被服务端接受，已停止自动重试',
+      '设置未能保存。请刷新后重新操作。',
     );
     expect(
-      screen.getByText('跨端同步 · 1 项空间操作已被拒绝'),
+      screen.getByText('学习记录 · 1 项设置未能保存'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('跨端同步 · 服务端已确认')).toBeNull();
+    expect(screen.queryByText('学习记录 · 已同步')).toBeNull();
 
     for (const routeName of ['空间', '统计', '我的', '学习']) {
       fireEvent.click(
         screen.getByRole('button', {name: new RegExp(`^${routeName}$`)}),
       );
       expect(
-        screen.getByText(/1 项空间操作已被拒绝/),
+        screen.getByText(/1 项设置未能保存/),
       ).toBeInTheDocument();
-      expect(screen.queryByText(/服务端已确认/)).toBeNull();
+      expect(screen.queryByText(/已同步/)).toBeNull();
     }
   });
 
@@ -500,10 +501,10 @@ describe('PC Web remote UI authority', () => {
       );
       expect(
         screen.getByText(
-          /1 项空间操作已被拒绝；1 项空间操作等待同步/,
+          /1 项设置未能保存；1 项设置等待同步/,
         ),
       ).toBeInTheDocument();
-      expect(screen.queryByText(/服务端已确认/)).toBeNull();
+      expect(screen.queryByText(/已同步/)).toBeNull();
     }
   });
 
@@ -521,7 +522,7 @@ describe('PC Web remote UI authority', () => {
     expect(
       await screen.findByText(/1 项学习结果等待同步/),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/服务端已确认/)).toBeNull();
+    expect(screen.queryByText(/已同步/)).toBeNull();
 
     for (const routeName of ['空间', '统计', '我的', '学习']) {
       fireEvent.click(
@@ -530,7 +531,7 @@ describe('PC Web remote UI authority', () => {
       expect(
         screen.getByText(/1 项学习结果等待同步/),
       ).toBeInTheDocument();
-      expect(screen.queryByText(/服务端已确认/)).toBeNull();
+      expect(screen.queryByText(/已同步/)).toBeNull();
     }
   });
 
@@ -546,14 +547,14 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
     await screen.findByText('学习结果等待同步');
     expect(screen.getByRole('button', {name: '有把握'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: '再回看'})).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', {name: '再回看'}));
+    expect(screen.getByRole('button', {name: '需要复习'})).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', {name: '需要复习'}));
 
     fireEvent.click(
-      screen.getByRole('button', {name: '重试同步当前结果'}),
+      screen.getByRole('button', {name: '重试同步'}),
     );
-    expect(await screen.findByText('已记为有把握')).toBeInTheDocument();
-    expect(screen.queryByText('已加入回看')).toBeNull();
+    expect(await screen.findByRole('region', {name: '答案对照'})).toHaveTextContent('有把握');
+    expect(screen.queryByText('已加入复习')).toBeNull();
     const submittedResults = vi.mocked(controller.completeCurrentCard).mock.calls
       .map(([result]) => result.outcome);
     expect(submittedResults).toEqual(['confident', 'confident']);
@@ -571,11 +572,11 @@ describe('PC Web remote UI authority', () => {
     expect(screen.getByRole('button', {name: 'Box 2 1 张'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Box 3 1 张'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Box 4 1 张'})).toBeNull();
-    expect(screen.getByRole('button', {name: '标记喜欢'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: '收藏'})).toBeDisabled();
     expect(
-      screen.getByRole('button', {name: '移入盒内休眠区'}),
+      screen.getByRole('button', {name: '暂不学习这张卡'}),
     ).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', {name: '标记喜欢'}));
+    fireEvent.click(screen.getByRole('button', {name: '收藏'}));
     expect(controller.applySpaceState).not.toHaveBeenCalled();
   });
 
@@ -597,11 +598,11 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '统计'}));
 
-    fireEvent.click(screen.getByRole('button', {name: '记录今天'}));
+    fireEvent.click(screen.getByRole('button', {name: '签到'}));
     expect(
-      await screen.findByRole('button', {name: '今日已记录'}),
+      await screen.findByRole('button', {name: '今日已签到'}),
     ).toBeDisabled();
-    expect(screen.getByText('今天已收好')).toBeInTheDocument();
+    expect(screen.getByText('今日已签到')).toBeInTheDocument();
   });
 
   it('keeps explicit check-in unavailable before one canonical completion', async () => {
@@ -611,7 +612,7 @@ describe('PC Web remote UI authority', () => {
     expect(
       screen.getByRole('button', {name: '签到暂不可用'}),
     ).toBeDisabled();
-    expect(screen.getByText('先完成今天的学习')).toBeInTheDocument();
+    expect(screen.getByText('完成一张卡片后就可以签到。')).toBeInTheDocument();
   });
 
   it('shows unknown deletion without clearing the authenticated account', async () => {
@@ -626,19 +627,19 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '我的'}));
-    fireEvent.click(screen.getByRole('button', {name: '删除账户'}));
-    fireEvent.click(screen.getByRole('button', {name: '确认删除账户'}));
+    fireEvent.click(screen.getByRole('button', {name: '注销账号'}));
+    fireEvent.click(screen.getByRole('button', {name: '确认注销账号'}));
 
-    expect(await screen.findByText('删除结果暂时未知')).toBeInTheDocument();
+    expect(await screen.findByText('尚未确认注销结果')).toBeInTheDocument();
     expect(controller.logout).not.toHaveBeenCalled();
     expect(
       screen.getByRole('navigation', {name: '主要导航'}),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '退出登录'})).toBeDisabled();
     fireEvent.click(screen.getByRole('button', {name: '统计'}));
-    expect(screen.getByRole('button', {name: '记录今天'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: '签到'})).toBeDisabled();
     fireEvent.click(screen.getByRole('button', {name: '我的'}));
-    fireEvent.click(screen.getByRole('button', {name: '重试确认'}));
+    fireEvent.click(screen.getByRole('button', {name: '重新查询'}));
     expect(controller.requestAccountDeletion).toHaveBeenCalledTimes(2);
   });
 
@@ -651,14 +652,14 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '我的'}));
-    fireEvent.click(screen.getByRole('button', {name: '删除账户'}));
-    fireEvent.click(screen.getByRole('button', {name: '确认删除账户'}));
+    fireEvent.click(screen.getByRole('button', {name: '注销账号'}));
+    fireEvent.click(screen.getByRole('button', {name: '确认注销账号'}));
 
-    expect(await screen.findByText('删除申请已提交')).toBeInTheDocument();
+    expect(await screen.findByText('注销申请已提交')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
-    expect(screen.getByText(/删除申请正在处理/)).toBeInTheDocument();
+    expect(screen.getByText(/注销正在处理中/)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/账户已删除|删除已完成/);
-    fireEvent.click(screen.getByRole('button', {name: '返回手机号验证'}));
+    fireEvent.click(screen.getByRole('button', {name: '返回登录'}));
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
   });
 
@@ -694,7 +695,7 @@ describe('PC Web remote UI authority', () => {
 
     act(() => invalidatePresentation?.({source: 'external_epoch'}));
 
-    expect(screen.getByText('正在读取删除状态')).toBeInTheDocument();
+    expect(screen.getByText('正在查询注销进度')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
     expect(screen.queryByText('138 **** 8000')).toBeNull();
     expect(screen.queryByText('会员')).toBeNull();
@@ -710,7 +711,7 @@ describe('PC Web remote UI authority', () => {
 
     expect(
       screen.getByRole('heading', {
-        name: '重新验证手机号，继续确认删除',
+        name: '查询注销进度',
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/138 \*\*\*\* 8000/)).toBeInTheDocument();
@@ -749,7 +750,7 @@ describe('PC Web remote UI authority', () => {
 
     act(() => invalidatePresentation?.({source: 'external_epoch'}));
 
-    expect(screen.getByText('正在读取删除状态')).toBeInTheDocument();
+    expect(screen.getByText('正在查询注销进度')).toBeInTheDocument();
     expect(screen.queryByLabelText('手机号')).toBeNull();
     expect(screen.queryByLabelText('短信验证码')).toBeNull();
 
@@ -762,7 +763,7 @@ describe('PC Web remote UI authority', () => {
     });
     expect(
       screen.getByRole('heading', {
-        name: '重新验证手机号，继续确认删除',
+        name: '查询注销进度',
       }),
     ).toBeInTheDocument();
     expect(controller.verifySmsCode).not.toHaveBeenCalled();
@@ -795,7 +796,7 @@ describe('PC Web remote UI authority', () => {
     fireEvent.change(await screen.findByLabelText('短信验证码'), {
       target: {value: '123456'},
     });
-    fireEvent.click(screen.getByRole('button', {name: '验证并继续'}));
+    fireEvent.click(screen.getByRole('button', {name: '登录'}));
 
     act(() =>
       invalidatePresentation?.({
@@ -803,7 +804,7 @@ describe('PC Web remote UI authority', () => {
         source: 'session_authority',
       }),
     );
-    expect(screen.getByText('正在读取删除状态')).toBeInTheDocument();
+    expect(screen.getByText('正在查询注销进度')).toBeInTheDocument();
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
     expect(screen.queryByLabelText('短信验证码')).not.toBeInTheDocument();
     expect(screen.getByText('登录已失效，请重新验证。')).toBeInTheDocument();
@@ -843,8 +844,8 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '我的'}));
-    fireEvent.click(screen.getByRole('button', {name: '删除账户'}));
-    fireEvent.click(screen.getByRole('button', {name: '确认删除账户'}));
+    fireEvent.click(screen.getByRole('button', {name: '注销账号'}));
+    fireEvent.click(screen.getByRole('button', {name: '确认注销账号'}));
 
     act(() =>
       invalidatePresentation?.({source: 'session_authority'}),
@@ -859,7 +860,7 @@ describe('PC Web remote UI authority', () => {
       await deletion;
     });
     expect(screen.getByLabelText('手机号')).toHaveValue('');
-    expect(screen.queryByText('删除申请已提交')).not.toBeInTheDocument();
+    expect(screen.queryByText('注销申请已提交')).not.toBeInTheDocument();
     expect(resumeAccountDeletion).toHaveBeenCalledTimes(1);
   });
 
@@ -890,11 +891,11 @@ describe('PC Web remote UI authority', () => {
       await Promise.resolve();
     });
 
-    expect(screen.getByText('删除结果暂时未知')).toBeInTheDocument();
+    expect(screen.getByText('尚未确认注销结果')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
-    fireEvent.click(screen.getByRole('button', {name: '重试确认'}));
+    fireEvent.click(screen.getByRole('button', {name: '重新查询'}));
     expect(
-      await screen.findByText('现在可以重新验证手机号'),
+      await screen.findByText('可以重新登录了'),
     ).toBeInTheDocument();
     expect(resumeAccountDeletion).toHaveBeenCalledTimes(3);
   });
@@ -914,13 +915,13 @@ describe('PC Web remote UI authority', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: '重新验证手机号，继续确认删除',
+        name: '查询注销进度',
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/138 \*\*\*\* 8000/)).toBeInTheDocument();
     expect(screen.queryByLabelText('手机号')).toBeNull();
     fireEvent.click(
-      screen.getByRole('button', {name: '向原手机号获取验证码'}),
+      screen.getByRole('button', {name: '获取验证码'}),
     );
 
     const code = await screen.findByLabelText('短信验证码');
@@ -929,10 +930,10 @@ describe('PC Web remote UI authority', () => {
     ).toBeEnabled();
     fireEvent.change(code, {target: {value: '123456'}});
     fireEvent.click(
-      screen.getByRole('button', {name: '验证并继续确认删除'}),
+      screen.getByRole('button', {name: '验证并查询'}),
     );
 
-    expect(await screen.findByText('删除申请已提交')).toBeInTheDocument();
+    expect(await screen.findByText('注销申请已提交')).toBeInTheDocument();
     expect(
       controller.requestAccountDeletionRecoverySmsCode,
     ).toHaveBeenCalledTimes(1);
@@ -956,23 +957,23 @@ describe('PC Web remote UI authority', () => {
     render(<App remoteRuntimeFactory={() => controller} />);
     fireEvent.click(
       await screen.findByRole('button', {
-        name: '向原手机号获取验证码',
+        name: '获取验证码',
       }),
     );
     fireEvent.change(await screen.findByLabelText('短信验证码'), {
       target: {value: '123456'},
     });
     fireEvent.click(
-      screen.getByRole('button', {name: '验证并继续确认删除'}),
+      screen.getByRole('button', {name: '验证并查询'}),
     );
 
     expect(
-      await screen.findByText('现在可以重新验证手机号'),
+      await screen.findByText('可以重新登录了'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/当前没有待处理的删除申请/)).toBeInTheDocument();
+    expect(screen.getByText(/没有待处理的注销申请/)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/账户已删除|删除已完成/);
-    expect(screen.queryByText('删除申请已提交')).toBeNull();
-    fireEvent.click(screen.getByRole('button', {name: '返回手机号验证'}));
+    expect(screen.queryByText('注销申请已提交')).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '返回登录'}));
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
   });
 
@@ -1016,20 +1017,20 @@ describe('PC Web remote UI authority', () => {
     render(<App remoteRuntimeFactory={() => controller} />);
     fireEvent.click(
       await screen.findByRole('button', {
-        name: '向原手机号获取验证码',
+        name: '获取验证码',
       }),
     );
 
     act(() => invalidatePresentation?.({source: 'external_epoch'}));
     expect(
-      await screen.findByText('现在可以重新验证手机号'),
+      await screen.findByText('可以重新登录了'),
     ).toBeInTheDocument();
     await act(async () => {
       resolveRequest?.();
       await request;
     });
 
-    expect(screen.getByText('现在可以重新验证手机号')).toBeInTheDocument();
+    expect(screen.getByText('可以重新登录了')).toBeInTheDocument();
     expect(screen.queryByLabelText('短信验证码')).not.toBeInTheDocument();
   });
 
@@ -1063,27 +1064,27 @@ describe('PC Web remote UI authority', () => {
     render(<App remoteRuntimeFactory={() => controller} />);
     fireEvent.click(
       await screen.findByRole('button', {
-        name: '向原手机号获取验证码',
+        name: '获取验证码',
       }),
     );
     fireEvent.change(await screen.findByLabelText('短信验证码'), {
       target: {value: '123456'},
     });
     fireEvent.click(
-      screen.getByRole('button', {name: '验证并继续确认删除'}),
+      screen.getByRole('button', {name: '验证并查询'}),
     );
 
     act(() => invalidatePresentation?.({source: 'external_epoch'}));
     expect(
-      await screen.findByText('现在可以重新验证手机号'),
+      await screen.findByText('可以重新登录了'),
     ).toBeInTheDocument();
     await act(async () => {
       resolveVerification?.({status: 'accepted'});
       await verification;
     });
 
-    expect(screen.getByText('现在可以重新验证手机号')).toBeInTheDocument();
-    expect(screen.queryByText('删除申请已提交')).not.toBeInTheDocument();
+    expect(screen.getByText('可以重新登录了')).toBeInTheDocument();
+    expect(screen.queryByText('注销申请已提交')).not.toBeInTheDocument();
   });
 
   it('keeps a newer external recovery result when an older retry finishes late', async () => {
@@ -1112,20 +1113,20 @@ describe('PC Web remote UI authority', () => {
     });
     render(<App remoteRuntimeFactory={() => controller} />);
     fireEvent.click(
-      await screen.findByRole('button', {name: '重试确认'}),
+      await screen.findByRole('button', {name: '重新查询'}),
     );
 
     act(() => invalidatePresentation?.({source: 'external_epoch'}));
     expect(
-      await screen.findByText('现在可以重新验证手机号'),
+      await screen.findByText('可以重新登录了'),
     ).toBeInTheDocument();
     await act(async () => {
       resolveRetry?.({status: 'accepted'});
       await retry;
     });
 
-    expect(screen.getByText('现在可以重新验证手机号')).toBeInTheDocument();
-    expect(screen.queryByText('删除申请已提交')).not.toBeInTheDocument();
+    expect(screen.getByText('可以重新登录了')).toBeInTheDocument();
+    expect(screen.queryByText('注销申请已提交')).not.toBeInTheDocument();
   });
 
   it('retries registration-ready local cleanup without another SMS', async () => {
@@ -1141,14 +1142,14 @@ describe('PC Web remote UI authority', () => {
     render(<App remoteRuntimeFactory={() => controller} />);
 
     expect(
-      await screen.findByText('重新验证前还要完成本机清理'),
+      await screen.findByText('本机记录还未清理完成'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/先完成这台设备的旧记录清理/)).toBeInTheDocument();
+    expect(screen.getByText(/请先清理本机的旧登录记录/)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/账户已删除|删除已完成/);
-    fireEvent.click(screen.getByRole('button', {name: '重试本机清理'}));
+    fireEvent.click(screen.getByRole('button', {name: '重新清理'}));
 
     expect(
-      await screen.findByText('现在可以重新验证手机号'),
+      await screen.findByText('可以重新登录了'),
     ).toBeInTheDocument();
     expect(resumeAccountDeletion).toHaveBeenCalledTimes(2);
     expect(
@@ -1167,10 +1168,10 @@ describe('PC Web remote UI authority', () => {
     render(<App remoteRuntimeFactory={() => controller} />);
 
     expect(
-      await screen.findByText('退出前的本机记录还在清理'),
+      await screen.findByText('正在退出登录'),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('手机号')).toBeNull();
-    fireEvent.click(screen.getByRole('button', {name: '重试本机清理'}));
+    fireEvent.click(screen.getByRole('button', {name: '重新清理'}));
 
     expect(await screen.findByLabelText('手机号')).toHaveValue('');
     expect(resumeAccountDeletion).toHaveBeenCalledTimes(2);
@@ -1178,8 +1179,8 @@ describe('PC Web remote UI authority', () => {
   });
 
   it.each([
-    ['accepted', '删除申请已提交'],
-    ['registration_ready', '现在可以重新验证手机号'],
+    ['accepted', '注销申请已提交'],
+    ['registration_ready', '可以重新登录了'],
   ] as const)(
     'renders %s truth returned by logout cleanup dispatch',
     async (status, expectedTitle) => {
@@ -1204,7 +1205,7 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button', {name: '退出'}));
     fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
 
-    expect(await screen.findByText('删除结果暂时未知')).toBeInTheDocument();
+    expect(await screen.findByText('尚未确认注销结果')).toBeInTheDocument();
     expect(screen.getByRole('navigation', {name: '主要导航'})).toBeInTheDocument();
   });
 
@@ -1246,7 +1247,7 @@ describe('PC Web remote UI authority', () => {
 
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
-    expect(await screen.findByText('已记为有把握')).toBeInTheDocument();
+    expect(await screen.findByRole('region', {name: '答案对照'})).toHaveTextContent('有把握');
     expect(screen.getByRole('button', {name: '暂停音频'})).toBeEnabled();
     vi.mocked(controller.playCardAudio).mockResolvedValueOnce('paused');
     fireEvent.click(screen.getByRole('button', {name: '暂停音频'}));
@@ -1276,9 +1277,9 @@ describe('PC Web remote UI authority', () => {
           screen.getByRole('button', {name: `Box ${index} 1 张`}),
         ).toBeInTheDocument();
       }
-      expect(screen.getByRole('button', {name: '标记喜欢'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: '收藏'})).toBeEnabled();
       expect(
-        screen.getByRole('button', {name: '移入盒内休眠区'}),
+        screen.getByRole('button', {name: '暂不学习这张卡'}),
       ).toBeEnabled();
     },
   );
@@ -1351,7 +1352,7 @@ async function authenticateRemote(controller: WebRemoteRuntimeController) {
   fireEvent.change(screen.getByLabelText('短信验证码'), {
     target: {value: '123456'},
   });
-  fireEvent.click(screen.getByRole('button', {name: '验证并继续'}));
+  fireEvent.click(screen.getByRole('button', {name: '登录'}));
   await screen.findByRole('navigation', {name: '主要导航'});
 }
 
@@ -1371,6 +1372,7 @@ function createController(
     dispose: vi.fn(),
     isAuthenticated: vi.fn(() => true),
     loadAuthenticatedState: vi.fn(async () => snapshot),
+    switchTrack: vi.fn(async () => snapshot),
     logout: vi.fn(async () => null),
     playCardAudio: vi.fn(async (): Promise<'ready'> => 'ready'),
     requestSmsCode: vi.fn(async (phoneNumber: string) => ({

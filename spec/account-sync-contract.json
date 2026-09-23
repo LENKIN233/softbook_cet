@@ -7,6 +7,14 @@
     "purchase_authority": "web与app购买同权"
   },
   "authentication": {
+    "required_scope": "all_product_learning_including_local_backend",
+    "local_learning_entry": {
+      "scope": "explicit_device_only_diagnostic_target_not_default_product",
+      "entry": "retained_only_to_recover_preexisting_device_records",
+      "identity": "not_an_authenticated_account",
+      "authority": "never_promote_device_state_to_server_events_or_account_authority"
+    },
+    "verification_error_copy": "only_explicit_invalid_sms_code_errors_blame_the_code; expired_throttled_network_and_service_failures_keep_distinct_retry_copy",
     "login_is_required_before_learning": true,
     "guest_learning_before_authentication": false,
     "primary_login_method": "phone_sms_code",
@@ -25,6 +33,14 @@
       "privacy_rule": "operator_cannot_embed_phone_or_credential_material_report_contains_only_session_ID_hashes_content_release_statuses_and_assertions_without_phone_or_token_values_and_remains_gate_eligible_false",
       "transport_boundary": "all_four_token_variables_are_removed_from_every_control_plane_preflight_subprocess_environment_tokens_are_loaded_only_after_deployment_identity_passes_requests_use_the_exact_tracked_HTTPS_base_reject_redirects_and_abort_within_10_seconds",
       "mutation_boundary": "apply_intentionally_revokes_both_supplied_dedicated_test_sessions_and_cannot_restore_them"
+    },
+    "local_backend": {
+      "purpose": "temporary_prelaunch_environment",
+      "login": "same_phone_verification_and_v2_session_contract_as_production",
+      "state": "server_owned_durable_account_profiles_and_same_learning_space_membership_APIs",
+      "sms": "local_development_code_is_labeled_and_not_real_SMS; production_requires_real_provider",
+      "transport": "loopback_HTTP_only_in_explicit_backend_build; formal_release_retains_HTTPS",
+      "migration": "preserve_device_only_records_separately; no_implicit_account_merge"
     }
   },
   "account_deletion": {
@@ -37,9 +53,35 @@
     "worker_rule": "the separately deployed softbook-account-deletion-worker lists at most 50 exact-generation queued expired-processing ready-finalizing or expired-finalizing tasks then claims only when account_key deletion_id account_instance_id and requested_at still match; the returned claimed task is the sole erasure and report authority, every mutation rechecks deletion_id account_instance_id phase and lease, the worker deletes softbook_accounts with the broad account and phone collections, enters durable finalizing, waits or retries until pre-transition outbound challenge reservations are terminal or expired, then performs the final phone-rate and challenge sweep before removing the task last",
     "queue_selection_rule": "query oldest queued tasks expired processing leases ready finalizing tasks and expired finalizing leases independently before merging by requested_at and applying the run limit, so live leases cannot starve queued or finalizing retry work",
     "cloudbase_transaction_budget_rule": "reserve one outbound challenge in exactly four document operations, revoke one queried exact-instance session in exactly three, and guard one query-selected worker document removal in exactly four; executable fake-CloudBase assertions and the truth harness bind all three counts while query-set enumeration stays outside each bounded transaction",
-    "account_keyed_collections": ["softbook_accounts", "softbook_auth_sessions", "softbook_daily_check_ins", "softbook_daily_progress", "softbook_learning_event_cursors", "softbook_learning_events", "softbook_learning_event_sequences", "softbook_learning_migration_revisions", "softbook_learning_sessions", "softbook_learning_states", "softbook_pilot_round_continuations", "softbook_space_action_lineages", "softbook_space_actions", "softbook_space_state_revisions", "softbook_space_states"],
-    "phone_filtered_collections": ["softbook_auth_challenges", "softbook_daily_progress", "softbook_learning_states", "softbook_space_states"],
-    "phone_document_collections": ["softbook_beta_entitlements", "softbook_memberships", "softbook_membership_revisions", "softbook_pilot_entitlements"],
+    "account_keyed_collections": [
+      "softbook_accounts",
+      "softbook_auth_sessions",
+      "softbook_daily_check_ins",
+      "softbook_daily_progress",
+      "softbook_learning_event_cursors",
+      "softbook_learning_events",
+      "softbook_learning_event_sequences",
+      "softbook_learning_migration_revisions",
+      "softbook_learning_sessions",
+      "softbook_learning_states",
+      "softbook_pilot_round_continuations",
+      "softbook_space_action_lineages",
+      "softbook_space_actions",
+      "softbook_space_state_revisions",
+      "softbook_space_states"
+    ],
+    "phone_filtered_collections": [
+      "softbook_auth_challenges",
+      "softbook_daily_progress",
+      "softbook_learning_states",
+      "softbook_space_states"
+    ],
+    "phone_document_collections": [
+      "softbook_beta_entitlements",
+      "softbook_memberships",
+      "softbook_membership_revisions",
+      "softbook_pilot_entitlements"
+    ],
     "rate_limit_rule": "every unauthenticated request-code attempt consumes the HMAC-keyed shared-IP counter before phone validation or any deletion-state check, and shared IP records are never removed by account deletion; task-bound phone counters are deleted only in the finalizing sweep, while finalizing refuses every new phone counter or challenge reservation transactionally",
     "challenge_delivery_rule": "every outbound sendCode or provider-owned sendChallenge first persists one local challenge ID plus collision-resistant delivery reservation and bounded provider deadline with pending status; provider-owned verification IDs are conditionally attached only to that still-existing exact local pending reservation and can never upsert a missing intent; provider rejection records delivery_failed while service timeout keeps the reservation pending through its terminal-write grace even when an injected provider ignores abort, neither public acknowledgement creates a verifiable challenge, terminal delivery completion is conditional, and finalizing blocks new reservations then retries while any unexpired pending reservation remains, so supported bounded providers settle before task removal while any ignored late result cannot create a locally verifiable challenge",
     "request_enumeration_rule": "ordinary and recovery request-code start one fixed acknowledgement envelope before phone task or provider branch divergence and every success-shaped absent queued processing finalizing malformed phone-limited provider-success provider-rejected or provider-timeout result awaits exactly the configured providerDeliveryDeadlineMs; provider work is bounded inside that envelope, the maximum is 8000ms strictly below the Cloud Function 10000ms timeout and the client 15000ms deadline, the fixed-code development provider uses a bounded 4000ms default so two durable rate-limit transactions plus challenge persistence cannot consume the former 1000ms deadline before its immediate provider completion without imposing the maximum wait on every development login, task-refused branches create zero phone counter challenge or provider material, provider-owned real and suppressed acknowledgements share one conservative 60-second expiry, failed pending and nonexistent challenges verify only as generic invalid_sms_code, and deletion state appears only after successful purpose-bound SMS verification",
@@ -490,8 +532,8 @@
       "recovery_rule": "hydrate pending and rejected history with authenticated bootstrap; pending selections block another completion until exact acknowledgement or explicit terminal isolation followed by canonical mapping and fresh server selection; rejected events are never counted; preserve the same account selection content and phase attempt through refresh failure, including assistance and lock mistakes; a cached selected card may be answered offline once without choosing a second card",
       "reconciliation_rule": "replay only after validated bootstrap and content hydration; while events are pending, queue dependent check-in and space-state mutations and suppress routine canonical refreshes that would overwrite local intent; after any acknowledgement, keep dependent mutations blocked until another bootstrap is fetched and mapped",
       "logout_rule": "clear only the signed-out account's queued events while preserving the installation identity and next sequence",
-    "account_switch_rule": "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
-    "request_lifecycle_rule": "bound token acquisition and each authenticated fetch pipeline to 15000 milliseconds; timeout retains byte-equivalent events and advances retry state, while caller cancellation or originating-session replacement cancels immediately without acknowledging, removing, rewriting, or incrementing retry state for queued events",
+      "account_switch_rule": "scope replay, bootstrap, and authenticated HTTP authorization handling to the originating session identity rather than phone number alone; a stale response from a signed-out or replaced session must not refresh, invalidate, clear, hydrate, or change sync state for the current session, including same-phone reauthentication",
+      "request_lifecycle_rule": "bound token acquisition and each authenticated fetch pipeline to 15000 milliseconds; timeout retains byte-equivalent events and advances retry state, while caller cancellation or originating-session replacement cancels immediately without acknowledging, removing, rewriting, or incrementing retry state for queued events",
       "legacy_queue_rule": "discard persisted generic sync_learning_state mutations during hydration, remove the pre-binding learning-event-outbox.v1 key without replaying its unbound entries, and never route active mobile learning completion through /v1/learning/state-sync"
     },
     "migration_boundary": {
@@ -506,24 +548,24 @@
         "mobile_scheduler_session_consumption_and_selection_binding",
         "disable_global_legacy_snapshot_writes"
       ],
-    "launch_evidence_contract": {
-      "schema_version": "learning-runtime-evidence.v1",
-      "policy_binding": "exact_learning_events_v2_runtime_contract_sha256",
-      "required_types": [
-        "cross-device-bootstrap-test",
-        "offline-replay-test",
-        "canonical-state-test"
-      ],
-      "receiver_owned_deployment_required": true,
-      "local_or_simulated_evidence_gate_eligible": false,
-      "outer_metadata_must_match_report": true,
-      "outer_subject_commit_must_match_and_be_reachable": true,
-      "launch_release_candidate_cohort_required": true,
-      "repository_raw_artifacts_must_be_rehashed": true,
-      "independent_operator_and_verifier_required": true,
-      "execution_window_binding_required": true
-    },
-    "launch_claim_rule": "green repository-local backend, explicit check-in, scheduler, mobile binding, memory smoke, or simulated evidence do not satisfy formal content approval, production deployment, or launch readiness"
+      "launch_evidence_contract": {
+        "schema_version": "learning-runtime-evidence.v1",
+        "policy_binding": "exact_learning_events_v2_runtime_contract_sha256",
+        "required_types": [
+          "cross-device-bootstrap-test",
+          "offline-replay-test",
+          "canonical-state-test"
+        ],
+        "receiver_owned_deployment_required": true,
+        "local_or_simulated_evidence_gate_eligible": false,
+        "outer_metadata_must_match_report": true,
+        "outer_subject_commit_must_match_and_be_reachable": true,
+        "launch_release_candidate_cohort_required": true,
+        "repository_raw_artifacts_must_be_rehashed": true,
+        "independent_operator_and_verifier_required": true,
+        "execution_window_binding_required": true
+      },
+      "launch_claim_rule": "green repository-local backend, explicit check-in, scheduler, mobile binding, memory smoke, or simulated evidence do not satisfy formal content approval, production deployment, or launch readiness"
     }
   },
   "server_scheduler_v1": {

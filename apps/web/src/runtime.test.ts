@@ -40,7 +40,7 @@ describe('Web runtime boundary', () => {
     expect(resolveWebRuntime()).toEqual({
       clientKind: 'web',
       mode: 'unavailable',
-      reason: '服务配置尚未完整，请稍后再试。',
+      reason: '服务暂不可用，请稍后重试。',
       track: 'cet4',
     });
   });

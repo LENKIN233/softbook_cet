@@ -10,9 +10,36 @@ export function EliminationPassageText({
   disabled: boolean; onToggle: (id: string) => void;
   textColor: string; mutedColor: string; selectionSurface: string;
 }) {
-  const parts = segments.flatMap((segment, index) => {
+  // Keep punctuation attached to the preceding touch target so flex wrapping
+  // cannot strand a period or comma on its own line on narrow phones.
+  const displaySegments: Array<PassageSegment & {punctuationFor?: string}> = [];
+  for (const segment of segments) {
+    const leadingPunctuation = segment.itemId
+      ? segment.text.match(/^[,;—–]\s*/)?.[0]
+      : null;
+    if (leadingPunctuation) {
+      displaySegments.push({text: leadingPunctuation, punctuationFor: segment.itemId});
+      displaySegments.push({text: segment.text.slice(leadingPunctuation.length), itemId: segment.itemId});
+    } else {
+      displaySegments.push({...segment});
+    }
+  }
+  for (let index = 1; index < displaySegments.length; index += 1) {
+    const segment = displaySegments[index];
+    const previous = displaySegments[index - 1];
+    const punctuation = !segment.itemId && !segment.punctuationFor && previous.itemId
+      ? segment.text.match(/^[.,!?;:，。！？；：](?=\s|$)/)?.[0]
+      : null;
+    if (punctuation) {
+      previous.text += punctuation;
+      segment.text = segment.text.slice(punctuation.length);
+    }
+  }
+  const parts = displaySegments.flatMap((segment, index) => {
     const itemId = segment.itemId;
     if (!itemId) {
+      const punctuationSelected = segment.punctuationFor && selectedIds.includes(segment.punctuationFor);
+      if (punctuationSelected) return [];
       return (segment.text.match(/\S+\s*|\s+/g) ?? []).map((word, wordIndex) => (
         <Text key={`${index}-${wordIndex}`} style={[styles.word, {color: textColor}]}>{word}</Text>
       ));

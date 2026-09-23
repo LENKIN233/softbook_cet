@@ -268,7 +268,7 @@ test.each(['user_state', 'outbox', 'mutation_queue', 'auth'] as const)(
       expect(
         await AsyncStorage.getItem(ACCOUNT_LOGOUT_CLEANUP_STORAGE_KEY),
       ).toContain(PHONE);
-      expect(JSON.stringify(tree.toJSON())).not.toContain('删除申请已接收');
+      expect(JSON.stringify(tree.toJSON())).not.toContain('注销申请已收到');
       await ReactTestRenderer.act(() => tree.unmount());
       const restored = await mount();
       expect(
@@ -652,7 +652,7 @@ test.each(['reject', 'drop'] as const)(
       expect(
         await Keychain.getGenericPassword({ service: AUTH_SERVICE }),
       ).not.toBe(false);
-      expect(JSON.stringify(tree.toJSON())).toContain('删除申请尚未发送');
+      expect(JSON.stringify(tree.toJSON())).toContain('注销申请尚未发出');
     } finally {
       set.mockImplementation(original);
     }
@@ -692,7 +692,7 @@ test('lost deletion response survives restart, pending remains recovery-only, an
   expect(
     tree.root.findByProps({ testID: 'account-deletion-recovery-screen' }),
   ).toBeTruthy();
-  expect(JSON.stringify(tree.toJSON())).toContain('账户仍在清理');
+  expect(JSON.stringify(tree.toJSON())).toContain('注销仍在处理中');
   expect(tree.root.findAllByProps({ testID: 'auth-phone-input' })).toHaveLength(
     0,
   );
@@ -814,7 +814,7 @@ test.each([
       expect(
         tree.root.findAllByProps({ testID: 'auth-phone-input' }),
       ).toHaveLength(0);
-      expect(JSON.stringify(tree.toJSON())).not.toContain('删除申请已接收');
+      expect(JSON.stringify(tree.toJSON())).not.toContain('注销申请已收到');
       expect(await createAccountDeletionRecoveryStore().load()).toMatchObject({
         state: { phase: 'registration_ready' },
       });
@@ -975,7 +975,7 @@ test.each(['restart', 'same_process'] as const)(
     ).toHaveLength(0);
     await recover(restored.root);
     if (flow === 'restart')
-      expect(JSON.stringify(restored.toJSON())).toContain('账户仍在清理');
+      expect(JSON.stringify(restored.toJSON())).toContain('注销仍在处理中');
     expect(deliveries).toHaveLength(2);
     expect(
       [...backendStore.snapshot().authSessions.values()].filter(
@@ -1142,7 +1142,7 @@ test.each(['reject', 'false'] as const)(
       tree.root.findByProps({ testID: 'auth-error-title' }).props.children,
     ).toBe('本机暂时无法保存登录状态');
     const output = JSON.stringify(tree.toJSON());
-    expect(output).toContain('重新获取验证码登录');
+    expect(output).toContain('重新获取验证码');
     expect(output).not.toContain('验证码不正确');
     expect(output).not.toContain('RNKeychain');
     expect(output).not.toContain('entitlement');

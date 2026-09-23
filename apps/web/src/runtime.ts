@@ -1,3 +1,4 @@
+import {installLocalBackendTransport} from '../../mobile/src/runtime/localBackendTransport';
 import type {LearningTrack} from '../../mobile/src/learning/model';
 import {
   createWebBuildClientIdentity,
@@ -49,7 +50,7 @@ export function resolveWebRuntime(): WebRuntime {
     return {
       clientKind: WEB_CLIENT_KIND,
       mode: 'unavailable',
-      reason: '服务配置尚未完整，请稍后再试。',
+      reason: '服务暂不可用，请稍后重试。',
       track: 'cet4',
     };
   }
@@ -57,15 +58,23 @@ export function resolveWebRuntime(): WebRuntime {
 
 function resolveWebRuntimeUnchecked(): WebRuntime {
   const configured = window.__SOFTBOOK_WEB_RUNTIME__;
-  const localTrack = import.meta.env.DEV ? new URL(window.location.href).searchParams.get('track') : null;
+  const localTrack = (import.meta.env.DEV || import.meta.env.MODE === 'device') ? new URL(window.location.href).searchParams.get('track') : null;
   const track = isLearningTrack(configured?.track) ? configured.track : isLearningTrack(localTrack) ? localTrack : 'cet4';
+
+  if (import.meta.env.MODE === 'device') return {clientKind: WEB_CLIENT_KIND, mode: 'development', track};
+
+  if (import.meta.env.MODE === 'backend' && configured?.mode === 'remote') {
+    installLocalBackendTransport(configured.baseUrl ?? '');
+    if (new URL(configured.baseUrl!).origin !== window.location.origin || !isPublicKeyring(configured.contentManifestPublicKeys) || !isLearningTrack(configured.track)) throw new Error('Invalid local backend configuration.');
+    return {...configured, baseUrl: configured.baseUrl!, contentManifestPublicKeys: configured.contentManifestPublicKeys, track: configured.track, clientKind: WEB_CLIENT_KIND, clientIdentity: WEB_CLIENT_IDENTITY, mode: 'remote'};
+  }
 
   if (configured?.mode === 'remote') {
     if (!isCompleteRemoteRuntime(configured)) {
       return {
         clientKind: WEB_CLIENT_KIND,
         mode: 'unavailable',
-        reason: '服务配置尚未完整，请稍后再试。',
+        reason: '服务暂不可用，请稍后重试。',
         track,
       };
     }
@@ -79,14 +88,14 @@ function resolveWebRuntimeUnchecked(): WebRuntime {
     };
   }
 
-  if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+  if (import.meta.env.MODE === 'test') {
     return {clientKind: WEB_CLIENT_KIND, mode: 'development', track};
   }
 
   return {
     clientKind: WEB_CLIENT_KIND,
     mode: 'unavailable',
-    reason: '服务正在完成上线配置，请稍后再试。',
+    reason: '服务暂不可用，请稍后重试。',
     track,
   };
 }

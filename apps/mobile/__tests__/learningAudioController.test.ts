@@ -166,18 +166,18 @@ test('refuses a refreshed download for a different asset and skips renewal offli
 });
 
 test('all five playback states map to bounded user-facing copy', () => {
-  expect(getAudioPresentation({ status: 'idle' }).label).toBe('播放听力');
+  expect(getAudioPresentation({ status: 'idle' }).label).toBe('播放音频');
   expect(getAudioPresentation({ status: 'loading' }).label).toBe(
-    '正在准备听力…',
+    '正在加载音频…',
   );
   expect(getAudioPresentation({ status: 'playing' }).label).toBe('暂停');
   expect(getAudioPresentation({ status: 'paused' }).label).toBe('继续播放');
   expect(
     getAudioPresentation({ reason: 'temporary', status: 'error' }).label,
-  ).toBe('暂时无法播放 · 重试');
+  ).toBe('播放失败，点击重试');
   expect(
     getAudioPresentation({ reason: 'offline', status: 'error' }).label,
-  ).toBe('连接网络后可播放 · 重试');
+  ).toBe('网络不可用，点击重试');
 });
 
 test('explicit press resolves verified bytes before native playback', async () => {

@@ -7,7 +7,7 @@ import {dirname, resolve, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {captureExperience} from './lib/experience_capture.mjs';
-import {readableExperienceText as readable} from './lib/experience_text_match.mjs';
+import {readableBilingualExperienceText, readableExperienceText as readable} from './lib/experience_text_match.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const options = {device: null, output: null, calibrateOnly: false};
@@ -61,10 +61,26 @@ try {
     'options': choice.options.map(option => option.text),
   };
   const realCards = require(join(root, 'infra/cloudbase/functions/softbook-api/card-content')).cet4.cards.slice().sort((a, b) => a.card_id.localeCompare(b.card_id));
-  const realChoice = realCards[0];
+  const sampleIds = JSON.parse(readFileSync(join(root, 'apps/mobile/e2e/experience/reading-cards.json'), 'utf8'));
+  if (!Array.isArray(sampleIds) || sampleIds.length !== 2 || new Set(sampleIds).size !== 2) throw new Error('The reading journey requires two distinct source cards.');
+  const [realChoice, realMaterial] = sampleIds.map(id => realCards.find(card => card.card_id === id));
+  if (realChoice?.interaction_id !== 'multiple_choice' || realMaterial?.interaction_id !== 'elimination') {
+    throw new Error('The selected real reading samples changed; update the journey and calibration together.');
+  }
   const realAnswer = realChoice.options.find(option => option.id === realChoice.answer_key.correct_option);
-  const expected = {material: realCards[1].front.support, answer: `${realAnswer.label} ${realAnswer.text}`, options: realChoice.options.map(option => option.text)};
-  report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
+  const wrongOptionIndex = realChoice.options.findIndex(option => option.id !== realChoice.answer_key.correct_option) + 1;
+  if (!realAnswer || wrongOptionIndex < 1) throw new Error('The choice sample needs a correct answer and a distractor.');
+  const requiredMaterial = realMaterial.front.support.split('\n\n')[0];
+  if (!realMaterial.elimination_items.every(item => requiredMaterial.includes(item.text))) throw new Error('The entire selected sentence must be covered by the reading expectation.');
+  const expectedDeletions = realMaterial.elimination_items
+    .filter(item => realMaterial.answer_key.correct_items.includes(item.id))
+    .map(item => item.text);
+  if (expectedDeletions.length < 2 || realMaterial.card_id !== '012103') {
+    throw new Error('Update the elimination feedback calibration for the selected real card.');
+  }
+  const expected = {material: requiredMaterial, answer: `${realAnswer.label} ${realAnswer.text}`, options: realChoice.options.map(option => option.text), elimination: expectedDeletions};
+  report.sample_card_ids = sampleIds;
+  report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/index.experience.js', 'apps/mobile/e2e/experience/reading-cards.json', 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
     'apps/mobile/src/learning/presentation.ts', 'apps/mobile/src/learning/EliminationPassageText.tsx',
     'apps/mobile/src/space/SpaceSurface.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',
@@ -104,8 +120,8 @@ try {
   });
   if (report.glyph_calibration.some(item => !item.rejected)) throw new Error('Wrong or missing glyph pixels were accepted.');
   if (!options.calibrateOnly) {
-    captureExperience({device: options.device, output, run});
-    const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer']];
+    captureExperience({device: options.device, output, run, wrongOptionIndex});
+    const samples = [['options', 'options'], ['material', 'material'], ['material-with-support', 'material'], ['answer', 'answer'], ['answer-first-layer', 'answer'], ['elimination-answer', 'elimination'], ['elimination-detail', 'elimination']];
     function capturedFiles(directory) {
       return readdirSync(directory, {withFileTypes: true}).flatMap(entry => {
         const path = join(directory, entry.name);
@@ -113,16 +129,53 @@ try {
       });
     }
     const files = capturedFiles(join(output, 'capture'));
+    report.driver_preflight = Object.fromEntries(['driver-help-open', 'driver-help-closed'].map(name => {
+      const matches = files.filter(path => path.endsWith(`/takeScreenshot/${name}.png`));
+      if (matches.length !== 1) throw new Error(`Expected one fresh ${name} screenshot, found ${matches.length}`);
+      return [name, {screenshot: matches[0], image_sha256: hash(readFileSync(matches[0]))}];
+    }));
+    const marked = files.filter(path => path.endsWith('/takeScreenshot/material-with-correct-spans-marked.png'));
+    if (marked.length !== 1) throw new Error('Missing one fresh selected-span screenshot.');
+    report.marked_elimination = {screenshot: marked[0], image_sha256: hash(readFileSync(marked[0]))};
     const paths = samples.map(([name]) => {
       const matches = files.filter(path => path.endsWith(`/takeScreenshot/${name}.png`));
       if (matches.length !== 1) throw new Error(`Expected one fresh ${name} screenshot, found ${matches.length}`);
       return matches[0];
     });
     const observations = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...paths], 'journey-ocr.log'));
-    report.journeys = samples.map(([name, kind], index) => ({name, expected: expected[kind],
-      screenshot: paths[index], image_sha256: hash(readFileSync(paths[index])),
-      readable: readable(observations[index], expected[kind], {answer: kind === 'answer'})}));
+    const unreadableMaterial = samples.flatMap(([, kind], index) => kind === 'material' &&
+      !readable(observations[index], expected.material) ? [index] : []);
+    const englishMaterial = new Map();
+    if (unreadableMaterial.length) {
+      const alternates = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', '--english-first',
+        ...unreadableMaterial.map(index => paths[index])], 'material-english-ocr.log'));
+      if (!Array.isArray(alternates) || alternates.length !== unreadableMaterial.length) {
+        throw new Error('English-priority OCR did not return the exact requested screenshots.');
+      }
+      unreadableMaterial.forEach((index, offset) => {
+        if (alternates[offset].path !== paths[index]) throw new Error('English-priority OCR image identity changed.');
+        englishMaterial.set(index, alternates[offset]);
+      });
+    }
+    report.journeys = samples.map(([name, kind], index) => {
+      const primaryReadable = readable(observations[index], expected[kind],
+        {answer: kind === 'answer' || kind === 'elimination'});
+      const bilingualReadable = kind === 'material' && englishMaterial.has(index) &&
+        readableBilingualExperienceText(observations[index], englishMaterial.get(index), expected.material);
+      return {name, expected: expected[kind], screenshot: paths[index],
+        image_sha256: hash(readFileSync(paths[index])),
+        readable: primaryReadable || bilingualReadable,
+        ocr_mode: primaryReadable ? 'chinese_first' : bilingualReadable ? 'bilingual_same_image' : 'unreadable'};
+    });
     if (report.journeys.some(item => !item.readable)) throw new Error('Required reading material or correct answer is not readable in the actual screenshot.');
+    // Calibrated against the 3c4492 Android capture: this used to be displayed
+    // as the "correct" core even though the coordinated clause was removed.
+    report.elimination_feedback = {
+      expected_deletions: expectedDeletions,
+      malformed_core_visible: readable(observations[samples.findIndex(([name]) => name === 'elimination-answer')],
+        'Most customers choose private cars, and.', {answer: true}),
+    };
+    if (report.elimination_feedback.malformed_core_visible) throw new Error('The current elimination answer still teaches a malformed core sentence.');
   }
   if (run('git', ['rev-parse', 'HEAD']).trim() !== report.head ||
       hash(run('git', ['diff', '--binary', 'HEAD'])) !== report.diff_sha256 ||

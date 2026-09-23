@@ -153,7 +153,7 @@ name: ios-remote-auth-learning-space-statistics-smoke
 - tapOn:
     id: "route-tab-statistics"
 - assertVisible:
-    id: "statistics-progress-dock"
+    id: "statistics-metric-strip"
 - assertVisible:
     id: "statistics-metric-completed"
 - assertVisible:

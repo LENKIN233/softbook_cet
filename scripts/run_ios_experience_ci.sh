@@ -20,6 +20,8 @@ case "${1:-}" in
       -workspace apps/mobile/ios/SoftbookCET.xcworkspace -scheme SoftbookCET \
       -configuration Debug -destination "id=$device_id" \
       -derivedDataPath "$RUNNER_TEMP/softbook-experience-derived" \
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS="DEBUG SOFTBOOK_EXPERIENCE" \
+      PRODUCT_BUNDLE_IDENTIFIER=com.softbook.cet.experience \
       CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build \
       2>&1 | tee "$RUNNER_TEMP/experience-build.log"
     xcrun simctl install "$device_id" "$RUNNER_TEMP/softbook-experience-derived/Build/Products/Debug-iphonesimulator/SoftbookCET.app"
@@ -44,7 +46,7 @@ case "${1:-}" in
     # environment preparation, not time spent finding the first app control.
     echo 'Preparing the iOS development bundle before the UI journey.'
     curl --connect-timeout 2 --max-time 180 --fail --show-error --silent \
-      'http://localhost:8081/index.bundle?platform=ios&dev=true&lazy=true&minify=false&inlineSourceMap=false&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&app=com.softbook.cet' \
+      'http://localhost:8081/index.experience.bundle?platform=ios&dev=true&lazy=true&minify=false&inlineSourceMap=false&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&app=com.softbook.cet.experience' \
       --output "$RUNNER_TEMP/experience-ios.bundle"
     node scripts/run_experience_acceptance.mjs --device "$device_id" --output "$RUNNER_TEMP/softbook-experience"
     ;;

@@ -1,3 +1,4 @@
+import {isLocalBackendAssetUrl} from '../../mobile/src/runtime/localBackendTransport';
 import {
   resolveCardAudioDownload,
   type ContentAssetDownload,
@@ -243,7 +244,7 @@ function assertCredentialFreeHttpsUrl(value: string) {
     throw new Error('音频下载地址无效。');
   }
   if (
-    url.protocol !== 'https:' ||
+    (url.protocol !== 'https:' && !isLocalBackendAssetUrl(url)) ||
     url.username !== '' ||
     url.password !== ''
   ) {

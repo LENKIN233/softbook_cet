@@ -17,7 +17,7 @@
         "status": "confirmed_by_user",
         "visibility": "explicit_but_lightweight",
         "product_role": "useful_learning_action",
-        "notes": "peek must remain part of the action surface; runtime semantics stay outside product truth unless separately contracted"
+        "notes": "peek remains available inside the shared help entry with an independent reveal action; opening the entry alone does not record hint or peek use"
       },
       {
         "id": "favorite",

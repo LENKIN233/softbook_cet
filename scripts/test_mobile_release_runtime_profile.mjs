@@ -130,7 +130,7 @@ test('native Release wiring embeds one profile and keeps environment override de
     'apps/mobile/android/app/src/main/java/com/softbook/cet/runtime/SoftbookAppInfoModule.kt',
     'utf8',
   );
-  assert.match(appDelegate, /#if DEBUG[\s\S]*ProcessInfo\.processInfo\.environment[\s\S]*#else\s+return nil/);
+  assert.match(appDelegate, /#(?:if|elseif) DEBUG[\s\S]*ProcessInfo\.processInfo\.environment[\s\S]*#else\s+return nil/);
   assert.match(project, /\[Softbook\] Embed Release Runtime Profile/);
   assert.match(project, /stage_mobile_release_runtime_profile\.mjs/);
   assert.match(project, /CODE_SIGNING_ALLOWED:-YES/);

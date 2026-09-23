@@ -1,3 +1,4 @@
+import {isLocalBackendAssetUrl} from '../runtime/localBackendTransport';
 import type {
   LearningAudioResource,
   LearningCard,
@@ -754,7 +755,7 @@ function requireHttpsUrl(value: unknown, label: string) {
   } catch {
     throw new Error(`${label} must be a valid URL.`);
   }
-  if (url.protocol !== 'https:' || url.username || url.password) {
+  if ((url.protocol !== 'https:' && !isLocalBackendAssetUrl(url)) || url.username || url.password) {
     throw new Error(`${label} must be a credential-free HTTPS URL.`);
   }
   return url.toString();

@@ -229,7 +229,7 @@
     "source_integrity": "every declared asset is referenced and every card audio reference matches exactly; unreferenced assets are rejected",
     "implementation_status": "cloudbase_backend_exact_formal_and_controlled_pilot_mobile_parser_strict_runtime_keyring_consumer_pinned_key_verifier_actual_native_client_minimum_gate_and_remote_learning_repository_binding_implemented_locally_not_deployed",
     "learning_session_binding": "remote_learning_loads_card_source_server_selection_and_signed_manifest_for_one_exact_track_content_version_then_rejects_catalog_or_membership_access_drift_before_returning_the_selected_card",
-    "native_cache_hash_status": "react_native_blob_util_0.24.10_direct_to_file_content_addressed_cache_with_native_size_and_sha256_verification_is_wired_to_the_learning_player_but_private_asset_device_smoke_is_pending",
+    "native_cache_hash_status": "react_native_blob_util_0.24.11_direct_to_file_content_addressed_cache_with_native_size_and_sha256_verification_is_wired_to_the_learning_player_but_private_asset_device_smoke_is_pending",
     "native_cache_hash_and_playback_status": "manifest binding, cache hash and explicit playback are implemented locally with iOS AVAudioPlayer and Android Media3 ExoPlayer; one explicit intent may refresh an expired or object-401/403 download once after exact source signature asset and lifecycle revalidation; Web first click prepares and plays while route selection account background and pagehide cancel stale intent; real-device private-resource proof remains separate",
     "user_visible_audio_control_status": "accepted attached controls and accessibility are implemented; supplied transcripts are collapsed and available after resolution only; platform execution and formal media proof are reported separately",
     "deployment_status": "not_deployed_by_repository_change",
@@ -385,7 +385,11 @@
     "challenge_delivery_boundary": "every_sendCode_or provider_owned sendChallenge persists a local collision_safe pending reservation bound to the challenge expected_account_instance_id before external IO; provider ID and terminal state conditionally update only that intent, rejection records nonverifiable delivery_failed, timeout keeps nonverifiable pending through terminal grace, finalizing blocks new reservations and retries until all pretransition reservations are terminal or expired",
     "lease_boundary": "random_claim_bound_five_minute_lease_claim_requires_expected_deletion_id_account_instance_id_and_requested_at_and_returns_the_claimed_task_as_erasure_and_report_authority_every_mutation_rechecks_exact_generation_lease_and_phase_processing_atomically_enters_durable_finalizing_quiescence_or_final_sweep_failure_never_reopens_queued_recovery_stale_worker_cannot_delete_post_completion_reregistration_data_stale_worker_cannot_complete_or_release_newer_claim",
     "runnable_query_boundary": "oldest_queued_expired_processing_ready_finalizing_and_expired_finalizing_tasks_are_queried_independently_then_merged_by_requested_at_so_live_leases_cannot_starve_queued_or_finalizing_retry_work",
-    "cloudbase_transaction_operation_budgets": {"challenge_reservation_max": 4, "single_session_revocation_max": 3, "guarded_single_document_removal_max": 4},
+    "cloudbase_transaction_operation_budgets": {
+      "challenge_reservation_max": 4,
+      "single_session_revocation_max": 3,
+      "guarded_single_document_removal_max": 4
+    },
     "erasure_boundary": "the current softbook_accounts instance plus all account_keyed learning progress space auth session and phone_bound membership revision beta pilot records then atomic finalizing transition then final phone rate limit and challenge sweep while shared IP rate limits remain untouched",
     "completion_boundary": "verify_idempotent_erasure_atomically_enter_finalizing_block_all_new_phone_and_challenge_material_wait_or_retry_bounded_provider_quiescence_complete_final_phone_sweep_then_remove_task_last_no_tombstone_clean_re_registration_after_completion",
     "deployment_shape": "receiver_delivery_deploys_softbook_api_and_secret_free_softbook_account_deletion_worker_with_one_minute_timer_then_rereads_exact_worker_handler_runtime_timeout_empty_variable_set_and_trigger_configuration",
@@ -441,6 +445,29 @@
     "launch_gate_status": "not_gate_eligible"
   },
   "local_persistence": {
+    "device_local_study": {
+      "scope": "explicit Web device build or native index.local.js; remote account runtimes never fall back to it",
+      "owner": "apps/mobile/src/local/studyModel.ts and studyStore.ts",
+      "storage": "credential_free_v2_profile_per_track; localStorage on Web and AsyncStorage on native",
+      "retained_state": [
+        "stable_group_card_ids",
+        "current_answer_draft",
+        "resolved_feedback",
+        "complete_review_return_frame",
+        "latest_card_results",
+        "daily_attempt_counts",
+        "review_due_times",
+        "favorites",
+        "sleeping",
+        "China_day_check_ins"
+      ],
+      "leaving_rule": "returning_home_preserves_the_profile; reset_and_import_first_archive_the_previous_record_with_exact_readback",
+      "write_rule": "serialized_lock_plus_expected_raw_value_comparison_and_exact_readback; failed_and_unknown_writes_remain_retryable; stale_other_window_writes_fail_visibly",
+      "recovery_rule": "damaged_records_are_exportable_and_preserved; recovery_actions_allow_backup_restore_or_an_explicit_fresh_profile; historical_local_backups_can_be_removed_only_by_a_separate_user_confirmed_action",
+      "content_update_rule": "compare_exact_card_fingerprints_before_reusing_results_and_drafts; archive_old_envelopes; missing_legacy_fingerprints_never_authorize_blind_cross_version_reuse",
+      "clock_rule": "China_day_updates_at_midnight_and_foreground; daily_counts_never_use_the_full_catalog_as_a_daily_target",
+      "boundary": "same_device_profile_only; explicit_export_import_is_not_cloud_sync; no_remote_credentials_or_entitlement_grants"
+    },
     "classification": "implementation_hypothesis",
     "auth_session_store": {
       "sensitive_values": [
@@ -488,5 +515,15 @@
       "adjust_algorithm_or_api",
       "only_then_discuss_experience_compromise"
     ]
+  },
+  "temporary_local_backend": {
+    "intent_owner": "spec/account-sync-contract.json#authentication.local_backend",
+    "runner": "scripts/run_local_backend.mjs",
+    "web_build": "npm --prefix apps/web run build:local",
+    "web_start": "npm --prefix apps/web run start:local",
+    "native_entries": "index.backend.js with all remote repositories",
+    "storage": "serialized single-process v2 store snapshots with atomic durable commits and rollback on write failure; secrets persist separately",
+    "deployment_boundary": "local_development_not_release_evidence; production_uses_receiver_profiles_and_external_services",
+    "prior_device_mode": "explicit device target only; not product default"
   }
 }
