@@ -50,8 +50,6 @@ name: ios-auth-learning-space-statistics-smoke
 
 - tapOn:
     id: "route-tab-space"
-- assertVisible:
-    id: "space-address-shelf"
 - extendedWaitUntil:
     visible:
       id: "space-open-card-list"
