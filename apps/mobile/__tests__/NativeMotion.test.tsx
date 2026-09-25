@@ -1,7 +1,7 @@
 import React from 'react';
 import TestRenderer, {act} from 'react-test-renderer';
 import {AccessibilityInfo, Animated, Pressable, View, StyleSheet} from 'react-native';
-import {NativeMotionProvider, MotionPressable, useCardMotion} from '../src/learning/NativeMotion';
+import {NativeMotionProvider, MotionPressable, MotionWaveform, useCardMotion} from '../src/learning/NativeMotion';
 
 let completions: Array<() => void>;
 let changePreference: (reduced: boolean) => void;
@@ -98,4 +98,43 @@ it('keeps an outgoing route hidden until the new route commits', async () => {
   act(finishQueued);
   expect(opacity.__getValue()).toBe(1);
   act(() => view.unmount());
+});
+
+
+it('press feedback never delays the action and respects reduced motion', async () => {
+  const spring = jest.spyOn(Animated, 'spring').mockReturnValue({start: jest.fn(), stop: jest.fn(), reset: jest.fn()});
+  const action = jest.fn();
+  let view!: TestRenderer.ReactTestRenderer;
+  await act(async () => {view = TestRenderer.create(<NativeMotionProvider><MotionPressable testID="press" onPress={action} /></NativeMotionProvider>);});
+  const control = () => view.root.findAll(node => node.props.testID === 'press' && typeof node.props.onPressIn === 'function')[0];
+  act(() => {control().props.onPressIn({}); control().props.onPress(); control().props.onPressOut({});});
+  expect(action).toHaveBeenCalledTimes(1);
+  expect(spring).toHaveBeenCalledTimes(2);
+  act(() => changePreference(true));
+  spring.mockClear();
+  act(() => {control().props.onPressIn({}); control().props.onPress(); control().props.onPressOut({});});
+  expect(action).toHaveBeenCalledTimes(2);
+  expect(spring).not.toHaveBeenCalled();
+  act(() => view.unmount());
+});
+
+it('stops the playback cue on pause, reduced motion and unmount', async () => {
+  const start = jest.fn(); const stop = jest.fn();
+  const loop = jest.spyOn(Animated, 'loop').mockReturnValue({start, stop, reset: jest.fn()});
+  const surface = (playing: boolean) => <NativeMotionProvider><MotionWaveform playing={playing} color="#414FBE" /></NativeMotionProvider>;
+  let view!: TestRenderer.ReactTestRenderer;
+  await act(async () => {view = TestRenderer.create(surface(false));});
+  expect(loop).not.toHaveBeenCalled();
+  act(() => view.update(surface(true)));
+  expect(start).toHaveBeenCalledTimes(1);
+  act(() => view.update(surface(false)));
+  expect(stop).toHaveBeenCalledTimes(1);
+  act(() => view.update(surface(true)));
+  act(() => changePreference(true));
+  expect(stop).toHaveBeenCalledTimes(2);
+  expect(start).toHaveBeenCalledTimes(2);
+  act(() => changePreference(false));
+  expect(start).toHaveBeenCalledTimes(3);
+  act(() => view.unmount());
+  expect(stop).toHaveBeenCalledTimes(3);
 });

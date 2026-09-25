@@ -1,6 +1,8 @@
 import NetInfo from '@react-native-community/netinfo';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, StyleSheet, Text, View } from 'react-native';
+import {StudioPressable as Pressable, MotionWaveform} from '../learning/NativeMotion';
+import {STUDIO} from '../visual/studio';
 
 import { reactNativeContentAssetCache } from './reactNativeContentAssetCache';
 import {
@@ -74,7 +76,7 @@ export function LearningAudioPlayer({
   const isPlaying = state.status === 'playing';
   const isError = state.status === 'error';
   const glyphMode = state.status;
-  const foreground = isError ? palette.warning : palette.accent;
+  const foreground = isError ? STUDIO.color.reviewInk : palette.accentStrong;
 
   return (
     <Pressable
@@ -100,16 +102,19 @@ export function LearningAudioPlayer({
       ]}
       testID="learning-audio-control"
     >
-      <View testID={`learning-audio-state-${state.status}`}>
-        <AudioGlyph color={foreground} mode={glyphMode} />
+      <View style={[styles.playDisc, {backgroundColor: foreground}]} testID={`learning-audio-state-${state.status}`}>
+        <AudioGlyph color={palette.panel} mode={glyphMode} />
       </View>
+      <View style={styles.copy}>
       <Text
-        numberOfLines={1}
         style={[styles.label, { color: foreground }]}
         testID="learning-audio-control-label"
       >
         {presentation.label}
       </Text>
+      <Text style={[styles.duration, {color: palette.textMuted}]}>{Math.max(1, Math.round(selection.asset.duration_ms / 1000))} 秒录音</Text>
+      </View>
+      <View style={styles.wave}><MotionWaveform color={palette.accent} playing={isPlaying} /></View>
     </Pressable>
   );
 }
@@ -171,31 +176,35 @@ function AudioGlyph({
       importantForAccessibility="no-hide-descendants"
       style={styles.playGlyph}
     >
-      <View style={[styles.speakerBody, { backgroundColor: color }]} />
-      <View style={[styles.speakerCone, { borderRightColor: color }]} />
-      <Text style={[styles.soundMark, { color }]}>›</Text>
+      <View style={[styles.playTriangle, { borderLeftColor: color }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  playDisc: {width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center'},
+  copy: {flex: 1, minWidth: 0, gap: 3},
+  duration: {fontSize: 10, lineHeight: 15, fontVariant: ['tabular-nums']},
+  wave: {flexShrink: 1, maxWidth: 70, overflow: 'hidden'},
+  playTriangle: {width: 0, height: 0, borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 11, borderTopColor: 'transparent', borderBottomColor: 'transparent', marginLeft: 4},
   chip: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    borderWidth: 1,
+    alignSelf: 'stretch',
+    borderRadius: STUDIO.radius.control,
+    borderWidth: 0,
     flexDirection: 'row',
-    gap: 8,
+    gap: 11,
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 62,
     maxWidth: '100%',
-    paddingHorizontal: 14,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
   },
   label: {
     flexShrink: 1,
     fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 17,
+    fontWeight: '600',
+    lineHeight: 19,
   },
   loadingRing: {
     borderRadius: 8,

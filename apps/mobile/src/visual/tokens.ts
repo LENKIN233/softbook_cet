@@ -1,7 +1,9 @@
+import {STUDIO} from './studio';
+
 export const BRAND_IDENTITY = {
-  primary: '#6047C6',
-  deep: '#46309F',
-  soft: '#E9E4FF',
+  primary: STUDIO.color.brand,
+  deep: STUDIO.color.brandDeep,
+  soft: STUDIO.color.brandSoft,
 } as const;
 
 export const LIBRARY_IDENTITY = {
@@ -49,11 +51,15 @@ export function hexToRgba(hex: string, alpha: number) {
 }
 
 export function createLibraryTone(hex: string): LibraryTone {
+  const readableInk: Record<string, string> = {
+    '#5B6DF5': '#414FBE', '#FF8A3D': '#A04A1D', '#22C58B': '#176E51',
+    '#B568F5': '#7735A7', '#18C4E0': '#087188', '#F15B6E': '#A33448', '#F5B100': '#795700',
+  };
   return {
     accent: hex,
     accentSoft: hexToRgba(hex, 0.12),
     accentTint: hexToRgba(hex, 0.2),
-    accentStrong: hexToRgba(hex, 0.72),
+    accentStrong: readableInk[hex.toUpperCase()] ?? STUDIO.color.brandDeep,
     halo: hexToRgba(hex, 0.18),
   };
 }

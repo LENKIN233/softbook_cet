@@ -30,7 +30,7 @@ The shared PC Web grammar is:
 
 1. Left route rail: Learning / Space / Statistics / Mine in the canonical order.
 2. Center workbench: one route-specific focal object, never a grid of equal tasks.
-3. Attached context: a quiet address above the paper and contextual help/actions on the object. No permanent right tool column for ordinary Learning or Space.
+3. Attached context: a quiet address above the paper and contextual help/actions on the object. The current light-studio decision allows a quiet, non-sticky address rail at wide Learning viewports; it disappears on narrow windows and never duplicates answer controls.
 4. Material state: review, audio, membership, and errors attach to the affected object rather than replacing the whole product with a generic page.
 
 ## Surface Decisions

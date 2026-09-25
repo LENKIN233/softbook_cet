@@ -342,7 +342,7 @@ test('uses contained skeleton slots while Space cards are loading', () => {
   expectSpaceFirstReadOrder(tree!, 'space-status-rail');
 });
 
-test('places Space state rail between address context and current box', () => {
+test('places actionable Space sync failure between address context and current box', () => {
   const session = createLocalLearningSession('cet4');
   const currentCard = session.catalogCards[0];
   let tree: ReactTestRenderer.ReactTestRenderer;
@@ -359,10 +359,10 @@ test('places Space state rail between address context and current box', () => {
         palette={palette}
         spaceCards={session.catalogCards}
         spaceSyncRail={{
-          detail: '正在同步空间里的收藏标签和休眠状态。',
-          label: '同步中',
-          state: 'syncing',
-          title: '正在同步设置',
+          detail: '空间已保留这项操作，联网后会自动更新。',
+          label: '待确认',
+          state: 'error',
+          title: '设置同步失败',
         }}
       />,
     );

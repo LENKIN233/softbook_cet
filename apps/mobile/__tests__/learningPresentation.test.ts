@@ -6,6 +6,8 @@ import {
   answerComparison,
   eliminationPassage,
   frontMaterial,
+  displayCardText,
+  spaceCardPreview,
 } from '../src/learning/presentation';
 import { localLearningCardRecords } from './fixtures/interactionCards';
 import { createLearningCardState } from '../src/learning/sessionCore';
@@ -176,4 +178,17 @@ it.each([
   expect(passage.segments
     .filter(segment => !segment.itemId || !card.answer_key.correct_items.includes(segment.itemId))
     .map(segment => segment.text).join('')).toBe(expected);
+});
+
+
+it('renders imported lock placeholders as blanks without changing source content or other cards', () => {
+  const record = bundledCardLibrary.cet4.cards.find(card => card.card_id === '030006')!;
+  const card = normalizeLearningCardRecord(record);
+  expect(card.interaction_id).toBe('lock');
+  const before = JSON.stringify(card);
+  expect(displayCardText(card, 'Choose {{blank}} then {{blank}}.')).toBe('Choose ____ then ____.');
+  expect(JSON.stringify(spaceCardPreview(card))).not.toContain('{{blank}}');
+  expect(frontMaterial(card).join(' ')).not.toContain('{{blank}}');
+  expect(JSON.stringify(card)).toBe(before);
+  expect(displayCardText(elimination, 'Keep {{blank}} literally.')).toBe('Keep {{blank}} literally.');
 });

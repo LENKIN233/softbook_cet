@@ -146,6 +146,15 @@ async function saved() {
 }
 
 describe("local study user journey", () => {
+  it("starts answer review at the top of its reading area", async () => {
+    await enter();
+    const body = screen.getByRole('article').querySelector('.paper-body')!;
+    body.scrollTop = 180;
+    answer();
+    expect(body.scrollTop).toBe(0);
+    expect(screen.getByRole('region', {name: '答案对照'})).toBeInTheDocument();
+  }, 20000); // This test is first and includes the lazy module's cold transform.
+
   it("offers track selection and learning without phone or fake code fields", async () => {
     render(<App />);
     expect(

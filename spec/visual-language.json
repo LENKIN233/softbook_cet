@@ -1,5 +1,5 @@
 {
-  "version": "vnext-3",
+  "version": "vnext-4",
   "layer": "implementation_hypothesis_with_minimal_product_truth",
   "purpose": "Stabilize visual output across model agents and implementation systems so that every new screen, mock, or component inherits the same atmosphere instead of reinventing one. This file is the structured entry; the canonical visual anchor is docs/design/visual-reference.html and the prose canon is docs/design/canon.md. All three move together.",
   "authority_note": "Nothing here can override spec/product-core.json, spec/interactions.json, spec/knowledge-map.json, spec/card-system.json, spec/action-surface.json, or spec/membership.json. When this file disagrees with an owner listed in spec/authority-map.json, the owner wins and this file is edited to match.",
@@ -11,7 +11,8 @@
     "first_direction_set": "docs/design/directions/learning-surface-3-directions.md",
     "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
     "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
-    "authority_map_domain": "visual_language_anchor"
+    "authority_map_domain": "visual_language_anchor",
+    "current_accepted_decision": "docs/design/decisions/light-studio-three-surfaces-v1.md"
   },
   "product_truth": {
     "note": "Narrow by design. Only claims that, if violated, would corrupt product comprehension or delivery governance (library identity, self-assess semantics, Law of One, design-artifact gate) are product_truth. Everything visual that is merely a stylistic choice lives in implementation_hypothesis.",
@@ -125,22 +126,27 @@
         "review": "#F5B100"
       },
       "neutral_scale": {
-        "page_day": "#F5F3EE",
+        "page_day": "#F0F0F8",
         "page_night": "#0B0B12",
-        "ink_1": "#20232B",
-        "ink_2": "#41464F",
-        "ink_3": "#69707A",
+        "ink_1": "#242435",
+        "ink_2": "#45465A",
+        "ink_3": "#626477",
         "ink_4": "#A6A6B5",
         "ink_n_1": "#F2F2FA",
         "ink_n_2": "#BDBDD0",
-        "glass_day": "rgba(255,255,255,0.96)",
+        "glass_day": "#FEFEFF",
         "glass_night": "rgba(28,28,42,0.72)"
       },
-      "usage_constraint": "Feedback hues must not be used as library identity. Library hues must not be used to encode correctness. Keep the two semantic families separate."
+      "usage_constraint": "Feedback hues must not be used as library identity. Library hues must not be used to encode correctness. Keep the two semantic families separate.",
+      "brand": {
+        "primary": "#5658D6",
+        "deep": "#4144AF",
+        "soft": "#E7E8FF"
+      }
     },
     "typography": {
       "display": {
-        "family": "Outfit",
+        "family": "platform system font; web system-ui with PingFang SC and Microsoft YaHei fallbacks",
         "weights": [
           600,
           700
@@ -148,7 +154,7 @@
         "letter_spacing": "natural spacing; tighten only large display headings"
       },
       "body_en": {
-        "family": "Inter",
+        "family": "platform system font; web system-ui with PingFang SC and Microsoft YaHei fallbacks",
         "weights": [
           400,
           500
@@ -156,7 +162,7 @@
         "line_height": 1.6
       },
       "body_cn": {
-        "family": "Noto Sans SC",
+        "family": "platform system font; web system-ui with PingFang SC and Microsoft YaHei fallbacks",
         "weights": [
           400,
           500
@@ -164,11 +170,11 @@
         "line_height": 1.65
       },
       "mono": {
-        "family": "JetBrains Mono",
+        "family": "platform system font; web system-ui with PingFang SC and Microsoft YaHei fallbacks",
         "weights": [
           500
         ],
-        "usage": "captions, specs, uppercase metadata, tabular numerals"
+        "usage": "tabular numerals only; explanatory text uses the normal body font"
       },
       "scale_defaults_px": {
         "hero": {
@@ -176,24 +182,24 @@
           "weight": 700
         },
         "h1": {
-          "size": 28,
-          "weight": 700
+          "size": 24,
+          "weight": 600
         },
         "section": {
           "size": 22,
           "weight": 600
         },
         "card": {
-          "size": 24,
+          "size": 20,
           "weight": 600
         },
         "body": {
-          "size": 16,
+          "size": 15,
           "weight": 400
         },
         "caption": {
           "size": 12,
-          "weight": 500
+          "weight": 400
         }
       },
       "italic_accent_policy": "Italic variant is used as editorial emphasis (lede-style), not as decoration. At most one italic run per hierarchy level."
@@ -212,21 +218,31 @@
       "inner_highlight": "1px inset top rgba(255,255,255,0.18)",
       "edge_rim": "1px rgba(255,255,255,0.08) outer on night, 1px rgba(11,11,20,0.05) outer on day",
       "grain_opacity": 0,
-      "shadow_policy": "One restrained shadow for the current paper or box. Nested text, instructions and answers use spacing, not their own raised cards.",
+      "shadow_policy": "One restrained shadow for floating navigation or authentication. Opaque white paper and softly tinted chapter banners provide depth; no nested elevated paragraphs.",
       "radii_px": {
-        "card": 20,
+        "card": 24,
         "chip": 999,
         "tabbar_capsule": 22,
-        "phone_bezel": 46
+        "phone_bezel": 46,
+        "control": 14,
+        "section": 20
       }
     },
     "motion": {
-      "default_curve": "cubic-bezier(0.22, 1, 0.36, 1)",
+      "default_curve": "cubic-bezier(.2,.75,.25,1)",
       "card_flip_ms": 320,
-      "pill_tab_ms": 200,
+      "pill_tab_ms": 180,
       "grain_never_animates": true,
       "aurora_background_pulse_ms": 0,
-      "reduce_motion_fallback": "Keep final content and every action available; disable spatial travel."
+      "reduce_motion_fallback": "Keep final content and every action available; disable spatial travel.",
+      "enter_ms": 240,
+      "leave_ms": 140,
+      "route_ms": 300,
+      "reveal_ms": 220,
+      "strike_ms": 160,
+      "playback_wave_half_cycle_ms": 900,
+      "shared_tokens": "apps/mobile/src/visual/studio.ts",
+      "artifact": "docs/design/interaction-motion/light-studio-motion-v1.md"
     },
     "device_frames": {
       "phone_aspect_ratio": "393/852",
@@ -235,7 +251,7 @@
         "height": 37,
         "radius": 22
       },
-      "rationale": "Matches iPhone 15/16 Pro. Using outdated ratios (390/844) makes mocks look like retro-fit stock templates."
+      "rationale": "Reference dimensions support comparison only. Real safe areas, content, window size and accessibility text scaling govern each platform."
     },
     "component_vocabulary_rules": [
       "Scale long prompts as reading text and switch long options to one column based on text pressure, available width and text scale; never shorten imported material to fit.",
@@ -251,7 +267,7 @@
       "restraint_vs_expression": {
         "target": "restraint",
         "anti_pole": "expression",
-        "test": "If you removed the decorative element, would the content still be understandable? If yes, remove it."
+        "test": "Every accent or motion helps recognition, hierarchy, continuity or feedback. Keep decorative elements quiet and out of the reading area."
       },
       "material_vs_flat": {
         "target": "material",

@@ -20,6 +20,12 @@
     },
     "deployment": {
       "local_backend": "以本地为后端，只是暂时解决方案，最终还是要上线的"
+    },
+    "visual_redesign": {
+      "selected_direction": "轻快的更好",
+      "implementation_request": "按照这种设计风格重构三端！要求设计统一，有丰富、合理、合适的动画",
+      "selected_artifact": "B 轻快；同会话三方案 HTML 比较后选择",
+      "current_design_owner": "docs/design/decisions/light-studio-three-surfaces-v1.md"
     }
   },
   "product_intent": {

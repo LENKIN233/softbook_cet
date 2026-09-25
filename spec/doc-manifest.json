@@ -1031,6 +1031,36 @@
         "spec/runtime-boundaries.json"
       ],
       "status": "active"
+    },
+    {
+      "path": "docs/design/decisions/light-studio-three-surfaces-v1.md",
+      "authority": "light_studio_three_surface_design",
+      "audience": [
+        "agent"
+      ],
+      "load_when": [
+        "visual_or_interaction_task"
+      ],
+      "depends_on": [
+        "spec/visual-language.json",
+        "spec/machine-acceptance.json"
+      ],
+      "status": "active"
+    },
+    {
+      "path": "docs/design/interaction-motion/light-studio-motion-v1.md",
+      "authority": "light_studio_motion_design",
+      "audience": [
+        "agent"
+      ],
+      "load_when": [
+        "visual_or_interaction_task"
+      ],
+      "depends_on": [
+        "spec/visual-language.json",
+        "spec/machine-acceptance.json"
+      ],
+      "status": "active"
     }
   ],
   "active_specs": [

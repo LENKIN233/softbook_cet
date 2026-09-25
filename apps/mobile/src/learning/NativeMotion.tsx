@@ -1,6 +1,7 @@
 import React from 'react';
 import {AccessibilityInfo, Animated, Easing, Pressable, Text, View} from 'react-native';
-import type {PressableProps, StyleProp, TextProps, ViewStyle} from 'react-native';
+import type {PressableProps, StyleProp, TextProps, ViewProps, ViewStyle} from 'react-native';
+import {STUDIO} from '../visual/studio';
 
 const MotionPreference = React.createContext(true);
 export const useReducedMotion = () => React.useContext(MotionPreference);
@@ -30,37 +31,79 @@ function useFeedback(trigger: unknown, enter = false) {
     progress.stopAnimation();
     if (!changed || reduced) {progress.setValue(1); return;}
     progress.setValue(0);
-    const animation = Animated.timing(progress, {toValue: 1, duration: 200, easing: ease, useNativeDriver: true});
+    const animation = Animated.timing(progress, {toValue: 1, duration: STUDIO.motion.enter, easing: ease, useNativeDriver: true, isInteraction: false});
     animation.start();
     return () => animation.stop();
   }, [enter, progress, reduced, trigger]);
   return progress;
 }
 
-export function MotionView({children, motionKey, style, enter = false, kind = 'reveal'}: {
+export function MotionView({children, motionKey, style, testID, onLayout, enter = false, kind = 'reveal'}: {
   children: React.ReactNode; motionKey: unknown; style?: StyleProp<ViewStyle>; enter?: boolean;
+  testID?: string; onLayout?: ViewProps['onLayout'];
   kind?: 'reveal' | 'result' | 'space' | 'focus';
 }) {
   const p = useFeedback(motionKey, enter);
-  return <Animated.View style={[style, {
+  return <Animated.View testID={testID} onLayout={onLayout} style={[style, {
     opacity: p.interpolate({inputRange: [0, 1], outputRange: [0.3, 1]}),
     transform: [
-      {translateY: p.interpolate({inputRange: [0, 1], outputRange: [kind === 'reveal' ? -6 : 10, 0]})},
-      {scale: p.interpolate({inputRange: [0, 1], outputRange: [kind === 'space' ? 1.035 : kind === 'focus' ? 0.965 : 0.99, 1]})},
+      {translateY: p.interpolate({inputRange: [0, 1], outputRange: [kind === 'reveal' ? -4 : 8, 0]})},
+      {scale: p.interpolate({inputRange: [0, 1], outputRange: [kind === 'space' ? 1.02 : kind === 'focus' ? 0.985 : 0.995, 1]})},
     ],
   }]}>{children}</Animated.View>;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-export function MotionPressable({motionKey, style, ...props}: PressableProps & {motionKey: unknown}) {
+export function MotionPressable({motionKey, style, ...props}: PressableProps & {motionKey?: unknown}) {
   const p = useFeedback(motionKey);
+  const reduced = useReducedMotion();
+  const pressure = React.useRef(new Animated.Value(1)).current;
   const [pressed, setPressed] = React.useState(false);
+  React.useEffect(() => {
+    pressure.stopAnimation();
+    pressure.setValue(1);
+    return () => pressure.stopAnimation();
+  }, [pressure, reduced]);
+  const respond = (down: boolean) => {
+    pressure.stopAnimation();
+    if (reduced || props.disabled) {pressure.setValue(1); return;}
+    Animated.spring(pressure, {toValue: down ? STUDIO.motion.pressScale : 1,
+      ...STUDIO.motion.spring, useNativeDriver: true, isInteraction: false}).start();
+  };
   return <AnimatedPressable {...props}
-    onPressIn={event => {setPressed(true); props.onPressIn?.(event);}}
-    onPressOut={event => {setPressed(false); props.onPressOut?.(event);}}
+    onPressIn={event => {setPressed(true); respond(true); props.onPressIn?.(event);}}
+    onPressOut={event => {setPressed(false); respond(false); props.onPressOut?.(event);}}
     style={[typeof style === 'function' ? style({pressed}) : style, {
-      transform: [{scale: p.interpolate({inputRange: [0, 1], outputRange: [0.965, 1]})}],
+      transform: [{scale: Animated.multiply(pressure, p.interpolate({inputRange: [0, 1], outputRange: [0.98, 1]}))}],
     }]} />;
+}
+
+export function StudioPressable(props: PressableProps) {
+  return <MotionPressable {...props} motionKey={props.accessibilityState?.selected ?? props.accessibilityState?.checked} />;
+}
+
+/** A playback-state cue, not an invented signal or playback-progress meter. */
+export function MotionWaveform({playing, color}: {playing: boolean; color: string}) {
+  const reduced = useReducedMotion();
+  const pulse = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    pulse.stopAnimation(); pulse.setValue(0);
+    if (!playing || reduced) return;
+    const wave = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, {toValue: 1, duration: STUDIO.motion.wave, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false}),
+      Animated.timing(pulse, {toValue: 0, duration: STUDIO.motion.wave, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false}),
+    ]));
+    wave.start();
+    return () => {wave.stop(); pulse.setValue(0);};
+  }, [playing, pulse, reduced]);
+  return <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+    pointerEvents="none" style={{flexDirection: 'row', alignItems: 'center', gap: 3, height: 28, overflow: 'hidden'}}>
+    {STUDIO.motion.waveHeights.map((height, index) =>
+      <Animated.View key={index} style={{width: 2, height, borderRadius: 2, backgroundColor: color,
+        opacity: playing ? 0.8 : 0.32,
+        transform: [{scaleY: pulse.interpolate({inputRange: [0, 0.5, 1], outputRange: index % 2 ? [0.55, 1, 0.7] : [1, 0.45, 0.9]})}],
+      }} />)}
+  </View>;
 }
 
 export function LockMotionGlyph({open, color}: {open: boolean; color: string}) {
@@ -69,7 +112,7 @@ export function LockMotionGlyph({open, color}: {open: boolean; color: string}) {
   React.useEffect(() => {
     p.stopAnimation();
     if (reduced) {p.setValue(open ? 1 : 0); return;}
-    const animation = Animated.timing(p, {toValue: open ? 1 : 0, duration: 220, easing: ease, useNativeDriver: true});
+    const animation = Animated.timing(p, {toValue: open ? 1 : 0, duration: STUDIO.motion.reveal, easing: ease, useNativeDriver: true});
     animation.start();
     return () => animation.stop();
   }, [open, p, reduced]);
@@ -90,7 +133,7 @@ export function StrikeText({struck, color, style, ...props}: TextProps & {struck
   React.useEffect(() => {
     p.stopAnimation();
     if (reduced) {p.setValue(struck ? 1 : 0); return;}
-    const animation = Animated.timing(p, {toValue: struck ? 1 : 0, duration: 160, easing: ease, useNativeDriver: true});
+    const animation = Animated.timing(p, {toValue: struck ? 1 : 0, duration: STUDIO.motion.strike, easing: ease, useNativeDriver: true});
     animation.start();
     return () => animation.stop();
   }, [p, reduced, struck]);
@@ -141,9 +184,9 @@ export function useCardMotion(identity: string | null, arrival: 'card' | 'space'
       opacity.setValue(0); travel.setValue(arrival === 'card' ? 28 : 0); zoom.setValue(arrival === 'space' ? 1.04 : arrival === 'focus' ? 0.94 : 1);
       flip.setValue(0); flipOpacity.setValue(1);
       Animated.parallel([
-        Animated.timing(opacity, {toValue: 1, duration: 200, easing: ease, useNativeDriver: true}),
-        Animated.timing(travel, {toValue: 0, duration: 200, easing: ease, useNativeDriver: true}),
-        Animated.timing(zoom, {toValue: 1, duration: 220, easing: ease, useNativeDriver: true}),
+        Animated.timing(opacity, {toValue: 1, duration: STUDIO.motion.enter, easing: ease, useNativeDriver: true}),
+        Animated.timing(travel, {toValue: 0, duration: STUDIO.motion.enter, easing: ease, useNativeDriver: true}),
+        Animated.timing(zoom, {toValue: 1, duration: STUDIO.motion.reveal, easing: ease, useNativeDriver: true}),
       ]).start();
     } else reset();
     return () => {sequence.current += 1; active.current = false; stop();};
@@ -158,8 +201,8 @@ export function useCardMotion(identity: string | null, arrival: 'card' | 'space'
     const fade = isFlip ? flipOpacity : opacity;
     const position = isFlip ? flip : isRoute ? zoom : travel;
     Animated.parallel([
-      Animated.timing(fade, {toValue: 0, duration: 130, easing: ease, useNativeDriver: true}),
-      Animated.timing(position, {toValue: isFlip ? 1 : kind === 'space' ? 0.94 : kind === 'focus' ? 1.04 : -28, duration: 130, easing: ease, useNativeDriver: true}),
+      Animated.timing(fade, {toValue: 0, duration: STUDIO.motion.leave, easing: ease, useNativeDriver: true}),
+      Animated.timing(position, {toValue: isFlip ? 1 : kind === 'space' ? 0.94 : kind === 'focus' ? 1.04 : -28, duration: STUDIO.motion.leave, easing: ease, useNativeDriver: true}),
     ]).start(({finished}) => {
       if (!finished || token !== sequence.current) return;
       active.current = false; pending.current = null; setBusy(false);
@@ -169,8 +212,8 @@ export function useCardMotion(identity: string | null, arrival: 'card' | 'space'
       if (isRoute || token !== sequence.current) return;
       position.setValue(isFlip ? -1 : 28);
       Animated.parallel([
-        Animated.timing(fade, {toValue: 1, duration: 180, easing: ease, useNativeDriver: true}),
-        Animated.timing(position, {toValue: 0, duration: 180, easing: ease, useNativeDriver: true}),
+        Animated.timing(fade, {toValue: 1, duration: STUDIO.motion.release, easing: ease, useNativeDriver: true}),
+        Animated.timing(position, {toValue: 0, duration: STUDIO.motion.release, easing: ease, useNativeDriver: true}),
       ]).start();
     });
   }, [flip, flipOpacity, opacity, reduced, reset, travel, zoom]);
@@ -194,7 +237,7 @@ export function MotionPresence({children}: {children: React.ReactNode}) {
     p.stopAnimation();
     if (reduced) {p.setValue(children ? 1 : 0); setRetained(children); return;}
     if (children) setRetained(children);
-    const animation = Animated.timing(p, {toValue: children ? 1 : 0, duration: 180, easing: ease, useNativeDriver: false});
+    const animation = Animated.timing(p, {toValue: children ? 1 : 0, duration: STUDIO.motion.release, easing: ease, useNativeDriver: false});
     animation.start(({finished}) => {
       if (finished && token === generation.current && !children) setRetained(null);
     });

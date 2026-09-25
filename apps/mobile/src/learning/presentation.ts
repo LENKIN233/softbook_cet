@@ -17,10 +17,14 @@ function withoutRepeatedTask(text: string, prompt: string) {
   return text;
 }
 
+export function displayCardText(card: LearningCard, text: string) {
+  return card.interaction_id === 'lock' ? text.replace(/\{\{blank\}\}/g, '____') : text;
+}
+
 export function frontMaterial(card: LearningCard) {
-  const seen = new Set([card.front.prompt.trim()]);
+  const seen = new Set([displayCardText(card, card.front.prompt).trim()]);
   return [card.front.support, card.front.context].flatMap(text => {
-    const value = withoutRepeatedTask(text, card.front.prompt).trim();
+    const value = displayCardText(card, withoutRepeatedTask(text, card.front.prompt)).trim();
     if (!value || seen.has(value)) return [];
     seen.add(value);
     return [value];
@@ -29,10 +33,11 @@ export function frontMaterial(card: LearningCard) {
 
 export function spaceCardPreview(card: LearningCard) {
   const material = frontMaterial(card);
+  const prompt = displayCardText(card, card.front.prompt);
   const usesMaterialTitle = (card.interaction_id === 'lock' || card.interaction_id === 'elimination') && material.length > 0;
   return usesMaterialTitle
-    ? {title: material[0], detail: [card.front.prompt, ...material.slice(1)]}
-    : {title: card.front.prompt, detail: material};
+    ? {title: material[0], detail: [prompt, ...material.slice(1)]}
+    : {title: prompt, detail: material};
 }
 
 export type PassageSegment = { text: string; itemId?: string };

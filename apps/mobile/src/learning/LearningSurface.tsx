@@ -1,14 +1,14 @@
 import {isLongQuestion, stackChoiceOptions} from './readability';
 import {resultFeedback} from './resultFeedback';
 import {EliminationPassageText} from './EliminationPassageText';
-import {answerComparison, eliminationPassage, frontMaterial, spaceCardPreview} from './presentation';
-import {useCardMotion, useReducedMotion, MotionView, MotionPressable, LockMotionGlyph, StrikeText} from './NativeMotion';
+import {displayCardText, answerComparison, eliminationPassage, frontMaterial, spaceCardPreview} from './presentation';
+import {useCardMotion, useReducedMotion, MotionView, MotionPressable, StudioPressable as Pressable, LockMotionGlyph, StrikeText} from './NativeMotion';
+import {STUDIO} from '../visual/studio';
 import React from 'react';
 import type { DimensionValue } from 'react-native';
 import {
   Animated,
   PanResponder,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -217,6 +217,8 @@ export function LearningSurface({
   } = useWindowDimensions();
   const isAccessibilityText = fontScale >= 1.3;
   const readingScroll = React.useRef<ScrollView>(null);
+  const [materialHeight, setMaterialHeight] = React.useState(0);
+  const [actionHeight, setActionHeight] = React.useState(0);
   React.useEffect(() => {
     readingScroll.current?.scrollTo({y: 0, animated: false});
   }, [currentCard?.card_id, currentResult, currentCardState?.isFlipped]);
@@ -494,7 +496,7 @@ export function LearningSurface({
     currentCardState,
   );
   const submissionLabel = '提交答案';
-  const primaryAction = getLibraryActionColors(tone.accent, palette);
+  const primaryAction = getLibraryActionColors(libraryTone.accentStrong, palette);
   const audioSelection = (() => {
     if (!currentCard.audio || audioAttemptId === null) {
       return null;
@@ -537,9 +539,9 @@ export function LearningSurface({
           isCompactPhone ? styles.studyCardOneScreenCompact : null,
           styles.glassCard,
           {
-            backgroundColor: palette.panel,
-            borderColor: palette.border,
-            borderTopColor: palette.border,
+            backgroundColor: 'transparent',
+            borderColor: 'transparent',
+            borderTopColor: 'transparent',
             shadowColor: palette.text,
           },
         ]}
@@ -549,9 +551,11 @@ export function LearningSurface({
           style={[
             styles.cardAddressShelf,
             isCompactPhone ? styles.cardAddressShelfCompact : null,
+            {backgroundColor: tone.accentSoft},
           ]}
           testID="learning-card-address-shelf"
         >
+          <View pointerEvents="none" accessible={false} style={[styles.chapterOrbit, {borderColor: hexToRgba(palette.panel, 0.28)}]} />
           <View style={styles.heroChipRow}>
             <View
               pointerEvents="none"
@@ -656,6 +660,8 @@ export function LearningSurface({
             </Pressable>
           </View>
         </View>
+        <View style={[styles.paperPanel, {backgroundColor: palette.panel},
+          materialHeight > 0 ? {maxHeight: materialHeight + actionHeight + STUDIO.space.card * 2 + STUDIO.space.gap} : null]}>
         <View style={styles.cardStageBody}>
           <Animated.View
             style={[
@@ -666,6 +672,7 @@ export function LearningSurface({
           >
             <ScrollView
               ref={readingScroll}
+              onContentSizeChange={(_width, height) => setMaterialHeight(Math.ceil(height))}
               contentContainerStyle={[
                 styles.cardTaskBandContent,
                 isCompactPhone ? styles.cardTaskBandContentCompact : null,
@@ -718,7 +725,7 @@ export function LearningSurface({
                       { color: palette.text },
                     ]}
                   >
-                    {currentCard.front.prompt}
+                    {displayCardText(currentCard, currentCard.front.prompt)}
                   </Text>
                 </View>
               </View>
@@ -794,6 +801,7 @@ export function LearningSurface({
                     key={`help:${currentCard.card_id}:${audioAttemptId ?? phase}`}
                     card={currentCard} state={currentCardState} palette={palette}
                     onToggleHint={onToggleHint} onTogglePeek={onTogglePeek}
+                    onReveal={() => readingScroll.current?.scrollToEnd({animated: false})}
                   />
                 </View>
               )}
@@ -801,6 +809,7 @@ export function LearningSurface({
           </Animated.View>
         </View>
 
+        <View style={styles.actionPanel} onLayout={event => setActionHeight(Math.ceil(event.nativeEvent.layout.height))}>
         {currentResult && onOpenResultDetail ? (
           <View
             style={[styles.oneScreenDock, styles.resultActionRail]}
@@ -955,14 +964,16 @@ export function LearningSurface({
           <Pressable accessibilityLabel="提交当前答案" accessibilityRole="button" accessibilityState={{disabled:!canSubmitCurrentCard}} disabled={!canSubmitCurrentCard} onPress={onSubmitCurrentCard} style={[styles.primaryButton,{backgroundColor:canSubmitCurrentCard?primaryAction.surface:palette.panelStrong}]} testID="learning-submit-button"><Text style={[styles.primaryButtonLabel,{color:canSubmitCurrentCard?primaryAction.text:palette.textMuted}]}>{submissionLabel}</Text></Pressable>
         </View> : null}
 
+        </View>
+        </View>
       </Animated.View>
     </View>
   );
 }
 
-function LearningHelp({card, state, palette, onToggleHint, onTogglePeek}: {
+function LearningHelp({card, state, palette, onToggleHint, onTogglePeek, onReveal}: {
   card: LearningCard; state: LearningCardState; palette: LearningSurfacePalette;
-  onToggleHint: () => void; onTogglePeek: () => void;
+  onToggleHint: () => void; onTogglePeek: () => void; onReveal: () => void;
 }) {
   const [open, setOpen] = React.useState(state.isHintVisible || state.isPeeked);
   return <View style={styles.learningHelpTools}>
@@ -973,7 +984,7 @@ function LearningHelp({card, state, palette, onToggleHint, onTogglePeek}: {
       }} style={styles.helpTextButton} testID="learning-help-button">
       <Text style={[styles.helpTextLabel, {color: palette.textMuted}]}>{open ? '收起帮助' : '需要帮助'}</Text>
     </Pressable>
-    {open ? <View style={[styles.helpContents, {borderLeftColor: palette.border}]} testID="learning-help-content">
+    {open ? <MotionView motionKey={`${state.isHintVisible}:${state.isPeeked}`} enter onLayout={onReveal} style={[styles.helpContents, {borderLeftColor: palette.border}]} testID="learning-help-content">
       {card.hint_layer ? <View>
         <Pressable accessibilityRole="button" accessibilityState={{expanded: state.isHintVisible}}
           onPress={onToggleHint} style={styles.helpTextButton} testID="learning-hint-button">
@@ -988,7 +999,7 @@ function LearningHelp({card, state, palette, onToggleHint, onTogglePeek}: {
         </Pressable>
         {state.isPeeked ? <Text style={[styles.cardSupport, {color: palette.textMuted}]}>{card.analysis.exam_tip}</Text> : null}
       </View>
-    </View> : null}
+    </MotionView> : null}
   </View>;
 }
 
@@ -1021,7 +1032,7 @@ function InteractionBody({
     accent: libraryTone.accent,
     accentSoft: libraryTone.accentSoft,
   };
-  const primaryAction = getLibraryActionColors(tone.accent, palette);
+  const primaryAction = getLibraryActionColors(libraryTone.accentStrong, palette);
   const neutralAction = getNeutralActionSurface(palette);
 
   switch (card.interaction_id) {
@@ -1056,7 +1067,7 @@ function InteractionBody({
             >
               {card.back_text}
             </Text>
-            <Text style={[styles.answerQuestion, {color:palette.textMuted,borderColor:palette.border}]}>{card.front.prompt}</Text>
+            <Text style={[styles.answerQuestion, {color:palette.textMuted,borderColor:palette.border}]}>{displayCardText(card, card.front.prompt)}</Text>
           </View>
         </View>
       ) : null;
@@ -1087,14 +1098,14 @@ function InteractionBody({
                 : isIncorrectSelection
                 ? hexToRgba(palette.danger, 0.075)
                 : isSelected
-                ? neutralAction.surface
-                : palette.panel;
+                ? tone.accentSoft
+                : palette.panelStrong;
               const optionStateBorder = isCorrect
                 ? hexToRgba(palette.success, 0.42)
                 : isIncorrectSelection
                 ? hexToRgba(palette.danger, 0.38)
                 : isSelected
-                ? neutralAction.border
+                ? tone.accent
                 : palette.border;
               const optionStateColor = isCorrect
                 ? palette.success
@@ -1156,7 +1167,7 @@ function InteractionBody({
                       </Text>
                     </View>
                   </View>
-                  <Text style={[styles.optionText, { color: palette.text }]}>
+                  <Text style={[styles.optionText, stackOptions ? styles.optionTextAccessible : null, { color: palette.text }]}>
                     {option.text}
                   </Text>
                 </MotionPressable>
@@ -1631,7 +1642,7 @@ function SwipeInteraction({
             { label: '选择右侧判断', name: 'increment' },
           ]}
           accessibilityHint="向左或向右选择对应判断"
-          accessibilityLabel={`滑动判断，${card.front.prompt}`}
+          accessibilityLabel={`滑动判断，${displayCardText(card, card.front.prompt)}`}
           accessibilityRole="adjustable"
           accessibilityValue={{ text: selectedState?.label ?? '未选择' }}
           accessible
@@ -1657,7 +1668,7 @@ function SwipeInteraction({
           testID="learning-swipe-draggable-card"
         >
           <Text style={[styles.swipePromptText, { color: palette.text }]}>
-            {card.front.prompt}
+            {displayCardText(card, card.front.prompt)}
           </Text>
         </Animated.View>
       </View>
@@ -1701,9 +1712,9 @@ function SwipeInteraction({
                 {state.label}
               </Text>
             </View>
-            <Text style={[styles.swipeText, { color: palette.textMuted }]}>
+            {state.description.trim() !== state.label.trim() ? <Text style={[styles.swipeText, { color: palette.textMuted }]}>
               {state.description}
-            </Text>
+            </Text> : null}
           </Pressable>
         ))}
       </View>
@@ -2112,7 +2123,7 @@ export function LearningResultDetailSurface({
                 { color: palette.text },
               ]}
             >
-              {card.front.prompt}
+              {displayCardText(card, card.front.prompt)}
             </Text>
           </View>
         </View>
@@ -2514,6 +2525,10 @@ function ResultBadge({
 }
 
 const styles = StyleSheet.create({
+  chapterOrbit: {position: 'absolute', width: 96, height: 96, borderWidth: 22, borderRadius: 48, top: -30, right: 32},
+  actionPanel: {flexShrink: 0},
+  paperPanel: {flex: 1, minHeight: 0, padding: STUDIO.space.card, borderRadius: STUDIO.radius.card, gap: 12, overflow: 'hidden'},
+  optionTextAccessible: {flex: 1, alignSelf: 'auto'},
   emptySessionScroll: {flex: 1},
   emptySessionContent: {flexGrow: 1, justifyContent: 'center', gap: 10, padding: 16},
   lockSettledText: {fontSize: 16, lineHeight: 24, paddingVertical: 8},
@@ -2545,26 +2560,26 @@ const styles = StyleSheet.create({
   },
   oneScreenPage: {
     flex: 1,
-    gap: 10,
+    gap: 12,
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingHorizontal: STUDIO.space.phone,
+    paddingTop: 4,
+    paddingBottom: 4,
   },
   oneScreenPageCompact: {
-    gap: 6,
-    paddingBottom: 6,
-    paddingHorizontal: 12,
-    paddingTop: 6,
+    gap: 12,
+    paddingBottom: 4,
+    paddingHorizontal: STUDIO.space.phone,
+    paddingTop: 4,
   },
   completeScreen: {
     justifyContent: 'center',
   },
   glassCard: {
     shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.13,
+    shadowOpacity: 0,
     shadowRadius: 30,
-    elevation: 6,
+    elevation: 0,
   },
   heroCard: {
     borderWidth: 1,
@@ -2585,9 +2600,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    minHeight: 48,
+    flexWrap: 'nowrap',
+    gap: 7,
+    minHeight: 42,
   },
   heroKicker: {
     fontSize: 11,
@@ -2596,13 +2611,13 @@ const styles = StyleSheet.create({
   },
   heroEyebrow: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 1,
   },
   heroTitle: {
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   heroSummary: {
     fontSize: 15,
@@ -2622,9 +2637,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   learningFrameMeta: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0,
+
+    lineHeight: 17,
   },
   learningFrameSummary: {
     fontSize: 13,
@@ -2650,33 +2667,33 @@ const styles = StyleSheet.create({
   },
   detailCollapseLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   detailResolvedCard: {
-    borderRadius: 30,
-    borderWidth: 1,
+    borderRadius: STUDIO.radius.card,
+    borderWidth: 0,
     flex: 1,
     minHeight: 0,
     overflow: 'hidden',
   },
   detailResolvedCardContent: {
     flexGrow: 1,
-    gap: 6,
+    gap: 16,
     justifyContent: 'flex-start',
-    paddingHorizontal: 17,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
     position: 'relative',
   },
   detailResolvedCardContentCompact: {
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
   },
   detailResolvedHero: {
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: 0,
     paddingHorizontal: 13,
-    paddingVertical: 8,
+    paddingVertical: 16,
   },
   detailResolvedHeroCompact: {
     paddingHorizontal: 10,
@@ -2694,27 +2711,27 @@ const styles = StyleSheet.create({
   },
   detailStateText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 17,
   },
   detailPrompt: {
-    fontSize: 17,
-    fontWeight: '800',
-    lineHeight: 22,
+    fontSize: 19,
+    fontWeight: '500',
+    lineHeight: 29,
   },
   detailPromptCompact: {
-    fontSize: 15,
-    lineHeight: 19,
+    fontSize: 18,
+    lineHeight: 28,
   },
   detailAnswerSlip: {
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 16,
+    borderWidth: 0,
     flexGrow: 0,
-    gap: 7,
+    gap: 12,
     justifyContent: 'flex-start',
     minHeight: 0,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 16,
   },
   detailAnswerSlipCompact: {
     gap: 4,
@@ -2749,7 +2766,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   detailAnswerCell: {
-    borderRadius: 15,
+    borderRadius: 12,
     borderWidth: 1,
     flex: 1,
     gap: 2,
@@ -2771,7 +2788,7 @@ const styles = StyleSheet.create({
   },
   detailAnswerLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 0,
   },
   detailAnswerLabelStacked: {
@@ -2779,9 +2796,9 @@ const styles = StyleSheet.create({
     minWidth: 54,
   },
   detailAnswerValue: {
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 18,
+    fontSize: 16,
+    fontWeight: '500',
+    lineHeight: 24,
   },
   detailAnswerValueStacked: {
     flex: 1,
@@ -2795,7 +2812,7 @@ const styles = StyleSheet.create({
   },
   detailOutcomeTitle: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0,
   },
   detailTip: {
@@ -2830,7 +2847,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardProgressTrack: {
-    borderRadius: 2, borderWidth: 0, height: 2, overflow: 'hidden', width: 30,
+    borderRadius: 2, borderWidth: 0, height: 3, overflow: 'hidden', width: 26,
   },
   progressFill: {
     height: '100%',
@@ -2849,7 +2866,7 @@ const styles = StyleSheet.create({
   },
   progressFigure: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   progressRail: {
     flexDirection: 'row',
@@ -2864,10 +2881,10 @@ const styles = StyleSheet.create({
   },
   progressNodeLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   studyCard: {
-    borderWidth: 1, borderRadius: 20, overflow: 'hidden', paddingHorizontal: 18, paddingVertical: 16, gap: 12, position: 'relative',
+    borderWidth: 0, borderRadius: 0, overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 0, gap: 12, position: 'relative',
   },
   cardStageAtmosphere: {
     borderRadius: 999,
@@ -2879,10 +2896,10 @@ const styles = StyleSheet.create({
     width: 280,
   },
   studyCardOneScreen: {
-    flexGrow: 0, flexShrink: 1, gap: 12, height: '100%', minHeight: 0, paddingHorizontal: 20, paddingVertical: 14,
+    flexGrow: 0, flexShrink: 1, gap: 12, height: '100%', minHeight: 0, paddingHorizontal: 0, paddingVertical: 0,
   },
   studyCardOneScreenCompact: {
-    gap: 10, paddingHorizontal: 18, paddingVertical: 10,
+    gap: 12, paddingHorizontal: 0, paddingVertical: 0,
   },
   cardAddressShelf: {
     alignItems: 'center',
@@ -2891,18 +2908,26 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'space-between',
     zIndex: 3,
+
+    borderRadius: STUDIO.radius.section,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    overflow: 'hidden',
   },
   cardAddressShelfCompact: {
-    gap: 8,
+    gap: 6,
+
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   cardObjectAccent: {
     borderRadius: 999,
-    height: 9,
-    width: 9,
+    height: 5,
+    width: 5,
   },
   cardObjectAccentCompact: {
-    height: 8,
-    width: 8,
+    height: 5,
+    width: 5,
   },
   cardObjectHeaderText: {
     flex: 1,
@@ -2922,16 +2947,16 @@ const styles = StyleSheet.create({
   },
   cardIdentityTool: {
     alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: 0,
     justifyContent: 'center',
-    minHeight: 48,
-    minWidth: 48,
+    minHeight: 44,
+    minWidth: 38,
     paddingHorizontal: 5,
   },
   cardIdentityToolLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   favoriteTagGlyph: {
@@ -2957,13 +2982,13 @@ const styles = StyleSheet.create({
     borderRadius: 0, borderWidth: 0, flex: 1, minHeight: 0, shadowOpacity: 0, elevation: 0,
   },
   cardTaskBandContent: {
-    flexGrow: 0, gap: 16, padding: 0, paddingBottom: 16,
+    flexGrow: 0, gap: 16, padding: 0, paddingBottom: 14,
   },
   cardTaskBandContentCompact: {
-    gap: 12, padding: 0, paddingBottom: 12,
+    gap: 14, padding: 0, paddingBottom: 14,
   },
   cardTaskBandWithResultDock: {
-    paddingBottom: 112,
+    paddingBottom: 18,
   },
   cardTaskBandContentCentered: {
     gap: 16, justifyContent: 'flex-start',
@@ -2972,10 +2997,10 @@ const styles = StyleSheet.create({
     paddingRight: 0,
   },
   cardObjectLead: {
-    fontSize: 15, fontWeight: '500', lineHeight: 22,
+    fontSize: STUDIO.type.title, fontWeight: '600', lineHeight: 30,
   },
   cardObjectLeadCompact: {
-    fontSize: 14, lineHeight: 20,
+    fontSize: 21, lineHeight: 28,
   },
   cardProgressCluster: {
     alignItems: 'center', borderRadius: 0, borderWidth: 0, gap: 4, minWidth: 36, paddingHorizontal: 0, paddingVertical: 4,
@@ -2984,7 +3009,9 @@ const styles = StyleSheet.create({
     gap: 4, minWidth: 36, paddingHorizontal: 0, paddingVertical: 4,
   },
   cardProgressCount: {
-    fontSize: 12, fontWeight: '500', lineHeight: 18,
+    fontSize: 19, fontWeight: '500', lineHeight: 25,
+
+    fontVariant: ['tabular-nums'],
   },
   cardLocationStrip: {
     alignItems: 'center',
@@ -3009,11 +3036,11 @@ const styles = StyleSheet.create({
   },
   cardLocationTitle: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   cardLocationMeta: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   studyCardTop: {
     alignItems: 'flex-start',
@@ -3023,11 +3050,11 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'space-between',
     paddingHorizontal: 0,
-    paddingVertical: 7,
+    paddingVertical: 0,
   },
   studyCardTopCompact: {
     paddingHorizontal: 0,
-    paddingVertical: 4,
+    paddingVertical: 0,
   },
   studyTitleWrap: {
     flex: 1,
@@ -3035,17 +3062,17 @@ const styles = StyleSheet.create({
   },
   cardEyebrow: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 0.4,
   },
   cardPrompt: {
-    fontSize: 26, lineHeight: 36, fontWeight: '600',
+    fontSize: STUDIO.type.prompt, lineHeight: 29, fontWeight: '600',
   },
   cardPromptOneScreen: {
-    fontSize: 25, lineHeight: 34,
+    fontSize: STUDIO.type.prompt, lineHeight: 29,
   },
   cardPromptOneScreenCompact: {
-    fontSize: 23, lineHeight: 32,
+    fontSize: STUDIO.type.prompt, lineHeight: 29,
   },
   contextCard: {
     borderWidth: 0, borderRadius: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 12,
@@ -3058,7 +3085,7 @@ const styles = StyleSheet.create({
   },
   denseSupportTitle: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   denseSupportBody: {
@@ -3066,10 +3093,10 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   cardSupport: {
-    fontSize: 17, fontWeight: '400', lineHeight: 28,
+    fontSize: STUDIO.type.body, fontWeight: '400', lineHeight: 25,
   },
   cardContext: {
-    fontSize: 15, fontWeight: '400', lineHeight: 25,
+    fontSize: 14, fontWeight: '400', lineHeight: 23,
   },
   attachedLayerPanel: {
     borderLeftWidth: 0,
@@ -3083,7 +3110,7 @@ const styles = StyleSheet.create({
   },
   peekTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   peekText: {
     fontSize: 13,
@@ -3097,7 +3124,7 @@ const styles = StyleSheet.create({
   },
   hintTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   hintText: {
     fontSize: 14,
@@ -3111,16 +3138,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   interactionCardOneScreen: {
-    flexGrow: 1,
-    flexShrink: 1,
-    gap: 9,
-    justifyContent: 'center',
-    paddingHorizontal: 2,
-    paddingVertical: 2,
+    flexGrow: 0,
+    flexShrink: 0,
+    gap: 10,
+    justifyContent: 'flex-start',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   interactionCardOneScreenCompact: {
-    gap: 4,
-    paddingVertical: 1,
+    gap: 8,
+    paddingVertical: 0,
   },
   interactionCardEmbedded: {
     borderRadius: 22,
@@ -3132,7 +3159,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   interactionTitleRow: {
     flexDirection: 'row',
@@ -3154,7 +3181,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   interactionBodyCompact: {
-    gap: 4,
+    gap: 10,
   },
   choiceInteractionBody: {
     flexGrow: 0,
@@ -3167,13 +3194,13 @@ const styles = StyleSheet.create({
   },
   revealTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   revealText: {
-    fontSize: 25, fontWeight: '600', lineHeight: 35,
+    fontSize: 22, fontWeight: '500', lineHeight: 32,
   },
   revealTextCompact: {
-    fontSize: 24, lineHeight: 33,
+    fontSize: 21, lineHeight: 31,
   },
   confidenceRow: {
     flexDirection: 'row',
@@ -3186,7 +3213,7 @@ const styles = StyleSheet.create({
   },
   choicePill: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: STUDIO.radius.control,
     paddingHorizontal: 12,
     paddingVertical: 11,
   },
@@ -3206,24 +3233,28 @@ const styles = StyleSheet.create({
   optionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 9,
+    gap: 10,
   },
   optionGridWorkArea: {
     alignContent: 'flex-start',
     flexGrow: 0,
   },
   optionCard: {
-    flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, minHeight: 68, minWidth: 0, paddingHorizontal: 12, paddingVertical: 14, gap: 12, width: '48%',
+    flexDirection: 'column', alignItems: 'flex-start', borderRadius: STUDIO.radius.control, borderWidth: 1, minHeight: 104, minWidth: 0, paddingHorizontal: 14, paddingVertical: 14, gap: 10, width: '48%',
   },
-  optionCardAccessible: {width: '100%'},
+  optionCardAccessible: {width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 62,
+  },
   optionCardSelected: {
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0,
     shadowRadius: 14,
-    elevation: 2,
+    elevation: 0,
   },
   optionCardCompact: {
-    minHeight: 64, paddingHorizontal: 10, paddingVertical: 12, gap: 10,
+    minHeight: 104, paddingHorizontal: 12, paddingVertical: 13, gap: 10,
   },
   optionHeaderRow: {
     alignItems: 'center',
@@ -3233,22 +3264,24 @@ const styles = StyleSheet.create({
   },
   optionLetterBadge: {
     alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 25,
+    borderRadius: 7,
+    borderWidth: 0,
+    height: 24,
     justifyContent: 'center',
-    width: 25,
+    width: 24,
   },
   optionLabel: {
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 11,
+    fontWeight: '500',
   },
   optionStateLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   optionText: {
-    flex: 1, minWidth: 0, fontSize: 16, fontWeight: '500', lineHeight: 23,
+    flex: 0, minWidth: 0, fontSize: 15, fontWeight: '400', lineHeight: 23,
+
+    alignSelf: 'stretch',
   },
   lockGroup: {
     gap: 10,
@@ -3261,12 +3294,12 @@ const styles = StyleSheet.create({
   },
   lockRow: {
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 13,
   },
   lockRowCompact: {
     gap: 6,
@@ -3303,15 +3336,15 @@ const styles = StyleSheet.create({
   lockLabelRowCompact: {flexShrink: 0, flexWrap: 'wrap'},
   lockLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   lockStatus: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   lockChoicePill: {
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 10,
     justifyContent: 'center',
     minHeight: 48,
     minWidth: 48,
@@ -3362,7 +3395,7 @@ const styles = StyleSheet.create({
     minWidth: 48,
     flexGrow: 1,
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 14,
     gap: 8,
     overflow: 'hidden',
     paddingHorizontal: 14,
@@ -3388,7 +3421,7 @@ const styles = StyleSheet.create({
   },
   eliminationStateLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   swipeColumn: {
     gap: 8,
@@ -3422,27 +3455,29 @@ const styles = StyleSheet.create({
   },
   swipeTopCard: {
     width: '82%',
-    minHeight: 98,
+    minHeight: 140,
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 13,
     justifyContent: 'center',
     gap: 6,
+
+    padding: 18,
   },
   swipeTopCardCompact: {
     gap: 3,
-    minHeight: 80,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    minHeight: 126,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   swipePromptLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 0.8,
   },
   swipePromptText: {
-    fontSize: 23, fontWeight: '600', lineHeight: 33,
+    fontSize: 20, fontWeight: '600', lineHeight: 29,
   },
   swipeTrailRow: {
     flexDirection: 'row',
@@ -3480,7 +3515,7 @@ const styles = StyleSheet.create({
   },
   swipeTrailHint: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 0.4,
     lineHeight: 17,
   },
@@ -3500,7 +3535,7 @@ const styles = StyleSheet.create({
   },
   swipeLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 18,
   },
   swipeText: {
@@ -3508,7 +3543,10 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   primaryButton: {
-    alignItems: 'center', justifyContent: 'center', borderRadius: 12, minHeight: 48, paddingHorizontal: 16, paddingVertical: 12,
+    alignItems: 'center', justifyContent: 'center', borderRadius: STUDIO.radius.control, minHeight: 48, paddingHorizontal: 16, paddingVertical: 12,
+
+    shadowOpacity: 0,
+    elevation: 0,
   },
   oneScreenDock: {
     flexShrink: 0,
@@ -3559,7 +3597,7 @@ const styles = StyleSheet.create({
   },
   submitActionTitle: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 19,
   },
   submitActionDetail: {
@@ -3577,10 +3615,10 @@ const styles = StyleSheet.create({
   },
   submitActionButtonLabel: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   primaryButtonLabel: {
-    fontSize: 16, fontWeight: '600', lineHeight: 24,
+    fontSize: 14, fontWeight: '600', lineHeight: 24,
   },
   secondaryButton: {
     alignItems: 'center',
@@ -3592,7 +3630,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   resultCard: {
     borderRadius: 0, borderWidth: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 12,
@@ -3616,13 +3654,13 @@ const styles = StyleSheet.create({
   },
   resultAdvanceStatus: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 18,
     textAlign: 'center',
   },
   resultExplanationTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   resultExplanationBody: {
     fontSize: 14,
@@ -3644,7 +3682,7 @@ const styles = StyleSheet.create({
   },
   settleTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   settleText: {
     fontSize: 13,
@@ -3664,7 +3702,7 @@ const styles = StyleSheet.create({
   },
   resultBadgeLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   metricWrap: {
     flexDirection: 'row',
@@ -3685,7 +3723,7 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   resultRow: {
     flexDirection: 'row',
@@ -3701,7 +3739,7 @@ const styles = StyleSheet.create({
   },
   resultTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   resultMeta: {
     fontSize: 12,
