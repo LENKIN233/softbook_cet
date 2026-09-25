@@ -1734,11 +1734,11 @@ function getResultTone(
   palette: LearningSurfacePalette,
 ) {
   if (result.outcome === 'review') {
-    return palette.warning;
+    return STUDIO.color.reviewInk;
   }
 
   if (result.outcome === 'incorrect') {
-    return result.interactionId === 'lock' ? palette.warning : palette.danger;
+    return result.interactionId === 'lock' ? STUDIO.color.reviewInk : palette.danger;
   }
 
   return palette.success;
@@ -2169,7 +2169,7 @@ export function LearningResultDetailSurface({
                 row.tone === 'success'
                   ? palette.success
                   : row.tone === 'warning'
-                  ? palette.warning
+                  ? STUDIO.color.reviewInk
                   : palette.textMuted;
 
               return (
