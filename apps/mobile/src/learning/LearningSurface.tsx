@@ -1927,7 +1927,7 @@ export function LearningResultDetailSurface({
   const courseName = card.track === 'cet6' ? '英语六级' : '英语四级';
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
-  const primaryAction = getLibraryActionColors(detailLibraryTone.accent, palette);
+  const primaryAction = getLibraryActionColors(detailLibraryTone.accentStrong, palette);
   const neutralAction = getNeutralActionSurface(palette);
   const feedback = resultFeedback(result.outcome);
   const detailOutcomeTitle = feedback.title;
@@ -2322,7 +2322,7 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
     </View> : null}
     {result.outcome === 'confident' || result.outcome === 'review' ? <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{result.outcome === 'confident' ? '有把握' : '需要复习'}</Text> : null}
     {card.interaction_id === 'lock' && result.outcome === 'incorrect' ? (
-      <Text style={[styles.answerEyebrow, {color: palette.warning}]}>
+      <Text style={[styles.answerEyebrow, {color: STUDIO.color.reviewInk}]}>
         已解锁，稍后复习
       </Text>
     ) : null}

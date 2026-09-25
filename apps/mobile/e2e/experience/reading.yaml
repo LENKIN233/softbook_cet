@@ -97,8 +97,14 @@ name: read-material-and-correction
       id: learning-next-button
     direction: DOWN
     timeout: 10000
+# Hosted iOS produced a visible, enabled button but did not deliver one tap.
+# Retry only when the page did not change; the next material assertion catches
+# both a missed advance and an accidental double advance.
 - tapOn:
     id: learning-next-button
+    enabled: true
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
     visible:
       id: learning-current-card
