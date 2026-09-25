@@ -429,7 +429,8 @@ describe('PC Web remote UI authority', () => {
       .mockResolvedValueOnce({status: 'none'});
     await authenticateRemote(controller);
 
-    fireEvent.click(screen.getByRole('button', {name: '退出'}));
+    fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
+    fireEvent.click(screen.getByRole('button', {name: '退出登录'}));
     expect(
       await screen.findByText('正在退出登录'),
     ).toBeInTheDocument();
@@ -1189,7 +1190,8 @@ describe('PC Web remote UI authority', () => {
       });
       await authenticateRemote(controller);
 
-      fireEvent.click(screen.getByRole('button', {name: '退出'}));
+      fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
+    fireEvent.click(screen.getByRole('button', {name: '退出登录'}));
 
       expect(await screen.findByText(expectedTitle)).toBeInTheDocument();
       expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
@@ -1202,7 +1204,8 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
 
-    fireEvent.click(screen.getByRole('button', {name: '退出'}));
+    fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
+    fireEvent.click(screen.getByRole('button', {name: '退出登录'}));
     fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
 
     expect(await screen.findByText('尚未确认注销结果')).toBeInTheDocument();

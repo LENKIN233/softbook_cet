@@ -9,6 +9,11 @@ export function isLongQuestion(text) {
 
 export function stackChoiceOptions(options, availableWidth = 620, fontScale = 1) {
   if (fontScale >= 1.3 || availableWidth < 310) return true;
-  const textWidth = (availableWidth - 12) / 2 - 62;
-  return options.some(option => option.text.includes('\n') || readingUnits(option.text) * 16 * fontScale > textWidth * 2.5);
+  // Studio tiles place the letter above the text; four short lines remain
+  // comparable. Longer material and large system text use one full-width row.
+  const textWidth = (availableWidth - 10) / 2 - 24;
+  return options.some(option => {
+    const comfortableLines = /[\u3400-\u9fff]/u.test(option.text) ? 2 : 4;
+    return option.text.includes('\n') || readingUnits(option.text) * 15 * fontScale > textWidth * comfortableLines;
+  });
 }

@@ -1,3 +1,4 @@
+import {StudioMark} from './StudioMark';
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   LearningSession,
@@ -307,8 +308,8 @@ export function LocalStudyApp({
       <main className="auth-shell" data-local-study="true">
         <section className="auth-object">
           <div className="brand-lockup">
-            <span className="brand-mark">软</span>
-            <span className="wordmark">软书四六级</span>
+            <span className="brand-mark"><StudioMark /></span>
+            <span className="wordmark">软书</span>
           </div>
           <h1>在这台设备上学习</h1>
           <p>无需手机号或验证码。进度保存在当前浏览器中。</p>

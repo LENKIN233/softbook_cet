@@ -1,8 +1,9 @@
 import {filterSpaceCards, type SpaceCardFilter} from './cardFilters';
 import { spaceCardPreview } from '../learning/presentation';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {StudioPressable as Pressable, MotionView} from '../learning/NativeMotion';
+import {STUDIO} from '../visual/studio';
 import {
-  Pressable,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -95,6 +96,7 @@ export type SpaceGateRail = {
 };
 
 export type SpaceSyncRail = {
+  requiresAttention?: boolean;
   detail: string;
   label: string;
   state: 'syncing' | 'synced' | 'error';
@@ -276,7 +278,7 @@ export function SpaceSurface({
   );
   const isDarkSpacePalette =
     palette.background === '#0B0B12' || palette.text === '#F2F1EB';
-  const solidPanelStrong = isDarkSpacePalette ? '#222434' : '#FFFFFC';
+  const solidPanelStrong = isDarkSpacePalette ? '#222434' : STUDIO.color.paper;
   const neutralObjectSurface = hexToRgba(
     palette.text,
     isDarkSpacePalette ? 0.04 : 0.028,
@@ -359,7 +361,7 @@ export function SpaceSurface({
         <SpaceGateRailCard palette={palette} rail={spaceGateRail} />
       ) : null}
 
-      {spaceSyncRail ? (
+      {spaceSyncRail && (spaceSyncRail.state === 'error' || spaceSyncRail.requiresAttention) ? (
         <SpaceSyncRailCard palette={palette} rail={spaceSyncRail} />
       ) : null}
 
@@ -369,7 +371,7 @@ export function SpaceSurface({
     </>
   );
   const hasStateRail = Boolean(
-    spaceGateRail || spaceSyncRail || spaceStatusRail,
+    spaceGateRail || spaceSyncRail?.state === 'error' || spaceSyncRail?.requiresAttention || spaceStatusRail,
   );
   const usesScrollableViewport = usesAccessibilityLayout
     ? deviceClass === 'tablet'
@@ -928,7 +930,7 @@ export function SpaceSurface({
               ) : null}
             </View>
 
-            <View
+            <MotionView motionKey={selectedBox.boxRef} kind="space"
               style={[
                 styles.openTray,
                 {
@@ -1055,7 +1057,7 @@ export function SpaceSurface({
                   </Pressable>
                 ) : null}
               </View>
-            </View>
+            </MotionView>
           </View>
         ) : (
           <>
@@ -1074,7 +1076,7 @@ export function SpaceSurface({
               style={styles.spaceComposition}
               testID="space-contained-card-strip"
             >
-              <View
+              <MotionView motionKey={selectedBox.boxRef+":"+selectedCardIndex} kind="space"
                 style={[
                   styles.inspectionPaper,
                   {
@@ -1190,7 +1192,7 @@ export function SpaceSurface({
                     </>
                   ) : null}
                 </View>
-              </View>
+              </MotionView>
               <View
                 style={styles.inspectionPager}
                 testID="space-browse-card-pager"
@@ -1669,7 +1671,7 @@ const styles = StyleSheet.create({
   spaceLocation: { fontSize: 12, lineHeight: 20 },
   spaceSectionTitle: { fontSize: 18, lineHeight: 27, fontWeight: '600' },
   spaceMeta: { fontSize: 12, lineHeight: 20 },
-  openTray: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 14 },
+  openTray: { borderWidth: 1, borderRadius: STUDIO.radius.card, padding: 18, gap: 16 },
   trayHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   trayTitleCopy: { flex: 1, gap: 4 },
   quietAction: {
@@ -1685,7 +1687,7 @@ const styles = StyleSheet.create({
     flexBasis: 220,
     borderWidth: 1,
     borderTopWidth: 3,
-    borderRadius: 7,
+    borderRadius: STUDIO.radius.control,
     padding: 16,
     gap: 12,
     minHeight: 120,
@@ -1703,12 +1705,12 @@ const styles = StyleSheet.create({
   inspectionPaper: {
     borderWidth: 1,
     borderTopWidth: 3,
-    borderRadius: 12,
+    borderRadius: STUDIO.radius.card,
     padding: 20,
-    gap: 24,
+    gap: 20,
   },
   inspectionMaterial: { gap: 12 },
-  inspectionPrompt: { fontSize: 21, lineHeight: 33, fontWeight: '400' },
+  inspectionPrompt: { fontSize: 20, lineHeight: 30, fontWeight: '400' },
   stateActionRow: {
     borderTopWidth: 1,
     paddingTop: 8,
@@ -1740,40 +1742,40 @@ const styles = StyleSheet.create({
   returnActionText: { fontSize: 14, lineHeight: 22, fontWeight: '500' },
 
   cardPreviewDetail: { fontSize: 15, lineHeight: 25, marginTop: 12 },
-  shelfNavigator: { gap: 4, flexShrink: 0 },
-  shelfLibraryRow: { gap: 6, alignItems: 'center', paddingBottom: 8 },
+  shelfNavigator: { gap: 10, flexShrink: 0 },
+  shelfLibraryRow: { gap: 6, alignItems: 'center', paddingBottom: 6 },
   shelfLibraryTab: {
     minHeight: 44,
-    borderRadius: 9,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   shelfLibraryDot: { width: 6, height: 6, borderRadius: 3 },
-  shelfLibraryLabel: { fontSize: 13, fontWeight: '500' },
-  shelfGroupTabs: { gap: 18 },
+  shelfLibraryLabel: { fontSize: 12, fontWeight: '500' },
+  shelfGroupTabs: { gap: 16 },
   shelfGroupTab: {
     minHeight: 44,
     justifyContent: 'center',
     borderBottomWidth: 2,
   },
-  shelfGroupLabel: { fontSize: 13, fontWeight: '400' },
-  shelfBoard: { borderBottomWidth: 3, paddingBottom: 8, paddingTop: 8 },
-  siblingBoxRow: { gap: 12, alignItems: 'flex-end' },
+  shelfGroupLabel: { fontSize: 12, fontWeight: '400' },
+  shelfBoard: { borderBottomWidth: 0, paddingBottom: 14, paddingTop: 12 },
+  siblingBoxRow: { gap: 12, alignItems: 'stretch' },
   siblingBox: {
-    width: 140,
-    minHeight: 88,
-    borderWidth: 1,
+    width: 144,
+    minHeight: 126,
+    borderWidth: 0,
     borderTopWidth: 4,
-    borderRadius: 7,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 16,
   },
-  siblingBoxName: { fontSize: 14, fontWeight: '500', lineHeight: 21 },
-  siblingBoxCount: { fontSize: 12, lineHeight: 18 },
+  siblingBoxName: { fontSize: 15, fontWeight: '600', lineHeight: 22 },
+  siblingBoxCount: { fontSize: 11, lineHeight: 18 },
   followCurrentLink: {
     minHeight: 44,
     justifyContent: 'center',
@@ -1811,7 +1813,7 @@ const styles = StyleSheet.create({
   },
   shelfDeskFrameOneScreen: {
     flex: 1,
-    gap: 8,
+    gap: 16,
   },
   shelfDeskFrameAccessible: {
     flex: 0,
@@ -1830,7 +1832,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   addressShelfOneScreen: {
-    gap: 8,
+    gap: 10,
     paddingVertical: 12,
   },
   addressPath: {
@@ -1845,13 +1847,13 @@ const styles = StyleSheet.create({
   },
   addressPathLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0.8,
   },
   addressPathText: {
     flexShrink: 1,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 18,
     textAlign: 'right',
   },
@@ -1869,12 +1871,12 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 1.1,
   },
   title: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   summary: {
     fontSize: 12,
@@ -1896,12 +1898,12 @@ const styles = StyleSheet.create({
   },
   addressContextLabel: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 0.7,
   },
   addressContextValue: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   statusCopy: {
@@ -1910,11 +1912,11 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   locationText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 21,
   },
   boxTrayHeader: {
@@ -1927,9 +1929,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   boxTrayTitle: {
-    fontSize: 21,
+    fontSize: 23,
     fontWeight: '600',
-    lineHeight: 29,
+    lineHeight: 30,
   },
   boxAccentRail: {
     borderRadius: 999,
@@ -1951,16 +1953,16 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   boxShelfTile: {
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 5,
     minWidth: 132,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 18,
   },
   boxName: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   boxMeta: {
     fontSize: 12,
@@ -1968,16 +1970,16 @@ const styles = StyleSheet.create({
   },
   currentTag: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   stateTag: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   actionChip: {
     alignItems: 'center',
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: 0,
     minHeight: 44,
     minWidth: 58,
     paddingHorizontal: 11,
@@ -1985,7 +1987,7 @@ const styles = StyleSheet.create({
   },
   actionChipLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   stateRail: {
     borderStyle: 'solid',
@@ -2008,34 +2010,34 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   browseCardStrip: {
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingBottom: 2,
     paddingTop: 1,
   },
   cardTile: {
-    borderRadius: 24,
-    borderWidth: 1,
+    borderRadius: STUDIO.radius.section,
+    borderWidth: 0,
     gap: 10,
     minWidth: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     width: '100%',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0,
     shadowRadius: 18,
-    elevation: 3,
+    elevation: 0,
   },
   loadingCardSkeleton: {
     borderStyle: 'dashed',
   },
   cardPrompt: {
     fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 22,
+    fontWeight: '500',
+    lineHeight: 25,
   },
   cardMeta: {
     fontSize: 12,
-    lineHeight: 17,
+    lineHeight: 19,
   },
   headerActionStack: {
     alignItems: 'flex-end',

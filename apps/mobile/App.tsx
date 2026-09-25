@@ -1,9 +1,12 @@
+import {StudioRouteIcon as RouteIcon} from './src/visual/StudioRouteIcon';
 import {LocalStudyApp} from './src/local/LocalStudyApp';
 import {localLearningCardSource} from './src/learning/localCardSource';
 import {reviewCardIds, latestCardResults} from './src/space/cardFilters';
 import {authFailure, type AuthFailureKind} from './src/auth/authErrorCopy';
 import {endsLocalBatch, localBatch, localResumeIndex} from './src/learning/localBatch';
-import {NativeMotionProvider, useCardMotion} from './src/learning/NativeMotion';
+import {NativeMotionProvider, useCardMotion, StudioPressable as Pressable} from './src/learning/NativeMotion';
+import {STUDIO} from './src/visual/studio';
+import {StudioMark} from './src/visual/StudioMark';
 import React, {
   startTransition,
   useCallback,
@@ -23,7 +26,6 @@ import {
   Keyboard,
   Linking,
   Modal,
-  Pressable,
   Platform,
   ScrollView,
   StatusBar,
@@ -300,7 +302,7 @@ type SyncStatusState = {
 
 type ProgressSyncState = SyncStatusState;
 type LearningStateSyncState = SyncStatusState;
-type SpaceStateSyncState = SyncStatusState;
+type SpaceStateSyncState = SyncStatusState & {requiresAttention?: boolean};
 
 type LearningBootstrapStatus = 'idle' | 'loading' | 'ready' | 'error';
 type LearningPhase = 'learning' | 'review';
@@ -396,25 +398,25 @@ const ROUTES: ShellRoute[] = [
 const MINE_ROUTE = ROUTES.find(route => route.key === 'mine')!;
 
 const LIGHT_PALETTE: Palette = {
-  background: '#F5F3EE',
-  panel: '#FFFFFF',
-  panelStrong: '#F7F6F2',
-  border: '#E4E2DD',
-  text: '#20232B',
-  textMuted: '#69707A',
+  background: STUDIO.color.page,
+  panel: STUDIO.color.paper,
+  panelStrong: STUDIO.color.paperSoft,
+  border: STUDIO.color.line,
+  text: STUDIO.color.ink,
+  textMuted: STUDIO.color.muted,
   accent: SHELL_ACCENT,
   accentSoft: BRAND_IDENTITY.soft,
   accentStrong: BRAND_IDENTITY.deep,
-  activeSurface: '#EAE7DF',
-  activeText: '#20232B',
+  activeSurface: STUDIO.color.brandSoft,
+  activeText: STUDIO.color.brandDeep,
   primaryActionSurface: SHELL_ACCENT,
   primaryActionText: '#FFFFFF',
   primaryActionMuted: 'rgba(255,255,255,0.76)',
-  tabIdle: '#7A718C',
-  success: '#167956',
+  tabIdle: STUDIO.color.muted,
+  success: STUDIO.color.success,
   warning: '#F5B100',
   warningText: '#6B4A00',
-  danger: '#A7394D',
+  danger: STUDIO.color.danger,
 };
 
 const AUTH_KEYBOARD_ACCESSORY_ID = 'auth-keyboard-accessory';
@@ -3190,6 +3192,7 @@ function AppShell({
               detail: '这项操作未能保存，空间已恢复到上次可用状态。',
               label: '已恢复',
               state: 'synced',
+              requiresAttention: true,
             });
           } else {
             setSpaceStateSyncState({
@@ -6076,8 +6079,11 @@ function AppShell({
           detail: spaceStateSyncState.detail,
           label: spaceStateSyncState.label,
           state: spaceStateSyncState.state,
+          requiresAttention: spaceStateSyncState.requiresAttention,
           title:
-            spaceStateSyncState.state === 'error'
+            spaceStateSyncState.requiresAttention
+              ? '空间状态已恢复'
+              : spaceStateSyncState.state === 'error'
               ? '设置同步失败'
               : spaceStateSyncState.state === 'syncing'
               ? '正在同步设置'
@@ -6449,6 +6455,7 @@ function AppShell({
         ) : (
           <PhoneShell
             activeRoute={activeRoute}
+            track={learningTrack}
             readingResetKey={`${currentLearningCard?.card_id ?? 'complete'}:${learningPhase}:${learningScreen}:${Boolean(learningCurrentResult)}:${Boolean(learningCardState?.isFlipped)}`}
             authState={authState}
             content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithLearningNotice}</Animated.View>}
@@ -7165,6 +7172,7 @@ function AppCanvasBackdrop({palette}: {palette: Palette}) {
 
 function PhoneShell({
   activeRoute,
+  track,
   readingResetKey,
   authState,
   content,
@@ -7173,6 +7181,7 @@ function PhoneShell({
   route,
 }: {
   activeRoute: RouteKey;
+  track: LearningTrack;
   readingResetKey: string;
   authState: AuthState;
   content: React.ReactNode;
@@ -7190,6 +7199,7 @@ function PhoneShell({
   return (
     <View style={styles.shellRoot}>
       <PhoneTopBar
+        track={track}
         authState={authState}
         onOpenAccount={() => onSelectRoute('mine')}
         palette={palette}
@@ -7228,6 +7238,7 @@ function PhoneShell({
             return (
               <Pressable
                 accessibilityRole="button"
+                accessibilityState={{selected: isActive}}
                 key={item.key}
                 onPress={() => {
                   startTransition(() => onSelectRoute(item.key));
@@ -7271,148 +7282,21 @@ function PhoneShell({
   );
 }
 
-function RouteIcon({
-  active = false,
-  color,
-  routeKey,
-  variant = 'tab',
-}: {
-  active?: boolean;
-  color: string;
-  routeKey: RouteKey;
-  variant?: 'tab' | 'sidebar' | 'header';
-}) {
-  const iconStyle =
-    variant === 'sidebar'
-      ? styles.routeIconFrameSidebar
-      : variant === 'header'
-      ? styles.routeIconFrameHeader
-      : styles.routeIconFrameTab;
-  const strokeWidth = variant === 'tab' ? 2 : 2.2;
-  const lineStyle = {
-    backgroundColor: color,
-  };
-  const borderStyle = {
-    borderColor: color,
-  };
-
-  if (routeKey === 'learning') {
-    return (
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={[styles.routeIconFrame, iconStyle]}
-      >
-        <View
-          style={[
-            styles.routeIconBook,
-            borderStyle,
-            active ? styles.routeIconBookActive : null,
-          ]}
-        >
-          <View style={[styles.routeIconBookSpine, lineStyle]} />
-          <View style={[styles.routeIconBookLine, lineStyle]} />
-          <View style={[styles.routeIconBookLineShort, lineStyle]} />
-        </View>
-      </View>
-    );
-  }
-
-  if (routeKey === 'space') {
-    return (
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={[styles.routeIconFrame, iconStyle]}
-      >
-        <View
-          style={[
-            styles.routeIconSpaceLine,
-            styles.routeIconSpaceLineTop,
-            lineStyle,
-            { height: strokeWidth },
-          ]}
-        />
-        <View
-          style={[
-            styles.routeIconSpaceLine,
-            styles.routeIconSpaceLineBottom,
-            lineStyle,
-            { height: strokeWidth },
-          ]}
-        />
-        <View
-          style={[
-            styles.routeIconSpaceNode,
-            styles.routeIconSpaceNodeStart,
-            borderStyle,
-            active ? lineStyle : null,
-          ]}
-        />
-        <View
-          style={[
-            styles.routeIconSpaceNode,
-            styles.routeIconSpaceNodeMiddle,
-            borderStyle,
-            active ? lineStyle : null,
-          ]}
-        />
-        <View
-          style={[
-            styles.routeIconSpaceNode,
-            styles.routeIconSpaceNodeEnd,
-            borderStyle,
-            active ? lineStyle : null,
-          ]}
-        />
-      </View>
-    );
-  }
-
-  if (routeKey === 'statistics') {
-    return (
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={[styles.routeIconFrame, iconStyle, styles.routeIconStatsFrame]}
-      >
-        <View style={[styles.routeIconStatBarShort, lineStyle]} />
-        <View style={[styles.routeIconStatBarMid, lineStyle]} />
-        <View style={[styles.routeIconStatBarTall, lineStyle]} />
-      </View>
-    );
-  }
-
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={[styles.routeIconFrame, iconStyle]}
-    >
-      <View
-        style={[
-          styles.routeIconMineHead,
-          borderStyle,
-          active ? lineStyle : null,
-        ]}
-      />
-      <View style={[styles.routeIconMineBody, borderStyle]} />
-    </View>
-  );
-}
-
 function PhoneTopBar({
   authState,
+  track,
   onOpenAccount,
   palette,
   route,
 }: {
   authState: AuthState;
+  track: LearningTrack;
   onOpenAccount: () => void;
   palette: Palette;
   route: ShellRoute;
 }) {
   const accountChipCopy = getShellAccountChipCopy(authState);
+  const courseLabel = track === 'cet6' ? 'CET 6' : 'CET 4';
 
   return (
     <View
@@ -7423,6 +7307,7 @@ function PhoneTopBar({
       ]}
     >
       <View style={styles.phoneBrandLockup}>
+        <StudioMark />
         <View style={styles.phoneTopCopy}>
           <Text
             style={[
@@ -7431,7 +7316,7 @@ function PhoneTopBar({
               { color: palette.text },
             ]}
           >
-            软书四六级
+            软书
           </Text>
         </View>
       </View>
@@ -7450,7 +7335,7 @@ function PhoneTopBar({
         ]}
         testID="shell-account-chip"
       >
-        <Text style={[styles.phoneTopMeta,{color:palette.textMuted}]}>我的</Text>
+        <Text style={[styles.phoneTopMeta,{color:palette.textMuted}]}>{courseLabel}</Text>
       </Pressable>
     </View>
   );
@@ -7488,12 +7373,10 @@ function TabletShell({
           { backgroundColor: palette.panel, borderColor: palette.border },
         ]}
       >
-        <Text style={[styles.brandEyebrow, { color: palette.accent }]}>
-          备考主页
-        </Text>
-        <Text style={[styles.brandTitle, { color: palette.text }]}>
-          软书四六级
-        </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}>
+          <StudioMark />
+          <Text style={[styles.brandTitle, { color: palette.text }]}>软书</Text>
+        </View>
         <Text style={[styles.brandSummary, { color: palette.textMuted }]}>
           继续学习，或查看卡片、进度和账号。
         </Text>
@@ -7505,6 +7388,7 @@ function TabletShell({
             return (
               <Pressable
                 accessibilityRole="button"
+                accessibilityState={{selected: isActive}}
                 key={item.key}
                 onPress={() => {
                   startTransition(() => onSelectRoute(item.key));
@@ -8119,9 +8003,11 @@ function MineSurface({
   }
 
   return (
-    <View
-      style={[
+    <ScrollView
+      style={{flex: 1}}
+      contentContainerStyle={[
         styles.mineScreen,
+        {flex: 0, flexGrow: 1, paddingBottom: 20},
         deviceClass === 'tablet' ? styles.mineScreenTablet : null,
         isCompactPhone ? styles.mineScreenCompact : null,
       ]}
@@ -8372,7 +8258,7 @@ function MineSurface({
             </View>
         ) : null}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -9774,7 +9660,7 @@ const styles = StyleSheet.create({
     minHeight: '100%',
   },
   phoneTopBar: {
-    alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: 22, paddingVertical: 2, minHeight: 44,
+    alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginHorizontal: STUDIO.space.phone, paddingVertical: 2, minHeight: 48,
   },
   phoneTopBarLearning: {
     marginTop: 0, paddingVertical: 0,
@@ -9792,13 +9678,13 @@ const styles = StyleSheet.create({
   },
   phoneBrandMark: {
     alignItems: 'center',
-    borderRadius: 13,
-    height: 38,
+    borderRadius: 8,
+    height: 28,
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0,
     shadowRadius: 14,
-    width: 38,
+    width: 28,
   },
   phoneBrandMarkLabel: {
     color: '#FFFFFF',
@@ -9807,10 +9693,10 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
   },
   phoneTopTitle: {
-    fontSize: 15, fontWeight: '600',
+    fontSize: 18, fontWeight: '600',
   },
   phoneTopTitleLearning: {
-    fontSize: 15,
+    fontSize: 18,
   },
   phoneTopMeta: {
     fontSize: 11,
@@ -9820,7 +9706,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   phoneAccountChip: {
-    alignItems: 'center', justifyContent: 'center', borderWidth: 0, borderRadius: 0, minWidth: 44, minHeight: 44, paddingHorizontal: 6,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 22, minWidth: 70, minHeight: 44, paddingHorizontal: 13,
   },
   phoneAccountChipDot: {
     borderRadius: 999,
@@ -9832,135 +9718,13 @@ const styles = StyleSheet.create({
   },
   phoneAccountChipLabel: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 11,
   },
   phoneAccountChipValue: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 13,
-  },
-  routeIconFrame: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  routeIconFrameTab: {
-    width: 23,
-    height: 23,
-  },
-  routeIconFrameSidebar: {
-    width: 26,
-    height: 26,
-  },
-  routeIconFrameHeader: {
-    width: 23,
-    height: 23,
-  },
-  routeIconBook: {
-    width: 17,
-    height: 18,
-    borderWidth: 2,
-    borderRadius: 5,
-  },
-  routeIconBookActive: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-  },
-  routeIconBookSpine: {
-    position: 'absolute',
-    left: 4,
-    top: 2,
-    width: 2,
-    height: 13,
-    borderRadius: 999,
-  },
-  routeIconBookLine: {
-    position: 'absolute',
-    left: 8,
-    top: 6,
-    width: 6,
-    height: 2,
-    borderRadius: 999,
-  },
-  routeIconBookLineShort: {
-    position: 'absolute',
-    left: 8,
-    top: 11,
-    width: 4,
-    height: 2,
-    borderRadius: 999,
-  },
-  routeIconSpaceLine: {
-    position: 'absolute',
-    width: 13,
-    borderRadius: 999,
-  },
-  routeIconSpaceLineTop: {
-    left: 6,
-    top: 8,
-    transform: [{ rotate: '-26deg' }],
-  },
-  routeIconSpaceLineBottom: {
-    left: 6,
-    top: 14,
-    transform: [{ rotate: '26deg' }],
-  },
-  routeIconSpaceNode: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    borderWidth: 2,
-    backgroundColor: 'transparent',
-  },
-  routeIconSpaceNodeStart: {
-    left: 2,
-    top: 9,
-  },
-  routeIconSpaceNodeMiddle: {
-    left: 11,
-    top: 3,
-  },
-  routeIconSpaceNodeEnd: {
-    right: 2,
-    bottom: 4,
-  },
-  routeIconStatsFrame: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 3,
-  },
-  routeIconStatBarShort: {
-    width: 4,
-    height: 9,
-    borderRadius: 999,
-  },
-  routeIconStatBarMid: {
-    width: 4,
-    height: 14,
-    borderRadius: 999,
-  },
-  routeIconStatBarTall: {
-    width: 4,
-    height: 18,
-    borderRadius: 999,
-  },
-  routeIconMineHead: {
-    width: 9,
-    height: 9,
-    borderRadius: 999,
-    borderWidth: 2,
-    marginBottom: 2,
-  },
-  routeIconMineBody: {
-    width: 17,
-    height: 9,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderRightWidth: 2,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
   },
   tabletRoot: {
     flex: 1,
@@ -9975,23 +9739,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   sidebar: {
-    width: 300,
+    width: 212,
     paddingHorizontal: 20,
     paddingVertical: 22,
-    borderWidth: 1,
-    borderRadius: 32,
+    borderWidth: 0,
+    borderRadius: 24,
     gap: 18,
     shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0,
     shadowRadius: 36,
-    elevation: 6,
+    elevation: 0,
   },
   sidebarNarrow: {
-    borderRadius: 26,
+    borderRadius: 20,
     gap: 13,
     paddingHorizontal: 13,
     paddingVertical: 16,
-    width: 220,
+    width: 170,
   },
   sidebarNav: {
     gap: 12,
@@ -10000,18 +9764,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    borderWidth: 1,
-    borderRadius: 24,
+    borderWidth: 0,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
   sidebarCopy: {
     flex: 1,
     gap: 4,
   },
   sidebarLabel: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
   },
   sidebarEyebrow: {
     fontSize: 12,
@@ -10023,12 +9787,12 @@ const styles = StyleSheet.create({
   },
   brandEyebrow: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 1.1,
   },
   brandTitle: {
     fontSize: 28,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   brandSummary: {
     fontSize: 15,
@@ -10043,12 +9807,12 @@ const styles = StyleSheet.create({
   },
   statusBadgeLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 1.05,
   },
   statusBadgeValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   header: {
     borderWidth: 1,
@@ -10072,12 +9836,12 @@ const styles = StyleSheet.create({
   },
   headerEyebrow: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 1.1,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   headerSummary: {
     fontSize: 13,
@@ -10103,12 +9867,12 @@ const styles = StyleSheet.create({
   },
   headerAccountLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 12,
   },
   headerAccountValue: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 15,
   },
   stateScreen: {
@@ -10142,24 +9906,24 @@ const styles = StyleSheet.create({
   },
   authEntryCard: {
     borderWidth: 0,
-    borderRadius: 28,
+    borderRadius: STUDIO.radius.card,
     gap: 13,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingHorizontal: 22,
+    paddingVertical: 26,
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.035,
     shadowRadius: 34,
-    elevation: 4,
+    elevation: 1,
   },
   authEntryCardEmbedded: {
     flexShrink: 1,
   },
   authEntryCardRouteObject: {
     flexShrink: 1,
-    gap: 12,
+    gap: 18,
     justifyContent: 'flex-start',
-    paddingHorizontal: 16,
-    paddingVertical: 18,
+    paddingHorizontal: 22,
+    paddingVertical: 26,
   },
   authEntryCardMine: {
     gap: 10,
@@ -10184,9 +9948,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   authGateTitle: {
-    fontSize: 25,
+    fontSize: 26,
     fontWeight: '600',
-    lineHeight: 33,
+    lineHeight: 34,
   },
   authGateTitleRouteObject: {
     fontSize: 25,
@@ -10197,8 +9961,8 @@ const styles = StyleSheet.create({
     lineHeight: 28,
   },
   authGateSummary: {
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 14,
+    lineHeight: 22,
   },
   authGateActionStack: {
     gap: 12,
@@ -10278,7 +10042,7 @@ const styles = StyleSheet.create({
   },
   authRetainedTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 23,
   },
   authRetainedSummary: {
@@ -10297,7 +10061,7 @@ const styles = StyleSheet.create({
   },
   authContinuityPromiseText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 15,
   },
   authObjectBadge: {
@@ -10316,12 +10080,12 @@ const styles = StyleSheet.create({
   },
   authObjectBadgeValue: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     textAlign: 'center',
   },
   authObjectBadgeLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 14,
     textAlign: 'center',
   },
@@ -10338,12 +10102,12 @@ const styles = StyleSheet.create({
   },
   heroEyebrow: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 1.1,
   },
   heroTitle: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   heroSummary: {
     fontSize: 15,
@@ -10396,7 +10160,7 @@ const styles = StyleSheet.create({
   },
   authPanelStatePillText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 14,
     textAlign: 'center',
   },
@@ -10407,9 +10171,9 @@ const styles = StyleSheet.create({
   authRequestInlineDock: {
     borderRadius: 18,
     borderWidth: 0,
-    gap: 9,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    gap: 14,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   authRequestActionRow: {
     alignItems: 'stretch',
@@ -10429,8 +10193,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   authRequestInlineDockRoute: {
-    paddingBottom: 9,
-    paddingTop: 9,
+    paddingBottom: 0,
+    paddingTop: 0,
   },
   authRequestCopy: {
     flex: 1,
@@ -10454,12 +10218,12 @@ const styles = StyleSheet.create({
   },
   authRequestReadinessText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 14,
   },
   authRequestTitle: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 18,
   },
   authRequestDetail: {
@@ -10468,7 +10232,7 @@ const styles = StyleSheet.create({
   },
   authRequestButton: {
     alignItems: 'center',
-    borderRadius: 999,
+    borderRadius: STUDIO.radius.control,
     borderWidth: 0,
     alignSelf: 'stretch',
     justifyContent: 'center',
@@ -10484,16 +10248,16 @@ const styles = StyleSheet.create({
   },
   authRequestButtonLabel: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 19,
   },
   authCodeInlineDock: {
     borderRadius: 20,
     borderWidth: 0,
-    gap: 11,
-    minHeight: 214,
-    paddingHorizontal: 13,
-    paddingVertical: 13,
+    gap: 16,
+    minHeight: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   authCodeInlineDockAccount: {
     gap: 10,
@@ -10503,8 +10267,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   authCodeInlineDockRoute: {
-    paddingBottom: 12,
-    paddingTop: 12,
+    paddingBottom: 0,
+    paddingTop: 0,
   },
   authCodeSentHeader: {
     alignItems: 'center',
@@ -10522,7 +10286,7 @@ const styles = StyleSheet.create({
   },
   authCodeSentTitle: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 19,
   },
   authCodeSentMeta: {
@@ -10548,9 +10312,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   authCodeCellsFrame: {
-    minHeight: 54,
+    minHeight: 58,
     minWidth: 0,
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 0,
     justifyContent: 'center',
     overflow: 'hidden',
@@ -10572,9 +10336,9 @@ const styles = StyleSheet.create({
   },
   authCodeCell: {
     alignItems: 'center',
-    borderRadius: 11,
+    borderRadius: 10,
     borderWidth: 0,
-    height: 40,
+    height: 44,
     justifyContent: 'center',
     width: 36,
   },
@@ -10586,7 +10350,7 @@ const styles = StyleSheet.create({
   authCodeCellText: {
     fontSize: 17,
     fontVariant: ['tabular-nums'],
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 22,
   },
   authCodeHiddenInput: {
@@ -10605,10 +10369,10 @@ const styles = StyleSheet.create({
   authCodeSubmitButton: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    borderRadius: 999,
+    borderRadius: STUDIO.radius.control,
     borderWidth: 0,
     justifyContent: 'center',
-    minHeight: 45,
+    minHeight: 50,
     paddingHorizontal: 10,
     paddingVertical: 11,
   },
@@ -10622,7 +10386,7 @@ const styles = StyleSheet.create({
   },
   authCodeSubmitLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   authCodeResendButton: {
@@ -10636,7 +10400,7 @@ const styles = StyleSheet.create({
   },
   authCodeResendLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   authChangePhoneButton: {
@@ -10654,12 +10418,12 @@ const styles = StyleSheet.create({
   authPhoneFieldDock: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 1,
     flex: 0,
     flexDirection: 'row',
     gap: 8,
-    minHeight: 58,
+    minHeight: 56,
     minWidth: 0,
     paddingHorizontal: 13,
     paddingVertical: 0,
@@ -10678,7 +10442,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 1,
   },
   input: {
@@ -10699,7 +10463,7 @@ const styles = StyleSheet.create({
   },
   authPhoneInputText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '500',
     height: 42,
     lineHeight: 22,
     paddingVertical: 0,
@@ -10721,7 +10485,7 @@ const styles = StyleSheet.create({
   },
   keyboardAccessoryLabel: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   authHint: {
     fontSize: 13,
@@ -10756,7 +10520,7 @@ const styles = StyleSheet.create({
   },
   authErrorTitle: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 18,
   },
   authErrorDetail: {
@@ -10773,31 +10537,33 @@ const styles = StyleSheet.create({
   },
   authErrorPillText: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 14,
   },
   authSuccess: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   primaryButton: {
-    borderRadius: 18,
+    borderRadius: STUDIO.radius.control,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 13,
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.14,
+    shadowOpacity: 0,
     shadowRadius: 24,
-    elevation: 4,
+    elevation: 0,
+
+    minHeight: 48,
   },
   compactButton: {
     alignSelf: 'flex-start',
     minWidth: 128,
   },
   primaryButtonLabel: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '600',
   },
   secondaryButton: {
     borderWidth: 1,
@@ -10809,7 +10575,7 @@ const styles = StyleSheet.create({
   },
   secondaryButtonLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   sectionGrid: {
     gap: 14,
@@ -10834,7 +10600,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   infoRow: {
     flexDirection: 'row',
@@ -10891,7 +10657,7 @@ const styles = StyleSheet.create({
   },
   accountDeletionAcceptedTitle: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 33,
     textAlign: 'center',
   },
@@ -10951,12 +10717,12 @@ const styles = StyleSheet.create({
   },
   accountDeletionSheetKicker: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     letterSpacing: 1,
   },
   accountDeletionSheetTitle: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 30,
   },
   accountDeletionSheetSummary: {
@@ -10995,7 +10761,7 @@ const styles = StyleSheet.create({
   },
   accountDeletionStateTitle: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 18,
   },
   accountDeletionStateDetail: {
@@ -11008,7 +10774,7 @@ const styles = StyleSheet.create({
   },
   accountDeletionPrimaryButton: {
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: STUDIO.radius.control,
     justifyContent: 'center',
     minHeight: 48,
     paddingHorizontal: 16,
@@ -11016,7 +10782,7 @@ const styles = StyleSheet.create({
   },
   accountDeletionPrimaryButtonLabel: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   accountDeletionSecondaryButton: {
     alignItems: 'center',
@@ -11030,7 +10796,7 @@ const styles = StyleSheet.create({
   },
   accountDeletionSecondaryButtonLabel: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   accountDeletionDangerButton: {
     alignItems: 'center',
@@ -11043,12 +10809,12 @@ const styles = StyleSheet.create({
   },
   accountDeletionDangerButtonLabel: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   mineScreen: {
     flex: 1,
-    gap: 8,
-    paddingHorizontal: 18,
+    gap: 12,
+    paddingHorizontal: STUDIO.space.phone,
     paddingVertical: 6,
   },
   mineScreenTablet: {
@@ -11056,30 +10822,29 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   mineScreenCompact: {
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    gap: 10,
+    paddingHorizontal: STUDIO.space.phone,
+    paddingVertical: 6,
   },
   mineProfilePanel: {
     alignItems: 'stretch',
-    borderRadius: 26,
+    borderRadius: STUDIO.radius.card,
     borderWidth: 0,
-    flex: 1,
-    gap: 14,
+    gap: 18,
     justifyContent: 'flex-start',
     minHeight: 0,
-    paddingHorizontal: 15,
-    paddingVertical: 13,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
     shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0,
     shadowRadius: 34,
-    elevation: 3,
+    elevation: 0,
   },
   mineProfilePanelCompact: {
-    gap: 5,
+    gap: 14,
     justifyContent: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
   },
   minePassportStack: {
     flexShrink: 0,
@@ -11100,7 +10865,7 @@ const styles = StyleSheet.create({
   },
   mineAccountEyebrow: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   mineAccountEyebrowCompact: {
     fontSize: 10,
@@ -11111,20 +10876,20 @@ const styles = StyleSheet.create({
     lineHeight: 25,
   },
   mineAccountTitleCompact: {
-    fontSize: 17,
-    lineHeight: 21,
+    fontSize: 22,
+    lineHeight: 30,
   },
   mineAccountSummary: {
     fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
+    fontWeight: '400',
+    lineHeight: 21,
   },
   mineAccountSummaryCompact: {
     fontSize: 13,
-    lineHeight: 17,
+    lineHeight: 21,
   },
   mineAccountLedger: {
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 0,
     overflow: 'hidden',
   },
@@ -11142,13 +10907,13 @@ const styles = StyleSheet.create({
   },
   mineAccountRowLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '400',
     lineHeight: 16,
   },
   mineAccountRowValue: {
     flexShrink: 1,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '500',
     lineHeight: 18,
     marginLeft: 16,
     textAlign: 'right',
@@ -11167,12 +10932,12 @@ const styles = StyleSheet.create({
   },
   mineMembershipPillText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     textAlign: 'center',
   },
   mineAccountPrivacyCard: {
     alignItems: 'center',
-    borderRadius: 18,
+    borderRadius: 14,
     borderWidth: 0,
     flexDirection: 'row',
     gap: 10,
@@ -11185,7 +10950,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   mineSessionCard: {
-    marginTop: 'auto',
+    marginTop: 8,
   },
   mineAccountPrivacyCopy: {
     flex: 1,
@@ -11194,13 +10959,13 @@ const styles = StyleSheet.create({
   },
   mineAccountPrivacyLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   mineAccountPrivacyDetail: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    lineHeight: 14,
+    lineHeight: 17,
   },
   mineAccountDeleteButton: {
     alignItems: 'center',
@@ -11219,20 +10984,23 @@ const styles = StyleSheet.create({
   },
   mineAccountDeleteButtonLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   membershipHostCard: {
     borderTopWidth: 0,
     gap: 8,
     marginTop: 0,
-    paddingHorizontal: 0,
+    paddingHorizontal: 16,
     paddingBottom: 1,
     paddingTop: 0,
     shadowOpacity: 0,
     elevation: 0,
+
+    paddingVertical: 18,
+    borderRadius: 18,
   },
   membershipHostCardCompact: {
-    gap: 5,
+    gap: 10,
   },
   membershipHeaderRow: {
     alignItems: 'flex-start',
@@ -11251,7 +11019,7 @@ const styles = StyleSheet.create({
   },
   membershipHostTitle: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 18,
   },
   membershipSummary: {
@@ -11267,7 +11035,7 @@ const styles = StyleSheet.create({
   },
   membershipInlineStatusText: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 12,
   },
   membershipFocusCard: {
@@ -11279,7 +11047,7 @@ const styles = StyleSheet.create({
   },
   membershipFocusTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   membershipRecoveryCard: {
     borderWidth: 0,
@@ -11336,7 +11104,7 @@ const styles = StyleSheet.create({
   },
   membershipAccessCompactTitle: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 17,
   },
   membershipAccessCompactMeta: {
@@ -11371,7 +11139,7 @@ const styles = StyleSheet.create({
   },
   membershipCompactBenefitLabel: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 12,
   },
   membershipCompactTrialButton: {
@@ -11384,7 +11152,7 @@ const styles = StyleSheet.create({
   },
   membershipCompactTrialLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   membershipCompactPurchaseButton: {
@@ -11398,23 +11166,23 @@ const styles = StyleSheet.create({
   },
   membershipCompactPurchaseLabel: {
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 16,
   },
   membershipAccessStep: {
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 0,
     flex: 1,
     gap: 5,
     minWidth: 0,
     paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   membershipAccessStepCompact: {
     gap: 3,
-    minHeight: 40,
+    minHeight: 55,
     paddingHorizontal: 6,
-    paddingVertical: 5,
+    paddingVertical: 10,
   },
   membershipAccessDot: {
     borderRadius: 999,
@@ -11424,11 +11192,11 @@ const styles = StyleSheet.create({
   },
   membershipAccessLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   membershipAccessValue: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   membershipTrialActionRow: {
     alignItems: 'center',
@@ -11464,23 +11232,26 @@ const styles = StyleSheet.create({
   },
   membershipSecondaryLinkLabel: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '600',
   },
   phoneTabBarWrap: {
-    paddingHorizontal: 16,
+    paddingHorizontal: STUDIO.space.phone,
     paddingBottom: 8,
   },
   phoneTabBar: {
-    borderWidth: 1, borderRadius: 20, flexDirection: 'row', paddingHorizontal: 4, paddingVertical: 2, shadowOpacity: 0, elevation: 0,
+    borderWidth: 0, borderRadius: STUDIO.radius.navigation, flexDirection: 'row', paddingHorizontal: 6, paddingVertical: 6, shadowOpacity: 0.04, elevation: 2,
+
+    shadowRadius: 14,
+    shadowOffset: {width: 0, height: 5},
   },
   phoneTabButton: {
-    flex: 1, alignItems: 'center', gap: 2, minHeight: 48, justifyContent: 'center', paddingVertical: 4, borderRadius: 14,
+    flex: 1, alignItems: 'center', gap: 4, minHeight: 48, justifyContent: 'center', paddingVertical: 4, borderRadius: STUDIO.radius.control,
   },
   phoneTabButtonActive: {
     shadowOpacity: 0, elevation: 0,
   },
   phoneTabLabel: {
-    fontSize: 11, fontWeight: '500', lineHeight: 15,
+    fontSize: 10, fontWeight: '500', lineHeight: 15,
   },
 });
 

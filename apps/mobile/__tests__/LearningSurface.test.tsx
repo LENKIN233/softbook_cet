@@ -686,7 +686,7 @@ test('multiple choice submit is a compact action dock tied to selection state', 
   });
   expect(enabledSubmit.props.disabled).toBe(false);
   expect(StyleSheet.flatten(enabledSubmit.props.style).backgroundColor).toBe(
-    currentTone.accent,
+    currentTone.accentStrong,
   );
   expect(tree!.root.findByProps({testID:'learning-option-1'}).props.accessibilityState.checked).toBe(true);
   ReactTestRenderer.act(() => enabledSubmit.props.onPress());

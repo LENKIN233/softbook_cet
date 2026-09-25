@@ -1,6 +1,7 @@
 import React from 'react';
+import {StudioPressable as Pressable, MotionView} from '../learning/NativeMotion';
+import {STUDIO} from '../visual/studio';
 import {
-  Pressable,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -214,10 +215,10 @@ export function StatisticsSurface({
               usesAccessibilityLayout ? styles.nextStepButtonAccessible : null,
               {
                 backgroundColor: nextStepIsReview
-                  ? palette.warning
+                  ? palette.warningText
                   : palette.primaryActionSurface,
                 borderColor: nextStepIsReview
-                  ? palette.warning
+                  ? palette.warningText
                   : palette.primaryActionSurface,
               },
             ]}
@@ -362,7 +363,7 @@ function MetricLedgerRow({
     tone === 'success'
       ? palette.success
       : tone === 'warning'
-      ? palette.warning
+      ? palette.warningText
       : tone === 'danger'
       ? palette.danger
       : palette.accentStrong;
@@ -373,7 +374,7 @@ function MetricLedgerRow({
         styles.metricLedgerRow,
         grid ? styles.metricLedgerRowGrid : null,
         {
-          backgroundColor: 'transparent',
+          backgroundColor: palette.panel,
           borderColor: 'transparent',
         },
       ]}
@@ -389,12 +390,14 @@ function MetricLedgerRow({
           </Text>
         ) : null}
       </View>
+      <MotionView motionKey={value} kind="result">
       <Text
         style={[styles.metricValue, { color: valueColor }]}
         testID={testID ? `${testID}-value` : undefined}
       >
         {value}
       </Text>
+      </MotionView>
     </View>
   );
 }
@@ -477,10 +480,10 @@ function LedgerRow({
 const styles = StyleSheet.create({
   page: {
     flexGrow: 1,
-    paddingHorizontal: 18,
-    paddingTop: 6,
-    paddingBottom: 8,
-    gap: 10,
+    paddingHorizontal: STUDIO.space.phone,
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 18,
   },
   pageScroll: {
     flex: 1,
@@ -490,7 +493,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 0,
   },
   title: {
@@ -505,7 +508,7 @@ const styles = StyleSheet.create({
   },
   metricLedger: {
     flexDirection: 'row',
-    gap: 7,
+    gap: 10,
   },
   metricLedgerGrid: { flexWrap: 'wrap' },
   metricLedgerRowGrid: { flexBasis: '45%', flexGrow: 1, flexShrink: 1 },
@@ -514,28 +517,28 @@ const styles = StyleSheet.create({
   },
   metricLedgerRow: {
     alignItems: 'flex-start',
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 0,
     flex: 1,
-    gap: 5,
+    gap: 9,
     justifyContent: 'center',
-    minHeight: 78,
+    minHeight: 104,
     minWidth: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingHorizontal: 17,
+    paddingVertical: 18,
   },
   metricValue: {
-    fontSize: 28,
-    fontWeight: '600',
+    fontSize: 34,
+    fontWeight: '500',
     fontVariant: ['tabular-nums'],
-    lineHeight: 28,
+    lineHeight: 41,
     minWidth: 0,
     textAlign: 'left',
   },
   metricLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 17,
+    fontSize: 12,
+    fontWeight: '400',
+    lineHeight: 18,
   },
   metricCopy: {
     flex: 1,
@@ -543,9 +546,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   metricDetail: {
-    fontSize: 10,
-    fontWeight: '600',
-    lineHeight: 13,
+    fontSize: 11,
+    fontWeight: '400',
+    lineHeight: 17,
   },
   surfaceCard: {
     borderWidth: 0,
@@ -560,13 +563,15 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   dailyObjectCard: {
-    gap: 10,
-    paddingHorizontal: 17,
-    paddingVertical: 14,
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+
+    borderRadius: STUDIO.radius.section,
   },
   dailyObjectCardCompact: {
-    gap: 8,
-    paddingVertical: 12,
+    gap: 12,
+    paddingVertical: 22,
   },
   dailyHeader: {
     alignItems: 'center',
@@ -649,10 +654,10 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 0,
     flexShrink: 0,
-    gap: 8,
+    gap: 14,
     overflow: 'hidden',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0,
     shadowRadius: 24,
@@ -666,9 +671,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 18,
     paddingBottom: 12,
     paddingTop: 12,
+
+    paddingVertical: 20,
+    borderRadius: 18,
   },
   nextStepRowAccessible: {
     alignItems: 'stretch',
@@ -695,10 +703,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 10,
-    minHeight: 42,
-    paddingHorizontal: 12,
+    minHeight: 72,
+    paddingHorizontal: 18,
     paddingBottom: 11,
     paddingTop: 11,
+
+    paddingVertical: 18,
+    borderRadius: 18,
   },
   checkInDockRowTablet: {
     alignItems: 'flex-start',
@@ -718,19 +729,19 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     borderWidth: 0,
-    borderRadius: 18,
+    borderRadius: STUDIO.radius.control,
     paddingHorizontal: 12,
     paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
   },
   primaryButtonLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   dailyPrimaryButton: {
-    borderRadius: 999,
+    borderRadius: 14,
     minWidth: 96,
     paddingHorizontal: 13,
     paddingVertical: 8,
@@ -739,7 +750,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   nextStepButton: {
-    borderRadius: 999,
+    borderRadius: 14,
     minWidth: 86,
     paddingHorizontal: 13,
     paddingVertical: 9,
@@ -761,7 +772,7 @@ const styles = StyleSheet.create({
   },
   ledgerValue: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 18,
   },
   ledgerDetail: {

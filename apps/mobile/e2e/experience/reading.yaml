@@ -8,6 +8,17 @@ name: read-material-and-correction
     visible:
       id: learning-option-1
     timeout: 60000
+# Scroll inside the reading region: screen-level visibility includes clipped
+# descendants below this inner viewport, while the action dock stays fixed.
+- swipe:
+    start: 85%, 65%
+    end: 85%, 40%
+    duration: 400
+- scrollUntilVisible:
+    element:
+      id: learning-help-button
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: learning-help-button
 - extendedWaitUntil:
@@ -15,11 +26,28 @@ name: read-material-and-correction
       id: learning-help-content
     timeout: 10000
 - takeScreenshot: driver-help-open
+# Scroll inside the reading region: screen-level visibility includes clipped
+# descendants below this inner viewport, while the action dock stays fixed.
+- swipe:
+    start: 85%, 65%
+    end: 85%, 40%
+    duration: 400
+- scrollUntilVisible:
+    element:
+      id: learning-help-button
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: learning-help-button
 - assertNotVisible:
     id: learning-help-content
 - takeScreenshot: driver-help-closed
+- scrollUntilVisible:
+    element:
+      id: learning-audio-control
+    centerElement: true
+    direction: UP
+    timeout: 10000
 - tapOn:
     id: learning-audio-control
     # Observe playback before a short clip ends; the default iOS settle wait
@@ -37,6 +65,15 @@ name: read-material-and-correction
 - assertVisible:
     id: learning-correct-answer
 - takeScreenshot: answer-first-layer
+# Read to the bottom inside the paper before targeting its last control.
+# iOS exposes off-clip descendants in the screen-level accessibility tree.
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 85%, 65%
+          end: 85%, 40%
+          duration: 350
 - scrollUntilVisible:
     element:
       id: learning-open-result-detail-button
@@ -60,14 +97,31 @@ name: read-material-and-correction
       id: learning-next-button
     direction: DOWN
     timeout: 10000
+# Hosted iOS produced a visible, enabled button but did not deliver one tap.
+# Retry only when the page did not change; the next material assertion catches
+# both a missed advance and an accidental double advance.
 - tapOn:
     id: learning-next-button
+    enabled: true
+    retryTapIfNoChange: true
+    waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
     visible:
       id: learning-current-card
     timeout: 10000
 - waitForAnimationToEnd
 - takeScreenshot: material
+# Scroll inside the reading region: screen-level visibility includes clipped
+# descendants below this inner viewport, while the action dock stays fixed.
+- swipe:
+    start: 85%, 65%
+    end: 85%, 40%
+    duration: 400
+- scrollUntilVisible:
+    element:
+      id: learning-help-button
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: learning-help-button
 - scrollUntilVisible:
@@ -82,6 +136,7 @@ name: read-material-and-correction
 - scrollUntilVisible:
     element:
       id: learning-elimination-passage
+    centerElement: true
     direction: UP
     timeout: 10000
 - takeScreenshot: material-with-support
@@ -101,11 +156,20 @@ name: read-material-and-correction
 - assertVisible:
     id: learning-correct-answer
 - takeScreenshot: elimination-answer
+# Read to the bottom inside the paper before targeting its last control.
+# iOS exposes off-clip descendants in the screen-level accessibility tree.
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 85%, 65%
+          end: 85%, 40%
+          duration: 350
 - scrollUntilVisible:
     element:
       id: learning-open-result-detail-button
     direction: DOWN
-    centerElement: true
+    centerElement: false
     timeout: 10000
 - waitForAnimationToEnd
 - tapOn:

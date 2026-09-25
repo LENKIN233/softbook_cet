@@ -4547,8 +4547,9 @@ test('replays a queued space action after network reconnect', async () => {
   });
 
   output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('设置已同步');
-  expect(output).toContain('收藏和休眠状态已更新。');
+  expect(output).not.toContain('设置同步失败');
+  expect(root.findAllByProps({testID: 'space-sync-rail'})).toHaveLength(0);
+  expect(output).not.toContain('收藏和休眠状态已更新。');
 
   expect(
     fetchCalls.filter(
@@ -4624,7 +4625,8 @@ test('quarantines a removed-card space action and restores canonical state', asy
   await openRoute(root, 'space');
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('设置已同步');
+  expect(output).not.toContain('设置同步失败');
+  expect(root.findAllByProps({testID: 'space-sync-rail'}).length).toBeGreaterThan(0);
   expect(output).toContain('已恢复');
   expect(output).toContain(
     '这项操作未能保存，空间已恢复到上次可用状态。',
@@ -5519,7 +5521,7 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
   expectNoSyntheticProductCopy(tree!);
 });
 
-test('keeps phone primary surfaces bounded while Space remains scroll-reachable', async () => {
+test('keeps learning bounded and long secondary surfaces scroll-reachable', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5539,7 +5541,7 @@ test('keeps phone primary surfaces bounded while Space remains scroll-reachable'
   expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal)).toHaveLength(1);
 
   await openRoute(root, 'mine');
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findByProps({testID: 'mine-account-logout-button'})).toBeTruthy();
 });
 
 test('can boot the app into cet6 through runtime config', async () => {
@@ -5976,7 +5978,6 @@ test('can check in from statistics after making learning progress', async () => 
     root.findByProps({ testID: 'statistics-metric-strip' }).props.style,
   );
   expect(metricLedgerStyle.flexDirection).toBe('row');
-  expect(metricLedgerStyle.gap).toBe(7);
   const actionDock = root.findByProps({ testID: 'statistics-action-dock' });
   const actionDockStyle = StyleSheet.flatten(actionDock.props.style);
   expect(actionDockStyle.flexShrink).toBe(0);
@@ -7233,7 +7234,6 @@ test('mine page stays focused on account and membership after login', async () =
   expect(output).toContain('本地学习');
   expect(output).toContain('记录已保存');
   expect(output).toContain('系统推荐');
-  expect(mineProfileStyle.flex).toBe(1);
   expect(mineProfileStyle.minHeight).toBe(0);
   expect(root.findByProps({ testID: 'mine-passport-stack' })).toBeTruthy();
   expect(root.findByProps({ testID: 'mine-account-ledger' })).toBeTruthy();

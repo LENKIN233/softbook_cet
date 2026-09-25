@@ -1,9 +1,12 @@
+import {StudioPressable as Pressable} from '../learning/NativeMotion';
+import {StudioMark} from '../visual/StudioMark';
+import {StudioRouteIcon} from '../visual/StudioRouteIcon';
+import {STUDIO} from '../visual/studio';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   AppState,
   BackHandler,
-  Pressable,
   ScrollView,
   Share,
   StatusBar,
@@ -551,7 +554,7 @@ export function LocalStudyApp({
     >
       <StatusBar barStyle="dark-content" backgroundColor={palette.background} />
       <View style={styles.header}>
-        <Text style={[styles.brand, { color: palette.text }]}>软书四六级</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}><StudioMark /><Text style={[styles.brand, { color: palette.text }]}>软书</Text></View>
         <Text style={{ color: palette.textMuted }}>
           {examLabel}
         </Text>
@@ -806,12 +809,12 @@ export function LocalStudyApp({
               styles.tab,
               {
                 backgroundColor:
-                  route === value ? palette.panelStrong : 'transparent',
+                  route === value ? STUDIO.color.brandSoft : 'transparent',
               },
             ]}
             testID={`route-tab-${value}`}
           >
-            <Text style={{ color: palette.text }}>{label}</Text>
+            <StudioRouteIcon routeKey={value} active={route === value} color={route === value ? STUDIO.color.brandDeep : palette.textMuted} /><Text style={{fontSize: 10, color: route === value ? STUDIO.color.brandDeep : palette.textMuted}}>{label}</Text>
           </Pressable>
         ))}
       </View>
@@ -825,7 +828,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 25, lineHeight: 34, fontWeight: '600' },
   brand: { fontSize: 17, fontWeight: '600' },
   header: {
-    paddingHorizontal: 22,
+    paddingHorizontal: STUDIO.space.phone,
+    alignItems: 'center',
     paddingVertical: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -835,7 +839,7 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 48,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: STUDIO.radius.control,
     padding: 12,
     justifyContent: 'center',
   },
@@ -849,15 +853,16 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: 'row',
-    marginHorizontal: 16,
+    marginHorizontal: STUDIO.space.phone,
     marginBottom: 8,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: STUDIO.radius.navigation,
     padding: 5,
   },
   tab: {
     flex: 1,
     minHeight: 48,
+    gap: 4,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,

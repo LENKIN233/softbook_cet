@@ -35,12 +35,15 @@
 
 ## 共同表现
 
-暖中性背景，清晰不透明纸面，一层轻微阴影。圆角与描边只用于真正独立的对象；说明段落和结果对照用留白组织。玻璃、grain 和背景光斑均非质量门槛。
+采用 B「轻快」：浅紫灰背景（#F0F0F8）、白色纸面（#FEFEFF）、24px 卡片圆角、14px 操作圆角、轻量章节色条。浮动导航和登录面板使用克制的阴影。圆角与描边只用于真正独立的对象；说明段落和结果对照用留白组织。玻璃、grain 和背景光斑均非质量门槛。
 
-手机题目约 24px/600，正文约 16px/400，辅助信息约 12–14px；实际内容、屏幕宽度与系统字号优先于固定数值。主操作可触达，文字不裁掉，减少动态效果保留全部操作。
+手机题目约 20px/600，正文约 15px/400，辅助信息约 12–14px；实际内容、屏幕宽度与系统字号优先于固定数值。主操作可触达，文字不裁掉，减少动态效果保留全部操作。
+
+动效遵循 `interaction-motion/light-studio-motion-v1.md`：按压、选择、揭示、翻面、换卡、空间层级和播放状态各自表达实际反馈，后台与减少动态效果设置停止装饰循环。
 
 ## 设计映射
 
+- 当前三端决定：`docs/design/decisions/light-studio-three-surfaces-v1.md`。
 - 渲染基准：`docs/design/visual-reference.html`。
 - Learning：`docs/design/decisions/learning-interaction-evolution-v1.md`、`docs/design/interaction-motion/learning-core-interactions-v1.md`。
 - Space：`docs/design/physical-space/space-model-v1.md`。

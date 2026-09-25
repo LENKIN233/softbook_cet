@@ -1,3 +1,5 @@
+import {StudioMark} from './StudioMark';
+import {StudioAudio} from './StudioAudio';
 import {useChinaDay} from '../../mobile/src/local/useStudyProfile';
 import {lazy, Suspense} from 'react';
 import {isLongQuestion, stackChoiceOptions} from '../../mobile/src/learning/readability';
@@ -6,7 +8,7 @@ import {createLocalLearningStore, LocalLearningStorageError, type LocalLearningS
 import {getChinaDayKey as chinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {authFailure} from '../../mobile/src/auth/authErrorCopy';
 import {endsLocalBatch, localBatch, localResumeIndex} from '../../mobile/src/learning/localBatch';
-import {frontMaterial, eliminationPassage, answerComparison, spaceCardPreview} from '../../mobile/src/learning/presentation';
+import {displayCardText, frontMaterial, eliminationPassage, answerComparison, spaceCardPreview} from '../../mobile/src/learning/presentation';
 import {resolveLibraryTone} from '../../mobile/src/visual/tokens';
 import {useObjectMotion, useRouteMotion, transitionObjectName} from './motion';
 import {
@@ -78,13 +80,13 @@ const ROUTES: {id: RouteKey; label: string}[] = [
 
 function RouteIcon({route}: {route: RouteKey}) {
   if (route === 'learning') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h9a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3v-12Z"/><path d="M17 7.5h2a2 2 0 0 1 2 2v10h-8"/><path d="M8.5 9h5M8.5 12.5h5"/></svg>;
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3" width="17" height="18" rx="5"/><path d="M8 5v14M12 10h5M12 15h3"/></svg>;
   }
   if (route === 'space') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 12 3l8 3.5-8 3.5-8-3.5Z"/><path d="m4 11 8 3.5 8-3.5M4 15.5l8 3.5 8-3.5"/></svg>;
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 11 5-3m-5 7 6 2"/><circle cx="5.5" cy="13" r="3.2"/><circle cx="15" cy="6.5" r="3.2"/><circle cx="17" cy="18" r="3.2"/></svg>;
   }
   if (route === 'statistics') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19V9m7 10V5m7 14v-7"/></svg>;
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21v-9m6 9V7m6 14V3"/></svg>;
   }
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>;
 }
@@ -93,7 +95,7 @@ function libraryStyle(library?: string): React.CSSProperties {
   const tone = resolveLibraryTone(library);
   const channels = tone.accent.slice(1).match(/../g)!.map(value => parseInt(value, 16) / 255).map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
   const luminance = channels.reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
-  return {'--hall': tone.accent, '--hall-soft': tone.accentSoft, '--hall-deep': '#41464F', '--on-hall': 1.05 / (luminance + 0.05) >= 4.5 ? '#FFFFFF' : '#0B0B14'} as React.CSSProperties;
+  return {'--hall': tone.accent, '--hall-action': tone.accentStrong, '--hall-soft': tone.accentSoft, '--hall-deep': tone.accentStrong, '--on-hall': 1.05 / (luminance + 0.05) >= 4.5 ? '#FFFFFF' : '#0B0B14'} as React.CSSProperties;
 }
 
 const PHONE_PATTERN = /^1\d{10}$/;
@@ -1225,7 +1227,7 @@ function AccountApp({
 
   if (runtime.mode === 'development' && authStage !== 'authenticated') {
     return <main className="auth-shell"><section className="auth-object" aria-labelledby="local-entry-title">
-      <div className="brand-lockup"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
+      <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
       <h1 id="local-entry-title">在这台设备上学习</h1>
       <p className="lede">无需手机号或验证码。学习记录保存在当前浏览器中。</p>
       {localSaveError ? <p className="notice error" role="alert">{localSaveError}</p> : null}
@@ -1242,7 +1244,7 @@ function AccountApp({
     return (
       <main className="auth-shell">
         <section className="auth-object" aria-labelledby="auth-title">
-          <div className="brand-lockup"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
+          <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
           <h1 id="auth-title" className="auth-title">
             {authStage === 'phone' ? '登录软书' : '输入验证码'}
           </h1>
@@ -1292,13 +1294,12 @@ function AccountApp({
   return (
     <div className="app-shell">
       <header className="mobile-header">
-        <div className="brand-lockup"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
-        {route !== 'mine' ? (
-          <button className="text-button" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => void signOut()}>退出</button>
-        ) : null}
+        <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
+        <p className="studio-header-note">今天，也轻松学一点。</p>
+        <button className="course-switch" aria-label="选择备考科目" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}>{(session?.track ?? runtime.track) === 'cet6' ? 'CET 6' : 'CET 4'} <span aria-hidden="true">⌄</span></button>
       </header>
       <nav className="route-rail" aria-label="主要导航">
-        <div className="brand-lockup rail-brand"><span aria-hidden="true" className="brand-mark">软</span><span className="wordmark">软书四六级</span></div>
+        <div className="brand-lockup rail-brand"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
         <div className="route-list">
           {ROUTES.map(item => (
             <button
@@ -1616,7 +1617,8 @@ function LearningSurface(props: LearningSurfaceProps) {
   useEffect(() => {
     if (!resolved || !answerRef.current) return;
     answerRef.current.focus({preventScroll: true});
-    answerRef.current.scrollIntoView?.({block: 'start'});
+    const body = cardRef.current?.querySelector('.paper-body');
+    if (body) body.scrollTop = 0;
   }, [resolved]);
   useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
@@ -1649,19 +1651,20 @@ function LearningSurface(props: LearningSurfaceProps) {
     if (canSubmitLearningCard(card, next)) onResolve(next);
     else patchState(next);
   };
-  const audioControl = card.audio ? <div className="audio-resource"><button className="audio-action" disabled={props.onPlayAudio === null || props.busy || props.audioStatus === 'loading'} onClick={props.onPlayAudio ?? undefined}>{props.audioStatus === 'loading' ? '正在准备音频' : props.audioStatus === 'playing' ? '暂停音频' : props.audioStatus === 'paused' ? '继续播放' : props.audioStatus === 'error' ? '重试播放' : '播放音频'}</button></div> : null;
+  const audioControl = card.audio ? <StudioAudio status={props.audioStatus} durationMs={card.audio.duration_ms} disabled={props.busy} onPlay={props.onPlayAudio} /> : null;
   const interaction = <Interaction key={props.motionIdentity} card={card} state={cardState} onFlip={onFlip} resolved={false} patch={patchState} disabled={props.busy || motionBusy || Boolean(props.queuedResult)}
             onResolveLock={resolveLock}
             onResolveFlip={value => onResolve({...cardState, isFlipped: true, flipConfidence: value})}
             onResolveSwipe={value => onResolve({...cardState, swipeSelection: value})} />;
   return <main className="workbench learning-workbench" style={libraryStyle(library)} aria-labelledby="learning-title">
     <div className="learning-address">
-      <button className="text-button address-button" onClick={props.onOpenSpace}><span className="library-dot" />{courseName} · {library} / {group} / <strong id="learning-title">{box}</strong></button>
-      <span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '复习' : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span>
+      <button className="address-button" onClick={props.onOpenSpace}><small><span className="library-dot" />{courseName} · {library} / {group}</small><strong id="learning-title">{box}</strong></button>
+      <div className="studio-address-tools"><span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '复习' : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span><button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button></div>
     </div>
     {props.serverSequenced && resolved && motionBusy ? <p className="notice next-card-status" role="status">正在准备下一张…</p> : null}
+    <div className="studio-learning-layout">
     <article ref={cardRef} inert={props.serverSequenced && Boolean(resolved) && motionBusy} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
-      <div className="paper-identity"><span>{props.phase === 'review' ? '复习' : INTERACTION_LABELS[card.interaction_id]}</span><button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button></div>
+      <span className="sr-only">{props.phase === 'review' ? '复习' : INTERACTION_LABELS[card.interaction_id]}</span>
       <div className="paper-body">
         {resolved ? audioControl : null}
         {resolved ? <section className={`result-slip ${resultTone(resolved)}`} aria-label="答案对照" aria-live="polite">
@@ -1675,8 +1678,8 @@ function LearningSurface(props: LearningSurfaceProps) {
           {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary>听力原文</summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           <ResultExplanation card={card} />
         </section> : <>
-          {card.interaction_id !== 'swipe' ? <h2 className={isLongQuestion(backVisible ? comparison.correct : card.front.prompt) ? 'long-question' : undefined}>{backVisible ? comparison.correct : card.front.prompt}</h2> : null}
-          {backVisible ? <p className="question-context">{card.front.prompt}</p> : null}
+          {card.interaction_id !== 'swipe' ? <h2 className={isLongQuestion(backVisible ? comparison.correct : card.front.prompt) ? 'long-question' : undefined}>{backVisible ? comparison.correct : displayCardText(card, card.front.prompt)}</h2> : null}
+          {backVisible ? <p className="question-context">{displayCardText(card, card.front.prompt)}</p> : null}
           {!backVisible ? material.map(text => <p className="front-material" key={text}>{text}</p>) : null}
           {audioControl}
           {card.interaction_id !== 'flip' ? interaction : null}
@@ -1689,6 +1692,8 @@ function LearningSurface(props: LearningSurfaceProps) {
       </div>
       {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>{continueLabel}</button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}>提交答案</button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
     </article>
+    <aside className="learning-context"><p className="context-caption">这一张，在这里</p><p className="context-address">{library} / {group}</p><button className="context-box" onClick={props.onOpenSpace}><small>我的知识空间</small><strong>{box}</strong></button><p>学过的卡片仍在原来的盒子里。<br/>想回看时，总能找到。</p><button className="text-button" onClick={props.onOpenSpace}>看看这个盒子 →</button></aside>
+    </div>
     {resolved || !backVisible ? <p className="shortcut-note">{resolved ? `键盘：Enter ${continueLabel}` : shortcutLabel(card)}</p> : null}
   </main>;
 }
@@ -1938,7 +1943,7 @@ function SwipeInteraction({
             <span aria-hidden="true">{index === 0 ? '←' : '→'}</span>
             <span>
               <strong>{item.label}</strong>
-              <small>{item.description}</small>
+              {item.description.trim() !== item.label.trim() ? <small>{item.description}</small> : null}
             </span>
           </button>
         ))}
@@ -2008,7 +2013,8 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, pendingReviewIds, 
     </section> : <>
     <section className="shelf-map" aria-label="知识空间层级">
       <div className="library-tabs" aria-label="书架">{libraries.map(library => <button key={library} className={selectedBox?.library === library ? 'library-tab selected' : 'library-tab'} aria-pressed={selectedBox?.library === library} onClick={() => {const first = boxes.find(box => box.library === library); if (first) selectBox(first);}}><span style={{backgroundColor: resolveLibraryTone(library).accent}} />{library}</button>)}</div>
-      <div className="shelf-groups">{groups.map(group => <section className="shelf-group" key={group} aria-label={group}><h2>{group}</h2><div className="sibling-boxes">{boxes.filter(box => box.library === selectedBox?.library && box.group === group).map(box => <button key={box.boxRef} className={box.boxRef === selectedBox?.boxRef ? 'shelf-box selected' : 'shelf-box'} aria-label={`${box.box} ${box.cards.length} 张`} aria-current={box.boxRef === selectedBox?.boxRef ? 'location' : undefined} onClick={() => selectBox(box)}><strong>{box.box}</strong><small>{box.cards.length} 张</small></button>)}</div></section>)}</div>
+      <div className="space-group-tabs" aria-label="书架分区">{groups.map(group => <button key={group} aria-pressed={selectedBox?.group === group} onClick={() => {const first = boxes.find(box => box.library === selectedBox?.library && box.group === group); if (first) selectBox(first);}}>{group}</button>)}</div>
+      <div className="shelf-groups">{groups.filter(group => group === selectedBox?.group).map(group => <section className="shelf-group" key={group} aria-label={group}><h2>{group}</h2><div className="sibling-boxes">{boxes.filter(box => box.library === selectedBox?.library && box.group === group).map(box => <button key={box.boxRef} className={box.boxRef === selectedBox?.boxRef ? 'shelf-box selected' : 'shelf-box'} aria-label={`${box.box} ${box.cards.length} 张`} aria-current={box.boxRef === selectedBox?.boxRef ? 'location' : undefined} onClick={() => selectBox(box)}><strong>{box.box}</strong><small>{box.cards.length} 张</small></button>)}</div></section>)}</div>
     </section>
     <section ref={boxTray} tabIndex={-1} className="box-tray" aria-label={`当前卡盒 ${selectedBox?.box ?? '暂无'}`}>
       <div className="workbench-heading"><div aria-label="当前卡片位置"><p className="eyebrow"><span>{selectedBox?.library}</span> / <span>{selectedBox?.group}</span></p><h1 id="space-title">{selectedBox?.box ?? '当前没有卡盒'}</h1></div><span className="counter">{selectedBox?.cards.length ?? 0} 张</span></div>
@@ -2208,7 +2214,7 @@ function MineSurface({
         {canDeleteAccount ? '注销账号' : localOnly ? '本地体验无需注销账号' : '暂时无法注销账号'}
       </button>
     )}
-    <button className="tool danger" disabled={busy || accountLocked} onClick={onLogout}>{localOnly ? '返回首页' : '退出登录'}</button>
+    <button className="text-button account-logout" disabled={busy || accountLocked} onClick={onLogout}>{localOnly ? '返回首页' : '退出登录'}</button>
   </section></main>;
 }
 
@@ -2329,8 +2335,8 @@ function AccountDeletionRecoverySurface({
     <main className="auth-shell">
       <section className="auth-object" aria-labelledby="deletion-recovery-title">
         <div className="brand-lockup">
-          <span aria-hidden="true" className="brand-mark">软</span>
-          <span className="wordmark">软书四六级</span>
+          <span aria-hidden="true" className="brand-mark"><StudioMark /></span>
+          <span className="wordmark">软书</span>
         </div>
         <p className="eyebrow">注销进度</p>
         <h1 id="deletion-recovery-title">查询注销进度</h1>

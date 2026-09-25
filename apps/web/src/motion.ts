@@ -1,8 +1,9 @@
 import {useCallback, useLayoutEffect, useRef, useState, type RefObject} from 'react';
 import {flushSync} from 'react-dom';
+import {STUDIO} from '../../mobile/src/visual/studio';
 
 export const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-const easing = 'cubic-bezier(.2,.75,.25,1)';
+const easing = STUDIO.motion.easing;
 
 // Pair only the same card across routes, even if scheduling changes mid-transition.
 export const transitionObjectName = (cardId: string) =>
@@ -29,7 +30,7 @@ export function useObjectMotion(identity: string | null, ref: RefObject<HTMLElem
     const changed = previous.current !== identity;
     previous.current = identity;
     if (changed && node?.animate && !prefersReducedMotion()) {
-      running.current = node.animate([{opacity: 0, transform: 'translateX(28px)'}, {opacity: 1, transform: 'none'}], {duration: 200, easing});
+      running.current = node.animate([{opacity: 0, transform: 'translateX(28px)'}, {opacity: 1, transform: 'none'}], {duration: STUDIO.motion.enter, easing});
       void running.current.finished.catch(() => undefined);
     }
     const preference = window.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -71,7 +72,7 @@ export function useObjectMotion(identity: string | null, ref: RefObject<HTMLElem
       running.current = ref.current.animate([
         {opacity: 0, transform: kind === 'flip' ? 'perspective(1000px) rotateY(-80deg)' : 'translateX(28px)'},
         {opacity: 1, transform: 'none'},
-      ], {duration: 180, easing});
+      ], {duration: STUDIO.motion.release, easing});
       void running.current.finished.catch(() => undefined);
     };
     const commit = () => {
@@ -93,7 +94,7 @@ export function useObjectMotion(identity: string | null, ref: RefObject<HTMLElem
     commitPending.current = commit;
     if (!node?.animate || prefersReducedMotion()) {commit(); return;}
     try {
-      running.current = node.animate([{opacity: 1, transform: getComputedStyle(node).transform}, {opacity: 0, transform}], {duration: kind === 'left' || kind === 'right' ? 220 : 130, easing, fill: 'forwards'});
+      running.current = node.animate([{opacity: 1, transform: getComputedStyle(node).transform}, {opacity: 0, transform}], {duration: kind === 'left' || kind === 'right' ? STUDIO.motion.reveal : STUDIO.motion.leave, easing, fill: 'forwards'});
       void running.current.finished.then(commit, commit);
     } catch {commit();}
   }, [identity, ref]);
