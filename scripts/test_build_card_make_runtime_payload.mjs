@@ -12,6 +12,7 @@ import {
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {
+  buildAnalysis,
   buildFront,
   buildCanonicalSpaceMetadata,
   buildCorrectOption,
@@ -491,6 +492,15 @@ function testFrontDoesNotBorrowAnAnswer() {
   assert.doesNotMatch(JSON.stringify(textOnly), /INTERNAL_GOAL|ANSWER_FROM_/);
 }
 
+function testAnalysisHeadingIsReaderFacing() {
+  const card = {card_id: '000001', quality_metadata: {main_training_goal: '在本任务中依据证据执行判断'}, analysis: {text: 'but 后的内容才是说话人采用的解释。', tips: ['注意转折前后的观点。']}};
+  const result = buildAnalysis(card, {box: '转折关系'});
+  assert.equal(result.title, '解析');
+  assert.equal(result.summary, card.analysis.text);
+  assert.equal(result.exam_tip, card.analysis.tips[0]);
+  assert.equal(buildAnalysis({...card, analysis: {...card.analysis, title: '听清转折后的观点'}}, {}).title, '听清转折后的观点');
+}
+testAnalysisHeadingIsReaderFacing();
 testFrontDoesNotBorrowAnAnswer();
 assert.deepEqual(roundRobin([['a', 'b'], ['c']]), ['a', 'c', 'b']);
 testBooleanSwipeIdentifiers();

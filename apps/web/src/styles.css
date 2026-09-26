@@ -340,8 +340,7 @@ input + label { margin-top: .75rem; }
 .rail-brand {justify-content:center;padding:0;}
 .rail-brand .wordmark,.rail-account > span:last-child {display:none;}
 .mobile-header .brand-lockup {display:none;}
-.studio-header-note {font-size:13px;font-weight:500;margin:0;color:var(--ink-2);}
-.course-switch {display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:22px;min-height:44px;padding:8px 14px;background:transparent;font-size:11px;font-weight:600;cursor:pointer;}
+.course-switch {margin-left:auto;display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:22px;min-height:44px;padding:8px 14px;background:transparent;font-size:11px;font-weight:600;cursor:pointer;}
 .studio-learning-layout {display:grid;grid-template-columns:minmax(0,1fr) 196px;gap:36px;align-items:start;}
 .learning-address::after {content:'';position:absolute;width:92px;height:92px;border:22px solid rgba(255,255,255,.28);border-radius:50%;right:50px;top:-33px;pointer-events:none;}
 .address-button small {font-size:11px;font-weight:400;color:var(--muted);}
@@ -379,7 +378,7 @@ input + label { margin-top: .75rem; }
 .account-track-selector button + button {margin-left:0;}
 @media(max-width:1100px){.studio-learning-layout{grid-template-columns:minmax(0,1fr)}.learning-context{display:none}.learning-address{width:100%}.learning-workbench{max-width:820px}}
 @media(max-width:760px){
- .mobile-header .brand-lockup{display:flex}.studio-header-note{display:none}.course-switch{font-size:10px;min-height:44px;}
+ .mobile-header .brand-lockup{display:flex}.course-switch{font-size:10px;min-height:44px;}
  .learning-address{padding:13px 16px;border-radius:20px;gap:8px;min-height:76px;margin-bottom:12px;flex-shrink:0;}
  .learning-address .address-button{gap:4px;}.address-button strong{font-size:21px;line-height:1.4}.address-button small{font-size:10px;}
  .studio-address-tools{gap:3px}.studio-address-tools .counter{font-size:14px}.card-favorite{width:38px;font-size:21px;}

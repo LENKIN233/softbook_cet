@@ -709,13 +709,6 @@ export function LearningSurface({
                 ]}
               >
                 <View style={styles.studyTitleWrap}>
-                  {!isCompactPhone ? (
-                    <Text
-                      style={[styles.cardEyebrow, { color: palette.textMuted }]}
-                    >
-                      先读题干
-                    </Text>
-                  ) : null}
                   <Text
                     style={[
                       styles.cardPrompt,

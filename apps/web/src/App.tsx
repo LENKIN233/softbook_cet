@@ -1249,7 +1249,7 @@ function AccountApp({
             {authStage === 'phone' ? '登录软书' : '输入验证码'}
           </h1>
           <p className="lede">{authStage === 'phone' ? '未注册的手机号，验证后将自动创建账号。' : '请填写验证码。'}</p>
-          {import.meta.env.MODE === 'backend' ? <p className="notice">本地联调使用测试验证码，见启动终端；不会发送短信。</p> : null}
+          {import.meta.env.MODE === 'backend' ? <p className="notice">本地体验使用测试验证码，不发送短信。</p> : null}
           <div className="field-stack">
             <label htmlFor="phone">手机号</label>
             <input
@@ -1295,7 +1295,6 @@ function AccountApp({
     <div className="app-shell">
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
-        <p className="studio-header-note">今天，也轻松学一点。</p>
         <button className="course-switch" aria-label="选择备考科目" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}>{(session?.track ?? runtime.track) === 'cet6' ? 'CET 6' : 'CET 4'} <span aria-hidden="true">⌄</span></button>
       </header>
       <nav className="route-rail" aria-label="主要导航">
@@ -1692,7 +1691,7 @@ function LearningSurface(props: LearningSurfaceProps) {
       </div>
       {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>{continueLabel}</button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}>提交答案</button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
     </article>
-    <aside className="learning-context"><p className="context-caption">这一张，在这里</p><p className="context-address">{library} / {group}</p><button className="context-box" onClick={props.onOpenSpace}><small>我的知识空间</small><strong>{box}</strong></button><p>学过的卡片仍在原来的盒子里。<br/>想回看时，总能找到。</p><button className="text-button" onClick={props.onOpenSpace}>看看这个盒子 →</button></aside>
+    <aside className="learning-context"><p className="context-caption">卡片位置</p><p className="context-address">{library} / {group}</p><button className="context-box" onClick={props.onOpenSpace}><small>打开卡盒 →</small><strong>{box}</strong></button></aside>
     </div>
     {resolved || !backVisible ? <p className="shortcut-note">{resolved ? `键盘：Enter ${continueLabel}` : shortcutLabel(card)}</p> : null}
   </main>;

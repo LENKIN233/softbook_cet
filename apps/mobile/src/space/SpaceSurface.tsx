@@ -536,7 +536,7 @@ export function SpaceSurface({
             ) : null}
 
             <Text style={[styles.locationText, { color: emptyTone.accent }]}>
-              {currentCardPath ? '当前学习卡在这里' : '还没有当前学习卡'}
+              {currentCardPath ? '当前学习卡' : '还没有当前学习卡'}
             </Text>
 
             <View style={styles.boxShelf} testID="space-current-position">

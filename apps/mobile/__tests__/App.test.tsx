@@ -5581,6 +5581,10 @@ test('keeps source bootstrap errors inside learning and can retry', async () => 
 
   const root = tree!.root;
   await authenticateIntoLearningBootstrap(root);
+  const loadingCopy = JSON.stringify(tree!.toJSON());
+  expect(loadingCopy.match(/正在加载卡片…/g)).toHaveLength(1);
+  expect(loadingCopy).not.toContain('加载完成后自动开始');
+  expect(root.findAllByProps({testID: 'learning-bootstrap-retry-button'})).toHaveLength(0);
   await rejectLearningBootstrap('学习卡源暂时不可达。');
 
   let output = JSON.stringify(tree!.toJSON());
