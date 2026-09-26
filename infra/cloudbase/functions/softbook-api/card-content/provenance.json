@@ -1,7 +1,7 @@
 {
   "schema_version": "bundled-card-library.v1",
   "upstream_repository": "LENKIN233/card-make",
-  "upstream_commit": "cc50bb6da6a0ebfc40e10b1c977eb3b1edb89ae8",
+  "upstream_commit": "dfbadb509600267ced4847a1b18286d7756d4c48",
   "release_authorization": "candidate",
   "tracks": {
     "cet4": {

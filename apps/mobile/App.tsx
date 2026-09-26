@@ -6184,7 +6184,8 @@ function AppShell({
       learningStateSyncState={learningStateSyncState}
       progressSyncState={progressSyncState}
     />
-  ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
+  ) : route.key === 'learning' &&
+    (learningBootstrapStatus !== 'ready' || learningSession === null) ? (
     <LearningBootstrapSurface
       error={
         learningBootstrapStatus === 'error' ? learningBootstrapError : null
@@ -6192,7 +6193,7 @@ function AppShell({
       onOpenUpdate={authHandlers.onOpenUpdate}
       onRetry={retryLearningBootstrap}
       palette={palette}
-      status={learningBootstrapStatus}
+      status={learningBootstrapStatus === 'ready' ? 'loading' : learningBootstrapStatus}
     />
   ) : route.key === 'learning' &&
     learningPhase === 'learning' &&
