@@ -11,7 +11,7 @@
       "context": "原句：只有通过长期制度建设，基层治理能力才能持续增强。\n\n先做汉译英，再补全骨架：\nOnly through long-term institutional development {{blank}} grassroots governance capacity {{blank}} continuously strengthened."
     },
     "analysis": {
-      "title": "在“倒装句”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "Only through 前置触发倒装，且被动语态用 be + done。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -63,7 +63,7 @@
       "context": "原句：在任何情况下，我们都不能忽视制度执行力对改革成效的影响。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“倒装句”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "Under no circumstances 前置后主句应倒装。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -87,7 +87,7 @@
       "context": "原句：许多城市为了鼓励更多人乘坐公交车出行，一直在努力改善公交服务质量。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "To encourage 表示目的，have been working 保留一直努力。so that 从句也可表达目的，并非只因更长就不正确。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -111,7 +111,7 @@
       "context": "原句：通过这些努力，他们期望孩子健康成长，为国家的发展和繁荣作出贡献。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“增加非谓语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "expect sb to do 是高频非谓语框架，能够把「期望孩子做两件事」压缩在一个结构里。后面并列两个动词原形 grow up 和 make，避免重复从句。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -135,7 +135,7 @@
       "context": "原句：中国政府通过加大资金投入和政策引导，鼓励新能源汽车企业进行技术创新，不断提高产品在市场上的竞争力。\n\n先做汉译英，再补全非谓语骨架：\nBy increasing capital investment and providing policy guidance, the Chinese government encourages new energy vehicle enterprises to carry out technological innovation, {{blank}} product competitiveness in the market."
     },
     "analysis": {
-      "title": "在“增加非谓语”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "句尾用现在分词 improving 作为结果/伴随补充，把「不断提高」压缩成非谓语。这样既保留过程感，又避免再起一个并列谓语句，信息层级更清晰。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -176,7 +176,7 @@
       "context": "原句：大量移动应用程序的开发使人们能用手机读小说和其他形式的文学作品。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“增加非谓语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "enable sb to do 是标准非谓语搭配。中文的「使某人能……」若硬拆成 that 从句，语义可以通，但通常不如 enable + to do 简洁稳妥。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -200,7 +200,7 @@
       "context": "原句：近年来，由于私家车数量不断增多，城市交通问题越来越严重。\n\n任务：先汉译英，再检查你是否把原因背景压成 with 结构或分词结构，避免中文式直译堆叠。"
     },
     "analysis": {
-      "title": "在“增加非谓语”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "with + 名词 + doing 可以高效承载背景变化条件。这里用 with the number ... increasing，把「私家车数量不断增多」压缩成背景伴随信息，主句聚焦在「交通问题加剧」。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -224,7 +224,7 @@
       "context": "原句：据说他的风筝用木头和竹子制作，飞了三天后才落地。\n\n先做汉译英，再补全非谓语骨架：\nIt is said that his kite, made of wood and bamboo, stayed in the air for three days before {{blank}}."
     },
     "analysis": {
-      "title": "在“增加非谓语”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "before 后接动作名词化时常用 doing。这里 before landing 对应「才落地」，同时 made of wood and bamboo 也是过去分词短语，压缩了定语信息。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -265,7 +265,7 @@
       "context": "原句：学生们提前到达教室，准备小组展示所需的设备。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "to set up 表示提前到达的目的，for... 标明设备的用途。不要把两个动作之间的关系改成转折。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -289,7 +289,7 @@
       "context": "原句：科研团队历时三年完成了这项实验，证明了该理论的实际可行性。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "Having spent 与主句共用 research team 这个施动者。也可以用 After spending...；不能为压缩结构而漏译完成实验。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -313,7 +313,7 @@
       "context": "原句：在改造老旧小区的同时，许多城市完善了面向行动不便居民的公共无障碍设施。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "While renovating 与 cities 共用逻辑主语；后半句说明设施服务对象，不能从无障碍推出适用于所有特殊医疗需求。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -337,7 +337,7 @@
       "context": "原句：通过优化政务流程并引入智能审核系统，审批效率显著提升。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "两个措施作主语，审批效率提高作结果。不要让 efficiency 成为优化流程的执行者。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -361,7 +361,7 @@
       "context": "原句：完善社区托育服务网络，能够有效减轻年轻家庭的照护压力。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "Improving... 是动名词主语，can ease 表达作用；它不是目的状语。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -385,7 +385,7 @@
       "context": "原句：推动公共交通一体化建设，为城市低碳转型提供了长期支撑。 先做汉译英，再补全骨架： Promoting integrated public transportation development has provided long-term support {{blank}} urban low-carbon transformation."
     },
     "analysis": {
-      "title": "在翻译中准确组织增加非谓语的信息与结构",
+      "title": "解析",
       "summary": "support 后的 for 引出得到支持的事业，即 urban low-carbon transformation。这里不是把 support 直接接成 support to doing，也不应把城市转型误译为提供支持的人。",
       "exam_tip": "support 后的 for 引出得到支持的事业，即 urban low-carbon transformation。"
     },
@@ -426,7 +426,7 @@
       "context": "原句：这座老街形成于数百年前，至今仍保留着传统商铺和狭窄巷道。\n\n任务：先划分“历史起点”和“延续到现在”两条时间线，再决定英文时态。"
     },
     "analysis": {
-      "title": "依据历史起点与当前状态分别选择英文时态",
+      "title": "解析",
       "summary": "历史文化翻译常在一句内切换时间层。不能看到“至今”就把整句都写成现在完成时，要分别判断每个动作的时间边界。",
       "exam_tip": "处理历史文化段落中常见的过去事实与现状并置，减少全句时态机械统一。"
     },
@@ -450,7 +450,7 @@
       "context": "原句：节日期间，当地居民会在广场上表演传统舞蹈，并邀请游客一同参加。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "一般现在时表达习俗，invite somebody to do 表示邀请。广场、游客和共同参加都应保留。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -474,7 +474,7 @@
       "context": "原句：经过多次修缮，这座古戏台得以保存至今，并继续用于社区演出。\n\n完成译文：After several repairs, the old stage {{blank}} to the present day and continues to be used for community performances.\n\n词库：has been preserved / preserved / is preserving / has preserved"
     },
     "analysis": {
-      "title": "综合延续时间和被动关系翻译“保存至今”",
+      "title": "解析",
       "summary": "“得以保存至今”同时包含延续时间和被动关系，必须组合为 has been + 过去分词，不能只满足其中一个条件。",
       "exam_tip": "完成历史文化翻译中高频的现在完成时被动结构，减少时态或语态只对一半。"
     },
@@ -515,7 +515,7 @@
       "context": "原句：这项古代水利工程体现了人们根据当地地形引导水流的智慧。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "wisdom in doing 连接智慧与具体做法。according to the local terrain 保留地形条件。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -539,7 +539,7 @@
       "context": "原句：自当地博物馆开放以来，它一直接待学校参观团并举办面向公众的讲座。\n\n判断：下面译文已经完整表达了从过去延续到现在的时间关系。\n\nSince the local museum opened, it welcomed visiting school groups and organized public lectures."
     },
     "analysis": {
-      "title": "校正 since 起点与现在完成时主句的配合",
+      "title": "解析",
       "summary": "since 从句给出过去起点，主句需要现在完成时表达活动从开放后持续到现在。",
       "exam_tip": "训练历史文化设施描述中的起点与延续时态，避免只翻出过去事实。"
     },
@@ -578,7 +578,7 @@
       "context": "原句：在传统庆典中，红灯笼常象征团聚和美好祝愿。\n\n补全译文：In traditional celebrations, red lanterns often {{blank}} reunion and good wishes.\n\n词库：symbolize / are decorated with / are symbolized by / has symbolized"
     },
     "analysis": {
-      "title": "按文化符号与所指含义选择 symbolize 的语态和形式",
+      "title": "解析",
       "summary": "red lanterns 是复数主语，也是发出“象征”关系的文化符号，因此使用主动原形 symbolize。",
       "exam_tip": "训练文化象征句中的事件角色、主动语态和主谓一致。"
     },
@@ -619,7 +619,7 @@
       "context": "原句：许多传统技艺通过社区课程得以传承，并逐渐融入现代设计。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "两个被动动作共用 have been，through 表示传承途径。gradually 仅说明渐进过程，不能漏掉。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -643,7 +643,7 @@
       "context": "原句：这项木雕技艺由师傅传给学徒，至今仍在当地使用。\n\n补全译文：This woodcarving technique has been passed down {{blank}} masters {{blank}} apprentices and is still practiced locally today.\n\n词库：from / to / by / through"
     },
     "analysis": {
-      "title": "用 from A to B 保留技艺传承的方向",
+      "title": "解析",
       "summary": "from A to B 明确传承方向；has been passed down 表示延续到现在的被动传承。",
       "exam_tip": "翻译传承关系时，同时保留起点、终点、被动和延续信息。"
     },
@@ -695,7 +695,7 @@
       "context": "原句：京剧凝聚了中国传统审美，也记录了不同时代的社会生活。\n\n任务：先汉译英，再检查是否把“审美价值 + 历史记录”两层并列完整表达。"
     },
     "analysis": {
-      "title": "在“历史文化”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "并列句可同时承载文化价值与历史功能两层信息。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -719,7 +719,7 @@
       "context": "原句：古丝绸之路促进了中外贸易往来，也推动了文明交流互鉴。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“历史文化”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "not only ... but also ... 能凸显历史作用的双重并列结果。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -743,7 +743,7 @@
       "context": "原句：传统节日延续了文化记忆，也增强了人们的共同体认同。\n\n先做汉译英，再补全骨架：\nTraditional festivals have preserved cultural memory, {{blank}} strengthening people's sense of community identity {{blank}} reinforcing cultural continuity."
     },
     "analysis": {
-      "title": "在“历史文化”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "主句后可用 while doing ... and doing ... 承接并列补充效果。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -795,7 +795,7 @@
       "context": "原句：文化遗产保护提升了城市文化品位，也带动了文旅融合发展。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“历史文化”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "improved ... and promoted ... 并列承接双结果，语义清晰。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -819,7 +819,7 @@
       "context": "原句：过去几年里，移动支付市场在中国蓬勃发展。\n\n任务：先汉译英，再检查你是否把“过去几年里”与现在完成进行中的发展趋势准确挂钩。"
     },
     "analysis": {
-      "title": "在“社会发展”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "社会发展类句子常描述“近年持续变化”，时间锚点是过去到现在的区间。用 has been booming 可以保留持续增长态势，比简单过去时更贴近趋势叙述。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -843,7 +843,7 @@
       "context": "原句：这种旅游形式不仅能使城市游客受益，同时也能增加农民的收入，促进农村经济发展。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“社会发展”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "not only ... but also ... 结构里，后半句可并列多个同级动作。这里 keeps one subject (this form of tourism) and carries two coordinated outcomes, matching the Chinese progression.",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -867,7 +867,7 @@
       "context": "原句：这家社区图书馆共有两万册图书，其中儿童读物占四分之一。\n\n补全译文：\nThe community library has 20,000 books, with children’s books {{blank}} for a quarter of the collection."
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "with 后以 children’s books 为逻辑主语，accounting for 表示占四分之一。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -908,7 +908,7 @@
       "context": "原句：由于改革开放，越来越多的家长能送孩子到国外学习或参与国际交流项目，以拓宽其视野。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“社会发展”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "原因由 thanks to 引出，目的由 to broaden ... 压缩。社会发展题里“政策背景 + 行为选择 + 目标结果”常见这类三层结构。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -932,7 +932,7 @@
       "context": "原句：民营企业核心竞争力的增强为中国经济的高质量发展提供了有力支撑。\n\n任务：先汉译英，再检查你是否把“提供有力支撑”译成稳定的学术搭配，而不是直译成生硬口语。"
     },
     "analysis": {
-      "title": "在“社会发展”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "“提供有力支撑”在社会发展语境里通常用 provide strong support for。主语可名词化（the enhancement of ...）以贴合政策/报告语体。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -956,7 +956,7 @@
       "context": "原句：由于现在用手机付款很容易，许多消费者在购物时宁愿用手机付款，而不愿用现金或信用卡。\n\n先做汉译英，再补全固定结构：\nSince it is very easy to pay with a mobile phone nowadays, many consumers {{blank}} to pay with their mobile phones rather than use cash or credit cards when shopping."
     },
     "analysis": {
-      "title": "在“社会发展”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "宁愿A而不愿B 的稳定骨架是 prefer to do A rather than do B。保持 to 只在前项出现，后项用动词原形。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -997,7 +997,7 @@
       "context": "原句：社区数字平台提高了公共服务效率，也增强了居民参与治理的便利性。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“社会发展”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "两个 made 结构分别保留服务效率和居民参与的便利，不必逐字写成 convenience of participation。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -1021,7 +1021,7 @@
       "context": "原句：绿色出行理念正在被更多城市居民接受。\n\n先做汉译英，再补全骨架：\nThe concept of green mobility is being accepted {{blank}} more urban residents."
     },
     "analysis": {
-      "title": "在“社会发展”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "被动语态中动作发出者常用 by 引导，符合“被……接受”的结构。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -1062,7 +1062,7 @@
       "context": "原句：社区长期开展的志愿服务活动，增强了邻里之间的互助意识。\n\n任务：先汉译英，再检查定语修饰是否准确落在“活动”上。"
     },
     "analysis": {
-      "title": "在“社会发展”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "Long-running 表达长期开展；help one another 将互助意识落实为相互帮助的倾向。原句未限定每个居民都参加活动。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -1086,7 +1086,7 @@
       "context": "原句：那些重视公共服务数字化建设的城市，通常能更快提升治理效率。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“社会发展”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "that attach importance to ... 作为限制性从句限定城市类型。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -1110,7 +1110,7 @@
       "context": "原句：学校建立的心理支持机制，为学生应对学习压力提供了持续帮助。\n\n先做汉译英，再补全骨架：\nThe psychological support mechanism {{blank}} by schools has provided sustained help for students coping with academic pressure."
     },
     "analysis": {
-      "title": "在“社会发展”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "established by schools 压缩了被动定语从句。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -1151,7 +1151,7 @@
       "context": "原句：那些能够持续开展家校协同的学校，更容易形成稳定的育人合力。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "that 限定学校，more likely 表示可能性而非保证。育人合力可具体表达为共同支持教育的伙伴关系。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -1175,7 +1175,7 @@
       "context": "原句：这条河流经多种生态系统，为濒危物种提供栖息地，并灌溉周边农田。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "三个谓语共用 river，均使用单数形式。栖息地和农田是不同对象，不要混成河流本身受到灌溉。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -1199,7 +1199,7 @@
       "context": "原句：这片三角洲人口密集，连接着多个重要的工业城市。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "densely populated 表达人口密集，不需要虚构世界排名。connects 的宾语为工业城市。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -1223,7 +1223,7 @@
       "context": "原句：在北半球，冬至是一年中白昼最短的一天，标志着冬季的一个重要节点。\n\n补全译文：\nIn the Northern Hemisphere, the winter solstice has the shortest daylight hours of the year, {{blank}} an important point in winter."
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "marking 补充这一日期的意义，不能用逗号直接连接另一个限定动词 marks。保留北半球这个范围。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -1264,7 +1264,7 @@
       "context": "原句：通过加强森林资源保护、加大污染治理力度等一系列措施，许多地区的生态环境得到了显著改善。 任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "Through 后的 measures 引出手段，such as 后两个动名词短语分别列举保护森林和治理污染。主句描述 many areas 的改善结果，不能将两项措施误译成两个地区。",
       "exam_tip": "Through 后的 measures 引出手段，such as 后两个动名词短语分别列举保护森林和治理污染。"
     },
@@ -1288,7 +1288,7 @@
       "context": "原句：绿水青山促进了当地的旅游、健康等产业的发展，创造了可观的经济效益。 任务：先汉译英，再检查你是否准确处理了“生态价值→产业发展→经济收益”的三层链条。"
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "主语是生态环境，have promoted 引出对产业发展的带动，creating 再补充经济收益。such as 说明 tourism 等是例子，不是产业范围的完整清单。结果层不能丢失，也不应凭空增加收益数字。",
       "exam_tip": "主语是生态环境，have promoted 引出对产业发展的带动，creating 再补充经济收益。"
     },
@@ -1312,7 +1312,7 @@
       "context": "原句：在中国传统节气中，立秋标志着秋季的开始。\n\n补全译文：\nIn the traditional Chinese solar-term calendar, Start of Autumn {{blank}} the beginning of autumn."
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "主语 Start of Autumn 为单数，描述节气的惯常意义用 signifies。这不等于各地气温当天都会下降。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -1353,7 +1353,7 @@
       "context": "原句：湿地不仅调节气候，还为候鸟迁徙提供了重要栖息地。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“地理生态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "这类生态功能句通常包含“双功能”结构。英文用 not only ... but also ... 可把“调节气候”和“提供栖息地”放在同一层级。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -1377,7 +1377,7 @@
       "context": "原句：许多城市正在通过建设海绵城市来提升雨洪调蓄能力。\n\n先做汉译英，再补全表达：\nMany cities are improving their capacity to regulate rainwater and flooding {{blank}} building sponge cities."
     },
     "analysis": {
-      "title": "在“地理生态”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "表示“通过某种手段”时，最稳的结构是 by + doing。这里 by building sponge cities 直接对应“通过建设海绵城市”。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -1418,7 +1418,7 @@
       "context": "原句：湿地修复工程持续推进，有效提升了区域水生态系统的自我调节能力。\n\n任务：先汉译英，再检查是否完整表达“工程推进 + 能力提升”两层关系。"
     },
     "analysis": {
-      "title": "在“地理生态”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "地理生态句常为“治理行动—生态能力变化”链条。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -1442,7 +1442,7 @@
       "context": "原句：持续推进海岸带综合治理，不仅有助于防灾减灾，也能改善近岸生态环境。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“地理生态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "not only ... but also ... 可稳定承接生态治理的双重结果。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -1466,7 +1466,7 @@
       "context": "原句：通过加强流域联防联控，许多地区显著提高了对突发水环境事件的响应能力。\n\n先做汉译英，再补全骨架：\nBy strengthening joint prevention and joint control across river basins, many regions have significantly improved their capacity to respond {{blank}} sudden water-environment incidents."
     },
     "analysis": {
-      "title": "在“地理生态”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "respond to ... 是固定搭配，to 不可省略。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -1507,7 +1507,7 @@
       "context": "原句：山水林田湖草沙一体化治理，有利于提升生态系统整体稳定性。 任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "Integrated 修饰整体治理方式，后面的山、河、林、田等名词是并列治理对象。be conducive to 后的 to 是介词，所以接 improving；不是看到 to 就使用动词原形。",
       "exam_tip": "Integrated 修饰整体治理方式，后面的山、河、林、田等名词是并列治理对象。"
     },
@@ -1531,7 +1531,7 @@
       "context": "原句：中国越来越重视终身教育，发展继续教育是构建终身教育体系的有效途径。\n\n任务：先汉译英，再检查你是否把“越来越重视”与“有效途径”两层信息拆清，不要混成一串并列短句。"
     },
     "analysis": {
-      "title": "在“教育经济”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "教育政策类句子常见“趋势判断 + 路径判断”双层结构。前半句写政策重视趋势，后半句写具体路径，有助于保持逻辑清晰。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -1555,7 +1555,7 @@
       "context": "原句：这所大学的学生人数已接近四万人，是当地规模最大的高校。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "nearly 40,000 表示接近四万，不是超过四万。in the area 限定当地，不能扩大为全国或全球。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -1579,7 +1579,7 @@
       "context": "原句：中国政府一直大力推行义务教育，以使每个儿童都享有受教育的机会。 先做汉译英，再补全骨架： The Chinese government has been vigorously promoting compulsory education {{blank}} every child has the opportunity to receive an education."
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "to ensure that 引出推广义务教育的目的，that 后保留 every child has... 的完整从句。目的不等于已经无例外实现的结果；译文不能改成所有儿童已经获得相同教育成就。",
       "exam_tip": "to ensure that 引出推广义务教育的目的，that 后保留 every child has... 的完整从句。"
     },
@@ -1620,7 +1620,7 @@
       "context": "原句：民营企业核心竞争力的增强为中国经济的高质量发展提供了有力支撑。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“教育经济”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "“提供有力支撑”在教育经济语境中常用 provide strong support for。将“增强”名词化为 the enhancement of ... 可保持报告文体。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -1644,7 +1644,7 @@
       "context": "原句：我国高校的数量和学科专业持续增加，招生人数逐年上升，教学质量也在不断改进，为更多年轻人创造了接受高等教育的机会。 任务：先汉译英，再检查你是否按“扩规模-提质量-增机会”的顺序组织信息。"
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "规模、招生与质量是三个并列变化，不可只译数量增加。creating opportunities 连接这些变化带来的机会，不能把机会直接替换成每个人都已进入大学这一更强结论。",
       "exam_tip": "规模、招生与质量是三个并列变化，不可只译数量增加。"
     },
@@ -1668,7 +1668,7 @@
       "context": "原句：学校新增了职业培训课程，参加课程的人数也随之增加。\n\n补全译文：\nThe school introduced new vocational training courses, with the number of participants {{blank}} as a result."
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "with + 名词 + 分词表示伴随变化；人数自行上升用 rising，raising 通常需要另一个被提高的对象。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -1709,7 +1709,7 @@
       "context": "原句：职业教育与产业需求精准对接，有助于缓解结构性就业矛盾。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "structural mismatches 表达技能、岗位和需求之间的不匹配，不宜直译成逻辑矛盾 contradictions。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -1733,7 +1733,7 @@
       "context": "原句：数字经济快速发展，为高校人才培养模式创新提供了新空间。\n\n先做汉译英，再补全表达：\nThe rapid development of the digital economy has provided new space {{blank}} innovation in university talent cultivation models."
     },
     "analysis": {
-      "title": "在“教育经济”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "provide space for... 是固定搭配，用于表达“为……提供空间/可能”。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -1774,7 +1774,7 @@
       "context": "原句：职业教育体系不断完善，为区域产业升级提供了稳定的人才支撑。 任务：先汉译英，再检查你是否完整表达“体系完善—人才支撑”关系。"
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "体系不断完善是主语所承载的变化，结果是为产业提供所需技能人才。表达时优先写出 who supplies what，而不是逐字堆叠 talent support；vocational 对应职业教育，不能换成单纯就业培训。",
       "exam_tip": "体系不断完善是主语所承载的变化，结果是为产业提供所需技能人才。"
     },
@@ -1798,7 +1798,7 @@
       "context": "原句：高校与企业的深度合作，不仅提升了技术转化效率，也增强了人才培养的针对性。 任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "两个结果分别是技术转化效率和培养针对性；better suited to practical needs 表达后者，不能仅译成学生数量增加。",
       "exam_tip": "not only 和 but also 后应保持同一语法层级；这里是 improves... 与 enhances... 两个谓语。"
     },
@@ -1822,7 +1822,7 @@
       "context": "原句：数字化教学平台的普及，提高了教育资源在地区之间的配置效率。 先做汉译英，再补全骨架： The popularization of digital teaching platforms has improved the efficiency of allocating educational resources {{blank}} regions."
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "across regions 表示资源跨地区配置的范围。allocating 的宾语是 educational resources，不能误把 regions 当成被分配的对象。across 强调跨区域，而不限定恰好两个地区。",
       "exam_tip": "across regions 表示资源跨地区配置的范围。"
     },
@@ -1863,7 +1863,7 @@
       "context": "原句：完善继续教育体系，有助于提升劳动者长期职业发展的可持续性。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“教育经济”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "sustainability of ... 对应“……的可持续性”表达稳定。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -1887,7 +1887,7 @@
       "context": "原句：跨境电商的快速发展为中小企业进入国际市场提供了新的机会。 任务：先汉译英，再检查你是否把“发展趋势”和“机会结果”分层表达。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "The rapid development... 交代趋势，has created opportunities 交代其作用；for 后限定受益者为中小企业，to enter 则说明机会对应的行动。不能漏掉国际市场这一目标。",
       "exam_tip": "The rapid development... 交代趋势，has created opportunities 交代其作用；for 后限定受益者为中小企业，to enter 则说明机会对应的行动。"
     },
@@ -1911,7 +1911,7 @@
       "context": "原句：外贸结构持续优化，高附加值产品出口比重不断提升。 任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "两个分句分别谈贸易结构与出口构成。share of high value-added products in exports 是高附加值产品的出口份额，不是其价格上涨幅度；并列连接应保留两项变化。",
       "exam_tip": "两个分句分别谈贸易结构与出口构成。"
     },
@@ -1935,7 +1935,7 @@
       "context": "原句：稳定的物流体系是保障国际供应链安全的重要基础。 先做汉译英，再补全骨架： A stable logistics system is an important foundation {{blank}} the security of the international supply chain."
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "foundation 后的 for 接 doing，说明基础支持什么；ensuring 的宾语是供应链安全。这里的 for 不是用于说明提供资金的人，也不能把 foundation 与后面的 security 直接无连接拼接。",
       "exam_tip": "foundation 后的 for 接 doing，说明基础支持什么；ensuring 的宾语是供应链安全。"
     },
@@ -1976,7 +1976,7 @@
       "context": "原句：通过降低制度性交易成本，企业的国际竞争力得到了进一步提升。 任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "By reducing... 的逻辑主语必须是实施降低成本行为的主体。改写采用企业作为主句主语时，表示企业通过降成本提升竞争力；若要保留被动主句，应另用成本下降作主语，避免悬垂修饰。",
       "exam_tip": "By reducing... 的逻辑主语必须是实施降低成本行为的主体。"
     },
@@ -2000,7 +2000,7 @@
       "context": "原句：随着自由贸易试验区建设不断推进，更多制度创新成果正在向全国复制推广。 任务：先汉译英，再检查是否准确表达“随着...推进”与“向全国复制推广”两层动作。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "As 从句表达随着试验区推进的背景，主句用 are being... 表示复制推广正在进行。nationwide 说明范围，不能只译成试验区内部；创新成果可译成 institutional innovations，不需机械加入 achievements。",
       "exam_tip": "As 从句表达随着试验区推进的背景，主句用 are being... 表示复制推广正在进行。"
     },
@@ -2024,7 +2024,7 @@
       "context": "原句：截至去年年底，我国货物贸易进出口总值再创新高。 先做汉译英，再补全骨架： As of the end of last year, China's total value of goods imports and exports {{blank}} a new record high."
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "as of the end of last year 提供截止时点，reached a new record high 表示达到新高。这里比较的是进出口总值，不是进出口次数；没有给出数值时不补造增幅。",
       "exam_tip": "as of the end of last year 提供截止时点，reached a new record high 表示达到新高。"
     },
@@ -2065,7 +2065,7 @@
       "context": "原句：运输时间缩短后，这家公司能更快地把产品送到海外客户手中。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "With... 交代运输时间变化，can deliver 表达能力。不要把能更快交付扩大成销量必然增长。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2089,7 +2089,7 @@
       "context": "原句：该协议旨在削减关税壁垒，同时推动两国在农业和制造业领域的务实合作。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "while promoting 保留同时推进的关系。aims to reduce...and promote... 也能成立；两国与两个合作领域都应保留。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -2113,7 +2113,7 @@
       "context": "原句：跨境物流通道持续优化，为外贸企业降低了履约成本。 先做汉译英，再补全骨架： The continued optimization of cross-border logistics channels has reduced fulfillment costs {{blank}} foreign trade enterprises."
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "reduced fulfillment costs 是降低履约成本，for 引出受益者。通道优化不是说所有成本都归零，也不能把外贸企业误作降低成本这一动作的宾语。",
       "exam_tip": "reduced fulfillment costs 是降低履约成本，for 引出受益者。"
     },
@@ -2154,7 +2154,7 @@
       "context": "原句：通过扩大高水平对外开放并优化营商环境，区域贸易活力显著增强。 任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "By doing A and doing B 中，两项动作须与主句行动主体一致。regional trade vitality 不能实施扩大开放和优化环境，所以应让 the region 作主语，再写贸易活动得到促进的结果。",
       "exam_tip": "By doing A and doing B 中，两项动作须与主句行动主体一致。"
     },
@@ -2178,7 +2178,7 @@
       "context": "原句：完善跨境电商服务体系，能够更好支持中小企业拓展国际市场。\n\n任务：先汉译英，再检查是否用非谓语主语保持句式紧凑。"
     },
     "analysis": {
-      "title": "在“贸易经济”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "动名词主语可压缩政策动作，主句表达支持结果。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -2202,7 +2202,7 @@
       "context": "原句：建设高效的口岸协同机制，为国际供应链稳定运行提供了保障。 先做汉译英，再补全骨架： Building efficient port coordination mechanisms has provided safeguards {{blank}} the stable operation of international supply chains."
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "provide safeguards for 将保障措施与所保护的运行目标连接。international supply chains 用复数对应国际供应链的一般范围；不能把保障误写为对供应链运行的禁止。",
       "exam_tip": "provide safeguards for 将保障措施与所保护的运行目标连接。"
     },
@@ -2243,7 +2243,7 @@
       "context": "原句：通过完善监管机制，平台经济可以在规范中实现持续创新。\n\n任务：先汉译英，再检查你是否把“完善监管”从动词结构转成名词化介词短语，以提升书面表达密度。"
     },
     "analysis": {
-      "title": "在“动词变名词”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "“完善监管机制”可由动词短语 improve... 名词化为 the improvement of...，再放入 through 介词框架，使句式更正式。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -2267,7 +2267,7 @@
       "context": "原句：政府通过加大研发投入来提升产业竞争力。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“动词变名词”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "“加大投入”可名词化为 increased investment in...，避免连续动词链导致句子松散。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -2291,7 +2291,7 @@
       "context": "原句：通过优化服务流程，企业显著提升了客户满意度。\n\n先做汉译英，再补全骨架：\n{{blank}} service procedures, enterprises have significantly improved customer satisfaction."
     },
     "analysis": {
-      "title": "在“动词变名词”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "optimize 可名词化为 optimization，再置入 Through the optimization of...，形成正式书面表达。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -2332,7 +2332,7 @@
       "context": "原句：通过持续改进产品质量，企业在国际市场上赢得了更多认可。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“动词变名词”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "“持续改进”可写作 continuous improvement in...，其中 in 标示改进维度。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -2356,7 +2356,7 @@
       "context": "原句：通过加强知识产权保护，创新主体的积极性得到了有效激发。\n\n任务：先汉译英，再核对你是否完成“加强 -> 名词化”转换，并保持“保护措施 -> 创新激励”的因果链。"
     },
     "analysis": {
-      "title": "在“动词变名词”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "Stronger protection 用名词结构表示加强保护，incentives 表达创新积极性。innovators 比 innovation entities 更自然。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -2380,7 +2380,7 @@
       "context": "原句：通过深化国际合作，我国在关键技术领域取得了积极进展。\n\n先做汉译英，再补全骨架：\nThrough the {{blank}} of international cooperation, China has made positive progress in key technological fields."
     },
     "analysis": {
-      "title": "在“动词变名词”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "deepen 的名词化形式是 deepening。Through the deepening of... 是标准政策表达。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -2421,7 +2421,7 @@
       "context": "原句：政府增加了研发投入，帮助企业改进生产技术。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "An increase 将增加名词化，helped 连接企业改进这一效果。也可直接用 The government increased...，无需把所有动作都名词化。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2445,7 +2445,7 @@
       "context": "原句：政府决定加大对偏远地区教育的投入，以改善当地学生的学习条件。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "investment in 标明投入领域，to improve 表明目的。不要把投入误写成已经实现的改善效果。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -2469,7 +2469,7 @@
       "context": "原句：政府对技术创新的持续支持改善了企业的研发环境。\n\n补全译文：\nThe government’s continued {{blank}} for technological innovation has improved the research and development {{blank}} for companies."
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "support 是支持的名词，environment 是环境的名词；两空都需要名词。不要按所谓更高级的词语排序。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2521,7 +2521,7 @@
       "context": "原句：通过推进数字基础设施建设，许多城市提升了公共服务的响应效率。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "By developing 表示手段，many cities 是实施者。无需另外补入原文没有写出的投资。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2545,7 +2545,7 @@
       "context": "原句：学生们讨论了两种方案，最后选择了成本较低的一种。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "讨论和选择本身就是句子要表达的动作，保留动词清楚自然，不必改成一串抽象名词。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2569,7 +2569,7 @@
       "context": "原句：改善公共服务质量，让居民更明显地感受到生活的变化。\n\n补全译文：\nImprovements in public service quality have made residents more aware {{blank}} positive changes in their lives."
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "aware of 引出意识到的变化，Improvements 将改善这一措施写成名词主语。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2610,7 +2610,7 @@
       "context": "原句：截至三月底，这家图书馆拥有五万册图书，其中电子书占百分之二十。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "As of 标明统计时点，with...accounting for 表示占比。百分之二十是份额，不是增长率。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2634,7 +2634,7 @@
       "context": "原句：都江堰坐落在成都平原西部的岷江上，距成都市约50公里。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“修饰信息变介词短语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "方位修饰可连续用 on / in / from 三个介词短语分层：先河流位置，再平原区域，再城市距离。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -2658,7 +2658,7 @@
       "context": "原句：民营企业的研发投入不断增加，在新一代信息技术、人工智能等领域发展迅速。\n\n先做汉译英，再补全介词结构：\nPrivate enterprises are increasing their R&D investment and developing rapidly {{blank}} fields such as new-generation information technology and artificial intelligence."
     },
     "analysis": {
-      "title": "在“修饰信息变介词短语”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "“在……领域”是典型介词短语修饰，in fields such as ... 可将行业范围信息压缩为后置修饰层。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -2699,7 +2699,7 @@
       "context": "原句：通过大力提倡健康饮食，人们对合理营养增进健康的重要性有了更加深刻的认识。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在“修饰信息变介词短语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "Efforts 作推广行为的主语，people’s understanding 作结果，避免让理解能力本身成为推广的执行者。",
       "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -2723,7 +2723,7 @@
       "context": "原句：长江上还坐落着世界最大的水电站。\n\n任务：先汉译英，再检查你是否将地点修饰信息精准转为介词短语，而不是语序错位。"
     },
     "analysis": {
-      "title": "在“修饰信息变介词短语”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "“在长江上”是地点修饰层，最稳的处理是 on the Yangtze River。将地点后置，主句先给实体信息。",
       "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -2747,7 +2747,7 @@
       "context": "原句：修建之初是为了运输粮食，后来也用于运输其他商品。\n\n先做汉译英，再补全骨架：\nAt first, it was built {{blank}} transporting grain, and later it was also used {{blank}} transporting other goods."
     },
     "analysis": {
-      "title": "在“修饰信息变介词短语”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "用途修饰常用 for + doing。将“为了运输粮食/用于运输其他商品”统一到 for 短语，可保持并列对称。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -2788,7 +2788,7 @@
       "context": "原句：来自三个社区的居民在周日参加了公园里的环保活动。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "from 修饰居民来源，in 说明活动地点，on 表示具体日期。先明确各短语修饰谁。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2812,7 +2812,7 @@
       "context": "原句：来自偏远山区的孩子们通过刻苦学习改变了自己的命运。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "from 表示来源，through 表示途径。hard 表示努力地，hardly 表示几乎不，二者不能互换。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -2836,7 +2836,7 @@
       "context": "先做汉译英，再补全骨架：\n中文原句：来自农村学校的同学们在比赛中表现出了令人印象深刻的创造力。\n\nStudents {{blank}} rural schools demonstrated impressive creativity {{blank}} the competition."
     },
     "analysis": {
-      "title": "在“修饰信息变介词短语”任务中锁定并组织符合要求的输出",
+      "title": "解析",
       "summary": "from rural schools 表示来自农村学校，in the competition 表示比赛情境。at 或 during 在适当表达中也可成立，不是绝对禁用。",
       "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
     },
@@ -2888,7 +2888,7 @@
       "context": "原句：在绿色转型背景下，这座城市在公共交通、电力供应和垃圾分类方面都取得了明显进展。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "背景与进展领域分别用 against the backdrop of 和 in 引出。三个领域需并列完整，不能把它们改成转型的原因。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -2912,7 +2912,7 @@
       "context": "原句：这份给新生的指南将在九月通过学校网站发布。\n\n任务：先译成英文，再翻卡对照信息和句子关系。参考表达不只一种。"
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "for 引出服务对象，on 说明发布载体，in 说明月份。三个短语承担不同信息。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2936,7 +2936,7 @@
       "context": "原句：这个地区在生态修复和产业升级方面取得了明显进展。\n\n补全译文：\nThe region has made clear progress {{blank}} ecological restoration and industrial upgrading."
     },
     "analysis": {
-      "title": "准确保留原意并组织自然的英文句子",
+      "title": "解析",
       "summary": "progress in 后接取得进展的领域，生态修复与产业升级并列。",
       "exam_tip": "核对信息、时间和修饰关系，避免增译或漏译。"
     },
@@ -2977,7 +2977,7 @@
       "context": "模拟原文：The repair café helps residents keep household items in use longer.\n\n题干改写：It extends the useful life of everyday objects.\n\n任务：不靠逐词对应，判断两句为何表达同一核心信息。"
     },
     "analysis": {
-      "title": "识别不同词面下保持对象动作范围一致的保义改写",
+      "title": "解析",
       "summary": "① 对象对应：household items ↔ everyday objects。\n\n② 作用对应：keep ... in use longer ↔ extend the useful life。\n\n③ 边界检查：两句都没有声称物品永久可用，也没有把维修服务扩大成生产新物品。",
       "exam_tip": "先用中文复述两句的事件骨架，再比较词面。"
     },
@@ -3001,7 +3001,7 @@
       "context": "模拟原文：The museum reduced admission fees for university students during the winter.\n\n候选改写：People enrolled at university were charged a lower entry price in the winter months.\n\n问题：如何判断这组改写是否成立？"
     },
     "analysis": {
-      "title": "在改写选择中保持对象程度与时间限定",
+      "title": "解析",
       "summary": "① 对象核对：原文只谈大学阶段的学生，候选句没有扩大到所有年轻人或所有访客。\n\n② 程度核对：费用降低被改写为支付更低价格，并未升级成完全免费。\n\n③ 时间核对：冬季限制仍在，候选句没有把临时安排说成永久政策。三个边界全部保留，因此属于保义改写。",
       "exam_tip": "把原文信息拆成对象、变化、时间三个槽位逐一对账。"
     },
@@ -3050,7 +3050,7 @@
       "context": "模拟原文：The new timetable eased delays during the morning rush, but it did not eliminate them.\n\n候选改写：The change made morning peak-time waiting less serious without solving the problem completely.\n\n问题：这组改写最关键的判断依据是什么？"
     },
     "analysis": {
-      "title": "区分减轻与消除并保留转折限定的程度边界",
+      "title": "解析",
       "summary": "① 先识别原文的双层结论：措施带来改善，但改善存在上限。\n\n② 再对照候选句：less serious 保留“减轻”，without solving completely 保留“未消除”。\n\n③ 最后核对场景：morning peak-time waiting 与早高峰延误指向同一时段和问题。候选句没有扩大到全天，也没有把部分改善夸大为彻底解决，因此改写成立。",
       "exam_tip": "转折句要把转折前后的结论一起搬进题干。"
     },
@@ -3099,7 +3099,7 @@
       "context": "模拟原文：After benches were added, the square became a more welcoming place for residents to spend time.\n\n候选改写：Residents found the redesigned square more pleasant to linger in.\n\n哪一项最能说明这组改写是否成立？"
     },
     "analysis": {
-      "title": "用事件槽位核验短语级近义替换",
+      "title": "解析",
       "summary": "先拆事件槽位：主体是 residents，地点是 square，变化方向是更宜人，行为是停留。候选句四项均保留，只把 welcoming 换成 more pleasant，把 spend time 换成 linger。A、C、D 分别偷换时长、极性和人群范围。",
       "exam_tip": "先核对主体、场景、动作和评价方向。"
     },
@@ -3148,7 +3148,7 @@
       "context": "模拟原文：The library introduced automatic reminders to minimize late returns.\n\n哪一句是边界最稳的改写？"
     },
     "analysis": {
-      "title": "展开 minimize 并保持对象与程度上限",
+      "title": "解析",
       "summary": "原文的 to minimize 表示引入提醒的目的，并未报告提醒已经产生多大效果。aims to reduce 保留目的，不夸成完全避免。",
       "exam_tip": "识别压缩动词的解释性改写，同时排除绝对化和对象偷换。"
     },
@@ -3197,7 +3197,7 @@
       "context": "模拟原文：Short messages are unlikely to weaken students' ability to write formal essays.\n\n哪一句保留了否定方向、概率强度和能力对象？"
     },
     "analysis": {
-      "title": "整体核验否定概率动作与能力对象",
+      "title": "解析",
       "summary": "A 保留不太可能产生明显损害的方向和谨慎程度。它不是保证写作能力提高；do little harm 与完全没有损害也不相同。",
       "exam_tip": "训练仔细阅读中把否定、概率、强度和对象作为整体判断改写。"
     },
@@ -3246,7 +3246,7 @@
       "context": "模拟健康阅读语境：\n“the timing of behaviors can significantly influence your health”\n\n题干写成：\n“It can have a considerable impact on our health.”\n\n这组替换为什么稳？"
     },
     "analysis": {
-      "title": "识别 influence 到 have an impact on 的词类切换",
+      "title": "解析",
       "summary": "此处动词影响改为名词短语产生影响，significantly 对应 considerable。can 也必须保留，不能把可能影响强化为已经确定发生。",
       "exam_tip": "训练动词与名词结构的保义转换。"
     },
@@ -3295,7 +3295,7 @@
       "context": "模拟医疗阅读语境：\n“patients are directed to take most drugs at set times, primarily to ensure compliance”\n\n题干写成：\n“To ensure they take the drugs as instructed.”\n\nensure compliance 为什么能这样拆开解释？"
     },
     "analysis": {
-      "title": "把医疗 compliance 还原为按医嘱执行行为",
+      "title": "解析",
       "summary": "① 识别信号：原文前面紧跟 take most drugs during the morning or evening，可知 compliance 的内容就是\"按规定时间服药\"，不是笼统的\"听话\"。\n\n② 核心规律：专业名词常被题干改写成\"具体要做的动作\"。这种改写表面上词差很大，但实际上是在帮你把专业术语翻译成操作步骤。\n\n③ 验证：ensure compliance = 确保病人照要求执行；ensure they take the drugs as instructed = 确保他们按指示吃药。对象、目的和语境动作完全一致。",
       "exam_tip": "医学/社科阅读里，名词术语先问：它在这段里具体对应什么行为。"
     },
@@ -3319,7 +3319,7 @@
       "context": "模拟营养阅读语境：\n“People who consume enough calories each day are also likely to get enough protein.”\n\n题干写成：\n“People with sufficient daily calorie intake are also likely to obtain adequate protein.”\n\n这组改写保留了哪些关键信息？"
     },
     "analysis": {
-      "title": "保留能量前提、蛋白质结论与概率强度",
+      "title": "解析",
       "summary": "① 识别信号：原句的条件是 consume enough calories each day，结论是 likely to get enough protein；题干分别用 sufficient daily calorie intake 和 likely to obtain adequate protein 重组。\n\n② 核心规律：长句改写要保留前提、结论和概率。不能把 calories 模糊成 foods，也不能删除 likely 变成绝对保证。\n\n③ 验证：sufficient 对应 enough，daily calorie intake 对应 consume enough calories each day，adequate protein 对应 enough protein，逻辑链完整。",
       "exam_tip": "先核对前提，再核对概率结论。"
     },
@@ -3343,7 +3343,7 @@
       "context": "模拟职场阅读语境：\n“Workers in more physical jobs may be more likely to look forward to retiring.”\n\n题干写成：\n“They tend to welcome the prospect of retirement.”\n\n为什么两句可以视作同向改写？"
     },
     "analysis": {
-      "title": "保留退休期待的未来方向与积极态度",
+      "title": "解析",
       "summary": "look forward to 与 welcome the prospect of 都有积极期待的含义。但若要求整句等值，还要保留原句的 may、比较含义和体力工作者范围，不能只换态度词就省略这些限制。",
       "exam_tip": "迁移区分积极期待与中性预期。"
     },
@@ -3367,7 +3367,7 @@
       "context": "模拟职场阅读语境：\n“many workers stay in the labor force more for social benefits than for financial reasons. Daily contact helps them feel less lonely”\n\n题干写成：\n“Staying connected socially.”\n\n为什么 social benefits 在这里不能机械翻成“社会福利”？"
     },
     "analysis": {
-      "title": "用段落主题解析 social benefits 的语境义",
+      "title": "解析",
       "summary": "卡片内的 daily contact 和 less lonely 给出具体依据，因此这里不是领取的福利金。词组具体含义取决于上下文，不能只凭 social 作机械判断。",
       "exam_tip": "迁移从孤独主题恢复社交联结含义。"
     },
@@ -3391,7 +3391,7 @@
       "context": "问题：哪一改写只保留材料实际提供的信息？"
     },
     "analysis": {
-      "title": "区分平均值与多数个体的数量边界",
+      "title": "解析",
       "summary": "平均摄入量高于平均需求不等于每个人都超量，也不能仅凭平均值推出多数人超量。比较的两个量都属于群体平均。",
       "exam_tip": "平均值、总量和多数个体是不同范围。"
     },
@@ -3440,7 +3440,7 @@
       "context": "阅读或听力里，命题人不一定重复原词，而是常把同一词根换成另一种词性。比如：\n\n1. retire -> retirement\n2. protect -> protection / protective\n3. improve -> improvement\n\n比较这些词形时，应核对词性、句中功能和核心含义。retire 与 retirement 分别是什么词性？"
     },
     "analysis": {
-      "title": "建立同词根词性转换的保义判断框架",
+      "title": "解析",
       "summary": "同词根不代表可以在同一位置直接替换。需先看句法功能，再核对主体、时间、程度与对象。原有录音举出 retire/retirement 和 protect/protection 两组例子。",
       "exam_tip": "训练词根、句法槽位和语义边界联合判断。"
     },
@@ -3470,7 +3470,7 @@
       "context": "原句：\n\"Workers in more physical jobs may be more likely to look forward to retiring.\"\n\n改写句：\n\"Workers in physically demanding jobs may be more likely to welcome retirement.\"\n\n为什么这里的 retiring 和 retirement 能稳定对上？"
     },
     "analysis": {
-      "title": "识别 retire 到 retirement 的动作事件名词化",
+      "title": "解析",
       "summary": "原句使用动名词 retiring，改写使用名词 retirement；may be more likely 与体力工作者范围也保留。不能把不确定的比较改成所有人都强烈期待。",
       "exam_tip": "训练动词与事件名词的等值改写。"
     },
@@ -3519,7 +3519,7 @@
       "context": "原句：\n\"Quitting a career can lead to feelings of isolation and loneliness.\"\n\n改写句：\n\"After leaving their careers, some people may feel isolated and lonely.\"\n\n哪一项最准确说明 isolation 和 isolated 在这里的关系？"
     },
     "analysis": {
-      "title": "识别 isolation 到 isolated 的状态表语转换",
+      "title": "解析",
       "summary": "① 识别信号：isolation 和 isolated 来自同一词根 isolate。原句结构是 feelings of + 名词，改写句结构是 feel + 形容词，两者都在表达人的主观状态。\n\n② 核心规律：抽象状态名词很常被改写成表语形容词，因为题干更愿意直接说\"人感到怎样\"。这属于 noun -> adjective 的高频变形。\n\n③ 验证：feelings of isolation = 孤立感；feel isolated = 感到孤立。loneliness / lonely 也形成同样关系，所以整组改写都在保持原句的情绪含义。",
       "exam_tip": "看到 feelings of + 名词 时，可以主动试着改写成 feel + 形容词。"
     },
@@ -3568,7 +3568,7 @@
       "context": "原句：\n\"Strengthening the protection of forest resources can improve the ecological environment.\"\n\n改写句：\n\"Taking stronger measures to protect forest resources can improve the environment.\"\n\n为什么 protection 和 protect 在这里能对齐？"
     },
     "analysis": {
-      "title": "把 protection of X 还原为 protect X",
+      "title": "解析",
       "summary": "① 识别信号：the protection of forest resources 和 protect forest resources 的宾语完全一致，都是 forest resources，说明变的只是句法包装。\n\n② 核心规律：抽象名词结构 the protection of X 常能还原成动词短语 protect X。命题人常借此把书面表达改成更直接的动作表达。\n\n③ 验证：strengthening the protection of forest resources = 加强对森林资源的保护；take measures to protect forest resources = 采取措施保护森林资源。主体仍是政策行动，结果仍是环境改善，因此转换成立。",
       "exam_tip": "the protection of X 往往可以直接还原成 protect X。"
     },
@@ -3617,7 +3617,7 @@
       "context": "原句：\n\"The ecological environment in many areas has been significantly improved.\"\n\n改写句：\n\"There has been a significant improvement in the ecological environment in many areas.\"\n\n这组改写成立的关键是什么？"
     },
     "analysis": {
-      "title": "把被动改善结果改写为 improvement 名词结构",
+      "title": "解析",
       "summary": "① 识别信号：improved 和 improvement 明显同词根；且两句都把 ecological environment 作为核心对象，没有替换对象。\n\n② 核心规律：被动结果句常常能名词化成 there has been + noun。命题人这样改写，是为了把完整谓语句压缩成名词性结论。\n\n③ 验证：has been significantly improved = 已经得到了显著改善；there has been a significant improvement = 已经出现了显著改善。时间方向、程度和对象都保持稳定，所以是标准 verb -> noun 转换。",
       "exam_tip": "has improved / was improved 常常能改写成 there has been / there was an improvement。"
     },
@@ -3666,7 +3666,7 @@
       "context": "原句：\n\"Lucid waters and lush mountains have promoted local industries, creating considerable economic benefits.\"\n\n改写句：\n\"A healthy ecological environment is economically beneficial to local industries.\"\n\n为什么 benefits 和 beneficial 在这里能对上？"
     },
     "analysis": {
-      "title": "区分 benefits 与 beneficial 的结果和性质表达",
+      "title": "解析",
       "summary": "① 识别信号：benefits 和 beneficial 同词根，且都和 local industries 连在一起，说明受益对象一致。\n\n② 核心规律：结果名词 benefits 常可改写成 be beneficial to ...，把\"带来好处\"换成\"对……有益\"。这属于 noun -> adjective 的高频评价转换。\n\n③ 验证：creating economic benefits for local industries = 为当地产业创造经济收益；be economically beneficial to local industries = 在经济上对当地产业有益。正向评价和对象都稳定，因此改写成立。",
       "exam_tip": "bring benefits to = be beneficial to，考试里经常来回切。"
     },
@@ -3715,7 +3715,7 @@
       "context": "For many manual workers, {{blank}} is not just a date on the calendar; it is the life stage they have been waiting for.\n\n【分析提示】空格位于主语位置；从 retire 词族里选择最能自然命名\"退休这一人生阶段\"的形式。主语位置本身不等于只能填名词，还要核对命名功能和句意。"
     },
     "analysis": {
-      "title": "依据主语槽位选择 retirement",
+      "title": "解析",
       "summary": "retirement 指退休这一阶段；retire 是动词，retired 是形容词，retiree 指退休者本人。后文明确说 life stage，因此应选阶段名称。",
       "exam_tip": "训练词族成员与主语句法匹配。"
     },
@@ -3758,7 +3758,7 @@
       "context": "Without daily workplace contact, some older adults may feel {{blank}} even when they are financially secure.\n\n【分析提示】空格前是 feel，后面是在描述人的主观状态。你需要从 isolate 这个词族里选一个最适合做表语的形式。"
     },
     "analysis": {
-      "title": "依据 feel 后表语槽位选择 isolated",
+      "title": "解析",
       "summary": "① 识别信号：feel ______ 是典型表语位，优先找形容词；这一步先于词义细节。\n\n② 核心规律：很多抽象状态名词在题干里会被还原成形容词，因为英语更常说 people feel isolated，而不是 people feel isolation。\n\n③ 验证：feel isolated 完全成立，表示感到孤立；feel isolation × 不合英语习惯；feel isolate × 词性错误。",
       "exam_tip": "系动词或感官动词后面先找形容词：be / feel / seem / become + adj。"
     },
@@ -3801,7 +3801,7 @@
       "context": "Stricter laws are meant to {{blank}} forest resources instead of discussing environmental goals in the abstract.\n\n【分析提示】空格前是 to，后面直接接宾语 forest resources。这里需要的是一个能表示\"实施保护\"动作的动词，而不是抽象名词。"
     },
     "analysis": {
-      "title": "依据不定式和宾语选择 protect",
+      "title": "解析",
       "summary": "① 识别信号：to ______ forest resources 这个结构已经把词性锁死为动词原形，因为空格后还有明确宾语。\n\n② 核心规律：名词化表达和动词表达会在不同句法槽位来回切换。the protection of forest resources 常可在题干里改写成 protect forest resources。\n\n③ 验证：to protect forest resources 完全成立；to protection forest resources ×；to protective forest resources ×。",
       "exam_tip": "to 后如果还带宾语，优先找动词原形。"
     },
@@ -3844,7 +3844,7 @@
       "context": "原句：Regular feedback can be beneficial to students.\n改写：Regular feedback can benefit students.\n\n任务：beneficial 和 benefit 的词性怎样变化？can 是否仍需要保留？"
     },
     "analysis": {
-      "title": "核对词义改写中的对象、范围和强度",
+      "title": "解析",
       "summary": "be beneficial to somebody 可以改为 benefit somebody。can 限定可能性，删去它可能让表达更确定。",
       "exam_tip": "词义接近不意味着整句的全部信息都保持不变。"
     },
@@ -3868,7 +3868,7 @@
       "context": "用词库补全词族转换句：\n\nThe committee's {{blank}} of the proposal made its main point easier to follow."
     },
     "analysis": {
-      "title": "从 clarify 词族中选择主语名词 clarification",
+      "title": "解析",
       "summary": "The committee’s...of the proposal 需要表示澄清这一动作的名词。clarification 是名词，clarify/clarifies 是动词，clear/clearly 的词性也不符合这里的中心位置。",
       "exam_tip": "迁移所有格和 of 短语的双重词性线索。"
     },
@@ -3911,7 +3911,7 @@
       "context": "原句：\nThe committee emphasized the importance of transparent communication.\n\n下列哪种结构转换能在不改变原句肯定方向的前提下完成等值改写？"
     },
     "analysis": {
-      "title": "识别 importance 到 important 从句的等值展开",
+      "title": "解析",
       "summary": "① 识别信号：原句的核心评价由 the importance of... 这个抽象名词短语承担。\n\n② 核心规律：名词化评价可展开为 that + 主语 + be + 形容词，但不能借结构变化添加、删除或反转信息。\n\n③ 验证：展开后仍由 committee 作报告主体，transparent communication 仍是评价对象，important 仍是肯定判断，因此属于保义转换。",
       "exam_tip": "先找抽象名词承担的评价。"
     },
@@ -3960,7 +3960,7 @@
       "context": "阅读里有一类替换最容易被漏掉：原文用动词短语，题干换成单个动词。\n\n看三组对比：\n1. give up the habit → abandon / quit\n2. carry out an experiment → conduct\n3. come up with a solution → devise / develop\n\n这类替换难在哪里？判断时应该优先核对哪两个维度？"
     },
     "analysis": {
-      "title": "建立短语替换的动作方向与对象范围框架",
+      "title": "解析",
       "summary": "① 识别信号：原文出现\"动词+副词/介词\"短语（give up、carry out、come up with、turn out to be），而题干只用了一个动词（abandon、conduct、devise、prove）；外观差异极大，但动作核心一致。\n\n② 核心规律：有效短语替换必须同时满足：(a) 动作方向相同（放弃→放弃，执行→执行）；(b) 对象范围未被压缩或扩展；(c) 主动/被动没有切换（carry out 是主动执行，be conducted 是被动受施，已经是不同结构）。\n\n③ 验证：give up smoking = abandon the habit（方向：放弃；对象：同一行为）✓；come up with a plan = devise a strategy（方向：主动构思；对象：均为解决方案）✓；turn out to be effective = prove effective（方向：结果显示；对象：有效性）✓。",
       "exam_tip": "看到命题用单个动词替代原文短语时，立刻检查动作方向与对象范围这两项，而不是死记短语表。"
     },
@@ -3984,7 +3984,7 @@
       "context": "原文片段：\n\"Why do some students give up when they encounter difficulty, whereas others who are no more skilled continue to strive and learn?\"\n\n题干改写：\n\"The author wonders why some students _______ in the face of difficulty while others of equal ability keep trying.\"\n\n空格里最准确的替换是哪个？"
     },
     "analysis": {
-      "title": "识别 give up 与 abandon the effort 的等值关系",
+      "title": "解析",
       "summary": "① 识别信号：原文\"give up when they encounter difficulty\"，题干只保留了\"in the face of difficulty\"的语境，动词部分完全改写。\n\n② 核心规律：\"give up (doing)\"核心义是\"主动停止尝试\"，等价单词组合包括 abandon / quit / cease trying。选项里带新主体（pressure）、新后果（progress）或新情绪（confidence）的，都是范围越界，应直接排除。\n\n③ 验证：give up = abandon the effort：主体（学生）相同，动作方向（放弃）相同，对象（继续努力）相同 → 成立。",
       "exam_tip": "\"give up\"最常见的单动词替换是 abandon / quit，不要误选含新概念的选项。"
     },
@@ -4033,7 +4033,7 @@
       "context": "问题：哪一句最接近原句，且保留 may 的强度？"
     },
     "analysis": {
-      "title": "判断 come up with a solution 的动作含义",
+      "title": "解析",
       "summary": "come up with 在这里表示想出方案，devised 与之相近。may have 表示尚未确定，不能换成已经验证有效；find、produce 在其他语境中也能与方案搭配。",
       "exam_tip": "同时核对动作与不确定性。"
     },
@@ -4082,7 +4082,7 @@
       "context": "原文片段：\n\"Karen Hayes conducts knitting therapy programs, including Knit to Quit to help smokers give up the habit.\"\n\n题目问：\"What is the purpose of the Knit to Quit program?\"\n\n下面哪个选项是对\"give up the habit\"的准确替换？"
     },
     "analysis": {
-      "title": "结合指代恢复 give up the habit 的具体对象",
+      "title": "解析",
       "summary": "① 识别信号：\"give up the habit\"中，habit 回指上文的 smoking；题干选项用 quit smoking 将短语和代词一起直接改写。\n\n② 核心规律：\"give up\"= quit / abandon，方向是主动停止。选项中含\"新目的、新对象、相反方向\"的，优先排除。D项\"develop\"是正向动词，与\"give up\"方向相反，是经典极性陷阱。\n\n③ 验证：give up the smoking habit = quit smoking：主体（参加者）相同，动作方向（停止）相同，对象（吸烟）相同 → 成立。",
       "exam_tip": "\"give up\" 和 \"quit\" 在\"放弃、戒掉\"语境下完全对应，是最高频的短语替换配对之一。"
     },
@@ -4131,7 +4131,7 @@
       "context": "原文片段：\n\"The new instructions turned out to be easier to follow than the previous version.\"\n\n题干改写：\n\"The new instructions _______ easier to follow than the previous version.\"\n\n哪个选项是原文\"turn out to be\"的最准确替换？"
     },
     "analysis": {
-      "title": "区分 turn out、appear 与 become 的结果层次",
+      "title": "解析",
       "summary": "turned out to be 与 proved to be 在这里都表示结果显示如此。其他选项分别增加了假定、仅为表象或设计目的，不能直接代替已观察到的结果。",
       "exam_tip": "训练保留经过验证的结论含义。"
     },
@@ -4180,7 +4180,7 @@
       "context": "用词库中的单词填空，使改写与原句保持动作方向和程度。\n\n原句：The teacher helped students give up habits that interfered with learning.\n改写：The teacher helped students {{blank}} habits that interfered with learning.\n\n词库：abandon / adopt / maintain / strengthen / tolerate / reduce"
     },
     "analysis": {
-      "title": "用方向和程度筛选 give up 的唯一等值动词",
+      "title": "解析",
       "summary": "① 识别信号：give up habits 表示主动并完全停止这些习惯；改写空格需要能直接接 habits、并保留停止方向的及物动词。\n\n② 核心规律：abandon 同时保留“主动停止”和“完全放弃”。adopt、maintain、strengthen 的方向相反，tolerate 表示容忍，reduce 只降低程度，均不等值。\n\n③ 验证：abandon habits that interfered with learning 与 give up these habits 的主体、对象、方向和程度一致，因此是唯一稳定答案。",
       "exam_tip": "先判动作方向，再核对完全或部分的程度。"
     },
@@ -4223,7 +4223,7 @@
       "context": "用词库中的单词填空，使句子与括号里的原文短语保义对应。\n\n原文：The team carried out a series of experiments on memory and stress.\n改写：The team {{blank}} a series of experiments on memory and stress.\n\n词库：conducted / attempted / canceled / planned / designed / completed"
     },
     "analysis": {
-      "title": "识别 carry out 与 conduct 的执行阶段等值",
+      "title": "解析",
       "summary": "① 识别信号：\"carry out experiments\"的核心义是\"主动推进执行某项活动\"，词库里只有\"conducted\"在动作层次（执行过程）上与之完全对应。\n\n② 核心规律：\"carry out\"常见替换：conduct / implement / perform / execute。干扰项常出现在\"时间层次\"（plan=计划，complete=完成）和\"方向层次\"（cancel=取消）上。先定位动词的时间层次（准备/执行/完成），再找替换词。\n\n③ 验证：conducted a series of experiments = carried out a series of experiments：主体（团队）相同，动作（执行实验）相同，时间层次（执行阶段）相同 → 成立。",
       "exam_tip": "\"carry out\" = conduct / implement / perform，核心是\"执行\"，不是\"计划\"也不是\"完成\"。"
     },
@@ -4266,7 +4266,7 @@
       "context": "用词库中的单词填空，使句子与原文短语保义对应。\n\n原文：Researchers came up with a practical method to reduce phantom traffic jams.\n改写：Researchers {{blank}} a practical method to reduce phantom traffic jams.\n\n词库：devised / forgot / tried / rejected / tested / borrowed"
     },
     "analysis": {
-      "title": "用主动构思方向填入 devised",
+      "title": "解析",
       "summary": "came up with 和 devised 在此都表示构想出方法。tried/tested 只说明尝试或测试，borrowed 额外加入借用来源，forgot/rejected 则改变动作方向；不能笼统声称 found 与想出毫无语义重合。",
       "exam_tip": "训练区分构思、发现、测试和借用。"
     },
@@ -4309,7 +4309,7 @@
       "context": "用词库填空，使改写保留对未来的积极期待。\n\n原句：I look forward to each day and experiencing something new.\n改写：I {{blank}} each new day and the experiences it brings.\n\n词库：eagerly await / dread / recall / postpone / overlook / resist"
     },
     "analysis": {
-      "title": "保留 look forward to 的未来指向与积极语气",
+      "title": "解析",
       "summary": "① 识别信号：look forward to 同时包含未来时间和积极期待；改写必须保留这两个维度，不能只表示一般预测。\n\n② 核心规律：eagerly await 明确表示热切等待。dread 的情感极性相反，recall 指向过去，postpone 表示推迟，overlook 与 resist 都改变动作。\n\n③ 验证：eagerly await each new day 与 look forward to each day 都是“积极等待尚未到来的每一天”，时间和态度完全对应。",
       "exam_tip": "短语替换要同时保留时间方向和情感极性。"
     },
@@ -4352,7 +4352,7 @@
       "context": "下面四组短语与单词改写中，哪一组没有保持原动作的语义角色？"
     },
     "analysis": {
-      "title": "综合识别改写中的动作角色错位",
+      "title": "解析",
       "summary": "come up with 突出提出理论；discover 可能表示发现已有理论，不能保证保持创造关系。A 和 B 保留相同动作；D 的 eagerly await 也保留积极期待，而单独 anticipate 不一定含正面态度。",
       "exam_tip": "迁移检查主动构思与发现既有对象的差异。"
     },
@@ -4401,7 +4401,7 @@
       "context": "用词库补全报告开头的陈述动作。\n\n句子：A concise report should {{blank}} the key claim before presenting secondary evidence.\n\n词库：set out / hand over / turn around / drop by"
     },
     "analysis": {
-      "title": "用 set out 完成报告立论动作",
+      "title": "解析",
       "summary": "① 识别信号：空格后接 the key claim，句子要求报告在呈现证据前先完成清晰陈述。\n\n② 核心规律：set out a claim 表示有条理地陈述观点。hand over 表示移交，turn around 表示转向或扭转，drop by 表示顺便拜访，都不能承担报告的立论动作。\n\n③ 验证：代入 set out 后，句子形成“先陈述核心主张，再呈现次要证据”的完整篇章顺序，搭配与功能同时成立。",
       "exam_tip": "set out 可与 claim、reason、plan 构成书面搭配。"
     },
@@ -4442,7 +4442,7 @@
       "context": "某团队先执行实地调查，再起草提案。哪项英文改写同时保留了执行动作和时间顺序？"
     },
     "analysis": {
-      "title": "同时验证执行替换与事件顺序",
+      "title": "解析",
       "summary": "① 识别信号：任务要求同时核对“执行调查”与“调查先于提案草拟”两项信息。\n\n② 核心规律：carry out a survey 与 conduct a survey 都表示执行调查。其他选项分别加入推迟、用观点替代数据或撤回提案，改变了动作或事件关系。\n\n③ 验证：A 保留团队主体、实地调查对象、执行动作和 before 时间顺序；其余选项至少破坏其中一项。",
       "exam_tip": "短语替换成立后仍要继续核对对象和时间顺序。"
     },
@@ -4491,7 +4491,7 @@
       "context": "句式替换不是单词替换，而是同一意思换一种句法骨架。\n\n常见改写：\n1. not ... until ... → only when ...\n2. X has been of little help → X contributes little to ...\n3. is nearly impossible to ... → is almost impossible to ...\n\n为什么词面变化很大仍可能同义？应先核对哪三项？"
     },
     "analysis": {
-      "title": "建立对象—关系—范围三项等值检查",
+      "title": "解析",
       "summary": "① 识别信号：原句与改写可能几乎不共享实词，但主体、关系和强度仍一一对应。not until/only when 改变句法，of little help/contributes little 改变词性结构，nearly/almost 只替换程度副词。\n\n② 核心规律：句式替换必须同时守住对象、逻辑关系和范围/强度。只保留大致主题而改变否定程度、时间边界或数量比例，不算等值。\n\n③ 验证：先分别写出“谁—做什么/处于何状态—在什么条件或程度下”，再比较两句；三项都一致才接受改写。",
       "exam_tip": "逐项核对主体、关系、范围或强度。"
     },
@@ -4515,7 +4515,7 @@
       "context": "原文：\n\"the concept of balance has never been helpful, because it is too limiting\"\n\n改写：\n\"the concept of work-life balance contributes little to a fulfilling life\"\n\n这组替换是否严格等值？"
     },
     "analysis": {
-      "title": "识别绝对否定被弱化为低程度评价",
+      "title": "解析",
       "summary": "① 识别信号：两句主体接近、评价方向都偏负面，但 never 与 little 的量级不同。\n\n② 核心规律：同义替换不仅核对正负方向，还要核对绝对/有限、全部/多数、必然/可能等强度边界。\n\n③ 验证：若贡献为少量但非零，contributes little 成立，而 has never been helpful 不成立；存在可区分情形就不是严格等值。",
       "exam_tip": "负面方向相同不代表强度相同。"
     },
@@ -4564,7 +4564,7 @@
       "context": "原文：\n\"the lack of knowledge is nearly impossible to compensate for later on\"\n\n改写：\n\"it is almost impossible to make up for that knowledge gap later\"\n\n哪项解释最准确？"
     },
     "analysis": {
-      "title": "验证 nearly/almost 与 compensate/make up 的双重替换",
+      "title": "解析",
       "summary": "两句都保留知识缺口、后期补救和几乎不可能的强度。make up for 与 compensate for 都指弥补，不能误读为事情已经得到解决。",
       "exam_tip": "训练同时核对强度、动作、对象和时间。"
     },
@@ -4613,7 +4613,7 @@
       "context": "原文：\n\"it was not until she was much older that she became keenly interested\"\n\n改写：\n\"only when she was much older did she become deeply interested\"\n\n这组替换为什么成立？"
     },
     "analysis": {
-      "title": "识别 not until 与 only when 的条件倒装改写",
+      "title": "解析",
       "summary": "① 识别信号：原句和改写都包含\"年龄更大\"这个触发条件；差别只在否定句式与倒装句式。\n\n② 核心规律：not until A did B 与 only when A did B 常可互换。判断是否等值，关键看 A（触发条件）和 B（结果事件）是否都保留。\n\n③ 验证：A= she was much older，B= she became deeply interested，两句完全对应，未改时间方向和结果事件 -> 成立。",
       "exam_tip": "遇到 not until，优先在选项中找 only when 同义骨架。"
     },
@@ -4662,7 +4662,7 @@
       "context": "原文：\n\"Older midcareer workers make up the bulk of the long-term unemployed\"\n\n改写：\n\"Older midcareer workers constitute the majority of the long-term unemployed\"\n\n这组替换最关键的判定点是："
     },
     "analysis": {
-      "title": "验证 make up the bulk 与 constitute the majority",
+      "title": "解析",
       "summary": "① 识别信号：原句\"make up the bulk of\"与改写\"constitute the majority of\"在数量关系上同向，都指\"超过一半的主体占比\"。\n\n② 核心规律：数量关系词（bulk / majority / most）之间可替换，但 all / minority 不可。句式变化允许从\"短语动词+名词\"转为\"单动词+名词\"，前提是比例关系不变。\n\n③ 验证：主体都是 older midcareer workers，对象都是 long-term unemployed，占比都为多数 -> 成立。",
       "exam_tip": "bulk of 在考试里通常接近 majority of，而不是 all of。"
     },
@@ -4711,7 +4711,7 @@
       "context": "用词库填空，使改写句与原句语义等值。\n\n原句：It was not until she was much older that she became interested in knitting therapy.\n改写：{{blank}} she was much older did she become interested in knitting therapy.\n\n词库：Only when / Even though / As soon as / Unless / Since / Before"
     },
     "analysis": {
-      "title": "在倒装框架中填入 Only when",
+      "title": "解析",
       "summary": "① 识别信号：原句含 not until，改写句倒装 did she become，说明目标是同一触发逻辑的句式替换。\n\n② 核心规律：not until A ... that B 与 only when A ... B 共享\"条件后置触发\"关系；其余连词（even though/unless/as soon as）改变逻辑类型，不能替换。\n\n③ 验证：Only when she was much older did she become interested 与原句条件和结果完全一致 -> 成立。",
       "exam_tip": "看见 did she 这类倒装，先找 only when / not until 触发结构。"
     },
@@ -4754,7 +4754,7 @@
       "context": "用词库填空，使改写保留作用有限这一核心含义。\n\n原句：The concept of balance has been of little help in leading a fulfilling life.\n改写：The concept of balance {{blank}} to a fulfilling life.\n\n词库：contributes little / contributes greatly / is essential / leads directly / has no relation / is central"
     },
     "analysis": {
-      "title": "把 be of little help 改写为 contribute little",
+      "title": "解析",
       "summary": "两句都围绕充实生活，表示这种平衡观念帮助有限。原句的完成时与改写的现在时侧重点不同；本题只训练作用有限这一含义，不把两种时态称为处处可换。",
       "exam_tip": "训练词性结构变化下的低程度等值。"
     },
@@ -4797,7 +4797,7 @@
       "context": "用词库填空，使改写句与原句语义等值。\n\n原句：The lack of knowledge is nearly impossible to compensate for later on.\n改写：The knowledge gap is {{blank}} to make up for later.\n\n词库：almost impossible / easy enough / immediately solvable / entirely avoidable / generally minor / barely relevant"
     },
     "analysis": {
-      "title": "在词库中保留接近不可能的强度",
+      "title": "解析",
       "summary": "① 识别信号：nearly impossible 与 later 是必须保留的强度和时间信号，compensate for 对应 make up for。\n\n② 核心规律：almost 与 nearly 在这里同表接近不可能；其他候选或反转难度，或改变时间、相关性和可避免性。\n\n③ 验证：almost impossible 代回后，与原句在缺口、弥补动作、强度和 later 范围上逐项一致。",
       "exam_tip": "先锁定原句强度档，再筛词库。"
     },
@@ -4840,7 +4840,7 @@
       "context": "用词库填空，使改写句与原句语义等值。\n\n原句：Older midcareer workers make up the bulk of the long-term unemployed.\n改写：Older midcareer workers {{blank}} the majority of the long-term unemployed.\n\n词库：constitute / avoid / reduce / replace / challenge / follow"
     },
     "analysis": {
-      "title": "把 make up the bulk 改写为 constitute the majority",
+      "title": "解析",
       "summary": "① 识别信号：make up the bulk of 表示构成大部分，改写后已有 the majority of，空格需要同样表达“构成”的动词。\n\n② 核心规律：constitute + 名词可替换 make up + 名词，句法由短语动词变为单一正式动词，数量关系不变。\n\n③ 验证：constitute the majority 保留同一主体和多数占比；avoid、reduce、replace 等都会改变关系类型。",
       "exam_tip": "bulk/majority 都要守住多数方向。"
     },
@@ -4883,7 +4883,7 @@
       "context": "综合辨析：下面哪一组不是有效句式替换？"
     },
     "analysis": {
-      "title": "综合识别句式变化与数量反转",
+      "title": "解析",
       "summary": "① 识别信号：前三组分别保留时间触发、低程度评价和接近不可能的强度；最后一组把数量方向从多数翻成少数。\n\n② 核心规律：句法和词汇可以变化，但数量极性属于语义核。bulk/majority 与 only a small share 不能视为同义外壳。\n\n③ 验证：设主体占 70%，多数表达成立而小比例表达不成立，说明两句可一真一假，因此不是有效替换。",
       "exam_tip": "数量方向是等值判断的硬边界。"
     },
@@ -4932,7 +4932,7 @@
       "context": "原句：Production stopped because the supplier was late.\n改写：Supplier delays caused production to stop.\n\n说明：The rewritten sentence {{blank}} the same cause-effect relation explicitly."
     },
     "analysis": {
-      "title": "把 because 从句改写为 cause 动词结构",
+      "title": "解析",
       "summary": "① 识别信号：because the supplier was late 与 Supplier delays caused... 对应同一原因，production stopped/to stop 对应同一结果。\n\n② 核心规律：因果从句可以改写为原因名词作主语 + cause + 结果结构，只要因果方向不反转。\n\n③ 验证：rewritten sentence states the same relation 精确描述该改写；hides、deletes、interrupts 都与显式 cause 结构矛盾。",
       "exam_tip": "分别标出原因和结果，再检查方向。"
     },
@@ -4973,7 +4973,7 @@
       "context": "哪项改写保留原句的时间限制？"
     },
     "analysis": {
-      "title": "将 Not until 倒装恢复为等值正常语序",
+      "title": "解析",
       "summary": "Not until 前置触发倒装。恢复正常语序时，not 与 reveal 结合，until 仍保留到最后一节才揭示的时间边界。",
       "exam_tip": "迁移保持时间焦点与信息角色。"
     },
@@ -5022,7 +5022,7 @@
       "context": "比较：The guide has never been helpful. / The guide has provided little help.\n\n任务：两句评价方向接近，是否就能认为它们完全等值？"
     },
     "analysis": {
-      "title": "比较改写时保留概念、范围与信息强度",
+      "title": "解析",
       "summary": "否定改写必须同时核对方向和强度。两句话都不积极，并不意味着其数量或时间范围相同。",
       "exam_tip": "核对句中具体定义，不把局部近义扩大为整句等值。"
     },
@@ -5046,7 +5046,7 @@
       "context": "原句：The guide has never been helpful.\n改写：The guide has provided little help.\n\n问题：哪项判断准确？"
     },
     "analysis": {
-      "title": "比较改写时保留概念、范围与信息强度",
+      "title": "解析",
       "summary": "never 与 little 的否定强度不同，不能仅凭主题或评价方向相同就判为完全等值。",
       "exam_tip": "核对句中具体定义，不把局部近义扩大为整句等值。"
     },
@@ -5095,7 +5095,7 @@
       "context": "原文：\n\"most potential health conditions cannot be identified by genetic testing alone\"\n\n改写：\n\"genetic testing by itself is insufficient to identify most potential health conditions\"\n\n这组改写的关键等值点是："
     },
     "analysis": {
-      "title": "识别 cannot alone 到 insufficient by itself 的边界保留",
+      "title": "解析",
       "summary": "① 识别信号：原句显性否定 cannot，改写句用 insufficient，都是\"能力不足\"方向。\n\n② 核心规律：cannot do X alone 与 be insufficient to do X 是高频等值模板，前提是 alone/on its own 边界必须保留。\n\n③ 验证：对象（most potential health conditions）一致，边界（alone/by itself）一致，结论（单独不够）一致 -> 成立。",
       "exam_tip": "读到 cannot ... alone，先在选项中找 insufficient / not enough 类表达。"
     },
@@ -5144,7 +5144,7 @@
       "context": "原文：\n\"A single percentage label hardly reflects a person's full ancestry.\"\n\n改写：\n\"One percentage figure fails to represent the person's complete ancestry accurately.\"\n\n该改写成立的核心原因是："
     },
     "analysis": {
-      "title": "识别 hardly reflect 到 fail to represent fully 的否定显化",
+      "title": "解析",
       "summary": "① 识别信号：原句 hardly（隐性否定）改写为 fail to（显性否定），两者都表示“不能充分反映”。\n\n② 核心规律：hardly/scarcely/barely 常与 fail to/not fully 对应，属于否定显化改写。关键是保留“不足以反映”而非“完全没有信息”。\n\n③ 验证：对象（full ancestry/complete ancestry）一致，结论（反映不足）一致，范围未扩展，所以改写成立。",
       "exam_tip": "hardly 不等于完全否定，而是“几乎不”；对应 fail to 时要看程度是否匹配。"
     },
@@ -5193,7 +5193,7 @@
       "context": "问题：哪一句保留当前时点和证据数量的限制？"
     },
     "analysis": {
-      "title": "比较改写时保留概念、范围与信息强度",
+      "title": "解析",
       "summary": "extremely limited 说明可用支持证据很有限。不能仅由数量少就断定应用永远无效，也不能把当前改成未来的永久结论。",
       "exam_tip": "核对句中具体定义，不把局部近义扩大为整句等值。"
     },
@@ -5242,7 +5242,7 @@
       "context": "用词库补全改写句，使两句保持同一结论。\n\n原句：Most of the conditions cannot be identified by a single screening method.\n改写：A single screening method {{blank}} identify most conditions accurately."
     },
     "analysis": {
-      "title": "在填空中保留单一手段不足的否定边界",
+      "title": "解析",
       "summary": "① 句法定位：空格后是动词原形 identify，因此候选短语需要能直接接不定式。\n\n② 语义筛选：原句只说单一方法不够，不能选 guaranteed / certain / always able 这类强肯定表达。\n\n③ 回填验证：A single screening method is insufficient to identify most conditions accurately 既保留 most，也保留“单独不足”，与原句等值。",
       "exam_tip": "看到 cannot ... by X alone，优先寻找 X is insufficient / not enough。"
     },
@@ -5285,7 +5285,7 @@
       "context": "用词库补全改写句，使两句保持同一评价方向。\n\n原句：The framework has never been useful for predicting individual choices.\n改写：The framework {{blank}} accurate predictions about individual choices."
     },
     "analysis": {
-      "title": "在同句法候选中识别低贡献型否定",
+      "title": "解析",
       "summary": "该短语保留作用不大的评价方向，但比 never been useful 更弱。题目只要求方向一致，不能据此断言两句在程度和时间上严格等值。",
       "exam_tip": "训练弱肯定词形下的否定极性识别。"
     },
@@ -5328,7 +5328,7 @@
       "context": "用词库补全改写句，使两句保持同一信息强度。\n\n原句：A percentage label barely represents a person's full family history.\n改写：A percentage label {{blank}} represent a person's family history in full."
     },
     "analysis": {
-      "title": "把 barely 的隐性否定显化且不绝对化",
+      "title": "解析",
       "summary": "barely 与 can barely 都保留几乎不能充分呈现这一强度；in full 对应 full family history。不能把 barely 简化为范围更宽的 not fully 后仍称完全等值。",
       "exam_tip": "训练程度边界在否定改写中的保留。"
     },
@@ -5371,7 +5371,7 @@
       "context": "用词库补全改写句，使两句保持相同的时间范围和证据强度。\n\n原句：At present, this application does not have strong supporting evidence.\n改写：At present, the application {{blank}} by strong evidence."
     },
     "analysis": {
-      "title": "在证据不足改写中保留当前时间边界",
+      "title": "解析",
       "summary": "原句直接说没有强支持证据，改写为 is not supported by strong evidence，保留否定对象与目前时点。单纯证据数量少不能自动推出它质量弱。",
       "exam_tip": "训练证据强度与时间范围的联合判断。"
     },
@@ -5414,7 +5414,7 @@
       "context": "下面四组改写中，哪一组越过了原句的范围边界，不能视为保义改写？"
     },
     "analysis": {
-      "title": "综合识别否定改写中的边界丢失",
+      "title": "解析",
       "summary": "D 从当前证据有限跳到永远不可能成立。B 的新表述都否定产出有用结果，避免把很少产出与贡献很少混为一谈；少量成果也可能有较大贡献。",
       "exam_tip": "迁移极性、范围和真值条件核验。"
     },
@@ -5463,7 +5463,7 @@
       "context": "用词库补全句子，使表达保留样本范围，避免把有限调查写成绝对结论。\n\nBecause the survey covered only one city, the report should {{blank}} that its result applies nationwide."
     },
     "analysis": {
-      "title": "把有限样本边界迁移为谨慎否定表达",
+      "title": "解析",
       "summary": "① 证据边界：only one city 表明样本无法直接代表全国。\n\n② 搭配核验：should avoid claiming that... 是自然结构；insist / confirm / demonstrate / guarantee / prove 都会把尚未得到支持的全国结论写成肯定事实。\n\n③ 逻辑验证：填入 avoid claiming 后，句子形成“样本有限，所以限制推论”的完整关系。",
       "exam_tip": "先找 only、some、at present 等限制证据范围的信号。"
     },
@@ -5506,7 +5506,7 @@
       "context": "原句：这个结论并非毫无争议。\n\n哪项译法最贴近原句的弱否定语气？"
     },
     "analysis": {
-      "title": "将汉语弱否定迁移为自然英语审慎表达",
+      "title": "解析",
       "summary": "① 语气定位：“并非毫无争议”不是说结论彻底错误，而是说仍存在合理争议空间。\n\n② 选项对照：open to dispute 与这一强度相符；beyond dispute 把方向反转，nothing to do with 更换关系，settles every disagreement 则绝对化。\n\n③ 回译验证：This conclusion remains open to dispute 可回译为“这个结论仍有争议”，与原句的审慎语气一致。",
       "exam_tip": "双重否定先还原成实际语气强度，再选择英语表达。"
     },
@@ -5555,7 +5555,7 @@
       "context": "练习材料：At work, a receptionist is expected to keep a welcoming tone even when frustrated. This management of emotional expression is part of the job.\n\n任务：这段材料中的 emotional labor 涉及什么？为什么不能只解释为不被看见的杂事？"
     },
     "analysis": {
-      "title": "比较改写时保留概念、范围与信息强度",
+      "title": "解析",
       "summary": "这里的关键是工作角色对情绪表达的要求，而不是任务有没有被看见，也不限定只有女性会承担。",
       "exam_tip": "核对句中具体定义，不把局部近义扩大为整句等值。"
     },
@@ -5579,7 +5579,7 @@
       "context": "原句：The job requires staff to manage their emotional expression when speaking with customers.\n\n问题：哪一改写保留了这里的核心要求？"
     },
     "analysis": {
-      "title": "比较改写时保留概念、范围与信息强度",
+      "title": "解析",
       "summary": "manage emotional expression 对应 regulate how they show emotion，customers 对应 customer interactions。不能把情绪管理改成所有杂务或只属于某一性别的工作。",
       "exam_tip": "核对句中具体定义，不把局部近义扩大为整句等值。"
     },
@@ -5628,7 +5628,7 @@
       "context": "原文：\n\"planned obsolescence, that is, to design a product so that it will soon become unfashionable or impossible to use and will need replacing\"\n\n题干改写：\n\"Manufacturers intentionally make products age out quickly so consumers buy replacements.\"\n\n哪项最准确？"
     },
     "analysis": {
-      "title": "识别 planned obsolescence 的完整机制链",
+      "title": "解析",
       "summary": "① 识别信号：that is 后面的解释给出完整机制：制造商有意设计，产品很快过时或无法使用，消费者因而需要更换。\n\n② 核心规律：planned obsolescence 不只是产品寿命短，而是“有意设计—提前失效或过时—促使更换”的机制链。解释性改写必须保留意图和结果，不能把原因改成偶然或消费者偏好。\n\n③ 验证：A 同时保留 intentional design 与 replacement；B 反转耐用方向，C 改成自发偏好，D 删除设计意图，因此只有 A 完整。",
       "exam_tip": "机制链改写要逐段核对意图、过程和结果。"
     },
@@ -5677,7 +5677,7 @@
       "context": "原文：\n\"No is a form of time credit ... Yes is a form of time debt.\"\n\n题干改写：\n\"Turning down a request preserves future freedom, while accepting one consumes future time.\"\n\n这组改写成立的核心是："
     },
     "analysis": {
-      "title": "把 time credit 和 time debt 还原为现实后果",
+      "title": "解析",
       "summary": "① 识别信号：原句使用隐喻（credit/debt），题干改成直白行为后果（preserve/consume future time）。\n\n② 核心规律：隐喻解释替换要保留映射方向：no -> 保留，yes -> 占用。方向反了就不是替换。\n\n③ 验证：turning down preserves future freedom 与 no is time credit 同向；accepting consumes future time 与 yes is time debt 同向 -> 成立。",
       "exam_tip": "术语是比喻时，先还原成现实动作后果再判断。"
     },
@@ -5726,7 +5726,7 @@
       "context": "原句：During the interaction, the employee displayed a friendly expression without changing how they actually felt.\n\n问题：哪项最准确概括这里的 surface acting？"
     },
     "analysis": {
-      "title": "比较改写时保留概念、范围与信息强度",
+      "title": "解析",
       "summary": "这里区分外在表达与内心感受，不是要求完全没有真实情绪，也不是自然而然地表达所有感受。",
       "exam_tip": "核对句中具体定义，不把局部近义扩大为整句等值。"
     },
@@ -5775,7 +5775,7 @@
       "context": "用词库填空，使改写句与原句术语定义一致。\n\n原句：Planned obsolescence means designing products that soon need replacing.\n改写：Planned obsolescence refers to {{blank}}.\n\n词库：intentional design for early replacement / random product failure / permanent durability design / lower production cost only / accidental style changes / free consumer upgrades"
     },
     "analysis": {
-      "title": "补全 planned obsolescence 的意图与结果解释",
+      "title": "解析",
       "summary": "① 识别信号：refers to 后需要名词性解释；原句同时强调 intentional design 和 soon need replacing。\n\n② 核心规律：planned obsolescence 的解释必须包含人为设计意图与提前更换结果。随机故障、永久耐用、单纯降成本、偶然款式变化和免费升级都删改了机制。\n\n③ 验证：intentional design for early replacement 在语法上可作 refers to 的宾语，并完整覆盖意图与结果两项条件。",
       "exam_tip": "先找 planned 对应的设计意图，再找 replacement 结果。"
     },
@@ -5818,7 +5818,7 @@
       "context": "补全句中的概念解释。"
     },
     "analysis": {
-      "title": "用自然名词短语保留期待性和隐形性",
+      "title": "解析",
       "summary": "给定定义同时包含情绪表达管理和工作要求。只保留不被注意或是否付薪，都不能准确覆盖该定义。",
       "exam_tip": "训练同时保留定义中的多个限定。"
     },
@@ -5861,7 +5861,7 @@
       "context": "用词库填空，使比喻术语的方向保持不变。\n\n原句：No is a form of time credit.\n改写：Saying no {{blank}} time for your future priorities.\n\n词库：preserves / consumes / confuses / monetizes / eliminates / postpones"
     },
     "analysis": {
-      "title": "用 preserves 恢复 time credit 的现实方向",
+      "title": "解析",
       "summary": "① 识别信号：time credit 是比喻，现实含义是拒绝当前请求后，未来时间仍可用于自己的优先事项。\n\n② 核心规律：preserves 与 credit 的正向积累对应。consumes 和 eliminates 反转方向，confuses、monetizes、postpones 都改变了原比喻的现实后果。\n\n③ 验证：Saying no preserves time for your future priorities 能自然解释 time credit，同时不引入金钱或延期含义。",
       "exam_tip": "先把比喻还原成现实动作，再比较方向。"
     },
@@ -5904,7 +5904,7 @@
       "context": "补全概念解释。"
     },
     "analysis": {
-      "title": "用真实性缺口解释 surface acting",
+      "title": "解析",
       "summary": "定义说变化发生在外在表达，内心感受仍然保持。不能把未完全感受到简单扩大成完全没有任何真实感受。",
       "exam_tip": "训练区分真实性、强度和自愿性维度。"
     },
@@ -5947,7 +5947,7 @@
       "context": "下面四项中，哪一项把术语的核心机制解释成了相反含义？"
     },
     "analysis": {
-      "title": "综合识别术语解释中的机制反转",
+      "title": "解析",
       "summary": "表层扮演可指调整外在情绪表达，而内心感受并不随之改变；D 把这种不一致换成了自然流露。A 的工作情绪管理、B 的有意设计过时、C 的未来时间承诺分别保留各自概念。",
       "exam_tip": "迁移用机制摘要检验四组解释。"
     },
@@ -5996,7 +5996,7 @@
       "context": "用词库补全术语后的解释动作。\n\n句子：When introducing a technical term, the writer should {{blank}} with a plain-language explanation.\n\n词库：follow it up / close it down / put it off / cut across it"
     },
     "analysis": {
-      "title": "用 follow it up with 完成术语解释动作",
+      "title": "解析",
       "summary": "① 识别信号：空格后接 with a plain-language explanation，需要能与 with 组成“随后补充说明”的短语结构。\n\n② 核心规律：follow it up with 表示在前项之后继续提供信息。close it down、put it off 和 cut across it 分别表示关闭、推迟和横切或妨碍，均不符合解释动作。\n\n③ 验证：代入后形成 the writer should follow it up with a plain-language explanation，代词位置、介词搭配和篇章功能都成立。",
       "exam_tip": "代词宾语在 follow up 中应放在动词和副词之间。"
     },
@@ -6037,7 +6037,7 @@
       "context": "一项措施旨在让经济扩张的收益覆盖更广泛的社会群体。哪项英文改写最准确？"
     },
     "analysis": {
-      "title": "解释 inclusive growth 的发展与覆盖双条件",
+      "title": "解析",
       "summary": "aims to 保留措施的目的，broader social groups 保留覆盖人群扩大这一含义；不能把目的直接写成已经实现的效果。",
       "exam_tip": "迁移拆解复合术语并验证完整边界。"
     },
@@ -6086,7 +6086,7 @@
       "context": "中国特色治理术语要同时核对概念层级、官方用法和句法位置。\n\n常见表达包括：\n1. 依法治国 → law-based governance\n2. 以人民为中心的发展思想 → people-centered development philosophy\n3. 全过程人民民主 → whole-process people's democracy\n4. 基层治理现代化 → modernization of grassroots governance\n\n怎样避免把相邻但不同的治理概念互相替换？"
     },
     "analysis": {
-      "title": "建立治理原则、发展理念、民主概念和基层治理的分类框架",
+      "title": "解析",
       "summary": "① 识别信号：治国、发展思想、民主和基层治理分别指向治理原则、价值理念、民主概念和治理能力建设。\n\n② 核心规律：law-based、people-centered、whole-process 和 grassroots 都在限定不同概念，不能因都属于政策语境就互换。\n\n③ 验证：先用官方英文材料确认固定或稳定用法，再将术语放入完整句子；若对象层级或搭配改变，就不构成等值表达。",
       "exam_tip": "先给中文概念分类，再核对英文。"
     },
@@ -6110,7 +6110,7 @@
       "context": "句子：\n“宪法规定，国家实行依法治国，建设社会主义法治国家。”\n\n“依法治国”在该语境中最合适的表达是："
     },
     "analysis": {
-      "title": "识别 law-based governance 的国家治理范围",
+      "title": "解析",
       "summary": "① 识别信号：主语是国家，动作是“实行”，宾语指国家治理原则。\n\n② 核心规律：law-based governance 对应治理活动以法律为基础；rule of law、government administration 和 rule of law government 虽相关，但概念层级不同。\n\n③ 验证：practice law-based governance 与官方宪法句式相合，也能与后面的 build a socialist state under the rule of law 区分。",
       "exam_tip": "区分治理原则与法治国家建设。"
     },
@@ -6159,7 +6159,7 @@
       "context": "句子：\n“该规划强调以人民为中心的发展思想，把人民生命安全放在首位。”\n\n“以人民为中心的发展思想”最合适的表达是："
     },
     "analysis": {
-      "title": "识别 people-centered development philosophy 的完整结构",
+      "title": "解析",
       "summary": "① 识别信号：中文包含“以人民为中心”“发展”“思想”三个组成部分，句子还说明其指导作用。\n\n② 核心规律：people-centered 修饰 development philosophy，三部分共同构成理念表达；approach、development 和 public services 都只保留部分信息。\n\n③ 验证：a people-centered development philosophy 可自然作 emphasizes 的宾语，并与 prioritizing people's lives 形成理念到行动的关系。",
       "exam_tip": "逐项核对中心、发展和思想三层。"
     },
@@ -6208,7 +6208,7 @@
       "context": "句子：\n“全过程人民民主覆盖民主选举、协商、决策、管理和监督。”\n\n“全过程人民民主”的规范英文专名是："
     },
     "analysis": {
-      "title": "区分全过程人民民主与单一民主机制",
+      "title": "解析",
       "summary": "① 识别信号：题干列出选举、协商、决策、管理和监督多个环节，指向覆盖全过程的整体概念。\n\n② 核心规律：whole-process people's democracy 是固定整体；consultation、self-governance 和 electoral democracy 都是相邻但更窄的概念。\n\n③ 验证：B 同时保留 whole-process 和 people's democracy，并能统摄题干列出的各环节。",
       "exam_tip": "用全过程线索排除单一机制。"
     },
@@ -6257,7 +6257,7 @@
       "context": "句子：\n“基层治理现代化有助于提升治理体系和治理能力。”\n\n如果不引用某一文件的完整标题，“基层治理现代化”最自然的概括表达是："
     },
     "analysis": {
-      "title": "准确概括基层治理现代化并识别标题扩展",
+      "title": "解析",
       "summary": "① 识别信号：题干要求较短概念的概括表达，并明确不要求复现某份文件全文标题。\n\n② 核心规律：modernization of grassroots governance 保留三个核心成分；public administration、service digitalization 和 consultation mechanisms 都改变或缩小对象。\n\n③ 验证：D 可自然嵌入 governance system and capacity 语境，同时不虚构其为唯一固定标题。",
       "exam_tip": "区分自然概括与官方文件标题。"
     },
@@ -6306,7 +6306,7 @@
       "context": "用词库填空，使法治政策句的概念范围准确。\n\n句子：China will continue to advance {{blank}} in all respects.\n（中文提示：依法治国）\n\n词库：law-based governance / the rule of law / law-based government administration / a rule of law government / impartial administration of justice / society-wide observance of the law"
     },
     "analysis": {
-      "title": "在总体法治句中选择 law-based governance",
+      "title": "解析",
       "summary": "① 识别信号：advance...in all respects 需要一个覆盖总体治理的名词短语，中文提示是“依法治国”。\n\n② 核心规律：law-based governance 是上位治理概念；government administration、justice 和 observance 是其中不同领域。\n\n③ 验证：代回正确项后，动词搭配、治理范围和中文提示一致，没有把总体概念缩成单一实施环节。",
       "exam_tip": "先判断总体概念还是子领域。"
     },
@@ -6349,7 +6349,7 @@
       "context": "用词库填空，使发展理念表达完整。\n\n句子：The plan emphasizes {{blank}}, prioritizing people's lives and safety.\n（中文提示：以人民为中心的发展思想）\n\n词库：a people-centered development philosophy / a people-centered approach / high-quality development / common prosperity / inclusive development / public-service improvement"
     },
     "analysis": {
-      "title": "在行动说明中锁定完整人民中心发展理念",
+      "title": "解析",
       "summary": "① 识别信号：emphasizes 后需要名词短语，中文提示同时要求 people-centered、development 和 philosophy。\n\n② 核心规律：policy approach、high-quality development 和 common prosperity 都是可用政策表达，但不等于该完整发展思想。\n\n③ 验证：正确项与 prioritizing people's lives and safety 形成理念与具体优先事项的说明关系。",
       "exam_tip": "相关政策词不等于同义词。"
     },
@@ -6392,7 +6392,7 @@
       "context": "用词库填空，使民主概念的范围准确。\n\n句子：The article discusses {{blank}} and public participation throughout governance.\n（中文提示：全过程人民民主）\n\n词库：whole-process people's democracy / democratic consultation / grassroots self-governance / public participation / electoral democracy / community governance"
     },
     "analysis": {
-      "title": "通过全过程线索选择完整民主专名",
+      "title": "解析",
       "summary": "① 识别信号：throughout governance 指参与贯穿治理过程，中文提示给出完整专名。\n\n② 核心规律：whole-process people's democracy 覆盖多环节参与；consultation、electoral democracy 和 community governance 只落在部分机制或场景。\n\n③ 验证：代回正确项后，专名与后置说明形成概念加解释的结构，没有把整体概念缩成某一形式。",
       "exam_tip": "用 throughout 判断范围。"
     },
@@ -6435,7 +6435,7 @@
       "context": "用词库填空，使基层治理句的对象完整。\n\n句子：Local authorities are exploring paths to {{blank}} through coordinated services and capacity building.\n（中文提示：基层治理现代化）\n\n词库：modernization of grassroots governance / modernization of public administration / community service digitalization / grassroots consultation mechanisms / stronger local governance capacity / coordinated public services"
     },
     "analysis": {
-      "title": "区分基层治理现代化目标与具体实施路径",
+      "title": "解析",
       "summary": "① 识别信号：paths to 后是总体目标，through 后列出 coordinated services and capacity building 等实施路径。\n\n② 核心规律：modernization of grassroots governance 是上位目标；digitalization、consultation、capacity 和 services 是可能的组成部分。\n\n③ 验证：正确项能统摄后文两类路径，并完整对应中文提示；其他词项会把目标缩成单一手段。",
       "exam_tip": "区分目标与实现路径。"
     },
@@ -6478,7 +6478,7 @@
       "context": "综合辨析：下面哪一项明显是按中文词序拼接、而不是自然的治理政策英文表达？"
     },
     "analysis": {
-      "title": "识别治理政策术语中的机械直译",
+      "title": "解析",
       "summary": "① 识别信号：C 使用动词短语硬拼国家、法律和现代化，结构不像可在正式句中复用的术语。\n\n② 核心规律：规范政策术语通常具有稳定中心词和修饰关系，如 governance、development philosophy 和 people's democracy。\n\n③ 验证：逐项检查来源、词性和整体句法；C 即使能猜出中文来源，也不能因此成为自然表达。",
       "exam_tip": "可猜懂不等于规范。"
     },
@@ -6527,7 +6527,7 @@
       "context": "用词库补全政策阐释句：\n\nPolicy documents often {{blank}} people-centered development as a long-term principle."
     },
     "analysis": {
-      "title": "用 frame A as B 表达政策阐释",
+      "title": "解析",
       "summary": "① 识别信号：空格后已有宾语 people-centered development，随后是 as a long-term principle。\n\n② 核心规律：frame A as B 表示以某种方式界定 A；implement、advance、strengthen 虽是政策动词，却不接这一 as 补语。\n\n③ 验证：代回 frame 后，动词、宾语和补语形成完整结构，并准确表达政策文件的阐释动作。",
       "exam_tip": "先识别 A as B 结构。"
     },
@@ -6568,7 +6568,7 @@
       "context": "在当前中国民主政策语境中，“全过程人民民主”的官方英文固定表达是哪一项？"
     },
     "analysis": {
-      "title": "核验全过程人民民主的官方英文固定形式",
+      "title": "解析",
       "summary": "① 识别信号：题干要求当前官方固定表达，判断标准首先是来源和完整形式。\n\n② 核心规律：whole-process people's democracy 是整体专名；真实相邻概念不能因为语义相关而视为同义。\n\n③ 验证：A 的 whole-process 与 people's democracy 两部分均完整保留，并能在官方英文材料中核验。",
       "exam_tip": "固定专名优先查权威来源。"
     },
@@ -6617,7 +6617,7 @@
       "context": "经济政策词汇的难点不只是单词对应，还在术语、搭配和句法能否同时成立。\n\n常见表达包括：\n1. 民营经济 → private economy / private sector（按语境选择）\n2. 高质量发展 → high-quality development\n3. 绿色经济 → green economy\n4. 可持续发展 → sustainable development\n\n怎样把这些表达写进完整句子而不生硬？"
     },
     "analysis": {
-      "title": "建立政策术语、搭配和句法三层检查框架",
+      "title": "解析",
       "summary": "① 识别信号：先判断中文表达指经济组成部分、发展目标还是治理路径；同一中文词在不同句法位置可能对应 economy、sector、enterprises 或 development。\n\n② 核心规律：政策翻译要做三次核对：术语是否有真实英文用例、搭配是否自然、句子主干是否完整。不能只把汉字逐词换成英语。\n\n③ 验证：development of the private economy、promote high-quality development、support the green economy、contribute to sustainable development 都同时满足术语和搭配要求。",
       "exam_tip": "先确认概念类型，再选英文核心名词。"
     },
@@ -6641,7 +6641,7 @@
       "context": "句子：\n“近年来，中国政府高度重视民营经济的发展。”\n\n完成译句：\n\"In recent years, the Chinese government has attached great importance to the development of the ________.\"\n\n哪一项最符合这一句法和政策语境？"
     },
     "analysis": {
-      "title": "在宏观语境中选择 private economy",
+      "title": "解析",
       "summary": "① 识别信号：the development of the... 需要一个表示经济组成部分的名词短语；中文对象是“民营经济”，不是单个企业或非国有市场。\n\n② 核心规律：private economy 在官方英文材料中有实际用例，尤其可出现在 development of the private economy 这一结构中；private sector 也常见，但本题选项需与整句搭配判断。\n\n③ 验证：private economy 保留宏观经济概念；private business economy 冗余，civilian economy 误用 civilian，non-state market 又把经济组成部分缩成市场。",
       "exam_tip": "区分 private economy、private sector 与 private enterprises 的层级。"
     },
@@ -6690,7 +6690,7 @@
       "context": "句子：\n\"民营企业核心竞争力的增强为中国经济的高质量发展提供了有力支撑。\"\n\n空格处最规范的是：\n\"... provides strong support for the ________ of the Chinese economy.\""
     },
     "analysis": {
-      "title": "识别 high-quality development 的名词结构",
+      "title": "解析",
       "summary": "① 识别信号：空格位于 the ___ of the Chinese economy 中，需要填发展目标名词短语；中文限定是“高质量”，不是单纯速度或规模。\n\n② 核心规律：high-quality development 是常见政策英文表达，high-quality 作为复合形容词修饰 development。不能用 premium、rise 等消费或单次变化词替代。\n\n③ 验证：provide strong support for the high-quality development of... 在语义上连接“竞争力增强”与发展质量；其他选项要么丢失质量维度，要么搭配不自然。",
       "exam_tip": "发展目标术语优先保留 development 核心。"
     },
@@ -6739,7 +6739,7 @@
       "context": "句子：\n\"中国政府十分重视绿色经济的发展。\"\n\n在政策语境中，\"绿色经济\"最稳妥的表达是："
     },
     "analysis": {
-      "title": "区分 green economy 与临时造词和概念扩写",
+      "title": "解析",
       "summary": "① 识别信号：中文术语由颜色隐喻和宏观经济名词组成，句子讨论其发展，而不是某一种产业制度或市场模型。\n\n② 核心规律：green economy 是国际政策与可持续发展语境中的常见固定组合。临时造词或过度解释会改变术语边界。\n\n③ 验证：green economy 可自然进入 attach importance to the development of...；eco-growth 缩成增长，green industrialism 偏产业意识形态，ecological market model 则无端增加模型含义。",
       "exam_tip": "术语翻译先查真实组合，不自行扩写定义。"
     },
@@ -6788,7 +6788,7 @@
       "context": "句子：\n\"绿色经济的推进不仅能为中国可持续发展做出贡献，也为全球环境保护提供了宝贵经验。\"\n\n空格处最准确表达是：\n\"... can not only contribute to China's ________ ...\""
     },
     "analysis": {
-      "title": "以环境和发展双目标选择 sustainable development",
+      "title": "解析",
       "summary": "① 识别信号：contribute to 后接发展目标；中文强调既满足当前需要又兼顾长期资源和环境，不等于一直扩张。\n\n② 核心规律：sustainable development 是对应“可持续发展”的常见术语。sustainable 表示可长期维持且兼顾约束，不是 endless 或 durable 的字面替换。\n\n③ 验证：contribute to China's sustainable development 在语法和政策语义上都成立；其余选项分别缩窄为增长、误写经济耐用性或加入绝对化。",
       "exam_tip": "sustainable 不等于 merely long-term。"
     },
@@ -6837,7 +6837,7 @@
       "context": "用词库填空，使政策表达规范。\n\n句子：The government introduced a series of policies to support the {{blank}}.\n（中文提示：民营企业）\n\n词库：private enterprises / state-owned enterprises / individual businesses / overseas enterprises / social enterprises / public institutions"
     },
     "analysis": {
-      "title": "区分 private enterprises 与相邻实体类别",
+      "title": "解析",
       "summary": "① 识别信号：support the... 后需复数名词短语作宾语；中文提示指民营企业这一企业类别。\n\n② 核心规律：private enterprises 表示民营企业；private economy 指宏观经济组成，private sector 范围更广，不能在任何位置机械互换。\n\n③ 验证：support the private enterprises 语法与提示匹配；其他候选分别指国企、个体工商户、海外企业、社会企业或公共机构，概念对象不同。",
       "exam_tip": "先区分企业实体、行业部门和宏观经济概念。"
     },
@@ -6880,7 +6880,7 @@
       "context": "用词库填空，使句子表达地道。\n\n句子：Private enterprises are increasing their {{blank}} and developing rapidly in AI-related sectors.\n（中文提示：研发投入）\n\n词库：R&D investment / R&D output / research findings / innovation capacity / laboratory equipment / technology transfer"
     },
     "analysis": {
-      "title": "区分研发投入、能力和产出术语",
+      "title": "解析",
       "summary": "① 识别信号：increasing their... 需要可增加的投入类名词短语；中文提示明确指研发资金和资源投入，而不是产出或能力。\n\n② 核心规律：R&D investment 是常见经济与企业语境搭配。investment 在此可作不可数概念名词，their 表示各企业的投入。\n\n③ 验证：increase R&D investment 自然表达加大研发投入；output、findings、capacity、equipment 和 transfer 都对应不同环节，不能只因与研发相关就选。",
       "exam_tip": "区分投入、过程、能力与产出。"
     },
@@ -6923,7 +6923,7 @@
       "context": "用词库填空，使政策句完整。\n\n句子：The enhancement of core competitiveness provides {{blank}} for the high-quality development of the economy.\n（中文提示：有力支撑）\n\n词库：strong support / strong resistance / policy uncertainty / short-term pressure / direct control / limited evidence"
     },
     "analysis": {
-      "title": "用 provide strong support for 表达有力支撑",
+      "title": "解析",
       "summary": "① 识别信号：provide ___ for 是名词搭配；中文提示为正向“支撑”，后面对象是经济的高质量发展。\n\n② 核心规律：provide strong support for... 是稳定结构，support 为不可数名词；不能把“有力”逐字翻成 forceful、hard 等不自然修饰。\n\n③ 验证：竞争力增强为发展提供的是正向支持；resistance、uncertainty、pressure、control 和 evidence 都改变了关系类型。",
       "exam_tip": "provide 后先确定名词，再检查 for 的搭配。"
     },
@@ -6966,7 +6966,7 @@
       "context": "用词库填空，使经济与生态语义对齐。\n\n句子：The promotion of the green economy contributes to China's {{blank}}.\n（中文提示：可持续发展）\n\n词库：sustainable development / short-term expansion / resource-intensive growth / unchecked industrialization / temporary prosperity / fossil-fuel dependence"
     },
     "analysis": {
-      "title": "把绿色经济与可持续发展目标对齐",
+      "title": "解析",
       "summary": "① 识别信号：green economy 与 contributes to 共同要求一个兼顾经济、资源和环境的正向长期目标。\n\n② 核心规律：sustainable development 与绿色经济在目标层面相连；不能把“可持续”改成无限、短期或高资源消耗的增长。\n\n③ 验证：其余候选不是只保留短期规模，就是与绿色转型方向相反；只有 sustainable development 同时匹配搭配和政策逻辑。",
       "exam_tip": "先判断因果方向：绿色转型应通向什么目标。"
     },
@@ -7009,7 +7009,7 @@
       "context": "综合辨析：哪一项明显是按中文词序临时拼接、而不是自然的经济政策英文表达？"
     },
     "analysis": {
-      "title": "识别中文词序驱动的英语拼接错误",
+      "title": "解析",
       "summary": "① 识别信号：先看候选是否构成真实英语名词短语，再检查核心名词、修饰关系和动词结构。\n\n② 核心规律：high-quality development、private economy、sustainable development 都有清晰的名词中心；make economy quality grow strongly 把多个中文概念逐词堆叠，economy quality 关系不成立，make 的补语也不自然。\n\n③ 验证：若要表达促进经济高质量发展，应重新选择自然主干，如 promote high-quality economic development，而不是保留中文语序。",
       "exam_tip": "检查英文短语有没有明确核心名词。"
     },
@@ -7058,7 +7058,7 @@
       "context": "用词库补全政策写作句：\n\nA balanced policy should {{blank}} innovation incentives with risk control mechanisms."
     },
     "analysis": {
-      "title": "用 align A with B 表达政策协调",
+      "title": "解析",
       "summary": "① 识别信号：should 后需动词原形；with 已给出，balanced 要求创新激励与风险控制彼此协调。\n\n② 核心规律：align A with B 是稳定结构，表示使目标、措施或标准一致。separate、block、replace 都会破坏平衡关系。\n\n③ 验证：代入 align 后，句子形成“使创新激励与风险控制机制协调”的完整政策动作。",
       "exam_tip": "先用 should 锁定动词原形。"
     },
@@ -7099,7 +7099,7 @@
       "context": "在经济政策语境中，“高质量发展”最合适的英文表达是哪一项？"
     },
     "analysis": {
-      "title": "综合排除对高质量发展的额外负面限定",
+      "title": "解析",
       "summary": "① 识别信号：题目要求的是发展质量这一政策目标，不是短期速度、无序扩张或统计产出。\n\n② 核心规律：术语辨析要保留概念边界，不能让解释性选项加入 at any cost、without standards、temporary 等额外判断。\n\n③ 验证：high-quality development 简洁保留原术语；B、C、D 都把概念改成带明显负面后果的增长模式。",
       "exam_tip": "术语选项先检查有没有擅自增加限定。"
     },
@@ -7148,7 +7148,7 @@
       "context": "中国特色文化词汇的关键，不是逐字翻译，而是保持术语稳定与语域自然。\n\n高频表达：\n1. 非物质文化遗产 -> intangible cultural heritage\n2. 文化自信 -> cultural confidence\n3. 中华优秀传统文化 -> fine traditional Chinese culture\n4. 文化传承 -> preserve and pass on cultural traditions\n\n如何把这些表达写进自然的四六级句子？"
     },
     "analysis": {
-      "title": "建立文化术语稳定译法与自然动词搭配框架",
+      "title": "解析",
       "summary": "① 识别信号：专名需要稳定译法，普通动作则要选择自然搭配。intangible cultural heritage、cultural confidence 和 fine traditional Chinese culture 属于固定表达；“传承”放进句子时常用 preserve and pass on。\n\n② 核心规律：先判断内容是术语、对象还是动作，再选表达。术语保持一致，动作根据宾语选择 preserve、pass on、revitalize、make accessible 等动词，避免把中文名词串逐字拼接。\n\n③ 验证：把译文放回完整句子，检查谁保护或传承什么、受众是谁、动作方向是否清楚；若只得到一串抽象名词，应改成明确的动词结构。",
       "exam_tip": "专名先保持稳定，动作再按宾语选择自然搭配。"
     },
@@ -7172,7 +7172,7 @@
       "context": "以下哪个固定英文术语对应“非物质文化遗产”？"
     },
     "analysis": {
-      "title": "识别非物质文化遗产的稳定英文术语",
+      "title": "解析",
       "summary": "① 识别信号：题目要求固定术语，不是自由改写；需要同时表达“非物质”“文化”和“遗产”三层信息。\n\n② 核心规律：intangible cultural heritage 是稳定术语。invisible memory 把遗产改成记忆，folk culture remains 搭配不自然，traditional art property 把范围缩成艺术财产。\n\n③ 验证：拆分为 intangible + cultural + heritage，三部分与中文概念逐层对应，且组合在正式语境中自然。",
       "exam_tip": "固定术语要逐层核对概念组成，不能只看大致中文。"
     },
@@ -7221,7 +7221,7 @@
       "context": "政策表达“增强文化自信”中，“文化自信”最直接对应哪个英文名词短语？"
     },
     "analysis": {
-      "title": "识别文化自信的正式固定搭配",
+      "title": "解析",
       "summary": "① 识别信号：题目要求正式公共语境中的稳定名词搭配，而不是寻找所有含“自信”近义词。\n\n② 核心规律：cultural confidence 保留集体文化认同语境。cultural pride 更偏自豪情绪，self-esteem 通常描述个人心理，ego 带自我中心含义，边界都不同。\n\n③ 验证：与 strengthen 搭配后，strengthen cultural confidence 能自然表达增强对自身文化的认同与信心。",
       "exam_tip": "公共文化语境不要套用个人心理学词汇。"
     },
@@ -7270,7 +7270,7 @@
       "context": "句子：\n“我们应当推动中华优秀传统文化创造性转化、创新性发展。”\n\n其中“中华优秀传统文化”最常用表达是："
     },
     "analysis": {
-      "title": "保留中华优秀传统文化的三层限定",
+      "title": "解析",
       "summary": "① 识别信号：中文表达同时包含价值评价“优秀”、时间属性“传统”和国家语境“中华”。\n\n② 核心规律：fine traditional Chinese culture 依次保留价值性、传统性和中国文化对象。excellent old culture 生硬且把传统误写成陈旧；oriental 范围含混；heritage 只保留遗产概念。\n\n③ 验证：拆分为 fine + traditional + Chinese culture，每个限定都有明确对应，组合也符合正式表达习惯。",
       "exam_tip": "复杂术语要逐个核对限定词是否保留。"
     },
@@ -7319,7 +7319,7 @@
       "context": "句子：\n“要让传统文化在当代生活中焕发新的活力。”\n\n“焕发新的活力”在正式表达中更贴近："
     },
     "analysis": {
-      "title": "用 inject new vitality into 表达文化活化",
+      "title": "解析",
       "summary": "① 识别信号：“焕发新的活力”描述给既有文化注入新的发展动力，不是恢复颜色或外观。\n\n② 核心规律：inject new vitality into 是正式搭配，表示使对象重新具有活力。shiny、color 和 old style 都把抽象发展误写成视觉表面或简单复古。\n\n③ 验证：代入 traditional culture 后得到 inject new vitality into traditional culture，动作方向和正式语域都与中文一致。",
       "exam_tip": "抽象的“活力”优先寻找 vitality，而不是颜色或光泽词。"
     },
@@ -7368,7 +7368,7 @@
       "context": "完成句子：\nDigital archives help {{blank}} intangible cultural heritage and make it accessible to young learners."
     },
     "analysis": {
-      "title": "用 preserve 完成数字化文化遗产保护句",
+      "title": "解析",
       "summary": "① 识别信号：Digital archives 与 make it accessible 都指向长期保存并扩大接触，空格需要可接文化遗产的动词原形。\n\n② 核心规律：preserve intangible cultural heritage 是稳定搭配，强调防止文化实践和知识消失。consume、estimate、hesitate、narrow、compete 均不符合对象或方向。\n\n③ 验证：Digital archives help preserve ... 语法完整，并与后半句的传播目标形成“保存—接触”连续动作。",
       "exam_tip": "help 后用动词原形。"
     },

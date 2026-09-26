@@ -474,8 +474,8 @@ function buildAnalysis(card, ref) {
     title: requiredText(
       card,
       'analysis.title',
-      metadata.main_training_goal,
-      `${ref.box || 'CET'}训练`,
+      analysis.title,
+      '解析',
     ),
     summary: requiredText(
       card,
@@ -1187,6 +1187,7 @@ if (resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
 }
 
 export {
+  buildAnalysis,
   buildFront,
   buildCanonicalSpaceMetadata,
   buildCorrectOption,

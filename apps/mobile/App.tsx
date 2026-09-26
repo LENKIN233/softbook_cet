@@ -6184,7 +6184,8 @@ function AppShell({
       learningStateSyncState={learningStateSyncState}
       progressSyncState={progressSyncState}
     />
-  ) : route.key === 'learning' && learningBootstrapStatus !== 'ready' ? (
+  ) : route.key === 'learning' &&
+    (learningBootstrapStatus !== 'ready' || learningSession === null) ? (
     <LearningBootstrapSurface
       error={
         learningBootstrapStatus === 'error' ? learningBootstrapError : null
@@ -6192,7 +6193,7 @@ function AppShell({
       onOpenUpdate={authHandlers.onOpenUpdate}
       onRetry={retryLearningBootstrap}
       palette={palette}
-      status={learningBootstrapStatus}
+      status={learningBootstrapStatus === 'ready' ? 'loading' : learningBootstrapStatus}
     />
   ) : route.key === 'learning' &&
     learningPhase === 'learning' &&
@@ -6492,6 +6493,19 @@ function LearningBootstrapSurface({
   const isLoading = status === 'idle' || status === 'loading';
   const isClientUpdateRequired = error === CLIENT_UPDATE_REQUIRED_COPY;
 
+  if (isLoading) {
+    return (
+      <View style={styles.stateScreen} testID="learning-bootstrap-loading">
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[styles.authSummary, {color: palette.textMuted}]}
+        >
+          正在加载卡片…
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.stateScreen}>
       <View
@@ -6507,9 +6521,7 @@ function LearningBootstrapSurface({
           style={[styles.heroTitle, { color: palette.text }]}
           testID={isClientUpdateRequired ? 'auth-error-title' : undefined}
         >
-          {isLoading
-            ? '正在加载卡片'
-            : isClientUpdateRequired
+          {isClientUpdateRequired
             ? '需要安装最新版本'
             : '卡片加载失败'}
         </Text>
@@ -6517,61 +6529,38 @@ function LearningBootstrapSurface({
           style={[styles.heroSummary, { color: palette.textMuted }]}
           testID={isClientUpdateRequired ? 'auth-error-detail' : undefined}
         >
-          {isLoading
-            ? '正在加载本轮卡片。'
-            : isClientUpdateRequired
+          {isClientUpdateRequired
             ? '登录状态已保留，安装最新版本后可直接继续。'
             : '卡片加载失败，请重试。'}
         </Text>
       </View>
       <InfoCard
         palette={palette}
-        title={isLoading ? '加载中' : '无法开始学习'}
-        items={
-          isLoading
-            ? ['正在加载本轮卡片。', '加载完成后自动开始。']
-            : [
-                error ?? '卡片加载失败。',
-                '当前没有答题记录。',
-                '请重新加载。',
-              ]
-        }
+        title="无法开始学习"
+        items={[
+          error ?? '卡片加载失败。',
+          '当前没有答题记录。',
+          '请重新加载。',
+        ]}
       />
-      {!isLoading ? (
-        <Pressable
-          onPress={isClientUpdateRequired ? onOpenUpdate : onRetry}
-          style={[styles.primaryButton, { backgroundColor: palette.accent }]}
-          testID={
-            isClientUpdateRequired
-              ? 'auth-update-required-button'
-              : 'learning-bootstrap-retry-button'
-          }
-        >
-          <Text
-            style={[
-              styles.primaryButtonLabel,
-              { color: palette.primaryActionText },
-            ]}
-          >
-            {isClientUpdateRequired ? '获取更新' : '重新加载'}
-          </Text>
-        </Pressable>
-      ) : (
-        <View
+      <Pressable
+        onPress={isClientUpdateRequired ? onOpenUpdate : onRetry}
+        style={[styles.primaryButton, { backgroundColor: palette.accent }]}
+        testID={
+          isClientUpdateRequired
+            ? 'auth-update-required-button'
+            : 'learning-bootstrap-retry-button'
+        }
+      >
+        <Text
           style={[
-            styles.infoCard,
-            { backgroundColor: palette.panel, borderColor: palette.border },
+            styles.primaryButtonLabel,
+            { color: palette.primaryActionText },
           ]}
-          testID="learning-bootstrap-loading"
         >
-          <Text style={[styles.infoTitle, { color: palette.text }]}>
-            加载中
-          </Text>
-          <Text style={[styles.authSummary, { color: palette.textMuted }]}>
-            卡片加载后即可开始。
-          </Text>
-        </View>
-      )}
+          {isClientUpdateRequired ? '获取更新' : '重新加载'}
+        </Text>
+      </Pressable>
     </View>
   );
 }

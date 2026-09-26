@@ -11,7 +11,7 @@
       "context": "完成句子：\nPublic programs can strengthen {{blank}} confidence and encourage younger generations to engage with tradition."
     },
     "analysis": {
-      "title": "用 cultural confidence 完成文化认同语境",
+      "title": "解析",
       "summary": "① 识别信号：空格位于 confidence 前，需要形容词组成正式文化术语；后文 engage with tradition 进一步限定语境。\n\n② 核心规律：cultural confidence 是稳定组合。casual、coastal、critical、colonial、clinical 虽均为形容词，但分别描述随意、沿海、批判、殖民和临床，概念不符。\n\n③ 验证：strengthen cultural confidence 与 encourage younger generations to engage with tradition 在语义上形成认同—参与链。",
       "exam_tip": "先用宾语 confidence 判断词性，再用后文 tradition 锁定语义域。"
     },
@@ -54,7 +54,7 @@
       "context": "完成句子：\nMuseums and schools are working together to pass {{blank}} traditional Chinese culture in modern forms."
     },
     "analysis": {
-      "title": "用 pass on 表达文化代际传递",
+      "title": "解析",
       "summary": "① 识别信号：pass ___ traditional Chinese culture 需要与 pass 组成表示代际传递的短语动词。\n\n② 核心规律：pass on something 表示把知识、传统或物品传给后来者。up、by、across、under、beside 与 pass 组合时含义或句法均不同。\n\n③ 验证：pass on traditional Chinese culture 可改写为 transmit cultural traditions，动作与年轻一代接续的语境一致。",
       "exam_tip": "pass on 表示传递，宾语可放在短语后。"
     },
@@ -97,7 +97,7 @@
       "context": "完成句子：\nThe documentary aims to make traditional festivals more {{blank}} to international audiences."
     },
     "analysis": {
-      "title": "用 accessible to 表达面向国际受众的可及性",
+      "title": "解析",
       "summary": "① 识别信号：make + 宾语 + more ___ 要求形容词；后接 to international audiences，强调更容易被接触或理解。\n\n② 核心规律：accessible to 表示对某类受众可接触、可理解。aggressive、artificial、accidental、ambiguous、approximate 虽词形相近，但语义分别偏攻击性、人造、偶然、模糊和近似。\n\n③ 验证：make traditional festivals more accessible to international audiences 句法完整，也准确表达降低理解与接触门槛。",
       "exam_tip": "make something accessible to someone 是完整搭配。"
     },
@@ -140,7 +140,7 @@
       "context": "句子：\n“在国际交流中，准确表达中国文化概念有助于减少误读。”\n\n以下哪项英文改写最稳妥？"
     },
     "analysis": {
-      "title": "完整保留准确表达—减少误读的逻辑链",
+      "title": "解析",
       "summary": "① 识别信号：中文包含准确表达、文化概念、国际交流和减少误读四个信息点，且 helps reduce 只表示降低风险，不作绝对承诺。\n\n② 核心规律：正式改写要保留逻辑链和强度。A 用 nobody 绝对化且搭配生硬；B 偷换成追求美感和取悦；C 否定可减少误读的方向；D 完整且稳健。\n\n③ 验证：逐项对应 accurate expression—cultural concepts—international communication—helps reduce misinterpretation，D 四项都保留。",
       "exam_tip": "先列出中文句子的四个信息点，再逐项映射。"
     },
@@ -189,7 +189,7 @@
       "context": "用词库补全传统文化资源的活化动作。\n\n句子：Cultural initiatives should {{blank}} traditional cultural resources through contemporary forms.\n\n词库：revitalize / discard / silence / narrow"
     },
     "analysis": {
-      "title": "用 revitalize 表达传统文化资源活化",
+      "title": "解析",
       "summary": "① 识别信号：through contemporary forms 说明传统资源要借助当代表达获得新活力，空格需要及物动词原形。\n\n② 核心规律：revitalize 表示使重新充满活力，可与 cultural resources 搭配。discard、silence 和 narrow 会删除、压制或缩小资源，动作方向相反。\n\n③ 验证：Cultural initiatives should revitalize traditional cultural resources through contemporary forms 语法和活化方向同时成立。",
       "exam_tip": "should 后用动词原形。"
     },
@@ -230,7 +230,7 @@
       "context": "“中华优秀传统文化”更稳妥的正式译法是？"
     },
     "analysis": {
-      "title": "综合验证文化术语的价值、时间与对象限定",
+      "title": "解析",
       "summary": "① 识别信号：译法需同时覆盖“优秀”“传统”“中华文化”三层限定，并保持正式而自然的语域。\n\n② 核心规律：fine traditional Chinese culture 是稳定表达。outdated、temporary、imported 分别加入过时、临时和外来等相反属性，且 only/purely 进一步缩窄范围。\n\n③ 验证：A 的 fine、traditional、Chinese culture 与三层概念逐一对应；B、C、D 均在对象或评价方向上失真。",
       "exam_tip": "翻译复合术语时逐层核对限定词。"
     },
@@ -279,7 +279,7 @@
       "context": "社会类政策词汇不仅要译出名词，还要区分服务对象、供给机制和结果指标。\n\n常见表达包括：\n1. 15分钟便民生活圈 → 15-minute convenient living circle（商业便民语境）\n2. 15分钟社区生活圈 → 15-minute community life circle（综合社区规划语境）\n3. 公共服务 → public services\n4. 生活品质 / 幸福感 → quality of life / sense of well-being\n\n怎样根据语境选词，而不是把相近概念混成一个固定译法？"
     },
     "analysis": {
-      "title": "建立社会政策术语的对象、范围与结果三层判断框架",
+      "title": "解析",
       "summary": "① 识别信号：先判断题目讨论的是商业网点与便民服务，还是覆盖教育、医疗、养老、公园等内容的综合社区规划；再区分服务本身与居民感受。\n\n② 核心规律：政策术语需要同时核对概念边界、真实英文用例和句法位置。15-minute convenient living circle 与 15-minute community life circle 都有真实用例，但对应的政策侧重点不同。\n\n③ 验证：商业便民设施使用 convenient living circle；综合社区规划使用 community life circle；可获得的供给是 public services；居民结果可表达为 quality of life 或 sense of well-being。",
       "exam_tip": "先判政策对象和范围，再选择英文核心名词。"
     },
@@ -303,7 +303,7 @@
       "context": "句子：\n“近年来，中国越来越多的城市着力打造15分钟便民生活圈。”\n\n若语境聚焦商业网点和日常便民服务，“15分钟便民生活圈”最合适的表达是："
     },
     "analysis": {
-      "title": "区分便民生活圈与社区生活圈的政策范围",
+      "title": "解析",
       "summary": "① 识别信号：题干限定“便民”且聚焦商业网点和日常服务，因此需要保留 convenient 与 living circle 两层含义。\n\n② 核心规律：15-minute convenient living circle 在中国政府英文材料中有实际用例；15-minute community life circle 也是实际用语，但通常覆盖更广的社区规划与公共设施。\n\n③ 验证：A 同时保留时间、便民和生活圈；B 是相关但范围更广的概念；C 只强调步行；D 又把范围缩成配送。",
       "exam_tip": "convenient living circle 对应商业便民语境。"
     },
@@ -352,7 +352,7 @@
       "context": "句子：\n“社区居民步行15分钟就能享受到日常所需的公共服务。”\n\n完成译句：\n\"Community residents can access the ________ they need in daily life within a 15-minute walk.\""
     },
     "analysis": {
-      "title": "区分公共服务、公共设施与社会救助",
+      "title": "解析",
       "summary": "① 识别信号：access the ___ they need 要求可获得的服务供给；中文核心是“公共服务”，不是建筑设施、专项救助或一般便利设施。\n\n② 核心规律：public services 可涵盖教育、医疗、养老等政府或社区服务；facilities 和 amenities 更偏物理设施，social assistance 则只覆盖救助。\n\n③ 验证：public services 与 access 搭配自然且范围完整；其他选项虽与社区有关，却改变了对象层级。",
       "exam_tip": "区分服务过程与设施载体。"
     },
@@ -401,7 +401,7 @@
       "context": "一个指标体系同时评价居民的居住、健康、社会联系等整体生活品质，以及主观幸福感。哪组表达能保留这种较广的生活范围和主观感受？"
     },
     "analysis": {
-      "title": "区分生活品质与主观幸福感",
+      "title": "解析",
       "summary": "quality of life 覆盖多方面的整体生活品质，sense of well-being 表示主观福祉感受。living standards and happiness 在一般译文中也可能成立，但生活水平常更侧重物质条件；本题明确限定了较广的评价范围。",
       "exam_tip": "训练并列社会结果指标的准确表达。"
     },
@@ -450,7 +450,7 @@
       "context": "句子：\n“生活圈更好地满足了城市居民多元化的日常生活服务需求。”\n\n完成译句：\n\"The living circles better meet urban residents' ________.\""
     },
     "analysis": {
-      "title": "用 needs for 结构重组复杂服务需求表达",
+      "title": "解析",
       "summary": "① 识别信号：meet 后需要 needs 作宾语；diverse 修饰需求种类，for everyday services 说明需求对象。\n\n② 核心规律：英文可用 needs for + 名词说明“对某类服务的需求”。把 needs 与 services 的关系写清，比堆叠多个前置形容词更自然。\n\n③ 验证：diverse needs for everyday services 同时覆盖多元化、日常和服务需求；其他选项分别改成愿望、消费偏好或政策目标。",
       "exam_tip": "meet needs 是核心搭配。"
     },
@@ -499,7 +499,7 @@
       "context": "用词库填空，使商业便民政策表达准确。\n\n句子：Many cities are expanding retail and daily-service outlets by building {{blank}}.\n（中文提示：15分钟便民生活圈）\n\n词库：15-minute convenient living circles / 15-minute community life circles / neighborhood retail networks / pedestrian service zones / community delivery hubs / urban public-service districts"
     },
     "analysis": {
-      "title": "在完整句子中选择便民生活圈术语",
+      "title": "解析",
       "summary": "① 识别信号：expanding retail and daily-service outlets 把语境限定为商业网点与日常便民服务，空格需填复数政策设施概念。\n\n② 核心规律：15-minute convenient living circles 强调居民在短距离内获得商业与生活服务；community life circles 是范围更广的社区规划概念。\n\n③ 验证：正确项同时匹配复数、15 分钟和便民服务范围；其余候选或概念过宽，或只覆盖零售、步行、配送等单一方面。",
       "exam_tip": "先用句中服务类型判定术语范围。"
     },
@@ -542,7 +542,7 @@
       "context": "用词库填空，使服务供给表达准确。\n\n句子：Residents can access {{blank}} within a short walk from their communities.\n（中文提示：公共服务）\n\n词库：public services / commercial facilities / public amenities / retail outlets / community programs / social assistance"
     },
     "analysis": {
-      "title": "在相邻社会服务概念中锁定 public services",
+      "title": "解析",
       "summary": "① 识别信号：access 后接可获得的对象；中文提示为覆盖多类民生领域的公共服务。\n\n② 核心规律：public services 指服务供给；facilities、amenities 和 outlets 多指地点或设施，programs 指项目，social assistance 指专项救助。\n\n③ 验证：只有 public services 不把范围缩成设施、商业网点、单项计划或救助。",
       "exam_tip": "access 可搭配服务，也可搭配设施，要靠中文对象区分。"
     },
@@ -585,7 +585,7 @@
       "context": "用词库填空，使居民结果指标表达准确。\n\n句子：These measures improve residents' {{blank}} and support their overall well-being.\n（中文提示：生活品质）\n\n词库：quality of life / living standards / daily comfort / health outcomes / community satisfaction / household income"
     },
     "analysis": {
-      "title": "区分综合生活品质与单项生活指标",
+      "title": "解析",
       "summary": "① 识别信号：improve residents' ___ 需要整体生活结果指标；后面的 overall well-being 表明本句讨论综合福祉，不是单一收入或健康指标。\n\n② 核心规律：quality of life 涵盖生活条件、健康、社会参与等多个维度；living standards 更偏物质水平。\n\n③ 验证：quality of life 与 overall well-being 语义相邻但不重复；其他候选都只覆盖整体生活品质的一部分。",
       "exam_tip": "整体指标与单项指标要分层。"
     },
@@ -628,7 +628,7 @@
       "context": "用词库填空，使主观福祉表达准确。\n\n句子：Accessible community services can strengthen residents' {{blank}}.\n（中文提示：幸福感）\n\n词库：sense of well-being / sense of belonging / life satisfaction / community participation / social trust / access to services"
     },
     "analysis": {
-      "title": "区分总体幸福感与相邻社会心理概念",
+      "title": "解析",
       "summary": "① 识别信号：strengthen residents' ___ 需要居民层面的主观结果；中文提示是广义幸福感，不是归属感、满意度或参与行为中的某一项。\n\n② 核心规律：sense of well-being 可表示总体福祉感受；sense of belonging、life satisfaction 和 social trust 都是相关但更具体的构念。\n\n③ 验证：正确项与 accessible community services 形成服务改善—福祉提升的关系，且不把结果缩成单一维度。",
       "exam_tip": "well-being 比短期 happy feeling 范围更稳定。"
     },
@@ -671,7 +671,7 @@
       "context": "综合辨析：哪一项明显是按中文词序拼接、而不是自然的社会政策英文表达？"
     },
     "analysis": {
-      "title": "识别社会政策表达中的直译句法错误",
+      "title": "解析",
       "summary": "① 识别信号：先判断每个候选有没有清晰名词中心或完整动词结构，再检查所有格、词性和补语形式。\n\n② 核心规律：public services、quality of life、sense of well-being 都是结构完整的名词短语；make residents life conveniently and happily 缺少 residents' 或 residents' lives，且把形容生活状态误写成两个方式副词。\n\n③ 验证：若要表达“让居民生活更便利、更幸福”，可重写为 make residents' lives more convenient and improve their well-being，而不是保留中文词序。",
       "exam_tip": "检查 residents 后是否需要所有格或复数名词。"
     },
@@ -720,7 +720,7 @@
       "context": "用词库补全社区服务设计句：\n\nCommunity programs should {{blank}} services around residents' daily routines."
     },
     "analysis": {
-      "title": "用 organize A around B 表达以居民需求组织服务",
+      "title": "解析",
       "summary": "① 识别信号：should 后接动词原形；around residents' daily routines 表示服务设计围绕居民日常安排展开。\n\n② 核心规律：organize A around B 表示以 B 为中心安排 A。suspend、separate 和 conceal 都与改善服务可达性的方向冲突。\n\n③ 验证：代入 organize 后，句子形成“围绕居民日常安排服务”的完整政策动作，语法和逻辑都成立。",
       "exam_tip": "用 should 锁定动词原形。"
     },
@@ -761,7 +761,7 @@
       "context": "某城市规划要求居民步行15分钟即可到达商店、诊所、公园、养老设施和学校。此处描述的综合规划概念最合适的是："
     },
     "analysis": {
-      "title": "综合区分社区生活圈与便民生活圈",
+      "title": "解析",
       "summary": "① 识别信号：题干同时包含商业、医疗、绿地、养老和教育设施，范围明显超过零售和日常便民网点。\n\n② 核心规律：15-minute community life circle 在综合城市与社区规划语境中有真实英文用例；15-minute convenient living circle 更侧重商业和便民服务体系。\n\n③ 验证：A 覆盖多类型社区设施；B 是真实但较窄的相邻概念；C、D 分别只保留商业或交通维度。",
       "exam_tip": "设施类型越多，越要检查概念覆盖范围。"
     },
@@ -810,7 +810,7 @@
       "context": "生态政策词汇要把治理对象、行动手段和发展目标连成一条清楚的逻辑链。\n\n常见表达包括：\n1. 生态环境 → ecological environment\n2. 环境保护 → environmental protection\n3. 清洁能源 → clean energy\n4. 垃圾分类 → waste sorting\n5. 人与自然和谐共生 → harmony between humanity and nature\n\n怎样根据句法和政策范围使用这些术语，而不是只做逐词替换？"
     },
     "analysis": {
-      "title": "建立生态政策术语的对象、行动与目标三层框架",
+      "title": "解析",
       "summary": "① 识别信号：先判断中文表达是治理对象、行动手段还是价值目标；ecological environment 是被改善的对象，environmental protection 是行动领域，harmony between humanity and nature 是发展目标。\n\n② 核心规律：生态政策翻译要同时检查术语真实用例、动词搭配和概念范围。clean energy 与 renewable energy 相关但不完全同义，waste sorting 也不能扩大成全部废物治理。\n\n③ 验证：improve the ecological environment、advance environmental protection、develop clean energy、promote waste sorting、maintain harmony between humanity and nature 都形成清楚的动作—对象关系。",
       "exam_tip": "先给术语标注“对象、手段或目标”。"
     },
@@ -834,7 +834,7 @@
       "context": "句子：\n“近年来，中国在减少空气、水和土壤污染方面持续加强环境保护。”\n\n“环境保护”在政策语境中最合适的表达是："
     },
     "analysis": {
-      "title": "区分环境保护与相邻治理概念",
+      "title": "解析",
       "summary": "① 识别信号：题干列出空气、水和土壤污染，要求的是覆盖多类环境治理行动的上位政策领域。\n\n② 核心规律：environmental protection 是稳定政策术语；environmental awareness 只表示意识，ecological restoration 是具体修复行动，pollution monitoring 是监测环节。\n\n③ 验证：environmental protection 覆盖保护与治理整体；其余选项都是真实相关概念，但范围更窄。",
       "exam_tip": "保护领域、公众意识和具体措施不能互换。"
     },
@@ -883,7 +883,7 @@
       "context": "句子：\n“通过保护森林资源和加强污染治理，许多地区的生态环境得到显著改善。”\n\n“生态环境”最合适的表达是："
     },
     "analysis": {
-      "title": "识别 ecological environment 的政策对象功能",
+      "title": "解析",
       "summary": "① 识别信号：improve 的对象是一个地区由生态系统与环境条件共同构成的整体，不是学科、景观外观或单一栖息地。\n\n② 核心规律：ecological environment 在中国生态政策英文中有实际用例；environmental ecology 更像学科组合，natural surroundings 范围较日常，ecosystem health 强调生态系统状态。\n\n③ 验证：improve the ecological environment 与森林保护、污染治理形成完整关系；其他选项改变了概念层级。",
       "exam_tip": "ecological environment 是政策对象名词短语。"
     },
@@ -932,7 +932,7 @@
       "context": "句子：\n“中国通过发展清洁能源、改善公共交通和实施垃圾分类推动绿色转型。”\n\n“清洁能源”最合适的表达是："
     },
     "analysis": {
-      "title": "区分清洁能源、可再生能源与能源效率",
+      "title": "解析",
       "summary": "① 识别信号：develop 后接能源类别；题干与交通、垃圾治理并列，要求的是广义低污染能源，不仅是电力或某一种可再生来源。\n\n② 核心规律：clean energy 是稳定上位术语；renewable energy 依据资源能否再生分类，green electricity 只指电力，energy efficiency 表示用能效率。\n\n③ 验证：clean energy 保留原文范围；其他选项虽与绿色转型相关，却不能完整替代“清洁能源”。",
       "exam_tip": "clean energy 与 renewable energy 有重叠但不等同。"
     },
@@ -981,7 +981,7 @@
       "context": "句子：\n“坎儿井体现了我国人民追求人与自然和谐共生的智慧。”\n\n作为名词性政策目标，“人与自然和谐共生”最合适的表达是："
     },
     "analysis": {
-      "title": "识别人类与自然关系的名词性政策目标",
+      "title": "解析",
       "summary": "① 识别信号：wisdom of pursuing... 需要一个名词性价值目标；中文强调人类与自然的关系，不是人类支配自然或单一自然保护行动。\n\n② 核心规律：harmony between humanity and nature 是中国官方英文中常见的名词性表达。harmonious coexistence between humanity and nature 也可作描述性表达，但本题需要更简洁的政策目标名词。\n\n③ 验证：A 保留双方和关系；B、C、D 分别改成资源管理、环境适应或自然保护中的单一行动。",
       "exam_tip": "harmony between A and B 是名词性关系结构。"
     },
@@ -1030,7 +1030,7 @@
       "context": "用词库填空，使政策领域表达准确。\n\n句子：China has made progress in reducing air, water and soil pollution and in advancing {{blank}}.\n（中文提示：环境保护）\n\n词库：environmental protection / pollution control / ecological restoration / resource conservation / climate action / environmental monitoring"
     },
     "analysis": {
-      "title": "在相邻治理概念中锁定环境保护上位术语",
+      "title": "解析",
       "summary": "① 识别信号：advancing 后需名词短语；三个污染对象说明本句概括整体环境保护，而不是某一治理环节。\n\n② 核心规律：environmental protection 是上位领域；pollution control、restoration、conservation、climate action 和 monitoring 都是相关但范围更具体的行动。\n\n③ 验证：代入 environmental protection 后，前面的减污成果成为该领域的一部分，逻辑自然且不缩窄范围。",
       "exam_tip": "先确定空格需要上位领域还是具体措施。"
     },
@@ -1073,7 +1073,7 @@
       "context": "用词库填空，使改善对象表达准确。\n\n句子：A series of policies has significantly improved the {{blank}} in many regions.\n（中文提示：生态环境）\n\n词库：ecological environment / environmental quality / ecosystem health / natural habitat / regional biodiversity / landscape conditions"
     },
     "analysis": {
-      "title": "区分生态环境整体与具体生态指标",
+      "title": "解析",
       "summary": "① 识别信号：improved the... 要求可被政策整体改善的对象；中文提示同时包含生态与环境两个层面。\n\n② 核心规律：ecological environment 是整体对象；environmental quality、ecosystem health、biodiversity 等是评价维度或组成部分。\n\n③ 验证：只有 ecological environment 完整对应中文；其余候选都可能被改善，但会缩窄题目范围。",
       "exam_tip": "可搭配 improved 不等于概念范围正确。"
     },
@@ -1116,7 +1116,7 @@
       "context": "用词库填空，使绿色转型手段表达准确。\n\n句子：To support the green transition, China has promoted {{blank}} alongside public transport and waste sorting.\n（中文提示：清洁能源）\n\n词库：clean energy / renewable energy / low-carbon technology / energy efficiency / public transport / waste sorting"
     },
     "analysis": {
-      "title": "在绿色转型语境中选择 clean energy",
+      "title": "解析",
       "summary": "① 识别信号：promoted 后接与交通、垃圾分类并列的治理手段；中文明确指能源类别。\n\n② 核心规律：clean energy 是广义能源术语；renewable energy 按可再生性分类，low-carbon technology 是技术，energy efficiency 是效率。\n\n③ 验证：clean energy 同时符合语法、政策范围和并列逻辑；其他词虽合理，却回答了不同问题。",
       "exam_tip": "并列项只证明主题一致，不能证明同义。"
     },
@@ -1159,7 +1159,7 @@
       "context": "用词库填空，使生态价值目标表达准确。\n\n句子：The Karez system demonstrates traditional wisdom about {{blank}}.\n（中文提示：人与自然和谐共生）\n\n词库：harmonious coexistence between humanity and nature / ecological conservation / sustainable water use / adaptation to arid conditions / resource efficiency / community resilience"
     },
     "analysis": {
-      "title": "从生态案例机制概括人类与自然和谐目标",
+      "title": "解析",
       "summary": "① 识别信号：wisdom about 后接抽象价值关系；坎儿井虽涉及水利用和干旱适应，但中文提示要求上位的人与自然关系。\n\n② 核心规律：harmonious coexistence between humanity and nature 是上位理念；sustainable water use、adaptation 和 resource efficiency 只是该案例的具体机制。\n\n③ 验证：正确项概括案例体现的价值目标；其余候选虽然可以描述坎儿井，却没有完整对应中文。",
       "exam_tip": "案例机制与案例体现的上位理念要分开。"
     },
@@ -1202,7 +1202,7 @@
       "context": "综合辨析：哪一项明显是按中文词序拼接、而不是自然的生态政策英文表达？"
     },
     "analysis": {
-      "title": "识别生态政策表达中的直译句法错误",
+      "title": "解析",
       "summary": "① 识别信号：先检查候选是完整名词短语还是动词结构，再核对 make 的宾语和补语词性。\n\n② 核心规律：ecological environment、environmental protection、clean energy 都有明确名词中心；make environment more greenly and beautifully 把应作补语的形容词误写成副词，且 environment 前缺限定关系。\n\n③ 验证：若表达“让环境更绿色、更美丽”，至少应重写为 make the environment greener and more beautiful；政策文本通常还会改用 improve the ecological environment。",
       "exam_tip": "make + 宾语 + 形容词补语，不用方式副词替代。"
     },
@@ -1251,7 +1251,7 @@
       "context": "用词库补全碳政策权衡句：\n\nCarbon policies must {{blank}} economic goals with ecological constraints."
     },
     "analysis": {
-      "title": "用 balance A with B 表达生态政策权衡",
+      "title": "解析",
       "summary": "① 识别信号：must 后接动词原形；with 已给出，句子要求处理经济目标与生态约束的关系。\n\n② 核心规律：balance A with B 表示在两类目标或约束之间取得平衡。ignore、reverse 和 fragment 都不能建立协调关系。\n\n③ 验证：代入 balance 后，句子形成完整的政策权衡动作，语法与逻辑同时成立。",
       "exam_tip": "用 must 锁定动词原形。"
     },
@@ -1292,7 +1292,7 @@
       "context": "完成政策句：\n“We should pursue green development and promote ________.”\n\n哪一项最符合官方政策语体和句法位置？"
     },
     "analysis": {
-      "title": "综合选择人类与自然和谐目标的政策句式",
+      "title": "解析",
       "summary": "① 识别信号：promote 后需要名词性政策目标；green development 与后项并列，强调人类与自然的关系。\n\n② 核心规律：harmony between humanity and nature 是官方英文中常见的名词性表达。harmonious coexistence between humanity and nature 也可用于解释性描述，但本句固定结构更适合 harmony。\n\n③ 验证：A 可直接接在 promote 后并与 green development 并列；B 是完整从句式改写，C、D 则把关系改成支配或分离。",
       "exam_tip": "用 promote 后的名词位置筛选表达。"
     },
@@ -1341,7 +1341,7 @@
       "context": "科技政策词汇要把创新动力、投入路径和产业结果连接起来。\n\n常见表达包括：\n1. 创新驱动发展 → innovation-driven development\n2. 新一代信息技术 → next-generation information technology\n3. 人工智能 → artificial intelligence\n4. 研发投入 → R&D investment\n5. 核心竞争力 → core competitiveness\n\n怎样在完整机制链中使用这些术语，而不是简单堆叠科技热词？"
     },
     "analysis": {
-      "title": "建立科技政策术语的动力、投入、技术与结果框架",
+      "title": "解析",
       "summary": "① 识别信号：先判断术语位于创新机制的哪一层：innovation-driven development 是发展理念，R&D investment 是投入，information technology 与 AI 是技术领域，core competitiveness 是结果。\n\n② 核心规律：科技政策翻译要检查概念层级、固定搭配和因果方向。投入不能写成产出，技术领域不能缩成技能，竞争力也不能等同于市场份额。\n\n③ 验证：pursue innovation-driven development、increase R&D investment、develop next-generation information technology、apply artificial intelligence、enhance core competitiveness 构成清楚的动力—路径—结果链。",
       "exam_tip": "先标注术语在创新链中的位置。"
     },
@@ -1365,7 +1365,7 @@
       "context": "句子：\n“中国坚持创新驱动发展，不断推动产业升级。”\n\n“创新驱动发展”最合适的表达是："
     },
     "analysis": {
-      "title": "识别 innovation-driven development 的结构和范围",
+      "title": "解析",
       "summary": "① 识别信号：中文说明创新是发展的驱动力，需要一个以 development 为中心、由 innovation-driven 修饰的名词短语。\n\n② 核心规律：innovation-driven development 是官方英文材料中的稳定用法；innovation-led growth 也是相关表达，但 growth 范围较窄。\n\n③ 验证：B 保留创新驱动和发展两个核心；其他选项分别缩成增长、技术升级或创业活动。",
       "exam_tip": "driven 说明动力来源。"
     },
@@ -1414,7 +1414,7 @@
       "context": "句子：\n“民营企业在新一代信息技术和人工智能等领域发展迅速。”\n\n“新一代信息技术”最合适的表达是："
     },
     "analysis": {
-      "title": "区分新一代信息技术与相邻数字概念",
+      "title": "解析",
       "summary": "① 识别信号：与 artificial intelligence 并列的是技术领域，不是计算机技能、数字工具或单一数据技术。\n\n② 核心规律：next-generation information technology 在官方英文材料中有实际用例，next-generation 作为复合修饰语说明技术代际。\n\n③ 验证：A 保留代际、信息和技术三个层面；B、C、D 分别缩成技能、基础设施或数据分析。",
       "exam_tip": "并列项要保持技术领域层级。"
     },
@@ -1463,7 +1463,7 @@
       "context": "句子：\n“企业持续加大研发投入，技术创新能力显著提升。”\n\n“研发投入”最合适的表达是："
     },
     "analysis": {
-      "title": "区分研发投入与创新链其他环节",
+      "title": "解析",
       "summary": "① 识别信号：increase 后接企业投入项；后文 innovation capacity 是结果，因此空格不能选择产出、成果或能力本身。\n\n② 核心规律：R&D investment 是研发投入的稳定表达。R&D expenditure 可用于统计支出语境，但本句强调企业为创新进行投入。\n\n③ 验证：D 与 increase 和企业主体搭配自然；A、B、C 分别表示研发产出、研究成果和创新能力。",
       "exam_tip": "区分投入、产出、成果和能力。"
     },
@@ -1512,7 +1512,7 @@
       "context": "句子：\n“创新能力的提升有助于企业增强核心竞争力。”\n\n“核心竞争力”最合适的表达是："
     },
     "analysis": {
-      "title": "区分核心竞争力与能力来源和结果指标",
+      "title": "解析",
       "summary": "① 识别信号：enhance 后接企业长期竞争能力；中文有“核心”限定，不是短期市场表现或某一种创新能力。\n\n② 核心规律：core competitiveness 表示支撑持续竞争优势的核心能力组合。competitive advantage 是优势结果，market share 是市场指标。\n\n③ 验证：C 保留核心和竞争能力；其余选项分别对应创新能力、市场份额或品牌认知。",
       "exam_tip": "competitiveness 是综合竞争能力。"
     },
@@ -1561,7 +1561,7 @@
       "context": "用词库填空，使长期发展战略表达准确。\n\n句子：China continues to pursue {{blank}} as a long-term strategy for industrial upgrading.\n（中文提示：创新驱动发展）\n\n词库：innovation-driven development / technology-led growth / industrial digitalization / research commercialization / entrepreneurial expansion / productivity improvement"
     },
     "analysis": {
-      "title": "在完整战略句中选择创新驱动发展",
+      "title": "解析",
       "summary": "① 识别信号：pursue... as a long-term strategy 需要发展理念；industrial upgrading 是应用背景，不代表空格本身就是数字化或商业化。\n\n② 核心规律：innovation-driven development 是上位发展理念，其他候选都是具体路径或结果。\n\n③ 验证：正确项可统摄技术增长、数字化、成果转化和生产率提升，而不会把战略缩成单一手段。",
       "exam_tip": "上位战略与具体工具要分层。"
     },
@@ -1604,7 +1604,7 @@
       "context": "用词库填空，使技术领域并列表达准确。\n\n句子：Private firms are expanding rapidly in {{blank}} and artificial intelligence.\n（中文提示：新一代信息技术）\n\n词库：next-generation information technology / big-data analytics / industrial internet / digital infrastructure / advanced manufacturing / cybersecurity services"
     },
     "analysis": {
-      "title": "在相邻科技领域中锁定新一代信息技术",
+      "title": "解析",
       "summary": "① 识别信号：in... and artificial intelligence 需要与 AI 同层级的技术领域；中文提示明确限定新一代信息技术。\n\n② 核心规律：next-generation information technology 是上位领域，big data、industrial internet 等可作为其相关组成或应用。\n\n③ 验证：正确项完整对应中文；其他候选虽都是真实科技领域，却缩窄为某一分支、设施或服务。",
       "exam_tip": "并列结构先检查层级，再看主题。"
     },
@@ -1647,7 +1647,7 @@
       "context": "用词库填空，使企业投入句表达准确。\n\n句子：Many firms have increased their {{blank}} to strengthen innovation capacity.\n（中文提示：研发投入）\n\n词库：R&D investment / R&D output / research findings / innovation capacity / patent portfolio / technology transfer"
     },
     "analysis": {
-      "title": "通过因果链锁定 R&D investment",
+      "title": "解析",
       "summary": "① 识别信号：increased their... 表示企业主动增加的投入；to strengthen innovation capacity 说明能力是目的，不是空格答案。\n\n② 核心规律：R&D investment 位于创新链前端；output、findings、patents 和 transfer 都是后续产出或转化。\n\n③ 验证：代入 R&D investment 后形成投入—能力提升的因果链，其余候选会混淆原因和结果。",
       "exam_tip": "用 to do 结构判断前项是手段还是结果。"
     },
@@ -1690,7 +1690,7 @@
       "context": "用词库填空，使企业结果表达准确。\n\n句子：Enhanced innovation capacity helps firms build stronger {{blank}}.\n（中文提示：核心竞争力）\n\n词库：core competitiveness / market share / brand recognition / pricing power / supply resilience / patent portfolio"
     },
     "analysis": {
-      "title": "区分核心竞争力与单项企业表现",
+      "title": "解析",
       "summary": "① 识别信号：build stronger... 需要创新能力带来的综合竞争结果；中文提示带有“核心”限定。\n\n② 核心规律：core competitiveness 是综合能力；market share、brand recognition、pricing power 等是可能结果或组成。\n\n③ 验证：创新能力可增强核心竞争力，而其他候选只覆盖企业竞争表现中的一个维度。",
       "exam_tip": "综合能力和单项指标要分层。"
     },
@@ -1733,7 +1733,7 @@
       "context": "综合辨析：哪一项明显是按中文词序拼接、而不是自然的科技政策英文表达？"
     },
     "analysis": {
-      "title": "识别科技政策表达中的直译句法错误",
+      "title": "解析",
       "summary": "① 识别信号：先区分完整名词术语和动词结构，再检查 make、become 与补语词形。\n\n② 核心规律：innovation-driven development、R&D investment、core competitiveness 都有清晰名词中心；make science and technology become strongerly 同时出现使役结构冗余和不存在的副词 strongerly。\n\n③ 验证：若表达科技实力增强，可改为 strengthen science and technology capacity 或 enhance technological capabilities，而不是逐词保留“变得更强”。",
       "exam_tip": "stronger 是形容词比较级，不存在 strongerly。"
     },
@@ -1782,7 +1782,7 @@
       "context": "用词库补全创新转化句：\n\nA credible innovation strategy should {{blank}} basic research with industrial application."
     },
     "analysis": {
-      "title": "用 connect A with B 表达研究与应用衔接",
+      "title": "解析",
       "summary": "① 识别信号：should 后接动词原形；with 已给出，句子要求基础研究与产业应用之间建立联系。\n\n② 核心规律：connect A with B 表示把两个环节连接起来。divide、delay 和 discard 都会破坏从研究到应用的转化链。\n\n③ 验证：代入 connect 后，句子形成清楚的研究—应用衔接动作，语法与政策逻辑同时成立。",
       "exam_tip": "should 锁定动词原形。"
     },
@@ -1823,7 +1823,7 @@
       "context": "在当前中国科技政策讨论中，“新质生产力”采用的官方英文固定表达是哪一项？"
     },
     "analysis": {
-      "title": "识别新质生产力的当前官方英文表达",
+      "title": "解析",
       "summary": "① 识别信号：题目要求当前政策固定表达，不是根据中文逐词自由改写；productive forces 使用复数形式。\n\n② 核心规律：new quality productive forces 已在中国政府英文材料中稳定使用，强调以创新为核心、具有高科技、高效能和高质量特征的先进生产力。\n\n③ 验证：A 与官方用例一致；B、C、D 虽语义接近，却不是该政策术语的固定表达，并可能改变概念边界。",
       "exam_tip": "新政策术语优先核对最新官方英文用例。"
     },
@@ -1872,7 +1872,7 @@
       "context": "长江主题翻译既涉及自然地理实体，也涉及区域发展和水利工程。\n\n常见表达包括：\n1. 长江流域 → the Yangtze River basin\n2. 世界第三长的河流 → the world’s third-longest river\n3. 多种生态系统 → diverse ecosystems\n4. 长江三角洲 → the Yangtze River Delta\n5. 三峡工程 → the Three Gorges project\n6. 长江经济带 → the Yangtze River Economic Belt\n\n怎样避免把这些层级不同的概念混在一起？"
     },
     "analysis": {
-      "title": "建立长江自然区域、工程与政策区域的概念框架",
+      "title": "解析",
       "summary": "① 识别信号：看到“流域、三角洲、工程、经济带”时，先判断它是自然区域、基础设施还是发展战略。\n\n② 核心规律：basin 表示汇水区域，delta 表示河口沉积地貌，project 指具体工程，Economic Belt 则是专名化的区域发展概念。\n\n③ 验证：把术语放回句子，检查它能否回答 where、what project 或 what regional strategy；如果对象类别不一致，即使单词都认识也不能互换。",
       "exam_tip": "先判对象类别，再记英文专名。"
     },
@@ -1896,7 +1896,7 @@
       "context": "句子：\n“长江流域的生态保护需要跨地区协作。”\n\n“长江流域”最合适的表达是："
     },
     "analysis": {
-      "title": "识别 the Yangtze River basin 的水文范围",
+      "title": "解析",
       "summary": "① 识别信号：中文中心词是“流域”，句子讨论跨地区生态保护，而不是运输通道或河口地貌。\n\n② 核心规律：river basin 是水文地理术语；river corridor 更偏线性通道，river delta 只指河口区域。\n\n③ 验证：代回 B 后，the Yangtze River basin 与 ecological protection 构成明确的治理范围；其余选项要么过泛，要么缩小或改变范围。",
       "exam_tip": "把“流域”与 basin 固定配对。"
     },
@@ -1945,7 +1945,7 @@
       "context": "句子：\n“长江是亚洲最长、世界第三长的河流。”\n\n“世界第三长的河流”最自然的表达是："
     },
     "analysis": {
-      "title": "掌握 third-longest 的复合排名结构",
+      "title": "解析",
       "summary": "① 识别信号：“第三长”同时包含排名 third 和长度最高级 longest。\n\n② 核心规律：序数词与最高级共同置于名词前时写作 third-longest；world’s 提供比较范围。\n\n③ 验证：the world’s third-longest river 结构完整，可与 Asia’s longest river 平行；No.3 long、third length 等形式不能承担同样的定语功能。",
       "exam_tip": "把 third-longest 作为一个复合定语记忆。"
     },
@@ -1994,7 +1994,7 @@
       "context": "句子：\n“长江流经多种生态系统，为许多野生物种提供栖息地。”\n\n“多种生态系统”最凝练的表达是："
     },
     "analysis": {
-      "title": "区分 ecosystem 与相邻生态概念",
+      "title": "解析",
       "summary": "① 识别信号：题干需要一个复数名词短语，既表达多样性，又保持 ecosystem 的专业层级。\n\n② 核心规律：diverse 强调种类差异；many habitats 只表示栖息地数量，natural resources 则改变对象。\n\n③ 验证：flows through diverse ecosystems 搭配自然，并能与 supports wildlife 形成生态背景与结果关系。",
       "exam_tip": "区分 ecosystem、habitat 和 resource。"
     },
@@ -2043,7 +2043,7 @@
       "context": "句子：\n“长江三角洲的一体化发展加强了区域之间的联系。”\n\n“长江三角洲”最合适的表达是："
     },
     "analysis": {
-      "title": "在区域发展句中识别长江三角洲专名",
+      "title": "解析",
       "summary": "① 识别信号：中心词“三角洲”锁定 delta，句子中的“一体化发展”并不把它变成经济带。\n\n② 核心规律：the Yangtze River Delta 是固定地理专名；the Yangtze River basin 范围更广，lower reaches 是河段概念。\n\n③ 验证：只有 C 同时满足专名形式与对象范围，其他真实术语虽相关，却不能指代同一地区。",
       "exam_tip": "先用“三角洲”锁定 delta。"
     },
@@ -2092,7 +2092,7 @@
       "context": "用词库填空，使流域治理句范围准确。\n\n句子：Many ecosystems and densely populated cities are distributed across {{blank}}.\n（中文提示：长江流域）\n\n词库：the Yangtze River basin / the Yangtze River Delta / the Yellow River basin / the lower reaches of the Yangtze / the Yangtze River Economic Belt / the Three Gorges Reservoir"
     },
     "analysis": {
-      "title": "在广域分布句中选择长江流域",
+      "title": "解析",
       "summary": "① 识别信号：distributed across 表示事物分布在一个广域空间中，中文提示给出“流域”。\n\n② 核心规律：basin 可覆盖上中下游及支流区域；delta、lower reaches 和 reservoir 都是更窄的空间，Economic Belt 是发展战略区域。\n\n③ 验证：代回 the Yangtze River basin 后，主语 ecosystems and cities 与 across 的范围关系完整，没有把自然区域误换成政策区域。",
       "exam_tip": "先用介词 across 判断所需空间尺度。"
     },
@@ -2135,7 +2135,7 @@
       "context": "用词库填空，使生态句对象层级准确。\n\n句子：The river passes through {{blank}} that support a wide range of wildlife.\n（中文提示：多种生态系统）\n\n词库：diverse ecosystems / endangered species / aquatic habitats / ecological corridors / natural resources / protected areas"
     },
     "analysis": {
-      "title": "在关系从句中锁定 diverse ecosystems",
+      "title": "解析",
       "summary": "① 识别信号：空格后关系从句 that support... 要修饰复数环境对象，中文提示进一步锁定 ecosystems。\n\n② 核心规律：ecosystem 包含生物与环境关系；habitat 更偏单一物种的生活环境，species 则是生物主体。\n\n③ 验证：diverse ecosystems 在数、义和搭配上都成立；其余选项即使能放入句法位置，也无法完整对应中文概念。",
       "exam_tip": "先检查关系从句的数，再检查概念层级。"
     },
@@ -2178,7 +2178,7 @@
       "context": "用词库填空，使区域一体化表达准确。\n\n句子：The integrated development of {{blank}} strengthens links among cities near the river’s lower reaches.\n（中文提示：长江三角洲）\n\n词库：the Yangtze River Delta / the Pearl River Delta / the Yangtze River Economic Belt / the lower reaches of the Yangtze / the Three Gorges Reservoir / the Yangtze River basin"
     },
     "analysis": {
-      "title": "在一体化发展语境中选择长江三角洲",
+      "title": "解析",
       "summary": "① 识别信号：integrated development of 后需要区域专名，中文提示明确给出“长江三角洲”。\n\n② 核心规律：Delta 是地理区域名；Economic Belt、basin 和 lower reaches 分别对应政策区域、水文区域与河段。\n\n③ 验证：the Yangtze River Delta 与 integrated development 构成稳定表达，也与后面的 lower reaches 形成区域名加位置说明。",
       "exam_tip": "区域一体化语境仍要按中文专名选词。"
     },
@@ -2221,7 +2221,7 @@
       "context": "用词库填空，使水利工程表述与官方英文用法一致。\n\n句子：Located on the Yangtze, {{blank}} is described in official English reports as the world’s largest hydropower project.\n（中文提示：三峡工程）\n\n词库：the Three Gorges project / the Yangtze River Economic Belt / the Three Gorges Reservoir / the Yangtze River Delta / the South-to-North Water Diversion Project / the Grand Canal"
     },
     "analysis": {
-      "title": "区分三峡工程与三峡水库",
+      "title": "解析",
       "summary": "① 识别信号：空格是被 described 的具体工程名称，后文 hydropower project 给出对象类别。\n\n② 核心规律：project 覆盖大坝、发电、航运和水资源调节等综合工程；reservoir 只指蓄水形成的水体。\n\n③ 验证：the Three Gorges project 与 located on the Yangtze、hydropower project 三项相互印证，其他选项或类别不同，或只覆盖工程的一部分。",
       "exam_tip": "区分工程 project 与水库 reservoir。"
     },
@@ -2264,7 +2264,7 @@
       "context": "综合辨析：下面哪一项明显是按中文词序拼接、而不是自然的长江地理英文表达？"
     },
     "analysis": {
-      "title": "识别长江专名中的机械直译错误",
+      "title": "解析",
       "summary": "① 识别信号：四个选项都含 Yangtze，但只有 C 把 economy、long、belt 机械串联。\n\n② 核心规律：地理与政策专名依赖固定整体形式；River basin、River Delta 和 River Economic Belt 的中心词与修饰关系稳定。\n\n③ 验证：逐项检查是否能在正式英文句子中作为完整专名使用。C 缺少 River，并把 economic 错写成名词 economy 和多余的 long。",
       "exam_tip": "不要因共享 Yangtze 就判断选项规范。"
     },
@@ -2313,7 +2313,7 @@
       "context": "用词库补全区域规划句：\n\nRegional planning should {{blank}} transport corridors with local ecological capacity."
     },
     "analysis": {
-      "title": "用 coordinate A with B 表达规划协调",
+      "title": "解析",
       "summary": "① 识别信号：句中 A with B 需要一个能连接“交通通道”和“生态承载能力”的关系动词。\n\n② 核心规律：coordinate A with B 表示统筹和协调；expand 只表示扩大，relocate 表示迁移，replace 表示替换。\n\n③ 验证：代回 coordinate 后，规划目标是使建设强度与生态条件匹配，逻辑完整且没有把某一方当作被替换对象。",
       "exam_tip": "看到 A with B 先检查关系动词的搭配。"
     },
@@ -2354,7 +2354,7 @@
       "context": "在中国区域发展政策语境中，“长江经济带”的规范英文专名是哪一项？"
     },
     "analysis": {
-      "title": "识别长江经济带的官方英文专名",
+      "title": "解析",
       "summary": "① 识别信号：题干限定“中国区域发展政策”，中心词是“经济带”，不是三角洲、流域或航道。\n\n② 核心规律：the Yangtze River Economic Belt 是完整固定专名；相邻真实术语的存在不会扩大其可替换范围。\n\n③ 验证：A 同时保留 Yangtze River、Economic 和 Belt 三个关键部分，其他选项分别落在自然地理或交通层级。",
       "exam_tip": "政策专名要按整体核验。"
     },
@@ -2403,7 +2403,7 @@
       "context": "先听录音，再说明说话人为什么希望再次改期，希望改到何时。"
     },
     "analysis": {
-      "title": "理解录音中安排、约见、期限或费用的具体变化",
+      "title": "解析",
       "summary": "meeting 是要调整的活动，another appointment 是冲突，reschedule 引出再次改期请求。不要把已经安排的周五当成新请求时间。",
       "exam_tip": "把词语放回录音中的实际安排，区分计划、限制与结果。"
     },
@@ -2433,7 +2433,7 @@
       "context": "先听录音，再选出能概括这次安排变化的动词。"
     },
     "analysis": {
-      "title": "理解录音中安排、约见、期限或费用的具体变化",
+      "title": "解析",
       "summary": "原安排是周四，新时间是周五下午，属于改期；不是报名、付款或推荐。",
       "exam_tip": "把词语放回录音中的实际安排，区分计划、限制与结果。"
     },
@@ -2488,7 +2488,7 @@
       "context": "先听录音，再选择与录音中时间冲突直接相关的一组词。"
     },
     "analysis": {
-      "title": "理解录音中安排、约见、期限或费用的具体变化",
+      "title": "解析",
       "summary": "十点已有 appointment，下午两点 available，题目围绕预约与空闲时段。",
       "exam_tip": "把词语放回录音中的实际安排，区分计划、限制与结果。"
     },
@@ -2543,7 +2543,7 @@
       "context": "先听录音，再选择能概括限制条件和拟采取行动的一组词。"
     },
     "analysis": {
-      "title": "理解录音中安排、约见、期限或费用的具体变化",
+      "title": "解析",
       "summary": "Friday 是原截止时间，extension 是计划申请的延期；录音没有说申请已经获准。",
       "exam_tip": "把词语放回录音中的实际安排，区分计划、限制与结果。"
     },
@@ -2598,7 +2598,7 @@
       "context": "先听录音，再选出最直接表达说话人当前限制的词。"
     },
     "analysis": {
-      "title": "理解录音中安排、约见、期限或费用的具体变化",
+      "title": "解析",
       "summary": "over my budget 表示超过预算。折扣只是可能的解决办法，是否提供还需要核对。",
       "exam_tip": "把词语放回录音中的实际安排，区分计划、限制与结果。"
     },
@@ -2653,7 +2653,7 @@
       "context": "用词库填空，使听力任务词匹配语境。\n\n句子：The speaker asked us to {{blank}} the meeting for next Tuesday.\n（中文提示：改期）\n\n词库：reschedule / register / recommend / afford / submit / borrow"
     },
     "analysis": {
-      "title": "在改期任务中填入 reschedule",
+      "title": "解析",
       "summary": "① 识别信号：asked us to 后需要动词原形，for next Tuesday 表明原有会议要换到新日期。\n\n② 核心规律：reschedule + meeting/appointment 表示重新安排时间；register 是报名，recommend 是建议，afford 是负担得起，均不符合动作对象。\n\n③ 验证：代入后 reschedule the meeting for next Tuesday 同时满足句法、搭配和改期语义。",
       "exam_tip": "to 后先筛动词原形。"
     },
@@ -2702,7 +2702,7 @@
       "context": "用词库填空，使预约语境自然。\n\n句子：I have an {{blank}} with my advisor at 3 p.m., so I can't join the lab meeting.\n（中文提示：约见）\n\n词库：appointment / recommendation / deadline / budget / invitation / registration"
     },
     "analysis": {
-      "title": "识别 have an appointment 的预约结构",
+      "title": "解析",
       "summary": "① 识别信号：have an ___ with someone at a time 是约见结构，at 3 p.m. 给出具体安排，并导致无法参加另一个会议。\n\n② 核心规律：appointment 是可数名词，常与 make/have/cancel/reschedule 搭配；recommendation、deadline 和 budget 不表示人与人的约见。\n\n③ 验证：an appointment with my advisor at 3 p.m. 搭配完整，也能解释 so 后的时间冲突。",
       "exam_tip": "冠词 an 后筛选可数名词单数。"
     },
@@ -2751,7 +2751,7 @@
       "context": "用词库填空，使任务约束表达准确。\n\n句子：Please submit your draft before the {{blank}}.\n（中文提示：截止日期）\n\n词库：deadline / budget / recommendation / registration / appointment / discount"
     },
     "analysis": {
-      "title": "识别 submit before the deadline",
+      "title": "解析",
       "summary": "① 识别信号：submit your draft before the ___ 需要一个表示任务时间界限的名词。\n\n② 核心规律：deadline 是完成或提交任务的最后期限，before the deadline 是听力和写作中的稳定表达。budget 与费用相关，recommendation 与建议相关，register 是动词。\n\n③ 验证：代入后句子表示在最后期限前提交，语义和冠词结构都成立。",
       "exam_tip": "before/by 后重点判断时间界限。"
     },
@@ -2800,7 +2800,7 @@
       "context": "用词库填空，使消费决策语境成立。\n\n句子：I can't {{blank}} the new textbook unless it's on sale.\n（中文提示：负担得起）\n\n词库：afford / recommend / borrow / reschedule / submit / register"
     },
     "analysis": {
-      "title": "识别 can’t afford 的消费限制",
+      "title": "解析",
       "summary": "① 识别信号：can’t 后需要动词原形，unless it’s on sale 表明障碍是价格而非时间或安排。\n\n② 核心规律：afford + 商品/费用表示有经济能力承担；can’t afford 与 discount/on sale 经常在消费场景中共同出现。\n\n③ 验证：I can’t afford the textbook 句法完整，unless 从句又给出降价后可能购买的条件。",
       "exam_tip": "情态动词后用动词原形。"
     },
@@ -2849,7 +2849,7 @@
       "context": "先听录音。说话人提出了什么请求？"
     },
     "analysis": {
-      "title": "理解录音中安排、约见、期限或费用的具体变化",
+      "title": "解析",
       "summary": "reschedule 改的是时间；still want to discuss 表明讨论意愿没有取消。",
       "exam_tip": "把词语放回录音中的实际安排，区分计划、限制与结果。"
     },
@@ -2904,7 +2904,7 @@
       "context": "听力填空：During the meeting, the manager asked the team to {{blank}} the deadline due to supplier delays.\n\n【提示】空格需要表示“延长”的动词。"
     },
     "analysis": {
-      "title": "根据供应延误选择 extend the deadline",
+      "title": "解析",
       "summary": "extend the deadline 表示延长期限。due to supplier delays 给出提出这一要求的原因。",
       "exam_tip": "迁移区分动词 extend 与名词 extension。"
     },
@@ -2951,7 +2951,7 @@
       "context": "先听录音。“reschedule my appointment”在这里指什么？"
     },
     "analysis": {
-      "title": "理解录音中安排、约见、期限或费用的具体变化",
+      "title": "解析",
       "summary": "希望改到下周一，仍计划前来。更改预约时间不等同于永久取消预约。",
       "exam_tip": "把词语放回录音中的实际安排，区分计划、限制与结果。"
     },
@@ -3006,7 +3006,7 @@
       "context": "比较：The company claims that the product works. / The data suggest that it may help.\n\n任务：claim 和 suggest 在这里分别做什么？仅凭 claim 能否断定证据弱？"
     },
     "analysis": {
-      "title": "识别阅读高频论证动词的证据承诺强度",
+      "title": "解析",
       "summary": "claim 标记提出说法这一行为，本身不构成固定证据等级。判断可靠程度还要看后续依据，不能把 claim、suggest、show、prove 排成适用于所有语境的单一强度表。",
       "exam_tip": "帮助推断题和观点态度题区分“可能支持”与“已经证明”。"
     },
@@ -3030,7 +3030,7 @@
       "context": "模拟句子：The repeated pattern suggests that commuters value reliability more than speed.\n\n问题：suggests 在这里为后半句建立了什么关系？"
     },
     "analysis": {
-      "title": "在具体句中判断 suggest 的证据支持与不确定性功能",
+      "title": "解析",
       "summary": "① 证据来源是 repeated pattern，而非作者无依据的个人感受。\n\n② suggests 把该模式连到一种解释：通勤者更重视可靠性。\n\n③ 这个动词没有排除其他原因，因此不能改写成“完全证明”或“唯一说明”。",
       "exam_tip": "看到 suggest，保留 may / likely 这一层推断余地。"
     },
@@ -3079,7 +3079,7 @@
       "context": "模拟句子：A two-year survey found that commuters who received delay alerts were more likely to use the bus again. The finding provides evidence of an association between timely information and passengers' willingness to return.\n\n这里 evidence 在论证中承担什么功能？"
     },
     "analysis": {
-      "title": "识别 evidence 如何把观察连接到有限度的解释",
+      "title": "解析",
       "summary": "该调查发现支持信息提醒与再次乘车意愿之间的联系。相关性不是对提醒具有单独因果效应的证明，也不能自动外推到所有乘客。",
       "exam_tip": "训练阅读中定位证据源、受支持命题与强度边界，避免把支持误判成唯一因果。"
     },
@@ -3128,7 +3128,7 @@
       "context": "模拟短文：The library extended its weekend hours. Visits rose most sharply among students with weekday jobs, while weekday attendance changed little.\n\n根据这两句，作者最可能 imply 哪一项？"
     },
     "analysis": {
-      "title": "用可见线索推出有限度的 imply 结论",
+      "title": "解析",
       "summary": "线索一是延长周末时间后到访增加；线索二是增长主要来自工作日有工作的学生。C 把两条线索合成一个带 may 的合理解释。A、D 没有文本依据，B 用 proves 和 only cause 把有限观察夸大成唯一因果。",
       "exam_tip": "imply 题必须至少能指出一条原文线索。"
     },
@@ -3177,7 +3177,7 @@
       "context": "模拟句子：Tree cover was a significant factor in route choice, alongside traffic levels and walking distance.\n\n哪一项最准确保留 factor 在这句话中的因果位置？"
     },
     "analysis": {
-      "title": "定位 factor 在多因素因果链中的变量角色",
+      "title": "解析",
       "summary": "句法上，factor 受 significant 修饰，并通过 in 连接结果 route choice；语义上，alongside 列出并列变量，因此这里只能得出“重要影响因素之一”。A 把条件当结果，B 把一个因素升级成唯一原因，C 则把稳定变量降成无关巧合。",
       "exam_tip": "看到 factor，分别标出影响条件和被影响结果。"
     },
@@ -3226,7 +3226,7 @@
       "context": "补全论证链：\n\nResearchers found that access to shade was one {{blank}} affecting how long people stayed in the park. This pattern provides {{blank}} that comfort shapes public-space use, but it does not {{blank}} that shade is the only cause.\n\n词库：factor / evidence / imply / explicit / significant / approach"
     },
     "analysis": {
-      "title": "综合 factor evidence imply 完成因素证据与推断边界链",
+      "title": "解析",
       "summary": "① one ___ affecting... 需要可数名词 factor，并由 one 限制为“因素之一”。\n\n② provides ___ that... 使用不可数名词 evidence，承接观察结果。\n\n③ does not 后接动词原形 imply，负责限制结论强度。三处词性、搭配和论证功能同时闭合。",
       "exam_tip": "先判断每个空格的句法角色，再检查它在论证链中的功能。"
     },
@@ -3295,7 +3295,7 @@
       "context": "用词库填空，完成推断题提示句。\n\n句子：What does the author {{blank}} by this statement?\n\n词库：imply / evidence / factor / approach / explicit / implication"
     },
     "analysis": {
-      "title": "区分作者 imply 与读者 infer",
+      "title": "解析",
       "summary": "① 识别信号：does the author ___ 要求动词原形，by this statement 又把任务限定为判断作者借此暗示的含义。\n\n② 核心规律：imply 是作者或文本发出暗示；infer 是读者据线索作推断。此处主语是 the author，所以应选 imply。词库中的名词和形容词不符合 does 后的形式。\n\n③ 验证：代入 What does the author imply...? 后，句法完整且对应推断题题干；其余词要么词性不对，要么改变任务。",
       "exam_tip": "does 后先筛动词原形。"
     },
@@ -3338,7 +3338,7 @@
       "context": "用词库填空，锁定因果解释词。\n\n句子：The passage identifies social inequality as a major {{blank}} behind the trend.\n\n词库：factor / evidence / approach / claim / significant / imply"
     },
     "analysis": {
-      "title": "识别 major factor behind 的因果解释搭配",
+      "title": "解析",
       "summary": "① 识别信号：a major ___ behind the trend 需要可数名词单数，identifies...as 表示把社会不平等定位为趋势背后的影响因素。\n\n② 核心规律：factor 常与 major/key/contributing 搭配，并可接 behind 或 in。evidence 支撑解释，approach 描述方法，claim 表示主张，都不是这里被识别出的成因角色。\n\n③ 验证：代入 factor 后，冠词、形容词和因果解释同时成立；再检查句子没有把该因素夸大成唯一原因。",
       "exam_tip": "a major 后先筛可数名词单数。"
     },
@@ -3381,7 +3381,7 @@
       "context": "用词库填空，补全方法论表达。\n\n句子：The researchers adopted a new {{blank}} to evaluate long-term outcomes.\n\n词库：approach / evidence / factor / claim / significant / imply"
     },
     "analysis": {
-      "title": "识别 adopt an approach 的研究方法搭配",
+      "title": "解析",
       "summary": "① 识别信号：adopted a new ___ to evaluate... 需要表示研究方法的可数名词；to evaluate 说明该名词服务于评估任务。\n\n② 核心规律：adopt an approach 是稳定的学术搭配，表示采用某种处理或研究方法。evidence 是依据，factor 是影响因素，claim 是主张，均不能承担方法角色。\n\n③ 验证：代入 approach 后可改写为 used a new method to evaluate，含义保持；这证明语法与功能都匹配。",
       "exam_tip": "adopt an approach 是高频研究搭配。"
     },
@@ -3424,7 +3424,7 @@
       "context": "下面四个表达中，哪一个最像把中文动作结构逐词搬进英语，因而不适合正式阅读或学术语境？"
     },
     "analysis": {
-      "title": "识别正式论证表达与中文直译名词串",
+      "title": "解析",
       "summary": "① 识别信号：strong evidence、key factor 和 what the author implies 都是阅读题或学术表达中的稳定组合；D 叠加 do、support 和 thing，却没有形成自然搭配。\n\n② 核心规律：正式英语优先用直接动词或固定名词搭配，如 support an argument、provide evidence。do + 抽象动作 + thing 往往是中文结构逐词翻译，信息模糊且语体不合。\n\n③ 验证：把 D 改为 provide evidence for an argument 或 support an argument，含义更清楚、搭配也成立；其余三项无需这种重写。",
       "exam_tip": "警惕 do/make + thing 的临时拼装。"
     },
@@ -3473,7 +3473,7 @@
       "context": "调查结果与作者的观点一致。\n\n用词库补全论证动作：The author uses these survey results to {{blank}} the central claim.\n\n词库：support / challenge / define / repeat / ignore / postpone"
     },
     "analysis": {
-      "title": "用 survey results 补全 support a claim",
+      "title": "解析",
       "summary": "题目已经说明调查结果与观点一致，因此选 support。引用调查也可能用来质疑观点，不能只因出现 survey results 就自动认定是支持。",
       "exam_tip": "迁移把研究材料与主张的支持方向连接起来。"
     },
@@ -3516,7 +3516,7 @@
       "context": "一段文字先提出一个待检验的观点，随后引用一项追踪研究。两部分的关系最准确的是？"
     },
     "analysis": {
-      "title": "区分主张与依据在论证中的互补角色",
+      "title": "解析",
       "summary": "证据可能支持、削弱或修正观点。仅知道先提出观点、后引用研究，不能直接断定后者已经证实前者。",
       "exam_tip": "迁移从段落顺序恢复观点与研究材料的论证关系。"
     },
@@ -3565,7 +3565,7 @@
       "context": "句子一：The room is small. Moreover, it has no windows.\n句子二：The room has no windows. Therefore, an electric light is needed.\n\n任务：两个连接词分别建立了什么关系？"
     },
     "analysis": {
-      "title": "建立重要性—递进—结果—立场的写作词功能框架",
+      "title": "解析",
       "summary": "先确定句间关系，再选连接词。不是在固定段落位置加入某个词就自动提高表达质量。",
       "exam_tip": "训练按段落功能选择表达，而不是堆叠难词。"
     },
@@ -3589,7 +3589,7 @@
       "context": "句子：\n\"Building a positive relationship between teachers and students is crucial for effective learning.\"\n\ncrucial 在该句中的最佳功能解释是："
     },
     "analysis": {
-      "title": "识别 crucial 的关键条件功能与强度",
+      "title": "解析",
       "summary": "① 识别信号：be crucial for 把师生关系标记为有效学习不可忽视的条件，而不是说明时间、对比或让步。\n\n② 核心规律：crucial 比 important 强，强调某事对目标能否实现具有关键作用。它可以强化立论，但不能单独证明该判断；后文仍应给出理由或例证。\n\n③ 验证：把 crucial 换成 unimportant，句子的立场会反转；换成 temporally 或 although 则句法或逻辑关系都不成立。",
       "exam_tip": "crucial 表示关键条件，不等于已经提供证据。"
     },
@@ -3638,7 +3638,7 @@
       "context": "句子：\n\"There have been significant changes in how people communicate over the years.\"\n\nsignificant 在该句中最准确的表达功能是："
     },
     "analysis": {
-      "title": "识别 significant 对变化幅度的实质性强调",
+      "title": "解析",
       "summary": "普通语境中的 significant 不自动表示统计显著，也不一定只描述数量幅度。这里用于强调变化并非无足轻重。",
       "exam_tip": "训练在趋势描述中控制程度词的准确含义。"
     },
@@ -3687,7 +3687,7 @@
       "context": "句子：\n\"Moreover, the clinic should improve its inventory management to ensure a sufficient supply of common medicines.\"\n\nMoreover 在该句中的功能是："
     },
     "analysis": {
-      "title": "用 moreover 连接同方向的第二条论据",
+      "title": "解析",
       "summary": "① 识别信号：Moreover 位于句首并由逗号隔开，提示本句是在前一条建议或理由上继续增加同方向信息。\n\n② 核心规律：moreover 表示递进补充，要求前后观点方向一致；它不表示前因后果、具体举例或最后总结。若两句相反，应选 however；若后句是结果，应选 therefore。\n\n③ 验证：把前句概括为“诊所还需要改进另一项工作”，本句确实提供第二项措施，因此补充关系成立。",
       "exam_tip": "moreover 前后应是同方向、同层级信息。"
     },
@@ -3736,7 +3736,7 @@
       "context": "句子：\n\"Therefore, students should approach online information with critical thinking.\"\n\nTherefore 在该句中的作用是："
     },
     "analysis": {
-      "title": "用 therefore 从前提导出结果或建议",
+      "title": "解析",
       "summary": "① 识别信号：Therefore 位于建议句开头，说明这项行动应由前文的风险、事实或理由推导出来。\n\n② 核心规律：therefore 标记“基于前述理由，所以得到该结论”。它不能在没有前提时凭空增加建议，也不等于 however 的转折或 moreover 的并列补充。\n\n③ 验证：在前面补入“网络信息可能不准确”，后句便成为合理结果；若前句只是另一条无关建议，therefore 就失去依据。",
       "exam_tip": "therefore 前面必须有可识别的推导依据。"
     },
@@ -3785,7 +3785,7 @@
       "context": "用词库填空，表达“信任对团队合作非常重要”。\n\nBuilding trust is {{blank}} for effective teamwork.\n\n词库：crucial / secondary / optional / decorative / accidental / temporary"
     },
     "analysis": {
-      "title": "用 be crucial for 表达目标实现的关键条件",
+      "title": "解析",
       "summary": "be crucial for 表示对某事非常重要，符合中文给定含义。写作时仍应说明这一因素为何重要。",
       "exam_tip": "训练用句法和论点强度联合选词。"
     },
@@ -3828,7 +3828,7 @@
       "context": "用词库填空，加入同方向的第二条理由。\n\n句子：Peer discussion exposes students to unfamiliar methods. {{blank}}, interdisciplinary workshops help them connect ideas across subjects.\n\n词库：Moreover / However / Therefore / For example / Otherwise / Instead"
     },
     "analysis": {
-      "title": "在完整上下文中选择递进连接词",
+      "title": "解析",
       "summary": "① 识别信号：前句写同伴讨论的好处，后句再增加跨学科研讨的另一项好处；两句方向一致，但后句不是前句的结果或例子。\n\n② 核心规律：moreover 用来添加同方向、同层级的新理由。however 表转折，therefore 表结果，for example 要求后句举例，instead 表替代，均改变原有关系。\n\n③ 验证：分别把两句概括为“接触新方法”和“连接跨学科观点”，两项都是支持参与协作学习的并列理由，因此 Moreover 最准确。",
       "exam_tip": "先概括前后两句，再判断是补充还是结果。"
     },
@@ -3871,7 +3871,7 @@
       "context": "用词库填空，补全因果结果链。\n\n句子：The clinic hired more staff; {{blank}}, patients spent less time waiting.\n\n词库：consequently / however / moreover / for instance / meanwhile / nevertheless"
     },
     "analysis": {
-      "title": "用 consequently 标记措施带来的结果",
+      "title": "解析",
       "summary": "① 识别信号：增加员工发生在前，等候时间减少发生在后；语境把后者作为前一措施带来的结果。\n\n② 核心规律：consequently 明确标记结果。however 和 nevertheless 表转折，moreover 表补充，for instance 表举例，meanwhile 只强调同时发生，都没有指出因果方向。\n\n③ 验证：可将分号后的内容改写为 As a result, patients spent less time waiting，含义保持，证明结果连接成立。",
       "exam_tip": "措施在前、结果在后时再考虑 consequently。"
     },
@@ -3914,7 +3914,7 @@
       "context": "用词库填空，完成自然的立场表达。\n\n句子：From my {{blank}}, practical experience is as important as textbook knowledge.\n\n词库：perspective / habit / evidence / conclusion / proposal / concern"
     },
     "analysis": {
-      "title": "用 from my perspective 自然标记个人立场",
+      "title": "解析",
       "summary": "From my perspective 表示在我看来。From my experience 也可成立，但侧重根据经验；不能把它当作无条件错误的干扰项。",
       "exam_tip": "训练固定搭配与论证功能同时匹配。"
     },
@@ -3957,7 +3957,7 @@
       "context": "下面四个表达中，哪一个最像把中文结构逐词拼成英语，因而不适合正式写作？"
     },
     "analysis": {
-      "title": "识别并改写直译式伪高级表达",
+      "title": "解析",
       "summary": "① 识别信号：play a crucial role、in conclusion 和 from my perspective 都是功能明确的稳定表达；D 用 do、more high-level 和 word expression 临时拼接，搭配和比较级结构都不自然。\n\n② 核心规律：正式写作的清晰度来自准确动词与稳定搭配，不来自给 word 加上 high-level。可直接说 use more precise vocabulary 或 express the idea more precisely。\n\n③ 验证：A、B、C 可直接放入规范句子；D 必须重写核心结构才能自然表达，因此它是直译式伪高级表达。",
       "exam_tip": "正式表达优先选稳定搭配和准确动词。"
     },
@@ -4006,7 +4006,7 @@
       "context": "用词库补全结论段的论证动作。\n\n句子：A strong conclusion should {{blank}} the argument instead of introducing unrelated details.\n\n词库：reinforce / distract / postpone / fragment"
     },
     "analysis": {
-      "title": "用 reinforce 表达结论段的回扣强化功能",
+      "title": "解析",
       "summary": "① 识别信号：instead of introducing unrelated details 明确排除了分散、拖延或割裂论证的方向；空格需要能与 argument 搭配的动词。\n\n② 核心规律：结论段应综合并强化已展开的核心观点。reinforce the argument 表示增强论证；distract、postpone 和 fragment 都会破坏结尾的收束功能。\n\n③ 验证：代入 reinforce 后，前后形成“强化论点，而非引入无关细节”的清晰对照，句法和段落功能同时成立。",
       "exam_tip": "结论段应强化并综合已有论点。"
     },
@@ -4047,7 +4047,7 @@
       "context": "一处需要补充第二条同方向理由，另一处需要根据前文导出结果。以下哪项准确匹配这两种连接功能？"
     },
     "analysis": {
-      "title": "区分递进补充与因果结果连接词",
+      "title": "解析",
       "summary": "① 识别信号：题目比较的是两个连接词承担的句间关系，而不是词义难度。\n\n② 核心规律：moreover adds another supporting point; therefore marks a consequence derived from earlier information. 前者扩展同一方向，后者建立推导关系，不能随意互换。\n\n③ 验证：若两句可改写为“还有一点”，用 moreover；若可改写为“基于这些理由，所以”，用 therefore。只有 A 同时保持两者边界。",
       "exam_tip": "moreover 回答“还有什么”，therefore 回答“所以怎样”。"
     },
@@ -4096,7 +4096,7 @@
       "context": "CET4 写作模拟语境：\n\nThe student union can organize more cultural exchange events, provide more sports activities, and establish more interest-based clubs.\n\n任务：这句话怎样用一个情态动词保持稳定的现在立场？organize、provide、establish 分别是什么形式？"
     },
     "analysis": {
-      "title": "区分现在情态 can 与并列动词原形",
+      "title": "解析",
       "summary": "① 识别信号：主语后先出现 can，说明整个并列谓语由这个情态动词管辖。\n\n② 核心规律：情态动词 can 本身承担现在立场；其后的 organize、provide、establish 必须用动词原形。后两个 can 因并列而省略，不等于三个实义动词都使用了一般现在时词形。\n\n③ 验证：把结构展开就是 The student union can organize..., can provide..., and can establish...。若写成 can organizes 或 can provided 都不合语法。这个结构表达当前可行的建议，而不是回顾已结束事件。",
       "exam_tip": "先找真正承担时态或情态的谓语核心，再判断后续动词为什么采用该形式。"
     },
@@ -4120,7 +4120,7 @@
       "context": "任务：下面哪一句最适合直接放进一篇‘如何丰富校园生活’的建议段里，作为对活动价值的稳定判断？"
     },
     "analysis": {
-      "title": "用一般现在时陈述校园活动的稳定价值",
+      "title": "解析",
       "summary": "① 识别信号：题干要求的是‘建议段里的稳定判断’，这说明句子要表达普遍作用，而不是某个具体时间发生了什么。\n\n② 核心规律：解释一个措施通常带来的结果时，优先用一般现在时；只有叙述过去活动、说明未来安排或交代过去完成结果时，才切换对应时态。\n\n③ 验证：A 用 broaden 和 encourage 直接陈述常规价值。B 有 last year's festival，C 有 scheduled for next term，D 有 By the end of last semester；它们各自在自己的时间语境里成立，却不适合作为无时间限定的稳定判断。",
       "exam_tip": "正文里凡是‘这个做法通常会怎样’，先试一般现在时。"
     },
@@ -4169,7 +4169,7 @@
       "context": "句子骨架：Over the past year, the student union ___ several late-night study support activities, so many freshmen now feel less lost before exams.\n\n任务：选出最能保住‘过去到现在已完成，并且结果还影响现在’这一层意思的动词形态。"
     },
     "analysis": {
-      "title": "在“写作时态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：时间框架是 over the past year，结果句里又出现 now feel less lost，这说明动作不是被关进一个彻底结束的历史点，而是一路延伸到当前语境。\n\n② 核心规律：写作里凡是‘过去一段时间已经做过，并且其效果现在还看得到’，优先考虑现在完成时。一般过去时只负责把动作放进已封口的过去；现在完成时则能同时保住‘已发生’和‘仍相关’这两层信息。\n\n③ 验证：has organized 既说明活动已经举办过多次，又能自然接上 now feel less lost。若用 organized，句子会更像纯回顾；若用 organizes，则会误导读者以为这是习惯性事实而非过去一年累积出来的成果。",
       "exam_tip": "看到 over the past year / in recent years 这类时间框架时，先把现在完成时放进候选。"
     },
@@ -4218,7 +4218,7 @@
       "context": "任务：如果你在作文中举一个自己参加校园活动的具体经历，下面哪一句的时态最稳？"
     },
     "analysis": {
-      "title": "在“写作时态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：题干说的是‘举一个具体经历’，而正确句里又给出 last semester 这样的封闭时间点，这类叙述天然属于已完成的过去。\n\n② 核心规律：写作里举例时最常见的错误，就是前面讲论点用现在时，后面一举自己的经历还继续维持现在时。其实一旦你进入‘我曾经做过什么、那次发生了什么’的叙事框架，最稳的承载时态就是一般过去时。现在时负责论点，过去时负责经历，这样层次最清楚。\n\n③ 验证：B 既有明确过去时间 last semester，又在叙述 join 和 learned 这两个已经完成的动作；A 和 C 会让时间参照点发虚，D 的过去完成时则平白制造了一个并不存在的更早过去基准。",
       "exam_tip": "作文里一写自己某次真实经历，就先找有没有明确的过去时间锚点。"
     },
@@ -4267,7 +4267,7 @@
       "context": "句子：If the student union listens more carefully to students' needs in the coming year, it will create a campus life that feels more lively and inclusive.\n\n任务：只保留明确的未来时间短语和含 will 的预测结构，划去其余候选片段。"
     },
     "analysis": {
-      "title": "识别未来时间框架与 if 现在时 will 结果结构",
+      "title": "解析",
       "summary": "① 识别信号：句子里同时出现 in the coming year 和 will create，这是一组很强的未来导向组合。它告诉你作者不是在描述当前常态，而是在预测‘接下来如果这样做，会出现什么结果’。\n\n② 核心规律：英语写条件预测时，常见搭配是 if 从句用一般现在时，主句用 will 表结果。真正容易误判的地方在于，很多学习者会以为既然整句讲未来，if 从句里也该用 will；其实英语通常把未来的预测压力压在主句，把条件本身写成一般现在时。\n\n③ 验证：本句里 listens 并不是单独的时间中心，它只是条件；真正把整句定位到未来的是 in the coming year 这个时间框架，以及主句 will create 这个结果形态。所以要抓这两个信号，而不是把全部注意力都放在 if 上。",
       "exam_tip": "看到 if 从句时，先分清谁负责条件，谁负责未来结果。"
     },
@@ -4315,7 +4315,7 @@
       "context": "句子骨架：Since entering college, I ___ that the most valuable activities are often the ones that quietly reshape my habits rather than impress me for a day.\n\n任务：选出最适合这个句子的动词形态。"
     },
     "analysis": {
-      "title": "在“写作时态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：句首的 since entering college 明确给出一个过去起点，同时整句是在总结到现在仍然成立的体会。\n\n② 核心规律：在作文里，since + 过去起点 常常推动现在完成时，因为作者想表达的不是某一刻突然意识到，而是从过去某点开始逐步积累、到现在已经形成的认识。如果你改成一般过去时，句子会更像那一刻单次发现；改成一般现在时，则会丢掉‘认识是在大学期间逐渐形成’这一层过程感。\n\n③ 验证：have realized 恰好把‘从 entering college 开始’和‘现在依然相信’连起来。句中的 are often 继续用一般现在时，是因为后半句在陈述稳定判断。一个句子里并不要求所有动词都统一时态，而是各自服务自己的语义任务。",
       "exam_tip": "since 后面给过去起点时，先排查现在完成时。"
     },
@@ -4364,7 +4364,7 @@
       "context": "听力对话：\n\nW: Have you finished the slides for tomorrow's presentation?\nM: I'm adding the last chart now. I should send them to you in ten minutes.\n\n任务：男生的话里，为什么现在进行时和将来表达会同时出现？它们分别在告诉你什么？"
     },
     "analysis": {
-      "title": "在“听力时态”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "I’m adding 表示正在补最后一张图表；should send 表示预计十分钟内能发送。两者分别交代当前进度与预期的下一步，should 不是发送已完成或绝对保证。",
       "exam_tip": "帮助用户在CET4语法任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -4394,7 +4394,7 @@
       "context": "听力句子：I've sent the draft to the professor, so we can stop worrying about tonight's deadline.\n\n任务：选出这句话最想让听者确认的状态。"
     },
     "analysis": {
-      "title": "在“听力时态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：I've sent 这类 have/has + 过去分词，一旦后面紧跟 so now / so we can / already 这类结果提示，就要优先理解为‘已完成并对当前有效’。\n\n② 核心规律：听力里的现在完成时很少是为了炫耀语法，它通常在更新局势。说话人不是单纯讲过去某刻发过邮件，而是在通知对方：截止时间这件事现在可以放心了。若你把它误听成一般过去时，只会得到‘之前做过’这一层，而会丢掉‘现在不用担心’的实际含义。\n\n③ 验证：I've sent the draft 和 so we can stop worrying 紧密相连，说明发送动作的价值在于改变当前压力状态。正确理解不是‘我过去发过’，而是‘我刚刚已经搞定，所以今晚这个风险解除了一大块’。",
       "exam_tip": "听到现在完成时，立刻追问一句：它改变了现在的什么局面。"
     },
@@ -4449,7 +4449,7 @@
       "context": "听力句子骨架：I ___ early, but the meeting ran over and I missed the last bus.\n\n任务：选出最能表达‘原本打算这样做，但后来没实现’的形态。"
     },
     "analysis": {
-      "title": "在“听力时态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：句中出现 but the meeting ran over and I missed the last bus，说明后半句在报告现实结果，而且这个结果和前面的打算发生了冲突。\n\n② 核心规律：听力里 was/were going to do 最值得抓的，不是过去这个形式本身，而是它所携带的‘原本计划’含义。很多对话题会先给你一个过去的预期，再用 but / however / actually 把它推翻。若你只听见 leave 而忽略 was going to，你就会误以为对方真的早走了。\n\n③ 验证：was going to leave 与 but the meeting ran over 构成强对照：计划是早走，现实却是会开太久，最后错过末班车。正确答案必须能同时保住‘曾计划’和‘未实现’这两层信息。",
       "exam_tip": "听到 was going to，不要急着记动作本身，先记‘原计划’这个标签。"
     },
@@ -4504,7 +4504,7 @@
       "context": "听力句子：We're meeting the visiting professor at six, so don't be late for the campus tour.\n\n任务：选出对这句现在进行时最准确的理解。"
     },
     "analysis": {
-      "title": "在“听力时态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：句子里同时出现 We're meeting 和 at six。明确的未来时间点会强烈提示你，这个进行时并非描述此刻动作，而是在交代既定安排。\n\n② 核心规律：英语口语里，进行时常被拿来表达已经敲定的近未来计划，语气比 will 更像‘安排已定’，而不是临时预测。听力题喜欢用这种形式考你能不能区分‘正在发生’和‘已经安排’。如果你只把进行时机械等同于此刻动作，就会把时间关系听错。\n\n③ 验证：We're meeting the visiting professor at six 后面紧跟 don't be late，说明说话人是在提醒对方按安排行动，而不是说他们现在已经在和教授见面。句子的重点是既定计划。",
       "exam_tip": "进行时后面一旦接明确未来时间点，先考虑‘已安排计划’。"
     },
@@ -4559,7 +4559,7 @@
       "context": "听力句子：I was supposed to call you yesterday, but my phone died on the way home.\n\n任务：保留完整的计划表达和引出阻碍原因的转折片段；划去单独列出的时间、地点短语。"
     },
     "analysis": {
-      "title": "在“听力时态”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "① 识别信号：was supposed to 本身就是一个强提示，表示按原本安排/义务本该发生；而 but 后面的突发情况则常用来解释为什么没发生。\n\n② 核心规律：在听力里，‘过去没做到的安排’经常不直接说 I didn't call you，而是更委婉地说 I was supposed to call you, but ...。真正值得抓的是这个结构传出的态度信息：说话人默认那件事本来应该发生，只是被现实阻断。若你只听到过去时间 yesterday，就无法分辨这是普通回忆还是失约说明。\n\n③ 验证：本句先给出 was supposed to call you，建立‘应该打电话’的预期；再用 but my phone died 推翻执行条件，最终意思就是‘我本来该联系你，但没做到’。",
       "exam_tip": "听到 be supposed to，马上问自己：这件事后来真的发生了吗。"
     },
@@ -4613,7 +4613,7 @@
       "context": "听力句子骨架：She ___ between two campuses all month, so it's no surprise that she sounds exhausted today.\n\n任务：选出最能表达‘这个月一直在持续，到今天还有痕迹’的动词形态。"
     },
     "analysis": {
-      "title": "在“听力时态”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：all month 说明动作贯穿一段持续时间；sounds exhausted today 则说明这种持续动作对当前状态仍有直接投影。\n\n② 核心规律：在听力里，如果说话人既强调动作持续了一段时间，又明显把后果落到现在，has/have been doing 往往比 has done 更鲜明。现在完成进行时不仅告诉你事情发生了，还把‘一直在折腾’这种过程感带出来。\n\n③ 验证：has been commuting 正好匹配‘这个月一直两校奔波，所以今天听起来很累’。若用 commuted，只剩封口过去；若用 has commuted，过程感变弱；若用 commutes，则像在说习惯事实，听不出本月持续加重的负担。",
       "exam_tip": "持续时间 + 当前疲惫/结果，是现在完成进行时的高频组合。"
     },
@@ -4668,7 +4668,7 @@
       "context": "阅读风格句子：What many students overlook is that a long sentence often hides its real focus in a clause that looks scary only because it is long.\n\n任务：这句里为什么说 what many students overlook 和 that a long sentence... 都属于‘名词性从句’这一家？"
     },
     "analysis": {
-      "title": "从句法位置识别主语从句与表语从句",
+      "title": "解析",
       "summary": "What many students overlook 整体作主语，what 在从句内承担 overlook 的宾语；that a long sentence... 整体位于 is 后作表语，其内部的 that looks scary... 则修饰 clause，是另一层定语从句。",
       "exam_tip": "建立先看名词位、再看引导词的判断顺序。"
     },
@@ -4692,7 +4692,7 @@
       "context": "句子：Researchers found that students who reviewed their notes within 24 hours retained more key details.\n\n任务：为什么 that students ... 在这句里是名词性从句，而不是定语从句？"
     },
     "analysis": {
-      "title": "区分 that 宾语从句与定语从句",
+      "title": "解析",
       "summary": "① 识别信号：先看主句动词 found 后面缺什么。found 在这里需要一个‘发现内容’，也就是宾语。that students ... 正好把这个信息块补满。\n\n② 核心规律：区分宾语从句和定语从句，关键不是都出现了 that，而是看这个 that-clause 是不是在修饰前面的名词。若它只是直接回答‘发现了什么、认为了什么、说明了什么’，那它通常是名词性从句。定语从句则必须依附某个名词，并在从句里对这个名词提供补充限定。\n\n③ 验证：Researchers found 后面没有现成名词需要被修饰，that students who reviewed ... retained more key details 整体就是研究者发现的内容。that 本身也没有在从句中代替某个成分，因此这是典型宾语从句，而不是定语从句。",
       "exam_tip": "一看到 that，不要先贴标签，先问它后面整块内容在给谁当位置。"
     },
@@ -4741,7 +4741,7 @@
       "context": "在候选片段中，保留整句的完整主语，划去其他项。"
     },
     "analysis": {
-      "title": "定位句首 whether 命题块的主语功能",
+      "title": "解析",
       "summary": "① 识别信号：看到句首 whether 从句时，先别急着把它当状语。应先找主句谓语，再反问‘什么东西 remains unclear？’\n\n② 核心规律：名词性从句之所以难，是因为它常常很长，很多人一长就误判成‘前置条件’或‘背景状语’。其实最稳的方法是做主干追问：如果主句谓语前面缺的正是一个被讨论的内容块，那这个从句就是主语。whether-clause 很常承担这种‘是否如此’的命题内容。\n\n③ 验证：本句主干是‘___ remains unclear to many teachers’。能填进空位并让句子完整的，是 Whether the new policy will reduce student stress。它回答的是‘什么仍不明确’，所以这是主语从句。",
       "exam_tip": "长从句放句首时，先找主句谓语，再问谁在当主语。"
     },
@@ -4790,7 +4790,7 @@
       "context": "句子：What the committee needs most is clearer feedback from students.\n\n任务：选出对句首信息块功能最准确的解释。"
     },
     "analysis": {
-      "title": "识别 what 从句的主语位置与内部成分功能",
+      "title": "解析",
       "summary": "① 结构定位：is clearer feedback... 已经提供系动词和表语，因此 is 前面的整块内容承担主语。\n\n② 引导词功能：what 不是空连接词，它同时表示 needs 的宾语，可理解为 the thing that。\n\n③ 验证：把句首整块替换为 The thing that the committee needs most，句子结构和意义都保持完整，确认它是主语从句。",
       "exam_tip": "先用 is 前后位置判断整块功能，再分析引导词在从句内部的职责。"
     },
@@ -4839,7 +4839,7 @@
       "context": "保留说明“不明确的具体内容”的完整从句，划去其他候选片段。"
     },
     "analysis": {
-      "title": "识别形式主语 it 后置的 whether 真主语",
+      "title": "解析",
       "summary": "① 识别信号：It is still unclear ... 这种结构里，It 常常不是实义主语，而是形式主语。真正值得问的是：到底什么不明确？\n\n② 核心规律：英语为了避免句首过重，常把很长的主语从句后置，并在前面放一个形式主语 it 占位。此时判断名词性从句的关键，是抓住形容词或谓语所评价的内容到底是什么。只要那个内容是一整段从句，它就是句子的真正语义主语。\n\n③ 验证：句子不是在说‘it 不明确’，而是在说‘在线答疑时段是否真能提升参与度’这件事不明确。因此 whether online office hours really increase participation 才是核心内容块，It 只是结构支架。",
       "exam_tip": "看到 It is clear/unclear/important that... 或 whether... 时，优先怀疑后面的从句才是真主语。"
     },
@@ -4888,7 +4888,7 @@
       "context": "任务：下面哪一句正确保留了名词性从句内部应使用陈述语序这一规则？"
     },
     "analysis": {
-      "title": "迁移名词性从句内部的陈述语序规则",
+      "title": "解析",
       "summary": "① 识别信号：题干在考‘名词性从句内部语序’，这意味着你要盯的不是问词本身，而是问词后面主语和谓语的排列。\n\n② 核心规律：名词性从句虽然常由 what, whether, who, how 等疑问词引导，但一旦它进入主句做宾语、主语或表语，它内部就按陈述语序走，而不是直接照搬独立疑问句的倒装。很多人把直接问句和嵌入式问句混为一谈，结果一到阅读长句就会把结构听散。\n\n③ 验证：D 里是 what the students needed most，主语 the students 在前，谓语 needed 在后，符合陈述语序。其余选项如果出现 what did the students need most 之类倒装，就把从句错写成了独立问句格式。",
       "exam_tip": "名词性从句里有问词，不等于内部也要倒装。"
     },
@@ -4937,7 +4937,7 @@
       "context": "句子：The guide that the tutor recommended includes exercises that help students identify an argument’s main claim.\n\n任务：找出两个定语从句各自修饰的先行词，并还原主句骨架。"
     },
     "analysis": {
-      "title": "在双定语从句中定位各自先行词并还原主句骨架",
+      "title": "解析",
       "summary": "① 第一处 that 紧跟 guide，从句内部 tutor 是主语、recommended 是谓语，that 代替被推荐的 guide。\n\n② 第二处 that 紧跟 exercises，并在从句中作 help 的主语。\n\n③ 两块暂时括起后，The guide / includes / exercises 构成完整主干。",
       "exam_tip": "每遇到关系词，向左找最近且语义合理的先行词。"
     },
@@ -4961,7 +4961,7 @@
       "context": "句子：The checklist that our teacher shared before the exam covers the most common writing errors.\n\n问题：为什么这里的 that 可以省略，而句子仍然合乎语法？"
     },
     "analysis": {
-      "title": "依据关系代词在从句中作宾语判断其可省略性",
+      "title": "解析",
       "summary": "① 先行词是 The checklist。\n\n② 从句 our teacher shared ___ before the exam 已有主语和谓语，空缺的是 shared 的宾语。\n\n③ that 在此填补宾语位置，省略后 the checklist our teacher shared... 仍可解析；若 that 作从句主语，省略会导致从句缺主语。",
       "exam_tip": "把先行词放回从句空位，判断缺的是主语还是宾语。"
     },
@@ -5010,7 +5010,7 @@
       "context": "划去完整的非限制性定语从句，再观察保留下来的主句。"
     },
     "analysis": {
-      "title": "准确圈定非限制性定语从句并用删除法验证主干",
+      "title": "解析",
       "summary": "① 形式信号：which 从句位于两个逗号之间。\n\n② 成分闭合：students 是从句主语，restored 是谓语，which 代替宾语 garden，last spring 是时间状语。\n\n③ 删除验证：保留 The campus garden + now supplies... 后，主句主谓宾完整，说明所选范围准确。",
       "exam_tip": "选择从句范围时，不把先行词或主句谓语一起选入。"
     },
@@ -5057,7 +5057,7 @@
       "context": "句子：The conditions under which the volunteers worked were far from ideal.\n\n任务：选择对 under which 的准确解释。"
     },
     "analysis": {
-      "title": "用先行词回填法解释介词前置的定语从句",
+      "title": "解析",
       "summary": "① 先拆主干：The conditions were far from ideal。under which the volunteers worked 修饰 conditions。\n\n② 把先行词放回从句可得 the volunteers worked under the conditions，因此 D 同时解释了 which 的指代和 under 的来源。\n\n③ A 错把 which 当从句主语；B 把定语从句误判为原因状语；C 忽略了 work under conditions 的语义关系。",
       "exam_tip": "遇到介词 + which，先把先行词放回介词后验证搭配。"
     },
@@ -5106,7 +5106,7 @@
       "context": "句子：Students whose study plans include weekly review are more likely to retain what they learn.\n\n任务：排除对 whose 从句结构的错误分析，保留能够还原句子关系的分析。"
     },
     "analysis": {
-      "title": "同时判断 whose 的所属关系、从句范围与主句主语",
+      "title": "解析",
       "summary": "① whose study plans 可还原为 the students' study plans，所以 whose 既指回 Students，又限定后面的名词 plans。\n\n② 定语从句范围到 weekly review 结束；其中 study plans 是从句主语，include 是从句谓语。\n\n③ 主句主语仍是 Students。who 不能直接替换 whose，因为 who 不表达所属关系，也不能直接限定 study plans。",
       "exam_tip": "看到 whose + 名词，先改写为先行词的所有格 + 名词。"
     },
@@ -5154,7 +5154,7 @@
       "context": "合并两句：Students often use online sources. Many of these sources are not reviewed by experts.\n\n任务：选择语法完整、逻辑关系不变的单句。"
     },
     "analysis": {
-      "title": "用数量词加 of which 合并句子并保留部分关系",
+      "title": "解析",
       "summary": "① 原句的 these sources 指回 online sources，many 表示其中一部分；合并时需同时保留指代与数量关系。\n\n② B 用 many of which 承接 online sources，后接 are not reviewed，定语从句主谓完整。\n\n③ A 用逗号连接两个独立分句，构成 comma splice；C 缺少 of；D 同时出现 which 和 they，重复占据从句主语位置。",
       "exam_tip": "表达“其中一些/许多”时，检查 some/many + of + whom/which。"
     },
@@ -5203,7 +5203,7 @@
       "context": "阅读风格句子：Although online courses save commuting time, many students still prefer face-to-face discussion when topics become conceptually difficult.\n\n任务：为什么 although-clause 和 when-clause 都属于状语从句？"
     },
     "analysis": {
-      "title": "在“状语从句”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "① 识别信号：although、when 这类连接词通常引导逻辑关系，而非名词指代关系。\n\n② 核心规律：状语从句修饰的是整个主句动作，回答‘在什么条件下/什么时候/尽管怎样’。它不承担主语宾语等名词位，也不直接修饰某个名词。\n\n③ 验证：去掉 although-clause，主句仍成立但少了让步背景；去掉 when-clause，主句少了时间触发条件。两者都在补充主句语境，因此是状语从句。",
       "exam_tip": "先问从句是在补关系还是在补名词位。"
     },
@@ -5227,7 +5227,7 @@
       "context": "句子：If students set clear milestones, they are less likely to postpone their final draft. 任务：选出 if-clause 的最佳功能解释。"
     },
     "analysis": {
-      "title": "依据具体句子识别状语从句",
+      "title": "解析",
       "summary": "条件状语从句，给出主句成立的前提条件。\n\nif 引导的从句通常表达‘如果...则...’条件关系，修饰主句判断。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5276,7 +5276,7 @@
       "context": "保留完整的原因从句，划去其他候选片段。"
     },
     "analysis": {
-      "title": "依据具体句子识别状语从句",
+      "title": "解析",
       "summary": "承担原因关系的是 Because the sample size was limited。它说明了主句结论为何要谨慎解释。\n\nbecause 引导原因状语从句，功能是为主句提供因果解释。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5325,7 +5325,7 @@
       "context": "句子：Unless we define evaluation criteria in advance, peer review may become inconsistent. 任务：选择对 unless-clause 的准确解释。"
     },
     "analysis": {
-      "title": "依据具体句子识别状语从句",
+      "title": "解析",
       "summary": "否定条件状语从句，表达‘如果不...就...’。\n\nunless 本质上是 if...not... 的压缩形式，常用于规则或风险提示。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5374,7 +5374,7 @@
       "context": "保留完整的让步从句，划去其他候选片段。"
     },
     "analysis": {
-      "title": "依据具体句子识别状语从句",
+      "title": "解析",
       "summary": "让步从句是 While the dataset appears comprehensive。它先给出表面优势，再在主句中提出限制。\n\nwhile 在学术写作中常用于让步对比（尽管...，但...），不是单纯时间关系。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5423,7 +5423,7 @@
       "context": "任务：下面哪一句正确体现了状语从句中的时态约束（时间从句中常用一般现在表将来）？"
     },
     "analysis": {
-      "title": "依据具体句子识别状语从句",
+      "title": "解析",
       "summary": "We will start the workshop as soon as the guest speaker arrives.\n\n在 as soon as / when / before / after 等时间状语从句中，表示将来时常用一般现在时替代 will。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5472,7 +5472,7 @@
       "context": "阅读风格句子：Only after the team compared the raw data with the revised chart did they notice how much the original claim had been overstated. 任务：为什么 did they notice 属于倒装，而不是普通疑问句？"
     },
     "analysis": {
-      "title": "依据具体句子识别倒装句",
+      "title": "解析",
       "summary": "这是由 Only + 状语前置触发的部分倒装：助动词 did 提前到主语 they 前。\n\n它不是提问，而是强调“直到该条件满足后才注意到”。\n\n倒装的关键是功能：用于强调限制条件或否定前置，而非获取信息。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5496,7 +5496,7 @@
       "context": "句子：Never have I seen a clearer example of how weak evidence can still produce confident conclusions. 任务：哪项解释最准确？"
     },
     "analysis": {
-      "title": "依据具体句子识别倒装句",
+      "title": "解析",
       "summary": "Never 前置触发部分倒装（have I seen），用于强调‘从未见过’这一否定程度。\n\n否定副词前置常触发倒装，这是书面表达中强化语气的高频手段。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5545,7 +5545,7 @@
       "context": "保留倒装开头及其结果从句，划去不属于这两个部分的候选项。"
     },
     "analysis": {
-      "title": "依据具体句子识别倒装句",
+      "title": "解析",
       "summary": "关键片段：So limited was the sample（倒装触发）+ that the researchers avoided broad policy claims（结果从句）。\n\nso + 形容词前置会触发主系倒装，用于强化程度并引出 that 结果。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5593,7 +5593,7 @@
       "context": "句子：Not until the final peer-review round did the team realize that their strongest paragraph lacked source support. 任务：下列哪项是对该倒装结构最准确的判断？"
     },
     "analysis": {
-      "title": "依据具体句子识别倒装句",
+      "title": "解析",
       "summary": "Not until the final peer-review round 是时间短语，前置后主句用 did 倒装。这里 until 后没有完整从句，不能把 round 误当成一个从句。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5642,7 +5642,7 @@
       "context": "保留前置条件及主句倒装的对应片段，划去其他候选项。"
     },
     "analysis": {
-      "title": "依据具体句子识别倒装句",
+      "title": "解析",
       "summary": "正确片段：Only when students compare opposing sources（前置条件）+ can they detect...（主句倒装）。\n\nOnly + 状语前置后，主句助动词前移是典型部分倒装模式。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5690,7 +5690,7 @@
       "context": "任务：下面哪一句正确体现了“虚拟条件省略 if 后的倒装”用法？"
     },
     "analysis": {
-      "title": "依据具体句子识别倒装句",
+      "title": "解析",
       "summary": "Had the team checked the data source earlier, they might have avoided the revision delay.\n\nHad + 主语 + 过去分词 是 if 条件句省略 if 的倒装形式，对应 If the team had checked...",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5739,7 +5739,7 @@
       "context": "阅读风格句子：It was not the length of the paragraph but the missing evidence link that made the argument hard to trust.\n\n任务：这句里为什么说强调焦点是 the missing evidence link，而不是普通主系表结构？"
     },
     "analysis": {
-      "title": "在“强调句”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "① 识别信号：出现 It is/was + 被强调成分 + that/who + 其余部分。\n\n② 核心规律：强调句的作用是聚焦信息，不改变事实事件本身。读句时先还原成普通语序，再比较焦点差异。\n\n③ 验证：可还原为 The missing evidence link made the argument hard to trust. 原因事实不变，但强调句把对比重点前置。",
       "exam_tip": "先识别 It was ... that 框架，再找被强调对象。"
     },
@@ -5763,7 +5763,7 @@
       "context": "句子：It was during the peer-review session that the team discovered the definition shift. 任务：哪项解释最准确？"
     },
     "analysis": {
-      "title": "依据具体句子识别强调句",
+      "title": "解析",
       "summary": "强调的是时间状语 during the peer-review session，而不是新事件本身。\n\n强调句可以强调时间、地点、主语、宾语等成分；that 后通常是剩余句干。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5812,7 +5812,7 @@
       "context": "保留强调结构及其焦点，划去不属于这两类识别依据的候选项。"
     },
     "analysis": {
-      "title": "依据具体句子识别强调句",
+      "title": "解析",
       "summary": "正确片段：It is ... that ...（结构框架）与 evidence quality, not presentation polish（被强调焦点）。\n\n强调句识别要同时看框架和焦点块，不能只看到 that 就下结论。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5860,7 +5860,7 @@
       "context": "句子：It was because the baseline sample was too narrow that the first model failed in wider deployment.\n\n任务：该句中 because 从句为何仍可出现在强调句中？"
     },
     "analysis": {
-      "title": "在“强调句”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：It was because ... that ...\n\n② 核心规律：强调句并不限制被强调成分词类，原因、时间、地点、主宾语都可进入焦点位。\n\n③ 验证：还原为 The first model failed in wider deployment because the baseline sample was too narrow. 语义一致。",
       "exam_tip": "强调句焦点位可放整段原因从句。"
     },
@@ -5909,7 +5909,7 @@
       "context": "保留指定强调焦点和排除另一焦点的片段，划去其他候选项。"
     },
     "analysis": {
-      "title": "依据具体句子识别强调句",
+      "title": "解析",
       "summary": "正确片段：It was the second comparison table that ... 与 not the summary paragraph。\n\n强调句与否定对比并用时，焦点选择通常非常明确。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -5957,7 +5957,7 @@
       "context": "任务：下面哪一句最规范地使用了强调句型来突出“地点信息”？"
     },
     "analysis": {
-      "title": "依据具体句子识别强调句",
+      "title": "解析",
       "summary": "It was in the appendix that the missing definition was finally clarified.\n\n地点强调常用 It is/was + 地点短语 + that ...。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6006,7 +6006,7 @@
       "context": "阅读风格句子：The argument became far more persuasive when the team compared competing explanations instead of repeating one preferred claim.\n\n任务：这句里比较结构为什么不只是“more + 形容词”这么简单，而是带有论证策略选择？"
     },
     "analysis": {
-      "title": "联合识别比较结果和论证策略取舍",
+      "title": "解析",
       "summary": "① 比较结果：became far more persuasive 给出变化后的评价维度——说服力显著提高。\n\n② 策略对照：when 从句说明变化发生在团队开始 compare competing explanations 时；instead of 又排除 repeating one preferred claim，形成两种论证做法的取舍。\n\n③ 验证：句子不是孤立地说“更有说服力”，而是把说服力变化与比较多种解释这一策略绑定；阅读时要同时保留结果、触发条件和被放弃的做法。",
       "exam_tip": "读 more + 形容词 时继续找比较基准或触发变化的条件。"
     },
@@ -6030,7 +6030,7 @@
       "context": "句子：This explanation is no less useful than the longer theory section for first-time readers.\n\n任务：哪项最准确地概括两者在 usefulness 这一维度上的关系？"
     },
     "analysis": {
-      "title": "准确解释 no less + 形容词 + than 的最低强度",
+      "title": "解析",
       "summary": "① 结构拆分：less useful than 表示“没有……实用”，前面的 no 否定这种较低关系。\n\n② 强度边界：结论是 usefulness 不低于比较对象，即至少相当；不能进一步推出一定更高。for first-time readers 还限定了适用人群。\n\n③ 选项核验：只有 C 同时保留比较维度、最低强度和人群边界；A/B 反转方向，D 否认了明示比较。",
       "exam_tip": "no less + adj + than = 在该维度上不低于，通常可理解为至少同等。"
     },
@@ -6079,7 +6079,7 @@
       "context": "保留成对比较结构的两个部分，划去其他候选项。"
     },
     "analysis": {
-      "title": "识别 the more..., the less... 的成对联动结构",
+      "title": "解析",
       "summary": "① 成对信号：第一分句以 The more clearly 开头，第二分句以 the less likely 开头，两边都有 the + 比较级框架。\n\n② 关系含义：前一变量的程度上升，后一变量的可能性下降，表达相关联的反向变化；结构本身不等于已经证明因果机制。\n\n③ 选择验证：必须同时选中两个完整比较分句，单独的 students define... 或 accept... 只保留命题内容，不能证明成对联动结构。",
       "exam_tip": "the more..., the less... 要成对识别，分别标出两个变化维度。"
     },
@@ -6127,7 +6127,7 @@
       "context": "句子：No sooner had the editor highlighted the unsupported claim than the team rewrote the entire section.\n\n任务：哪项解释最准确？"
     },
     "analysis": {
-      "title": "识别 no sooner...than 的紧接先后和部分倒装",
+      "title": "解析",
       "summary": "① 固定框架：No sooner ... than ... 把两个过去事件压缩为紧接发生的先后关系。\n\n② 倒装定位：否定性短语 No sooner 置于句首后，助动词 had 提到主语 the editor 前；than 后保持正常语序。\n\n③ 时间验证：先发生 highlighted，几乎立即发生 rewrote；B 同时保留先后、紧接和倒装，其他选项分别误判为人物速度比较、定语从句或取消必要倒装。",
       "exam_tip": "No sooner 位于句首时使用 had + 主语 + 过去分词的部分倒装。"
     },
@@ -6176,7 +6176,7 @@
       "context": "保留比较基准与两个比较结果，划去其他候选项。"
     },
     "analysis": {
-      "title": "定位比较基准与两个平行比较结果",
+      "title": "解析",
       "summary": "① 基准定位：Compared with the earlier draft 明确 earlier draft 是比较参照，revised version 是被评价对象。\n\n② 维度并列：both more concise and more explicit 用 both...and... 并列两个比较结果，more 分别修饰 concise 与 explicit。\n\n③ 片段验证：正确选择必须覆盖一个基准片段和完整双维度结果；单选主语或 causal links 都不足以恢复比较结构。",
       "exam_tip": "先圈 Compared with 后的比较基准，再找被评价对象。"
     },
@@ -6224,7 +6224,7 @@
       "context": "任务：下面哪一句最规范地表达了“与其A，不如B”的比较偏好关系？"
     },
     "analysis": {
-      "title": "迁移 rather than 偏好结构的方向与形式约束",
+      "title": "解析",
       "summary": "① 偏好框架：Rather than memorizing... 把被放弃的做法前置，主句 students should compare... 给出更推荐的做法。\n\n② 形式核验：rather than 后用 memorizing，should 后必须接动词原形 compare；主语 students 与谓语结构完整。\n\n③ 逐项排除：A 的 should compares 主谓形式错误；B 把 rather than 插进主句造成结构混乱；C 的 should to compare 错误；只有 D 同时满足语法平行和偏好方向。",
       "exam_tip": "rather than 前置时，先确认它标记被舍弃项，再找主句中的推荐项。"
     },
@@ -6273,7 +6273,7 @@
       "context": "阅读风格句子：There is no denying that a well-structured evidence chain can make even a difficult passage much easier to evaluate. 任务：这句里的 There is no denying that... 为什么属于固定句型，而不是普通主语句？"
     },
     "analysis": {
-      "title": "依据具体句子识别其他固定句型",
+      "title": "解析",
       "summary": "There is no denying that... 是表示“不可否认……”的固定表达；that 后才是具体命题。它可加强说话人的语气，但不能替代支持命题的证据，也不能因用了这个框架就认定所有读者已经同意。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6297,7 +6297,7 @@
       "context": "句子：It goes without saying that unsupported conclusions should be revised before final submission. 任务：哪项解释最准确？"
     },
     "analysis": {
-      "title": "依据具体句子识别其他固定句型",
+      "title": "解析",
       "summary": "It goes without saying that... 表示说话人把后续内容当作不言而喻的判断，属于修辞表达。它并不提供证据，也不是字面上的没有人说话；正式论证仍须考虑读者是否确实接受该前提。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6346,7 +6346,7 @@
       "context": "保留固定引导语与完整的核心命题，划去不完整或不适用的候选项。"
     },
     "analysis": {
-      "title": "依据具体句子识别其他固定句型",
+      "title": "解析",
       "summary": "正确片段：Needless to say（固定引导框架）与 a claim backed by transparent methods is easier to trust（核心命题）。\n\n该句型先做语气铺垫，再给出可检验的主张内容。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6394,7 +6394,7 @@
       "context": "句子：The data table itself contains conflicting numbers, not to mention the missing citations.\n\n任务：not to mention 在这里起什么作用？"
     },
     "analysis": {
-      "title": "依据具体句子识别其他固定句型",
+      "title": "解析",
       "summary": "not to mention 引入另一个需要考虑的问题，即缺少引文。它在原问题之外追加信息，不必然表明新增问题比前一项更严重。与 already-mentioned conflicting numbers 一起看，作者是在累积修改理由。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6443,7 +6443,7 @@
       "context": "保留否定框架与条件限制，划去不属于这两类信息的候选项。"
     },
     "analysis": {
-      "title": "依据具体句子识别其他固定句型",
+      "title": "解析",
       "summary": "正确片段：By no means（强否定固定框架）与 unless the evidence labels are corrected（条件限制）。\n\n该句同时使用固定否定表达与条件从句，构成“当前绝不成立，除非满足条件”的逻辑。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6491,7 +6491,7 @@
       "context": "任务：下面哪一句最规范地使用了“There is no point in doing...”这一固定句型？"
     },
     "analysis": {
-      "title": "依据具体句子识别其他固定句型",
+      "title": "解析",
       "summary": "There is no point in repeating the same claim if no new evidence is added.\n\nThere is no point in + doing 表示“做某事没有意义”，常用于策略评估语境。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6540,7 +6540,7 @@
       "context": "听力风格句子：If I had checked the room booking email last night, we wouldn't be standing outside the wrong classroom now. 任务：这句为什么是“过去条件 + 现在结果”的混合虚拟，而不是普通过去时叙述？"
     },
     "analysis": {
-      "title": "依据具体句子识别听力",
+      "title": "解析",
       "summary": "前半句 had checked 指向“过去未发生”的反事实条件，后半句 wouldn't be standing... 指向“当前结果”。\n\n这正是混合虚拟：过去假设影响现在状态。\n\n听力里虚拟语气常用来表达懊悔和归因。抓时间轴比背形式更关键。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6570,7 +6570,7 @@
       "context": "听力句子：If the speaker were clearer about deadlines, fewer students would submit the wrong file format. 任务：哪项对该句虚拟语气含义最准确？"
     },
     "analysis": {
-      "title": "依据具体句子识别听力",
+      "title": "解析",
       "summary": "说话人在假设当前并不存在的条件，并推演其可能结果。\n\nIf + were / would do 常用于对当前现实的反事实设想。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6625,7 +6625,7 @@
       "context": "保留反事实条件及其对应的结果表达，划去其他候选项。"
     },
     "analysis": {
-      "title": "依据具体句子识别听力",
+      "title": "解析",
       "summary": "正确依据：But for ...（等价于 If it had not been for...）与 would have missed（过去结果虚拟）。\n\nBut for / Without 常引出“若非……本会……”的反事实链。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6679,7 +6679,7 @@
       "context": "听力句子：I'd rather you submitted the revision by tonight so we could compare both versions before class. 任务：哪项解释最准确？"
     },
     "analysis": {
-      "title": "依据具体句子识别听力",
+      "title": "解析",
       "summary": "I'd rather + 从句过去式用于表达“希望对方现在/将来这样做”的委婉偏好。\n\n这里过去式不是过去时间，而是语气退后，表示建议/愿望。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6734,7 +6734,7 @@
       "context": "保留假设条件及其对应的结果表达，划去其他候选项。"
     },
     "analysis": {
-      "title": "依据具体句子识别听力",
+      "title": "解析",
       "summary": "正确片段：Suppose ... were to fail（假设触发）与 would keep...（假设结果推演）。\n\nSuppose/Imagine 引导的假设句常用于听力中的方案讨论与风险预案。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6788,7 +6788,7 @@
       "context": "任务：下面哪一句最规范地体现了“if only + had done”表达过去遗憾？"
     },
     "analysis": {
-      "title": "依据具体句子识别听力",
+      "title": "解析",
       "summary": "If only I had saved the reference list earlier, I wouldn't have spent all night rebuilding citations.",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6843,7 +6843,7 @@
       "context": "虚拟语气在阅读中的识别 阅读文本常用虚拟语气表达“假设、遗憾、建议、非真实条件”。做题时先看时态信号，再判断真实语义。 与过去相反：If + had done, 主句 would/could have done 与现在相反：If + did/were, 主句 would/could do 建议类：suggest/recommend/require + that + (should) + 动词原形 常见替代触发：without, but for, otherwise, had it not been for"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-阅读",
+      "title": "解析",
       "summary": "阅读题不是背公式，而是要从语法形式还原作者真实意思：虚拟=与事实有距离。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6867,7 +6867,7 @@
       "context": "阅读句子： \"Without your help, we would never have completed the project on time.\" 该句属于哪类虚拟语气？"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-阅读",
+      "title": "解析",
       "summary": "would never have completed 是没有帮助时假想的过去否定结果，without your help 相当于 if it had not been for your help。说话人通常是在感谢实际获得的帮助，并暗示项目已经按时完成；不能把这个假想否定结果当成现实中的未完成。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -6916,7 +6916,7 @@
       "context": "划去错误的语法判断，保留正确的判断。"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-阅读",
+      "title": "解析",
       "summary": "第一项限定了建议义，第三项对应省略 if 的过去条件倒装，第四项属于表达必要性的从句。第二项错误：suggest 表示表明时，可以陈述事实，例如 The results suggest that the method works。",
       "exam_tip": "先用具体语境确定时间和虚实，再判断句法形式是否匹配。"
     },
@@ -6963,7 +6963,7 @@
       "context": "阅读句子： \"If only the researchers had recognized the flaw earlier, the entire experiment could have been salvaged.\" 作者实际想表达什么？"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-阅读",
+      "title": "解析",
       "summary": "had recognized 指向并未及早实现的过去条件，If only 表达遗憾；could have been salvaged 提出错失的可能机会。could 不是对挽救成功的保证，因此不应将假设后的可能结果强化为确定结论。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -7012,7 +7012,7 @@
       "context": "划去不符合句子含义或结构的判断。"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-阅读",
+      "title": "解析",
       "summary": "安全检查是被拿掉的反事实条件，would have missed 是过去未实现的假想结果。实际信息应结合整个反事实结构还原；But for 的结果形式取决于时间，不能规定永远只用 would do。",
       "exam_tip": "先用具体语境确定时间和虚实，再判断句法形式是否匹配。"
     },
@@ -7059,7 +7059,7 @@
       "context": "阅读句子： \"The author implies that had the government intervened sooner, thousands of jobs could have been saved.\" 最准确的推断是什么？"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-阅读",
+      "title": "解析",
       "summary": "had the government intervened sooner 对应 If the government had intervened sooner，表示说话人认为行动不够早。could have been saved 是更早行动下的可能结果，表达批评或遗憾，但不等于已用证据证明每个岗位必然获救。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -7108,7 +7108,7 @@
       "context": "虚拟语气在翻译中的核心策略 中译英先判“时间 + 虚实”： 与现实有距离的现在/将来假设：If + did/were, would do 过去反事实：If + had done, would have done 建议要求：suggest/require + that + (should) + 动词原形 高频触发：要是、早知道、要不是、本来可以、建议/要求。"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-翻译",
+      "title": "解析",
       "summary": "翻译不是机械套句，而是通过时态把“与事实的距离”译出来。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -7132,7 +7132,7 @@
       "context": "中译英： “要是我当时更认真一点，我就能通过那场考试。” 选择最合适译文。"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-翻译",
+      "title": "解析",
       "summary": "应译为过去虚拟：If I had been more careful then, I could have passed that exam.\n\n因为原句表达的是对过去结果的反事实假设。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -7181,7 +7181,7 @@
       "context": "划去不能准确表达这段过去假设的译文。"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-翻译",
+      "title": "解析",
       "summary": "第一项和第三项都把条件与结果放在过去反事实的时间线上。第二项 will 与 last year 不符；第四项缺少 have left，不能准确表达此处已经过去的假想退出结果。",
       "exam_tip": "先用具体语境确定时间和虚实，再判断句法形式是否匹配。"
     },
@@ -7229,7 +7229,7 @@
       "context": "中译英： “老师建议我们在截止日期前再检查一遍。” 选择规范表达。"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-翻译",
+      "title": "解析",
       "summary": "表示建议时，可用 suggested that we (should) check...。should 后用动词原形 check；不宜把某一书面句式的偏好扩大为所有英语变体的唯一规则。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -7278,7 +7278,7 @@
       "context": "划去错误的句意或语法判断。"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-翻译",
+      "title": "解析",
       "summary": "without 本身不决定句子是否虚拟，必须结合时间和主句形式。第一项是可能发生的将来条件，第三项的 had not sent 指过去遗憾，第四项的 were...could... 对应当前假设，因此第二项把规则说得过于绝对。",
       "exam_tip": "先用具体语境确定时间和虚实，再判断句法形式是否匹配。"
     },
@@ -7325,7 +7325,7 @@
       "context": "中译英： “要不是你一直鼓励我，我不可能坚持到最后。” 哪项最合适？"
     },
     "analysis": {
-      "title": "依据具体句子识别虚拟语气-翻译",
+      "title": "解析",
       "summary": "推荐译法：But for your constant encouragement, I could not have carried on to the end.\n\nBut for 在过去语境下常配 could/would have done。",
       "exam_tip": "将句中的限定词、从句边界和主干关系一起核对，再判断原命题的范围。"
     },
@@ -7374,7 +7374,7 @@
       "context": "写作里什么时候需要主动考虑虚拟语气？请用一句话概括判断标准。"
     },
     "analysis": {
-      "title": "在“虚拟语气-写作”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "① 识别信号：题目关键词是“假设、愿望、建议、遗憾、与现实不一致”。这些都说明作者正在离开真实世界，构建一个条件世界或态度世界。\n\n② 核心规律：虚拟语气的本质是“时态后移但时间不一定后移”。过去式未必表示过去时间，而可能表示与现在事实相反；过去完成时未必只讲过去，而可能表示对过去结果的反设。写作时先判断事实真假，再选结构。\n\n③ 验证与纠偏：如果句子可以直接当作客观事实成立，通常不用虚拟语气；如果句子表达的是“本来希望如此，但实际上不是”，就要转入虚拟语气。比如 If I were more organized 说明现在其实不够有条理，而不是在叙述过去。",
       "exam_tip": "先判真假关系，再判时态形式，不要一看到 if 就机械套公式。"
     },
@@ -7398,7 +7398,7 @@
       "context": "选择最适合写作语境的一句：作者想表达“如果学生现在更重视结构安排，他们的文章就会更有辨识度。”"
     },
     "analysis": {
-      "title": "在“虚拟语气-写作”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：中文里有“如果现在……就会……”但隐含现实并非如此，这是典型的与现在事实相反。\n\n② 核心规律：与现在事实相反时，if 从句常用过去式，主句常用 would/could/might + 动词原形。这里的 valued 不是过去时间，而是虚拟标记。\n\n③ 验证与纠偏：把句子改写成现实判断就能自检：Students do not value organization enough now. Therefore, their essays are not distinctive enough. 这说明原句确实是在做反设，而不是回顾过去。",
       "exam_tip": "过去式在虚拟语气里常常表示“非现实”，不是单纯表示过去。"
     },
@@ -7447,7 +7447,7 @@
       "context": "消除干扰：句子 intended meaning 为“要是学校早点提供写作工作坊，很多新生现在就不会这么害怕写论文了。”请删去下面不符合该语义的表达。"
     },
     "analysis": {
-      "title": "在“虚拟语气-写作”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "应划去 provided 和 will not feel so anxious now。本题把条件放在错失的过去，把结果放在现在，应写 If the school had provided...earlier, many freshmen would not feel...now。provided 也可用于其他虚拟语境，但不能在这里替代明确的过去完成时条件。",
       "exam_tip": "帮助用户在CET4语法任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
     },
@@ -7495,7 +7495,7 @@
       "context": "选择最地道的一句来表达“要不是公共图书馆提供免费数据库，很多学生很难完成高质量文献综述。”"
     },
     "analysis": {
-      "title": "在“虚拟语气-写作”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：中文中的“要不是……”常对应 if it were not for / but for 结构，通常表示与当前事实相反。\n\n② 核心规律：介词短语 but for 后接名词性成分，不接完整从句；主句保持 would/could/might + 动词原形来承载反设结果。\n\n③ 验证与纠偏：若改成真实陈述，就是 Public libraries do provide free databases, so many students can complete better literature reviews. 因此题目不是在讲将来可能，而是在讲现实反设。",
       "exam_tip": "but for 后面接名词或名词短语，不接完整主谓结构。"
     },
@@ -7544,7 +7544,7 @@
       "context": "消除错误片段：你想表达“我真希望自己在上次考试前就学会了如何搭建论证链。”请删掉下面不符合该意思的片段。"
     },
     "analysis": {
-      "title": "在“虚拟语气-写作”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "应划去 learned 和 would learn。说话者在考试后遗憾当时未学会，用 I wish I had learned...before the exam。wish 后的一般过去式可以表达与现在有关的愿望，但本题需要明确回指已经错过的过去机会。",
       "exam_tip": "帮助用户在CET4语法任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
     },
@@ -7592,7 +7592,7 @@
       "context": "选择最符合语义的一句：说话者现在后悔“要是我在考试前就学会如何搭建论证链就好了。”"
     },
     "analysis": {
-      "title": "在“虚拟语气-写作”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：题干有“后悔”“考试前”两个词，说明说话者是站在现在回头看过去。\n\n② 核心规律：wish 句型必须先判断不满对应的是现在、过去还是将来。对过去遗憾时，用过去完成时最稳妥。\n\n③ 验证与纠偏：把句子翻译成现实陈述：I did not learn how to build an evidence chain before the exam, and I regret it now. 这正好对应 wish + had learned。",
       "exam_tip": "后悔已发生的事，优先想到 wish + had done。"
     },
@@ -7641,7 +7641,7 @@
       "context": "对比两句中文：\nA. 学校去年开放了新的体育中心。\nB. 新的体育中心于去年开放。\n\n任务：两句事件相同，为什么英文可能分别选择主动和被动？"
     },
     "analysis": {
-      "title": "依据行动者与对象的信息焦点选择主动或被动语态",
+      "title": "解析",
       "summary": "① A 把学校放在话题位置，并明确承担开放动作，主动语态信息顺序自然。\n\n② B 从体育中心出发，没有必要补出行动者，使用被动保留原焦点。\n\n③ 两个译法都可语法正确，区别在叙述中心；翻译时应先问段落正在谈谁或什么。",
       "exam_tip": "先确定英文句首要延续的话题，再选语态。"
     },
@@ -7665,7 +7665,7 @@
       "context": "中译英：这项夜间借阅服务已经在三所校园图书馆投入使用。\n\n问题：哪一译法最自然地保持“服务”作为话题，并表达截至现在的部署结果？"
     },
     "analysis": {
-      "title": "用现在完成时被动表达未说明行动者的当前部署结果",
+      "title": "解析",
       "summary": "① 话题是 this service，因此英文让 service 作主语。\n\n② 服务是被投入使用的对象，语义上需要被动。\n\n③ already / 截至现在的结果适合现在完成时，组合为 has been introduced；地点用 in three campus libraries。",
       "exam_tip": "避免为了主动语态凭空补出 they / people。"
     },
@@ -7714,7 +7714,7 @@
       "context": "原句：许多旧建筑经过修缮后，被重新用于社区活动。\n\n任务：排除语法或语义错误的译法；正确译法既可保留被动，也可自然改写为主动状态表达。"
     },
     "analysis": {
-      "title": "在多种语态表达中保持修缮对象与用途角色一致",
+      "title": "解析",
       "summary": "① 先标事件角色：人或机构实施修缮，old buildings 承受动作，community activities 是用途。\n\n② 被动版本 has been renovated and reused 直接保留角色。\n\n③ 主动改写 serve as venues 改变表达视角但不改变事实。错误项要么让建筑自我修缮，要么把“活动”误作 reuse 的宾语。",
       "exam_tip": "允许语态改写，但不允许事件角色互换。"
     },
@@ -7762,7 +7762,7 @@
       "context": "中译英：人们普遍认为，持续阅读有助于培养批判性思维。\n\n任务：选择最适合作为学术说明文字开头、且不凭空突出泛指行动者的译法。"
     },
     "analysis": {
-      "title": "用非人称被动报告普遍观点并匹配学术说明语域",
+      "title": "解析",
       "summary": "① 题目限定的是学术说明文字，并要求不突出没有具体所指的“人们”，因此先比较信息焦点，而不是只看句子是否勉强合语法。\n\n② B 的 It is widely believed that ... 是报告观点的被动结构，观点内容落在 that 从句中。A 的 People generally believe ... 语法成立，但把泛指 people 推到主位，不满足本题语域与焦点限制。\n\n③ C 的 is believed improving 缺少不定式标记 to；D 的 It widely believes 让形式主语 It 错误地承担 believe 动作。",
       "exam_tip": "遇到“人们普遍认为”时，可比较 People believe that ... 与 It is believed that ... 的语域和焦点。"
     },
@@ -7811,7 +7811,7 @@
       "context": "中译英前需要决定语态。\n\n任务：排除会导致语义或语法错误的处理原则，保留能够可靠指导翻译的原则。"
     },
     "analysis": {
-      "title": "排除语态选择中的绝对化规则并保持事件角色稳定",
+      "title": "解析",
       "summary": "① “中文有被字也先判断焦点”和“执行者未知时被动常更自然”都保留了语境判断，不把表面形式当成机械命令。\n\n② “政策类句子一律译成被动”应被排除：政策、机构或公众都可能成为自然的主动主语，语态取决于上下文焦点。\n\n③ “改成主动便可交换行动者和承受者”也应被排除：主动化只改变句法组织，不能篡改事件角色。",
       "exam_tip": "先标出行动者、承受者和当前话题，再决定语态。"
     },
@@ -7859,7 +7859,7 @@
       "context": "中译英：这项计划提出后，立即得到了社会各界的支持。\n\n任务：选择既保持“计划”为连续话题，又正确表达两个动作先后关系的译法。"
     },
     "analysis": {
-      "title": "在复句翻译中保持话题连续、事件角色与时间顺序一致",
+      "title": "解析",
       "summary": "① B 先用 the plan was proposed 表明计划是“提出”的承受者，再以 it 延续同一话题；received support 是自然搭配，不必为了中文“得到”再强行使用被动。\n\n② A 的 After the plan proposed 缺少 was，会变成计划主动提出；C 的 After proposing the plan 使主句主语 various sectors 成为提出计划者，原文没有这一信息。\n\n③ D 把时间关系改成“计划在各界支持之后才被提出”，与“提出后立即得到支持”相反。",
       "exam_tip": "检查 after 从句的主语究竟是谁，避免悬垂或角色错置。"
     },
@@ -7908,7 +7908,7 @@
       "context": "阅读里为什么作者会故意用被动语态，而不是一律用主动语态？"
     },
     "analysis": {
-      "title": "在“主/被动语态-阅读”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "被动语态可把处理对象或结果放在句首，并在施事不重要或未知时省略它。主动语态则常突出执行者。两种语态组织信息的方式不同，被动表达本身不保证论断更客观或证据更可靠。",
       "exam_tip": "帮助用户在CET4语法任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -7932,7 +7932,7 @@
       "context": "阅读句：More than 60 percent of the responses were collected online. 这句话为什么更适合用被动语态？"
     },
     "analysis": {
-      "title": "在“主/被动语态-阅读”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：主语是 responses，后面跟 were collected，说明句子把“被收集的数据”放在焦点位置。\n\n② 核心规律：阅读里被动语态常服务于结果导向叙述，尤其在实验、调查、报道中，施动者不是核心时就会后退甚至消失。\n\n③ 验证与纠偏：若把句子改成 Researchers collected more than 60 percent of the responses online，信息重点就从结果转向研究者。题目显然不是要突出“谁做的”，所以被动更合适。",
       "exam_tip": "看句首主语是谁，往往就能判断作者想让谁站到聚光灯下。"
     },
@@ -7981,7 +7981,7 @@
       "context": "消除错误理解：句子 The samples were stored in a temperature-controlled room. 下面哪些判断应该删掉？"
     },
     "analysis": {
-      "title": "在“主/被动语态-阅读”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "① 识别信号：主语是 samples，后接 were stored，说明作者在谈样本状态与处理结果。\n\n② 核心规律：被动不等于“省略主语导致残缺”，而是主动重新分配了句子焦点。只要读者需要优先看到对象和处理结果，被动就是合理的。\n\n③ 验证与纠偏：如果文本上下文正在介绍实验流程，样本放置位置显然比执行者姓名重要得多，因此“必须改主动”这一判断应被排除。",
       "exam_tip": "被动句不一定信息不足，很多时候它恰好更准确。"
     },
@@ -8029,7 +8029,7 @@
       "context": "句子 It is widely believed that early intervention matters. 这一结构的主要作用是什么？"
     },
     "analysis": {
-      "title": "在“主/被动语态-阅读”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "It is widely believed... 表示某种看法被广泛持有，并省略具体持有人。它描述观点的普遍性，本身不能证明观点正确或已有客观证据。",
       "exam_tip": "帮助用户在CET4语法任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -8078,7 +8078,7 @@
       "context": "消除不当改写：原句为 The policy was introduced in 2019 to reduce food waste. 下列哪些改写应删去？"
     },
     "analysis": {
-      "title": "在“主/被动语态-阅读”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "① 识别信号：句子主语是 policy，说明文本正把政策本身放在讨论中心，而不是施政主体。\n\n② 核心规律：被动句的合理性要看文本任务。如果段落在讲政策效果、实施时间、目的，被动就能保持主题稳定。\n\n③ 验证与纠偏：向前看上下文，若前后都在谈 the policy，那么继续用被动保留 policy 做主语最连贯；任意补出施动者反而会破坏篇章一致性。",
       "exam_tip": "阅读题里要同时看句内语法和段落主线。"
     },
@@ -8126,7 +8126,7 @@
       "context": "比较两句：S1 The procedure was tested in three schools. S2 Local teachers then adapted it for larger classes. 下面哪项理解最准确？"
     },
     "analysis": {
-      "title": "在“主/被动语态-阅读”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：S1 主语是 procedure，S2 主语是 Local teachers，两个句子的句首信息明显切换。\n\n② 核心规律：篇章中主动和被动常交替出现，用来把不同信息推到前台。前一句强调“程序被测试”，后一句强调“教师采取了行动”。\n\n③ 验证与纠偏：如果两句都强行统一成被动或主动，读者会更难感知信息推进顺序。因此语态切换本身就是篇章组织手段。",
       "exam_tip": "语态变化往往和段落中的新旧信息推进有关。"
     },

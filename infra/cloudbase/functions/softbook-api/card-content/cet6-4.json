@@ -11,7 +11,7 @@
       "context": "原句：高校开设的跨学科课程，为学生解决复杂问题提供了新的方法框架。\n\n先做汉译英，再补全骨架：\nInterdisciplinary courses {{blank}} by universities have provided students with new methodological frameworks for solving complex problems."
     },
     "analysis": {
-      "title": "结合题目材料辨析定语从句的含义与适用条件",
+      "title": "解析",
       "summary": "offered by ... 为被动定语压缩结构，等同于 that are offered by ...。",
       "exam_tip": "done by ... 可有效压缩 that are done by ...。"
     },
@@ -52,7 +52,7 @@
       "context": "原句：那些能够在不确定环境中快速调整策略的企业，更可能保持长期竞争优势。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析定语从句的含义与适用条件",
+      "title": "解析",
       "summary": "that can adjust ... 精确限定企业类型，主句再表达结果。",
       "exam_tip": "企业类先行词常用 that 引导限制性从句。"
     },
@@ -76,7 +76,7 @@
       "context": "原句：正是研发团队多年的持续投入，才使北斗系统具备了全球服务能力。\n\n任务：先汉译英，再检查是否使用强调句突出原因。"
     },
     "analysis": {
-      "title": "在翻译中准确组织强调句的信息与结构",
+      "title": "解析",
       "summary": "It was...that... 将多年持续投入置于强调位置，移除强调框架后，原命题仍应完整。sustained effort 是单数中心，后续 enabled 表达其结果，避免让 years 与 investment 的表面词序干扰主谓判断。",
       "exam_tip": "It was...that... 将多年持续投入置于强调位置，移除强调框架后，原命题仍应完整。"
     },
@@ -100,7 +100,7 @@
       "context": "原句：正是空间站连续开展的实验，推动了相关产业技术的迭代升级。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织强调句的信息与结构",
+      "title": "解析",
       "summary": "强调焦点是连续开展的 experiments，因此 that 后保留与复数实验对应的 have。conducted on the space station 修饰 experiments，不能让它变成新的主句谓语。强调形式本身不会增加研究证据的强度。",
       "exam_tip": "强调焦点是连续开展的 experiments，因此 that 后保留与复数实验对应的 have。"
     },
@@ -124,7 +124,7 @@
       "context": "原句：正是政府的一系列政策，为老年人的权益提供了有力保障。\n\n先汉译英，再补全骨架：\nIt is a series of government policies {{blank}} has provided effective protection for the rights and interests of the elderly."
     },
     "analysis": {
-      "title": "在翻译中准确组织强调句的信息与结构",
+      "title": "解析",
       "summary": "强调部分为 a series of government policies，连接后续内容用 that。series 在本句视为一个政策系列，因此用 has；强调人时有时也可用 who，不能把本句规则扩大成所有强调句一律只有 that。",
       "exam_tip": "强调部分为 a series of government policies，连接后续内容用 that。"
     },
@@ -165,7 +165,7 @@
       "context": "原句：真正推动国际认可的，是北斗系统稳定可靠的长期运行表现。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织强调句的信息与结构",
+      "title": "解析",
       "summary": "the stable and reliable long-term performance 是被强调的完整名词短语，performance 为单数中心。that 后说明这种运行表现带来的国际认可，不应把原因泛化成未给出的其他因素。",
       "exam_tip": "the stable and reliable long-term performance 是被强调的完整名词短语，performance 为单数中心。"
     },
@@ -189,7 +189,7 @@
       "context": "原句：真正决定社会文明程度的，是一个社会对老年群体的尊重与照顾。\n\n任务：先汉译英，再检查强调焦点是否准确。"
     },
     "analysis": {
-      "title": "在翻译中准确组织强调句的信息与结构",
+      "title": "解析",
       "summary": "将 a society's respect and care 改写为 the way a society treats and cares for older people 后，中心词 way 明确为单数。强调框架保留真正决定因素的位置，同时避免将照顾只缩成礼貌态度。",
       "exam_tip": "将 a society's respect and care 改写为 the way a society treats and cares for older people 后，中心词 way 明确为单数。"
     },
@@ -213,7 +213,7 @@
       "context": "原句：正是持续的科技创新，使我国在关键领域实现了跨越式发展。\n\n先汉译英，再补全骨架：\nIt is sustained scientific and technological innovation {{blank}} has enabled China to achieve leapfrog development in key fields."
     },
     "analysis": {
-      "title": "在翻译中准确组织强调句的信息与结构",
+      "title": "解析",
       "summary": "innovation 是强调部分，that 后的 has enabled 与其单数一致。enable China to achieve 表达使中国能够实现，不可把 to achieve 改为 achieving 而仍沿用同一结构。",
       "exam_tip": "innovation 是强调部分，that 后的 has enabled 与其单数一致。"
     },
@@ -254,7 +254,7 @@
       "context": "原句：真正支撑我国深海探测持续推进的，是一代代科研人员的长期积累。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析强调句的含义与适用条件",
+      "title": "解析",
       "summary": "长期积累指知识与经验的累积，不能写成 accumulation of researchers，那会让人理解为研究人员数量的累积。",
       "exam_tip": "看到“真正……的是……”时，优先判断是否适合改写成强调句，而不是直译成主系表。"
     },
@@ -278,7 +278,7 @@
       "context": "原句：正是开放共享的数据平台，提高了科研协同创新的效率。\n\n先汉译英，再补全强调句骨架：\n{{blank}} the open and shared data platform {{blank}} has improved the efficiency of collaborative scientific innovation."
     },
     "analysis": {
-      "title": "结合题目材料辨析强调句的含义与适用条件",
+      "title": "解析",
       "summary": "It is...that... 强调主语 platform。去掉强调框架后，The platform has improved... 仍构成完整句子。",
       "exam_tip": "强调句时态要和主句时间逻辑对齐，不能前后随意混搭。"
     },
@@ -330,7 +330,7 @@
       "context": "原句：正是高质量基础研究的长期积累，为关键技术突破奠定了坚实基础。\n\n任务：先汉译英，再检查强调对象是否准确落在“长期积累”上。"
     },
     "analysis": {
-      "title": "结合题目材料辨析强调句的含义与适用条件",
+      "title": "解析",
       "summary": "把长期积累落在研究工作与成果上，并保持强调焦点。over many years 表明积累过程，不能遗漏长期这一层。",
       "exam_tip": "科研语境中 accumulation 常是关键因果词。"
     },
@@ -354,7 +354,7 @@
       "context": "原句：正是在多部门协同治理机制作用下，公共风险预警能力才明显提升。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析强调句的含义与适用条件",
+      "title": "解析",
       "summary": "强调跨部门协同治理带来的提升。参考使用现在时强调框架；在明确过去叙事语境中，其他合乎时态关系的表达也可能成立。",
       "exam_tip": "机制条件强调常用 under ... mechanism。"
     },
@@ -378,7 +378,7 @@
       "context": "原句：正是创新要素的高效流动，提升了区域产业体系的整体韧性。\n\n先做汉译英，再补全骨架：\n{{blank}} the efficient flow of innovation factors {{blank}} has enhanced the overall resilience of the regional industrial system."
     },
     "analysis": {
-      "title": "结合题目材料辨析强调句的含义与适用条件",
+      "title": "解析",
       "summary": "强调句补全核心是 It is/was 与 that 的配对。",
       "exam_tip": "强调句填空常为双空框架配对。"
     },
@@ -430,7 +430,7 @@
       "context": "原句：真正提升国际竞争力的，是产业链上下游协同创新能力。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析强调句的含义与适用条件",
+      "title": "解析",
       "summary": "强调句需完整保留“上下游协同创新能力”这一焦点单元。",
       "exam_tip": "焦点不完整会导致意义明显缩水。"
     },
@@ -454,7 +454,7 @@
       "context": "原句：只有坚持长期投入，北斗系统的核心技术能力才能不断提升。\n\n任务：先汉译英，再检查是否正确使用 only 引导倒装。"
     },
     "analysis": {
-      "title": "在翻译中准确组织倒装句的信息与结构",
+      "title": "解析",
       "summary": "Only through... 是前置限制性状语，主句把 can 放到主语前，构成部分倒装。被动 be enhanced 仍保留原有顺序；不是将所有句子成分完全反转。",
       "exam_tip": "Only through... 是前置限制性状语，主句把 can 放到主语前，构成部分倒装。"
     },
@@ -478,7 +478,7 @@
       "context": "原句：直到相关实验完成，研究团队才确认该技术可以稳定应用。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织倒装句的信息与结构",
+      "title": "解析",
       "summary": "Not until 后的时间从句维持 experiments were completed 的正常语序，倒装发生在主句：did the team confirm。did 已承担过去时，因此 confirm 用原形。",
       "exam_tip": "Not until 后的时间从句维持 experiments were completed 的正常语序，倒装发生在主句：did the team confirm。"
     },
@@ -502,7 +502,7 @@
       "context": "原句：只有当社会各界共同参与时，敬老助老的氛围才能真正形成。\n\n先汉译英，再补全骨架：\nOnly when all sectors of society participate jointly {{blank}} a social atmosphere of respecting and assisting the elderly truly take shape."
     },
     "analysis": {
-      "title": "在翻译中准确组织倒装句的信息与结构",
+      "title": "解析",
       "summary": "Only when 从句先给出条件，主句倒装为 can + 主语 + take shape。participate 所在从句不跟着倒装；can 表示形成的可能性，不能省去而留下不完整结构。",
       "exam_tip": "Only when 从句先给出条件，主句倒装为 can + 主语 + take shape。"
     },
@@ -543,7 +543,7 @@
       "context": "原句：在任何情况下，我们都不能忽视产业链韧性的重要性。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织倒装句的信息与结构",
+      "title": "解析",
       "summary": "Under no circumstances 是否定状语，前置后用 should we ignore。ignore 仍为原形，no 的否定范围覆盖任何情况；不能额外加 not 导致含义改变。",
       "exam_tip": "Under no circumstances 是否定状语，前置后用 should we ignore。"
     },
@@ -567,7 +567,7 @@
       "context": "原句：只有通过持续开放合作，中国才能在全球价值链中提升地位。\n\n任务：先汉译英，再检查倒装是否成立。"
     },
     "analysis": {
-      "title": "在翻译中准确组织倒装句的信息与结构",
+      "title": "解析",
       "summary": "Only through... 限定实现目标的途径，can 放在 China 前面。enhance 的宾语是 position，in global value chains 说明地位所在领域，不能把全球价值链当作主语。",
       "exam_tip": "Only through... 限定实现目标的途径，can 放在 China 前面。"
     },
@@ -591,7 +591,7 @@
       "context": "原句：直到北斗系统实现全球覆盖，中国才跻身少数拥有全球卫星导航系统的国家。\n\n先汉译英，再补全骨架：\nNot until the Beidou System achieved global coverage {{blank}} China become one of the few countries possessing a global satellite navigation system."
     },
     "analysis": {
-      "title": "在翻译中准确组织倒装句的信息与结构",
+      "title": "解析",
       "summary": "时间边界由 Not until... 引出，主句用 did China become。过去时由 did 表示，become 不能再改为 became；one of the few countries 也要保留少数之一的范围。",
       "exam_tip": "时间边界由 Not until... 引出，主句用 did China become。"
     },
@@ -632,7 +632,7 @@
       "context": "原句：只有当关键核心技术实现自主可控，中国相关产业才能在全球竞争中掌握主动。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析倒装句的含义与适用条件",
+      "title": "解析",
       "summary": "Only when 前置后，主句用 can 倒装。实现自主可控的是国家或产业的技术能力，不能说技术本身成为 self-reliant。",
       "exam_tip": "检查 only 从句句型时，先找主句，再看主句是否倒装。"
     },
@@ -656,7 +656,7 @@
       "context": "原句：在任何时候，我们都不能忽视基础研究对原始创新的支撑作用。\n\n先汉译英，再补全倒装表达：\nAt no time {{blank}} we ignore the supporting role of basic research in original innovation."
     },
     "analysis": {
-      "title": "结合题目材料辨析倒装句的含义与适用条件",
+      "title": "解析",
       "summary": "At no time 为否定副词短语前置，主句需倒装：should we ignore...。",
       "exam_tip": "看到句首否定词先反射性检查倒装。"
     },
@@ -697,7 +697,7 @@
       "context": "原句：只有持续提高基础研究质量，科技创新体系才能形成长期竞争优势。\n\n任务：先汉译英，再核对 only 前置后的倒装是否完整。"
     },
     "analysis": {
-      "title": "结合题目材料辨析倒装句的含义与适用条件",
+      "title": "解析",
       "summary": "Only by 前置需主句 can 倒装。",
       "exam_tip": "Only by 句首结构优先排查倒装。"
     },
@@ -721,7 +721,7 @@
       "context": "原句：直到数据治理框架全面落地，金融风险监测体系才真正实现协同运转。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析倒装句的含义与适用条件",
+      "title": "解析",
       "summary": "Not until 前置后主句采用 did 倒装。",
       "exam_tip": "Not until 前置后，主句很少保持原序。"
     },
@@ -745,7 +745,7 @@
       "context": "原句：只有在高水平开放合作中，产业链现代化水平才能持续提升。\n\n先做汉译英，再补全骨架：\nOnly in high-level open cooperation {{blank}} the modernization level of industrial chains {{blank}} continuously improved."
     },
     "analysis": {
-      "title": "结合题目材料辨析倒装句的含义与适用条件",
+      "title": "解析",
       "summary": "Only in 前置后主句需倒装，并可与被动结构叠加。",
       "exam_tip": "倒装与被动并用时，先锁助动词位置。"
     },
@@ -797,7 +797,7 @@
       "context": "原句：在任何时候，监管规则都不能脱离实体经济运行实际。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析倒装句的含义与适用条件",
+      "title": "解析",
       "summary": "At no time 前置触发 should 倒装。",
       "exam_tip": "At no time 后常接 should/do/did 倒装。"
     },
@@ -821,7 +821,7 @@
       "context": "原句：研发人员攻克技术难题，使北斗系统最终实现全球覆盖。\n\n任务：先汉译英，再检查是否用非谓语压缩“使”引导结果。"
     },
     "analysis": {
-      "title": "在翻译中准确组织增加非谓语的信息与结构",
+      "title": "解析",
       "summary": "overcame 是主要动作，thereby enabling 引出由此产生的结果。enabling 的作用是衔接整件攻克难题的事，不应变成与 overcame 无连接的另一个限定动词 enables。",
       "exam_tip": "overcame 是主要动作，thereby enabling 引出由此产生的结果。"
     },
@@ -845,7 +845,7 @@
       "context": "原句：天宫空间站实施了180多个项目，涉及空间生命科学、太空医学等领域。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织增加非谓语的信息与结构",
+      "title": "解析",
       "summary": "more than 180 保留超过而非恰好，covering 引出项目涉及的领域。such as 表示列举部分领域，不是只有两类项目；句中省略从句必须不丢失这些范围词。",
       "exam_tip": "more than 180 保留超过而非恰好，covering 引出项目涉及的领域。"
     },
@@ -869,7 +869,7 @@
       "context": "原句：社会各界积极营造敬老助老的氛围，推动了文明风尚的形成。\n\n先汉译英，再补全骨架：\nAll sectors of society actively foster an atmosphere of respecting and assisting the elderly, {{blank}} the formation of a more civilized social ethos."
     },
     "analysis": {
-      "title": "在翻译中准确组织增加非谓语的信息与结构",
+      "title": "解析",
       "summary": "主句已有 foster，逗号后用 promoting 补充影响。formation 是形成过程，不能译成某个已完成的机构。非谓语的逻辑关系来自原句，不是只因用了-ing就一定构成因果。",
       "exam_tip": "主句已有 foster，逗号后用 promoting 补充影响。"
     },
@@ -910,7 +910,7 @@
       "context": "原句：北斗系统在国际上得到广泛认可，开始为更多国家和地区提供服务。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织增加非谓语的信息与结构",
+      "title": "解析",
       "summary": "Having gained 表示获得认可在开始进一步提供服务之前。分词部分与主句共用系统这个主体。原句没有说服务质量等级，译文不应擅自加入 high-quality。",
       "exam_tip": "Having gained 表示获得认可在开始进一步提供服务之前。"
     },
@@ -934,7 +934,7 @@
       "context": "原句：政府出台政策，为老年人权益提供保障，促进社会和谐发展。\n\n任务：先汉译英，再检查非谓语是否用于压缩后两层结果。"
     },
     "analysis": {
-      "title": "在翻译中准确组织增加非谓语的信息与结构",
+      "title": "解析",
       "summary": "to protect 说明政策目的，thereby promoting 承接促进社会和谐这一作用，两层不能互换。introduced policies 是动作核心，rights and interests 对应权益，不应只保留利益而漏掉权利。",
       "exam_tip": "to protect 说明政策目的，thereby promoting 承接促进社会和谐这一作用，两层不能互换。"
     },
@@ -958,7 +958,7 @@
       "context": "原句：空间站研究成果在我国广泛应用，产生了显著经济效益。\n\n先汉译英，再补全骨架：\nThe research outcomes of the space station have been widely applied in China, {{blank}} remarkable economic benefits."
     },
     "analysis": {
-      "title": "在翻译中准确组织增加非谓语的信息与结构",
+      "title": "解析",
       "summary": "have been applied 是主句谓语，generating 补充应用产生的效益。现在分词在这里不再独立承担时态，不能用逗号直接连接另一个 generate 限定谓语。",
       "exam_tip": "have been applied 是主句谓语，generating 补充应用产生的效益。"
     },
@@ -999,7 +999,7 @@
       "context": "原句：博物馆延长了开放时间，方便上班族下班后参观。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "to make... 表示目的，after work 对应下班后。不能用一个无明确逻辑主语的分词短语让开放时间变成参观者。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -1023,7 +1023,7 @@
       "context": "原句：各地政府正加快推进数字基础设施建设，以期在本世纪中叶前实现城乡网络高质量全覆盖。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "aiming to 表示目的；before 保留之前的期限。城乡、全覆盖和高质量是三个独立限定，不能只剩网络建设。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -1047,7 +1047,7 @@
       "context": "原句：在推进智慧城市建设过程中，多个部门同步更新了数据共享接口标准，以加强跨部门协作。\n\n先译成英文，再补全句子：\nAs smart city development progressed, several departments updated their data-sharing interface standards at the same time to improve coordination {{blank}} departments."
     },
     "analysis": {
-      "title": "结合题目材料辨析增加非谓语的含义与适用条件",
+      "title": "解析",
       "summary": "between 表示部门之间；to improve 与原句新增的明确目的对应。",
       "exam_tip": "between 表示部门之间；to improve 与原句新增的明确目的对应。"
     },
@@ -1088,7 +1088,7 @@
       "context": "原句：通过完善跨境支付清算机制并加强风险评估，金融系统稳定性明显提升。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "两个措施共同作原因，enhanced stability 表示结果。若用 By improving...，主句需明确采取措施的主体，避免让稳定性成为执行者。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -1112,7 +1112,7 @@
       "context": "原句：优化科技成果转化流程，能够提高创新资源的配置效率。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "Streamlining... 作主语，can improve 表达可能的改善。效率可提高，不能直译为 release efficiency。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -1136,7 +1136,7 @@
       "context": "原句：完善区域创新服务平台，为中小企业技术升级提供了稳定支撑。\n\n先做汉译英，再补全骨架：\nImproving regional innovation service platforms has provided stable support {{blank}} technological upgrading in small and medium-sized enterprises."
     },
     "analysis": {
-      "title": "结合题目材料辨析增加非谓语的含义与适用条件",
+      "title": "解析",
       "summary": "support for ... 是标准搭配。",
       "exam_tip": "support for ... 高频稳定。"
     },
@@ -1177,7 +1177,7 @@
       "context": "原句：尊老是中华民族的传统美德，深深植根于中国人的思想和行为中。\n\n任务：先汉译英，再检查你是否保留“传统美德+深植根基”两层文化信息。"
     },
     "analysis": {
-      "title": "在翻译中准确组织历史文化的信息与结构",
+      "title": "解析",
       "summary": "Respecting the elderly 是动名词短语作主语，deeply rooted... 补充这种美德在思想和行为中的根基。thoughts 与 behaviour 是两个层面，不能只译其中之一；文化描述应忠实于所给材料。",
       "exam_tip": "Respecting the elderly 是动名词短语作主语，deeply rooted... 补充这种美德在思想和行为中的根基。"
     },
@@ -1201,7 +1201,7 @@
       "context": "原句：这种美德在当代中国得到广泛传承，成为社会文明的重要组成部分。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织历史文化的信息与结构",
+      "title": "解析",
       "summary": "传承与成为社会文明组成部分是两个信息点，has been passed down 与 has become 分别保留。contemporary 限定当代，不应把历史时期任意替换；也不能只用 preserve 遗漏代际传承。",
       "exam_tip": "传承与成为社会文明组成部分是两个信息点，has been passed down 与 has become 分别保留。"
     },
@@ -1225,7 +1225,7 @@
       "context": "原句：尊老文化在社区治理中持续发挥作用。\n\n先汉译英，再补全骨架：\nThe culture of respecting the elderly continues to play an important role {{blank}} community governance."
     },
     "analysis": {
-      "title": "在翻译中准确组织历史文化的信息与结构",
+      "title": "解析",
       "summary": "play a role in 后的 in 引出发挥作用的领域 community governance。role 是作用而非扮演的戏剧角色；continues to 与持续对应，不能将其误译为刚刚开始。",
       "exam_tip": "play a role in 后的 in 引出发挥作用的领域 community governance。"
     },
@@ -1266,7 +1266,7 @@
       "context": "原句：中华优秀传统文化不仅需要保护，更需要创造性转化和创新性发展。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织历史文化的信息与结构",
+      "title": "解析",
       "summary": "needs 的宾语是三个并列名词性成分：protection、transformation、development。not only...but also... 连接同层级内容；不能一侧放名词，另一侧突然变成无连接的完整句子。",
       "exam_tip": "needs 的宾语是三个并列名词性成分：protection、transformation、development。"
     },
@@ -1290,7 +1290,7 @@
       "context": "原句：历史文化记忆的延续，有助于增强社会成员的认同感与凝聚力。\n\n任务：先汉译英，再核对“文化记忆—社会效果”逻辑链。"
     },
     "analysis": {
-      "title": "在翻译中准确组织历史文化的信息与结构",
+      "title": "解析",
       "summary": "Preserving cultural memory 使延续这一过程成为主语，helps strengthen 连接认同与凝聚力。a shared sense of identity 和 social cohesion 比直译 social members' cohesion 更自然，同时保留两项社会作用。",
       "exam_tip": "Preserving cultural memory 使延续这一过程成为主语，helps strengthen 连接认同与凝聚力。"
     },
@@ -1314,7 +1314,7 @@
       "context": "原句：中华文明得以延续，关键在于代际之间的文化传承。\n\n先汉译英，再补全骨架：\nThe continuity of Chinese civilization depends {{blank}} cultural transmission across generations."
     },
     "analysis": {
-      "title": "在翻译中准确组织历史文化的信息与结构",
+      "title": "解析",
       "summary": "depends on 之后接 cultural transmission，说明文明延续的依赖关系。across generations 表达代际之间，不等于只在同一代人内部传播。on 是动词搭配的一部分。",
       "exam_tip": "depends on 之后接 cultural transmission，说明文明延续的依赖关系。"
     },
@@ -1355,7 +1355,7 @@
       "context": "原句：传统家风文化在当代社会治理中仍具有重要价值，并持续影响青年一代的行为选择。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析历史文化的含义与适用条件",
+      "title": "解析",
       "summary": "remain important 与 continue to influence 分别保留现实价值和持续影响。made by... 说明行为选择属于年轻一代。",
       "exam_tip": "文化类句子要同时保“价值层”和“影响层”。"
     },
@@ -1379,7 +1379,7 @@
       "context": "原句：这一文化传统代代相传，成为民族认同的重要纽带。\n\n先做汉译英，再补全固定搭配：\nThis cultural tradition has been passed down from generation to generation, becoming an important {{blank}} of national identity."
     },
     "analysis": {
-      "title": "结合题目材料辨析历史文化的含义与适用条件",
+      "title": "解析",
       "summary": "纽带在文化语境中常用 bond 表达，和 national identity 搭配自然。",
       "exam_tip": "抽象关系词要选语域稳定的高频搭配。"
     },
@@ -1420,7 +1420,7 @@
       "context": "原句：中华优秀传统文化塑造了民族精神，也为当代社会治理提供了价值资源。\n\n任务：先汉译英，再检查是否并列表达“精神塑造 + 治理支撑”。"
     },
     "analysis": {
-      "title": "结合题目材料辨析历史文化的含义与适用条件",
+      "title": "解析",
       "summary": "has shaped 和 provided 共用主语。价值资源可结合语境表达为可供治理参考的价值观，避免逐字堆成 value resources。",
       "exam_tip": "文化议题常见“精神层+治理层”双并列。"
     },
@@ -1444,7 +1444,7 @@
       "context": "原句：文物数字化既提高了保护效率，也扩大了公共文化服务的可及性。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析历史文化的含义与适用条件",
+      "title": "解析",
       "summary": "两项结果分别是保护效率和服务可及性，不是文物数量增加。made 后的两个结构保持平行。",
       "exam_tip": "both ... and ... 两端保持词性平行。"
     },
@@ -1468,7 +1468,7 @@
       "context": "原句：公共文化平台持续完善，既丰富了群众精神生活，也提升了文化服务均等化水平。\n\n先做汉译英，再补全骨架：\nPublic cultural platforms have been continuously improved, {{blank}} enriching people's spiritual life {{blank}} raising the level of equalized cultural services."
     },
     "analysis": {
-      "title": "结合题目材料辨析历史文化的含义与适用条件",
+      "title": "解析",
       "summary": "主句后并列结果可用 not only doing ... but also doing ... 进行压缩表达。",
       "exam_tip": "并列 doing 结构需词性与语义对称。"
     },
@@ -1520,7 +1520,7 @@
       "context": "原句：国际文化交流增进了相互理解，也拓展了文明对话的深度与广度。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析历史文化的含义与适用条件",
+      "title": "解析",
       "summary": "deepened 对应深度，broadened 对应广度。不要用 broadened the depth 混淆两个方向。",
       "exam_tip": "并列句可出现“谓语并列 + 名词并列”双层结构。"
     },
@@ -1544,7 +1544,7 @@
       "context": "原句：提供便利服务已成为社会共识，例如社区开设长者食堂、公共场所配置优先座位。\n\n任务：先汉译英，再检查是否保留“共识+举例”结构。"
     },
     "analysis": {
-      "title": "在翻译中准确组织社会发展的信息与结构",
+      "title": "解析",
       "summary": "两个例子都需保留：长者食堂和公共场所的优先座位。broad agreement on 表示对某项需要形成共识。",
       "exam_tip": "社会共识应表达为 broad agreement on the need...，而不是让提供服务这一行为本身 become a consensus。"
     },
@@ -1568,7 +1568,7 @@
       "context": "原句：社会各界积极营造敬老助老氛围，推动了社区治理能力提升。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织社会发展的信息与结构",
+      "title": "解析",
       "summary": "respecting and assisting 共用 older people 这一对象，thereby improving 引出原句给出的治理效果。翻译应保留帮助与尊重两种行动，而不只保留抽象赞扬；该句的效果判断来自练习原句。",
       "exam_tip": "respecting and assisting 共用 older people 这一对象，thereby improving 引出原句给出的治理效果。"
     },
@@ -1592,7 +1592,7 @@
       "context": "原句：老龄友好型城市建设有助于提高公共服务的可及性。\n\n先汉译英，再补全骨架：\nAge-friendly urban development helps improve the accessibility {{blank}} public services."
     },
     "analysis": {
-      "title": "在翻译中准确组织社会发展的信息与结构",
+      "title": "解析",
       "summary": "accessibility of public services 指公共服务的可获得程度，of 连接性质与所属对象。不能把 accessibility 当作设施数量，也不能从有助于提高改成已经确保人人享有服务。",
       "exam_tip": "accessibility of public services 指公共服务的可获得程度，of 连接性质与所属对象。"
     },
@@ -1633,7 +1633,7 @@
       "context": "原句：政府持续完善养老服务体系，以应对人口老龄化带来的挑战。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织社会发展的信息与结构",
+      "title": "解析",
       "summary": "continues to improve 表示持续完善，to address 引出目的。challenges brought by... 以过去分词说明挑战来源；address 在这里是应对，不是书写地址。",
       "exam_tip": "continues to improve 表示持续完善，to address 引出目的。"
     },
@@ -1657,7 +1657,7 @@
       "context": "原句：公共政策的温度，往往体现在对弱势群体的持续关注与制度保障上。\n\n任务：先汉译英，再核对抽象评价是否被准确转化。"
     },
     "analysis": {
-      "title": "在翻译中准确组织社会发展的信息与结构",
+      "title": "解析",
       "summary": "政策的温度属于比喻，human-centred nature 或 concern for people's needs 可表达其人本取向。sustained attention 和 institutional safeguards 是两层具体表现，不能把温度逐字译成 temperature。",
       "exam_tip": "政策的温度属于比喻，human-centred nature 或 concern for people's needs 可表达其人本取向。"
     },
@@ -1681,7 +1681,7 @@
       "context": "原句：社会治理现代化离不开数字化平台的支撑。\n\n先汉译英，再补全骨架：\nModernization of social governance cannot proceed smoothly {{blank}} the support of digital platforms."
     },
     "analysis": {
-      "title": "在翻译中准确组织社会发展的信息与结构",
+      "title": "解析",
       "summary": "cannot...without 表达离不开这一依赖关系，without 后接名词短语 the support of。它不等于数字平台一出现就必然完成治理现代化，不能把必要条件改成充分条件。",
       "exam_tip": "cannot...without 表达离不开这一依赖关系，without 后接名词短语 the support of。"
     },
@@ -1722,7 +1722,7 @@
       "context": "原句：数字化社区服务平台优化了公共资源配置，也提升了基层治理响应速度。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析社会发展的含义与适用条件",
+      "title": "解析",
       "summary": "句子核心是“资源配置优化 + 治理响应提升”并列结果，需保持同层谓语。",
       "exam_tip": "并列结果句先做“主语-谓语平行”检查。"
     },
@@ -1746,7 +1746,7 @@
       "context": "原句：公共政策的人本导向往往体现在对弱势群体的持续关注中。\n\n先做汉译英，再补全骨架：\nThe people-centered orientation of public policy is often reflected {{blank}} sustained attention to vulnerable groups."
     },
     "analysis": {
-      "title": "结合题目材料辨析社会发展的含义与适用条件",
+      "title": "解析",
       "summary": "reflected in 是固定搭配，用于表达“体现在……之中”。",
       "exam_tip": "抽象概念表达优先固定搭配，避免临场拼接。"
     },
@@ -1787,7 +1787,7 @@
       "context": "原句：平台经济催生的新就业形态，为更多劳动者提供了灵活就业机会。\n\n任务：先汉译英，再核对定语信息是否准确限定“就业形态”。"
     },
     "analysis": {
-      "title": "结合题目材料辨析社会发展的含义与适用条件",
+      "title": "解析",
       "summary": "更多修饰劳动者数量，不是说岗位本身更灵活。generated by 说明新就业形态的来源。",
       "exam_tip": "经济语境常用 generated by ... 表示“由……催生”。"
     },
@@ -1811,7 +1811,7 @@
       "context": "原句：那些能够及时响应市场变化的企业，更容易在竞争中保持韧性。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析社会发展的含义与适用条件",
+      "title": "解析",
       "summary": "that can respond ... 限定企业群体，主句表达竞争结果。",
       "exam_tip": "限制性从句先确保关系词和先行词匹配。"
     },
@@ -1835,7 +1835,7 @@
       "context": "原句：政府完善的公共就业服务体系，为青年群体提供了更精准的岗位匹配支持。\n\n先做汉译英，再补全骨架：\nThe public employment service system {{blank}} by the government has provided young people with more precise job-matching support."
     },
     "analysis": {
-      "title": "结合题目材料辨析社会发展的含义与适用条件",
+      "title": "解析",
       "summary": "improved by ... 压缩被动定语，突出体系来源。",
       "exam_tip": "被动定语先看能否压缩为 done by ...。"
     },
@@ -1876,7 +1876,7 @@
       "context": "原句：那些能够把技术创新转化为产业效益的团队，更可能实现可持续增长。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析社会发展的含义与适用条件",
+      "title": "解析",
       "summary": "that can transform ... 限定团队类型，主句给出增长结果。",
       "exam_tip": "限制性从句要同时检查关系词与动词形式。"
     },
@@ -1900,7 +1900,7 @@
       "context": "原句：天宫空间站在距地表400-450公里轨道运行，为我国开展长期太空实验提供平台。\n\n任务：先汉译英，再检查空间定位与功能结果是否都保留。"
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "above the Earth's surface 标明轨道高度的参照面，providing... 说明平台功能。400—450应保留为范围；不能把相对地表高度误译为距地心距离。",
       "exam_tip": "above the Earth's surface 标明轨道高度的参照面，providing... 说明平台功能。"
     },
@@ -1924,7 +1924,7 @@
       "context": "原句：推动绿色低碳转型，是实现人与自然和谐共生的重要路径。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "Promoting... 是动名词短语作主语，path to 后的 to 是介词，连接目标状态。between humanity and nature 保留双方关系，不宜漏掉任何一方。",
       "exam_tip": "Promoting... 是动名词短语作主语，path to 后的 to 是介词，连接目标状态。"
     },
@@ -1948,7 +1948,7 @@
       "context": "原句：生态修复工程在重点流域持续推进。\n\n先汉译英，再补全骨架：\nEcological restoration projects are being advanced continuously {{blank}} key river basins."
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "are being advanced 是正在推进的被动结构，in key river basins 限定发生区域。continuously 表示持续，不能把进行过程改写成已经全部完工。",
       "exam_tip": "are being advanced 是正在推进的被动结构，in key river basins 限定发生区域。"
     },
@@ -1989,7 +1989,7 @@
       "context": "原句：清洁能源占比持续提升，显示我国能源结构优化取得积极进展。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "share of clean energy 表示清洁能源占比，不是绝对发电量。indicating 后补充原句中的判断，energy mix 指能源构成；两者联系不能仅靠词面相似而混成同一个指标。",
       "exam_tip": "share of clean energy 表示清洁能源占比，不是绝对发电量。"
     },
@@ -2013,7 +2013,7 @@
       "context": "原句：天气预报与灾害预警能力的提升，显著降低了极端天气带来的损失。\n\n任务：先汉译英，再检查你是否准确表达“能力提升—损失下降”链条。"
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "Improvements 是复数主语，因此用 have reduced。weather forecasting 与 disaster early-warning capabilities 并列，losses caused by... 明确损失来自极端天气，不能把损失对象改成预报系统本身。",
       "exam_tip": "Improvements 是复数主语，因此用 have reduced。"
     },
@@ -2037,7 +2037,7 @@
       "context": "原句：北斗系统在灾害救援中发挥了重要作用。\n\n先汉译英，再补全骨架：\nThe Beidou System has played an important role {{blank}} disaster relief."
     },
     "analysis": {
-      "title": "在翻译中准确组织地理生态的信息与结构",
+      "title": "解析",
       "summary": "has played an important role in... 保留已经发挥作用的完成时。in 后的 disaster relief 是活动领域；relief 在这里是救援，不是单纯情绪上的放松。",
       "exam_tip": "has played an important role in... 保留已经发挥作用的完成时。"
     },
@@ -2078,7 +2078,7 @@
       "context": "原句：完善国家公园体系，有助于保护生物多样性并维护重要生态屏障。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析地理生态的含义与适用条件",
+      "title": "解析",
       "summary": "helps 后并列 protect 与 preserve。译文只保留有助于这一作用，不应扩大成保证生物多样性不再受损。",
       "exam_tip": "政策类翻译常把“完善、推进、优化”处理成动名词作主语，句子更稳。"
     },
@@ -2102,7 +2102,7 @@
       "context": "原句：随着监测网络不断完善，更多地区能够更早识别极端天气风险。\n\n先做汉译英，再补全表达：\nAs the monitoring network continues to improve, more regions can identify extreme weather risks {{blank}} an earlier stage."
     },
     "analysis": {
-      "title": "结合题目材料辨析地理生态的含义与适用条件",
+      "title": "解析",
       "summary": "“更早阶段”最自然的固定表达是 at an earlier stage。这里 at 表示时间节点或发展阶段。",
       "exam_tip": "表达“在更早/更晚阶段”时，优先记固定搭配 at an earlier/later stage。"
     },
@@ -2143,7 +2143,7 @@
       "context": "原句：气候适应型城市建设持续推进，显著提升了城市系统应对极端天气的韧性。\n\n任务：先汉译英，再检查是否保留“建设推进—韧性提升”链条。"
     },
     "analysis": {
-      "title": "结合题目材料辨析地理生态的含义与适用条件",
+      "title": "解析",
       "summary": "气候适应型建设与应对极端天气的韧性分别表达，避免反复堆叠 advancement、development 和 resilience。",
       "exam_tip": "生态治理翻译需保留行动层与能力层。"
     },
@@ -2167,7 +2167,7 @@
       "context": "原句：推进生态保护红线制度建设，不仅有助于维护生物多样性，也有利于保障区域生态安全。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析地理生态的含义与适用条件",
+      "title": "解析",
       "summary": "not only ... but also ... 适合承接政策措施的双重生态结果。",
       "exam_tip": "双结果并列先查词性平行。"
     },
@@ -2191,7 +2191,7 @@
       "context": "原句：随着海洋生态监测网络不断完善，沿海地区对生态风险的识别效率明显提高。\n\n先译成英文，再补全句子：\nAs the marine ecological monitoring network has improved, coastal regions have become significantly more efficient {{blank}} identifying ecological risks."
     },
     "analysis": {
-      "title": "结合题目材料辨析地理生态的含义与适用条件",
+      "title": "解析",
       "summary": "efficient at doing 表示做某事的效率。原句没有提前识别，不能另外加入 in advance。",
       "exam_tip": "efficient at doing 表示做某事的效率。原句没有提前识别，不能另外加入 in advance。"
     },
@@ -2232,7 +2232,7 @@
       "context": "原句：多层次生态补偿机制的完善，为跨区域生态协同治理提供了可持续动力。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析地理生态的含义与适用条件",
+      "title": "解析",
       "summary": "at multiple levels 保留多层次，across regions 保留跨区域。lasting incentives 在此表达持续推动作用。",
       "exam_tip": "mechanism 与 momentum 是政策语体高频词。"
     },
@@ -2256,7 +2256,7 @@
       "context": "原句：太空育种创造了高达数千亿元的直接经济效益，也为农业教育提供了新的实践案例。\n\n任务：先汉译英，再检查“经济收益+教育价值”双维信息是否完整。"
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "as much as 保留高达，hundreds of billions of yuan 对应数千亿元。第二项作用是提供教学案例，不能仅保留经济效益。",
       "exam_tip": "amounting to hundreds of billions 保留数千亿元的数量级，不能换成 millions。"
     },
@@ -2280,7 +2280,7 @@
       "context": "原句：高质量教育投入不仅提升人力资本，也增强经济长期增长的内生动力。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "not only improves...but also strengthens... 连接两个同主语谓语。human capital 指人力资本，不能只译成人口数量；long-term 限定增长时间范围，也不能在译文中省略。",
       "exam_tip": "not only improves...but also strengthens... 连接两个同主语谓语。"
     },
@@ -2304,7 +2304,7 @@
       "context": "原句：职业教育改革有助于缓解结构性就业矛盾。\n\n先汉译英，再补全骨架：\nReform of vocational education helps ease structural mismatches {{blank}} the labour market."
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "就业结构性矛盾可解释为劳动力技能、岗位与需求的结构不匹配，用 structural mismatches 更自然。in the labour market 标记发生领域，不能逐字把所有矛盾都翻译为逻辑上的 contradictions。",
       "exam_tip": "就业结构性矛盾可解释为劳动力技能、岗位与需求的结构不匹配，用 structural mismatches 更自然。"
     },
@@ -2345,7 +2345,7 @@
       "context": "原句：产教融合平台的完善，为高校科研成果转化提供了更高效率的通道。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "more efficient 保留更高效率，put research into practical use 表示成果应用。不能把成果转化写成改变研究结论。",
       "exam_tip": "industry–education integration 表示产业与教育合作，研究成果转化可用 putting university research into practical use。"
     },
@@ -2369,7 +2369,7 @@
       "context": "原句：终身学习体系的建设，有助于提高劳动者适应产业升级的能力。\n\n任务：先汉译英，再核对你是否保留“学习体系—产业升级适配力”关系。"
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "capacity to adapt to... 中第一个 to 引出不定式，第二个 to 是 adapt 的介词。workers 是能力的拥有者，industrial upgrading 是适应对象，两者不能在句法上交换。",
       "exam_tip": "capacity to adapt to... 中第一个 to 引出不定式，第二个 to 是 adapt 的介词。"
     },
@@ -2393,7 +2393,7 @@
       "context": "原句：教育公平是实现高质量发展的重要基础。\n\n先汉译英，再补全骨架：\nEducational equity is an important foundation {{blank}} achieving high-quality development."
     },
     "analysis": {
-      "title": "在翻译中准确组织教育经济的信息与结构",
+      "title": "解析",
       "summary": "foundation for achieving... 的 for 是介词，后面接动名词 achieving。educational equity 对应公平，而不是声称教育内容或每个人结果都完全相同。",
       "exam_tip": "foundation for achieving... 的 for 是介词，后面接动名词 achieving。"
     },
@@ -2434,7 +2434,7 @@
       "context": "原句：提高基础研究投入强度，是提升国家原始创新能力的关键举措。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析教育经济的含义与适用条件",
+      "title": "解析",
       "summary": "intensity 保留投入强度，而不仅是投资总额。capacity for... 标明提升的是原始创新能力。",
       "exam_tip": "教育科技政策句可优先采用 measure, capacity, intensity 等名词化表达。"
     },
@@ -2458,7 +2458,7 @@
       "context": "原句：高水平大学建设应当更加注重学科交叉与产学研协同。\n\n先做汉译英，再补全表达：\nThe development of high-level universities should place greater emphasis {{blank}} interdisciplinary integration and industry-university-research collaboration."
     },
     "analysis": {
-      "title": "结合题目材料辨析教育经济的含义与适用条件",
+      "title": "解析",
       "summary": "place emphasis on... 是固定搭配，用于“更加注重”。",
       "exam_tip": "emphasis 的高频搭配是 place/put emphasis on。"
     },
@@ -2499,7 +2499,7 @@
       "context": "原句：高水平人才培养体系不断优化，为科技产业协同创新提供了持续动力。\n\n任务：先汉译英，再核对是否完整表达“体系优化—协同创新动力”关系。"
     },
     "analysis": {
-      "title": "结合题目材料辨析教育经济的含义与适用条件",
+      "title": "解析",
       "summary": "人才培养在这里指培养高水平人才，不必逐字写成 talent cultivation。科技与产业的协同关系需要保留。",
       "exam_tip": "momentum 是政策语体中的高频结果词。"
     },
@@ -2523,7 +2523,7 @@
       "context": "原句：教育评价机制改革，不仅促进了教学质量提升，也推动了资源配置方式优化。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析教育经济的含义与适用条件",
+      "title": "解析",
       "summary": "两个已经发生的结果用 have improved 并列承接；也可用两个分句。not only...but also... 是一种表达方式，不是必需结构。",
       "exam_tip": "并列结构优先保持谓语平行。"
     },
@@ -2547,7 +2547,7 @@
       "context": "原句：产教融合平台建设持续推进，为学生提升实践能力创造了更真实的场景。\n\n先做汉译英，再补全骨架：\nThe continued development of industry-education integration platforms has created more authentic contexts {{blank}} students to improve practical competence."
     },
     "analysis": {
-      "title": "结合题目材料辨析教育经济的含义与适用条件",
+      "title": "解析",
       "summary": "create contexts for sb to do sth 是稳定结构。",
       "exam_tip": "for sb to do 是目的导向高频结构。"
     },
@@ -2588,7 +2588,7 @@
       "context": "原句：完善产学研协同机制，是提升区域创新体系韧性的关键路径。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析教育经济的含义与适用条件",
+      "title": "解析",
       "summary": "key pathway to doing sth 对应“提升……的关键路径”。",
       "exam_tip": "pathway to doing 是“实现路径”的高频表达。"
     },
@@ -2612,7 +2612,7 @@
       "context": "原句：跨境电商降低了中小企业参与国际贸易的门槛，并显著拓展了其海外市场覆盖面。\n\n任务：先汉译英，再检查你是否同时保住“降低门槛”和“拓展覆盖面”两层经济效果。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "lowered barriers 与 expanded reach 分别表示降低门槛和扩大覆盖，二者的受益者都是中小企业。",
       "exam_tip": "lowered barriers 与 expanded reach 分别保留降低参与门槛和扩大海外覆盖。"
     },
@@ -2636,7 +2636,7 @@
       "context": "原句：在全球需求走弱的背景下，稳定外贸基本盘对就业和产业链安全具有关键意义。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "With... 交代需求走弱的背景，主句说明稳定外贸对就业和产业链安全的重要性。基本盘不宜机械译成 fundamentals 而失去稳定规模的意思。",
       "exam_tip": "背景是全球需求走弱，主句才说明稳定外贸的重要性。"
     },
@@ -2660,7 +2660,7 @@
       "context": "原句：高水平对外开放将通过制度型开放进一步提升我国在全球价值链中的地位。\n\n先汉译英，再补全骨架：\nHigh-standard opening up will further enhance China's position in global value chains {{blank}} institutional opening-up."
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "through 引出提升地位的方式，will 保留原句将来方向。position in global value chains 是地位而非具体地理位置，不能以 at 替换 in 后机械按地点理解。",
       "exam_tip": "through 引出提升地位的方式，will 保留原句将来方向。"
     },
@@ -2701,7 +2701,7 @@
       "context": "原句：RCEP 生效后，区域内贸易成本持续下降，为企业优化供应链布局创造了更大空间。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "Since...took effect 给出起始时间，主句完成时延续到当前材料所述时点。creating... 连接成本下降带来的调整空间；intra-regional 限定区域内，不能扩大成全球所有贸易。",
       "exam_tip": "Since...took effect 给出起始时间，主句完成时延续到当前材料所述时点。"
     },
@@ -2725,7 +2725,7 @@
       "context": "原句：人民币跨境结算规模稳步扩大，增强了外贸企业应对汇率波动风险的能力。\n\n任务：先汉译英，再核对你是否准确表达“能力增强 + 风险对象”。"
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "expansion 作主语，has strengthened 与单数中心一致。capacity to cope with... 指应对汇率波动的能力，不等于风险已经被彻底消除；跨境结算的范围也应保留。",
       "exam_tip": "expansion 作主语，has strengthened 与单数中心一致。"
     },
@@ -2749,7 +2749,7 @@
       "context": "原句：在外部环境不确定性上升的情况下，提升产业链韧性是稳住外贸预期的关键。\n\n先汉译英，再补全骨架：\nAmid rising external uncertainties, enhancing industrial-chain resilience is key {{blank}} stabilizing foreign-trade expectations."
     },
     "analysis": {
-      "title": "在翻译中准确组织贸易经济的信息与结构",
+      "title": "解析",
       "summary": "be key to 中 to 是介词，因此后面用 stabilizing。Amid...交代不确定性上升的背景；把 to 后一律改为动词原形会在这一固定结构中出错。",
       "exam_tip": "be key to 中 to 是介词，因此后面用 stabilizing。"
     },
@@ -2790,7 +2790,7 @@
       "context": "原句：海外订单减少后，这家公司开始寻找新的国内客户。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "时间关系用 After 明确表达。材料只说订单减少，不应擅自补成公司已经亏损或转型成功。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -2814,7 +2814,7 @@
       "context": "原句：在全球供应链重构的背景下，新兴市场国家正通过提升技术附加值来增强自身的出口竞争力。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "As 从句交代背景，are strengthening 保留正在，by increasing 表示手段。也可用 through increasing，不必机械排斥同义的手段表达。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -2838,7 +2838,7 @@
       "context": "原句：多元化国际市场布局持续推进，为出口企业分散了外部需求波动风险。\n\n先译成英文，再补全句子：\nContinued diversification across international markets has reduced the risks of fluctuations in overseas demand {{blank}} exporters."
     },
     "analysis": {
-      "title": "结合题目材料辨析贸易经济的含义与适用条件",
+      "title": "解析",
       "summary": "for exporters 标明受益对象。diversification across markets 表示市场布局多元化，无需直译为 market layout。",
       "exam_tip": "风险管理语境常用 for 引出对象。"
     },
@@ -2879,7 +2879,7 @@
       "context": "原句：通过加强贸易便利化改革并提升通关效率，跨境经营成本得到有效控制。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "两个措施并列作主语，控制成本作结果。不要让 costs 成为 By strengthening... 的逻辑施动者。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -2903,7 +2903,7 @@
       "context": "原句：完善贸易数字化基础设施，能够有效提升企业跨境协同能力。\n\n任务：先汉译英，再检查是否用非谓语主语保持表达紧凑。"
     },
     "analysis": {
-      "title": "结合题目材料辨析贸易经济的含义与适用条件",
+      "title": "解析",
       "summary": "动名词主语可承接政策动作，主句直达结果。",
       "exam_tip": "动名词主语适合政策措施句。"
     },
@@ -2927,7 +2927,7 @@
       "context": "原句：健全跨境风险预警机制，为外贸主体稳健经营提供了长期保障。\n\n先做汉译英，再补全骨架：\nImproving cross-border risk early-warning mechanisms has provided long-term safeguards {{blank}} the sound operation of foreign trade entities."
     },
     "analysis": {
-      "title": "结合题目材料辨析贸易经济的含义与适用条件",
+      "title": "解析",
       "summary": "safeguards for ... 为稳定搭配。",
       "exam_tip": "保障类名词常与 for 连用。"
     },
@@ -2968,7 +2968,7 @@
       "context": "原句：研发人员经过不懈努力，攻克了一系列技术难题。\n\n任务：先汉译英，再检查你是否把“攻克”动作自然名词化，核对动作与结果是否清楚。"
     },
     "analysis": {
-      "title": "在翻译中准确组织动词变名词的信息与结构",
+      "title": "解析",
       "summary": "把攻克难题写成 the resolution of technical problems 可以突出成果，并用 resulted in 表示努力与成果的关系。名词化是一种组织方式，不天然比动词表达高级；应避免 achievements in challenges 一类不自然搭配。",
       "exam_tip": "把攻克难题写成 the resolution of technical problems 可以突出成果，并用 resulted in 表示努力与成果的关系。"
     },
@@ -2992,7 +2992,7 @@
       "context": "原句：这不仅标志中国在航天技术上取得了巨大进步，也表明中国为全球太空研究和应用做出了重大贡献。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织动词变名词的信息与结构",
+      "title": "解析",
       "summary": "marks...progress 与 indicates...contribution 保留标志和表明两个动作。progress 通常不可数，contribution 在这里表示一项整体贡献；不能为了并列形式而随意都改成复数。",
       "exam_tip": "marks...progress 与 indicates...contribution 保留标志和表明两个动作。"
     },
@@ -3016,7 +3016,7 @@
       "context": "原句：这项技术在我国得到广泛应用，产生了显著的经济效益。\n\n先汉译英，再补全骨架：\nThe widespread application of this technology in China has generated remarkable {{blank}}."
     },
     "analysis": {
-      "title": "在翻译中准确组织动词变名词的信息与结构",
+      "title": "解析",
       "summary": "application 是名词化的应用过程，has generated 引出结果。economic benefits 是复数收益概念，不能误成一种具体福利补贴；widespread 限定应用范围广。",
       "exam_tip": "application 是名词化的应用过程，has generated 引出结果。"
     },
@@ -3057,7 +3057,7 @@
       "context": "原句：社会各界积极营造敬老助老的社会氛围。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织动词变名词的信息与结构",
+      "title": "解析",
       "summary": "creation 将营造转成名词，后接 of an environment 交代对象；in which... 再说明这种环境的特征。名词化要服务层次，不能堆叠 atmosphere of respecting of... 破坏可读性。",
       "exam_tip": "creation 将营造转成名词，后接 of an environment 交代对象；in which... 再说明这种环境的特征。"
     },
@@ -3081,7 +3081,7 @@
       "context": "原句：提供便利服务已成为社会共识，例如社区专门开设长者食堂。\n\n任务：先汉译英，再检查你是否把“提供便利服务”自然名词化，核对目的与对象是否清楚。"
     },
     "analysis": {
-      "title": "在翻译中准确组织动词变名词的信息与结构",
+      "title": "解析",
       "summary": "broad agreement on the provision... 表示对提供服务形成共识；provision 与 establishment 分别对应提供和设立。不能让 provision 本身 become a consensus，因为共识是人们对事项的共同看法。",
       "exam_tip": "broad agreement on the provision... 表示对提供服务形成共识；provision 与 establishment 分别对应提供和设立。"
     },
@@ -3105,7 +3105,7 @@
       "context": "原句：北斗系统最终实现了全球覆盖和高精度定位。\n\n先汉译英，再补全骨架：\nThe Beidou System eventually achieved global coverage and high-precision {{blank}}."
     },
     "analysis": {
-      "title": "在翻译中准确组织动词变名词的信息与结构",
+      "title": "解析",
       "summary": "positioning 与 coverage 并列，均为名词性成分，表示两项系统能力。high-precision 修饰 positioning，不表示覆盖范围的数量，也不能把定位误译成政治立场。",
       "exam_tip": "positioning 与 coverage 并列，均为名词性成分，表示两项系统能力。"
     },
@@ -3146,7 +3146,7 @@
       "context": "原句：研究人员改进了检测方法，从而缩短了等待结果的时间。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "Improvements 将改进这一行动名词化。也可直接写 The researchers improved...；两种方式都应保留等待时间缩短这一结果。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3170,7 +3170,7 @@
       "context": "原句：此次峰会旨在推动各成员国在气候议题上达成具有约束力的实质性共识。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "reach a consensus 表示达成共识；substantive 与 binding 都需保留。没有必要把每个动词改成名词，advance 作为动词也不属于名词化。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3194,7 +3194,7 @@
       "context": "原句：数字技术的快速普及从根本上改变了传统产业的全球竞争格局。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "spread 或 proliferation 可表达普及；competitive landscape 指竞争格局，positioning 更偏向定位。正式程度不是词语正确性的排序标准。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3218,7 +3218,7 @@
       "context": "原句：通过完善跨境数据基础设施，更多企业提升了国际协同研发效率。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "Improvements 是名词化的措施，enabled 连接受益企业与研发效率。不能漏掉更多企业，也不能把协同研发改成一般通信。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3242,7 +3242,7 @@
       "context": "原句：学校扩大了图书馆，以容纳更多读者。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "expansion 把扩大名词化，was intended to 保留目的。也可直接译为 The university expanded...to...，无需为了正式而强行名词化。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3266,7 +3266,7 @@
       "context": "原句：低轨卫星网络的快速发展，为全球通信服务创造了新机会。\n\n补全译文：\nThe rapid {{blank}} of low-orbit satellite networks has created new opportunities for global communication services."
     },
     "analysis": {
-      "title": "结合题目材料辨析动词变名词的含义与适用条件",
+      "title": "解析",
       "summary": "在六级科技语境里，development of... 是比 develop quickly 更稳定的主语型书面表达。",
       "exam_tip": "看到 the rapid ... of，优先想名词，不要先想动词。"
     },
@@ -3307,7 +3307,7 @@
       "context": "原句：北斗系统已广泛应用于交通运输、灾害救援、天气预报、公共安全等诸多领域。\n\n任务：先汉译英，再检查你是否把“应用于……领域”稳定压成介词短语，而不是机械并列直译。"
     },
     "analysis": {
-      "title": "在翻译中准确组织修饰信息变介词短语的信息与结构",
+      "title": "解析",
       "summary": "in many fields 标明应用领域，such as 后列举交通、救援、预报和公共安全。举例不是穷尽清单，译文不能增添 only；介词短语应挂到 applied，而不是误作主语。",
       "exam_tip": "in many fields 标明应用领域，such as 后列举交通、救援、预报和公共安全。"
     },
@@ -3331,7 +3331,7 @@
       "context": "原句：天宫空间站在距地球表面400-450公里的轨道上运行。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "在翻译中准确组织修饰信息变介词短语的信息与结构",
+      "title": "解析",
       "summary": "400—450 kilometres 描述距离大小，above...给出垂直高度的参照。orbit 是运行轨道，不能译成空间站距离地表的水平位置，也不能把范围写成450以下任意高度。",
       "exam_tip": "400—450 kilometres 描述距离大小，above...给出垂直高度的参照。"
     },
@@ -3355,7 +3355,7 @@
       "context": "原句：尊老是中华民族的传统美德，深深植根于中国人的思想和行为中。\n\n先做汉译英，再补全骨架：\nRespecting the elderly is a traditional virtue of the Chinese nation, deeply rooted {{blank}} the thoughts and behaviors of the Chinese people."
     },
     "analysis": {
-      "title": "在翻译中准确组织修饰信息变介词短语的信息与结构",
+      "title": "解析",
       "summary": "rooted in 是根植于的搭配，thoughts 和 behaviour 为两个并列根基。deeply rooted... 修饰尊老这项美德，不指代 Chinese nation 这一群体的物理根部。",
       "exam_tip": "rooted in 是根植于的搭配，thoughts 和 behaviour 为两个并列根基。"
     },
@@ -3396,7 +3396,7 @@
       "context": "原句：政府出台了一系列政策，为老年人的权益提供有力保障。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
     },
     "analysis": {
-      "title": "结合题目材料辨析修饰信息变介词短语的含义与适用条件",
+      "title": "解析",
       "summary": "“为……提供保障”中“为……”是对象修饰层，常用 for the rights and interests of ... 介词短语表达。",
       "exam_tip": "对象修饰层常用 for 短语后置，避免提前导致主句断裂。"
     },
@@ -3420,7 +3420,7 @@
       "context": "原句：这项技术已经在许多国家得到广泛应用，为全球粮食安全做出了重大贡献。\n\n任务：先汉译英，再检查你是否把“在许多国家/为全球粮食安全”两层修饰都转为介词短语。"
     },
     "analysis": {
-      "title": "在翻译中准确组织修饰信息变介词短语的信息与结构",
+      "title": "解析",
       "summary": "in many countries 是应用范围，to global food security 是 make contributions 的对象。两个介词分别属于不同结构，不能为了形式统一都换成 in 或 for。",
       "exam_tip": "in many countries 是应用范围，to global food security 是 make contributions 的对象。"
     },
@@ -3444,7 +3444,7 @@
       "context": "原句：北斗系统现在已经在国际上得到广泛认可，开始为越来越多的国家和地区提供优质服务。\n\n先做汉译英，再补全骨架：\nNow, the Beidou System has gained wide international recognition and has begun to provide high-quality services {{blank}} more and more countries and regions."
     },
     "analysis": {
-      "title": "结合题目材料辨析修饰信息变介词短语的含义与适用条件",
+      "title": "解析",
       "summary": "provide services to... 表示向对象提供服务，provide services for... 也可表示为对象服务。本题给定词中用 to 完成这一框架。",
       "exam_tip": "固定搭配优先级高于直觉替换，先保结构再谈变体。"
     },
@@ -3485,7 +3485,7 @@
       "context": "原句：来自三个城市的志愿者在周末为社区居民提供免费维修服务。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "from three cities 修饰志愿者，to community residents 说明服务对象，at weekends 说明时间。先分清各自关系，再选择介词。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3509,7 +3509,7 @@
       "context": "原句：这篇刊载于国际顶级期刊的论文从制度视角对现行治理框架提出了系统性挑战。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "published in 说明刊载位置，from an institutional perspective 说明分析角度。两个短语修饰不同内容，不要把角度附到期刊上。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3533,7 +3533,7 @@
       "context": "先做汉译英，再补全骨架：\n中文原句：发表于权威学术期刊的这篇报告对现行政策框架提出了来自实证层面的质疑。\n\nThis report, published {{blank}} a prestigious academic journal, raised empirically grounded challenges {{blank}} the current policy framework."
     },
     "analysis": {
-      "title": "结合题目材料辨析修饰信息变介词短语的含义与适用条件",
+      "title": "解析",
       "summary": "in 标明刊载的期刊，to 引出受到质疑的框架。by 也可能引出出版者，但与 in a journal 表达的关系不同。",
       "exam_tip": "publish in a journal（刊物用 in，不用 on/at）"
     },
@@ -3585,7 +3585,7 @@
       "context": "原句：在人工智能快速演进的背景下，医疗诊断、城市治理和智能制造等领域都出现了深刻变化。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "in areas such as 引出变化发生的领域，背景交给句首短语。原句中的等表示举例，不能把清单写成全部领域。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3609,7 +3609,7 @@
       "context": "原句：这份关于公共交通的报告于周五在学校网站上发布。\n\n任务：先译成英文，再翻卡对照。保留原意，也可以采用其他自然的表达。"
     },
     "analysis": {
-      "title": "完整表达句中信息并核对句法关系",
+      "title": "解析",
       "summary": "第一个 on 引出报告主题，后两个分别表示发布载体与日期。同一介词可承担不同关系，不必为避免重复而改错。",
       "exam_tip": "对照信息、逻辑和搭配，不把参考译文当成唯一措辞。"
     },
@@ -3633,7 +3633,7 @@
       "context": "原句：尊老观念仍深深植根于日常伦理和家庭实践之中。\n\n补全译文：\nThe concept of respecting the elderly remains deeply rooted {{blank}} everyday ethics and family practices."
     },
     "analysis": {
-      "title": "结合题目材料辨析修饰信息变介词短语的含义与适用条件",
+      "title": "解析",
       "summary": "rooted in 是处理“植根于”最稳的固定搭配之一，尤其适合文化与价值观主题。",
       "exam_tip": "遇到 rooted 先想 in，这几乎是固定反应。"
     },
@@ -3674,7 +3674,7 @@
       "context": "语境：The results suggest a link between sleep and memory, but they do not establish causation.\n\n问题：这里 suggest 最接近哪个意思？"
     },
     "analysis": {
-      "title": "在具体语境中辨析indicate a possibility",
+      "title": "解析",
       "summary": "suggest 保留可能性；后面的 do not establish causation 明确排除了 prove。它在研究结果作主语时不是向人提出请求。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“indicate a possibility”的适用范围。"
     },
@@ -3723,7 +3723,7 @@
       "context": "语境：The grant will enable students from low-income households to attend the workshop.\n\n问题：哪项可以替换 enable ... to，而不改变原意？"
     },
     "analysis": {
-      "title": "在具体语境中辨析make it possible for ... to",
+      "title": "解析",
       "summary": "资助使参加成为可能，不是强制参加。require 添加义务，warn 添加警告，prevent 则把促进改为阻止。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“make it possible for ... to”的适用范围。"
     },
@@ -3772,7 +3772,7 @@
       "context": "语境：The policy aims to alleviate pressure on crowded emergency departments.\n\n问题：alleviate 在这里表示什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析reduce the severity of",
+      "title": "解析",
       "summary": "alleviate 表示减轻压力的程度，不保证压力完全消失。identify 只涉及识别，transfer 则改变了承担者。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“reduce the severity of”的适用范围。"
     },
@@ -3821,7 +3821,7 @@
       "context": "语境：The author challenges the assumption that longer working hours always improve productivity.\n\n问题：challenges 最恰当的释义是？"
     },
     "analysis": {
-      "title": "在具体语境中辨析questions the validity of",
+      "title": "解析",
       "summary": "被质疑的是一个 assumption 是否成立。challenge 在论证中可指提出反证或要求依据，不必涉及面对面的挑战。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“questions the validity of”的适用范围。"
     },
@@ -3870,7 +3870,7 @@
       "context": "语境：The scholarship is intended primarily for students who lack other sources of funding.\n\n问题：primarily 最接近什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析mainly",
+      "title": "解析",
       "summary": "primarily 表示主要面向这一群体，但不自动排除其他符合条件的人；exclusively 才加入唯一范围。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“mainly”的适用范围。"
     },
@@ -3919,7 +3919,7 @@
       "context": "语境：A shortage of qualified staff has hampered the expansion of the programme.\n\n问题：hampered 的语义是什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析made progress more difficult",
+      "title": "解析",
       "summary": "hamper 是妨碍进展，不等于已彻底终止。主语是人员短缺，因此提供资源或取消必要性都不合语境。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“made progress more difficult”的适用范围。"
     },
@@ -3968,7 +3968,7 @@
       "context": "语境：The findings are consistent with the earlier study, although the samples differ.\n\n问题：consistent with 最接近哪项？"
     },
     "analysis": {
-      "title": "在具体语境中辨析compatible with",
+      "title": "解析",
       "summary": "consistent with 表示两组结果可以相容，不能推出复制、可靠性更高或细节完全相同；样本不同尤其提示不能用 identical。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“compatible with”的适用范围。"
     },
@@ -4017,7 +4017,7 @@
       "context": "语境：The course provides a foundation for more specialised training.\n\n问题：foundation 在这里指什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析a basis on which further learning can build",
+      "title": "解析",
       "summary": "后续 specialised training 将建立在这门课之上，因此 foundation 是知识基础。它既不是慈善机构，也不意味着已取得最终资格。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“a basis on which further learning can build”的适用范围。"
     },
@@ -4066,7 +4066,7 @@
       "context": "语境：The proposal is feasible only if additional transport can be arranged.\n\n问题：feasible 最接近什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析practicable",
+      "title": "解析",
       "summary": "feasible 讨论能否实施，only if 限定了实施条件。一个方案可行不等于任何情况下都值得做，更不是已经完成。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“practicable”的适用范围。"
     },
@@ -4115,7 +4115,7 @@
       "context": "语境：The new evidence undermines the claim that the two groups were comparable.\n\n问题：undermines 表示什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析weakens the basis for",
+      "title": "解析",
       "summary": "evidence undermines a claim 指证据削弱主张的根据。仅仅改写措辞不涉及论证力度，support 则与削弱方向相反。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“weakens the basis for”的适用范围。"
     },
@@ -4164,7 +4164,7 @@
       "context": "语境：The researchers acknowledge several limitations of their study.\n\n问题：acknowledge 最准确的理解是？"
     },
     "analysis": {
-      "title": "在具体语境中辨析recognise and state openly",
+      "title": "解析",
       "summary": "acknowledge limitations 是承认并说明限制，不代表已经解决限制。它也不能推出研究者认为这些限制不重要。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“recognise and state openly”的适用范围。"
     },
@@ -4213,7 +4213,7 @@
       "context": "语境：Access to the archive is subject to prior approval.\n\n问题：subject to 在这里表示什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析dependent on obtaining",
+      "title": "解析",
       "summary": "prior approval 是访问条件。subject to 将访问权置于审批之下，不是说提出访问请求就等于获批。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“dependent on obtaining”的适用范围。"
     },
@@ -4262,7 +4262,7 @@
       "context": "语境：Public ___ in the consultation increased after evening meetings were introduced.\n\n问题：选择语法和意义都合适的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析participation",
+      "title": "解析",
       "summary": "increased 前需要名词短语作主语，public 修饰名词 participation。participatory 是形容词，需要再修饰名词；participate 是动词。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“participation”的适用范围。"
     },
@@ -4311,7 +4311,7 @@
       "context": "语境：The committee must ___ the proposal before funds are released.\n\n问题：选择合适的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析approve",
+      "title": "解析",
       "summary": "情态动词 must 后接动词原形 approve。proposal 是宾语，不能用名词 approval 来承担谓语动作。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“approve”的适用范围。"
     },
@@ -4360,7 +4360,7 @@
       "context": "语境：The new procedure is more ___ than the previous one.\n\n问题：选择表示“效率更高”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析efficient",
+      "title": "解析",
       "summary": "系动词 is 后描述 procedure 的性质，需要形容词 efficient。efficiently 修饰动作，efficiency 是效率这一名词概念。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“efficient”的适用范围。"
     },
@@ -4409,7 +4409,7 @@
       "context": "语境：The results were ___ verified by a second laboratory.\n\n问题：选择表示“独立地”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析independently",
+      "title": "解析",
       "summary": "空格修饰被动谓语 were verified 的实施方式，因此用副词 independently。independent 不能单独修饰 verified 这个动作。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“independently”的适用范围。"
     },
@@ -4458,7 +4458,7 @@
       "context": "语境：The agency promised greater ___ in its spending decisions.\n\n问题：选择表示“透明度”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析transparency",
+      "title": "解析",
       "summary": "greater 修饰抽象程度，后面要名词 transparency。这里谈决策公开程度，不是透明胶片等可数实物，不能用复数 transparencies。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“transparency”的适用范围。"
     },
@@ -4507,7 +4507,7 @@
       "context": "语境：The findings are ___ to public-health planning.\n\n问题：选择表示“相关的”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析relevant",
+      "title": "解析",
       "summary": "be relevant to 是形容词结构，说明研究发现与规划有关。relevance 是名词，不能直接填在 are 后而省略冠词或介词结构。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“relevant”的适用范围。"
     },
@@ -4556,7 +4556,7 @@
       "context": "语境：A more ___ supply of water is needed during the dry season.\n\n问题：选择表示“可靠的”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析reliable",
+      "title": "解析",
       "summary": "空格处修饰名词 supply，需形容词 reliable。reliability 是可靠性，reliably 修饰供水等动作，rely 是依靠。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“reliable”的适用范围。"
     },
@@ -4605,7 +4605,7 @@
       "context": "语境：The team responded ___ when the timetable changed.\n\n问题：选择表示“灵活地”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析flexibly",
+      "title": "解析",
       "summary": "responded 需要方式副词 flexibly。若使用名词 flexibility，需改成 with flexibility，不能只换词不改结构。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“flexibly”的适用范围。"
     },
@@ -4654,7 +4654,7 @@
       "context": "语境：The policy encourages ___ between universities and local firms.\n\n问题：选择表示“合作”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析collaboration",
+      "title": "解析",
       "summary": "encourages 后需要宾语名词，between 短语说明合作双方。collaborative 是形容词，不能在这里独立指代合作这件事。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“collaboration”的适用范围。"
     },
@@ -4703,7 +4703,7 @@
       "context": "语境：The method must be ___ across different datasets.\n\n问题：选择表示“可重复实现的”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析reproducible",
+      "title": "解析",
       "summary": "be 后描述方法具有什么性质，用 reproducible。reproduce 是实施重复的动作；reproduction 是过程或复制物，语法角色不同。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“reproducible”的适用范围。"
     },
@@ -4752,7 +4752,7 @@
       "context": "语境：The report examines the ___ of the proposed reform.\n\n问题：选择表示“可行性”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析feasibility",
+      "title": "解析",
       "summary": "the 与 of 短语构成名词框架 the feasibility of。feasible 只能说明某事可行，不能直接充当该名词框架的中心词。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“feasibility”的适用范围。"
     },
@@ -4801,7 +4801,7 @@
       "context": "语境：The board decided to ___ the evaluation criteria.\n\n问题：选择表示“修订”的形式。"
     },
     "analysis": {
-      "title": "在具体语境中辨析revise",
+      "title": "解析",
       "summary": "decide to 后接不定式，to 后用动词原形 revise。revised 可作过去式或分词，但不适用于这里的 to do 框架。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“revise”的适用范围。"
     },
@@ -4850,7 +4850,7 @@
       "context": "语境：The team put off the field trip because heavy rain made the route unsafe.\n\n问题：put off 可以替换为哪项？"
     },
     "analysis": {
-      "title": "在具体语境中辨析postponed",
+      "title": "解析",
       "summary": "put off 表示推迟，原因是目前路线不安全；它本身不说明活动永久取消。postpone 保留了时间改变而非彻底终止的含义。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“postponed”的适用范围。"
     },
@@ -4899,7 +4899,7 @@
       "context": "语境：The new policy is intended to bring about a reduction in unnecessary travel.\n\n问题：bring about 最接近什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析cause",
+      "title": "解析",
       "summary": "bring about 后接变化或结果，表示促成。rule out 是排除可能性，与促成减少这一目标方向不同。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“cause”的适用范围。"
     },
@@ -4948,7 +4948,7 @@
       "context": "语境：The analysis takes into account differences in household size.\n\n问题：哪项可以替换 takes into account？"
     },
     "analysis": {
-      "title": "在具体语境中辨析considers",
+      "title": "解析",
       "summary": "take into account 是分析时纳入考虑，不代表已经消除了家庭规模差异。considers 保留了这个处理含义。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“considers”的适用范围。"
     },
@@ -4997,7 +4997,7 @@
       "context": "语境：The scholarship made up for part of the income she lost during training.\n\n问题：made up for 表示什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析partly compensated for",
+      "title": "解析",
       "summary": "make up for 是弥补，part of 限定为部分收入。不能理解成编造，也不能删除部分这一限制而声称完全补偿。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“partly compensated for”的适用范围。"
     },
@@ -5046,7 +5046,7 @@
       "context": "语境：The evidence calls into question the reliability of the estimate.\n\n问题：哪项改写最准确？"
     },
     "analysis": {
-      "title": "在具体语境中辨析casts doubt on",
+      "title": "解析",
       "summary": "call into question 指使某事受到质疑。被质疑的是估计的可靠性，不是要求回答一个普通问题，更不是给予最终确认。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“casts doubt on”的适用范围。"
     },
@@ -5095,7 +5095,7 @@
       "context": "语境：The project depends on volunteers to carry out the interviews.\n\n问题：carry out 的意思是？"
     },
     "analysis": {
-      "title": "在具体语境中辨析conduct",
+      "title": "解析",
       "summary": "carry out interviews 是实际开展访谈。conduct 可保留动作，单纯记录费用或介绍访谈不等于执行。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“conduct”的适用范围。"
     },
@@ -5144,7 +5144,7 @@
       "context": "语境：The committee turned down the request for additional funding.\n\n问题：turned down 最接近什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析rejected",
+      "title": "解析",
       "summary": "turn down a request 是拒绝请求。turn down 在声音语境中可指调低音量，但这里宾语是资金申请，不能照搬另一义项。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“rejected”的适用范围。"
     },
@@ -5193,7 +5193,7 @@
       "context": "语境：Several departments joined forces to develop the new course.\n\n问题：joined forces 表示什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析worked together",
+      "title": "解析",
       "summary": "join forces 指为共同目标合作，未必发生机构永久合并。develop the course 限定合作目标，不能推断组织结构已经改变。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“worked together”的适用范围。"
     },
@@ -5242,7 +5242,7 @@
       "context": "语境：The additional bus service helped ease pressure on the existing route.\n\n问题：ease pressure on 最接近什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析reduce the strain on",
+      "title": "解析",
       "summary": "ease pressure on 是减轻已有线路的负担；它不表示所有原有服务都不再需要。reduce the strain 保留程度变化。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“reduce the strain on”的适用范围。"
     },
@@ -5291,7 +5291,7 @@
       "context": "语境：The students kept track of each change to the experimental procedure.\n\n问题：kept track of 的意思是？"
     },
     "analysis": {
-      "title": "在具体语境中辨析monitored and recorded",
+      "title": "解析",
       "summary": "keep track of 强调持续跟踪，使变化能够追溯。记录变化不等于阻止变化，也不自动意味着对变化表示赞同。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“monitored and recorded”的适用范围。"
     },
@@ -5340,7 +5340,7 @@
       "context": "语境：The consultation gave rise to a revised version of the proposal.\n\n问题：gave rise to 最接近什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析led to",
+      "title": "解析",
       "summary": "give rise to 连接原因和结果：咨询促成修订稿。was replaced by 将咨询和文件当作同类可互换对象，破坏了关系。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“led to”的适用范围。"
     },
@@ -5389,7 +5389,7 @@
       "context": "语境：The survey sheds light on why some students avoid seeking help.\n\n问题：sheds light on 表示什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析helps explain",
+      "title": "解析",
       "summary": "shed light on 是使问题更清楚，并不表示所有原因都已确定。helps explain 保留研究的解释贡献，同时避免把它扩大为最终定论。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“helps explain”的适用范围。"
     },
@@ -5438,7 +5438,7 @@
       "context": "语境：The seminar was cancelled because the speaker fell ill.\n\n问题：哪项改写保持原有因果关系？"
     },
     "analysis": {
-      "title": "在具体语境中辨析The speaker's illness led to the cancellation of the seminar.",
+      "title": "解析",
       "summary": "原句的原因是生病，结果是取消。名词化 illness 与 cancellation 可以保留关系，但交换两者的位置会颠倒因果。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“The speaker's illness led to the cancellation of the seminar.”的适用范围。"
     },
@@ -5487,7 +5487,7 @@
       "context": "语境：Only students who have completed the introductory course may enrol.\n\n问题：哪项改写保留报名条件？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Completion of the introductory course is required for enrolment.",
+      "title": "解析",
       "summary": "only 限制报名资格，需要先完成入门课。required 表示必要条件，不等于保证有名额；把条件移到报名之后改变了先后关系。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Completion of the introductory course is required for enrolment.”的适用范围。"
     },
@@ -5536,7 +5536,7 @@
       "context": "语境：The more frequently the equipment is checked, the less likely faults are to go unnoticed.\n\n问题：哪项改写最准确？"
     },
     "analysis": {
-      "title": "在具体语境中辨析More frequent checks reduce the risk of undetected faults.",
+      "title": "解析",
       "summary": "原句讨论故障未被发现的风险，reduce the risk 保留概率变化。eliminate every fault 把发现能力误扩成消灭故障本身。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“More frequent checks reduce the risk of undetected faults.”的适用范围。"
     },
@@ -5585,7 +5585,7 @@
       "context": "语境：Despite the higher initial cost, the new system requires less maintenance.\n\n问题：哪项改写保留让步关系？"
     },
     "analysis": {
-      "title": "在具体语境中辨析The new system costs more at first but needs less maintenance.",
+      "title": "解析",
       "summary": "despite 后的初始成本较高与主句维护需求较低形成让步。at first 保留时间范围，不能推出所有成本都更低。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“The new system costs more at first but needs less maintenance.”的适用范围。"
     },
@@ -5634,7 +5634,7 @@
       "context": "语境：If the application is incomplete, processing will be delayed.\n\n问题：哪项改写不增加原文没有的保证？"
     },
     "analysis": {
-      "title": "在具体语境中辨析An incomplete application can lead to a delay in processing.",
+      "title": "解析",
       "summary": "原句给出不完整导致延迟这一方向，并未排除其他延迟原因。完整不保证立即处理；出现延迟也不能倒推出一定不完整。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“An incomplete application can lead to a delay in processing.”的适用范围。"
     },
@@ -5683,7 +5683,7 @@
       "context": "语境：The report does not rule out the possibility of further delays.\n\n问题：哪项改写最接近？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Further delays remain possible.",
+      "title": "解析",
       "summary": "does not rule out 只表示没有排除，不等于确认必然发生，更不是建议延迟。remain possible 保留原句的不确定性。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Further delays remain possible.”的适用范围。"
     },
@@ -5732,7 +5732,7 @@
       "context": "语境：Many participants found the instructions easier to follow after the examples were added.\n\n问题：哪项改写保留人数范围？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Adding examples made the instructions easier for many participants to follow.",
+      "title": "解析",
       "summary": "many 不能改为 every，easier 也不等于完全理解。改写可以把 adding examples 变成主语，但须保留受益范围和比较程度。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Adding examples made the instructions easier for many participants to follow.”的适用范围。"
     },
@@ -5781,7 +5781,7 @@
       "context": "语境：The scheme is unlikely to succeed unless local organisations cooperate.\n\n问题：哪项改写准确？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Without cooperation from local organisations, success is unlikely.",
+      "title": "解析",
       "summary": "unless 引出成功所需的重要条件；缺少合作时不大可能成功。条件出现也未必保证成功，因此不能改成 guarantees。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Without cooperation from local organisations, success is unlikely.”的适用范围。"
     },
@@ -5830,7 +5830,7 @@
       "context": "语境：As well as reducing travel time, the service makes evening classes more accessible.\n\n问题：哪项改写保持两个并列收益？"
     },
     "analysis": {
-      "title": "在具体语境中辨析The service both shortens journeys and improves access to evening classes.",
+      "title": "解析",
       "summary": "as well as 在这里追加第二项收益。both...and... 保留并列，solely 会把晚间课程可及性这一信息删掉。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“The service both shortens journeys and improves access to evening classes.”的适用范围。"
     },
@@ -5879,7 +5879,7 @@
       "context": "语境：The committee attributed the fall in attendance partly to changes in the timetable.\n\n问题：哪项改写保留限定？"
     },
     "analysis": {
-      "title": "在具体语境中辨析The committee regarded timetable changes as one reason for lower attendance.",
+      "title": "解析",
       "summary": "attributed 表示委员会作出的归因，partly 限定为部分原因。one reason 保留限制，不能改为已证明的唯一原因。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“The committee regarded timetable changes as one reason for lower attendance.”的适用范围。"
     },
@@ -5928,7 +5928,7 @@
       "context": "语境：There is little evidence that the training benefits experienced staff.\n\n问题：哪项改写最准确？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Evidence of benefits for experienced staff is limited.",
+      "title": "解析",
       "summary": "证据少是认识上的限制，不能改写成已经证明没有效果或有害。原文对象是 experienced staff，也不应扩大到所有员工。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Evidence of benefits for experienced staff is limited.”的适用范围。"
     },
@@ -5977,7 +5977,7 @@
       "context": "语境：The proposal was revised in response to concerns raised by residents.\n\n问题：哪项改写保留事件关系？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Residents' concerns prompted changes to the proposal.",
+      "title": "解析",
       "summary": "in response to 表明修订回应了居民意见。prompted changes 保留触发关系，不额外补入提案被否决等事件。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Residents' concerns prompted changes to the proposal.”的适用范围。"
     },
@@ -6026,7 +6026,7 @@
       "context": "语境：The change was not insignificant.\n\n问题：在没有其他反讽语境时，这句话通常表达什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析The change had some significance.",
+      "title": "解析",
       "summary": "not 否定 insignificant 的不重要，通常含蓄地表示有一定重要性。它没有提供最高级或精确程度，不能自动理解成最重要。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“The change had some significance.”的适用范围。"
     },
@@ -6075,7 +6075,7 @@
       "context": "语境：Few applicants met all the requirements.\n\n问题：哪项保留 few 的含义？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Only a small number met every requirement.",
+      "title": "解析",
       "summary": "few 表示数量很少，但不是严格的零；all 要保留为每一项要求。no...any 同时强化人数与满足条件的否定范围。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Only a small number met every requirement.”的适用范围。"
     },
@@ -6124,7 +6124,7 @@
       "context": "语境：The policy is not necessarily ineffective.\n\n问题：正确理解是哪项？"
     },
     "analysis": {
-      "title": "在具体语境中辨析It may have an effect, but this is not established by the sentence alone.",
+      "title": "解析",
       "summary": "not necessarily 否定必然无效，不能推出必然有效。这是对判断确定性的限制，而不是把结论简单反转。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“It may have an effect, but this is not established by the sentence alone.”的适用范围。"
     },
@@ -6173,7 +6173,7 @@
       "context": "语境：Not all participants agreed with the recommendation.\n\n问题：哪项等值？"
     },
     "analysis": {
-      "title": "在具体语境中辨析At least some participants did not agree.",
+      "title": "解析",
       "summary": "not all 是否定全称：至少有人不同意。它允许一部分人同意，不能等同于 none；题目也没有提供讨论后的态度。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“At least some participants did not agree.”的适用范围。"
     },
@@ -6222,7 +6222,7 @@
       "context": "语境：The device can operate without a continuous internet connection.\n\n问题：哪项释义最准确？"
     },
     "analysis": {
-      "title": "在具体语境中辨析A continuous connection is not required for it to operate.",
+      "title": "解析",
       "summary": "without 表示运行不依赖持续联网，不表示设备完全没有联网功能，也不保证离线和在线的所有性能相同。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“A continuous connection is not required for it to operate.”的适用范围。"
     },
@@ -6271,7 +6271,7 @@
       "context": "语境：The costs are far from negligible.\n\n问题：哪项保持原意？"
     },
     "analysis": {
-      "title": "在具体语境中辨析The costs are substantial enough to matter.",
+      "title": "解析",
       "summary": "far from 否定后面的 negligible，强调成本不能忽略。它没有与所有替代方案比较，所以不能补出最高成本的结论。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“The costs are substantial enough to matter.”的适用范围。"
     },
@@ -6320,7 +6320,7 @@
       "context": "语境：The researchers found no evidence of a difference between the groups.\n\n问题：哪项理解避免过度推断？"
     },
     "analysis": {
-      "title": "在具体语境中辨析They did not establish a difference with the evidence available.",
+      "title": "解析",
       "summary": "没有发现差异证据，不一定等于证明完全相同，可能涉及样本量或测量限制。原句只报告证据结果，不说明未开展研究。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“They did not establish a difference with the evidence available.”的适用范围。"
     },
@@ -6369,7 +6369,7 @@
       "context": "语境：The proposal is unlikely to be approved without further revision.\n\n问题：哪项改写准确？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Approval is improbable unless more changes are made.",
+      "title": "解析",
       "summary": "unlikely 表示概率较低，不是逻辑上不可能；without further revision 给出条件。改了以后仍不保证获批。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Approval is improbable unless more changes are made.”的适用范围。"
     },
@@ -6418,7 +6418,7 @@
       "context": "语境：No sooner had the session begun than the power failed.\n\n问题：事件顺序是什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析The session began, and the power failed almost immediately afterwards.",
+      "title": "解析",
       "summary": "no sooner...than 是固定结构，表示刚开始就发生下一件事。否定词置首引起 had 倒装，但不表示 session 没有开始。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“The session began, and the power failed almost immediately afterwards.”的适用范围。"
     },
@@ -6467,7 +6467,7 @@
       "context": "语境：The explanation leaves little room for doubt.\n\n问题：哪项最贴近意思？"
     },
     "analysis": {
-      "title": "在具体语境中辨析The explanation makes doubt difficult to sustain.",
+      "title": "解析",
       "summary": "room 在这里是余地，little room for doubt 指解释令人较为确信，而不是空间大小或禁止质疑这一管理行为。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“The explanation makes doubt difficult to sustain.”的适用范围。"
     },
@@ -6516,7 +6516,7 @@
       "context": "语境：The programme cannot be evaluated solely by the number of participants.\n\n问题：哪项理解准确？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Participation numbers alone are insufficient for evaluation.",
+      "title": "解析",
       "summary": "cannot...solely 否定单一指标足够，不否定人数本身有参考价值。alone is insufficient 保留了这一部分否定。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Participation numbers alone are insufficient for evaluation.”的适用范围。"
     },
@@ -6565,7 +6565,7 @@
       "context": "语境：Hardly any of the original records survived the flood.\n\n问题：哪项最准确？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Almost none of the original records remained.",
+      "title": "解析",
       "summary": "hardly any 表示几乎没有，survived 指洪水后仍保存下来。不能把 hardly 当成 hard 的努力义，也不能补入之后恢复的事实。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Almost none of the original records remained.”的适用范围。"
     },
@@ -6614,7 +6614,7 @@
       "context": "语境：The city introduced congestion pricing, a system that charges drivers for entering busy areas at peak times.\n\n问题：后半句在解释什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析a fee-based method of managing traffic demand",
+      "title": "解析",
       "summary": "解释性同位语提供三个关键点：收费、进入繁忙区域、高峰时段。全面禁车、省去时段或按车价收费都改变了定义边界。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“a fee-based method of managing traffic demand”的适用范围。"
     },
@@ -6663,7 +6663,7 @@
       "context": "语境：The study used a longitudinal design, following the same participants over several years.\n\n问题：longitudinal design 指什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析a design that tracks the same people over time",
+      "title": "解析",
       "summary": "following the same participants over several years 给出同一群体与多个时点两项特征。长期跟踪并不自动保证因果识别。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“a design that tracks the same people over time”的适用范围。"
     },
@@ -6712,7 +6712,7 @@
       "context": "语境：The library adopted an opt-in system: users receive reminders only if they actively subscribe.\n\n问题：opt-in 的含义是什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析participation requires an affirmative choice",
+      "title": "解析",
       "summary": "冒号后的 only if they actively subscribe 说明必须主动选择加入。默认加入再退出属于相反的安排，不应只凭 opt 的词面猜测。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“participation requires an affirmative choice”的适用范围。"
     },
@@ -6761,7 +6761,7 @@
       "context": "语境：The fund acts as a buffer, absorbing short-term fluctuations in revenue.\n\n问题：buffer 在这里是什么作用？"
     },
     "analysis": {
-      "title": "在具体语境中辨析cushioning temporary changes",
+      "title": "解析",
       "summary": "absorbing short-term fluctuations 解释缓冲功能：平滑短期变化。它不意味着增加所有收入，也不保证长期不存在损失。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“cushioning temporary changes”的适用范围。"
     },
@@ -6810,7 +6810,7 @@
       "context": "语境：The proposal includes a sunset clause, meaning that the measure expires unless it is renewed.\n\n问题：sunset clause 的含义是什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析a provision for automatic expiry without renewal",
+      "title": "解析",
       "summary": "meaning that 后明确给出到期与续期条件。sunset 在此是条款的比喻名称，不是要求日落时举行会议。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“a provision for automatic expiry without renewal”的适用范围。"
     },
@@ -6859,7 +6859,7 @@
       "context": "语境：The software is open source, so its source code is available for others to inspect and modify under its licence.\n\n问题：哪项概括符合该说明？"
     },
     "analysis": {
-      "title": "在具体语境中辨析Its code can be examined and adapted subject to the licence.",
+      "title": "解析",
       "summary": "说明强调代码可查阅、修改，同时保留 under its licence。开放源码不等于没有许可证条件，也不能推出无错误或不能收费。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“Its code can be examined and adapted subject to the licence.”的适用范围。"
     },
@@ -6908,7 +6908,7 @@
       "context": "语境：The decision was provisional: it could change after the trial period.\n\n问题：provisional 在这里表示什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析temporary and subject to revision",
+      "title": "解析",
       "summary": "冒号后说明试行后可能改变，因此 provisional 是暂定。它并未说明决定是否保密，不能把不同属性混为一谈。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“temporary and subject to revision”的适用范围。"
     },
@@ -6957,7 +6957,7 @@
       "context": "语境：The service offers asynchronous communication, allowing users to reply at different times.\n\n问题：asynchronous 的意思是什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析not requiring simultaneous participation",
+      "title": "解析",
       "summary": "reply at different times 直接解释不要求同时在线或同步回复。它描述时间协调方式，而不是沟通内容或是否允许文字。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“not requiring simultaneous participation”的适用范围。"
     },
@@ -7006,7 +7006,7 @@
       "context": "语境：The programme uses means-tested support, with eligibility depending on household income.\n\n问题：means-tested 指什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析assessed according to financial resources",
+      "title": "解析",
       "summary": "household income 说明 means 在这里指经济资源，不是方法。资格取决于收入情况，不是考试成绩或随机分配。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“assessed according to financial resources”的适用范围。"
     },
@@ -7055,7 +7055,7 @@
       "context": "语境：The committee sought a consensus, a position that members could broadly accept despite minor differences.\n\n问题：consensus 在此最接近什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析general agreement allowing some differences",
+      "title": "解析",
       "summary": "broadly accept 与 despite minor differences 共同限定共识：主要方向可接受，但细节不必完全一致。把它等同于每个观点一模一样过于绝对。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“general agreement allowing some differences”的适用范围。"
     },
@@ -7104,7 +7104,7 @@
       "context": "语境：The intervention was preventive, aiming to reduce problems before they occurred.\n\n问题：preventive 的意思是什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析intended to stop or reduce problems in advance",
+      "title": "解析",
       "summary": "before they occurred 标记事前阶段，因此 preventive 是预防性的。修复已经发生的损害属于另一种任务，不能互换。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“intended to stop or reduce problems in advance”的适用范围。"
     },
@@ -7153,7 +7153,7 @@
       "context": "语境：The review identified a bottleneck: applications accumulated at the final approval stage.\n\n问题：bottleneck 在这里指什么？"
     },
     "analysis": {
-      "title": "在具体语境中辨析a stage that restricts the flow of the whole process",
+      "title": "解析",
       "summary": "冒号后指出申请在最后审批环节堆积，说明这一环节限制了总体处理速度。瓶颈是流程比喻，不是物理容器。",
       "exam_tip": "结合句中对象、限定词和逻辑关系核对“a stage that restricts the flow of the whole process”的适用范围。"
     },
@@ -7202,7 +7202,7 @@
       "context": "语境：练习句：依法治国强调依据法律开展国家治理。\n\n问题：哪项准确表达“依法治国”？"
     },
     "analysis": {
-      "title": "准确表达本题中的中国主题概念",
+      "title": "解析",
       "summary": "law-based 表示以法律为依据，governance 表示治理。不能将其理解为不受法律约束，也不等同于私人组织的日常管理。这里核对概念，不把一种译法延伸成对具体制度效果的证明。",
       "exam_tip": "核对原句概念的范围、对象和修饰关系，避免把相关词当成同一概念。"
     },
@@ -7251,7 +7251,7 @@
       "context": "语境：练习句：公共政策应体现以人民为中心的发展思想。\n\n问题：哪项保留“以人民为中心”的含义？"
     },
     "analysis": {
-      "title": "准确表达本题中的中国主题概念",
+      "title": "解析",
       "summary": "people-centred 将发展关注点放在人及其需要，不能缩成只看产出总量或某个人利益。centred 后用连字符构成复合修饰，英式 centred 与美式 centered 都可成立。",
       "exam_tip": "核对原句概念的范围、对象和修饰关系，避免把相关词当成同一概念。"
     },
@@ -7300,7 +7300,7 @@
       "context": "语境：练习句：文章介绍“全过程人民民主”这一中国政治概念。\n\n问题：哪项是该概念的通行英文名称？"
     },
     "analysis": {
-      "title": "准确表达本题中的中国主题概念",
+      "title": "解析",
       "summary": "whole-process 保留全过程这一限定，people's democracy 保留概念主体。不能把该专名换成一次调查或一次会议；认识术语本身不等于评价其全部实践表现。",
       "exam_tip": "核对原句概念的范围、对象和修饰关系，避免把相关词当成同一概念。"
     },
@@ -7349,7 +7349,7 @@
       "context": "语境：练习句：社区通过居民协商改进基层治理。\n\n问题：“基层治理”最合适的表达是哪项？"
     },
     "analysis": {
-      "title": "准确表达本题中的中国主题概念",
+      "title": "解析",
       "summary": "grassroots 在社会治理中指基层，不是草地植物。该词与 governance 组合关注地方社区等层级，不能直接套用其自然环境字面义。",
       "exam_tip": "核对原句概念的范围、对象和修饰关系，避免把相关词当成同一概念。"
     },
@@ -7398,7 +7398,7 @@
       "context": "语境：练习句：协商民主重视围绕公共事务交换意见。\n\n问题：哪项准确表达“协商民主”？"
     },
     "analysis": {
-      "title": "准确表达本题中的中国主题概念",
+      "title": "解析",
       "summary": "consultative 与围绕公共事务协商的概念对应。普通商业谈判也可能是 consultation，但不能因此把政治概念缩成私人交易。术语需要与所处领域共同理解。",
       "exam_tip": "核对原句概念的范围、对象和修饰关系，避免把相关词当成同一概念。"
     },
@@ -7447,7 +7447,7 @@
       "context": "语境：练习句：政务公开有助于公众了解决策依据。\n\n问题：这里强调的信息原则是哪项？"
     },
     "analysis": {
-      "title": "准确表达本题中的中国主题概念",
+      "title": "解析",
       "summary": "transparency 表示公开透明，government affairs 限定政务范围。公开决策依据与宣传商品不是同一任务，也不能与 concealment 这一隐瞒方向混淆。",
       "exam_tip": "核对原句概念的范围、对象和修饰关系，避免把相关词当成同一概念。"
     },

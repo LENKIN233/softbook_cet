@@ -11,7 +11,7 @@
       "context": "句子：\"The company offered its top clients a 20% discount on all orders placed before the fiscal year ended.\"\n\n对这句话结构的分析，下列哪项正确？"
     },
     "analysis": {
-      "title": "识别 offer 后的客户接收方与折扣内容",
+      "title": "解析",
       "summary": "its top clients 是间接宾语，a 20% discount 是直接宾语中心；on all orders... 扩展折扣适用范围，属于完整宾语短语的一部分，而不是新增宾语。",
       "exam_tip": "训练跨越后置订单限定提取 SVOO。"
     },
@@ -60,7 +60,7 @@
       "context": "问题：该句双宾结构中 IO 和 DO 分别是什么？"
     },
     "analysis": {
-      "title": "识别 send 后的人物间宾与信息直宾",
+      "title": "解析",
       "summary": "① 识别信号：send 是典型双宾动词，后面先出现“人”再出现“物”，对应 IO + DO。\n\n② 核心规律：双宾判定优先看动词语义是否是“给/送/告知”。若是，通常人是 IO，物是 DO；后置分词短语常是修饰 DO 的附加信息。\n\n③ 验证：The editor sent a detailed memo to the author 改写通顺，结构保持不变，确认 IO/DO 判断正确。",
       "exam_tip": "send/tell/show/give 这类动词优先考虑双宾结构，再排除宾补结构。"
     },
@@ -109,7 +109,7 @@
       "context": "划去不属于主句主谓双宾核心结构的候选成分，保留骨干。"
     },
     "analysis": {
-      "title": "提取 teach 后的学习者间宾与方法直宾",
+      "title": "解析",
       "summary": "① 识别信号：teach 既可接双宾（teach sb sth），也可接单宾+介词结构。此句是双宾，谓语后连续出现人和物。\n\n② 核心规律：双宾骨架最短形式是 S + V + IO + DO。介词 for/of/about 往往是修饰 DO 的内容说明。\n\n③ 验证：The professor taught a practical method to the incoming cohort 可改写成立，确认双宾而非宾补。",
       "exam_tip": "判断双宾时先抽最短骨架，剩余介词短语一般是 DO 的后置修饰。"
     },
@@ -160,7 +160,7 @@
       "context": "判断正误：句子 The manager assigned the team a tighter deadline for the pilot launch 属于主谓双宾结构，其中 the team 是间接宾语。"
     },
     "analysis": {
-      "title": "识别 assign 后的执行方与被分配期限",
+      "title": "解析",
       "summary": "① 识别信号：assign 后紧接“人+任务/时间/资源”是常见双宾模式。\n\n② 核心规律：双宾结构两个宾语都受同一谓语支配；其中 IO 通常是执行者/接收者，DO 是被分配内容。\n\n③ 验证：The manager assigned a tighter deadline to the team 可改写并保持语义，说明双宾判断成立。",
       "exam_tip": "assign/offer/grant 后若是“人+物”，优先判 SVOO。"
     },
@@ -199,7 +199,7 @@
       "context": "阅读片段：After two rounds of revision, the board granted the start-up provisional approval pending a final safety audit.\n\n任务：请分层写出该句主干（S/V/IO/DO），并指出 pending... 的句法功能。"
     },
     "analysis": {
-      "title": "从条件短语中提取 grant 的 SVOO 骨架",
+      "title": "解析",
       "summary": "主干为 the board / granted / the start-up / provisional approval。pending a final safety audit 表示尚待最终安全审查，因此是暂时批准；不能据此断言批准完全尚未生效或审查一定通过。",
       "exam_tip": "训练先冻结双宾主干再处理 pending 限制。"
     },
@@ -223,7 +223,7 @@
       "context": "问题：哪项最准确地提取了该句的双宾主干？"
     },
     "analysis": {
-      "title": "提取 deny 结构中的受影响方与被拒绝内容",
+      "title": "解析",
       "summary": "① 识别信号：deny 可使用 deny sb sth，表示拒绝给予某人某物；谓语后先出现受影响的 exporters，再出现被拒绝的 access。\n\n② 核心规律：抽取 SVOO 时保留施事、deny、接收方和被拒绝内容；compliance、direct、to the subsidy program 及 despite 从句负责限定，不改变核心角色。\n\n③ 验证：被动改写 Several exporters were denied direct access to the subsidy program 仍保持同一语义，确认 exporters 是间宾角色、access 是直宾核心。",
       "exam_tip": "deny sb sth 可用接收方被动句验证。"
     },
@@ -272,7 +272,7 @@
       "context": "划去不属于主句主谓双宾核心结构的候选成分，保留骨干。"
     },
     "analysis": {
-      "title": "识别 promise 后的间宾与并列直接宾语",
+      "title": "解析",
       "summary": "The agency 是主语，promised 是谓语，affected residents 是间接宾语；a transparent compensation process and regular updates 共同构成直接宾语。不能把第二个并列宾语当作外围修饰删掉。",
       "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
     },
@@ -327,7 +327,7 @@
       "context": "判断正误：在 The sponsor gave the conference a clear strategic direction after weeks of uncertainty 中，a clear strategic direction 是宾语补足语，不是直接宾语。"
     },
     "analysis": {
-      "title": "区分 give 的直接宾语与宾语补足语",
+      "title": "解析",
       "summary": "① 识别信号：give sb sth 中第二个名词是可转写为 to-结构的“被给予物”，属于 DO。\n\n② 核心规律：区分 DO 与 OC：DO 是动词直接施加的对象（可提问“给了什么”）；OC 是对 O 的状态/身份补充（如 make sb happy）。\n\n③ 验证：The sponsor gave a clear strategic direction to the conference 改写成立，说明 direction 是 DO 而非 OC。",
       "exam_tip": "双宾与宾补最稳妥的区分法：尝试 to/for 改写，能改写多为双宾。"
     },
@@ -366,7 +366,7 @@
       "context": "下面两句话，哪一句有两个独立宾语，哪一句是宾语+描述词？\n\n① They appointed him director.\n② They gave him a promotion.\n\n①中的 him 和 director 是什么关系？和②中的双宾有何不同？"
     },
     "analysis": {
-      "title": "区分名词宾补与双宾结构",
+      "title": "解析",
       "summary": "① 的 director 说明 him 获任的身份，是宾语补足语，可用 He is a director 理解其关系。② 的 a promotion 是给予的内容，是直接宾语；不能把同指关系的代词写成不合语法的 him is。",
       "exam_tip": "建立 O + be + OC 的宾补验证法。"
     },
@@ -390,7 +390,7 @@
       "context": "句子：\"Excessive screen time can render children less capable of sustaining focused attention in classroom settings.\"\n\n这句话中的宾语（O）和宾语补足语（OC）分别是什么？"
     },
     "analysis": {
-      "title": "识别 render 后的形容词短语宾补",
+      "title": "解析",
       "summary": "① 识别信号：render 意为「使……变为」，是宾补动词，后接 O + adj 是典型宾补结构。\n\n② 核心规律：less capable of… 是形容词短语（adj + prep phrase），整体作宾补，直接描述 children 的能力状态。\n\n③ 验证：children are less capable of sustaining focused attention ✓，宾补测试通过。",
       "exam_tip": "render/make/leave/keep + O + adj/past participle 是常见宾补结构，四六级阅读高频出现。"
     },
@@ -439,7 +439,7 @@
       "context": "保留宾语补足语，划去其他候选成分。"
     },
     "analysis": {
-      "title": "识别 leave 后由副词修饰的分词宾补",
+      "title": "解析",
       "summary": "① 识别信号：leave 作宾补动词，意为「使……处于某状态」，后接 O + adj/past participle 结构。\n\n② 核心规律：deeply strained 中 deeply 是副词修饰 strained（过去分词），整体作形容词性宾补，描述宾语 the relationship 的状态。\n\n③ 验证：the relationship (between the two nations) is deeply strained ✓，确认 deeply strained 是宾补。",
       "exam_tip": "leave + O + adj/past participle 是高频宾补结构，表示「使…处于某状态」。"
     },
@@ -488,7 +488,7 @@
       "context": "判断：\n\n句子 \"Many experts consider the proposed regulation premature.\" 中，premature 是谓语 consider 的宾语。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "区分直接宾语与形容词宾补",
+      "title": "解析",
       "summary": "① 识别信号：consider 是宾补动词，后接名词+形容词时，形容词作宾补而非宾语。\n\n② 核心规律：及物动词的宾语必须是名词性成分（名词/代词/从句/不定式），形容词无法单独作宾语；形容词出现在宾语后时，只能是宾补。\n\n③ 验证：consider the proposed regulation（O）premature（OC），OC 测试：the proposed regulation is premature ✓。",
       "exam_tip": "形容词不能作宾语，出现在宾语后的形容词必然是宾补。"
     },
@@ -527,7 +527,7 @@
       "context": "阅读片段：\"Critics have called the government's handling of the crisis shameful, arguing that officials failed to act swiftly enough.\"\n\n对 called … shameful 的结构分析，下列哪项正确？"
     },
     "analysis": {
-      "title": "识别 call 评价义下的宾补结构",
+      "title": "解析",
       "summary": "① 识别信号：call + O + adj/N 是经典宾补结构，意为「称…为/认为…是」，与 name/label/deem 类似。\n\n② 核心规律：call 在此不是「打电话」的实义用法，是评价类宾补动词，OC 可以是形容词或名词。\n\n③ 验证：宾补测试 the government's handling is shameful ✓，确认 shameful 是宾补而非副词。",
       "exam_tip": "call/name/label/term/deem/regard as + O + OC 是常见评价类宾补结构。"
     },
@@ -576,7 +576,7 @@
       "context": "问题：宾语（O）和宾补（OC）分别是哪个成分？"
     },
     "analysis": {
-      "title": "识别 find 评价义后的完整形容词宾补",
+      "title": "解析",
       "summary": "① 识别信号：find 用于评价意义时（认为…），后接 O + adj 是宾补结构，OC 直接描述宾语状态。\n\n② 核心规律：insufficient to do 是形容词短语，整体充当宾补，不可拆分理解。\n\n③ 验证：把 O + OC 拆出后，OC 可与 O 之间填 be（is/are）仍语义成立，即为宾补。",
       "exam_tip": "find/consider/think + O + adj 表评价，OC 为形容词或形容词短语。"
     },
@@ -625,7 +625,7 @@
       "context": "保留全部宾语补足语，划去其他候选成分。"
     },
     "analysis": {
-      "title": "识别 leave 后的并列状态宾补",
+      "title": "解析",
       "summary": "① 识别信号：leave + O + adj/past participle 是高频宾补结构，表持续状态。\n\n② 核心规律：宾补可以是并列结构，如 adj1 and adj2，消除题需全部标出。\n\n③ 验证：the building is structurally unsafe ✓；the building is visually deteriorated ✓，均成立。",
       "exam_tip": "leave + O + adj/past participle 描述结果状态，两个形容词短语可并列充当宾补。"
     },
@@ -678,7 +678,7 @@
       "context": "判断正误：\n\n句子 \"The board appointed Sarah chief executive of the merged company.\" 中，chief executive of the merged company 是宾语的同位语，与宾语 Sarah 指代同一人。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "区分职位名词宾补与同位语",
+      "title": "解析",
       "summary": "① 识别信号：appoint/elect/name/declare + O + 名词（职位/身份）是宾补结构的典型形式。\n\n② 核心规律：同位语不改变名词在句中的语法关系；宾补则在语义层面补充说明，是谓语行为的结果或状态，两者不同。\n\n③ 验证：Sarah was appointed chief executive ✓（被动变换后 OC 保留，证明是宾补）。",
       "exam_tip": "appoint/elect/name + O + 名词职位，是宾补不是同位语。"
     },
@@ -717,7 +717,7 @@
       "context": "对比阅读：\n\n① The coach made the players run an extra lap.\n② The coach told the players to run an extra lap.\n\n两句都有 O + 非谓语，但宾补形式不同，各是什么？为何如此？"
     },
     "analysis": {
-      "title": "区分使役动词与指令动词的非谓语宾补",
+      "title": "解析",
       "summary": "① 识别信号：make/let/have 后的 O + V 结构，V 为不带 to 的原形，是宾补的裸不定式形式。\n\n② 核心规律：使役动词 vs 指令动词对不定式形式有严格要求，是四六级干扰项常设之处。\n\n③ 验证：*make players to run（错误）vs make players run（正确），to 的有无由动词类型决定。",
       "exam_tip": "make/let/have + O + 原形（无 to）—— 使役宾补。"
     },
@@ -741,7 +741,7 @@
       "context": "阅读片段：\"The policy changes kept unemployment rates relatively stable throughout the recession.\"\n\n对该句宾补结构的分析，哪项正确？"
     },
     "analysis": {
-      "title": "区分 keep 后的状态宾补与时间状语",
+      "title": "解析",
       "summary": "① 识别信号：keep + O + adj 是宾补结构，表持续状态；throughout 引导的时间介词短语要与宾补区分。\n\n② 核心规律：宾补描述宾语的状态（stable），时间状语描述动作发生的时段，两者功能不同、归属不同。\n\n③ 验证：unemployment rates were relatively stable ✓（宾补测试通过）。",
       "exam_tip": "keep + O + adj 表\"使…保持某状态\"，adj 是宾补，不是状语。"
     },
@@ -790,7 +790,7 @@
       "context": "保留全部宾语补足语，划去其他候选成分。"
     },
     "analysis": {
-      "title": "识别正式语体 render 后的并列宾补",
+      "title": "解析",
       "summary": "① 识别信号：render + O + adj/past participle，是正式书面语中常见宾补动词，意为\"使…变成/处于…状态\"。\n\n② 核心规律：并列宾补（adj1 and adj2）描述同一宾语的两种状态，均需消除。\n\n③ 验证：the pension fund is practically depleted ✓；the pension fund is financially insolvent ✓。",
       "exam_tip": "render 是正式四六级阅读中高频宾补动词，相当于 make/leave，务必掌握。"
     },
@@ -843,7 +843,7 @@
       "context": "判断正误：\n\n句子 \"Voters elected the independent candidate mayor.\" 中，mayor 是状语，表示\"以市长的身份\"被选出。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "区分结果身份宾补与方式状语",
+      "title": "解析",
       "summary": "① 识别信号：elect + O + 名词 是宾补结构，名词描述 O 的新身份或结果状态。\n\n② 核心规律：状语修饰动词（描述\"如何/在何处/为何\"做），宾补描述宾语（描述\"O 是/变成什么\"），归属不同。\n\n③ 验证：状语可以去除句子仍语义完整；宾补去除后语义残缺（\"选举了候选人\"——选成什么？）。",
       "exam_tip": "elect/appoint/name + O + 名词职位/身份，是宾补而非状语。"
     },
@@ -882,7 +882,7 @@
       "context": "阅读片段：A survey of older workers in physically demanding jobs found that many delayed retirement for financial reasons.\n\n任务：这句里哪些成分是“定语”，它们在阅读中为什么重要？"
     },
     "analysis": {
-      "title": "识别名词后的多层介词定语链",
+      "title": "解析",
       "summary": "① 识别信号：名词后连续出现 of/in 介词短语，多为后置定语链，优先判断其修饰对象。\n\n② 核心规律：定语负责“限定谁/什么”，主干负责“发生了什么”。阅读时先抓主干，再回挂定语范围，能避免把结论误泛化到错误对象。\n\n③ 验证：删去定语后骨架是 A survey found that...；补回定语后才知道对象是体力岗位中的年长劳动者，而非所有 workers。",
       "exam_tip": "长句中出现名词+of/in/of/in 连续结构时，先画出定语边界。"
     },
@@ -906,7 +906,7 @@
       "context": "问题：句中 that once opposed the bike lane plan 最直接修饰哪个成分？"
     },
     "analysis": {
-      "title": "通过句法位置和语义配价定位定语从句先行词",
+      "title": "解析",
       "summary": "① 识别信号：that 引导从句紧跟在名词短语后，优先判为定语从句。\n\n② 核心规律：定语从句默认就近回指最近可充当先行词的名词。若误挂到 street，会造成语义冲突（street 不能 oppose plan）。\n\n③ 验证：替换测试：stores once opposed... 语义成立；street once opposed... 语义异常，故先行词是 stores。",
       "exam_tip": "先抓关键词与逻辑词，再做判断。"
     },
@@ -955,7 +955,7 @@
       "context": "保留修饰 名词短语 的相关结构，划去其他候选成分。"
     },
     "analysis": {
-      "title": "逐层判断嵌套介词短语的修饰归属",
+      "title": "解析",
       "summary": "about parking loss 补充担忧内容；among small business owners 说明持有担忧的人群；in outer districts 进一步限定业主所在区域。三层并非都直接修饰同一个中心词。",
       "exam_tip": "训练区分名词限定链与谓语时间状语。"
     },
@@ -1007,7 +1007,7 @@
       "context": "判断正误：\n\n句子 Many physicians unaware of drug-timing effects still follow default morning-evening instructions 中，of drug-timing effects 是修饰 physicians 的定语，不是修饰 unaware 的补足语。"
     },
     "analysis": {
-      "title": "区分形容词补足语与名词后置定语",
+      "title": "解析",
       "summary": "① 识别信号：unaware 常与 of 搭配，形成固定形容词结构 unaware of sth。\n\n② 核心规律：介词短语既可能作名词定语，也可能作形容词补足语。判断关键是看它是否与前一词构成固定搭配。\n\n③ 验证：把 of 短语去掉后留下 Many physicians unaware...，结构不完整；说明它首先依附 unaware，而非独立后置修饰 physicians。",
       "exam_tip": "先抓关键词与逻辑词，再做判断。"
     },
@@ -1046,7 +1046,7 @@
       "context": "问题：如果只问“哪一段是核心被统计对象的定语链”，下列哪项最准确？"
     },
     "analysis": {
-      "title": "识别统计对象中的嵌套定语链",
+      "title": "解析",
       "summary": "① 识别信号：名词嵌套结构 percentage of workers with ... in ... 中存在两层修饰归属。\n\n② 核心规律：of 往往先回挂前一名词（percentage of workers），而 with/in 链条继续限定 workers 的特征。读句时需分清“谁修饰谁”。\n\n③ 验证：句意为“70多岁且有大学学历的工人比例”。因此 in their 70s with college degrees 是 workers 的定语链，判断成立。",
       "exam_tip": "遇到名词套名词时，先画括号：percentage [of workers [with... [in...]]]。"
     },
@@ -1095,7 +1095,7 @@
       "context": "问题：released by the research team last month 最直接修饰哪个成分？"
     },
     "analysis": {
-      "title": "识别过去分词短语的先行中心名词",
+      "title": "解析",
       "summary": "① 识别信号：过去分词短语（released…）紧跟名词，默认作后置定语修饰该名词。\n\n② 核心规律：分词定语（released by… last month）可以扩展为定语从句（which was released by… last month），两者等价。\n\n③ 验证：括出定语后，主干成分保持完整，说明定语判断正确。",
       "exam_tip": "过去分词短语紧跟名词，优先判为后置定语，等价于 which was + 过去分词。"
     },
@@ -1144,7 +1144,7 @@
       "context": "保留修饰 students 的相关结构，划去其他候选成分。"
     },
     "analysis": {
-      "title": "识别修饰同一主语的分词与介词定语",
+      "title": "解析",
       "summary": "with a strong academic record 和 who enrolled in advanced courses 都在主语名词短语内部限定 students。showed... 是主句谓语，不属于这两层修饰。",
       "exam_tip": "训练先提取主干再恢复多层人群限定。"
     },
@@ -1197,7 +1197,7 @@
       "context": "判断正误：\n\n句子 \"A man walking his dog found the missing document near the park entrance.\" 中，walking his dog 是谓语的时间状语，表示\"一边遛狗的时候\"发现文件。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "区分紧邻名词的分词定语与谓语状语",
+      "title": "解析",
       "summary": "walking his dog 在此跟在 a man 后，作为名词短语内部的后置修饰，说明是哪一位男子。语义上动作可能与发现同时发生，但这一点不把它自动变成主句时间状语。",
       "exam_tip": "训练用 who was 从句扩展判断修饰对象。"
     },
@@ -1236,7 +1236,7 @@
       "context": "观察以下两句，思考定语如何影响阅读理解中的\"统计对象\"：\n\n① The rate of obesity in children under 12 rose by 15%.\n② The rate of obesity in children with low-income backgrounds rose by 15%.\n\n如果题目问\"哪些儿童的肥胖率上升了\"，两句答案是否相同？为什么？"
     },
     "analysis": {
-      "title": "比较不同定语对统计对象范围的改变",
+      "title": "解析",
       "summary": "① 识别信号：in/with 介词短语紧跟名词时，多为后置定语，限定该名词的范围或属性。\n\n② 核心规律：阅读中\"谁的数据/结论\"由定语限定，回答细节题时必须把定语纳入答案筛选条件。\n\n③ 验证：把定语去掉变成泛指（all children），若原句有后置限定，答案要缩窄到定语范围内。",
       "exam_tip": "阅读细节题答案往往藏在定语里——\"是哪些人/物\"的范围由定语决定。"
     },
@@ -1260,7 +1260,7 @@
       "context": "问题：that would impose stricter limits on campaign donations 最直接修饰哪个名词？"
     },
     "analysis": {
-      "title": "跨越分词短语回溯定语从句先行词",
+      "title": "解析",
       "summary": "that would impose... 紧接 legislation，说明法案内容。was proposed 与 failed 是主句的两个并列谓语，by the opposition party 表示提出法案的主体。",
       "exam_tip": "迁移结合句法距离与语义施事能力定位先行词。"
     },
@@ -1309,7 +1309,7 @@
       "context": "问题：句中分词短语与关系从句的结构关系是什么？"
     },
     "analysis": {
-      "title": "区分分词定语与内部介词修饰",
+      "title": "解析",
       "summary": "submitted... 修饰 proposal；其内部的 who work... 修饰 researchers，说明研究人员的所属部门。两层不是直接并列在 proposal 后。",
       "exam_tip": "词语相邻不表示它们必然处于同一语法层级。"
     },
@@ -1358,7 +1358,7 @@
       "context": "判断正误：\n\n句子 \"The decision made under pressure by overworked officials led to widespread criticism.\" 中，\"made under pressure by overworked officials\" 是描述 decision 如何被执行的状语短语。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "区分主语后的过去分词定语与方式状语",
+      "title": "解析",
       "summary": "① 识别信号：过去分词短语紧跟主语名词，是修饰该名词的后置定语，不是修饰谓语的状语。\n\n② 核心规律：定语与名词紧紧绑定（限定\"哪个名词\"），状语与谓语绑定（说明\"动作如何/为何/在哪里\"）。\n\n③ 验证：The decision (which was made under pressure by overworked officials) led to… ✓——定语从句扩展成立。",
       "exam_tip": "主语名词后的分词短语多为后置定语，不要误判为时间/方式状语。"
     },
@@ -1397,7 +1397,7 @@
       "context": "下面这句话有多少个「额外添加」的修饰成分？去掉它们后，核心意思是否仍然完整？\n\n\"Despite the heavy rainfall, the research team pressed on with their fieldwork, collecting data throughout the night.\""
     },
     "analysis": {
-      "title": "在“状语”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "句首 Despite... 是让步状语，句尾 collecting data throughout the night 是伴随分词短语；它内部另含时间状语 throughout the night。外层与内层是嵌套关系，不能把三者都算成同一级的独立附加项。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -1421,7 +1421,7 @@
       "context": "句子：\"Driven by the desire to cut production costs, many manufacturers have shifted their operations to countries with lower labor expenses.\" Driven by the desire to cut production costs 在句中的功能是什么？"
     },
     "analysis": {
-      "title": "依据具体句子识别状语",
+      "title": "解析",
       "summary": "Driven by... 在此说明行动原因，隐含的受驱动者是主句主语 manufacturers。不能让句首分词短语的执行或承受对象与主句主语错配；本句的两个位置都指制造商。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -1470,7 +1470,7 @@
       "context": "句子：\"Although carbon emissions have been declining steadily in recent years, global temperatures continue to rise at an alarming rate.\"\n\n请消除这句话中充当让步状语的成分。"
     },
     "analysis": {
-      "title": "在“状语”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "① 识别信号：Although/Even though/While 引导的从句放在句首，是让步状语从句，修饰主句。\n\n② 核心规律：让步状语从句建立「虽然 A，但仍 B」的逻辑，A 是让步条件，B 是主句结论。让步不改变主句的事实。\n\n③ 验证：去掉 although 从句后，global temperatures continue to rise at an alarming rate 仍完整。",
       "exam_tip": "Although 从句是让步状语，考试中 although 所在从句的信息不代表作者立场，主句才代表。"
     },
@@ -1517,7 +1517,7 @@
       "context": "判断：\n\n句子 \"The project was completed on time because the team worked overtime for three weeks.\" 中，because the team worked overtime for three weeks 是宾语从句。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“状语”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "because 从句解释项目为何按时完成，是原因状语。was completed 是被动谓语，但被动语态本身不等同于不及物；判断从句功能仍应看本句的意义与结构。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中快速判断当前表达或策略是否成立，并形成可重复执行的作答步骤。"
     },
@@ -1556,7 +1556,7 @@
       "context": "阅读片段：\"To minimize the risk of data loss, organizations are increasingly adopting cloud storage solutions that automatically back up files.\"\n\n句首的 To minimize the risk of data loss 在句中充当什么功能？"
     },
     "analysis": {
-      "title": "在“状语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：不定式短语（to do）置于句首，逗号后跟主句，通常作目的状语（In order to do = to do）。\n\n② 核心规律：目的状语不定式的逻辑主语是主句主语；此处 organizations 想要 minimize risk，逻辑一致。\n\n③ 验证：In order to minimize the risk of data loss，改写后意思不变，确认是目的状语。",
       "exam_tip": "句首 to do 短语 + 逗号 = 目的状语（等于 in order to）；to do 在谓语之后可能是宾语或宾补。"
     },
@@ -1605,7 +1605,7 @@
       "context": "句子：\"Having reviewed all the available evidence, the jury reached a unanimous verdict within two hours.\"\n\n句首的 Having reviewed all the available evidence 充当什么功能？"
     },
     "analysis": {
-      "title": "在“状语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：Having + 过去分词置于句首，是完成分词状语，表示先于主句动作完成的动作（审阅在先，裁决在后）。\n\n② 核心规律：Having done 表时序（先做了…后再…），也常隐含原因（因为已经…，所以…）。分词的隐含主语必须与主句主语一致。\n\n③ 验证：The jury, having reviewed all the evidence, reached a verdict. ✓",
       "exam_tip": "Having + past participle 开头的分词状语表\"先完成\"，常表原因或时序，注意主语一致原则。"
     },
@@ -1654,7 +1654,7 @@
       "context": "句子：\"Even though the candidate had little prior experience, the hiring committee was impressed by her analytical skills.\"\n\n任务：消除句中充当让步状语的成分。"
     },
     "analysis": {
-      "title": "在“状语”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "Even though... 表示缺少经验这一让步背景，主句说明委员会仍对分析能力印象深刻。两部分都是句子提供的信息，不能把从句内容理解成作者否认的事实。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
     },
@@ -1705,7 +1705,7 @@
       "context": "判断正误：\n\n句子 \"If the government fails to address infrastructure gaps, economic growth in rural areas will remain stagnant.\" 中，If the government fails to address infrastructure gaps 是主语从句。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“状语”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "① 识别信号：if 引导的从句是条件状语从句，而非主语从句；主语从句不以 if 开头（if 主语从句需替换为 whether）。\n\n② 核心规律：区分条件从句 vs 主语从句：条件从句去掉后主句仍完整；主语从句去掉后主句缺少主语。\n\n③ 验证：economic growth will remain stagnant ✓（条件从句去掉主句成立，说明是状语）。",
       "exam_tip": "if 引导条件状语从句（可去除，主句仍成立）；whether 引导主语/宾语从句（去除后主句残缺）。"
     },
@@ -1744,7 +1744,7 @@
       "context": "对比分析：\n\n① When oil prices rise, transportation costs increase.\n② Oil prices rising caused transportation costs to increase.\n\n两句分别如何组织“油价上涨”这层信息？第二句中的 Oil prices rising 属于主语还是状语？"
     },
     "analysis": {
-      "title": "在“状语”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "① When oil prices rise 是时间/条件状语从句，主句为 transportation costs increase。② Oil prices rising 是带自身逻辑主语的 -ing 从句，在该句中整体作 caused 的主语；它不是独立主格状语。① 本身不必然证明因果，② 则用 caused 明确表达因果。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -1768,7 +1768,7 @@
       "context": "阅读片段：\"As the global demand for semiconductors continues to surge, manufacturers are struggling to expand production capacity fast enough.\"\n\n句首 As the global demand for semiconductors continues to surge 充当什么功能？"
     },
     "analysis": {
-      "title": "在“状语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "As 从句交代需求继续增长的背景，可结合上下文理解其时间与原因色彩。as 表示随着时属于时间关系；表示如同某人所做的那样时才是方式用法。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -1817,7 +1817,7 @@
       "context": "句子：\"By consistently investing in employee training over the past decade, the company has maintained its competitive edge in the market.\"\n\n任务：划去句首完整的方式状语短语；不要重复选择它内部的单个词。"
     },
     "analysis": {
-      "title": "在“状语”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "应划去句首的完整方式短语 By consistently investing in employee training over the past decade。consistently 是该短语内部的副词，题目要求选择整个外层成分，不重复选择内层片段。in the market 在这里说明竞争优势的范围。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
     },
@@ -1868,7 +1868,7 @@
       "context": "判断正误：\n\n句子 \"The project succeeded largely because team members communicated openly and resolved conflicts early.\" 中，because team members communicated openly and resolved conflicts early 是宾语从句，说明项目成功\"知道了什么\"。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“状语”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "① 识别信号：because 引导原因状语从句，修饰谓语，可去除主句仍成立。\n\n② 核心规律：宾语从句须接在及物动词之后；succeeded 为不及物动词，无法带宾语从句，排除误判。\n\n③ 验证：The project succeeded ✓（独立成立，because 从句为状语）。",
       "exam_tip": "because 引导原因状语从句（可去除）；that/whether 引导宾语从句（去除后主句缺宾语）。"
     },
@@ -1907,7 +1907,7 @@
       "context": "观察下面两句话：\n\n① The rumor that he had resigned spread quickly.\n② The scientist who discovered the virus won the prize.\n\n两句都有 that/who 引导的从句，但性质完全不同——一个是同位语从句，一个是定语从句，你能分辨吗？"
     },
     "analysis": {
-      "title": "在“同位语”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "① 中 that he had resigned 解释 rumor 的内容，是名词内容从句，传统教学称同位语从句。② 中 who discovered the virus 修饰 scientist，who 在从句中作主语，因此不能直接省略。不能仅凭前面有抽象名词就判定从句类别。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -1931,7 +1931,7 @@
       "context": "句子：\"The discovery that the bacteria can survive in extreme heat has opened new possibilities for industrial applications.\"\n\nthat the bacteria can survive in extreme heat 的句法功能是什么？"
     },
     "analysis": {
-      "title": "在“同位语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：discovery 是抽象名词，后面 that 从句说明「发现了什么」，是同位语从句的典型模式。\n\n② 核心规律：同位语从句中的 that 是纯连接词，不充当成分；定语从句中的 that 充当成分（可被 which/who 替换）。\n\n③ 验证：将 that 改为 which 试试：*the discovery which the bacteria can survive… 语法错误，确认 that 是连接词而非关系代词，是同位语从句。",
       "exam_tip": "换 which 测试：同位语从句中 that 换成 which 不通顺；定语从句中 that 换 which 可以通顺。"
     },
@@ -1980,7 +1980,7 @@
       "context": "句子：\"The belief that regular exercise significantly reduces the risk of chronic illness is now supported by extensive medical research.\"\n\n请消除这句话中的同位语从句。"
     },
     "analysis": {
-      "title": "在“同位语”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "① 识别信号：belief 是典型同位语从句先行词，后面 that 从句说明「相信的内容是什么」。\n\n② 核心规律：同位语从句去掉后，先行词失去注解但主句仍成立。这区别于定语从句——去掉定语从句，先行词指代可能变模糊。\n\n③ 验证：The belief is now supported by extensive medical research ✓，确认同位语从句可消除。",
       "exam_tip": "同位语从句去掉后主句成立，但先行词「代表什么内容」就不知道了——是信息缺失，不是语法缺失。"
     },
@@ -2027,7 +2027,7 @@
       "context": "判断：\n\n句子 \"The fact that poverty rates have increased is alarming.\" 中，that poverty rates have increased 是定语从句，修饰 fact。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“同位语”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "① 识别信号：fact + that + 完整从句（从句内无缺失成分）= 同位语从句；fact + that/which + 从句内有缺失成分 = 定语从句。\n\n② 核心规律：「从句是否有成分缺失」是区分两种从句的核心标准。同位语从句的从句内是完整句子。\n\n③ 验证：poverty rates have increased 是完整主谓结构，that 没有参与任何句法功能→同位语从句。",
       "exam_tip": "从句内部有成分缺失（缺主语/宾语）= 定语从句；内部完整 = 同位语从句（或其他名词性从句）。"
     },
@@ -2066,7 +2066,7 @@
       "context": "阅读片段：\"New evidence has emerged supporting the hypothesis that a lack of sleep interferes with the consolidation of long-term memories.\"\n\n对 that a lack of sleep interferes with the consolidation of long-term memories 的分析，哪项正确？"
     },
     "analysis": {
-      "title": "在“同位语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：hypothesis/theory/claim/argument + that + 完整陈述句内容，是同位语从句的最典型触发模式。\n\n② 核心规律：科学语料中「the + 抽象名词 + that」是同位语从句高频出现场合，四六级阅读极常见。\n\n③ 验证：从句 a lack of sleep interferes with the consolidation of long-term memories 是完整句，that 不充当成分，确认是同位语从句。",
       "exam_tip": "hypothesis/theory/claim/argument/assumption/conclusion + that = 同位语从句，科学阅读中超高频。"
     },
@@ -2115,7 +2115,7 @@
       "context": "句子：\"The news that the company would be laying off 20 percent of its workforce sent shock waves through the industry.\"\n\n that the company would be laying off 20 percent of its workforce 的句法功能是什么？"
     },
     "analysis": {
-      "title": "在“同位语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：news/fact/report/rumor 等表达\"信息类\"的抽象名词后的 that 从句，是同位语从句，解释名词内容。\n\n② 核心规律：判断同位语从句的三步——①先行词是抽象名词；②that 在从句内无成分功能；③内容与先行词可互换（news = that…）。\n\n③ 验证：换 which 测试不通（不接受关系代词），确认为同位语从句。",
       "exam_tip": "news/report/rumor/announcement + that 从句 → 同位语从句，解释\"信息内容\"。"
     },
@@ -2164,7 +2164,7 @@
       "context": "句子：\"Scientists have confirmed the suspicion that certain air pollutants directly damage the blood-brain barrier.\"\n\n任务：消除句中同位语从句。"
     },
     "analysis": {
-      "title": "在“同位语”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "① 识别信号：suspicion/assumption/conviction/notion + that 是同位语从句，解释\"怀疑/假设/信念的内容\"。\n\n② 核心规律：消除同位语从句后，主句语法成立但语义信息减少（不知道\"怀疑了什么\"）；这与定语从句消除后\"限定范围消失\"在效果上类似，但归属名词不同。\n\n③ 验证：Scientists have confirmed the suspicion ✓（主句语法完整，同位语从句为可剥离成分）。",
       "exam_tip": "消除同位语从句时，只去掉 that 从句，不去掉先行词（suspicion/fact/belief等）。"
     },
@@ -2215,7 +2215,7 @@
       "context": "判断正误：\n\n句子 \"The idea that machines could think like humans was once dismissed as science fiction.\" 中，that machines could think like humans 是定语从句，限定\"哪种 idea 被驳斥\"。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“同位语”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "① 识别信号：idea/belief/notion/concept + that 从句，优先判为同位语从句；that 在从句内无句法功能是确认标志。\n\n② 核心规律：定语从句\"限定哪一个\"，同位语从句\"解释内容是什么\"——两者功能不同，判断方法是 that 在从句内是否充当成分。\n\n③ 验证：machines could think like humans 一句内主谓完整，无成分缺失，确认 that 是同位语从句引导词。",
       "exam_tip": "that 在从句内无成分（从句主谓宾完整）→ 同位语从句；that 在从句内充当主/宾语 → 定语从句。"
     },
@@ -2254,7 +2254,7 @@
       "context": "比较以下两句，理解同位语从句与宾语从句的区别：\n\n① He believed that the experiment would succeed.\n② His belief that the experiment would succeed was unfounded.\n\n两句中的 that 从句性质是否相同？各有什么区别？"
     },
     "analysis": {
-      "title": "在“同位语”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "① 的 that 从句由动词 believed 引出，作其内容宾语；② 的 that 从句说明名词 belief 的内容。区别在依附对象和功能，不是删除后能否独立成句：He believed 在适当语境中也能成立。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
     },
@@ -2278,7 +2278,7 @@
       "context": "阅读片段：\"Emerging evidence supports the argument that early-childhood interventions yield the highest long-term returns on investment compared to later-stage programs.\"\n\n对 that early-childhood interventions yield the highest long-term returns on investment compared to later-stage programs 的分析，哪项正确？"
     },
     "analysis": {
-      "title": "在“同位语”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：argument/theory/claim/position/view + that 从句，是同位语从句；从句内主谓完整是确认标志。\n\n② 核心规律：compared to later-stage programs 是 that 从句内部的比较状语，不影响同位语从句的识别——从句整体仍完整。\n\n③ 验证：Emerging evidence supports the argument ✓（主句成立）；that 从句补充 argument 的内容。",
       "exam_tip": "argument/claim/position/view/theory + that = 同位语从句，学术/议论文中高频出现。"
     },
@@ -2327,7 +2327,7 @@
       "context": "句子：\"The assumption that economic development automatically improves environmental conditions has been repeatedly challenged by empirical data.\"\n\n任务：消除句中同位语从句。"
     },
     "analysis": {
-      "title": "在“同位语”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "① 识别信号：assumption/premise/thesis/conviction + that 从句 = 同位语从句，解释\"所假设/所前提/所坚信的内容\"。\n\n② 核心规律：消除同位语从句后，宿主名词变为\"空泛指代\"（哪个假设？不知道）；主句语法成立，但语义需回头补充。\n\n③ 验证：The assumption has been challenged ✓（语法完整）。",
       "exam_tip": "assumption/premise/thesis/conviction + that 从句 → 同位语从句，社科类六级阅读中超高频。"
     },
@@ -2378,7 +2378,7 @@
       "context": "判断正误：\n\n句子 \"The proposal that stricter regulations be imposed on social media platforms has gained widespread support.\" 中，that stricter regulations be imposed on social media platforms 是定语从句，限定是哪个\"提案\"。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“同位语”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "① 识别信号：proposal/suggestion/recommendation/request + that + 虚拟语气（动词原形）是同位语从句的特殊形式，表\"提议做什么\"。\n\n② 核心规律：表达\"提议/建议/要求\"的名词（proposal/suggestion/recommendation）后的 that 从句用虚拟语气，这是同位语从句的固定搭配，不是定语从句。\n\n③ 验证：that 在从句内无成分缺失（从句主谓 regulations be imposed 完整）；换 which 不通。",
       "exam_tip": "proposal/suggestion/recommendation + that + 虚拟语气 = 同位语从句，这是\"建议类\"名词的固定句式。"
     },
@@ -2417,7 +2417,7 @@
       "context": "下面句子中，哪一部分可以先括起，使主干主谓关系立刻显现？\n\n\"The therapy, which experts now regard as a breakthrough, has been approved for widespread clinical use.\"\n\n括起以后，哪些补充信息仍需在理解题中保留？"
     },
     "analysis": {
-      "title": "区分插入语的句法可括起与语义信息价值",
+      "title": "解析",
       "summary": "① 识别信号：两个逗号夹住 which 引导的非限制性定语从句，可作为附加说明先整体括起。\n\n② 核心规律：‘可括起’只表示它不承担主干主谓关系，不表示完整语义完全不变。先读 The therapy has been approved...，再回看专家评价。\n\n③ 验证：括起后主句语法完整；放回插入语后，又得到“专家视其为突破”的态度信息。两步阅读兼顾速度与信息完整性。",
       "exam_tip": "先括插入语找主干，再回读插入语找态度、出处和补充论据。"
     },
@@ -2441,7 +2441,7 @@
       "context": "句子：\"The results of the experiment, contrary to the initial predictions, showed that the compound had no significant effect on tumor growth.\"\n\ncontrary to the initial predictions 在句中的功能是什么？"
     },
     "analysis": {
-      "title": "识别 contrary to 引导的评注性介词短语",
+      "title": "解析",
       "summary": "contrary to the initial predictions 是插入的评注性短语，表示结果与原来预测相反。先括起它，仍可看到 The results...showed... 的主谓关系；理解结果时要保留预期与事实的对比。",
       "exam_tip": "训练区分主干句法与对比态度信息。"
     },
@@ -2490,7 +2490,7 @@
       "context": "句子：\"The scientist's argument—that conventional medicine had ignored the psychological dimension of chronic pain—was eventually validated by a series of landmark studies.\"\n\n请消除这句话中的插入语。"
     },
     "analysis": {
-      "title": "用破折号边界识别并消除同位语 that 从句",
+      "title": "解析",
       "summary": "① 识别信号：破折号（—）夹住的 that 从句，与先行词 argument 构成同位语关系，是插入语的一种形式——同位语插入语。\n\n② 核心规律：破折号插入语比逗号插入语强调度更高，在学术/新闻语料中常用于突出核心论据。\n\n③ 验证：The scientist's argument was eventually validated… 是完整主句，插入部分可完整去除，确认是插入语。",
       "exam_tip": "破折号 — … — 夹住的内容是「强调型插入语」，去掉后主句成立，插入内容本身有教学意义。"
     },
@@ -2537,7 +2537,7 @@
       "context": "判断：\n\n句子 \"Her conclusion, however, was not supported by the data she had collected.\" 中，however 的插入不影响句子的主谓结构。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "判断 however 对主干句法和语篇转折的不同作用",
+      "title": "解析",
       "summary": "however 是连接上下文转折关系的语篇副词。删除后，Her conclusion was not supported... 的主谓结构仍完整，但转折关系不再被明确标示。不能说它毫无句法或语篇功能。",
       "exam_tip": "训练衔接副词的句法可删性与逻辑价值。"
     },
@@ -2576,7 +2576,7 @@
       "context": "阅读片段：\"The committee's decision to delay funding, a move widely criticized by advocacy groups, has drawn renewed attention to the systemic barriers facing emerging researchers.\"\n\n两处逗号之间的成分在句中充当什么角色？"
     },
     "analysis": {
-      "title": "识别重命名整件事件的名词短语同位语",
+      "title": "解析",
       "summary": "① 识别信号：逗号夹住一个以 a move 为中心的名词短语，位置紧跟在复杂主语之后。\n\n② 核心规律：若后一个名词短语能把前面的事件重新命名，并继续添加评价，它就是同位语插入，而不是宾语或并列主语。\n\n③ 验证：decision to delay funding 可以被概括为 a move；括起该短语后，decision 与 has drawn 仍构成完整主谓关系。",
       "exam_tip": "逗号 + 名词短语 + 逗号，先检查它能否重命名前面的名词或事件。"
     },
@@ -2625,7 +2625,7 @@
       "context": "句子：\"The proposal, as several municipal analysts later noted, failed to account for long-term maintenance costs.\"\n\nas several municipal analysts later noted 在句中的功能是什么？"
     },
     "analysis": {
-      "title": "识别 as 报告从句的来源评注功能",
+      "title": "解析",
       "summary": "① 识别信号：as + 主语 + 报告动词（as analysts noted/reported/suggested）被逗号隔开，通常是来源评注插入。\n\n② 核心规律：它不承担主句的主谓宾关系，删除后 proposal failed... 仍完整；但删除会丢失“谁提出这一观察”的出处。\n\n③ 验证：先括起可迅速锁定 The proposal failed to account for...；回读插入语后，再把该判断归因于 municipal analysts。",
       "exam_tip": "as + 主语 + noted/reported/suggested 常提示信息来源。"
     },
@@ -2674,7 +2674,7 @@
       "context": "句子：\"The city's transit overhaul—according to critics, an overly ambitious experiment—was postponed indefinitely.\"\n\n任务：消除句中的插入语部分。"
     },
     "analysis": {
-      "title": "消除破折号中的来源与评价组合插入",
+      "title": "解析",
       "summary": "① 识别信号：破折号 — ... — 常用于插入补充评价或解释。\n\n② 核心规律：插入语常带态度色彩（如 overly ambitious），是推断作者立场的重要线索。\n\n③ 验证：去掉插入语后主句语法完整。",
       "exam_tip": "破折号插入语通常信息密度高，常含态度词。"
     },
@@ -2725,7 +2725,7 @@
       "context": "判断：\n\n句子 \"The findings, in fact, contradict the assumptions used in earlier policy models.\" 中，in fact 删除后会改变主干句法关系。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "区分 in fact 的强调功能与主干句法",
+      "title": "解析",
       "summary": "① 识别信号：in fact/indeed/however/moreover 夹在逗号中，多为插入副词。\n\n② 核心规律：插入副词作用于语篇逻辑，不充当句法核心成分。\n\n③ 验证：删除后主谓宾完整。",
       "exam_tip": "插入副词常在逗号中出现，优先判为可删成分。"
     },
@@ -2764,7 +2764,7 @@
       "context": "比较：\n\n① The report, experts argue, underestimates regional inequality.\n② Experts argue that the report underestimates regional inequality.\n\n两句核心命题相同吗？句法差别在哪里？"
     },
     "analysis": {
-      "title": "比较插入式报告语与完整主从句的焦点差异",
+      "title": "解析",
       "summary": "① 识别信号：名词主语后逗号夹入“experts argue”多为插入评注。\n\n② 核心规律：插入评注与主句谓语的边界会影响句子焦点（谁在承担断言责任）。\n\n③ 验证：删去插入评注后①主句独立；②删去 that 从句则语义残缺。",
       "exam_tip": "同一语义可用插入评注或宾语从句表达，焦点不同。"
     },
@@ -2788,7 +2788,7 @@
       "context": "阅读片段：\"The strategy, to put it mildly, delivered results far below what stakeholders had anticipated.\"\n\nto put it mildly 在句中最准确的功能是？"
     },
     "analysis": {
-      "title": "识别 to put it mildly 的缓和与隐含强化",
+      "title": "解析",
       "summary": "① 识别信号：to put it mildly/frankly/simply 等固定短语常作插入语。\n\n② 核心规律：插入评注语常携带隐含态度（保守表达、讽刺、强化）。\n\n③ 验证：删去后主干依旧完整，命题关系不变。",
       "exam_tip": "to put it mildly 常暗示“真实程度比字面更严重”。"
     },
@@ -2837,7 +2837,7 @@
       "context": "句子：\"The initiative, much to the surprise of many local observers, gained bipartisan support within weeks.\"\n\n任务：消除句中的插入语成分。"
     },
     "analysis": {
-      "title": "消除副词性评注并保留意外态度信息",
+      "title": "解析",
       "summary": "① 识别信号：副词短语（surprisingly/ironically/notably）夹在逗号中常为插入评注。\n\n② 核心规律：插入评注语强化作者态度，但不承担主干句法功能。\n\n③ 验证：删除后主干仍为完整 SVO 结构。",
       "exam_tip": "surprisingly/notably/ironically 常是态度类插入语。"
     },
@@ -2888,7 +2888,7 @@
       "context": "判断：\n\n句子 \"The policy, analysts warn, may unintentionally widen the digital divide.\" 中，analysts warn 必须保留，否则主句语法不成立。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "判断 analysts warn 的句法可删性与警告来源价值",
+      "title": "解析",
       "summary": "① 识别信号：名词+动词短语夹在逗号中（analysts warn）常作插入评注。\n\n② 核心规律：插入评注语在信息层面重要，在句法层面可删。\n\n③ 验证：删除后主句仍有完整主谓结构。",
       "exam_tip": "阅读中先分“句法必要”与“信息重要”，插入评注多属后者。"
     },
@@ -2927,7 +2927,7 @@
       "context": "模拟阅读材料：The route was circuitous, taking us through several side streets instead of directly to the station.\n\n任务：不查词典，说明后半句怎样帮助判断 circuitous 的意思。"
     },
     "analysis": {
-      "title": "利用同句解释限定生词含义",
+      "title": "解析",
       "summary": "through several side streets 与 instead of directly 对照经过多条小路和不直接到达，支持“路线曲折”的含义。线索来自完整对比关系，不是固定只读目标词左右几个单词；若信息仍不足，不能硬猜成唯一精确释义。",
       "exam_tip": "把候选词义代回解释部分，检查逻辑是否保持一致。"
     },
@@ -2951,7 +2951,7 @@
       "context": "问题：existential 在该句中最接近哪一项含义？"
     },
     "analysis": {
-      "title": "依据具体句子识别句内语义线索",
+      "title": "解析",
       "summary": "后面的同位解释 a threat so severe... 直接限定 existential risk 的强度，语义是“生存层面的、关乎存亡的风险”。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3000,7 +3000,7 @@
       "context": "练习材料（虚构情境）\n阅读片段：The claim sounds intuitive, yet the data consistently point in the opposite direction.\n\n任务：划去与 intuitive 的语境义或句内关系不符的说法。"
     },
     "analysis": {
-      "title": "依据具体句子识别句内语义线索",
+      "title": "解析",
       "summary": "intuitive 表示凭直觉显得合理；yet 和 opposite direction 表明数据没有支持这一初步印象。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3048,7 +3048,7 @@
       "context": "判断：如果句中出现 in other words，后面的内容通常可以作为前面生词的近义复述线索。"
     },
     "analysis": {
-      "title": "依据具体句子识别句内语义线索",
+      "title": "解析",
       "summary": "正确。\n\nin other words 的常见功能就是“换句话说”，后半句常对前句关键词进行同义解释或范围收窄，是句内猜词的高价值证据。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3087,7 +3087,7 @@
       "context": "问题：impractical 在句中最可能表示什么？"
     },
     "analysis": {
-      "title": "依据具体句子识别句内语义线索",
+      "title": "解析",
       "summary": "but 构成对比：feasible in theory 对应 impractical in neighborhoods。\n后半句又给出原因（多数顾客远距离开车），说明该建议在现实执行层面“不切实际、难落地”。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3136,7 +3136,7 @@
       "context": "句子：\"The committee described the proposal as onerous, meaning that small firms would struggle to comply without additional staff.\"\n\n根据句内线索，onerous 最可能是什么意思？"
     },
     "analysis": {
-      "title": "在“句内语义线索”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：meaning that / namely / in other words 常直接释义前词。\n\n② 核心规律：先读释义线索，再反推生词语义，避免仅凭词形猜测。\n\n③ 验证：把“负担重”代回原句，语义连贯。",
       "exam_tip": "guess-word 先找释义标记词，再回填验证。"
     },
@@ -3185,7 +3185,7 @@
       "context": "练习材料（虚构情境）\n阅读片段：The campaign looked spontaneous, but internal emails revealed a meticulously orchestrated rollout.\n\n任务：划去对 spontaneous 或前后对比的错误解释。"
     },
     "analysis": {
-      "title": "在“句内语义线索”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "看起来自发，与邮件显示的精心安排相对。looked 描述表象，revealed 引出后发现的信息。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
     },
@@ -3233,7 +3233,7 @@
       "context": "句子：The meeting had one prerequisite, namely that all participants read the report beforehand.\n\n判断：namely 后的内容说明这里 prerequisite 指会前阅读报告这一前提要求。"
     },
     "analysis": {
-      "title": "在“句内语义线索”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "namely 引出具体说明，that 从句补充 prerequisite 的内容。不是任何随后出现的词都属于定义，要看它实际对应的对象。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中快速判断当前表达或策略是否成立，并形成可重复执行的作答步骤。"
     },
@@ -3272,7 +3272,7 @@
       "context": "阅读片段：The instructions were opaque. Even experienced staff could not work out what to do next.\n\n任务：opaque 在这里是什么意思？后一句提供了什么依据？"
     },
     "analysis": {
-      "title": "利用释义与结果线索推断词义",
+      "title": "解析",
       "summary": "后一句说有经验的员工也不明白下一步怎么做，说明问题在可理解性，而不是纸张是否透明。",
       "exam_tip": "先尝试语境义，再把它代回前后句验证。"
     },
@@ -3296,7 +3296,7 @@
       "context": "句子：\"The medicine is palliative rather than curative; it eases symptoms but does not eliminate the underlying disease.\"\n\n根据句内线索，palliative 最接近哪项？"
     },
     "analysis": {
-      "title": "在“句内语义线索”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：rather than 与 but not 提供双重对比释义。\n\n② 核心规律：医学语境下 curative（治愈）对立词常是 palliative（缓解）。\n\n③ 验证：代入“缓解性”后，全句语义一致。",
       "exam_tip": "双重线索（rather than + but）出现时，词义判断可靠度更高。"
     },
@@ -3345,7 +3345,7 @@
       "context": "练习材料（虚构情境）\n阅读片段：The witness gave an equivocal answer, neither fully denying nor explicitly confirming the allegation.\n\n任务：划去对 equivocal 或后半句释义的错误解释。"
     },
     "analysis": {
-      "title": "在“句内语义线索”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "neither...nor... 说明既未充分否认，也未明确确认，支持含糊而非肯定或否定的明确表态。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
     },
@@ -3393,7 +3393,7 @@
       "context": "判断：\n\n句子 \"The policy was hailed as pragmatic, that is, realistic within existing fiscal constraints.\" 中，that is 后面的内容可以用来界定 pragmatic 的语义范围。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“句内语义线索”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "① 识别信号：that is/namely/in other words 典型释义标记。\n\n② 核心规律：释义标记后的信息是猜词的高置信证据。\n\n③ 验证：将“现实可行”代回 pragmatic，语义一致。",
       "exam_tip": "释义标记后的内容通常可直接作为选项表述依据。"
     },
@@ -3432,7 +3432,7 @@
       "context": "模拟阅读材料：The new booking system initially looked promising. However, repeated cancellations soon made users reluctant to rely on it.\n\n任务：后句如何限制前句的积极评价？"
     },
     "analysis": {
-      "title": "用前后句推断评价词的变化",
+      "title": "解析",
       "summary": "However 引出后续限制，repeated cancellations 是具体依据，reluctant to rely 表明用户信任下降。后句没有否认系统一开始看起来有希望，而是在修正对持续效果的判断。",
       "exam_tip": "转折可以限制前文的适用范围，而不必否定前文每个事实。"
     },
@@ -3456,7 +3456,7 @@
       "context": "问题：S2 在逻辑上对 S1 的作用最准确的是哪一项？"
     },
     "analysis": {
-      "title": "依据具体句子识别句间语义线索",
+      "title": "解析",
       "summary": "S2 由 However 引导，作用是转折纠偏：对 S1 的宣传主张提出反证，指出所谓“个性化”实为群体统计推断。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3505,7 +3505,7 @@
       "context": "划去不能由材料支持的判断，保留有依据的判断。"
     },
     "analysis": {
-      "title": "依据具体句子识别句间语义线索",
+      "title": "解析",
       "summary": "S2 用 Still 在承认入学进展的同时补充高级岗位代表性不足。S3 是作者提出的推测，不是仅凭这两项统计就证明留存率变化；理解其功能与认可其证明力度是两回事。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3552,7 +3552,7 @@
       "context": "判断：若后句以 For example 开头，则该后句通常承担“提出主结论”的功能。"
     },
     "analysis": {
-      "title": "依据具体句子识别句间语义线索",
+      "title": "解析",
       "summary": "❌ 错误。\n\nFor example 通常引入例证，功能是支持前面已有观点，而不是提出主结论。\n\n主结论更常由 therefore, this suggests, in short, overall 等总结信号承载。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3591,7 +3591,7 @@
       "context": "问题：下列哪项最准确概括这三句的逻辑链？"
     },
     "analysis": {
-      "title": "依据具体句子识别句间语义线索",
+      "title": "解析",
       "summary": "As a result 连接成本下降与服务扩张；Yet 限制进一步推断：更便宜不自动意味着解释更准确。材料没有断言解释能力毫无改善，只是否定二者必然同步。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3640,7 +3640,7 @@
       "context": "问题：By contrast 的逻辑作用是什么？"
     },
     "analysis": {
-      "title": "在“句间语义线索”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：By contrast/however/yet 常触发句间转折。\n\n② 核心规律：句间猜词或推断题要先判逻辑关系，再判词义与立场。\n\n③ 验证：后句与“democratize”预期冲突，说明是对照而非递进。",
       "exam_tip": "先判连接词功能，再看内容细节。"
     },
@@ -3689,7 +3689,7 @@
       "context": "划去不能由材料支持的判断，保留有依据的判断。"
     },
     "analysis": {
-      "title": "在“句间语义线索”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "初期增长快与试用后留存下降形成对照；第三句据此指出仅靠获客激励的局限。不能把留存下降改成持续上升。",
       "exam_tip": "每项判断都要有材料依据，不能只匹配相同词语。"
     },
@@ -3736,7 +3736,7 @@
       "context": "判断：\n\n在句间线索题中，如果后句以 Therefore 开头，它通常承载的是上文结论而不是新话题。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“句间语义线索”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "① 识别信号：Therefore/Thus/As a result 均是结果标记。\n\n② 核心规律：结果句是上文信息的逻辑输出。\n\n③ 验证：删除前文后，Therefore 句往往缺乏依据，说明其依赖上文。",
       "exam_tip": "结果连接词后句常是可考主结论。"
     },
@@ -3775,7 +3775,7 @@
       "context": "策略卡： 句间猜词时，目标词所在句信息不足，如何利用前后句补足语义？"
     },
     "analysis": {
-      "title": "依据具体句子识别句间语义线索",
+      "title": "解析",
       "summary": "可用三步：\n1) 判关系：转折/因果/递进/举例。\n2) 找回指：this/that/such 指向哪条前文命题。\n3) 做回填：将候选义代回三句，检查逻辑是否闭合。\n\n重点是“跨句证据整合”，而非单句孤立猜测。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3799,7 +3799,7 @@
       "context": "问题：在该语境中，scalable 最可能被后句如何修正？"
     },
     "analysis": {
-      "title": "依据具体句子识别句间语义线索",
+      "title": "解析",
       "summary": "scalable 仍表示可扩展。后句质疑的是本项目在不同地区推广的成本条件，并未改变这个单词的基本词义，也未证明项目完全不能推广。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -3848,7 +3848,7 @@
       "context": "划去不能由材料支持的判断，保留有依据的判断。"
     },
     "analysis": {
-      "title": "依据具体句子识别句间语义线索",
+      "title": "解析",
       "summary": "短期效果与未来可能的反弹同时存在；could 保留可能性，不能改成效果永久不变。配套改革建议承接了这个限制。",
       "exam_tip": "每项判断都要有材料依据，不能只匹配相同词语。"
     },
@@ -3895,7 +3895,7 @@
       "context": "判断：\n\n句间线索题中，若 S2 用 Yet 开头，通常说明 S2 是对 S1 的部分否定或限制，而不是简单重复。\n\n这个判断正确吗？"
     },
     "analysis": {
-      "title": "在“句间语义线索”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "① 识别信号：Yet/However/Still 均属转折标记。\n\n② 核心规律：转折句是句间推断的高价值信息位。\n\n③ 验证：若 S2 与 S1 完全同义，使用 Yet 将不合语用逻辑。",
       "exam_tip": "转折后信息常是出题点。"
     },
@@ -3934,7 +3934,7 @@
       "context": "读到这句话，你能猜出划线词的意思吗？\n\nThe company's misdistribution of relief funds left vulnerable communities without adequate support.\n\n没见过这个词？试着拆解它：\nMIS-  |  DISTRIBUT-  |  -ION\n\n三个部件组合起来，语义是什么？"
     },
     "analysis": {
-      "title": "在“构词法”任务中识别并解释关键知识或解题线索",
+      "title": "解析",
       "summary": "① 识别信号：遇到一个长词，且词中含有你认识的基础词或熟悉的前缀时，优先使用构词法，而非整体猜。\n② 核心规律：英语词汇约60%来自拉丁/希腊词根，常见前缀（mis-, un-, re-, over-, pre-）和后缀（-tion, -ive, -ize, -ment）数量有限但覆盖极广；掌握约30个高频词根可解锁数千词汇。\n③ 验证：将错误的分配行为代入原句——救灾物资的分配出了问题，导致脆弱社区没有得到足够支持——语义完全通顺。",
       "exam_tip": "前缀决定方向（否定/重复/过度/错误），词根决定核心语义，后缀决定词性；猜词时三层缺一不可。"
     },
@@ -3958,7 +3958,7 @@
       "context": "阅读片段：\n\nDespite a promising start, the new policy proved largely ineffectual in reducing urban congestion. Experts attributed its failure to poor enforcement mechanisms rather than a flawed design.\n\n根据构词法，ineffectual 最接近哪个意思？"
     },
     "analysis": {
-      "title": "在“构词法”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "① 识别信号：in- 后接形容词词根是最高频的否定前缀组合，考试中出现频率很高。\n② 核心规律：in- 在以 b/m/p 开头的词根前变形为 im-（impossible, immobile），在 r 前变为 ir-（irregular），在 l 前变为 il-（illegal）——这些都是同一前缀的变体。\n③ 验证：A 复杂的含义不能从词根推出；C 创新的与 in- 否定义矛盾；D 有争议的找不到词根支持。",
       "exam_tip": "in- 否定前缀的四个变体（in-/im-/ir-/il-）覆盖了四级阅读中大量难词，遇到时首先判断是否定还是在内两种含义（如 income 中 in- 是进入而非否定）。"
     },
@@ -4007,7 +4007,7 @@
       "context": "阅读片段：\n\nThe overrepresentation of male candidates in leadership pipelines has led several organizations to adopt gender-conscious selection criteria, aiming to recalibrate the balance before the next hiring cycle.\n\n下方列出了两个划线词的构词分析。请消除其中**分析有误**的部分（正确的保留，错误的消除）。"
     },
     "analysis": {
-      "title": "在“构词法”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "划去 B 和 D。-ation 在这些词中构成表示行为或结果的名词；re- 与 calibrate 组合为重新校准。-ate 和 -ize 都可能构成动词，但属于不同词的固定构词形式，不能随意替换。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
     },
@@ -4055,7 +4055,7 @@
       "context": "判断：遇到可辨认出词根或词缀的陌生词时，可以用构词信息提出候选含义，再结合上下文核对；仅凭一个字母片段，不能保证猜对。"
     },
     "analysis": {
-      "title": "在“构词法”任务中快速判断当前表达或策略是否成立",
+      "title": "解析",
       "summary": "构词法提供线索，而不是保证。比如 re- 在 rebuild 中表示重新，但不能把任何以 re 开头的词都按相同方式拆解。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中快速判断当前表达或策略是否成立，并形成可重复执行的作答步骤。"
     },
@@ -4094,7 +4094,7 @@
       "context": "阅读片段：\n\nSurveys consistently show that respondents underestimate the prevalence of mental health disorders, partly because milder conditions often go undiagnosed and therefore do not enter public statistics. This underreporting creates a misleading picture of population wellbeing.\n\n三个划线词（underestimate / undiagnosed / underreporting）都包含表示不足/缺失的前缀。以下哪项对这一构词现象的归纳**最准确**？"
     },
     "analysis": {
-      "title": "在“构词法”任务中依据题面证据完成选项判断",
+      "title": "解析",
       "summary": "应按当前三个完整单词解释词缀功能。不能把 un- 一概定义为绝对缺失，也不能断言所有含这些字母的词都具有同一方向。",
       "exam_tip": "帮助用户在CET4仔细阅读任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
     },
@@ -4143,7 +4143,7 @@
       "context": "模拟阅读材料：Residents described the office as unaccountable because no one could question its decisions or require an explanation.\n\nunaccountable 在这里最接近什么？"
     },
     "analysis": {
-      "title": "结合 un- 与语境解释 accountable 的反义方向",
+      "title": "解析",
       "summary": "un- 否定 accountable 的负责任、须说明决定的含义；后面的不能质疑决定或要求解释提供具体线索。它不表示办公室人数少、工作速度慢或没有计算机。",
       "exam_tip": "先检查前缀改变了哪个词义，再用句中解释排除其他义项。"
     },
@@ -4192,7 +4192,7 @@
       "context": "根据构词法和上下文，划去不成立的判断。"
     },
     "analysis": {
-      "title": "在“构词法”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "mis- 表示错误或不当，后面的资金偏离弱势家庭说明了错配。不能把它译成更高效分配，也不能补出所有需要帮助的人均已获得资金。",
       "exam_tip": "每项判断都要有材料依据，不能只匹配相同词语。"
     },
@@ -4240,7 +4240,7 @@
       "context": "判断： 在构词法题中，只要识别出前缀含义，就可以不看后缀和语境直接定答案。 这个判断正确吗？"
     },
     "analysis": {
-      "title": "依据具体句子识别构词法",
+      "title": "解析",
       "summary": "前缀和后缀可以提示方向或词性，仍须核对完整词形与语境。词尾相似并不保证词性相同，例如 friendly 是形容词。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -4279,7 +4279,7 @@
       "context": "比较三个模拟句子：\nThe service is unavailable today.\nThe project is underfunded.\nThe result was misinterpreted.\n\n任务：解释 un-、under-、mis- 在这些词中的不同作用。"
     },
     "analysis": {
-      "title": "区分否定、不足与错误三个前缀方向",
+      "title": "解析",
       "summary": "un- 在 unavailable 中是否定可用性，不表示服务从未存在；under- 表示程度不足，而非完全没有资金；mis- 表示理解方式错误。un- 在 undo、unpack 中还可表示撤销或反向动作，因此前缀含义必须结合具体词来判断。",
       "exam_tip": "将“没有/不”“不够”“做错”区分开，再回到整词和语境。"
     },
@@ -4303,7 +4303,7 @@
       "context": "模拟阅读材料：The team was underprepared for the inspection: several records were missing, and staff could not explain the procedure.\n\nunderprepared 最接近什么？"
     },
     "analysis": {
-      "title": "结合 under- 判断准备不足",
+      "title": "解析",
       "summary": "under- 在这里表示程度不足，冒号后的缺记录、说不清程序是准备不充分的具体表现。它不等于团队完全没有出现，也不意味着检查已经通过。",
       "exam_tip": "under- 常提示低于所需程度，但具体不足之处要由后文确认。"
     },
@@ -4352,7 +4352,7 @@
       "context": "根据构词法和上下文，划去不成立的判断。"
     },
     "analysis": {
-      "title": "在“构词法”任务中逐项排除不符合证据的内容",
+      "title": "解析",
       "summary": "over- 表示过度。作者反对把短期波动直接当成结构变化，不是反对一切解释。",
       "exam_tip": "每项判断都要有材料依据，不能只匹配相同词语。"
     },
@@ -4400,7 +4400,7 @@
       "context": "判断： 若一个长词可拆出熟悉词根，但拆分结果与上下文冲突，应优先相信上下文而不是机械拆词。 这个判断正确吗？"
     },
     "analysis": {
-      "title": "依据具体句子识别构词法",
+      "title": "解析",
       "summary": "✅ 正确。\n\n构词拆解给的是候选义，最终判定必须接受语境约束。\n\n若拆词义与句意冲突，应以语境证据为准并调整解释。",
       "exam_tip": "候选含义须能解释材料中的具体线索，不能仅凭熟悉词形确定答案。"
     },
@@ -4439,7 +4439,7 @@
       "context": "语境：The library needs more _____ for students who want to read quietly.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "more 后的空格是 needs 的宾语核心，表示阅读空间，应填名词 space。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4488,7 +4488,7 @@
       "context": "语境：Please keep a _____ of the payment in case you need it later.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "keep a record of 表示保留记录；a 要求单数。recordable 是形容词，不能独立充当这里的名词核心。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4537,7 +4537,7 @@
       "context": "语境：The guide gives a clear _____ of how to use the ticket machine.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "a clear 后缺名词核心，of how... 说明内容；explanation 表示解释。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4586,7 +4586,7 @@
       "context": "语境：We received an _____ to the opening of the student art show.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "冠词 an 后需要名词核心，invitation to 表示参加活动的邀请。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4635,7 +4635,7 @@
       "context": "语境：The rain caused a short _____ in the bus service.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "a short delay 表示短暂延误；delayed 不能独立完成这个名词短语。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4684,7 +4684,7 @@
       "context": "语境：The museum offers a _____ on tickets for full-time students.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "offer a discount on tickets 表示票价优惠，a 后用单数名词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4733,7 +4733,7 @@
       "context": "语境：There is a clear _____ between the two versions of the map.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "a clear 后缺名词核心，between 引出比较对象；difference 是差异。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4782,7 +4782,7 @@
       "context": "语境：The survey asked for each visitor's _____ about the new opening hours.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "所有格后需要名词性内容，opinion 表示意见。这里不需要形容词、动词原形或副词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4831,7 +4831,7 @@
       "context": "语境：A lack of _____ made it difficult to see the street signs at night.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "lack of 后需要名词性宾语，light 表示照明或光线；lightly 是副词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4880,7 +4880,7 @@
       "context": "语境：The timetable gives useful _____ about the first and last trains.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "gives 后的宾语由 useful 修饰，information 是不可数名词，表示信息。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4929,7 +4929,7 @@
       "context": "语境：The instructions are _____ enough for a first-time user to follow.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "are 后的 clear 描述 instructions 的性质，enough 放在该形容词之后。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -4978,7 +4978,7 @@
       "context": "语境：The new entrance is _____ to wheelchair users.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "is 后需要描述入口性质的形容词，accessible to 表示可供某类人使用。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5027,7 +5027,7 @@
       "context": "语境：After the long walk, everyone felt _____ and wanted to sit down.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "felt 在这里是连系动词，tired 描述人的状态；tiredness 是名词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5076,7 +5076,7 @@
       "context": "语境：We chose a _____ room because the meeting required careful discussion.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "空格在冠词与名词 room 之间作前置修饰，quiet 表示安静的。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5125,7 +5125,7 @@
       "context": "语境：The staff were _____ when I asked where to find the reading room.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "were 后的 helpful 描述工作人员的态度，helpfully 通常修饰动作。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5174,7 +5174,7 @@
       "context": "语境：The tickets are _____ for one month from the date of purchase.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "are 后接形容词 valid 表示有效，后面的 for 短语说明有效期。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5223,7 +5223,7 @@
       "context": "语境：The old bridge is no longer _____ for heavy vehicles.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "is 后用 safe 描述桥的安全状态，safely 不能在此承担形容词表语。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5272,7 +5272,7 @@
       "context": "语境：Please put your name in the _____ box at the top of the form.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "empty 修饰名词 box，表示空白框；词义也与填写姓名的要求一致。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5321,7 +5321,7 @@
       "context": "语境：The classroom became _____ after the broken fans were repaired.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "became 后用形容词比较级 cooler，表示修理风扇后温度降低。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5370,7 +5370,7 @@
       "context": "语境：It is _____ to book a seat before the exam period begins.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "It is...to... 中 advisable 是表语，表示这样做是明智的；advice 是名词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5419,7 +5419,7 @@
       "context": "语境：Every student must _____ a library card before borrowing books.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "情态动词 must 后接动词原形 show，不能直接接第三人称或过去式。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5468,7 +5468,7 @@
       "context": "语境：The main gate _____ at ten o'clock every evening.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "主语 gate 为单数，every evening 表示惯常安排，因此用 closes。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5517,7 +5517,7 @@
       "context": "语境：The printer stopped, so I _____ the technician yesterday.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "明确的 yesterday 指向过去，called 与叙述时间一致。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5566,7 +5566,7 @@
       "context": "语境：The student union has _____ a new notice about the trip.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "has 后用过去分词 posted，组成现在完成时。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5615,7 +5615,7 @@
       "context": "语境：The visitors were _____ to wait outside while the room was cleaned.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "visitors 是被要求等待的人，were asked 构成被动语态。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5664,7 +5664,7 @@
       "context": "语境：Please _____ the window before you leave the room.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "祈使句以动词原形 close 表示请求，Please 不改变这一形式。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5713,7 +5713,7 @@
       "context": "语境：My classmates _____ the campus garden every Friday.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "复数主语 classmates 与 every Friday 的惯常动作对应动词原形 water。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5762,7 +5762,7 @@
       "context": "语境：We are _____ for the next bus because this one is full.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "are waiting 表示正在等待；are 后不能直接放动词原形构成进行时。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5811,7 +5811,7 @@
       "context": "语境：The club plans to _____ a repair workshop next month.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "plans to 后的不定式用动词原形 hold，表示计划举办。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5860,7 +5860,7 @@
       "context": "语境：If the office _____ early tomorrow, we will send the form online.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "表示将来条件的 if 从句在此用一般现在时，office 为单数，填 closes。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5909,7 +5909,7 @@
       "context": "语境：The librarian explained the rules _____ so that everyone could follow them.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "空格修饰 explained 这一动作，clearly 表示解释得清楚。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -5958,7 +5958,7 @@
       "context": "语境：Please walk _____ near the study room; people are reading inside.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "修饰 walk 的方式需用副词 quietly，不能用名词 quietness。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6007,7 +6007,7 @@
       "context": "语境：The two maps look _____ similar, but one shows an older bus route.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "similar 是形容词表语，前面用程度副词 very；两个版本相似仍可能有差别。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6056,7 +6056,7 @@
       "context": "语境：The lift was out of order, so we used the stairs _____ .\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "instead 可独立作副词表示改用另一种方式；instead of 后还需要宾语。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6105,7 +6105,7 @@
       "context": "语境：The volunteers _____ checked every name against the list.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "carefully 修饰核对动作的方式，careful 通常描述人或行为的性质。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6154,7 +6154,7 @@
       "context": "语境：The bus arrived _____, so we missed the beginning of the lecture.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "late 在这里作副词表示晚到；lately 表示最近，不能表达这次迟到。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6203,7 +6203,7 @@
       "context": "语境：The notice was written _____ in both English and Chinese.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "correctly 修饰 was written，表示书写正确；其他选项不能承担这个方式状语。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6252,7 +6252,7 @@
       "context": "语境：The room was _____ full when we arrived; only one seat was free.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "almost full 表示几乎满了，与只剩一个空位一致。其他选项不能表达这一接近满员的程度。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6301,7 +6301,7 @@
       "context": "语境：I have _____ finished the report, but I still need to check the dates.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "nearly finished 表示接近完成，仍需核对日期；nearby 表示地点在附近。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6350,7 +6350,7 @@
       "context": "语境：The new route runs _____ between the station and the campus.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "directly 修饰 runs，表示直接连接两地；direction 与 directional 不能作该方式状语。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6399,7 +6399,7 @@
       "context": "语境：The tutor gave us some useful _____ about choosing a course.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "useful 修饰名词性宾语；advice 是不可数名词，some advice 表示一些建议。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6448,7 +6448,7 @@
       "context": "语境：The club asked for _____ before using the university logo.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "ask for permission 表示请求许可；permit 作许可证时通常是可数名词，需要限定词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6497,7 +6497,7 @@
       "context": "语境：The students completed the project with very little _____ from their tutor.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "very little 在这里限定不可数名词 help，from... 说明帮助来源。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6546,7 +6546,7 @@
       "context": "语境：Several _____ were raised at the meeting, and each was discussed.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "Several 要求复数可数名词，questions 与 were 也保持主谓一致。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6595,7 +6595,7 @@
       "context": "语境：The office sent a written _____ of the booking to my email address.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "冠词和 written 之后缺名词核心，confirmation of 表示预订确认。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6644,7 +6644,7 @@
       "context": "语境：The price includes the _____ of equipment for the workshop.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "the use of equipment 表示设备使用这一过程，of 后说明对象。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6693,7 +6693,7 @@
       "context": "语境：A sudden _____ in temperature damaged some of the plants.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "A sudden 后的名词 drop 表示下降，in temperature 说明变化的指标。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6742,7 +6742,7 @@
       "context": "语境：The success of the event depended on close _____ between the two clubs.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "close 是前置形容词，空格需名词 cooperation；between 引出合作双方。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6791,7 +6791,7 @@
       "context": "语境：Each _____ must show a student card at the entrance.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "Each 限定单数可数名词，visitor 指每位来访者。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6840,7 +6840,7 @@
       "context": "语境：The report contains a detailed _____ of the problem, followed by two possible solutions.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成名词练习",
+      "title": "解析",
       "summary": "a detailed 后缺名词 description，of the problem 说明描述对象。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6889,7 +6889,7 @@
       "context": "语境：The instructions left several first-year students _____ about what to do next.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "left students confused 中，形容词补足语 confused 描述学生的困惑状态。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6938,7 +6938,7 @@
       "context": "语境：The speaker made a _____ distinction between a plan and a promise.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "空格修饰名词 distinction，用形容词 clear，而不是修饰动作的 clearly。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -6987,7 +6987,7 @@
       "context": "语境：Students found the new booking process _____ to understand.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "found the process easy 中 easy 描述宾语 process，to understand 补充容易做什么。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7036,7 +7036,7 @@
       "context": "语境：The old chairs were replaced because they had become _____ .\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "become 后的 unsafe 描述椅子的状态。因为不安全而更换，意思也与前句一致。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7085,7 +7085,7 @@
       "context": "语境：There was nothing _____ about the delay; the driver explained the cause.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "修饰 nothing 的形容词放在后面，nothing unusual 表示没什么异常。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7134,7 +7134,7 @@
       "context": "语境：The room was too _____ to hold all fifty participants.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "too small to... 表示太小以至无法容纳；small 是形容词，承担表语。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7183,7 +7183,7 @@
       "context": "语境：The information on the notice board remained _____ throughout the term.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "remained 后用形容词 accurate 表示信息始终准确，throughout 交代时间范围。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7232,7 +7232,7 @@
       "context": "语境：With only one person at the desk, the service was slower than _____ .\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "than usual 是惯用的比较表达，指比平时慢；usually 通常作句中频率副词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7281,7 +7281,7 @@
       "context": "语境：All borrowed tools must be kept _____ until they are returned.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "be kept clean 中 clean 描述工具应保持的状态，是主语补足成分。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7330,7 +7330,7 @@
       "context": "语境：The results were _____ with the explanation given in class.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词练习",
+      "title": "解析",
       "summary": "be consistent with 表示与某内容相符，consistent 是形容词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7379,7 +7379,7 @@
       "context": "语境：Neither of the two rooms _____ available this afternoon.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "Neither 在此指两者都不，单数谓语 is 符合这一正式书面结构。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7428,7 +7428,7 @@
       "context": "语境：The number of students using the room _____ increased this term.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "主语中心是单数 number，has increased 构成现在完成时；不是按 students 的复数决定谓语。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7477,7 +7477,7 @@
       "context": "语境：A number of students _____ waiting outside when the doors opened.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "a number of students 表示许多学生，were waiting 与复数意义一致。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7526,7 +7526,7 @@
       "context": "语境：By the time we arrived, the workshop had already _____ .\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "had 后接过去分词 started，表示在到达之前已开始。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7575,7 +7575,7 @@
       "context": "语境：The windows _____ cleaned every Friday by a local company.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "复数主语 windows 承受清洁动作，are cleaned 是一般现在时被动。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7624,7 +7624,7 @@
       "context": "语境：The report, together with two maps, _____ on the teacher's desk.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "together with... 不改变主语中心 report 的单数性质，因此用 is。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7673,7 +7673,7 @@
       "context": "语境：We stopped _____ because the room was needed for another class.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "stopped talking 表示停止交谈；stop 后的动名词指被停止的活动。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7722,7 +7722,7 @@
       "context": "语境：The staff reminded us to _____ our bags before leaving.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "reminded us to 后用动词原形 check，表示提醒我们做什么。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7771,7 +7771,7 @@
       "context": "语境：This machine must be _____ before it can be used again.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "must be 后接过去分词 repaired，表示机器必须被修理；repairing 不能在此表达被动关系。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7820,7 +7820,7 @@
       "context": "语境：The children watched the artist _____ a picture from start to finish.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词练习",
+      "title": "解析",
       "summary": "watch somebody do 可表示看到完整动作过程，与 from start to finish 对应；此结构不用 to draw。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7869,7 +7869,7 @@
       "context": "语境：The guide spoke slowly enough for us to follow every point _____ .\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "空格修饰 follow 的方式，easily 表示容易地理解，而 easy 是形容词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7918,7 +7918,7 @@
       "context": "语境：The room was _____ cold, so we moved the meeting upstairs.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "程度或感受副词 uncomfortably 修饰 cold，说明冷得让人不适。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -7967,7 +7967,7 @@
       "context": "语境：The new timetable is _____ different from the old one.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "副词 slightly 修饰形容词 different，表示只有轻微差别。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8016,7 +8016,7 @@
       "context": "语境：All forms must be filled in _____ before they are submitted.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "completely 修饰 filled in，要求填完整；completion 是名词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8065,7 +8065,7 @@
       "context": "语境：The two groups worked _____ of each other until the final discussion.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "independently of 表示相互独立地工作，修饰动作 worked。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8114,7 +8114,7 @@
       "context": "语境：The painting was _____ damaged in transit and could not be displayed.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "badly damaged 表示严重受损，副词修饰过去分词，而不是把 damaged 当作名词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8163,7 +8163,7 @@
       "context": "语境：We will contact you _____ after the final decision is made.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "shortly 在这里表示不久，修饰联系的时间，不是说联络内容很短。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8212,7 +8212,7 @@
       "context": "语境：The new rule applies _____ to students and staff.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "equally 表示同等地适用，修饰 applies；equalize 是动词原形。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8261,7 +8261,7 @@
       "context": "语境：The classroom is _____ large, but its narrow entrance makes access difficult.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "reasonably large 表示相当大或大小尚可，副词修饰形容词 large。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8310,7 +8310,7 @@
       "context": "语境：She checked the list twice and _____ noticed that one name was missing.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成副词练习",
+      "title": "解析",
       "summary": "finally 修饰 noticed，表示到最后才发现，其他选项不能作该时间副词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8359,7 +8359,7 @@
       "context": "语境：Please listen _____ the recording before answering the question.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "listen to 后接要听的内容。listen 是不及物动词，这里通过 to 连接 recording。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8408,7 +8408,7 @@
       "context": "语境：The final choice will depend _____ how many seats are available.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "depend on 表示取决于，on 后可接 how 引导的内容从句。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8457,7 +8457,7 @@
       "context": "语境：We apologized _____ the delay and offered to rearrange the visit.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "apologize for 后接需要道歉的事情；向某人道歉时另用 apologize to somebody。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8506,7 +8506,7 @@
       "context": "语境：The two clubs agreed _____ work together on the event.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "agree to do 表示同意做某事，to 后用动词原形；agree on 后通常接商定的事项。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8555,7 +8555,7 @@
       "context": "语境：Please look _____ this word in the dictionary before using it.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "look up a word 表示查词典，dictionary 明确了这里所需的查找行为。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8604,7 +8604,7 @@
       "context": "语境：The old lights were replaced _____ energy-saving ones.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "replace A with B 表示用 B 替换 A；被动句保留 with 引出替换物。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8653,7 +8653,7 @@
       "context": "语境：We ran _____ of paper halfway through printing the report.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "run out of something 表示把某物用完，out of 需要作为整体理解。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8702,7 +8702,7 @@
       "context": "语境：Several students volunteered to help _____ the community garden.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "help 后可接动词原形或 to 不定式；这里给定的可用形式是 maintain。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8751,7 +8751,7 @@
       "context": "语境：Please hand _____ your visitor pass at the desk before leaving.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "hand in 表示交回或提交，与离开前归还通行证的要求一致。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8800,7 +8800,7 @@
       "context": "语境：The organisers called _____ the outdoor event because of the storm.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成动词+介词/副词练习",
+      "title": "解析",
       "summary": "call off 表示取消，暴风雨解释为何取消室外活动；其他短语不表示这个动作。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8849,7 +8849,7 @@
       "context": "语境：We made a _____ decision after reading both reports.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词+名词练习",
+      "title": "解析",
       "summary": "careful 修饰 decision，表示经过认真考虑；carefully 应修饰做决定的动作。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8898,7 +8898,7 @@
       "context": "语境：The meeting produced a _____ agreement on the opening hours.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词+名词练习",
+      "title": "解析",
       "summary": "final agreement 表示最终协议，形容词 final 修饰名词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8947,7 +8947,7 @@
       "context": "语境：The workshop gave students _____ experience of repairing simple devices.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词+名词练习",
+      "title": "解析",
       "summary": "practical experience 表示实践经验；这里需要形容词修饰 experience。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -8996,7 +8996,7 @@
       "context": "语境：The new form is intended to reduce _____ work for office staff.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词+名词练习",
+      "title": "解析",
       "summary": "administrative work 指行政事务，形容词直接修饰 work。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -9045,7 +9045,7 @@
       "context": "语境：We need _____ evidence before deciding whether the new system works.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词+名词练习",
+      "title": "解析",
       "summary": "reliable evidence 是可靠证据，名词前用形容词 reliable。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
@@ -9094,7 +9094,7 @@
       "context": "语境：The course provides a _____ introduction to the subject.\n\n问题：选出符合本句结构和意思的一项。"
     },
     "analysis": {
-      "title": "结合句法、词形和语境完成形容词+名词练习",
+      "title": "解析",
       "summary": "a basic introduction 表示基础介绍，不能把名词 basics 放在此充当同一形容词。",
       "exam_tip": "先判断空格的句法位置，再核对完整句子的意思。"
     },
