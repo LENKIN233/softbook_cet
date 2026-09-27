@@ -1283,7 +1283,7 @@ function AccountApp({
           </button>
           {authStage === 'code' ? (
             <button className="text-button" disabled={remoteBusy} onClick={() => {setAuthStage('phone'); setCode('');}}>
-              更换手机号
+              更换手机号 / 重新获取验证码
             </button>
           ) : null}
         </section>

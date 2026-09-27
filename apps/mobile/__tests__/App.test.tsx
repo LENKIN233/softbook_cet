@@ -1247,6 +1247,43 @@ test('shows remote verify-code failure inside the auth gate', async () => {
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
+test('directs a stale registration challenge to resend instead of retrying its code', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
+    auth: {mode: 'remote', remote: {baseUrl: 'https://api.softbook.example'}},
+  };
+  mockFetch.mockImplementation(async input => {
+    if (input === 'https://api.softbook.example/v2/auth/request-code') {
+      return createRemoteAuthChallengeResponse();
+    }
+    if (input === 'https://api.softbook.example/v2/auth/verify-code') {
+      return createJsonResponse({error: {code: 'account_instance_changed'}}, 409);
+    }
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+  let tree: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => { tree = ReactTestRenderer.create(<App />); });
+  const root = tree!.root;
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'auth-phone-input'}).props.onChangeText('13800138000');
+  });
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({testID: 'auth-request-code-button'}).props.onPress();
+    await flushAsyncEffects();
+  });
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'auth-code-input'}).props.onChangeText('123456');
+  });
+  await ReactTestRenderer.act(async () => {
+    root.findByProps({testID: 'auth-submit-button'}).props.onPress();
+    await flushAsyncEffects();
+  });
+  const output = JSON.stringify(tree!.toJSON());
+  expect(output).toContain('验证码已失效，请重新获取。');
+  expect(output).toContain('需重新获取');
+  expect(output).not.toContain('可重试');
+  expect(root.findByProps({testID: 'auth-request-code-button'})).toBeTruthy();
+});
+
 test('sanitizes remote verify-code parser failures inside the auth gate', async () => {
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     auth: {

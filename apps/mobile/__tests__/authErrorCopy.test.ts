@@ -8,6 +8,7 @@ test.each([
   [new RemoteHttpError('private server detail', 503), 'service'],
   [new RemoteHttpError('private server detail', 429), 'throttled'],
   [new RemoteHttpError('private server detail', 401, 'expired_sms_challenge'), 'expired_code'],
+  [new RemoteHttpError('private server detail', 409, 'account_instance_changed'), 'expired_code'],
   [new RemoteHttpError('private server detail', 401), 'unknown'],
   [new Error('JSON Parse error'), 'unknown'],
 ])('does not blame the entered code for a transport, service or unknown failure: %s', (error, kind) => {
@@ -19,5 +20,11 @@ test.each([
 test('only a specific rejected-code response asks the user to correct the code', () => {
   expect(authFailure(new RemoteHttpError('private', 401, 'invalid_sms_code'))).toEqual({
     kind: 'invalid_code', message: '验证码不正确，请检查后重试。',
+  });
+});
+
+test('an account generation change directs the user to obtain a fresh challenge', () => {
+  expect(authFailure(new RemoteHttpError('private account generation', 409, 'account_instance_changed'))).toEqual({
+    kind: 'expired_code', message: '验证码已失效，请重新获取。',
   });
 });

@@ -8936,7 +8936,7 @@ function PhoneSmsPanel({
     <View
       style={[
         styles.authErrorDock,
-        hasCodeError ? styles.authErrorDockCode : null,
+        hasRequestedCode ? styles.authErrorDockCode : null,
         {
           backgroundColor: hexToRgba(palette.warning, 0.1),
           borderColor: hexToRgba(palette.warning, 0.24),
@@ -8987,7 +8987,7 @@ function PhoneSmsPanel({
           numberOfLines={1}
           style={[styles.authErrorPillText, { color: palette.warning }]}
         >
-          {isClientUpdateRequired ? '获取更新' : isSessionSaveError ? '重新取码' : '可重试'}
+          {isClientUpdateRequired ? '获取更新' : isSessionSaveError ? '重新取码' : authState.errorKind === 'expired_code' ? '需重新获取' : '可重试'}
         </Text>
       </Pressable>
     </View>

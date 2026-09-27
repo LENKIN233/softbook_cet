@@ -4,6 +4,7 @@ import {StrictMode} from 'react';
 import type {LearningCard, LearningSession} from '../../mobile/src/learning/model';
 import {AccountBootstrapIntegrityError} from '../../mobile/src/bootstrap/accountBootstrapRepository';
 import {ClientUpdateRequiredError} from '../../mobile/src/runtime/clientVersion';
+import {RemoteHttpError} from '../../mobile/src/runtime/remoteHttpError';
 import {
   createInitialMembershipState,
   type MembershipState,
@@ -32,6 +33,29 @@ describe('PC Web remote UI authority', () => {
 
   afterEach(() => {
     delete window.__SOFTBOOK_WEB_RUNTIME__;
+  });
+
+  it('recovers a stale registration challenge with a fresh code for the same phone', async () => {
+    const snapshot = createSnapshot('premium');
+    const controller = createController(snapshot, {
+      verifySmsCode: vi.fn().mockRejectedValueOnce(new RemoteHttpError('private account generation', 409, 'account_instance_changed')).mockResolvedValueOnce(snapshot),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.change(await screen.findByLabelText('手机号'), {target: {value: PHONE}});
+    fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
+    fireEvent.change(await screen.findByLabelText('短信验证码'), {target: {value: '123456'}});
+    fireEvent.click(screen.getByRole('button', {name: '登录'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('验证码已失效，请重新获取。');
+    fireEvent.click(screen.getByRole('button', {name: '更换手机号 / 重新获取验证码'}));
+    expect(screen.getByLabelText('手机号')).toHaveValue(PHONE);
+    fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
+    const code = await screen.findByLabelText('短信验证码');
+    expect(code).toHaveValue('');
+    fireEvent.change(code, {target: {value: '654321'}});
+    fireEvent.click(screen.getByRole('button', {name: '登录'}));
+    await screen.findByRole('navigation', {name: '主要导航'});
+    expect(controller.requestSmsCode).toHaveBeenNthCalledWith(2, PHONE);
+    expect(controller.verifySmsCode).toHaveBeenCalledTimes(2);
   });
 
   it('starts a new server selection at the beginning without resetting an auxiliary same-card update', async () => {
@@ -1240,10 +1264,13 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
 
-    fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
-    fireEvent.click(
-      await screen.findByRole('button', {name: '播放音频'}),
-    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
+    });
+    expect(screen.getByRole('button', {name: '播放音频'})).toBeEnabled();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
+    });
     expect(
       await screen.findByRole('button', {name: '暂停音频'}),
     ).toBeInTheDocument();
