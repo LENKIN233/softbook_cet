@@ -1264,10 +1264,13 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
 
-    fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
-    fireEvent.click(
-      await screen.findByRole('button', {name: '播放音频'}),
-    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
+    });
+    expect(screen.getByRole('button', {name: '播放音频'})).toBeEnabled();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
+    });
     expect(
       await screen.findByRole('button', {name: '暂停音频'}),
     ).toBeInTheDocument();
