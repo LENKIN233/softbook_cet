@@ -7,7 +7,7 @@ export function authFailure(error: unknown): {kind: AuthFailureKind; message: st
     if (error.code === 'invalid_sms_code' || error.code === 'invalid_sms_code_format') {
       return {kind: 'invalid_code', message: '验证码不正确，请检查后重试。'};
     }
-    if (error.code === 'expired_sms_challenge' || error.code === 'sms_challenge_consumed') {
+    if (error.code === 'expired_sms_challenge' || error.code === 'sms_challenge_consumed' || error.code === 'account_instance_changed') {
       return {kind: 'expired_code', message: '验证码已失效，请重新获取。'};
     }
     if (error.status === 429 || error.code === 'sms_challenge_locked') {
