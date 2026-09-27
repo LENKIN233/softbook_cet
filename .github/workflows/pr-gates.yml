@@ -336,6 +336,7 @@ jobs:
         run: |
           npx playwright-core install --with-deps chromium
           npm run test:browser:transport
+          npm run test:browser:reading
 
       - name: Build production Web app
         if: env.RUN_GATE == 'true'

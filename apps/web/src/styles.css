@@ -324,7 +324,7 @@ input + label { margin-top: .75rem; }
 /* On narrow screens the paper scrolls; actions occupy their own row. */
 .local-study-shell {--learning-header-clearance:0px;}
 @media (max-width:760px) {
-  .learning-workbench {height:calc(100svh - var(--mobile-navigation-clearance) - var(--learning-header-clearance,64px) - env(safe-area-inset-top));min-height:0;display:flex;flex-direction:column;}
+  .learning-workbench {height:calc(100svh - var(--mobile-navigation-clearance) - var(--learning-header-clearance,64px) - env(safe-area-inset-top));min-height:420px;display:flex;flex-direction:column;}
   .learning-workbench .learning-card {flex:0 1 auto;min-height:0;max-height:100%;width:100%;margin:0;overflow:hidden;}
   .learning-card .paper-body {min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:3px;scrollbar-width:thin;}
   .learning-dock {position:static;flex-shrink:0;margin-top:12px;padding-top:12px;}

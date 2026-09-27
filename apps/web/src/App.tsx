@@ -1621,7 +1621,9 @@ function LearningSurface(props: LearningSurfaceProps) {
   }, [resolved]);
   useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (props.busy || motionBusy || (event.target as HTMLElement | null)?.closest('button, input, textarea, select, summary')) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || event.isComposing || event.repeat) return;
+      if (props.busy || motionBusy || target?.closest('button, input, textarea, select, summary, a, [contenteditable]:not([contenteditable="false"])')) return;
       if (resolved && event.key === 'Enter') {event.preventDefault(); onContinue(); return;}
       if (!card || !cardState || resolved) return;
       if (card.interaction_id === 'flip' && event.key === 'Enter' && !cardState.isFlipped) {event.preventDefault(); onFlip();}

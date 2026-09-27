@@ -7252,6 +7252,7 @@ function PhoneShell({
                   routeKey={item.key}
                 />
                 <Text
+                  maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
                   style={[
                     styles.phoneTabLabel,
                     {
@@ -7299,6 +7300,7 @@ function PhoneTopBar({
         <StudioMark />
         <View style={styles.phoneTopCopy}>
           <Text
+            maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
             style={[
               styles.phoneTopTitle,
               route.key === 'learning' ? styles.phoneTopTitleLearning : null,
@@ -7324,7 +7326,7 @@ function PhoneTopBar({
         ]}
         testID="shell-account-chip"
       >
-        <Text style={[styles.phoneTopMeta,{color:palette.textMuted}]}>{courseLabel}</Text>
+        <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.phoneTopMeta,{color:palette.textMuted}]}>{courseLabel}</Text>
       </Pressable>
     </View>
   );
