@@ -14,6 +14,7 @@
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
     "test:browser:transport": "node scripts/test-browser-transport.mjs",
+    "test:browser:reading": "node scripts/test-reading-boundaries.mjs",
     "build:local": "npm run build:backend",
     "start:local": "npm run start:backend",
     "build:backend": "tsc -b && vite build --mode backend --outDir dist-backend",

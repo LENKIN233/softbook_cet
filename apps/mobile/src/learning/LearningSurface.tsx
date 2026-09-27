@@ -217,9 +217,14 @@ export function LearningSurface({
   } = useWindowDimensions();
   const isAccessibilityText = fontScale >= 1.3;
   const readingScroll = React.useRef<ScrollView>(null);
+  const pageScroll = React.useRef<ScrollView>(null);
   const [materialHeight, setMaterialHeight] = React.useState(0);
   const [actionHeight, setActionHeight] = React.useState(0);
+  const [addressHeight, setAddressHeight] = React.useState(96);
+  const needsPageScroll = viewportHeight < 500;
+  const minimumPageHeight = addressHeight + Math.max(actionHeight, 80) + STUDIO.space.card * 2 + 32 + 180;
   React.useEffect(() => {
+    pageScroll.current?.scrollTo({y: 0, animated: false});
     readingScroll.current?.scrollTo({y: 0, animated: false});
   }, [currentCard?.card_id, currentResult, currentCardState?.isFlipped]);
   const cardMotion = useCardMotion(currentCard ? `${currentCard.card_id}:${audioAttemptId ?? phase}` : null);
@@ -523,11 +528,12 @@ export function LearningSurface({
   const shouldCenterShortFlip = false;
   const minimumSheetHeight = 0;
 
-  return (
+  const page = (
     <View
       style={[
         styles.oneScreenPage,
         isCompactPhone ? styles.oneScreenPageCompact : null,
+        needsPageScroll ? {flex: 0, height: minimumPageHeight} : null,
       ]}
       testID="learning-one-screen-flow"
     >
@@ -548,6 +554,7 @@ export function LearningSurface({
         testID="learning-current-card"
       >
         <View
+          onLayout={event => setAddressHeight(Math.ceil(event.nativeEvent.layout.height))}
           style={[
             styles.cardAddressShelf,
             isCompactPhone ? styles.cardAddressShelfCompact : null,
@@ -572,12 +579,14 @@ export function LearningSurface({
               ]}
             >
               <Text
+                maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
                 testID="learning-progress-label"
               >
                 {`${courseName} · ${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
               </Text>
               <Text
+                maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
                 style={[
                   styles.cardObjectLead,
                   isCompactPhone ? styles.cardObjectLeadCompact : null,
@@ -599,6 +608,7 @@ export function LearningSurface({
             ]}
           >
             <Text
+              maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
               style={[styles.cardProgressCount, { color: palette.text }]}
               testID="learning-progress-count"
             >
@@ -645,6 +655,7 @@ export function LearningSurface({
               testID="learning-favorite-button"
             >
               <Text
+                allowFontScaling={false}
                 style={[
                   styles.cardIdentityToolLabel,
                   styles.favoriteTagGlyph,
@@ -961,6 +972,18 @@ export function LearningSurface({
         </View>
       </Animated.View>
     </View>
+  );
+  return (
+    <ScrollView
+      ref={pageScroll}
+      style={styles.viewportScroll}
+      contentContainerStyle={[styles.viewportScrollContent, !needsPageScroll ? styles.viewportScrollFit : null]}
+      scrollEnabled={needsPageScroll}
+      nestedScrollEnabled
+      testID="learning-viewport-scroll"
+    >
+      {page}
+    </ScrollView>
   );
 }
 
@@ -1981,6 +2004,7 @@ export function LearningResultDetailSurface({
               ]}
             >
               <Text
+                maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
               >
                 {isCompactPhone
@@ -1992,6 +2016,7 @@ export function LearningResultDetailSurface({
                   : displaySessionLabel}
               </Text>
               <Text
+                maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
                 style={[
                   styles.cardObjectLead,
                   isCompactPhone ? styles.cardObjectLeadCompact : null,
@@ -2012,7 +2037,7 @@ export function LearningResultDetailSurface({
               },
             ]}
           >
-            <Text style={[styles.cardProgressCount, { color: palette.text }]}>
+            <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.cardProgressCount, { color: palette.text }]}>
               {progressCount}
             </Text>
             <View
@@ -2518,6 +2543,9 @@ function ResultBadge({
 }
 
 const styles = StyleSheet.create({
+  viewportScroll: {flex: 1},
+  viewportScrollContent: {flexGrow: 1},
+  viewportScrollFit: {height: '100%'},
   chapterOrbit: {position: 'absolute', width: 96, height: 96, borderWidth: 22, borderRadius: 48, top: -30, right: 32},
   actionPanel: {flexShrink: 0},
   paperPanel: {flex: 1, minHeight: 0, padding: STUDIO.space.card, borderRadius: STUDIO.radius.card, gap: 12, overflow: 'hidden'},
@@ -3259,9 +3287,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 7,
     borderWidth: 0,
-    height: 24,
+    minHeight: 24,
     justifyContent: 'center',
-    width: 24,
+    minWidth: 24,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
   },
   optionLabel: {
     fontSize: 11,

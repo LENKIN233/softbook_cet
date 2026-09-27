@@ -402,6 +402,22 @@ describe("local study user journey", () => {
     fireEvent.keyDown(document.body, { key: "Enter" });
     expect(screen.queryByLabelText("答案对照")).toBeNull();
   });
+  it.each(['metaKey', 'ctrlKey', 'altKey', 'shiftKey', 'isComposing', 'repeat'])(
+    'leaves %s keyboard events to the browser or input method', async flag => {
+      await enter();
+      reach('multiple_choice');
+      const choice = new KeyboardEvent('keydown', {key: '2', [flag]: true, bubbles: true, cancelable: true});
+      fireEvent(document.body, choice);
+      expect(choice.defaultPrevented).toBe(false);
+      expect(screen.getByRole('group', {name: '四选一选项'}).querySelector('[aria-pressed="true"]')).toBeNull();
+      answer();
+      const continuation = new KeyboardEvent('keydown', {key: 'Enter', [flag]: true, bubbles: true, cancelable: true});
+      fireEvent(document.body, continuation);
+      expect(continuation.defaultPrevented).toBe(false);
+      expect(screen.getByRole('region', {name: '答案对照'})).toBeInTheDocument();
+    },
+  );
+
   it("has no automatic accessibility violations in Learning and Space", async () => {
     await enter();
     expect(

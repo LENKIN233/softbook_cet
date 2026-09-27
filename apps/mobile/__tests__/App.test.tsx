@@ -8,6 +8,7 @@ import ReactTestRenderer from 'react-test-renderer';
 import {
   AccessibilityInfo,
   BackHandler,
+  Dimensions,
   NativeModules,
   Platform,
   ScrollView,
@@ -5532,7 +5533,25 @@ test('keeps learning bounded and long secondary surfaces scroll-reachable', asyn
   expect(root.findAllByType(ScrollView)).toHaveLength(0);
 
   await loginIntoLearningFlow(root);
-  expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal)).toHaveLength(1);
+  expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal && node.props.scrollEnabled !== false)).toHaveLength(1);
+
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'learning-flip-button'}).props.onPress();
+  });
+  const originalWindow = Dimensions.get('window');
+  const originalScreen = Dimensions.get('screen');
+  try {
+    await ReactTestRenderer.act(() => {
+      Dimensions.set({window: {...originalWindow, width: 852, height: 393}, screen: {...originalScreen, width: 852, height: 393}});
+    });
+    expect(root.findByProps({testID: 'learning-viewport-scroll'}).props.scrollEnabled).toBe(true);
+    expect(root.findByProps({testID: 'learning-flip-confident-button'})).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(() => {
+      Dimensions.set({window: originalWindow, screen: originalScreen});
+    });
+  }
+  expect(root.findByProps({testID: 'learning-flip-confident-button'})).toBeTruthy();
 
   await openRoute(root, 'space');
   expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal)).toHaveLength(1);

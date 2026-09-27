@@ -554,8 +554,8 @@ export function LocalStudyApp({
     >
       <StatusBar barStyle="dark-content" backgroundColor={palette.background} />
       <View style={styles.header}>
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}><StudioMark /><Text style={[styles.brand, { color: palette.text }]}>软书</Text></View>
-        <Text style={{ color: palette.textMuted }}>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}><StudioMark /><Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.brand, { color: palette.text }]}>软书</Text></View>
+        <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={{ color: palette.textMuted }}>
           {examLabel}
         </Text>
       </View>
@@ -814,7 +814,7 @@ export function LocalStudyApp({
             ]}
             testID={`route-tab-${value}`}
           >
-            <StudioRouteIcon routeKey={value} active={route === value} color={route === value ? STUDIO.color.brandDeep : palette.textMuted} /><Text style={{fontSize: 10, color: route === value ? STUDIO.color.brandDeep : palette.textMuted}}>{label}</Text>
+            <StudioRouteIcon routeKey={value} active={route === value} color={route === value ? STUDIO.color.brandDeep : palette.textMuted} /><Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={{fontSize: 10, color: route === value ? STUDIO.color.brandDeep : palette.textMuted}}>{label}</Text>
           </Pressable>
         ))}
       </View>

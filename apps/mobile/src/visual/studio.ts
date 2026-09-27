@@ -20,6 +20,7 @@ export const STUDIO = {
   radius: {card: 24, section: 20, control: 14, small: 10, navigation: 22},
   space: {phone: 18, tablet: 28, card: 20, gap: 12, tight: 8},
   type: {title: 24, prompt: 20, body: 15, secondary: 13, caption: 11},
+  accessibility: {chromeMaxFontSizeMultiplier: 1.5},
   motion: {
     press: 100,
     release: 180,
