@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="软书">
+  <rect width="1024" height="1024" fill="#242435"/>
+  <path d="M3 5.5c3-1 6-.5 9 1.2 3-1.7 6-2.2 9-1.2v14c-3-1-6-.5-9 1.2-3-1.7-6-2.2-9-1.2zM12 7v13"
+    transform="translate(108 64) scale(34)" fill="none" stroke="#FEFEFF" stroke-width="1.65"
+    stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
