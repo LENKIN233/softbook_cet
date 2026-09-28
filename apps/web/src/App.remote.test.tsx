@@ -1252,10 +1252,14 @@ describe('PC Web remote UI authority', () => {
       ...snapshot.learningSession.catalogCards.slice(1),
     ];
     let audioListener: ((status: 'error' | 'idle') => void) | null = null;
+    let resolvePreparedAudio: (status: 'ready') => void = () => undefined;
+    const preparedAudio = new Promise<'ready'>(resolve => {
+      resolvePreparedAudio = resolve;
+    });
     const controller = createController(snapshot, {
       playCardAudio: vi
         .fn()
-        .mockResolvedValueOnce('ready')
+        .mockImplementationOnce(() => preparedAudio)
         .mockResolvedValueOnce('playing'),
       subscribeAudioStatus: vi.fn(listener => {
         audioListener = listener;
@@ -1264,10 +1268,13 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
 
+    fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
+    expect(screen.getByRole('button', {name: '正在准备音频'})).toBeDisabled();
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
+      resolvePreparedAudio('ready');
+      await preparedAudio;
     });
-    expect(screen.getByRole('button', {name: '播放音频'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: '播放音频'})).toBeEnabled();
     await act(async () => {
       fireEvent.click(screen.getByRole('button', {name: '播放音频'}));
     });
