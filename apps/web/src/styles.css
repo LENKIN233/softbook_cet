@@ -68,8 +68,8 @@ input + label { margin-top: .75rem; }
 .card-favorite { width:44px;height:44px;border:0;background:none;color:var(--muted);font-size:22px;border-radius:12px;flex-shrink:0; }
 .card-favorite[aria-pressed=true] { color:var(--hall-deep); }
 .paper-body { flex:1; min-width:0; }
-.learning-card h2 { max-width:640px;font-size:22px;font-weight:600;line-height:1.5;letter-spacing:-.3px;margin:0 0 22px; }
-.front-material { font-size:15px;line-height:1.8;color:var(--ink-2);white-space:pre-wrap;overflow-wrap:anywhere; }
+.learning-card h2 { max-width:640px;font-size:22px;font-weight:600;line-height:1.5;letter-spacing:-.3px;margin:0 0 22px;word-break:keep-all;overflow-wrap:break-word; }
+.front-material { font-size:15px;line-height:1.8;color:var(--ink-2);white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word; }
 .learning-dock { position:sticky;bottom:16px;z-index:2;background:var(--surface);margin-top:22px;padding-top:15px;border-top:1px solid var(--line); }
 .learning-dock .primary { width:100%; min-height:48px; }
 .learning-tools { display:flex; flex-wrap:wrap; align-items:center; gap:4px 20px; margin-top:18px; }
@@ -343,7 +343,7 @@ input + label { margin-top: .75rem; }
 .course-switch {margin-left:auto;display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:22px;min-height:44px;padding:8px 14px;background:transparent;font-size:11px;font-weight:600;cursor:pointer;}
 .studio-learning-layout {display:grid;grid-template-columns:minmax(0,1fr) 196px;gap:36px;align-items:start;}
 .learning-address::after {content:'';position:absolute;width:92px;height:92px;border:22px solid rgba(255,255,255,.28);border-radius:50%;right:50px;top:-33px;pointer-events:none;}
-.address-button small {font-size:11px;font-weight:400;color:var(--muted);}
+.address-button small {font-size:11px;font-weight:400;color:var(--ink-2);}
 .studio-address-tools {display:flex;align-items:center;gap:8px;position:relative;z-index:1;}
 .studio-address-tools .counter {font-size:17px;color:var(--hall-deep);}
 .learning-context {padding-top:22px;color:var(--muted);font-size:12px;line-height:1.8;}
