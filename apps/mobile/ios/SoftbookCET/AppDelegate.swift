@@ -9,6 +9,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
+  var initialLaunchOptions: [UIApplication.LaunchOptionsKey: Any]?
 
   func application(
     _ application: UIApplication,
@@ -20,20 +21,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     reactNativeDelegate = delegate
     reactNativeFactory = factory
-
-    window = UIWindow(frame: UIScreen.main.bounds)
-
-    factory.startReactNative(
-      withModuleName: "SoftbookCET",
-      in: window,
-      initialProperties: softbookInitialProperties(),
-      launchOptions: launchOptions
-    )
+    initialLaunchOptions = launchOptions
 
     return true
   }
 
-  private func softbookInitialProperties() -> [String: Any]? {
+  func softbookInitialProperties() -> [String: Any]? {
 #if SOFTBOOK_DEVICE_LOCAL || SOFTBOOK_LOCAL_BACKEND || SOFTBOOK_EXPERIENCE
     return nil
 #elseif DEBUG
@@ -92,6 +85,39 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 #else
     return nil
 #endif
+  }
+}
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+  var window: UIWindow?
+
+  func scene(
+    _ scene: UIScene,
+    willConnectTo session: UISceneSession,
+    options connectionOptions: UIScene.ConnectionOptions
+  ) {
+    guard
+      let windowScene = scene as? UIWindowScene,
+      let appDelegate = UIApplication.shared.delegate as? AppDelegate,
+      let factory = appDelegate.reactNativeFactory
+    else {
+      return
+    }
+
+    let window = UIWindow(windowScene: windowScene)
+    self.window = window
+    appDelegate.window = window
+    factory.startReactNative(
+      withModuleName: "SoftbookCET",
+      in: window,
+      initialProperties: appDelegate.softbookInitialProperties(),
+      launchOptions: appDelegate.initialLaunchOptions
+    )
+  }
+
+  func sceneDidDisconnect(_ scene: UIScene) {
+    (UIApplication.shared.delegate as? AppDelegate)?.window = nil
+    window = nil
   }
 }
 
