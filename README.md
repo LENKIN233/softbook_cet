@@ -16,10 +16,9 @@
 
 ## 当前阶段
 
-- `product_truth`: 目标是 `2026-09` 尽快上线；产品内部由 model+harness 持续决策，不存在人工、用户或 product-owner 点击 gate。
-- `product_truth`: `v1` 仍然要闭合 `learning / space / statistics / mine` 四个顶层入口，并满足登录先于学习、试用/会员矩阵、日级进度同步和跨端统一 entitlement。
-- `product_truth`: 所有呈现给用户的 screen / component / state / chrome 必须先有已接受设计稿或等价设计基准，再进入实现；现有 RN UI 只能作为行为原型，不能作为视觉权威。
-- `implementation_hypothesis`: `main` 上的 `apps/mobile` 已经形成 iOS 优先的本地安全基线：手机号验证码登录门槛、学习/复习、知识地图空间、统计签到、我的页、会员试用/付费墙、日级进度同步都先在本地宿主闭环；下一步优先推进设计稿基准与真实账号 / entitlement / sync 合同接线，而不是继续堆新页面。
+- `main` 已实现 iOS、Android、PC Web 的学习、空间、统计、我的四个入口，并消费 CET4/CET6 两套候选卡库与随包音频。卡片数量、来源提交与内容版本以 [`card-content/provenance.json`](infra/cloudbase/functions/softbook-api/card-content/provenance.json) 为准。
+- 默认产品联调使用手机号验证码入口和本机 v2 后端；三端共享服务端学习、空间与账号接口。启动方式见 [本地后端联调](docs/local-backend.md)。旧本机记录由[独立离线工具](docs/local-study.md)读取和导出。
+- 产品范围与交互以 `spec/product-core.json` 等对应 owner 为准；当前三端视觉实现依照 `docs/design/decisions/light-studio-three-surfaces-v1.md`。代码与本机测试通过不代表正式封测或上线，精确状态见 `docs/release/`。
 
 ## 目录
 
@@ -52,7 +51,7 @@
 
 ## 分支策略
 
-分支策略文档见 [docs/branching-strategy.md](/Users/lenkin/programing/softbook_cet/docs/branching-strategy.md)。
+分支策略文档见 [docs/branching-strategy.md](docs/branching-strategy.md)。
 原则是按需求域推进，一次只打磨一个模块，不设长期 `develop` 分支。
 clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`，再执行 `python3 scripts/validate_harness.py` 确认本地 hooks 与 GitHub `main` 保护都仍然生效。
 任何会持久化仓库改动的任务，除非明确要求只做本地修改，否则默认走 topic branch -> commit -> PR -> 双扰动 exact-diff review -> required checks -> auto-merge；不等待人工或用户批准。
@@ -76,6 +75,8 @@ Learning / core interaction UI 改动还必须引用 interaction-motion artifact
 
 ### 启动开发
 
+以下是 React Native 的 Metro 调试命令；需要验证账号版完整流程时，使用后面的本地账号联调入口。
+
 ```bash
 cd apps/mobile
 npm start
@@ -88,28 +89,22 @@ cd apps/mobile
 npm run ios
 ```
 
-### 完整本地产品
+### 本地账号联调
 
-普通 `dev` / `ios` / `android` 命令现在使用完整本地卡库：CET4 1,180 张、CET6
-1,234 张，629 条音频随产品打包。默认学习四级，卡库按知识点顺序展开；原有示例
-已从运行时删除，少量交互测试数据仅在测试目录保留。无需 CloudBase 即可读卡、
-播放音频、作答和查看空间。本地登录仍使用开发验证码（Web `123456`，移动端 `2468`），
-不代表真实短信、跨设备同步或正式发布。本机原示例的空间与游标记录不迁入新卡库。
+先在仓库根目录启动 Web 与本机 v2 后端，再编译需要联调的原生端；原生工具链要求见 [移动端说明](apps/mobile/README.md)。终端会显示隔离的测试验证码，不发送真实短信；后端只监听本机。完整的账号数据与重启恢复说明见 [本地后端联调](docs/local-backend.md)。
 
 ```bash
-# 直接体验完整本地卡库，音频由本机提供
-npm --prefix apps/web run dev
-# 原生应用需要重新构建，才能包含随包音频
-npm --prefix apps/mobile run ios
-npm --prefix apps/mobile run android
+npm --prefix apps/web run build:backend
+npm --prefix apps/web run start:backend
+# 另开终端，保持后端运行
+npm --prefix apps/mobile run ios:backend
+npm --prefix apps/mobile run android:backend
 ```
 
-内容来自 `card-make@6e4367e5b2c9a8dc114a820146b84c82091a2fa0` 的固定导出，
-来源与哈希见 `infra/cloudbase/functions/softbook-api/card-content/provenance.json`。
-接入不改变候选内容的发布授权状态。详情见 `docs/content/bundled-library.md`。
+旧本机记录工具的 Web、Android 与 iOS 启动方式见 [旧本机记录查看与恢复工具](docs/local-study.md)。它使用独立包名和本机数据，不是账号版的默认入口。卡库导入与审计见 [随包卡库说明](docs/content/bundled-library.md)；当前导出仍为候选内容。
 
-下面的 `product:local` 是单独的**云端接入模式**：
-完整本地产品命令会从 tracked receiver delivery profile 与公开 Ed25519 keyring 生成当前
+下面的 `product:local` 是单独的**接收方云端接入模式**：
+该命令会从 tracked receiver delivery profile 与公开 Ed25519 keyring 生成当前
 commit 的临时公开 runtime profile，连接已经导入 CloudBase 的 1180 张 CET4 卡、108 个盒和
 301 个私有音频，并强制使用封闭内测的邀请资格语义；profile 不包含 token、私钥或凭证。
 命令要求 tracked worktree 干净，避免运行代码与 profile 声明的 commit 不一致。
@@ -134,14 +129,14 @@ node scripts/run_local_product.mjs --target android --check
 node scripts/run_local_product.mjs --target ios --device <simulator-udid> --check
 ```
 
-完整本地产品依赖现有 receiver CloudBase；它不是完全离线单机模式。开发 demo 不再提供
+接收方模式依赖现有 receiver CloudBase；它不是完全离线单机模式。开发 demo 不再提供
 与封闭内测冲突的模拟自助购买入口。
 
 ### 学习卡源 runtime config
 
 `apps/mobile` 现在会在启动时读取 `src/runtime/appRuntimeConfig.ts`，并把配置注入到全局 runtime。
 
-- 默认配置是本地登录 + 本地卡源 + 本地会员 entitlement + 本地日级同步 + 本地空间状态 + 本地 learning state：
+- 下列静态安全默认值供独立本机入口使用；账号联调由 `index.backend.js` 读取本机后端 profile，不需要修改这份 tracked 配置：
 
 ```ts
 export const SOFTBOOK_APP_RUNTIME_CONFIG = {

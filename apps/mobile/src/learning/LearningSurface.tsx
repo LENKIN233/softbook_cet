@@ -9,6 +9,7 @@ import type { DimensionValue } from 'react-native';
 import {
   Animated,
   PanResponder,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -170,6 +171,18 @@ export function isCompactLearningViewport(width: number, height: number) {
   const shortEdge = Math.min(width, height);
 
   return shortEdge < 600 && (width <= 430 || height <= 880);
+}
+
+function formatCompactListeningCue(text: string) {
+  const paragraphs = text.split('\n\n');
+  if (paragraphs.length !== 2) return text;
+  const [cues, question] = paragraphs;
+  const cueItems = cues.split('、');
+  if (cueItems.length !== 4 || !cueItems[3].endsWith('。')) return text;
+  const questionMark = question.indexOf('？');
+  if (questionMark < 0 || questionMark === question.length - 1 || question.length - questionMark > 10) return text;
+  const groupedCues = `${cueItems[0]}、${cueItems[1]}、\n${cueItems[2]}、${cueItems[3]}`;
+  return `${groupedCues}\n\n${question.slice(0, questionMark + 1)}\n${question.slice(questionMark + 1)}`;
 }
 
 export function LearningSurface({
@@ -729,7 +742,9 @@ export function LearningSurface({
                       { color: palette.text },
                     ]}
                   >
-                    {displayCardText(currentCard, currentCard.front.prompt)}
+                    {isCompactPhone && Platform.OS === 'android' && currentCard.audio
+                      ? formatCompactListeningCue(displayCardText(currentCard, currentCard.front.prompt))
+                      : displayCardText(currentCard, currentCard.front.prompt)}
                   </Text>
                 </View>
               </View>
