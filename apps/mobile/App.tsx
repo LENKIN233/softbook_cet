@@ -5914,6 +5914,7 @@ function AppShell({
     },
   };
   const openLearningRoute = () => {
+    setPauseNotice(null);
     startTransition(() => {
       setActiveRoute('learning');
       setLearningScreen('practice');

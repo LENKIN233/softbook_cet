@@ -8000,3 +8000,17 @@ test('below-minimum login preserves the session and shows an explicit update pat
     NativeModules.SoftbookAppInfo = previousAppInfo;
   }
 });
+
+
+test('continuing a paused lesson clears the notice on a later statistics visit', async () => {
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  const root = tree.root;
+  await loginIntoLearningFlow(root);
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-pause-button'}).props.onPress();});
+  expect(root.findAllByProps({testID: 'learning-pause-notice'}).length).toBeGreaterThan(0);
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'statistics-go-learning-button'}).props.onPress();});
+  await openRoute(root, 'statistics');
+  expect(root.findAllByProps({testID: 'learning-pause-notice'})).toHaveLength(0);
+  await ReactTestRenderer.act(() => tree.unmount());
+});
