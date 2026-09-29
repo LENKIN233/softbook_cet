@@ -35,6 +35,40 @@ describe('PC Web remote UI authority', () => {
     delete window.__SOFTBOOK_WEB_RUNTIME__;
   });
 
+  it('keeps the phone bound while a code request is in flight', async () => {
+    type Challenge = Awaited<ReturnType<WebRemoteRuntimeController['requestSmsCode']>>;
+    let resolveRequest: (challenge: Challenge) => void = () => {
+      throw new Error('Code request did not start.');
+    };
+    let requestedPhone = '';
+    const requestSmsCode = vi.fn((phoneNumber: string) =>
+      new Promise<Challenge>(resolve => {
+        requestedPhone = phoneNumber;
+        resolveRequest = resolve;
+      }),
+    );
+    const controller = createController(createSnapshot('premium'), {requestSmsCode});
+    render(<App remoteRuntimeFactory={() => controller} />);
+
+    const phoneInput = await screen.findByLabelText('手机号');
+    fireEvent.change(phoneInput, {target: {value: PHONE}});
+    fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
+    expect(requestedPhone).toBe(PHONE);
+    expect(phoneInput).toBeDisabled();
+
+    await act(async () => {
+      resolveRequest({
+        challengeId: 'challenge-bound-phone',
+        expiresAt: '2026-08-29T12:05:00.000Z',
+        mode: 'remote',
+        phoneNumber: requestedPhone,
+        retryAfterSeconds: 0,
+      });
+    });
+    await screen.findByLabelText('短信验证码');
+    expect(phoneInput).toHaveValue(PHONE);
+  });
+
   it('recovers a stale registration challenge with a fresh code for the same phone', async () => {
     const snapshot = createSnapshot('premium');
     const controller = createController(snapshot, {

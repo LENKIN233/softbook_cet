@@ -1258,7 +1258,7 @@ function AccountApp({
               autoComplete="tel"
               value={phone}
               onChange={event => setPhone(event.target.value.replace(/\D/g, '').slice(0, 11))}
-              disabled={authStage === 'code'}
+              disabled={authStage === 'code' || remoteBusy}
               placeholder="11 位手机号"
             />
             {authStage === 'code' ? (
