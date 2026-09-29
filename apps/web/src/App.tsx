@@ -1185,7 +1185,10 @@ function AccountApp({
         busy={remoteBusy}
         code={code}
         errorMessage={authError}
-        onCodeChange={setCode}
+        onCodeChange={value => {
+          setCode(value);
+          setAuthError('');
+        }}
         onRequestCode={() => void requestAccountDeletionRecoveryCode()}
         onVerifyCode={() => void verifyAccountDeletionRecoveryCode()}
         phone={phone}
@@ -1269,7 +1272,11 @@ function AccountApp({
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   value={code}
-                  onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={event => {
+                    setCode(event.target.value.replace(/\D/g, '').slice(0, 6));
+                    setAuthError('');
+                  }}
+                  disabled={remoteBusy}
                   placeholder="6 位验证码"
                   autoFocus
                 />
@@ -2352,6 +2359,7 @@ function AccountDeletionRecoverySurface({
               autoFocus
               id="deletion-recovery-code"
               inputMode="numeric"
+              disabled={busy}
               onChange={event =>
                 onCodeChange(
                   event.target.value.replace(/\D/g, '').slice(0, 6),

@@ -69,6 +69,34 @@ describe('PC Web remote UI authority', () => {
     expect(phoneInput).toHaveValue(PHONE);
   });
 
+  it('binds a login verification error to the submitted code', async () => {
+    let rejectVerification: (error: unknown) => void = () => {
+      throw new Error('Verification did not start.');
+    };
+    const verification = new Promise<WebRemoteSnapshot>((_resolve, reject) => {
+      rejectVerification = reject;
+    });
+    const controller = createController(createSnapshot('premium'), {
+      verifySmsCode: vi.fn(() => verification),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.change(await screen.findByLabelText('手机号'), {target: {value: PHONE}});
+    fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
+    const codeInput = await screen.findByLabelText('短信验证码');
+    fireEvent.change(codeInput, {target: {value: '123456'}});
+    fireEvent.click(screen.getByRole('button', {name: '登录'}));
+    expect(codeInput).toBeDisabled();
+
+    await act(async () => {
+      rejectVerification(new RemoteHttpError('private', 401, 'invalid_sms_code'));
+      await verification.catch(() => undefined);
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent('验证码不正确');
+    expect(codeInput).toBeEnabled();
+    fireEvent.change(codeInput, {target: {value: '654321'}});
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('recovers a stale registration challenge with a fresh code for the same phone', async () => {
     const snapshot = createSnapshot('premium');
     const controller = createController(snapshot, {
@@ -1001,6 +1029,37 @@ describe('PC Web remote UI authority', () => {
     ).toHaveBeenCalledWith('123456');
     expect(controller.verifySmsCode).not.toHaveBeenCalled();
     expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
+  });
+
+  it('binds a deletion recovery error to the submitted code', async () => {
+    let rejectVerification: (error: unknown) => void = () => {
+      throw new Error('Recovery verification did not start.');
+    };
+    const verification = new Promise<WebAccountDeletionOutcome>((_resolve, reject) => {
+      rejectVerification = reject;
+    });
+    const controller = createController(createSnapshot('premium'), {
+      resumeAccountDeletion: vi.fn(async () => ({
+        phoneNumber: PHONE,
+        status: 'reauthentication_required' as const,
+      })),
+      verifyAccountDeletionRecoverySmsCode: vi.fn(() => verification),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.click(await screen.findByRole('button', {name: '获取验证码'}));
+    const codeInput = await screen.findByLabelText('短信验证码');
+    fireEvent.change(codeInput, {target: {value: '123456'}});
+    fireEvent.click(screen.getByRole('button', {name: '验证并查询'}));
+    expect(codeInput).toBeDisabled();
+
+    await act(async () => {
+      rejectVerification(new RemoteHttpError('private', 401, 'invalid_sms_code'));
+      await verification.catch(() => undefined);
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent('验证码不正确');
+    expect(codeInput).toBeEnabled();
+    fireEvent.change(codeInput, {target: {value: '654321'}});
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('opens fresh registration after exact recovery none without claiming acceptance', async () => {
