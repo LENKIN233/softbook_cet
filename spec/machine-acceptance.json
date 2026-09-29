@@ -19,17 +19,13 @@
       "deploy_publish_verify_rollback_and_monitor_product_runtime",
       "operate_existing_product_accounts_and_release_surfaces_when_credentials_and_provider_capabilities_are_available"
     ],
-    "default_execution_rule": "For an in-scope product task, continue through implementation, validation, delivery, merge, deployment, and verification without requesting subjective approval.",
+    "default_execution_rule": "Complete the deliverables authorized by the current task. Implementation tasks follow the repository delivery owner; deployment or release work is performed only when it is part of the authorized scope. Do not infer a new release task from an ordinary review or fix.",
     "user_operational_participation_required": false,
     "product_completion_is_reported_separately_from_external_launch_state": true,
-    "blocked_rule": "Stop only for a missing external capability or credential, an unrecoverable or destructive action outside the requested scope, a failed required machine gate, or an objective conflict that the harness cannot resolve from product truth and evidence."
+    "blocked_rule": "Repair in-scope failures and continue independent work. Report a blocker when a required external capability, credential, unresolved safety or integrity risk, or action outside the authorized scope prevents completion; do not invent a subjective approval step."
   },
   "acceptance": {
     "authority": "model_harness",
-    "ordinary_change": "one model-harness task reviews the immutable exact diff with explicit assumption-inversion and failure-projection perturbation passes plus task-relevant deterministic tests",
-    "high_risk_change": "the same task repeats both exact-diff perturbation passes after fixes and adds task-relevant deterministic tests and rollback evidence",
-    "review_method": "single_task_dual_context_perturbation",
-    "independence_unit": "explicit_context_perturbation_pass_with_distinct_run_id_not_external_provider_or_separate_task",
     "required_machine_evidence": [
       "model_or_agent_identity",
       "run_id",
@@ -45,14 +41,16 @@
       "revise",
       "blocked"
     ],
-    "domain_record_boundary": "model-acceptance.v2 proves exact JSON input binding, perturbation-pass identity, and decision shape, not cryptographic proof of an external provider or separate task. Repository merge authority comes from the recorded dual-perturbation exact-diff decision plus deterministic required checks. Media-consumption claims additionally require a trusted-media-run-receipt.v2 whose exact bytes pass GitHub Artifact Attestation verification against the fixed card-make main workflow and type-specific semantic validation; retained-raw recovery separately binds the original model-execution commit and later attested finalizer commit, and review simplification never weakens media-consumption evidence.",
+    "domain_record_boundary": "Ordinary PR declarations bind a decision to the exact diff and summarize actual risks, verification and limitations; their syntax is not proof of semantic quality or independent review. Formal model-acceptance.v2 and trusted-media-run-receipt.v2 retain their domain-owned immutable inputs, perturbation identities and evidence checks. Media-consumption claims require exact bytes verified by GitHub Artifact Attestation against the fixed card-make main workflow and type-specific semantic validation; retained-raw recovery binds the original model-execution commit and later attested finalizer commit. A PR declaration cannot satisfy these formal records.",
     "must_not": [
       "claim_a_model_consumed_audio_images_device_state_or_external_control_plane_data_it_did_not_receive",
       "invent_source_authenticity_credentials_provider_state_deployment_device_or_user_outcomes",
       "turn_green_structure_checks_into_unrecorded_semantic_evidence",
       "represent_agent_or_model_acceptance_as_human_or_user_approval",
       "describe_single_task_perturbation_passes_as_external_provider_or_separate_task_provenance"
-    ]
+    ],
+    "repository_review_owner": "spec/repo-delivery-contract.json#ci_contract.machine_acceptance",
+    "machine_evidence_scope": "The required_machine_evidence fields belong to formal domain acceptance records when required by their schema. Ordinary PRs use the repository review owner and do not need fabricated model identities, UUIDs, timestamps, or a fixed number of review passes."
   },
   "external_fact_boundary": {
     "subjective_internal_review_is_never_required": true,
@@ -74,23 +72,27 @@
     "experience_acceptance": {
       "authority": "Product intent and observed task outcomes can overturn a design baseline; visual styling is an implementation hypothesis.",
       "design_revision": "Ordinary corrections may revise design and implementation in the same PR. Compare before/after in the running product; large direction changes may use optional multi-candidate exploration.",
-      "review": "For user-facing changes, run an isolated model experience review with only the user task and actual captured states or runnable app first, withholding author rationale and pass claims. Record concrete observations before exposing the diff. Same provider is allowed; this is separate context, not provider diversity.",
+      "review": "Judge the user task and actual rendered or runnable states before relying on author rationale or pass claims. Choose depth and perturbations from task risk; use fresh-context review when the change is substantial or current evidence is uncertain. No fixed candidate, pass, agent or provider count is required for ordinary work.",
       "evidence": "Bind captures and commands to tested revision and source hashes. Screenshots prove pixels, interaction traces prove actions, accessibility trees are supporting evidence only. Missing execution is unverified, never passed.",
-      "calibration": "Start with actual missing-material and covered-answer failures plus repaired captures. Reject known bad states and accept good states. OCR is a bounded readability check, not a UX decision.",
-      "execution": "Native reading journeys run in the dedicated iOS CI job; the same flow runs on an explicit disposable Android simulator locally. Web and broader journey coverage remain separate and must be reported, not inferred.",
+      "calibration": "Use observed failures and repaired examples to check whether a proposed test distinguishes the important outcome. Reject missing materials or covered actions when observed; OCR and source inspection are bounded supporting checks, never automatic UX approval.",
+      "execution": "Select affected journeys and platforms from the change. Shared user-facing changes report iOS, Android and Web coverage separately; representative CI journeys cover only their named scenarios. Missing device, browser or external execution remains explicitly unverified.",
       "cost": "Use affected journeys for ordinary changes; broader device/content matrices at candidate milestones. Remove the corresponding implementation-shape and prose-anchor assertions as outcome tests replace them. Retain security and data-integrity checks.",
-      "record": "Keep generated captures and reports in CI artifacts or ignored output. A concise PR observation summary suffices; no new tracked run-record or per-screen checklist."
-    }
+      "record": "Keep generated captures and reports in CI artifacts or ignored output. A concise PR observation summary suffices; no new tracked run-record or per-screen checklist.",
+      "judgment": "A confusing, tedious, unconvincing or aesthetically weak experience is a valid finding even when no existing spec or anti-pattern names it. Consider learning value, truthful feedback, clarity, agency, continuity and visual coherence as relevant to the user task; do not turn these prompts into another mandatory questionnaire."
+    },
+    "static_guard_boundary": "Automate concrete schema, capability, security and behavior invariants. Do not require exact prose, historical artifact filenames, fixed review counts, CSS spelling or presentation tokens as substitutes for product judgment; a new guard needs both a reproduced failure and a legitimate variation that must remain allowed."
   },
   "methodology_refresh": {
-    "last_checked_at": "2026-08-26",
+    "last_checked_at": "2026-09-29",
     "official_sources": [
       "https://developers.openai.com/api/docs/guides/latest-model",
       "https://developers.openai.com/blog/codex-as-a-platform",
       "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions",
       "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations",
       "https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/increase-security-rating",
-      "https://cli.github.com/manual/gh_attestation_verify"
+      "https://cli.github.com/manual/gh_attestation_verify",
+      "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+      "https://developers.openai.com/api/docs/guides/evaluation-best-practices"
     ],
     "refresh_rule": "Before a major harness expansion or model migration, recheck current official model, tool, context, eval, and harness guidance; adopt changes only after representative repository evals."
   },

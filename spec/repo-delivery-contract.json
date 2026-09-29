@@ -1,5 +1,5 @@
 {
-  "version": "vnext-17",
+  "version": "vnext-18",
   "purpose": "Lean repository delivery contract for model-owned changes: topic branch, pull request, exact-diff model review, task-relevant required checks, and automatic merge without human approval.",
   "delivery_defaults": {
     "code_change_tasks": {
@@ -37,45 +37,18 @@
       "Model review"
     ],
     "validation_record_policy": {
-      "required_checks_are_the_validation_authority": true,
       "skip_remote_guard_is_ci_only": true,
-      "skip_remote_guard_only_record_is_merge_blocker": false
+      "skip_remote_guard_only_record_is_merge_blocker": false,
+      "required_checks_must_pass_before_merge": true,
+      "required_checks_do_not_replace_product_judgment": true
     },
-    "visual_output_rule": "if_visual_output_changes_exist_the_pull_request_must_answer_the_design_review_checklist",
+    "visual_output_rule": "For affected user-facing tasks, describe observed behavior and remaining limitations in the existing validation section; the review declaration is not experience evidence.",
     "user_facing_ui_design_gate": {
       "applies_when": "pull_request_changes_user_facing_UI_or_visual_state",
-      "required_before_implementation": false,
-      "accepted_sources": [
-        "docs/design/visual-reference.html",
-        "docs/design/canon.md",
-        "docs/design/briefs/*.md",
-        "docs/design/directions/*.md",
-        "docs/design/decisions/*.md",
-        "docs/design/interaction-motion/*.md",
-        "docs/design/physical-space/*.md",
-        "docs/design/mocks/*.md",
-        "docs/design/storyboards/*.md",
-        "linked_external_design_file"
-      ],
-      "same_pull_request_design_artifact_rule": "Design and implementation may be revised together under spec/machine-acceptance.json#harness_strategy.experience_acceptance; author-written design is not execution evidence.",
-      "task_local_design_brief_rule": "task-local design briefs may guide exploration but are not accepted implementation authority",
-      "existing_code_is_not_design_authority": true,
-      "implementation_without_design_artifact": "delivery_blocker",
-      "pull_request_must_state": [
-        "design_artifact_source",
-        "interaction_motion_artifact_if_core_interaction_changes",
-        "physical_space_artifact_if_space_changes",
-        "implementation_mapping",
-        "unimplemented_design_gaps_if_any",
-        "design_review_checklist_answers"
-      ],
-      "core_product_capability_design_gate": {
-        "learning_or_space_ui_requires_surface_specific_artifact": true,
-        "core_interaction_ui_requires_interaction_motion_artifact": true,
-        "space_ui_requires_physical_space_artifact": true,
-        "space_ui_requires_space_visual_proof_artifact": true,
-        "core_surface_quality_requires_rendered_mock_or_storyboard_before_full_visual_completion": true
-      }
+      "experience_acceptance_owner": "spec/machine-acceptance.json#harness_strategy.experience_acceptance",
+      "design_artifacts": "Existing designs and task-local sketches are revisable context. Creating or citing an artifact is not a prerequisite for ordinary fixes and does not prove product quality.",
+      "validation_record": "Use the existing 验证 section for the affected user task, actual observations, and unverified limits. No per-screen checklist or duplicated design record is required.",
+      "scope": "Choose affected journeys and platforms from the actual change; report missing execution explicitly rather than treating a document or another platform as proof."
     },
     "card_content_handoff_gate": {
       "applies_when": "pull_request_changes_repository_dev_card_content_or_card_payload_seed",
@@ -144,15 +117,19 @@
     "machine_acceptance": {
       "owner": "spec/machine-acceptance.json",
       "required_status_check": "validate-harness",
-      "review_schema": "single-task-dual-perturbation-review.v1",
-      "review_method": "assumption_inversion_then_failure_projection",
+      "review_schema": "exact-diff-review.v1",
+      "review_method": "task_risk_based_exact_diff_review",
       "external_model_api_required": false,
       "pr_description_records_review": true,
       "exact_pull_request_head_binding_required": true,
-      "minimum_perturbation_passes": 2,
       "human_or_user_environment": null,
       "tracked_run_record_required": false,
-      "sensitive_scope_policy": "dual_perturbation_exact_diff_review_plus_task_relevant_required_checks"
+      "sensitive_scope_policy": "Review task-specific failure modes with relevant execution, security, integrity, rollback and external evidence checks; depth follows risk rather than a fixed pass count.",
+      "declaration_boundary": "The PR record validates declaration consistency and exact head binding only. It does not prove that review occurred, semantic quality, independent provenance, or external facts.",
+      "accepted_legacy_review_schemas": [
+        "single-task-dual-perturbation-review.v1"
+      ],
+      "legacy_review_record_policy": "Existing PRs may retain this legacy declaration without reauthoring historical review metadata. Validate exact head, top-level status and summary, and every declared run decision and blocking-findings list. Do not require a fixed run count or interpret run/model/time metadata as verified provenance. New records use review_schema."
     },
     "remote_repository_health": {
       "workflow_job": "repo-health",
@@ -252,7 +229,7 @@
       },
       {
         "id": "machine_owned_acceptance",
-        "command": "one model-harness task performs assumption-inversion and failure-projection reviews over the exact diff, records both decisions in the PR, then relies on deterministic required checks; no external model API or human environment"
+        "command": "Review the exact diff against task risks and observed outcomes, record the concise decision in the PR, and complete task-relevant required checks. Use additional perspectives or perturbations when they can resolve a concrete remaining risk."
       }
     ]
   }

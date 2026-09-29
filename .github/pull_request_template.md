@@ -14,35 +14,17 @@
 
 ```json
 {
-  "schema_version": "single-task-dual-perturbation-review.v1",
+  "schema_version": "exact-diff-review.v1",
   "head_sha": "<exact-40-character-pr-head-sha>",
-  "policy": "spec/machine-acceptance.json",
-  "runs": [
-    {
-      "principal": "agent:codex",
-      "model": "gpt-5.6-sol",
-      "run_id": "<assumption-inversion-pass-id>",
-      "perturbation_id": "assumption_inversion",
-      "reviewed_at": "<RFC3339-with-timezone>",
-      "capabilities": ["exact_diff_review"],
-      "decision": "passed",
-      "blocking_findings": []
-    },
-    {
-      "principal": "agent:codex",
-      "model": "gpt-5.6-sol",
-      "run_id": "<failure-projection-pass-id>",
-      "perturbation_id": "failure_projection",
-      "reviewed_at": "<RFC3339-with-timezone>",
-      "capabilities": ["exact_diff_review"],
-      "decision": "passed",
-      "blocking_findings": []
-    }
-  ],
   "status": "passed",
-  "summary": "Exact-diff review against the referenced product truth and acceptance criteria."
+  "blocking_findings": [],
+  "summary": "<Risks actually reviewed, observed results, and remaining limitations; reference 验证 where useful.>"
 }
 ```
 
-<!-- Domain-specific design, content, release, deployment, and external facts
-remain enforced by their owning validators. Do not create docs/agent-runs. -->
+<!-- Review depth and useful perturbations follow the task's actual risks.
+This record checks declaration consistency and exact head binding; it does not
+prove semantic quality, independent review, or external facts. For UI changes,
+describe actual task observations and remaining limitations in 验证.
+Content, release, deployment, and external evidence retain their own validators.
+Do not create docs/agent-runs. -->

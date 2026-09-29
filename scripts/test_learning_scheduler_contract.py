@@ -194,6 +194,31 @@ class LearningSchedulerContractTests(unittest.TestCase):
             "scheduler runtime launch",
         )
 
+    def test_relevant_read_owners_allow_compact_or_reordered_routes(self):
+        owners = [
+            "spec/account-sync-contract.json",
+            "infra/cloudbase/learning-session-v1-runtime-contract.md",
+        ]
+        for route in (
+            owners,
+            list(reversed(owners)),
+            ["spec/runtime-boundaries.json", *owners],
+        ):
+            with self.subTest(route=route):
+                agent = copy.deepcopy(self.agent)
+                agent["read_paths"]["learning_scheduler_runtime"] = route
+                self.assertEqual([], self.findings(agent=agent))
+
+    def test_read_route_cannot_omit_account_owner(self):
+        agent = copy.deepcopy(self.agent)
+        agent["read_paths"]["learning_scheduler_runtime"] = [
+            "infra/cloudbase/learning-session-v1-runtime-contract.md",
+        ]
+        self.assert_finding(
+            self.findings(agent=agent),
+            "agent read path learning_scheduler_runtime",
+        )
+
     def test_scheduler_read_path_and_evals_are_required(self):
         missing_path = copy.deepcopy(self.agent)
         missing_path["read_paths"].pop("learning_scheduler_runtime")

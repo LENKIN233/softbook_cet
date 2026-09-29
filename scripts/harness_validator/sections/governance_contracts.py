@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import re
+
 
 def validate(context) -> None:
     """Check high-signal governance invariants without mirroring prose or eval answers."""
@@ -148,9 +151,9 @@ def validate(context) -> None:
             machine.get("required_status_check"),
         )
         check_equal(
-            "machine acceptance review method",
-            "assumption_inversion_then_failure_projection",
-            machine.get("review_method"),
+            "machine acceptance exact head binding",
+            True,
+            machine.get("exact_pull_request_head_binding_required"),
         )
         check_equal(
             "machine acceptance external API",
@@ -188,13 +191,25 @@ def validate(context) -> None:
     for stale in ("## Agent run record", "formal-product-owner-approval"):
         if stale in pr_template:
             errors.append(f"PR template contains stale gate: {stale}")
-    for token in (
-        '"schema_version": "single-task-dual-perturbation-review.v1"',
-        '"perturbation_id": "assumption_inversion"',
-        '"perturbation_id": "failure_projection"',
-    ):
-        if token not in pr_template:
-            errors.append(f"PR template missing single-task perturbation token: {token}")
+    # The delivery owner chooses the review format; do not mirror a reasoning
+    # method or require invented run/provenance metadata in ordinary PRs.
+    review_records = re.findall(r"```json\s*([\s\S]*?)```", pr_template)
+    if len(review_records) != 1:
+        errors.append("PR template must contain one review declaration")
+    else:
+        try:
+            template_record = json.loads(review_records[0])
+        except json.JSONDecodeError:
+            errors.append("PR template review declaration must be valid JSON")
+        else:
+            if not isinstance(template_record, dict):
+                errors.append("PR template review declaration must be an object")
+            else:
+                check_equal(
+                    "PR template review schema matches delivery owner",
+                    (machine or {}).get("review_schema"),
+                    template_record.get("schema_version"),
+                )
     for stale in (
         "pr-model-review.v1",
         "agent:codex-independent-reviewer",

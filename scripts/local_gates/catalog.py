@@ -56,6 +56,20 @@ def build_catalog() -> tuple[GateSpec, ...]:
             lambda _: CommandSpec((sys.executable, "scripts/test_validate_harness_runner.py")),
         ),
         GateSpec(
+            "product-concept-tests",
+            dev,
+            30,
+            False,
+            lambda _: CommandSpec((sys.executable, "scripts/test_product_contract_mirrors.py")),
+        ),
+        GateSpec(
+            "visual-baseline-tests",
+            dev,
+            30,
+            False,
+            lambda _: CommandSpec((sys.executable, "scripts/test_visual_language.py")),
+        ),
+        GateSpec(
             "learning-events-contract-tests",
             dev,
             60,

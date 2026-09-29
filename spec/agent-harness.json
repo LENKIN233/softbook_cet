@@ -1,495 +1,180 @@
 {
-  "version": "vnext-25",
+  "version": "vnext-26",
   "read_paths": {
     "product_or_scope": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json"
+      "spec/product-core.json",
+      "spec/requirement-memory.json"
     ],
     "auth_or_sync_or_purchase": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
       "spec/account-sync-contract.json",
-      "spec/membership.json",
-      "spec/runtime-boundaries.json",
-      "infra/cloudbase/auth-v2-runtime-contract.md"
+      "infra/cloudbase/auth-v2-runtime-contract.md",
+      "spec/membership.json"
     ],
     "learning_events_runtime": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
       "spec/account-sync-contract.json",
-      "spec/runtime-boundaries.json",
-      "infra/cloudbase/learning-events-v2-runtime-contract.md",
-      "spec/harness-architecture.json",
-      "spec/agent-harness.json",
-      "spec/repo-delivery-contract.json",
-      "spec/agent-run-record.json",
-      "spec/evals.json"
+      "infra/cloudbase/learning-events-v2-runtime-contract.md"
     ],
     "learning_scheduler_runtime": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
       "spec/account-sync-contract.json",
-      "spec/membership.json",
-      "spec/runtime-boundaries.json",
-      "infra/cloudbase/learning-events-v2-runtime-contract.md",
-      "infra/cloudbase/learning-session-v1-runtime-contract.md",
-      "spec/harness-architecture.json",
-      "spec/agent-harness.json",
-      "spec/repo-delivery-contract.json",
-      "spec/agent-run-record.json",
-      "spec/evals.json"
+      "infra/cloudbase/learning-session-v1-runtime-contract.md"
     ],
     "launch_evidence_or_release_readiness": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
-      "spec/account-sync-contract.json",
-      "spec/membership.json",
-      "spec/runtime-boundaries.json",
-      "spec/cet4-closed-beta-readiness.json",
-      "spec/trusted-media-run-receipt.json",
       "spec/release-operational-policy.json",
-      "infra/cloudbase/learning-events-v2-runtime-contract.md",
-      "infra/cloudbase/learning-session-v1-runtime-contract.md",
-      "infra/cloudbase/release-bundle-v1-runtime-contract.md",
-      "spec/harness-architecture.json",
-      "spec/agent-harness.json",
-      "spec/repo-delivery-contract.json",
-      "spec/agent-run-record.json",
-      "spec/evals.json"
+      "relevant_readiness_or_media_receipt_owner",
+      "infra/cloudbase/release-bundle-v1-runtime-contract.md"
     ],
     "physical_space_actions_runtime": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
-      "spec/account-sync-contract.json",
-      "spec/knowledge-map.json",
       "spec/space-operations.json",
-      "spec/box-catalog.json",
-      "spec/runtime-boundaries.json",
-      "infra/cloudbase/space-actions-v2-runtime-contract.md",
-      "spec/harness-architecture.json",
-      "spec/agent-harness.json",
-      "spec/repo-delivery-contract.json",
-      "spec/agent-run-record.json",
-      "spec/evals.json"
+      "spec/account-sync-contract.json",
+      "infra/cloudbase/space-actions-v2-runtime-contract.md"
     ],
     "platform_or_multisurface": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
-      "spec/platform-contract.json",
-      "spec/runtime-boundaries.json"
+      "spec/platform-contract.json"
     ],
     "navigation_or_input_surface": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
       "spec/platform-contract.json",
       "spec/interactions.json"
     ],
     "card_or_interaction": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
-      "spec/action-surface.json",
       "spec/card-system.json",
-      "spec/interactions.json"
+      "spec/interactions.json",
+      "spec/action-surface.json"
     ],
     "card_content_handoff": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
       "spec/card-system.json",
       "spec/box-catalog.json",
-      "spec/runtime-boundaries.json",
-      "spec/agent-harness.json",
       "infra/cloudbase/mobile-runtime-contract.md"
     ],
     "physical_space_or_box_codes": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
       "spec/knowledge-map.json",
       "spec/space-operations.json",
       "spec/box-catalog.json"
     ],
     "membership_or_trial": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
       "spec/membership.json"
     ],
     "continuity_or_commerce": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
       "spec/account-sync-contract.json",
-      "spec/platform-contract.json",
-      "spec/product-core.json",
       "spec/membership.json",
-      "spec/runtime-boundaries.json"
+      "spec/platform-contract.json"
     ],
     "implementation": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "related_product_specs",
-      "related_contract_specs",
-      "spec/runtime-boundaries.json"
+      "relevant_product_and_runtime_owners",
+      "affected_source_and_tests"
     ],
     "repo_delivery_or_pull_request": [
-      "spec/authority-map.json",
-      "spec/agent-harness.json",
-      "spec/repo-delivery-contract.json",
-      "spec/evals.json"
+      "spec/repo-delivery-contract.json"
     ],
     "review_or_acceptance": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "related_specs",
-      "spec/agent-harness.json",
-      "spec/evals.json"
+      "spec/machine-acceptance.json",
+      "affected_product_and_contract_owners",
+      "relevant_executable_evals"
     ],
     "visual_or_design_output": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "relevant_product_specs",
       "spec/visual-language.json",
       "docs/design/design-harness.md",
-      "docs/design/visual-reference.html"
+      "relevant_existing_design_and_running_product"
     ],
     "user_facing_ui_implementation": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "relevant_product_specs",
       "spec/visual-language.json",
       "docs/design/design-harness.md",
-      "docs/design/visual-reference.html",
-      "docs/design/canon.md",
-      "the_accepted_design_artifact",
-      "the_implementation_mapping",
-      "spec/runtime-boundaries.json"
+      "affected_product_owners_and_implementation"
     ],
     "interaction_or_motion_design": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
       "spec/interactions.json",
       "spec/visual-language.json",
-      "docs/design/design-harness.md",
-      "docs/design/interaction-motion/README.md",
-      "docs/design/storyboards/README.md"
+      "affected_interaction_and_runtime_behavior"
     ],
     "physical_space_design": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "spec/product-core.json",
       "spec/knowledge-map.json",
       "spec/space-operations.json",
-      "spec/box-catalog.json",
       "spec/visual-language.json",
-      "docs/design/design-harness.md",
-      "docs/design/physical-space/README.md",
-      "docs/design/storyboards/README.md"
+      "affected_spatial_implementation"
     ],
     "visual_review_or_design_critique": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
+      "spec/machine-acceptance.json",
       "spec/visual-language.json",
-      "docs/design/visual-reference.html",
-      "docs/design/canon.md",
-      "spec/agent-harness.json",
-      "the_artifact_under_review"
+      "actual_captured_states_or_runnable_app"
     ],
     "design_search_or_core_surface_optimization": [
-      "spec/requirement-memory.json",
-      "spec/authority-map.json",
-      "relevant_product_specs",
+      "spec/product-core.json",
       "spec/visual-language.json",
       "docs/design/design-harness.md",
-      "docs/design/search-runs/README.md",
-      "accepted_baseline_artifact",
-      "relevant_interaction_motion_or_physical_space_artifacts"
+      "current_experience_and_relevant_alternatives"
     ],
     "workspace_boundary_or_repo_structure": [
-      "spec/authority-map.json",
-      "spec/workspace-boundary.json",
-      "spec/agent-harness.json",
-      "spec/repo-delivery-contract.json",
-      "spec/evals.json"
+      "spec/workspace-boundary.json"
     ],
     "harness_architecture_or_validator_refactor": [
-      "spec/authority-map.json",
       "spec/harness-architecture.json",
-      "spec/workspace-boundary.json",
-      "spec/agent-harness.json",
-      "spec/repo-delivery-contract.json",
-      "spec/evals.json"
+      "spec/machine-acceptance.json",
+      "affected_validator_owners_and_evals"
     ]
   },
   "progressive_disclosure_policy": {
-    "default_behavior": "read_only_the_minimum_spec_subset_needed_for_the_current_task",
+    "default_behavior": "Use authority-map and doc-manifest to locate the current task owner; read_paths are starting points, not ordered chains or a mandatory reading checklist.",
+    "scope": "Read only sections that affect the task. Consult requirement-memory when changing product definitions or resolving intent, delivery policy when delivering changes, runtime-boundaries for a touched runtime boundary, and archived records only for a concrete historical question.",
     "escalate_when": [
-      "task_crosses_multiple_truth_domains",
-      "two_specs_conflict_or_leave_a_gap",
-      "platform_specific_behavior_changes_product_shape",
-      "membership_or_space_rules_change_interaction_or_surface_design",
-      "user_facing_ui_change_has_no_accepted_design_artifact"
+      "a_real_cross_domain_dependency_affects_the_result",
+      "owners_conflict_or_leave_a_material_gap",
+      "observed_behavior_contradicts_the_current_contract"
     ],
     "forbidden_behavior": [
       "loading_the_entire_active_tree_by_default",
-      "using_archive_as_shortcut_for_missing_active_truth",
-      "inventing_cross_domain_requirements_without_loading_the_relevant_contract",
+      "treating_historical_workflow_or_design_as_immutable_product_truth",
       "editing_a_mirrored_fact_without_checking_its_owner_in_authority_map"
     ]
   },
   "task_briefs": {
-    "design": {
-      "inputs": [
-        "spec/requirement-memory.json",
-        "product_specs",
-        "relevant_contract_specs",
-        "docs/design/design-harness.md_when_direction_or_worldview_is_needed",
-        "spec/visual-language.json_when_output_is_visual"
-      ],
-      "outputs": [
-        "experience_goal",
-        "information_goal",
-        "key_actions",
-        "misunderstanding_risks"
-      ],
-      "stop_when": "no_more_implementation_detail_is_needed_to_guide_design",
-      "visual_output_rule": "if_the_design_task_produces_visual_artifacts_mocks_or_renderings_the_agent_must_inherit_tokens_and_silhouettes_from_spec_visual_language_json_and_docs_design_visual_reference_html_instead_of_inventing_new_ones"
-    },
     "product": {
-      "inputs": [
-        "spec/requirement-memory.json",
-        "spec/product-core.json"
-      ],
-      "outputs": [
-        "requirement_interpretation",
-        "scope_judgment",
-        "value_priority",
-        "non_goals"
-      ],
-      "stop_when": "product_truth_and_implementation_hypothesis_are_clearly_separated"
+      "owner": "spec/product-core.json",
+      "focus": "Identify the learner benefit and preserve the product concepts owned by the relevant specs. Separate intended outcomes from the current implementation.",
+      "done_when": "The requested decision is supported by the current user goal and product evidence, with material assumptions and unresolved questions named."
     },
     "coding": {
-      "inputs": [
-        "product_specs",
-        "contract_specs",
-        "spec/runtime-boundaries.json"
-      ],
-      "outputs": [
-        "implementation",
-        "explicit_hypotheses"
-      ],
-      "stop_when": "implementation_does_not_invent_product_requirements",
-      "user_facing_ui_rule": "before_changing_user_facing_UI_load_the_accepted_design_artifact_and_map_implementation_to_it"
+      "focus": "Change the affected behavior and verify it through task-relevant tests and actual execution where needed.",
+      "done_when": "The requested behavior works, related invariants remain intact, and known limitations are reported."
     },
     "card_content_handoff": {
-      "inputs": [
-        "spec/requirement-memory.json",
-        "spec/product-core.json",
-        "spec/card-system.json",
-        "spec/box-catalog.json",
-        "spec/runtime-boundaries.json",
-        "infra/cloudbase/mobile-runtime-contract.md",
-        "external_workspace:/Users/lenkin/programing/card make"
-      ],
-      "outputs": [
-        "upstream_workspace_reference",
-        "export_contract_or_payload_path",
-        "dry_run_import_result",
-        "catalog_audit_result",
-        "runtime_smoke_result",
-        "release_content_gap_delta"
-      ],
-      "stop_when": "softbook_cet_has_only_received_validated_card_payloads_from_card_make_and_has_not_produced_or_approved_card_content_itself",
-      "blocked_when": "the_task_requires_generating_candidate_card_content_or_marking_content_approved_inside_softbook_cet"
+      "owner": "infra/cloudbase/mobile-runtime-contract.md",
+      "focus": "Consume the card make export, verify import and catalog integrity, and exercise affected content in the product. Candidate production and approval stay upstream.",
+      "done_when": "The requested handoff has a traceable payload and validated import/runtime result; unverified content or release claims remain explicit."
     },
     "user_facing_ui_implementation": {
-      "inputs": [
-        "spec/requirement-memory.json",
-        "spec/authority-map.json",
-        "relevant_product_specs",
-        "spec/visual-language.json",
-        "accepted_design_artifact",
-        "implementation_mapping",
-        "spec/runtime-boundaries.json"
-      ],
-      "outputs": [
-        "design_artifact_reference",
-        "interaction_motion_artifact_if_core_interaction_changes",
-        "physical_space_artifact_if_space_changes",
-        "space_visual_proof_artifact_if_space_ui_changes",
-        "implementation_mapping",
-        "unimplemented_design_gaps",
-        "design_review_checklist_answers"
-      ],
-      "stop_when": "implementation_maps_only_the_accepted_design_artifact_and_does_not_create_new_user_facing_design",
-      "blocked_when": "no_accepted_design_artifact_exists_for_the_user_facing_surface"
+      "owner": "spec/machine-acceptance.json#harness_strategy.experience_acceptance",
+      "focus": "Use current design and implementation as revisable baselines. Identify the user task, information priority, feedback and recovery; make ordinary design and implementation improvements together.",
+      "done_when": "Observed behavior and captures support the intended improvement on affected surfaces; usability and aesthetic findings are resolved or stated, even when no old rule was violated."
     },
     "interaction_motion_design": {
-      "inputs": [
-        "spec/product-core.json",
-        "spec/interactions.json",
-        "spec/visual-language.json",
-        "docs/design/design-harness.md"
-      ],
-      "outputs": [
-        "target_interaction",
-        "operation_model",
-        "feedback_model",
-        "failure_and_recovery_states",
-        "motion_intent",
-        "interruptibility",
-        "reduce_motion_fallback",
-        "storyboard_reference"
-      ],
-      "stop_when": "interaction_and_motion_explain_product_state_change_without_becoming_decorative_animation",
-      "blocked_when": "new_or_changed_interaction_contract_has_not_been_updated_in_spec_interactions_json"
+      "owner": "spec/interactions.json",
+      "focus": "Verify the intended action, visible feedback, interruption/recovery and reduced-motion behavior. Use sketches or storyboards when they resolve a real uncertainty.",
+      "done_when": "The affected interaction is understandable and operable; motion clarifies state without delaying or blocking the task."
     },
     "physical_space_design": {
-      "inputs": [
-        "spec/product-core.json",
-        "spec/knowledge-map.json",
-        "spec/space-operations.json",
-        "spec/box-catalog.json",
-        "spec/visual-language.json",
-        "docs/design/design-harness.md"
-      ],
-      "outputs": [
-        "spatial_model",
-        "current_object_and_parent_context",
-        "allowed_operations",
-        "disallowed_operations",
-        "favorite_tag_semantics",
-        "sleep_wake_state_transition",
-        "learning_space_continuity",
-        "visual_proof_against_flat_list_or_two_box_drift"
-      ],
-      "stop_when": "space_is_designed_as_library_group_box_card_system_not_a_surface_ui_shell",
-      "blocked_when": "space_operation_or_knowledge_ownership_change_has_not_been_updated_in_owner_specs"
+      "owner": "spec/knowledge-map.json",
+      "related_owner": "spec/space-operations.json",
+      "focus": "Keep library/group/box/card ownership, favorite tags, sleep/wake effects and Learning-to-Space continuity meaningful. Choose the visible hierarchy and layout for the device and task.",
+      "done_when": "A user can understand current position, inspect contents and return to learning without losing relevant state; permitted operations preserve knowledge ownership."
     },
     "design_search": {
-      "activation": "optional_direction_exploration_not_required_for_ordinary_corrections",
-      "inputs": [
-        "spec/requirement-memory.json",
-        "spec/authority-map.json",
-        "relevant_product_specs",
-        "spec/visual-language.json",
-        "docs/design/design-harness.md",
-        "docs/design/search-runs/README.md",
-        "accepted_baseline_artifact"
-      ],
-      "outputs": [
-        "context_pack",
-        "candidate_population_with_provenance",
-        "surviving_candidate_visual_evidence",
-        "hard_filter_results",
-        "pairwise_reviews",
-        "fragment_harvest",
-        "targeted_mutation_log",
-        "promotion_record_or_no_promotion_reason",
-        "failure_sedimentation_targets"
-      ],
-      "stop_when": "one_candidate_beats_the_accepted_baseline_or_the_run_records_why_no_candidate_should_be_promoted",
-      "blocked_when": "claims_product_acceptance_without_executing_the_affected_user_task"
+      "activation": "Optional when a material design uncertainty warrants alternatives.",
+      "focus": "Compare plausible alternatives against observed learner tasks. Vary the assumption most likely to hide a weakness; keep useful findings without requiring a candidate population or promotion ledger.",
+      "done_when": "Evidence supports the chosen improvement or explains the remaining uncertainty."
     },
     "review": {
-      "inputs": [
-        "relevant_specs",
-        "anti_patterns"
-      ],
-      "outputs": [
-        "product_distortion_risks_first",
-        "then_implementation_findings"
-      ],
-      "stop_when": "violated_truth_or_contract_is_named"
-    },
-    "design_review": {
-      "inputs": [
-        "spec/requirement-memory.json",
-        "spec/visual-language.json",
-        "docs/design/visual-reference.html",
-        "docs/design/canon.md",
-        "the_artifact_under_review"
-      ],
-      "outputs": [
-        "answers_to_visual_language_design_review_checklist_universal_Q1_through_Q4",
-        "answers_to_applicable_conditional_Q5_and_Q6",
-        "product_distortion_risks_first_then_aesthetic_findings_then_layout_bugs",
-        "forbidden_design_patterns_hit_list_if_any"
-      ],
-      "stop_when": "checklist_is_answered_and_each_failure_is_named_with_its_anti_pattern_id",
-      "ordering_rule": "product_truth_violations_rank_above_taste_findings_rank_above_token_drift_rank_above_micro_styling"
-    },
-    "acceptance": {
-      "inputs": [
-        "relevant_specs",
-        "spec/evals.json"
-      ],
-      "outputs": [
-        "validation_result",
-        "coverage_gap"
-      ],
-      "stop_when": "old_anti_patterns_are_ruled_out"
+      "owner": "spec/machine-acceptance.json",
+      "focus": "Review concrete learner value, comprehension, visual hierarchy, interaction cost and correctness alongside security/data risks. Existing anti-patterns are prompts, not an exhaustive definition of quality.",
+      "done_when": "Findings explain observed impact and evidence, covered risks are clear, and unexecuted paths remain unverified."
     },
     "workspace_boundary": {
-      "inputs": [
-        "spec/authority-map.json",
-        "spec/workspace-boundary.json",
-        "spec/agent-harness.json",
-        "spec/repo-delivery-contract.json",
-        "spec/evals.json"
-      ],
-      "outputs": [
-        "active_truth_source_and_contract_scope",
-        "excluded_generated_dependency_cache_archive_scope",
-        "external_workspace_boundary_if_any",
-        "agent_read_escalation_reason_if_boundary_is_crossed",
-        "local_main_worktree_sync_state",
-        "topic_worktree_base_and_inactive_after_merge_state",
-        "remote_merge_state_vs_local_worktree_error_boundary"
-      ],
-      "stop_when": "agent can name what is active context, what is excluded by default, and why any excluded path was read",
-      "blocked_when": "the task depends on bulk-reading generated dependency cache archive or sibling workspace material without an explicit debug or handoff reason"
+      "owner": "spec/workspace-boundary.json",
+      "focus": "Use task-relevant active sources, preserve existing work, and cross generated/archive/external boundaries only for a concrete debug or handoff need.",
+      "done_when": "The task uses the needed context and repository state without loading unrelated history or changing another task’s work."
     },
     "harness_architecture": {
-      "inputs": [
-        "spec/authority-map.json",
-        "spec/harness-architecture.json",
-        "spec/workspace-boundary.json",
-        "spec/agent-harness.json",
-        "spec/repo-delivery-contract.json",
-        "spec/evals.json"
-      ],
-      "outputs": [
-        "layer_ownership_map",
-        "pure_layer_side_effect_boundary",
-        "delivery_governance_side_effect_boundary",
-        "design_governance_fixture_boundary",
-        "runtime_smoke_delegation",
-        "structured_runner_interface",
-        "harness_result_v1",
-        "partial_run_completeness",
-        "explicit_validate_context_modules",
-        "isolated_section_workers",
-        "read_only_context_capability_enforcement",
-        "read_only_runtime_capability_enforcement",
-        "section_timeout_isolation",
-        "fixture_context_capability_enforcement",
-        "zero_legacy_exec_paths",
-        "independent_local_quality_entrypoint",
-        "dev_pr_release_gate_profiles",
-        "local_gate_report_v1",
-        "redacted_ignored_local_gate_outputs",
-        "tracked_worktree_integrity_after_local_gates"
-      ],
-      "stop_when": "every harness section exposes validate(context), runs in an isolated bounded worker, has exactly one layer owner, confines side effects to its explicit context capability or delegated CI job, read-only workers enforce both static and runtime capability boundaries, no legacy exec adapter remains, and the independent local quality runner mirrors dev/pr/release gates without claiming formal approval or GitHub gate equivalence",
-      "blocked_when": "a validator change adds remote, runtime, generated, dependency, or temporary-fixture behavior to a pure truth or workspace layer, or a local gate report hides toolchain drift, dependency exceptions, deferred gates, or tracked worktree mutation"
+      "owner": "spec/harness-architecture.json",
+      "focus": "Preserve validator isolation, declared capabilities, truthful partial results and runtime evidence boundaries. Remove process assertions when they do not protect a demonstrated failure.",
+      "done_when": "Representative valid variants pass, meaningful failure cases still fail, and observed validator results establish the affected capability and side-effect boundaries."
     }
   },
   "governance": {
@@ -594,9 +279,8 @@
     },
     "repo_delivery_contract": {
       "owner": "spec/repo-delivery-contract.json",
-      "default_behavior": "code-changing tasks default to topic branch -> commit -> pull request -> single-task dual-perturbation exact-diff review -> merge unless the user explicitly requests local-only delivery",
-      "merge_policy": "merge to main automatically after both recorded perturbation passes and required gates are green; no human, user, or external model API approval is requested",
-      "design_gate_policy": "user-facing UI changes require accepted design artifacts, checklist answers, implementation mapping, and capability-specific interaction/motion or physical-space evidence when the change touches those systems"
+      "execution_rule": "Follow the delivery owner for the current task and respect explicit local-only scope; do not duplicate its review, PR or release workflow here.",
+      "experience_owner": "spec/machine-acceptance.json#harness_strategy.experience_acceptance"
     }
   },
   "anti_patterns": [
@@ -702,18 +386,18 @@
     },
     {
       "id": "AP-21",
-      "name": "reinvent_visual_language_per_screen_or_per_agent",
-      "correction": "inherit_from_spec_visual_language_json_and_docs_design_visual_reference_html_and_treat_hex_as_implementation_hypothesis_but_library_identity_and_self_assess_scoping_and_law_of_one_as_product_truth"
+      "name": "fragment_visual_language_without_a_user_benefit",
+      "correction": "use_existing_visual_language_as_a_revisable_baseline_and_verify_coherence_in_the_running_product"
     },
     {
       "id": "AP-22",
-      "name": "ship_visual_output_without_answering_design_review_checklist",
-      "correction": "any_task_that_produces_visual_output_must_emit_answers_to_visual_language_design_review_checklist_universal_Q1_Q4_plus_applicable_conditional_Q5_Q6"
+      "name": "treat_a_completed_design_checklist_as_product_quality",
+      "correction": "judge_observed_user_outcomes_using_machine_acceptance_experience_acceptance"
     },
     {
       "id": "AP-23",
-      "name": "use_red_for_self_assess_review_level_implying_punishment",
-      "correction": "self_assess_has_two_levels_confident_green_and_review_amber_red_is_reserved_for_rule_dont_and_trend_down_only"
+      "name": "turn_self_assessment_into_punishment_or_objective_correctness",
+      "correction": "keep_confident_and_review_as_two_self_assess_levels_use_honest_non_punitive_feedback_and_a_consistent_revisable_visual_baseline"
     },
     {
       "id": "AP-24",
@@ -727,13 +411,13 @@
     },
     {
       "id": "AP-26",
-      "name": "implement_user_facing_UI_directly_from_RN_or_agent_taste_without_design_artifact",
-      "correction": "treat_existing_RN_as_behavior_prototype_and_require_accepted_design_artifact_before_user_facing_implementation"
+      "name": "freeze_user_facing_UI_to_an_accepted_artifact_despite_observed_failure",
+      "correction": "revise_design_and_implementation_together_when_product_intent_and_runtime_evidence_support_the_change"
     },
     {
       "id": "AP-27",
       "name": "treat_interaction_motion_as_component_animation_afterthought",
-      "correction": "design_core_interaction_operation_feedback_failure_and_motion_artifacts_before_implementation"
+      "correction": "verify_operation_feedback_interruption_and_recovery_use_artifacts_when_they_resolve_uncertainty"
     },
     {
       "id": "AP-28",
@@ -742,13 +426,13 @@
     },
     {
       "id": "AP-29",
-      "name": "use_task_local_design_brief_as_implementation_authority",
-      "correction": "task_local_briefs_are_exploration_only_and_implementation_consumes_preexisting_accepted_artifacts"
+      "name": "block_an_experience_improvement_because_no_prior_design_artifact_exists",
+      "correction": "use_current_product_evidence_and_relevant_owners_to_design_implement_and_verify_the_improvement"
     },
     {
       "id": "AP-30",
       "name": "treat_agent_review_as_unrecorded_convention",
-      "correction": "agent_review_must_be_recorded_in_the_pull_request_and_checked_by_required_agent_review_gate_before_merge"
+      "correction": "record_exact_diff_review_and_required_checks_as_defined_by_repo_delivery_contract"
     },
     {
       "id": "AP-31",
@@ -812,20 +496,12 @@
     }
   ],
   "compaction_keep": [
-    "spec/requirement-memory.json",
-    "current_task_related_specs",
-    "current_decisions",
-    "open_questions",
-    "membership_structure",
-    "core_interactions",
-    "physical_space_semantics",
-    "detailed_box_catalog",
-    "card_make_external_workspace_boundary",
-    "repo_delivery_policy",
-    "edited_files",
-    "workspace_boundary_and_agent_read_scope",
-    "harness_architecture_layer_boundaries",
-    "agent_run_record_path",
-    "local_main_worktree_sync_state"
-  ]
+    "current_user_goal_and_authorized_scope",
+    "branch_head_and_existing_changes",
+    "relevant_owner_references",
+    "key_decisions_and_observed_evidence",
+    "modified_files",
+    "remaining_work_and_material_uncertainties"
+  ],
+  "task_brief_policy": "These briefs suggest useful questions and evidence. Adapt them to the task; they do not require separate documents, fixed report sections, or unrelated outputs. Acceptance follows spec/machine-acceptance.json."
 }

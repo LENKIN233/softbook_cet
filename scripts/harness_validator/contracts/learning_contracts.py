@@ -14,7 +14,6 @@ def _load_json(path: str) -> dict[str, Any]:
 
 CANONICAL_ACCOUNT = _load_json("spec/account-sync-contract.json")
 CANONICAL_RUNTIME = _load_json("spec/runtime-boundaries.json")
-CANONICAL_AGENT = _load_json("spec/agent-harness.json")
 CANONICAL_EVALS = _load_json("spec/evals.json")
 MISSING = object()
 
@@ -26,6 +25,20 @@ def _read(value: Any, path: tuple[str, ...]) -> Any:
             return MISSING
         current = current[key]
     return current
+
+
+def _check_read_owners(
+    findings: list[str],
+    agent: dict[str, Any],
+    route: str,
+    runtime_owner: str,
+) -> None:
+    """Keep owners discoverable without prescribing a reading sequence."""
+
+    paths = _read(agent, ("read_paths", route))
+    required = ("spec/account-sync-contract.json", runtime_owner)
+    if not isinstance(paths, list) or any(owner not in paths for owner in required):
+        findings.append(f"agent read path {route} is missing a relevant owner")
 
 
 def _check_owner_paths(
@@ -147,11 +160,12 @@ def learning_events_contract_findings(
     _check_owner_paths(findings, auth, CANONICAL_ACCOUNT, EVENT_OWNER_CHECKS)
     _check_owner_paths(findings, runtime, CANONICAL_RUNTIME, EVENT_RUNTIME_CHECKS)
 
-    if _read(agent, ("read_paths", "learning_events_runtime")) != _read(
-        CANONICAL_AGENT,
-        ("read_paths", "learning_events_runtime"),
-    ):
-        findings.append("agent read path learning_events_runtime drift")
+    _check_read_owners(
+        findings,
+        agent,
+        "learning_events_runtime",
+        "infra/cloudbase/learning-events-v2-runtime-contract.md",
+    )
 
     for collection, entry_id, label in (
         ("regressions", "HR-37", "HR-37 must_hit drift"),
@@ -234,11 +248,12 @@ def learning_scheduler_contract_findings(
         SCHEDULER_RUNTIME_CHECKS,
     )
 
-    if _read(agent, ("read_paths", "learning_scheduler_runtime")) != _read(
-        CANONICAL_AGENT,
-        ("read_paths", "learning_scheduler_runtime"),
-    ):
-        findings.append("agent read path learning_scheduler_runtime drift")
+    _check_read_owners(
+        findings,
+        agent,
+        "learning_scheduler_runtime",
+        "infra/cloudbase/learning-session-v1-runtime-contract.md",
+    )
 
     _check_eval_entry(
         findings,

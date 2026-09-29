@@ -1,100 +1,38 @@
 # Softbook CET Single-Card UX Contract
 
-## Product Truth
+## 产品语义
 
-Single-card flow means the learner works through one current CET card with a
-clear task, clear feedback, and low operation cost. It does not mean every control, explanation, statistic, navigation option, and state must fit into one static screen.
+学习以一个当前 CET 卡片任务为中心，系统编排默认顺序，模块浏览用于有针对性的回看。
+卡片应有清楚的任务、反馈和下一步，保持低操作负担。单卡流允许材料与解析滚动。
+产品定义由 `spec/product-core.json`、`spec/interactions.json` 和 `spec/space-operations.json` 维护。
 
-The flow is valid only when the user can operate it.
+翻面保留“有把握／需要复习”两档轻自评；客观题显示实际判定，不重复要求掌握度自评。
+收藏是标签，休眠影响学习流，浏览空间不能改变卡片知识归属或覆盖正在作答的状态。
 
-## Non-Goals
+## 设计判断
 
-Single-card flow is not:
+结合当前状态判断：学习者能否读懂任务、找到主要操作、理解反馈，并在必要时重试或返回。
+当前卡、任务材料和主要动作需要明确；帮助、收藏、位置等次级操作按实际需要收拢。
+这些是设计问题，不是实现前必须填齐的字段，也不以固定按钮数量判断质量。
 
-- one screen that contains the whole product
-- a dashboard with a card in the middle
-- a module picker as the primary path
-- a dense information poster
-- a screenshot-only composition with no touch priority
-- a card carousel that hides the next action
-- a stats page disguised as learning
+题目、选项、用户答案与解释保持完整。短屏、大字号、键盘和长材料下可以调整布局或滚动方式，
+但不能靠裁切内容或隐藏溢出来制造单屏效果。动作区放在固定位置、滚动区外或内容末尾均可，
+以相关设备上读得到、够得着、能继续为判断依据。
 
-## Required Interaction Structure
+保持学习与空间的连续性：地址帮助定位当前卡；从空间返回时保留原题、草稿、已揭晓结果和下一步。
+界面可以按手机、平板和桌面分别组织，不把同一个组件结构当作产品定义。
 
-Every Learning card state must define:
+## 诚实反馈
 
-- `current_card`: the single focal object.
-- `primary_task`: what the user should do now.
-- `primary_action`: the strongest available action.
-- `secondary_actions`: at most three low-noise actions.
-- `feedback_state`: what changed after action.
-- `escape_or_recovery`: skip, back, retry, or safe exit when applicable.
-- `space_continuity`: how the card position or state relates to Space.
+说明操作是否生效、结果是什么、下一步可以做什么。完成、自评有把握和客观答对含义不同，
+不能包装成已经掌握或保证提分。
 
-If a state cannot name these fields, it is not ready for visual implementation.
+会影响用户决定的待同步、失败和恢复状态应使用自然语言说明。
+正常保存状态保持安静；不向学习者暴露队列、内部元信息、算法实现或原始异常。
 
-## Operable Layout Model
+## 验证
 
-The minimum operable phone layout is:
-
-- top context: light progress and current library, never a dashboard.
-- focal card: the main reading or interaction object.
-- action zone: stable thumb-reachable primary action area.
-- feedback layer: appears after action, not before it steals attention.
-- continuity cue: a small connection to Space when relevant.
-
-This can scroll when content requires it. The rule is not "everything above the
-fold"; the rule is "the current task and primary action are always findable."
-
-On the expanded result page, the advance action stays outside the explanation's
-scroll viewport. Long analysis scrolls independently while the full primary
-button remains inside the available phone frame above navigation.
-
-## Touch Priority
-
-Primary action must be visually and spatially dominant. Secondary actions must
-not compete with the current card task.
-
-Do not present more than one primary decision at the same time. For `flip`,
-self-assess remains exactly two choices: `有把握` and `需要复习`.
-
-## Feedback Rules
-
-Feedback should answer:
-
-- Did my action register?
-- What is the result?
-- What can I do next?
-- Did this change where the card belongs in Space?
-
-Feedback must not expose algorithms, queues, sync details, metadata, or raw
-runtime failures.
-
-## Learning To Space Continuity
-
-Space is not a side page for storage. A Learning action may create or reveal:
-
-- a library identity
-- a group or box address
-- a favorite tag
-- a sleep or wake state
-- a current-card position
-
-The UI should make this continuity legible without turning Learning into a map
-screen.
-
-## Review Checklist
-
-Before accepting a Learning or core interaction design:
-
-- Is there exactly one focal card or interaction object?
-- Is the primary task visible without reading system explanation?
-- Is the primary action thumb-reachable on phone?
-- Are secondary actions quiet and bounded?
-- Does feedback explain learner outcome rather than internal process?
-- Does the screen avoid dashboard density?
-- Does the design preserve the system-sequenced learning path?
-- Does it state the Learning to Space continuity when relevant?
-
-If any answer is no, the artifact remains `candidate_exploration` or becomes
-`quarantined`.
+方法和记录边界遵循 `spec/machine-acceptance.json#harness_strategy.experience_acceptance`。
+用受影响的真实卡片和操作验证结果；缺失选项、被覆盖的答案或按钮是有效失败例。
+模型可按风险选择长材料、大字号、离线、返回或重复操作等扰动，发现问题后修订设计与实现。
+固定问卷、组件树、截图外观或静态通过都不能单独证明可操作的学习体验。

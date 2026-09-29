@@ -1,5 +1,5 @@
 {
-  "version": "vnext-6",
+  "version": "vnext-7",
   "purpose": "Single-source ownership map for active harness facts. If the same concept appears in multiple files, the owner here wins and non-owner copies must stay consistent.",
   "domains": {
     "user_origin_memory": {
@@ -118,18 +118,10 @@
       "design_harness": "docs/design/design-harness.md",
       "design_quarantine_contract": "docs/design/design-quarantine.md",
       "single_card_ux_contract": "docs/design/single-card-ux-contract.md",
-      "first_worldview_brief": "docs/design/briefs/learning-space-worldview.md",
-      "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
-      "first_platform_layout_decision": "docs/design/decisions/learning-space-platform-layout-v1.md",
-      "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
       "interaction_motion_artifact_index": "docs/design/interaction-motion/README.md",
-      "first_interaction_motion_artifact": "docs/design/interaction-motion/learning-core-interactions-v1.md",
       "physical_space_artifact_index": "docs/design/physical-space/README.md",
-      "first_physical_space_artifact": "docs/design/physical-space/space-model-v1.md",
       "rendered_mock_artifact_index": "docs/design/mocks/README.md",
-      "first_rendered_mock_artifact": "docs/design/mocks/learning-space-phone-frames-v1.md",
       "storyboard_artifact_index": "docs/design/storyboards/README.md",
-      "first_storyboard_artifact": "docs/design/storyboards/learning-space-motion-prototype-v1.md",
       "mirrors": [
         "spec/knowledge-map.json",
         "spec/interactions.json",
@@ -137,7 +129,7 @@
         "spec/repo-delivery-contract.json",
         "spec/agent-harness.json"
       ],
-      "notes": "Stabilizes visual output across agents. Product_truth here is narrow but includes library identity, Law of One, self-assess scoping to flip, map hierarchy, interaction silhouettes, and the user-facing UI design-artifact gate; everything else is implementation hypothesis."
+      "notes": "Product concepts remain in their domain owners; this domain supplies a coherent, revisable visual baseline. Artifact references, colors and layouts guide judgment and are not prior-design or checklist gates. Experience acceptance is owned by spec/machine-acceptance.json."
     },
     "workspace_boundary_and_agent_context": {
       "owner": "spec/workspace-boundary.json",
