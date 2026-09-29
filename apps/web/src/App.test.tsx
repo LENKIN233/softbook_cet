@@ -176,29 +176,28 @@ describe("local study user journey", () => {
     expect(current().card_id).toBe("002001");
     expect(screen.getByText("1 / 5")).toBeInTheDocument();
   });
-  it("opening help does not count as requesting hint content", async () => {
+  it("opening the method records actual peek use without claiming objective correctness", async () => {
     await enter();
-    fireEvent.click(screen.getByText("需要帮助", { selector: "summary" }));
+    fireEvent.click(screen.getByRole("button", {name: "看判断方法"}));
     answer();
     fireEvent.click(screen.getByRole("button", { name: "统计" }));
-    expect(screen.getByText("使用提示").closest("div")).toHaveTextContent("0");
-    expect(screen.getByText("今日完成").closest("div")).toHaveTextContent(
-      "1 张"
-    );
-    expect(screen.getByText("累计学过").closest("div")).toHaveTextContent(
-      "1 张"
-    );
+    expect(screen.getByText("今天练过").closest("div")).toHaveTextContent("1 张卡");
+    expect(screen.queryByText("今日答对")).toBeNull();
+    await saved();
+    const result = JSON.parse(localStorage.getItem("softbook-cet/study/v2/cet4")!).state.results[0];
+    expect(result).toMatchObject({usedHint: false, usedPeek: true});
   });
   it("retains hint use after closing help and preserves it through Space", async () => {
     await enter();
-    fireEvent.click(screen.getByText("需要帮助", { selector: "summary" }));
-    fireEvent.click(screen.getByRole("button", { name: "查看提示" }));
+    fireEvent.click(screen.getByRole("button", {name: "看判断方法"}));
+    fireEvent.click(screen.getByRole("button", { name: "再看一个提示" }));
     fireEvent.click(screen.getByRole("button", { name: "收起提示" }));
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
-    fireEvent.click(screen.getByRole("button", { name: "继续学习" }));
+    fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
     answer();
     fireEvent.click(screen.getByRole("button", { name: "统计" }));
-    expect(screen.getByText("使用提示").closest("div")).toHaveTextContent("1");
+    await saved();
+    expect(JSON.parse(localStorage.getItem("softbook-cet/study/v2/cet4")!).state.results[0]).toMatchObject({usedHint: true});
   });
   it("requires reveal and exactly two light self-assessment choices", async () => {
     await enter();
@@ -236,33 +235,34 @@ describe("local study user journey", () => {
       })
     );
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
-    fireEvent.click(screen.getByRole("button", { name: "继续学习" }));
+    fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
     answer(card);
     expect(screen.getByText("已解锁，稍后复习。")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "统计" }));
-    expect(screen.getByText("待复习").closest("div")).toHaveTextContent("1 张");
+    expect(screen.getByRole("button", {name: "开始复习"})).toBeEnabled();
   });
   it("filters favorites with the original box address and keeps the active learning card", async () => {
     await enter();
     fireEvent.click(screen.getByRole("button", { name: "收藏" }));
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
+    fireEvent.click(screen.getByText("浏览全部卡盒", {selector: "summary"}));
     fireEvent.click(screen.getByRole("button", { name: "只看收藏" }));
     const found = screen.getByRole("region", { name: "筛选结果" });
     expect(found).toHaveTextContent("听力 / 逻辑关系 / 转折关系");
     fireEvent.click(
       within(found).getByRole("button", { name: /短对话里听到 however/ })
     );
-    fireEvent.click(screen.getByRole("button", { name: "继续学习" }));
+    fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
     expect(current().card_id).toBe("002001");
   });
   it("pausing a card changes only its availability, not its box or the rest of the group", async () => {
     await enter();
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
     fireEvent.click(screen.getByRole("button", { name: "暂不学习这张卡" }));
-    expect(
-      screen.getByRole("region", { name: "盒内休眠区" })
-    ).toHaveTextContent(cards[0].front.prompt);
-    fireEvent.click(screen.getByRole("button", { name: "继续学习" }));
+    expect(screen.getByRole("button", {name: /休眠中/})).toHaveTextContent(cards[0].front.prompt);
+    fireEvent.click(screen.getByRole("button", {name: /休眠中/}));
+    expect(screen.getByRole("button", {name: "恢复学习"})).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
     expect(current().card_id).toBe("002002");
     expect(screen.getByText("2 / 5")).toBeInTheDocument();
   });
@@ -307,7 +307,7 @@ describe("local study user journey", () => {
       "true"
     );
     fireEvent.click(screen.getByRole("button", { name: "统计" }));
-    expect(screen.getByText("待复习").closest("div")).toHaveTextContent("1 张");
+    expect(screen.getByRole("button", {name: "开始复习"})).toBeEnabled();
   });
   it("preserves the completion receipt after pausing an old card", async () => {
     await enter();
@@ -320,7 +320,7 @@ describe("local study user journey", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "查看卡片" }));
     fireEvent.click(screen.getByRole("button", { name: "暂不学习这张卡" }));
-    fireEvent.click(screen.getByRole("button", { name: "继续学习" }));
+    fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
     expect(
       screen.getByRole("heading", { name: "本组完成" })
     ).toBeInTheDocument();

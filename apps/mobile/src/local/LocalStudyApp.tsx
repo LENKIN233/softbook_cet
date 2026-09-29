@@ -45,6 +45,7 @@ import {
   pendingStudyIds,
   planLocalCards,
   studyDay,
+  studyStatistics,
   type StudyState,
 } from './studyModel';
 import { StudyStorageError, type StudyStorage } from './studyStore';
@@ -735,6 +736,7 @@ export function LocalStudyApp({
             ) : null}
             {route === 'statistics' ? (
               <StatisticsSurface
+                statistics={studyStatistics(state, track, now) ?? null}
                 palette={palette}
                 deviceClass={deviceClass}
                 canCheckInToday={counts.learning + counts.review > 0}

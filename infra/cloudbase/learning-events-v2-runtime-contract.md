@@ -656,3 +656,14 @@ The repository-local backend, scheduler, and mobile binding do not prove:
 - that a repository-local smoke or simulated evidence report is formal launch
   evidence;
 - that a green check alone is formal content authorization.
+
+## User-facing track statistics
+
+`bootstrap.v2.statistics` reads immutable accepted events for the requested track
+and China day. Distinct completed cards, completed attempts, review attempts and
+cumulative distinct cards are separate quantities; latest-per-card outcomes do
+not preserve attempt counts. See the semantic owner in
+`spec/account-sync-contract.json#canonical_read.track_study_statistics` and the
+wire/completeness details in `bootstrap-v2-runtime-contract.md`. This addition
+does not change event acceptance, scheduling, account-wide daily progress, or
+explicit account-day check-in.

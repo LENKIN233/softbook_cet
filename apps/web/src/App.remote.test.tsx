@@ -1,3 +1,4 @@
+import {getChinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {act, fireEvent, render, screen} from '@testing-library/react';
 import {StrictMode} from 'react';
 
@@ -33,6 +34,44 @@ describe('PC Web remote UI authority', () => {
 
   afterEach(() => {
     delete window.__SOFTBOOK_WEB_RUNTIME__;
+  });
+
+  it('pauses a completed first segment and resumes the next server card without another summary', async () => {
+    const initial = createSnapshot('premium');
+    const fifth = createCard(5), sixth = createCard(6);
+    const prior = [1, 2, 3, 4].map(index => ({cardId: createCard(index).card_id,
+      interactionId: 'flip' as const, outcome: 'confident' as const, phase: 'learning' as const, serverSequence: index,
+      usedHint: false, usedPeek: false, isFavorited: false, completedAt: new Date().toISOString()}));
+    initial.bootstrap.learning.cardStates = prior;
+    initial.learningResults = prior;
+    initial.bootstrap.learning.cursor!.cardId = fifth.card_id;
+    initial.bootstrap.componentRevisions.learning.eventServerSequence = 4;
+    initial.bootstrap.componentRevisions.progress.learningServerSequence = 4;
+    initial.bootstrap.statistics = {...initial.bootstrap.statistics!, completedCardCount: 4, completedAttemptCount: 4, cumulativeLearnedCardCount: 4};
+    initial.learningSession.cards = [fifth];
+    initial.learningSession.catalogCards = [...initial.learningSession.catalogCards, fifth, sixth];
+    initial.learningSession.serverSelection = {...initial.learningSession.serverSelection!, cardId: fifth.card_id};
+    const next = structuredClone(initial);
+    next.learningSession.cards = [sixth];
+    next.learningSession.serverSelection = {...next.learningSession.serverSelection!, cardId: sixth.card_id, selectionId: 'sel_after_first_segment'};
+    next.bootstrap.learning.cardStates = [...prior, {...prior[0], cardId: fifth.card_id, serverSequence: 5}];
+    next.learningResults = next.bootstrap.learning.cardStates;
+    next.bootstrap.learning.cursor!.cardId = sixth.card_id;
+    next.bootstrap.componentRevisions.learning.eventServerSequence = 5;
+    next.bootstrap.componentRevisions.progress.learningServerSequence = 5;
+    next.bootstrap.statistics = {...next.bootstrap.statistics!, completedCardCount: 5, completedAttemptCount: 5, cumulativeLearnedCardCount: 5};
+    const controller = createController(initial, {loadAuthenticatedState: vi.fn(async () => next)});
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('heading', {name: '这一小段练完了'});
+    fireEvent.click(screen.getByRole('button', {name: '先到这里'}));
+    await screen.findByRole('heading', {name: '学习统计'});
+    fireEvent.click(screen.getByRole('button', {name: '继续学习'}));
+    expect(await screen.findByRole('heading', {name: sixth.front.prompt})).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: '这一小段练完了'})).toBeNull();
+    expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+    expect(controller.loadAuthenticatedState).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the phone bound while a code request is in flight', async () => {
@@ -171,7 +210,7 @@ describe('PC Web remote UI authority', () => {
     expect(screen.getByRole('button', {name: '翻面看答案'})).toBeEnabled();
     expect(screen.getByText(/这次结果未计入，学习安排已更新/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: '统计'}));
-    expect(screen.getByText('今日完成').closest('div')).toHaveTextContent('0 张');
+    expect((await screen.findByText('今天练过')).closest('div')).toHaveTextContent('0 张卡');
     expect(screen.getByText(/1 次学习结果未计入/)).toBeInTheDocument();
   });
 
@@ -269,7 +308,7 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button',{name:'空间'}));
     fireEvent.click(screen.getByRole('button',{name:'暂不学习这张卡'}));
     await screen.findByRole('button',{name:'恢复学习'});
-    fireEvent.click(screen.getByRole('button',{name:'继续学习'}));
+    fireEvent.click(screen.getByRole('button',{name:'返回学习'}));
     expect(screen.queryByRole('button',{name:'有把握'})).toBeNull();
     expect(screen.queryByText('Card 1 answer')).toBeNull();
     expect(screen.queryByText('Card 2 prompt')).toBeNull();
@@ -298,22 +337,21 @@ describe('PC Web remote UI authority', () => {
       loadAuthenticatedState:vi.fn(async()=>restored),
     });
     await authenticateRemote(controller);
-    fireEvent.click(screen.getByText('需要帮助', {selector: 'summary'}));
-    fireEvent.click(screen.getByRole('button',{name:'查看提示'}));
+    fireEvent.click(screen.getByRole('button',{name:'看判断方法'}));
+    fireEvent.click(screen.getByRole('button',{name:'再看一个提示'}));
     fireEvent.click(screen.getByRole('button',{name:'收起提示'}));
-    fireEvent.click(screen.getByRole('button',{name:'解题思路'}));
-    fireEvent.click(screen.getByRole('button',{name:'收起思路'}));
+    fireEvent.click(screen.getByRole('button',{name:'收起判断方法'}));
     fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
     fireEvent.click(screen.getByRole('button',{name:'空间'}));
     fireEvent.click(screen.getByRole('button',{name:'暂不学习这张卡'}));
     await screen.findByRole('button',{name:'恢复学习'});
-    fireEvent.click(screen.getByRole('button',{name:'继续学习'}));
+    fireEvent.click(screen.getByRole('button',{name:'返回学习'}));
     expect(screen.getByRole('heading',{name:'这张卡已暂停学习'})).toBeInTheDocument();
     if(recovery==='wake') {
       fireEvent.click(screen.getByRole('button',{name:'前往空间'}));
       fireEvent.click(screen.getByRole('button',{name:'恢复学习'}));
       await screen.findByRole('button',{name:'暂不学习这张卡'});
-      fireEvent.click(screen.getByRole('button',{name:'继续学习'}));
+      fireEvent.click(screen.getByRole('button',{name:'返回学习'}));
     } else {
       fireEvent.click(screen.getByRole('button',{name:'刷新学习进度'}));
       expect(await screen.findByRole('alert')).toHaveTextContent('设置未能保存');
@@ -322,7 +360,7 @@ describe('PC Web remote UI authority', () => {
     expect(screen.queryByRole('button',{name:'翻面看答案'})).toBeNull();
     expect(controller.completeCurrentCard).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button',{name:'统计'}));
-    expect(screen.getByText('今日完成').closest('div')).toHaveTextContent('0 张');
+    expect((await screen.findByText('今天练过')).closest('div')).toHaveTextContent('0 张卡');
     fireEvent.click(screen.getByRole('button',{name:'学习'}));
     fireEvent.click(screen.getByRole('button',{name:'有把握'}));
     await screen.findByRole('region',{name:'答案对照'});
@@ -340,7 +378,7 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button',{name:'Box 2 1 张'}));
     fireEvent.click(screen.getByRole('button',{name:'暂不学习这张卡'}));
     await screen.findByRole('button',{name:'恢复学习'});
-    fireEvent.click(screen.getByRole('button',{name:'继续学习'}));
+    fireEvent.click(screen.getByRole('button',{name:'返回学习'}));
     expect(screen.getByRole('button',{name:'有把握'})).toBeEnabled();
     expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
     expect(screen.queryByRole('heading',{name:'这张卡已暂停学习'})).toBeNull();
@@ -685,7 +723,7 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '统计'}));
 
-    fireEvent.click(screen.getByRole('button', {name: '签到'}));
+    fireEvent.click(await screen.findByRole('button', {name: '签到'}));
     expect(
       await screen.findByRole('button', {name: '今日已签到'}),
     ).toBeDisabled();
@@ -697,9 +735,9 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button', {name: '统计'}));
 
     expect(
-      screen.getByRole('button', {name: '签到暂不可用'}),
+      await screen.findByRole('button', {name: '签到暂不可用'}),
     ).toBeDisabled();
-    expect(screen.getByText('完成一张卡片后就可以签到。')).toBeInTheDocument();
+    expect(screen.getByText('完成一张卡后可以签到，四六级共用签到记录。')).toBeInTheDocument();
   });
 
   it('shows unknown deletion without clearing the authenticated account', async () => {
@@ -724,7 +762,7 @@ describe('PC Web remote UI authority', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '退出登录'})).toBeDisabled();
     fireEvent.click(screen.getByRole('button', {name: '统计'}));
-    expect(screen.getByRole('button', {name: '签到'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: '签到'})).toBeDisabled();
     fireEvent.click(screen.getByRole('button', {name: '我的'}));
     fireEvent.click(screen.getByRole('button', {name: '重新查询'}));
     expect(controller.requestAccountDeletion).toHaveBeenCalledTimes(2);
@@ -1502,6 +1540,7 @@ function createController(
     dispose: vi.fn(),
     isAuthenticated: vi.fn(() => true),
     loadAuthenticatedState: vi.fn(async () => snapshot),
+    refreshStatistics: vi.fn(async () => ({bootstrap: snapshot.bootstrap, checkInSync: snapshot.checkInSync})),
     switchTrack: vi.fn(async () => snapshot),
     logout: vi.fn(async () => null),
     playCardAudio: vi.fn(async (): Promise<'ready'> => 'ready'),
@@ -1564,6 +1603,7 @@ function createSnapshot(stage: 'free' | 'premium' | 'trial'): WebRemoteSnapshot 
 
   return {
     bootstrap: {
+      statistics: {dayKey: getChinaDayKey(), track: 'cet4', completedCardCount: 0, completedAttemptCount: 0, reviewAttemptCount: 0, cumulativeLearnedCardCount: 0},
       componentRevisions: {
         learning: {eventServerSequence: 0, sessionRevision: 1, spaceRevision: 0},
         membership: {
@@ -1589,7 +1629,7 @@ function createSnapshot(stage: 'free' | 'premium' | 'trial'): WebRemoteSnapshot 
         source: {id: 'source-remote-ui', label: 'CET4'},
         version: `sha256:${'12'.repeat(32)}`,
       },
-      dayKey: '2026-08-29',
+      dayKey: getChinaDayKey(),
       generatedAt: '2026-08-29T12:00:00.000Z',
       learning: {
         acknowledgedAt: null,
@@ -1610,7 +1650,7 @@ function createSnapshot(stage: 'free' | 'premium' | 'trial'): WebRemoteSnapshot 
         learningAuthority: 'empty',
         snapshot: {
           checkedInToday: false,
-          dayKey: '2026-08-29',
+          dayKey: getChinaDayKey(),
           favoriteCount: 0,
           learningCompletedCount: 0,
           pendingReviewCount: 0,
@@ -1622,7 +1662,7 @@ function createSnapshot(stage: 'free' | 'premium' | 'trial'): WebRemoteSnapshot 
       schemaVersion: 'bootstrap.v2',
       space: {
         acknowledgedAt: null,
-        snapshot: {dayKey: '2026-08-29', states: []},
+        snapshot: {dayKey: getChinaDayKey(), states: []},
       },
       track: 'cet4',
     },

@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const {serializeSpaceState} = require('./space-actions-v2');
+const {createTrackStudyStatistics} = require('./track-study-statistics');
 const {
   PILOT_RELEASE_SCHEMA,
   isContentReleaseValidForRuntime,
@@ -114,6 +115,18 @@ async function readBootstrap(config, input) {
     runtimeMode: config.runtimeMode,
     space,
   });
+  const statistics = typeof config.store.getTrackStudyEvents === 'function'
+    ? createTrackStudyStatistics({
+        dayKey: input.dayKey,
+        events: await config.store.getTrackStudyEvents(input.track, input.dayKey, {
+          accountKey: input.accountKey,
+          phoneNumber: input.phoneNumber,
+          sessionAuthority: input.sessionAuthority,
+        }),
+        learning,
+        track: input.track,
+      })
+    : null;
 
   return {
     schema_version: BOOTSTRAP_SCHEMA_VERSION,
@@ -126,6 +139,7 @@ async function readBootstrap(config, input) {
     membership: normalizeMembership(membership),
     progress: normalizedProgress,
     space: normalizedSpace,
+    statistics,
   };
 }
 

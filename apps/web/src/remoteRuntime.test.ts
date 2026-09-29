@@ -29,6 +29,84 @@ import {
 const PHONE = '13800138000';
 
 describe('authenticated Web remote orchestration', () => {
+  it('refreshes canonical statistics without selecting another card or replaying mutations', async () => {
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const first = createBootstrapFixture(createInitialMembershipState());
+    const bootstrapLoad = vi.fn<(track: 'cet4' | 'cet6', day: string, options?: unknown) => Promise<AccountBootstrapSnapshot>>(async () => first);
+    const loadSession = vi.fn(async () => createLearningSessionFixture(null));
+    const events = createEmptyEventSyncRepository();
+    const replay = vi.spyOn(events, 'startReplay');
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {load: bootstrapLoad}, authRepository, authSessionCoordinator,
+      learningEventSyncRepository: events,
+      learningSessionRepository: {continueRound: async () => undefined, loadSession},
+      mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    const next = {...first, statistics: {dayKey: first.dayKey, track: 'cet4' as const,
+      completedCardCount: 5, completedAttemptCount: 6, reviewAttemptCount: 1, cumulativeLearnedCardCount: 5}};
+    bootstrapLoad.mockResolvedValueOnce(next);
+    const selectedBefore = loadSession.mock.calls.length, replayedBefore = replay.mock.calls.length;
+    const refreshed = await controller.refreshStatistics();
+    expect(refreshed.bootstrap.statistics).toEqual(next.statistics);
+    expect(loadSession).toHaveBeenCalledTimes(selectedBefore);
+    expect(replay).toHaveBeenCalledTimes(replayedBefore);
+    expect(bootstrapLoad.mock.calls.at(-1)?.[2]).toEqual({forceFresh: true});
+  });
+
+  it('rejects a delayed statistics read once a newer account bootstrap starts', async () => {
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const bootstrap = createBootstrapFixture(createInitialMembershipState());
+    const load = vi.fn(async () => bootstrap);
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {load}, authRepository, authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
+      mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    let release!: (value: AccountBootstrapSnapshot) => void;
+    let started!: () => void;
+    const loading = new Promise<void>(resolve => {started = resolve;});
+    load.mockImplementationOnce(() => {started(); return new Promise(resolve => {release = resolve;});});
+    const older = controller.refreshStatistics();
+    await loading;
+    await controller.loadAuthenticatedState();
+    release(bootstrap);
+    await expect(older).rejects.toThrow('较新的账户状态读取');
+  });
+
+  it('keeps visible-card mutation authority when a statistics read observes newer content', async () => {
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const first = createBootstrapFixture({...createInitialMembershipState(), stage: 'premium'});
+    const load = vi.fn(async () => first);
+    const mutations = createMutationRepository([]);
+    const loadSession = vi.fn(async () => createLearningSessionFixture(null));
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {load}, authRepository, authSessionCoordinator,
+      learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {continueRound: async () => undefined, loadSession},
+      mutationQueueRepository: mutations, playAudio: async () => 'ready', track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    const shown = await controller.verifySmsCode(PHONE, '123456');
+    const newerContent = {...first, content: {...first.content, version: `sha256:${'34'.repeat(32)}`}};
+    load.mockResolvedValueOnce(newerContent);
+    const selectionsBefore = loadSession.mock.calls.length;
+    expect((await controller.refreshStatistics()).bootstrap.content.version).toBe(newerContent.content.version);
+    expect(loadSession).toHaveBeenCalledTimes(selectionsBefore);
+    await controller.applySpaceState(shown.learningSession.cards[0].card_id, 'favorite', true);
+    expect(mutations.enqueueMutation).toHaveBeenCalledWith('apply_space_action', expect.objectContaining({
+      contentVersion: shown.learningSession.contentVersion,
+      track: shown.learningSession.track,
+    }), expect.any(String));
+  });
+
   it('switches between authenticated tracks and retains the current track when the next one cannot load', async () => {
     const authRepository = createSimpleAuthRepository();
     const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});

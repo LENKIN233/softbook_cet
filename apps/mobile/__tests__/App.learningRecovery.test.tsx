@@ -41,7 +41,7 @@ async function settle() {
   for(let i=0;i<8;i++) await act(async()=>{await new Promise(resolve=>setTimeout(resolve,0));});
 }
 async function press(root:ReactTestRenderer.ReactTestInstance,id:string) {
-  if (['learning-hint-button','learning-peek-button'].includes(id) && !root.findAllByProps({testID:id}).length) {
+  if (id === 'learning-hint-button' && !root.findAllByProps({testID:id}).length) {
     await act(async()=>{root.findByProps({testID:'learning-help-button'}).props.onPress();await Promise.resolve();});
   }
   await act(async()=>{root.findByProps({testID:id}).props.onPress();await Promise.resolve();});
@@ -178,7 +178,7 @@ function createRuntime() {
 
 test.each([false,true])('keeps the same server attempt and sticky help through another card favorite (resolved=%s)',async resolved=>{
   const runtime=createRuntime(); const {root}=await login();
-  await press(root,'learning-peek-button'); await press(root,'learning-peek-button');
+  await press(root,'learning-help-button'); await press(root,'learning-help-button');
   await press(root,'learning-flip-button');
   if(resolved) await press(root,'learning-flip-confident-button');
   await inspectSpace(root); await press(root,'space-card-next');
@@ -304,8 +304,8 @@ async function failAttemptRefresh(runtime: ReturnType<typeof createRuntime>, roo
 
 test.each([false,true])('preserves the same assisted attempt through failed refresh and retry (resolved=%s)',async resolved=>{
   const runtime=createRuntime();const {root}=await login();
-  await press(root,'learning-peek-button');await press(root,'learning-peek-button');
-  await press(root,'learning-hint-button');await press(root,'learning-hint-button');
+  await press(root,'learning-help-button');await press(root,'learning-help-button');
+  await press(root,'learning-hint-button');await press(root,'learning-hint-button');await press(root,'learning-help-button');
   await press(root,'learning-flip-button');
   if(resolved) await press(root,'learning-flip-confident-button');
   await failAttemptRefresh(runtime,root);
@@ -338,7 +338,7 @@ test('keeps a lock mistake through failed refresh so later correction still need
 
 test.each(['selection','content','phase'] as const)('discards a failed attempt when recovered %s authority changes',async change=>{
   const runtime=createRuntime();const {root}=await login();
-  await press(root,'learning-peek-button');await press(root,'learning-flip-button');
+  await press(root,'learning-help-button');await press(root,'learning-flip-button');
   await press(root,'learning-flip-confident-button');
   await failAttemptRefresh(runtime,root);
   if(change==='selection') runtime.setSelection(runtime.base.cards[0].card_id);

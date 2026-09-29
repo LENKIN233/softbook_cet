@@ -1214,3 +1214,42 @@ test('rejects a blank direct remote base URL', () => {
     createSoftbookRemoteAccountBootstrapConfig({ baseUrl: '   ' }),
   ).toThrow('Remote account bootstrap requires a non-empty baseUrl.');
 });
+
+function withStudyStatistics(payload = createBootstrapPayload()) {
+  payload.data.statistics = {
+    schema_version: 'track-study-statistics.v1', day_key: DAY_KEY, track: 'cet4',
+    event_server_sequence: 7, completed_card_count: 1, completed_attempt_count: 3,
+    review_attempt_count: 2, cumulative_learned_card_count: 1,
+  };
+  return payload;
+}
+
+test('parses canonical track statistics independently of account progress and latest outcomes', () => {
+  expect(parseAccountBootstrapPayload(withStudyStatistics(), 'cet4', DAY_KEY).statistics)
+    .toEqual({dayKey: DAY_KEY, track: 'cet4', completedCardCount: 1,
+      completedAttemptCount: 3, reviewAttemptCount: 2, cumulativeLearnedCardCount: 1});
+  expect(parseAccountBootstrapPayload(createBootstrapPayload(), 'cet4', DAY_KEY).statistics)
+    .toBeUndefined();
+  const unavailable = withStudyStatistics();
+  unavailable.data.statistics = null;
+  expect(parseAccountBootstrapPayload(unavailable, 'cet4', DAY_KEY).statistics).toBeUndefined();
+});
+
+test.each([
+  {track: 'cet6'}, {day_key: '2026-07-19'}, {event_server_sequence: 6},
+  {completed_card_count: 2}, {completed_attempt_count: 0}, {review_attempt_count: 4},
+  {cumulative_learned_card_count: 2}, {completed_attempt_count: -1},
+])('rejects statistics with scope, watermark or count drift: %j', patch => {
+  const payload = withStudyStatistics();
+  Object.assign(payload.data.statistics, patch);
+  expect(() => parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY)).toThrow();
+});
+
+test('rejects statistics changed without the accepted-event revision changing', () => {
+  const before = parseAccountBootstrapPayload(withStudyStatistics(), 'cet4', DAY_KEY);
+  const next = withStudyStatistics();
+  next.data.statistics.completed_attempt_count = 4;
+  const after = parseAccountBootstrapPayload(next, 'cet4', DAY_KEY);
+  expect(() => assertAccountBootstrapRevisionTransition(before, after))
+    .toThrow('statistics changed without');
+});

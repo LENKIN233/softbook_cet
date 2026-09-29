@@ -18,6 +18,7 @@ import {
 import type { SpaceStateSnapshot } from '../space/spaceStateRepository';
 import { parseRemoteSpaceStateProjection } from '../space/spaceStateRepository';
 import type { DailyProgressSnapshot } from '../sync/progressSyncRepository';
+import type {TrackStudyStatistics} from '../statistics/trackStudyStatistics';
 
 export type AccountBootstrapRepositoryMode = 'local' | 'remote';
 
@@ -124,6 +125,8 @@ export type AccountBootstrapSnapshot = {
     snapshot: SpaceStateSnapshot;
   };
   track: LearningTrack;
+  // Absent on old servers or when a complete canonical event read is unavailable.
+  statistics?: TrackStudyStatistics;
 };
 
 export type AccountBootstrapRemoteConfig = {
@@ -297,6 +300,8 @@ export function parseAccountBootstrapPayload(
     'Bootstrap membership',
   );
   const progress = parseProgress(data.progress, expectedDayKey);
+  const statistics = parseStatistics(data.statistics, expectedTrack, expectedDayKey,
+    componentRevisions.learning.eventServerSequence, learning.cardStates.length);
   const space = parseSpace(
     data.space,
     expectedDayKey,
@@ -380,7 +385,39 @@ export function parseAccountBootstrapPayload(
     schemaVersion: 'bootstrap.v2',
     space,
     track,
+    ...(statistics ? {statistics} : {}),
   };
+}
+
+function parseStatistics(
+  value: unknown,
+  expectedTrack: LearningTrack,
+  expectedDayKey: string,
+  expectedSequence: number,
+  expectedCumulative: number,
+): TrackStudyStatistics | undefined {
+  if (value === undefined || value === null) return undefined;
+  const statistics = requireObject(value, 'bootstrap statistics');
+  if (statistics.schema_version !== 'track-study-statistics.v1' ||
+      statistics.track !== expectedTrack || statistics.day_key !== expectedDayKey ||
+      statistics.event_server_sequence !== expectedSequence) {
+    throw new Error('Bootstrap statistics scope and revision must match Learning.');
+  }
+  const completedCardCount = readNonNegativeInteger(statistics.completed_card_count,
+    'bootstrap statistics.completed_card_count');
+  const completedAttemptCount = readNonNegativeInteger(statistics.completed_attempt_count,
+    'bootstrap statistics.completed_attempt_count');
+  const reviewAttemptCount = readNonNegativeInteger(statistics.review_attempt_count,
+    'bootstrap statistics.review_attempt_count');
+  const cumulativeLearnedCardCount = readNonNegativeInteger(statistics.cumulative_learned_card_count,
+    'bootstrap statistics.cumulative_learned_card_count');
+  if (completedCardCount > completedAttemptCount || reviewAttemptCount > completedAttemptCount ||
+      completedCardCount > cumulativeLearnedCardCount || cumulativeLearnedCardCount !== expectedCumulative ||
+      (completedCardCount === 0) !== (completedAttemptCount === 0)) {
+    throw new Error('Bootstrap statistics counts are inconsistent.');
+  }
+  return {dayKey: expectedDayKey, track: expectedTrack, completedCardCount,
+    completedAttemptCount, reviewAttemptCount, cumulativeLearnedCardCount};
 }
 
 function assertSpaceOwnerProjectionMatches(

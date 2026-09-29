@@ -10,6 +10,7 @@ import {
   nextStudyDue,
   pendingStudyIds,
   studyDay,
+  studyStatistics,
 } from "../../mobile/src/local/studyModel";
 import {
   useChinaDay,
@@ -519,6 +520,7 @@ export function LocalStudyApp({
           ) : null}
           {route === "statistics" ? (
             <Statistics
+              statistics={studyStatistics(state, track, now) ?? null}
               localOnly
               busy={busy}
               disabled={busy}

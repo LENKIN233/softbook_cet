@@ -11,6 +11,7 @@ import {
   planLocalCards,
   reduceStudy,
   studyDay,
+  studyStatistics,
   validateStudyState,
   type StudyState,
 } from "../../mobile/src/local/studyModel";
@@ -103,6 +104,50 @@ function fixture() {
 }
 
 describe("shared local study workflow", () => {
+  it("persists distinct cards and attempts separately across retries, reviews and China days", async () => {
+    const f = fixture(), store = f.store();
+    await store.load();
+    let state = finish(createStudyState(cards));
+    state = reduceStudy(state, { type: "practice" }, cards, now);
+    state = answer(state);
+    const once = studyStatistics(state, "cet4", now);
+    expect(once).toEqual({dayKey: "2026-09-19", track: "cet4", completedCardCount: 5,
+      completedAttemptCount: 6, reviewAttemptCount: 1, cumulativeLearnedCardCount: 5});
+    state = answer(state);
+    expect(studyStatistics(state, "cet4", now)).toEqual(once);
+    await store.save(state);
+    const restored = (await f.store().load()).state;
+    expect(studyStatistics(restored, "cet4", now)).toEqual(once);
+    const nextDay = new Date("2026-09-19T16:00:00.000Z");
+    state = reduceStudy(restored, {type: "advance"}, cards, nextDay);
+    state = answer(state, "a", nextDay);
+    expect(studyStatistics(state, "cet4", nextDay)).toMatchObject({dayKey: "2026-09-20",
+      completedCardCount: 1, completedAttemptCount: 1, reviewAttemptCount: 1,
+      cumulativeLearnedCardCount: 5});
+    expect(studyStatistics(state, "cet4", now)).toEqual(once);
+    expect(studyStatistics((await f.store("v1", cards, "cet6").load()).state, "cet6", now))
+      .toMatchObject({track: "cet6", completedCardCount: 0, completedAttemptCount: 0});
+  });
+  it("keeps incomplete legacy day history unavailable and starts exact counts on a new day", () => {
+    let state = finish(createStudyState(cards));
+    delete state.days["2026-09-19"].completedCardIds;
+    expect(() => validateStudyState(state, cards)).not.toThrow();
+    expect(studyStatistics(state, "cet4", now)).toBeUndefined();
+    state = reduceStudy(state, {type: "practice"}, cards, now);
+    state = answer(state);
+    expect(studyStatistics(state, "cet4", now)).toBeUndefined();
+    expect(studyStatistics(state, "cet4", new Date("2026-09-19T16:00:00Z")))
+      .toMatchObject({completedCardCount: 0, completedAttemptCount: 0, cumulativeLearnedCardCount: 5});
+  });
+  it("rejects duplicate, malformed or inconsistent persisted distinct-card records", () => {
+    const state = answer(createStudyState(cards));
+    for (const ids of [["000001", "000001"], ["bad-id"], [], ["000001", "000002"]]) {
+      const invalid = structuredClone(state);
+      invalid.days["2026-09-19"].completedCardIds = ids;
+      expect(() => validateStudyState(invalid, cards)).toThrow();
+    }
+  });
+
   it("alternates short subject blocks and preserves authored order and the complete corpus", () => {
     const order = planLocalCards(cards);
     expect(
@@ -259,6 +304,38 @@ describe("shared local study workflow", () => {
     expect([...f.values.keys()].some((key) => key.includes("/archive/"))).toBe(
       true
     );
+  });
+  it("retains legacy cumulative cards when content changes without guessing daily history", async () => {
+    const f = fixture(), oldStore = f.store();
+    await oldStore.load();
+    const old = finish(createStudyState(cards));
+    delete old.learnedCardIds;
+    delete old.days["2026-09-19"].completedCardIds;
+    await oldStore.save(old);
+    const learnedIds = old.results.map(result => result.cardId);
+    const changedCards = cards.map(card => learnedIds.includes(card.card_id)
+      ? {...card, front: {...card.front, prompt: `${card.front.prompt} corrected`}}
+      : card);
+    const newStore = f.store("v2", changedCards);
+    const migrated = (await newStore.load()).state;
+    expect(migrated.results).toEqual([]);
+    expect(new Set(migrated.learnedCardIds)).toEqual(new Set(learnedIds));
+    expect(studyStatistics(migrated, "cet4", now)).toBeUndefined();
+    const nextDay = new Date("2026-09-20T02:00:00Z");
+    expect(studyStatistics(migrated, "cet4", nextDay)).toMatchObject({
+      completedCardCount: 0, completedAttemptCount: 0, cumulativeLearnedCardCount: 5,
+    });
+    await newStore.save(migrated);
+    const restored = (await f.store("v2", changedCards).load()).state;
+    expect(studyStatistics(restored, "cet4", nextDay)?.cumulativeLearnedCardCount).toBe(5);
+    const withoutOldCards = cards.filter(card => !learnedIds.includes(card.card_id));
+    const later = (await f.store("v3", withoutOldCards).load()).state;
+    expect(studyStatistics(later, "cet4", nextDay)?.cumulativeLearnedCardCount).toBe(5);
+  });
+  it("rejects malformed or duplicate retained cumulative card IDs", () => {
+    for (const learnedCardIds of [["000001", "000001"], ["bad-id"]]) {
+      expect(() => validateStudyState({...createStudyState(cards), learnedCardIds}, cards)).toThrow();
+    }
   });
   it("refuses stale cross-window writes and foreign-track backup imports", async () => {
     const f = fixture(),

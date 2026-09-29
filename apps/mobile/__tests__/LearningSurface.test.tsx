@@ -65,7 +65,10 @@ test('a confident flip self-assessment never appears as an automatically correct
     />);
   });
   const text = visibleText(tree.toJSON());
-  expect(text).toContain('有把握');
+  expect(text.split('有把握')).toHaveLength(2);
+  expect(text).not.toContain(card.front.prompt);
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-question-toggle'}).props.onPress());
+  expect(visibleText(tree.toJSON())).toContain(card.front.prompt);
   expect(text).toContain('这是你的自评结果');
   expect(text).not.toMatch(/回答正确|你的答案正确|已答对/);
 });
@@ -77,7 +80,7 @@ test('learning compact mode covers 320dp and short phone viewports', () => {
   expect(isCompactLearningViewport(744, 1133)).toBe(false);
 });
 
-test('opening help does not count as using a hint or peek', () => {
+test('opening the method reveals usable guidance immediately and records only peek use', () => {
   const renderErrors = jest.spyOn(console, 'error');
   const session = createLocalLearningSession('cet4');
   const card = session.cards.find(item => item.hint_layer)!;
@@ -98,10 +101,12 @@ test('opening help does not count as using a hint or peek', () => {
   expect(tree.root.findAllByProps({testID: 'learning-hint-button'})).toHaveLength(0);
   ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-help-button'}).props.onPress());
   expect(onToggleHint).not.toHaveBeenCalled();
-  expect(onTogglePeek).not.toHaveBeenCalled();
+  expect(visibleText(tree.toJSON())).toContain(card.analysis.exam_tip);
+  expect(tree.root.findAllByProps({testID: 'learning-peek-button'})).toHaveLength(0);
+  expect(onTogglePeek).toHaveBeenCalledTimes(1);
   ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-hint-button'}).props.onPress());
   expect(onToggleHint).toHaveBeenCalledTimes(1);
-  expect(onTogglePeek).not.toHaveBeenCalled();
+  expect(onTogglePeek).toHaveBeenCalledTimes(1);
   ReactTestRenderer.act(() => tree.unmount());
   const duplicateKeys = renderErrors.mock.calls.filter(([message]) => String(message).includes('same key'));
   renderErrors.mockRestore();
@@ -543,12 +548,12 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('系统顺序学习');
   expect(output).not.toContain('当前学习会话');
   expect(output).toContain('查看答案');
-  expect(tree!.root.findByProps({testID:'learning-peek-button'}).props.accessibilityState.expanded).toBe(true);
+  expect(tree!.root.findByProps({testID:'learning-help-button'}).props.accessibilityState.expanded).toBe(true);
   expect(output).not.toContain('先翻面，看完解析后选有把握或需要复习。');
-  expect(output).toContain('查看提示');
+  expect(output).toContain('再看一点提示');
   expect(output).not.toContain('要一点线索');
   expect(output).not.toContain('收起这点线索');
-  expect(output).toContain('收起思路');
+  expect(output).toContain('收起判断方法');
   expect(output).toContain(currentCard.analysis.exam_tip);
   expect(output).not.toContain('这张卡为什么出现');
   expect(output).not.toContain('该题来自当前练习安排');
@@ -559,7 +564,7 @@ test('does not expose raw space metadata while learning', () => {
   expect(output).not.toContain('当前位置：');
   expect(tree!.root.findByProps({testID:'learning-current-card'})).toBeTruthy();
   ReactTestRenderer.act(() => {const help = tree!.root.findByProps({testID: 'learning-help-button'}); if (!help.props.accessibilityState.expanded) help.props.onPress();});
-  for (const target of ['learning-peek-button', 'learning-hint-button', 'learning-flip-button']) {
+  for (const target of ['learning-help-button', 'learning-hint-button', 'learning-flip-button']) {
     expect(tree!.root.findByProps({testID:target}).props.onPress).toBeDefined();
   }
   ReactTestRenderer.act(() => tree!.unmount());
@@ -1232,7 +1237,7 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
   expect(output).toContain('B · unclear');
-  expect(output).toContain('已答对');
+  expect(output).not.toContain('已答对');
   expect(output).not.toContain('已作答 · 答对');
   expect(output).not.toContain('选择、答案和解释都在当前卡里');
   expect(output).not.toContain('位置保持');
@@ -1244,3 +1249,41 @@ test('result detail reads as a resolved card without raw metadata', () => {
   expect(output).not.toContain(card.knowledge_ref);
   expect(output).not.toContain(card.space_metadata.box_ref);
 });
+
+test.each(['flip', 'multiple_choice', 'lock', 'elimination', 'swipe'] as const)(
+  '%s result prioritizes answer and explanation while keeping original materials and choices available',
+  interaction => {
+    const session = createLocalLearningSession('cet4');
+    const source = session.cards.find(card => card.interaction_id === interaction)!;
+    const card = {...source, front: {...source.front, prompt: '完整原题入口测试', support: '需要保留的原始材料', context: '需要保留的完整背景'}};
+    const state = {...createLearningCardState(card), isFlipped: true, flipConfidence: 'confident' as const};
+    let tree!: ReactTestRenderer.ReactTestRenderer;
+    ReactTestRenderer.act(() => {
+      tree = ReactTestRenderer.create(<LearningSurface
+        audioAttemptId={null} palette={palette} sessionCards={[card]} sessionLabel={session.sourceLabel}
+        phase="learning" currentCard={card} currentCardState={state} currentIndex={0}
+        currentResult={{cardId: card.card_id, interactionId: interaction, outcome: interaction === 'flip' ? 'confident' : 'correct', completedAt: '2026-09-30T00:00:00.000Z', isFavorited: false, usedHint: false, usedPeek: false}}
+        completedResults={[]} reviewCandidateCount={0} onOpenResultDetail={jest.fn()}
+        onToggleHint={jest.fn()} onTogglePeek={jest.fn()} onToggleFavorite={jest.fn()}
+        onFlip={jest.fn()} onSetFlipConfidence={jest.fn()} onSelectOption={jest.fn()}
+        onSetLockSelection={jest.fn()} onToggleEliminationItem={jest.fn()} onSelectSwipeState={jest.fn()}
+        onSubmitCurrentCard={jest.fn()} onAdvanceCard={jest.fn()} onRestartDeck={jest.fn()}
+      />);
+    });
+    expect(visibleText(tree.toJSON())).toContain(card.analysis.summary);
+    expect(visibleText(tree.toJSON())).not.toContain(card.front.prompt);
+    expect(visibleText(tree.toJSON())).not.toContain(card.front.support);
+    ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-question-toggle'}).props.onPress());
+    const recalled = visibleText(tree.toJSON());
+    expect(recalled).toContain(card.front.prompt);
+    expect(recalled).toContain(card.front.support);
+    expect(recalled).toContain(card.front.context);
+    if (card.interaction_id === 'multiple_choice') for (const option of card.options) expect(recalled).toContain(option.text);
+    if (card.interaction_id === 'lock') for (const slot of card.lock_slots) for (const option of slot.options) expect(recalled).toContain(option);
+    if (card.interaction_id === 'swipe') for (const option of card.swipe_states) expect(recalled).toContain(option.description);
+    if (card.interaction_id === 'elimination') for (const option of card.elimination_items) expect(recalled).toContain(option.text);
+    ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-question-toggle'}).props.onPress());
+    expect(visibleText(tree.toJSON())).not.toContain(card.front.prompt);
+    ReactTestRenderer.act(() => tree.unmount());
+  },
+);

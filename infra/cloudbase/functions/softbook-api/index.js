@@ -1296,6 +1296,17 @@ function createMemoryStore(options = {}) {
 
       return cloneCardSource(cardSources.get(track));
     },
+    getTrackStudyEvents: (track, dayKey, options = {}) => {
+      assertAccountReadAllowed(options);
+      if (hasUncountableLegacyStudyDay(
+        dailyProgress.get(`${options.phoneNumber}:${dayKey}`),
+        learningStates.get(`${options.phoneNumber}:${dayKey}:${track}`),
+      )) return null;
+      return cloneJson([...learningEvents.values()].filter(event =>
+        event.account_key === options.accountKey &&
+        event.track === track && event.activity_day === dayKey,
+      ));
+    },
     getDailyProgress: (phoneNumber, dayKey, options = {}) => {
       assertAccountReadAllowed(options);
       const dailyCheckIn = options.accountKey
@@ -2147,6 +2158,25 @@ function createCloudBaseStore(options = {}) {
       });
 
       return defaultCardSource;
+    },
+    getTrackStudyEvents: async (track, dayKey, options = {}) => {
+      const [legacyProgress, legacyLearning] = await Promise.all([
+        getCloudBaseDocument(dailyProgress, createCloudBaseDocumentId(`${options.phoneNumber}:${dayKey}`)),
+        getCloudBaseDocument(learningStates, createCloudBaseDocumentId(`${options.phoneNumber}:${dayKey}:${track}`)),
+      ]);
+      if (hasUncountableLegacyStudyDay(legacyProgress, legacyLearning)) {
+        await db.runTransaction(transaction => assertAccountReadAllowed(transaction, options));
+        return null;
+      }
+      const result = await db.collection(CLOUDBASE_COLLECTIONS.learningEvents)
+        .where({account_key: options.accountKey, activity_day: dayKey, track})
+        .limit(CLOUDBASE_QUERY_FETCH_LIMIT)
+        .get();
+      const events = normalizeCloudBaseDocuments(result.data);
+      await db.runTransaction(transaction => assertAccountReadAllowed(transaction, options));
+      // FlexDB rejects ordered pagination. A full page cannot prove completeness;
+      // omit only statistics, rather than show a truncated count or block study.
+      return events.length === CLOUDBASE_QUERY_FETCH_LIMIT ? null : events;
     },
     getDailyProgress: async (phoneNumber, dayKey, options = {}) => {
       const [legacyProgressDocuments, legacyLearningStates] =
@@ -4450,6 +4480,13 @@ async function setCloudBaseDocument(collection, documentId, data) {
 
 function createCloudBaseDocumentId(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function hasUncountableLegacyStudyDay(progress, learning) {
+  // Legacy snapshots did not retain every attempt, so they cannot establish an
+  // exact distinct-card count for that day. Never label a v2-only subset as total.
+  return (progress?.total_completed_count ?? 0) > 0 ||
+    Object.keys(learning?.events_by_card_id ?? {}).length > 0;
 }
 
 function createPilotRoundContinuationKey(input) {

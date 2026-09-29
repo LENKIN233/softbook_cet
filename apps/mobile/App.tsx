@@ -7,6 +7,7 @@ import {endsLocalBatch, localBatch, localResumeIndex} from './src/learning/local
 import {NativeMotionProvider, useCardMotion, StudioPressable as Pressable} from './src/learning/NativeMotion';
 import {STUDIO} from './src/visual/studio';
 import {StudioMark} from './src/visual/StudioMark';
+import {initializeLearningSegment, confirmLearningSegmentCard, type LearningSegmentProgress} from './src/learning/learningSegment';
 import React, {
   startTransition,
   useCallback,
@@ -751,6 +752,9 @@ function AppShell({
     runtimeAccountBootstrapMode === 'local' && LOCAL_CARD_SOURCE_ID === 'bundled-card-make-v1'
       ? 'softbook-cet/user-state/bundled-card-make-v1' : undefined), [runtimeAccountBootstrapMode]);
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
+  const [learningSegment, setLearningSegment] = useState<LearningSegmentProgress | null>(null);
+  const [pauseNotice, setPauseNotice] = useState<string | null>(null);
+  const sessionSubmittedEventIds = useRef(new Set<string>());
   const [learningScreen, setLearningScreen] =
     useState<LearningSurfaceScreen>('practice');
   const [spaceScreen, setSpaceScreen] =
@@ -951,6 +955,9 @@ function AppShell({
   } | null>(null);
   const resetRuntimeAfterLogout = useCallback(
     (error: string | null = null) => {
+      setLearningSegment(null);
+      setPauseNotice(null);
+      sessionSubmittedEventIds.current.clear();
       accountBootstrapRequestGate.invalidate();
       accountBootstrapRetryInFlight.current = null;
       lastMembershipRefreshKey.current = null;
@@ -2075,6 +2082,13 @@ function AppShell({
     ) => {
       accountBootstrapStatusRef.current = hydration.accountBootstrapStatus;
       accountBootstrapSnapshotRef.current = hydration.accountBootstrap;
+      const segmentScope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
+      if (hydration.accountBootstrap !== null && segmentScope !== null) {
+        const bootstrap = hydration.accountBootstrap;
+        setLearningSegment(previous => initializeLearningSegment(previous,
+          `${segmentScope}:${bootstrap.track}`, bootstrap.track,
+          bootstrap.learning.cardStates.map(result => result.cardId)));
+      }
       if (hydration.accountBootstrap === null) {
         accountBootstrapObservationRef.current = null;
       } else {
@@ -2123,7 +2137,7 @@ function AppShell({
         });
       }
     },
-    [accountBootstrapRuntimeSessionId],
+    [accountBootstrapRuntimeSessionId, authSessionCoordinator],
   );
   const isAccountStateReconciled =
     runtimeAccountBootstrapMode !== 'remote' ||
@@ -2762,6 +2776,11 @@ function AppShell({
           }
 
           learningEventReplayPaused.current = false;
+          for (const entry of replay.acknowledgedEntries) {
+            if (!sessionSubmittedEventIds.current.delete(entry.event.event_id)) continue;
+            setLearningSegment(previous => previous?.scope === `${replaySessionScopeKey}:${entry.track}`
+              ? confirmLearningSegmentCard(previous, entry.event.card_id) : previous);
+          }
           pendingLearningEventCountRef.current = replay.pendingCount;
           setPendingLearningEventCount(replay.pendingCount);
           setRejectedLearningNotice({sessionScopeKey: replaySessionScopeKey, count: replay.rejectedCount});
@@ -4608,6 +4627,7 @@ function AppShell({
   };
 
   const applySelectedRoute = (nextRoute: RouteKey) => {
+    if (nextRoute === 'learning') setPauseNotice(null);
     if (
       nextRoute === 'space' &&
       isAuthenticated &&
@@ -5513,7 +5533,7 @@ function AppShell({
 
       (async () => {
         try {
-          await learningEventSyncRepository.enqueueCompletion({
+          const submittedEntry = await learningEventSyncRepository.enqueueCompletion({
             accountPhoneNumber,
             contentVersion,
             phase: completedPhase,
@@ -5530,6 +5550,7 @@ function AppShell({
             return;
           }
 
+          sessionSubmittedEventIds.current.add(submittedEntry.event.event_id);
           learningEventReplayPaused.current = false;
           pendingLearningEventCountRef.current += 1;
           setPendingLearningEventCount(pendingLearningEventCountRef.current);
@@ -6313,6 +6334,8 @@ function AppShell({
     />
   ) : route.key === 'statistics' ? (
     <StatisticsSurface
+      statistics={accountBootstrapSnapshot?.track === learningTrack && accountBootstrapSnapshot.dayKey === todayKey ? accountBootstrapSnapshot.statistics ?? null : null}
+      track={learningTrack}
       canCheckInToday={canCheckInToday}
       cumulativeLearnedCount={runtimeAccountBootstrapMode === 'remote' && mappedAccountBootstrapSnapshot !== null && learningSession !== null && mappedAccountBootstrapSnapshot.content.version === learningSession.contentVersion ? catalogResults.length : undefined}
       deviceClass={deviceClass}
@@ -6322,7 +6345,7 @@ function AppShell({
       onGoToLearning={openLearningRoute}
       onStartReview={startReviewFromStatistics}
       palette={palette}
-      pendingReviewCount={dailyProgressSnapshot.pendingReviewCount}
+      pendingReviewCount={pendingSpaceReviewIds.length}
       reviewCompletedCount={dailyProgressSnapshot.reviewCompletedCount}
       syncStatusDetail={progressSyncState.detail}
       syncStatusLabel={progressSyncState.label}
@@ -6348,6 +6371,43 @@ function AppShell({
     (accountDeletionState === 'confirmation' ||
       accountDeletionState === 'submitting' ||
       accountDeletionState === 'recoverable_unknown');
+
+  const segmentScope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
+  const visibleSegment = learningSegment?.scope === `${segmentScope}:${learningTrack}` ? learningSegment : null;
+  const pauseLearning = () => {
+    if (visibleSegment?.summaryVisible) {
+      setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous);
+    }
+    setPauseNotice(visibleSegment?.summaryVisible
+      ? '进度已保存，下次接着学。'
+      : '返回学习可接着这张卡。');
+    handleSelectRoute('statistics');
+  };
+  const contentWithSessionActions = route.key === 'learning' && learningBootstrapStatus === 'ready'
+    ? visibleSegment?.summaryVisible ? (
+      <ScrollView contentContainerStyle={styles.segmentSummary} testID="learning-segment-summary">
+        <Text accessibilityRole="header" style={[styles.segmentTitle, {color: palette.text}]}>这一小段练完了</Text>
+        <Text style={[styles.segmentDetail, {color: palette.textMuted}]}>刚才练了：找比较对象、根据线索判断范围。</Text>
+        <Pressable accessibilityRole="button" testID="learning-segment-continue" style={[styles.segmentPrimary, {backgroundColor: palette.primaryActionSurface}]} onPress={() => setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous)}>
+          <Text style={{color: palette.primaryActionText}}>继续学习</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" testID="learning-pause-button" style={styles.segmentSecondary} onPress={pauseLearning}>
+          <Text style={{color: palette.textMuted}}>先到这里</Text>
+        </Pressable>
+      </ScrollView>
+    ) : (
+      <View style={styles.sessionContent}>
+        <View style={styles.sessionToolbar}>
+          <Text style={[styles.sessionCount, {color: palette.textMuted}]}>{visibleSegment && visibleSegment.sessionCardIds.length > 0 ? `本次已练 ${visibleSegment.sessionCardIds.length} 张卡` : ''}</Text>
+          <Pressable accessibilityRole="button" testID="learning-pause-button" style={styles.segmentSecondary} onPress={pauseLearning}>
+            <Text style={{color: palette.textMuted}}>先到这里</Text>
+          </Pressable>
+        </View>
+        {contentWithLearningNotice}
+      </View>
+    ) : route.key === 'statistics' && pauseNotice ? (
+      <View style={styles.sessionContent}><Text accessibilityLiveRegion="polite" testID="learning-pause-notice" style={[styles.segmentPauseNotice, {color: palette.textMuted}]}>{pauseNotice}</Text>{contentWithLearningNotice}</View>
+    ) : contentWithLearningNotice;
 
   return (
     <SafeAreaView
@@ -6448,7 +6508,7 @@ function AppShell({
           <TabletShell
             activeRoute={activeRoute}
             authState={authState}
-            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithLearningNotice}</Animated.View>}
+            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithSessionActions}</Animated.View>}
             onSelectRoute={handleSelectRoute}
             palette={palette}
             route={route}
@@ -6459,7 +6519,7 @@ function AppShell({
             track={learningTrack}
             readingResetKey={`${currentLearningCard?.card_id ?? 'complete'}:${learningPhase}:${learningScreen}:${Boolean(learningCurrentResult)}:${Boolean(learningCardState?.isFlipped)}`}
             authState={authState}
-            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithLearningNotice}</Animated.View>}
+            content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithSessionActions}</Animated.View>}
             onSelectRoute={handleSelectRoute}
             palette={palette}
             route={route}
@@ -9633,6 +9693,15 @@ function getMembershipCardSummary(
 }
 
 const styles = StyleSheet.create({
+  sessionContent: {flex: 1},
+  sessionToolbar: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20},
+  sessionCount: {fontSize: 12},
+  segmentSecondary: {minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', alignItems: 'center'},
+  segmentSummary: {padding: 24, gap: 20, flexGrow: 1, justifyContent: 'center'},
+  segmentTitle: {fontSize: 26, fontWeight: '600'},
+  segmentDetail: {fontSize: 16, lineHeight: 26},
+  segmentPrimary: {minHeight: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center'},
+  segmentPauseNotice: {paddingHorizontal: 20, paddingVertical: 10, fontSize: 13},
   learningRecoveryNotice: {fontSize: 14, lineHeight: 22, paddingHorizontal: 18, paddingVertical: 8},
   safeArea: {
     flex: 1,

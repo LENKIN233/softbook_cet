@@ -1,9 +1,12 @@
+import {SpaceSurface} from './SpaceSurface';
+import type {TrackStudyStatistics} from '../../mobile/src/statistics/trackStudyStatistics';
+import {initializeLearningSegment, confirmLearningSegmentCard, type LearningSegmentProgress} from '../../mobile/src/learning/learningSegment';
 import {StudioMark} from './StudioMark';
 import {StudioAudio} from './StudioAudio';
 import {useChinaDay} from '../../mobile/src/local/useStudyProfile';
 import {lazy, Suspense} from 'react';
 import {isLongQuestion, stackChoiceOptions} from '../../mobile/src/learning/readability';
-import {filterSpaceCards, latestCardResults, reviewCardIds, type SpaceCardFilter} from '../../mobile/src/space/cardFilters';
+import {latestCardResults, reviewCardIds} from '../../mobile/src/space/cardFilters';
 import {createLocalLearningStore, LocalLearningStorageError, type LocalLearningSnapshot} from './localLearningStore';
 import {getChinaDayKey as chinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {authFailure} from '../../mobile/src/auth/authErrorCopy';
@@ -130,6 +133,11 @@ function AccountApp({
       return null;
     }
   }, [remoteRuntimeFactory, runtime]);
+  const [trackStatistics, setTrackStatistics] = useState<TrackStudyStatistics | null>(null);
+  const [statisticsLoading, setStatisticsLoading] = useState(false);
+  const statisticsRequestGeneration = useRef(0);
+  const [learningSegment, setLearningSegment] = useState<LearningSegmentProgress | null>(null);
+  const [pauseNotice, setPauseNotice] = useState<string | null>(null);
   const [session, setSession] = useState<LearningSession | null>(null);
   const [authStage, setAuthStage] = useState<AuthStage>('phone');
   const [phone, setPhone] = useState('');
@@ -185,6 +193,7 @@ function AccountApp({
     );
   const routeMotion = useRouteMotion(`${authStage}:${phone}:${accountDeletionStage}`);
   const navigateRoute = (next: RouteKey) => {
+    if (next === 'learning') setPauseNotice(null);
     if (route === 'learning' && next !== 'learning') {
       audioRequestGeneration.current += 1;
       remoteController?.stopCardAudio?.();
@@ -192,6 +201,7 @@ function AccountApp({
       setAudioStatus('idle');
     }
     routeMotion(() => setRoute(next));
+    if (next === 'statistics' && runtime.mode === 'remote') void refreshStatistics();
   };
   const resolutionInFlight = useRef(false);
   const audioRequestGeneration = useRef(0);
@@ -513,8 +523,14 @@ function AccountApp({
   }, [currentIndex, currentCard?.card_id, session?.serverSelection?.selectionId, learningPhase, route]);
 
   function applyRemoteSnapshot(snapshot: WebRemoteSnapshot) {
+    statisticsRequestGeneration.current += 1;
+    setStatisticsLoading(false);
     setDayNeedsRefresh(false);
+    setTrackStatistics(snapshot.bootstrap.statistics ?? null);
     const nextSession = snapshot.learningSession;
+    setLearningSegment(previous => initializeLearningSegment(previous,
+      `${phone}:${nextSession.track}`, nextSession.track,
+      snapshot.bootstrap.learning.cardStates.map(result => result.cardId)));
     const nextCard = nextSession.cards[0] ?? null;
     const previousSelectionId = session?.serverSelection?.selectionId ?? null;
     const nextSelectionId = nextSession.serverSelection?.selectionId ?? null;
@@ -745,6 +761,10 @@ function AccountApp({
   }
 
   function resetAccountState() {
+    statisticsRequestGeneration.current += 1;
+    setStatisticsLoading(false);
+    setLearningSegment(null);
+    setPauseNotice(null);
     setDayNeedsRefresh(false);
     audioRequestGeneration.current += 1;
     setAuthStage('phone');
@@ -757,6 +777,7 @@ function AccountApp({
     setReviewCards([]);
     setSessionComplete(false);
     setResults([]);
+    setTrackStatistics(null);
     setKnownResults([]);
     setResolved(null);
     setFavorites([]);
@@ -943,6 +964,8 @@ function AccountApp({
   }
 
   function presentAcknowledgedLearningResult(result: LearningCardResult) {
+    setLearningSegment(previous => previous && previous.scope === `${phone}:${session?.track}`
+      ? confirmLearningSegmentCard(previous, result.cardId) : previous);
     setKnownResults(previous => [...previous.filter(item => item.cardId !== result.cardId), result]);
     setResolved(result);
     setResults(previous => [
@@ -952,6 +975,38 @@ function AccountApp({
     setQueuedLearningResult(null);
     setRejectedCompletion(false);
     setRemoteError('');
+  }
+
+  async function refreshStatistics() {
+    if (remoteController === null || session === null) return;
+    const generation = accountAuthorityGeneration.current;
+    const request = ++statisticsRequestGeneration.current;
+    setTrackStatistics(null);
+    setStatisticsLoading(true);
+    try {
+      const snapshot = await remoteController.refreshStatistics();
+      if (accountAuthorityGeneration.current !== generation || request !== statisticsRequestGeneration.current) return;
+      setTrackStatistics(snapshot.bootstrap.statistics ?? null);
+      setCheckInSync(snapshot.checkInSync);
+      setDayNeedsRefresh(snapshot.bootstrap.dayKey !== liveChinaDay);
+    } catch (error) {
+      if (accountAuthorityGeneration.current === generation && request === statisticsRequestGeneration.current) await handleRemoteFailure(error, '学习统计暂时没有更新。');
+    } finally {
+      if (accountAuthorityGeneration.current === generation && request === statisticsRequestGeneration.current) setStatisticsLoading(false);
+    }
+  }
+
+  async function pauseLearning() {
+    const generation = accountAuthorityGeneration.current;
+    const completedSegment = learningSegment?.summaryVisible === true;
+    const saved = resolved !== null && runtime.mode === 'remote';
+    if (completedSegment) {
+      await continueLearning();
+      if (generation !== accountAuthorityGeneration.current) return;
+      setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous);
+    }
+    setPauseNotice(saved ? '进度已保存，下次接着学。' : '返回学习可接着这张卡。');
+    navigateRoute('statistics');
   }
 
   async function recoverRejectedCompletion(result: LearningCardResult) {
@@ -1302,6 +1357,11 @@ function AccountApp({
     <div className="app-shell">
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
+        {route === 'learning' && session !== null && !learningSegment?.summaryVisible ? <div className="learning-session-actions" aria-label="本次学习">
+          {runtime.mode === 'remote' && learningSegment && learningSegment.sessionCardIds.length > 0
+            ? <span>本次已练 {learningSegment.sessionCardIds.length} 张卡</span> : null}
+          <button className="text-button" disabled={productBusy} onClick={pauseLearning}>先到这里</button>
+        </div> : null}
         <button className="course-switch" aria-label="选择备考科目" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}>{(session?.track ?? runtime.track) === 'cet6' ? 'CET 6' : 'CET 4'} <span aria-hidden="true">⌄</span></button>
       </header>
       <nav className="route-rail" aria-label="主要导航">
@@ -1340,7 +1400,17 @@ function AccountApp({
         <button onClick={() => {setLocalHydrated(false); void (localStore.current?.flush() ?? Promise.resolve()).then(() => setLocalLibraryAttempt(value => value + 1));}}>读取已保存进度</button>
       </section> : null}
       {route === 'learning' ? (
-        runtime.mode === 'development' && localLibraryStatus !== 'ready' ? (
+        runtime.mode === 'remote' && learningSegment?.summaryVisible ? (
+          <main className="completion-workbench"><section className="completion-object" aria-labelledby="segment-summary-title">
+            <h1 id="segment-summary-title">这一小段练完了</h1>
+            <p>刚才练了：找比较对象、根据线索判断范围。</p>
+            <button className="primary" disabled={productBusy} onClick={() => {
+              setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous);
+              void continueLearning();
+            }}>继续学习</button>
+            <button className="secondary" disabled={productBusy} onClick={pauseLearning}>先到这里</button>
+          </section></main>
+        ) : runtime.mode === 'development' && localLibraryStatus !== 'ready' ? (
           <main className="workbench"><section className="learning-card" aria-live="polite">
             <p className="notice">{localLibraryStatus === 'loading' ? '正在准备卡库…' : '卡库暂时无法读取。'}</p>
             {localLibraryStatus === 'error' ? <button onClick={() => setLocalLibraryAttempt(value => value + 1)}>重新加载卡库</button> : null}
@@ -1519,7 +1589,10 @@ function AccountApp({
         />
       ) : null}
       {route === 'statistics' ? (
-        dayNeedsRefresh ? <main className="ledger-workbench"><section className="ledger"><h1>学习统计</h1><p role="status">{remoteBusy ? '正在读取今天的记录…' : '今天的记录还未更新，请重新读取。'}</p><button className="primary" disabled={remoteBusy} onClick={() => void reloadRemoteState()}>重新读取</button></section></main> : <StatisticsSurface
+        <>{pauseNotice ? <p className="learning-pause-notice" role="status">{pauseNotice}</p> : null}{dayNeedsRefresh ? <main className="ledger-workbench"><section className="ledger"><h1>学习统计</h1><p role="status">{statisticsLoading ? '正在读取今天的记录…' : '今天的记录还未更新，请重新读取。'}</p><button className="primary" disabled={statisticsLoading} onClick={() => void refreshStatistics()}>重新读取</button></section></main> : <StatisticsSurface
+          statisticsLoading={statisticsLoading}
+          statistics={trackStatistics?.track === session?.track && trackStatistics?.dayKey === liveChinaDay ? trackStatistics : null}
+          track={session?.track ?? runtime.track}
           localOnly={runtime.mode === 'development'}
           busy={remoteBusy}
           checkInSync={runtime.mode === 'development' ? {checkedInToday: localSavedCheckInDay === chinaDayKey(), pending: localCheckedInDay === chinaDayKey() && localSavedCheckInDay !== chinaDayKey(), status: localSavedCheckInDay === chinaDayKey() ? 'confirmed' : localCheckedInDay === chinaDayKey() ? 'queued' : results.some(result => chinaDayKey(new Date(result.completedAt)) === chinaDayKey()) ? 'ready' : 'unavailable'} : checkInSync}
@@ -1530,7 +1603,7 @@ function AccountApp({
           cumulativeLearnedCount={catalogResults.length}
           pendingReviewCount={pendingReviewIds.length}
           onContinueLearning={() => navigateRoute('learning')}
-        />
+        />}</>
       ) : null}
       {route === 'mine' && membership === null ? (
         <main className="account-workbench">
@@ -1679,15 +1752,14 @@ function LearningSurface(props: LearningSurfaceProps) {
           <p className="result-label">{card.interaction_id === 'flip' ? resultLabel(resolved) : '正确答案'}</p>
           <h2 ref={answerRef} tabIndex={-1} className={`answer-first${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{comparison.correct}</h2>
           {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>你的选择</span> {comparison.selected}</p> : null}
-          <p className="question-context">{questionContext.title}</p>
-          {questionContext.detail.map(text => <p className="question-context" key={text}>{text}</p>)}
+          <details className="full-analysis"><summary>回看题目</summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
           <p className="answer-reason">{card.analysis.summary}</p>
           {card.interaction_id === 'lock' && resolved.outcome === 'incorrect' ? <p className="answer-reason">已解锁，稍后复习。</p> : null}
           {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary>听力原文</summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           <ResultExplanation card={card} />
         </section> : <>
           {card.interaction_id !== 'swipe' ? <h2 className={isLongQuestion(backVisible ? comparison.correct : card.front.prompt) ? 'long-question' : undefined}>{backVisible ? comparison.correct : displayCardText(card, card.front.prompt)}</h2> : null}
-          {backVisible ? <p className="question-context">{displayCardText(card, card.front.prompt)}</p> : null}
+          {backVisible ? <p className="answer-reason">{card.analysis.summary}</p> : null}
           {!backVisible ? material.map(text => <p className="front-material" key={text}>{text}</p>) : null}
           {audioControl}
           {card.interaction_id !== 'flip' ? interaction : null}
@@ -1707,22 +1779,13 @@ function LearningSurface(props: LearningSurfaceProps) {
 }
 
 function LearningHelp({card, state, patch}: {card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void}) {
-  const [open, setOpen] = useState(state.isHintVisible || state.isPeeked);
-  return <details className="learning-help" open={open} onToggle={event => {
-    const nextOpen = event.currentTarget.open;
-    setOpen(nextOpen);
-    if (!nextOpen && (state.isHintVisible || state.isPeeked)) patch({isHintVisible: false, isPeeked: false});
-  }}>
-    <summary>需要帮助</summary>
-    {card.hint_layer ? <div>
-      <button className="text-button" aria-expanded={state.isHintVisible} onClick={() => patch({hasUsedHint: true, isHintVisible: !state.isHintVisible})}>{state.isHintVisible ? '收起提示' : '查看提示'}</button>
-      {state.isHintVisible ? <p className="attached-note">{card.hint_layer.content}</p> : null}
+  const open = state.isPeeked;
+  return <div className="learning-help">
+    <button className="text-button" aria-expanded={open} onClick={() => patch({hasUsedPeek: true, isPeeked: !open})}>{open ? '收起判断方法' : '看判断方法'}</button>
+    {open ? <div><p className="attached-note">{card.analysis.exam_tip}</p>
+      {card.hint_layer ? <><button className="text-button" aria-expanded={state.isHintVisible} onClick={() => patch({hasUsedHint: true, isHintVisible: !state.isHintVisible})}>{state.isHintVisible ? '收起提示' : '再看一个提示'}</button>{state.isHintVisible ? <p className="attached-note">{card.hint_layer.content}</p> : null}</> : null}
     </div> : null}
-    <div>
-      <button className="text-button" aria-expanded={state.isPeeked} onClick={() => patch({hasUsedPeek: true, isPeeked: !state.isPeeked})}>{state.isPeeked ? '收起思路' : '解题思路'}</button>
-      {state.isPeeked ? <p className="attached-note">{card.analysis.exam_tip}</p> : null}
-    </div>
-  </details>;
+  </div>;
 }
 
 function ChoiceOptions({card, state, disabled, patch}: {card: Extract<LearningCard, {interaction_id: 'multiple_choice'}>; state: LearningCardState; disabled: boolean; patch: (value: Partial<LearningCardState>) => void}) {
@@ -1960,168 +2023,45 @@ function SwipeInteraction({
   );
 }
 
-type SpaceBox = {
-  box: string;
-  boxRef: string;
-  cards: LearningCard[];
-  group: string;
-  library: string;
-};
-
-function SpaceSurface({busy, cards, canMutate, currentCardId, pendingReviewIds, favorites, sleeping, membership, onFavorite, onSleep, onReturn, statusMessage, syncStatus}: {busy: boolean; cards: LearningCard[]; canMutate: boolean; currentCardId: string | null; pendingReviewIds: string[]; favorites: string[]; sleeping: string[]; membership: MembershipState; onFavorite: (id: string) => void; onSleep: (id: string) => void; onReturn: () => void; statusMessage: string; syncStatus: string}) {
-  const [filter, setFilter] = useState<SpaceCardFilter>('all');
-  const [filterLimit, setFilterLimit] = useState(40);
-  const boxTray = useRef<HTMLElement>(null);
-  const matches = filterSpaceCards(cards, filter, favorites, pendingReviewIds);
-  const openFilteredCard = (card: LearningCard) => {
-    setSelectedBoxRef(card.space_metadata.box_ref);
-    setSelectedId(card.card_id);
-    setFilter('all');
-    requestAnimationFrame(() => {boxTray.current?.scrollIntoView?.({block: 'start'}); boxTray.current?.focus({preventScroll: true});});
-  };
-  const boxes = useMemo(() => buildSpaceBoxes(cards), [cards]);
-  const currentBoxRef = cards.find(card => card.card_id === currentCardId)?.space_metadata.box_ref;
-  const [selectedBoxRef, setSelectedBoxRef] = useState(currentBoxRef ?? boxes[0]?.boxRef ?? '');
-  const selectedBox = boxes.find(box => box.boxRef === selectedBoxRef) ?? boxes[0];
-  const [selectedId, setSelectedId] = useState(currentCardId ?? selectedBox?.cards[0]?.card_id ?? '');
-  const selected = selectedBox?.cards.find(card => card.card_id === selectedId) ?? selectedBox?.cards[0];
-  const libraries = unique(boxes.map(box => box.library));
-  const groups = unique(boxes.filter(box => box.library === selectedBox?.library).map(box => box.group));
-  const selectBox = (box: SpaceBox) => {setSelectedBoxRef(box.boxRef); setSelectedId(box.cards[0]?.card_id ?? '');};
-  const sleepingCards = selectedBox?.cards.filter(card => sleeping.includes(card.card_id)) ?? [];
-  const activeCards = selectedBox?.cards.filter(card => !sleeping.includes(card.card_id)) ?? [];
-  const renderCard = (card: LearningCard) => {
-    const isSelected = selected?.card_id === card.card_id;
-    const isCurrent = card.card_id === currentCardId;
-    const isSleeping = sleeping.includes(card.card_id);
-    const preview = spaceCardPreview(card);
-    return <div className="space-card-object" key={card.card_id}>
-      <button className={`${isSelected ? 'contained-card selected' : 'contained-card'}${isSleeping ? ' sleeping' : ''}`} aria-pressed={isSelected} data-learning-current={isCurrent || undefined}
-        style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} onClick={() => setSelectedId(card.card_id)}>
-        <span className="contained-card-kind">{INTERACTION_LABELS[card.interaction_id]}</span><strong>{preview.title}</strong>
-        {isSelected ? preview.detail.map(text => <span className="card-preview-material" key={text}>{text}</span>) : null}
-        <span className="contained-card-tags">{favorites.includes(card.card_id) ? <small className="favorite-tag">收藏</small> : null}<small>{isSleeping ? '休眠中' : isCurrent ? '当前学习' : isSelected ? '正在浏览' : '同盒卡'}</small></span>
-      </button>
-      {isSelected ? <div className="object-actions" aria-label="所选卡片操作"><button className="text-button" disabled={busy || !canMutate} onClick={() => onFavorite(card.card_id)}>{favorites.includes(card.card_id) ? '取消收藏' : '收藏'}</button><button className="text-button" disabled={busy || !canMutate} onClick={() => onSleep(card.card_id)}>{isSleeping ? '恢复学习' : '暂不学习这张卡'}</button></div> : null}
-    </div>;
-  };
-  return <main className="space-workbench" style={libraryStyle(selectedBox?.library)} aria-labelledby="space-title">
-    <div className="space-topline"><span className="space-title">知识空间</span><button className="text-button" onClick={onReturn}>继续学习</button></div>
-    <div className="space-filters" role="group" aria-label="卡片筛选">
-      {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习']] as const).map(([value, label, name]) => <button key={value} className="text-button" aria-label={name} aria-pressed={filter === value} onClick={() => {setFilter(value); setFilterLimit(40);}}>{label}</button>)}
-    </div>
-    {filter !== 'all' ? <section className="filtered-cards" aria-label="筛选结果">
-      <p className="muted" role="status">{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。' : '目前没有待复习的卡片。'}</p>
-      {matches.slice(0, filterLimit).map(card => <button className="filtered-card" key={card.card_id} onClick={() => openFilteredCard(card)}>
-        <span className="muted">{[card.space_metadata.library, card.space_metadata.group, card.space_metadata.box].map(name => formatSpaceDisplayName(name, '')).join(' / ')}</span>
-        <strong>{spaceCardPreview(card).title}</strong>
-        {card.card_id === currentCardId ? <small>当前学习</small> : null}
-      </button>)}
-      {matches.length > filterLimit ? <button className="text-button" onClick={() => setFilterLimit(value => value + 40)}>显示更多</button> : null}
-    </section> : <>
-    <section className="shelf-map" aria-label="知识空间层级">
-      <div className="library-tabs" aria-label="书架">{libraries.map(library => <button key={library} className={selectedBox?.library === library ? 'library-tab selected' : 'library-tab'} aria-pressed={selectedBox?.library === library} onClick={() => {const first = boxes.find(box => box.library === library); if (first) selectBox(first);}}><span style={{backgroundColor: resolveLibraryTone(library).accent}} />{library}</button>)}</div>
-      <div className="space-group-tabs" aria-label="书架分区">{groups.map(group => <button key={group} aria-pressed={selectedBox?.group === group} onClick={() => {const first = boxes.find(box => box.library === selectedBox?.library && box.group === group); if (first) selectBox(first);}}>{group}</button>)}</div>
-      <div className="shelf-groups">{groups.filter(group => group === selectedBox?.group).map(group => <section className="shelf-group" key={group} aria-label={group}><h2>{group}</h2><div className="sibling-boxes">{boxes.filter(box => box.library === selectedBox?.library && box.group === group).map(box => <button key={box.boxRef} className={box.boxRef === selectedBox?.boxRef ? 'shelf-box selected' : 'shelf-box'} aria-label={`${box.box} ${box.cards.length} 张`} aria-current={box.boxRef === selectedBox?.boxRef ? 'location' : undefined} onClick={() => selectBox(box)}><strong>{box.box}</strong><small>{box.cards.length} 张</small></button>)}</div></section>)}</div>
-    </section>
-    <section ref={boxTray} tabIndex={-1} className="box-tray" aria-label={`当前卡盒 ${selectedBox?.box ?? '暂无'}`}>
-      <div className="workbench-heading"><div aria-label="当前卡片位置"><p className="eyebrow"><span>{selectedBox?.library}</span> / <span>{selectedBox?.group}</span></p><h1 id="space-title">{selectedBox?.box ?? '当前没有卡盒'}</h1></div><span className="counter">{selectedBox?.cards.length ?? 0} 张</span></div>
-      <div className="box-contents" aria-label="盒内卡片"><div className="contained-cards">{activeCards.map(renderCard)}</div>
-        <section className="sleep-region" aria-label="盒内休眠区"><div className="sleep-heading"><span>休眠区</span><small>{sleepingCards.length ? `${sleepingCards.length} 张卡暂时离开学习流，保留在这个盒中` : '暂时离开学习流，保留在这个盒中'}</small></div>{sleepingCards.length ? <div className="contained-cards">{sleepingCards.map(renderCard)}</div> : <p className="sleep-empty">暂无休眠卡片</p>}</section>
-      </div>
-    </section>
-    </>}
-    {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
-    {!['已保存在本机', '已同步', ''].includes(syncStatus) ? <p className="notice" role="status">学习记录 · {syncStatus}</p> : null}
-    {!resolveMembershipAccess(membership).completePhysicalSpace ? <p className="membership-note">你可以学习已解锁的卡片，会员可查看全部内容。</p> : null}
-  </main>;
-}
-
-function StatisticsSurface({
-  localOnly,
-  busy,
-  checkInSync,
-  disabled,
-  onCheckIn,
-  results,
-  syncStatus,
-  cumulativeLearnedCount,
-  pendingReviewCount,
-  onContinueLearning,
-  dailyCounts,
-  onReview,
-}: {
-  localOnly: boolean;
-  busy: boolean;
+function StatisticsSurface({statistics, statisticsLoading = false, track = 'cet4', localOnly, busy, checkInSync,
+  disabled, onCheckIn, syncStatus, onContinueLearning, onReview, pendingReviewCount}: {
+  statistics?: TrackStudyStatistics | null;
+  statisticsLoading?: boolean;
+  track?: LearningTrack;
+  localOnly: boolean; busy: boolean;
   checkInSync: WebRemoteSnapshot['checkInSync'] | null;
-  disabled: boolean;
-  onCheckIn: () => void;
-  results: LearningCardResult[];
-  syncStatus: string;
-  onReview?: () => void;
-  dailyCounts?: {learning:number;review:number;correct:number;hints:number};
-  cumulativeLearnedCount: number;
-  pendingReviewCount: number;
+  disabled: boolean; onCheckIn: () => void; syncStatus: string;
   onContinueLearning: () => void;
+  results: LearningCardResult[]; cumulativeLearnedCount: number;
+  pendingReviewCount: number; onReview?: () => void;
+  dailyCounts?: {learning:number;review:number;correct:number;hints:number};
 }) {
-  const summary = summarizeLearningResults(results, results.length);
-  const rows = [
-    ['今日完成', `${dailyCounts ? dailyCounts.learning + dailyCounts.review : summary.completed} 张`],
-    ['待复习', `${pendingReviewCount} 张`],
-    ['累计学过', `${cumulativeLearnedCount} 张`],
-    ['今日答对', String(dailyCounts?.correct ?? summary.autoCorrectCount)],
-    ['使用提示', String(dailyCounts?.hints ?? summary.hintUseCount)],
-  ];
-  const checkInLabel = busy
-    ? '正在提交'
-    : checkInSync?.status === 'confirmed'
-    ? '今日已签到'
-    : checkInSync?.status === 'queued'
-    ? localOnly ? '重试保存' : '重试同步'
-    : checkInSync?.status === 'ready'
-    ? '签到'
-    : '签到暂不可用';
-  return (
-    <main className="ledger-workbench">
-      <section className="ledger" aria-labelledby="statistics-title">
-        <h1 id="statistics-title">学习统计</h1>
-        {!['已保存在本机', '已同步', ''].includes(syncStatus) ? <p className="muted" role="status">学习记录 · {syncStatus}</p> : null}
-        <dl>
-          {rows.map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-        <button className="primary wide" disabled={disabled} onClick={pendingReviewCount > 0 && onReview ? onReview : onContinueLearning}>{pendingReviewCount > 0 && onReview ? '开始复习' : '继续学习'}</button>
-        <section className="account-policy" aria-live="polite">
-          <p>
-            {checkInSync?.status === 'queued'
-              ? localOnly ? '签到正在保存到本机。' : '签到已保存在本机，联网后会同步。'
-              : checkInSync?.status === 'confirmed'
-              ? localOnly ? '签到已保存在本机。' : '签到已同步。'
-              : checkInSync?.status === 'unavailable'
-              ? '完成一张卡片后就可以签到。'
-              : '完成学习后，点下方按钮签到。'}
-          </p>
-          <button
-            className="primary"
-            disabled={
-              busy ||
-              disabled ||
-              checkInSync === null ||
-              checkInSync.status === 'unavailable' ||
-              checkInSync.status === 'confirmed'
-            }
-            onClick={onCheckIn}
-          >
-            {checkInLabel}
-          </button>
-        </section>
+  const checkInLabel = busy ? '正在提交' : checkInSync?.status === 'confirmed'
+    ? '今日已签到' : checkInSync?.status === 'queued'
+    ? localOnly ? '重试保存' : '重试同步' : checkInSync?.status === 'ready' ? '签到' : '签到暂不可用';
+  return <main className="ledger-workbench">
+    <section className="ledger study-statistics" aria-labelledby="statistics-title">
+      <p className="muted">{(statistics?.track ?? track) === 'cet6' ? '英语六级' : '英语四级'} · 今天</p>
+      <h1 id="statistics-title">学习统计</h1>
+      {!['已保存在本机', '已同步', ''].includes(syncStatus) ? <p className="muted" role="status">学习记录 · {syncStatus}</p> : null}
+      {statisticsLoading ? <p role="status">正在读取学习记录…</p> : statistics ? <>
+        <div className="study-statistics-hero"><p>今天练过</p><strong>{statistics.completedCardCount} 张卡</strong>
+          <p>共完成 {statistics.completedAttemptCount} 次练习，含 {statistics.reviewAttemptCount} 次复习</p>
+          {statistics.completedAttemptCount === 0 ? <p className="muted">完成作答后，这里会显示记录。</p> : null}
+        </div>
+        <p className="study-statistics-cumulative"><span>累计学过</span><strong>{statistics.cumulativeLearnedCardCount} 张</strong></p>
+      </> : <p role="status">当前科目的统计暂时无法读取。你可以继续学习，记录恢复后会在这里显示。</p>}
+      <button className="primary wide" disabled={disabled} onClick={onContinueLearning}>继续学习</button>
+      {onReview && pendingReviewCount > 0 ? <div className="account-policy"><p className="muted">有 {pendingReviewCount} 张卡需要再练</p><button className="secondary" disabled={disabled} onClick={onReview}>开始复习</button></div> : null}
+      <details className="full-analysis"><summary>如何统计</summary><p>完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。</p></details>
+      <section className="account-policy" aria-live="polite">
+        <p>{checkInSync?.status === 'queued' ? localOnly ? '签到正在保存到本机。' : '签到已保存在本机，联网后会同步。'
+          : checkInSync?.status === 'confirmed' ? '今天已签到。' : checkInSync?.status === 'unavailable'
+          ? '完成一张卡后可以签到，四六级共用签到记录。' : '今天的学习已记录，可以签到。'}</p>
+        <button className="secondary" disabled={busy || disabled || checkInSync === null || checkInSync.status === 'unavailable' || checkInSync.status === 'confirmed'} onClick={onCheckIn}>{checkInLabel}</button>
       </section>
-    </main>
-  );
+    </section>
+  </main>;
 }
 
 function MineSurface({
@@ -2434,26 +2374,6 @@ function withFavoriteState(card: LearningCard, favorites: string[]) {
   const state = createLearningCardState(card);
   state.isFavorited = favorites.includes(card.card_id);
   return state;
-}
-
-function buildSpaceBoxes(cards: LearningCard[]): SpaceBox[] {
-  const boxes = new Map<string, SpaceBox>();
-  cards.forEach(card => {
-    const metadata = card.space_metadata;
-    const existing = boxes.get(metadata.box_ref);
-    if (existing) {
-      existing.cards.push(card);
-      return;
-    }
-    boxes.set(metadata.box_ref, {
-      box: formatSpaceDisplayName(metadata.box, '当前卡盒'),
-      boxRef: metadata.box_ref,
-      cards: [card],
-      group: formatSpaceDisplayName(metadata.group, '当前分区'),
-      library: formatSpaceDisplayName(metadata.library, '当前书架'),
-    });
-  });
-  return [...boxes.values()];
 }
 
 function resultTone(result: LearningCardResult) {

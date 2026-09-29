@@ -505,7 +505,7 @@ function readMetricValue(
   const explicitValue = root.findAllByProps({ testID: `${testID}-value` })[0];
 
   if (explicitValue) {
-    return explicitValue.props.children;
+    return [explicitValue.props.children].flat().join('');
   }
 
   return root.findByProps({ testID }).findAllByType(Text)[0].props.children;
@@ -875,6 +875,8 @@ function createAccountBootstrapPayload(
     event => event.phase === 'review',
   ).length;
   const learningServerSequence = learningEvents.length;
+  const todayEvents = learningEvents.filter(event => getChinaDayKey(new Date(event.client_occurred_at)) === dayKey);
+  const latestEvents = new Map(learningEvents.map((event, index) => [event.card_id, {event, sequence: index + 1}]));
   const baseMembershipRevision = {
     trial_available: 0,
     trial: 1,
@@ -922,14 +924,14 @@ function createAccountBootstrapPayload(
       learning: {
         acknowledged_at:
           learningEvents.length > 0 ? new Date().toISOString() : null,
-        card_states: learningEvents.map((event, index) => ({
+        card_states: [...latestEvents.values()].map(({event, sequence}) => ({
           card_id: event.card_id,
           completed_at: event.client_occurred_at,
           interaction_id: event.interaction_id,
           is_favorited: false,
           outcome: event.outcome,
           phase: event.phase,
-          server_sequence: index + 1,
+          server_sequence: sequence,
           used_hint: event.used_hint,
           used_peek: event.used_peek,
         })),
@@ -955,6 +957,16 @@ function createAccountBootstrapPayload(
         trial_started_at:
           stage === 'trial' ? '2026-08-12T08:00:00.000Z' : null,
         trial_started_at_entry_count: stage === 'trial' ? 1 : null,
+      },
+      statistics: {
+        schema_version: 'track-study-statistics.v1',
+        day_key: dayKey,
+        track: session.track,
+        event_server_sequence: learningServerSequence,
+        completed_card_count: new Set(todayEvents.map(event => event.card_id)).size,
+        completed_attempt_count: new Set(todayEvents.map(event => event.event_id)).size,
+        review_attempt_count: todayEvents.filter(event => event.phase === 'review').length,
+        cumulative_learned_card_count: latestEvents.size,
       },
       progress: {
         acknowledged_at: checkedInToday ? new Date().toISOString() : null,
@@ -3127,6 +3139,9 @@ test('space map uses the active learning session catalog', async () => {
   expect(renderedText).toContain('远端专属盒');
 
   await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'space-browse-toggle'}).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
     root.findByProps({testID: 'space-library-choice-2'}).props.onPress();
   });
   await ReactTestRenderer.act(() => {
@@ -3310,14 +3325,14 @@ test('does not count a prior China-day card projection as today or enable check-
   await loginIntoLearningFlow(root, session);
   await openRoute(root, 'statistics');
 
-  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('0');
+  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('0 张卡');
   expect(
     findPressableByTestId(root, 'statistics-checkin-button').props.disabled,
   ).toBe(true);
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
-test('uses canonical Progress counts in Statistics and Mine when retained history is outside the current catalog', async () => {
+test('keeps per-track Statistics distinct from account Progress even for cards outside the current catalog', async () => {
   const session = createLocalLearningSession('cet4');
   const retainedEvent: MockLearningEvent = {
     answer_grade: 'review_needed',
@@ -3397,9 +3412,9 @@ test('uses canonical Progress counts in Statistics and Mine when retained histor
   await loginIntoLearningFlow(root, session);
   await openRoute(root, 'statistics');
 
-  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('6');
-  expect(readMetricValue(root, 'statistics-metric-pending-review')).toBe('3');
-  expect(readMetricValue(root, 'statistics-metric-review')).toBe('2');
+  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1 张卡');
+  expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({track: 'cet4', completedCardCount: 1, completedAttemptCount: 1, reviewAttemptCount: 0, cumulativeLearnedCardCount: 1});
+  expect(root.findAllByProps({testID: 'statistics-metric-pending-review'})).toHaveLength(0);
 
   await openRoute(root, 'mine');
   expect(root.findByProps({ testID: 'mine-profile-sync' }).props.children).toBe(
@@ -5046,7 +5061,7 @@ test('can unlock gated space after remote purchase', async () => {
   expect(output).toContain('转折关系');
   expect(output).toContain('当前卡盒');
   expect(output).toContain('查看卡片');
-  expect(output).toContain('继续学习');
+  expect(output).toContain('返回学习');
   expect(root.findAllByProps({ testID: 'space-gate-rail' })).toHaveLength(0);
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
@@ -5386,7 +5401,7 @@ test('refreshes remote entitlement when opening mine and keeps later gates in sy
   expect(output).toContain('转折关系');
   expect(output).toContain('当前卡盒');
   expect(output).toContain('查看卡片');
-  expect(output).toContain('继续学习');
+  expect(output).toContain('返回学习');
   expect(
     fetchCalls.filter(
       call =>
@@ -5511,7 +5526,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('现在做');
   expect(output).not.toContain('答题区');
   expect(output).toContain('收藏');
-  expect(output).toContain('需要帮助');
+  expect(output).toContain('看判断方法');
   expect(output).not.toContain('要一点线索');
   expect(output).not.toContain('收起这点线索');
   expectNoUserVisibleMetadataLeakage(tree!);
@@ -5541,7 +5556,6 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
     if (!help.props.accessibilityState.expanded) help.props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-peek-button' }).props.onPress();
   });
   expectNoUserVisibleMetadataLeakage(tree!);
   expectNoSyntheticProductCopy(tree!);
@@ -5731,12 +5745,11 @@ test('can complete the local single-card deck and restart it', async () => {
     if (!help.props.accessibilityState.expanded) help.props.onPress();
   });
   await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-peek-button' }).props.onPress();
     root.findByProps({ testID: 'learning-hint-button' }).props.onPress();
   });
 
   let output = JSON.stringify(tree!.toJSON());
-  expect(root.findByProps({testID: 'learning-peek-button'}).props.accessibilityState.expanded).toBe(true);
+  expect(root.findByProps({testID: 'learning-help-button'}).props.accessibilityState.expanded).toBe(true);
   expect(output).not.toContain('knowledge_ref');
   expect(output).toContain('给出真正立场');
 
@@ -5787,7 +5800,8 @@ test('can complete the local single-card deck and restart it', async () => {
   expect(output).toContain('你的答案正确');
   expect(output).toContain('你的选择');
   expect(output).toContain('正确答案');
-  expect(output).toContain('已答对');
+  expect(output).not.toContain('已答对');
+  expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain('B · unclear');
   expect(output).not.toContain('已作答 · 答对');
   expect(output).not.toContain('选择、答案和解释都在当前卡里');
   expect(output).not.toContain('位置保持');
@@ -5949,7 +5963,7 @@ test('can start a review round from cards that need revisiting', async () => {
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('开始复习');
   expect(output).toContain('开始复习');
-  expect(output).toContain('需要复习。');
+  expect(output).toContain('张卡需要再练。');
   expect(
     findPressableByTestId(root, 'statistics-start-review-button'),
   ).toBeTruthy();
@@ -6028,32 +6042,12 @@ test('can check in from statistics after making learning progress', async () => 
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('学习统计');
-  expect(output).toContain('今日完成');
-  expect(output).toContain('继续学习');
-  expect(output).toContain('签到');
-  expect(output).not.toContain('今日进度');
-  expect(root.findAllByProps({testID: 'statistics-progress-ratio'})).toHaveLength(0);
-  expect(root.findByProps({testID: 'statistics-metric-completed-value'}).props.children).toBe('1');
-  const metricLedgerStyle = StyleSheet.flatten(
-    root.findByProps({ testID: 'statistics-metric-strip' }).props.style,
-  );
-  expect(metricLedgerStyle.flexDirection).toBe('row');
-  const actionDock = root.findByProps({ testID: 'statistics-action-dock' });
-  const actionDockStyle = StyleSheet.flatten(actionDock.props.style);
-  expect(actionDockStyle.flexShrink).toBe(0);
-  expect(
-    actionDock.findAllByProps({ testID: 'statistics-next-step-card' }).length,
-  ).toBeGreaterThan(0);
-  expect(
-    actionDock.findAllByProps({ testID: 'statistics-go-learning-button' })
-      .length,
-  ).toBeGreaterThan(0);
-  expect(
-    actionDock.findAllByProps({ testID: 'statistics-checkin-card' }).length,
-  ).toBeGreaterThan(0);
-  expect(
-    actionDock.findAllByProps({ testID: 'statistics-checkin-button' }).length,
-  ).toBeGreaterThan(0);
+  expect(output).toContain('当前科目的统计暂时无法读取');
+  expect(root.findByType(StatisticsSurface).props.learningCompletedCount).toBe(1);
+  expect(root.findByType(StatisticsSurface).props.canCheckInToday).toBe(true);
+  expect(root.findAllByProps({testID: 'statistics-metric-completed-value'})).toHaveLength(0);
+  expect(findPressableByTestId(root, 'statistics-go-learning-button')).toBeTruthy();
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
   expect(
     StyleSheet.flatten(
       findPressableByTestId(root, 'statistics-go-learning-button').props.style,
@@ -6121,7 +6115,8 @@ test('keeps completed progress when first gated space entry starts trial', async
 
   await openRoute(root, 'statistics');
 
-  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1');
+  expect(root.findByType(StatisticsSurface).props.learningCompletedCount).toBe(1);
+  expect(root.findByProps({testID: 'statistics-unavailable'})).toBeTruthy();
 
   await openRoute(root, 'space');
 
@@ -6131,7 +6126,8 @@ test('keeps completed progress when first gated space entry starts trial', async
 
   await openRoute(root, 'statistics');
 
-  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1');
+  expect(root.findByType(StatisticsSurface).props.learningCompletedCount).toBe(1);
+  expect(root.findByProps({testID: 'statistics-unavailable'})).toBeTruthy();
 });
 
 test('keeps the account shell and local data after a lost deletion response, then clears them only after exact 202 retry', async () => {
@@ -7536,7 +7532,8 @@ test('keeps completed progress after changing sleep state', async () => {
 
   await openRoute(root, 'statistics');
 
-  expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1');
+  expect(root.findByType(StatisticsSurface).props.learningCompletedCount).toBe(1);
+  expect(root.findByProps({testID: 'statistics-unavailable'})).toBeTruthy();
 });
 
 test('can favorite a card from space and reflect it in learning flow', async () => {
@@ -7600,7 +7597,7 @@ test('starts the local trial automatically on the first authenticated entry', as
   expect(output).toContain('当前卡盒');
   expect(output).toContain('查看卡片');
   expect(output).toContain('翻面');
-  expect(output).toContain('继续学习');
+  expect(output).toContain('返回学习');
   expect(
     root.findAllByProps({ testID: 'space-overview-card-object' }).length,
   ).toBeGreaterThan(0);
