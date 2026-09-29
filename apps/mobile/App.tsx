@@ -8846,6 +8846,14 @@ function PhoneSmsPanel({
   const isPending = authState.pendingAction !== null;
   const resendRemainingSeconds = useSmsResendRemainingSeconds(authState.resendAvailableAt);
   const hasRequestedCode = authState.stage !== 'logged_out';
+  const [isCodeInputFocused, setCodeInputFocused] = useState(false);
+  useEffect(() => {
+    if (!hasRequestedCode) setCodeInputFocused(false);
+  }, [hasRequestedCode]);
+  const dismissCodeKeyboard = () => {
+    setCodeInputFocused(false);
+    Keyboard.dismiss();
+  };
   const hasAuthError = authState.error !== null;
   const isSessionSaveError = hasAuthError && authState.errorAction === 'save_session';
   const isClientUpdateRequired =
@@ -9083,19 +9091,37 @@ function PhoneSmsPanel({
             </Pressable>
           </View>
           {!isAuthenticated ? (
-            <Pressable
-              disabled={isPending}
-              onPress={handlers.onResetPhone}
-              style={[
-                styles.authChangePhoneButton,
-                {backgroundColor: palette.panel, borderColor: palette.border},
-              ]}
-              testID="auth-change-phone-button"
-            >
-              <Text style={[styles.authCodeResendLabel, {color: palette.text}]}>
-                更换手机号
-              </Text>
-            </Pressable>
+            <View style={styles.authCodeSecondaryActions}>
+              <Pressable
+                disabled={isPending}
+                onPress={handlers.onResetPhone}
+                style={[
+                  styles.authChangePhoneButton,
+                  {backgroundColor: palette.panel, borderColor: palette.border},
+                ]}
+                testID="auth-change-phone-button"
+              >
+                <Text style={[styles.authCodeResendLabel, {color: palette.text}]}>
+                  更换手机号
+                </Text>
+              </Pressable>
+              {isCodeInputFocused ? (
+                <Pressable
+                  accessibilityLabel="收起验证码键盘"
+                  accessibilityRole="button"
+                  onPress={dismissCodeKeyboard}
+                  style={[
+                    styles.authChangePhoneButton,
+                    {backgroundColor: palette.panel, borderColor: palette.border},
+                  ]}
+                  testID="auth-code-dismiss-keyboard-button"
+                >
+                  <Text style={[styles.authCodeResendLabel, {color: palette.text}]}>
+                    收起键盘
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
           ) : null}
           {!minimal ? (
             <Text
@@ -9197,7 +9223,9 @@ function PhoneSmsPanel({
                 }
                 keyboardType="number-pad"
                 maxLength={6}
+                onBlur={() => setCodeInputFocused(false)}
                 onChangeText={handlers.onChangeCode}
+                onFocus={() => setCodeInputFocused(true)}
                 style={styles.authCodeHiddenInput}
                 testID="auth-code-input"
                 textContentType="oneTimeCode"
@@ -10393,6 +10421,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     lineHeight: 16,
+  },
+  authCodeSecondaryActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   authChangePhoneButton: {
     alignItems: 'center',

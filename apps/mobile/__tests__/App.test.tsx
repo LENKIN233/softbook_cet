@@ -7889,6 +7889,15 @@ test('code entry can return to an empty phone field without restarting the app',
     await flushAsyncEffects();
   });
   expect(root.findByProps({testID: 'auth-code-input'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'auth-code-dismiss-keyboard-button'})).toHaveLength(0);
+  await ReactTestRenderer.act(() => {
+    root.findByProps({testID: 'auth-code-input'}).props.onFocus();
+  });
+  const dismissKeyboard = findPressableByTestId(root, 'auth-code-dismiss-keyboard-button');
+  expect(dismissKeyboard.props.accessibilityLabel).toBe('收起验证码键盘');
+  expect(StyleSheet.flatten(dismissKeyboard.props.style).minHeight).toBeGreaterThanOrEqual(44);
+  await ReactTestRenderer.act(() => { dismissKeyboard.props.onPress(); });
+  expect(root.findAllByProps({testID: 'auth-code-dismiss-keyboard-button'})).toHaveLength(0);
   expect(
     StyleSheet.flatten(
       findPressableByTestId(root, 'auth-request-code-button').props.style,
