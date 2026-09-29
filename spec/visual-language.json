@@ -1,43 +1,17 @@
 {
-  "version": "vnext-4",
+  "version": "vnext-5",
   "layer": "implementation_hypothesis_with_minimal_product_truth",
-  "purpose": "Stabilize visual output across model agents and implementation systems so that every new screen, mock, or component inherits the same atmosphere instead of reinventing one. This file is the structured entry; the canonical visual anchor is docs/design/visual-reference.html and the prose canon is docs/design/canon.md. All three move together.",
+  "purpose": "Provide a coherent, revisable visual baseline for clear learning tasks and recognizable knowledge space. Product concepts stay in their owners; execution and review policy stay in spec/machine-acceptance.json. Design references help implementation, and do not prescribe an artifact-first workflow or prove product quality.",
   "authority_note": "Nothing here can override spec/product-core.json, spec/interactions.json, spec/knowledge-map.json, spec/card-system.json, spec/action-surface.json, or spec/membership.json. When this file disagrees with an owner listed in spec/authority-map.json, the owner wins and this file is edited to match.",
   "references": {
     "canonical_visual_anchor": "docs/design/visual-reference.html",
     "canon_prose": "docs/design/canon.md",
     "design_harness": "docs/design/design-harness.md",
-    "first_worldview_brief": "docs/design/briefs/learning-space-worldview.md",
-    "first_direction_set": "docs/design/directions/learning-surface-3-directions.md",
-    "first_accepted_decision": "docs/design/decisions/learning-space-direction-decision-v1.md",
-    "first_implementation_mapping": "docs/design/mapping/learning-space-implementation-map-v1.md",
     "authority_map_domain": "visual_language_anchor",
     "current_accepted_decision": "docs/design/decisions/light-studio-three-surfaces-v1.md"
   },
   "product_truth": {
-    "note": "Narrow by design. Only claims that, if violated, would corrupt product comprehension or delivery governance (library identity, self-assess semantics, Law of One, design-artifact gate) are product_truth. Everything visual that is merely a stylistic choice lives in implementation_hypothesis.",
-    "user_facing_ui_requires_design_artifact": {
-      "claim": "Every user-facing UI surface, component, state, and visual change must be specified first in an accepted design artifact before React Native or any other implementation layer treats it as shippable. Existing RN screens are behavior prototypes until mapped back to an accepted design artifact.",
-      "accepted_artifacts": [
-        "docs/design/visual-reference.html",
-        "docs/design/canon.md",
-        "docs/design/briefs/*.md",
-        "docs/design/decisions/*.md",
-        "docs/design/interaction-motion/*.md",
-        "docs/design/physical-space/*.md",
-        "docs/design/mocks/*.md",
-        "docs/design/storyboards/*.md",
-        "linked_external_design_file"
-      ],
-      "same_pull_request_rule": "Follow spec/machine-acceptance.json#harness_strategy.experience_acceptance: a baseline may be revised with implementation after observed task failure; assess the running result.",
-      "binding": [
-        "spec/repo-delivery-contract.json",
-        "spec/agent-harness.json",
-        "docs/design/visual-reference.html",
-        "docs/design/canon.md"
-      ],
-      "violation_is": "delivery_blocker"
-    },
+    "note": "Protect product comprehension: one current learning task, distinct meaningful interactions, honest self-assessment and judgement, stable library identity, and spatial ownership. Fonts, shapes, exact colors, layout and design-document order are implementation choices.",
     "user_visible_metadata_leakage_is_blocker": {
       "claim": "Any design artifact or implementation mapping that exposes agent, harness, spec, validator, metadata, runtime, mock, prototype, seed, fixture, debug, dev, raw exception, API route, repo path, or TODO language in user-visible UI is blocked and must be quarantined before implementation.",
       "binding": [
@@ -76,7 +50,7 @@
       "mapping_stability": "Once published to users, a library's assigned hue family must not be reassigned to another library in subsequent releases. The specific hex is implementation; the hue family (indigo / coral / mint / violet / cyan / rose / amber) becomes mnemonic and is therefore sticky."
     },
     "law_of_one_current_library": {
-      "claim": "At most one library identity color may act as the dominant accent on a single screen. The current library drives CTA, picked, divider, highlight; the other libraries may only appear as small-scale chips or map tiles at ≤20% visual weight.",
+      "claim": "The current library and primary learning action must be easy to recognize. Keep library identity, interaction feedback and navigation roles coherent; other library markers may appear when comparing or browsing space. No fixed percentage of colored area is a product requirement.",
       "binding": [
         "spec/product-core.json",
         "spec/knowledge-map.json"
@@ -84,7 +58,7 @@
       "violation_is": "product_distortion_risk"
     },
     "self_assess_feedback_scoped_to_flip": {
-      "claim": "The self-assess feedback color family is a 2-level light judgement (confident / review, rendered as 有把握 / 需要复习) scoped to spec/interactions.json#flip.scoring_mode=light_self_assess. It must not leak into interactions whose scoring_mode is auto (multiple_choice, lock, elimination, swipe) — those render auto judgement instead. Two levels (not four) is the product_truth: spec/product-core.json#user_cost_minimization explicitly forbids '反复做高成本掌握度判断', and apps/mobile/src/learning/LearningSurface.tsx is the canonical implementation.",
+      "claim": "Flip uses the two light self-assess states confident / review (有把握 / 需要复习), as defined by spec/interactions.json#flip.scoring_mode=light_self_assess. Auto-scored multiple_choice, lock, elimination and swipe show their actual judgement without another mastery self-assessment. Feedback must distinguish confidence from correctness and avoid punitive framing; exact colors and control shapes are revisable defaults.",
       "binding": [
         "spec/interactions.json",
         "spec/product-core.json",
@@ -93,7 +67,7 @@
       "violation_is": "product_distortion_risk"
     },
     "map_must_visualize_hierarchy": {
-      "claim": "The knowledge map surface must render the library → box → card hierarchy as visible spatial structure, not a flat list. This is the physical-space commitment from AP-02.",
+      "claim": "The knowledge map surface must render the library → group → box → card hierarchy as visible spatial structure, not a flat list. This is the physical-space commitment from AP-02.",
       "binding": [
         "spec/knowledge-map.json",
         "spec/space-operations.json",
@@ -101,7 +75,7 @@
       ]
     },
     "interaction_silhouettes_are_distinguishable": {
-      "claim": "The five core interactions (flip / multiple_choice / lock / elimination / swipe) must be distinguishable by screen silhouette when blurred — not by a shared card frame with swapped button icons.",
+      "claim": "The five core interactions (flip / multiple_choice / lock / elimination / swipe) must expose their distinct learning actions and feedback clearly. A shared frame is acceptable when the actual affordances are understandable. Blurred silhouettes are an optional design diagnostic, not an acceptance condition.",
       "binding": [
         "spec/interactions.json",
         "spec/action-surface.json"
@@ -109,7 +83,7 @@
     }
   },
   "implementation_hypothesis": {
-    "note": "Shared defaults keep one product language. Revise proportions, typography and materials together when actual tasks show a failure, under machine-acceptance experience acceptance; style choices are not immutable product truth.",
+    "note": "Shared defaults keep one product language. Models may revise layout, typography, materials and feedback presentation to improve the task, with proportionate observation of the result. No prior failure, separate design approval, fixed candidate count or source-code shape is required. Keep related active defaults consistent when they change.",
     "palette": {
       "library_identity_hex_defaults": {
         "listening": "#5B6DF5",
@@ -137,7 +111,7 @@
         "glass_day": "#FEFEFF",
         "glass_night": "rgba(28,28,42,0.72)"
       },
-      "usage_constraint": "Feedback hues must not be used as library identity. Library hues must not be used to encode correctness. Keep the two semantic families separate.",
+      "usage_constraint": "Use labels, shape and context to distinguish library identity from confidence or correctness. Shared hues in different roles must not create an ambiguous judgement or require color perception alone.",
       "brand": {
         "primary": "#5658D6",
         "deep": "#4144AF",
@@ -296,31 +270,26 @@
       }
     },
     "interaction_silhouettes": {
-      "_note": "When blurred, each of the five core interactions must be identifiable by its silhouette alone. These are the canonical shapes; bind to spec/interactions.json interaction ids.",
+      "_note": "Current interaction examples. Preserve the learning action and scoring semantics; layout may adapt to content, platform, accessibility or an improved design. These shapes are neither snapshot requirements nor a blurred-screen gate.",
       "flip": {
         "shape": "One paper carrying the prompt, a hidden back with genuinely additional content, then exactly two self-assess choices. No fixed percentage of empty stage.",
-        "binding": "spec/interactions.json#flip",
-        "silhouette_hash": "card_center + pill_row_2_below"
+        "binding": "spec/interactions.json#flip"
       },
       "multiple_choice": {
         "shape": "Question followed by four comparable options; preserve 2x2 where readable and stack under content or accessibility pressure.",
-        "binding": "spec/interactions.json#multiple_choice",
-        "silhouette_hash": "prompt_top + 2x2_grid_below"
+        "binding": "spec/interactions.json#multiple_choice"
       },
       "lock": {
         "shape": "A forming sentence above ordered lock rows; completing the last correct row reveals the result without another confirmation.",
-        "binding": "spec/interactions.json#lock",
-        "silhouette_hash": "list_rows_with_leading_lock"
+        "binding": "spec/interactions.json#lock"
       },
       "elimination": {
         "shape": "Selectable spans in the original passage become struck and reversible; the surviving sentence is legible. If exact non-overlapping spans cannot be mapped, preserve the passage with an explicit candidate set.",
-        "binding": "spec/interactions.json#elimination",
-        "silhouette_hash": "original_passage_with_reversible_struck_spans"
+        "binding": "spec/interactions.json#elimination"
       },
       "swipe": {
         "shape": "deck of stacked cards with directional trail hints (left/right); exactly one card visible on top; horizontal motion is the primary affordance.",
-        "binding": "spec/interactions.json#swipe",
-        "silhouette_hash": "single_top_card_with_left_right_trails"
+        "binding": "spec/interactions.json#swipe"
       }
     },
     "contrast_floor": {
@@ -341,109 +310,28 @@
       "reduce_motion_must_be_honored": true,
       "_note": "Day and night both. When a chip/button uses library identity at low alpha, the text color inside must still clear the floor against the computed background, not against the base surface."
     },
-    "forbidden_design_patterns": {
-      "_note": "Machine-checkable blocklist. Scope: any HTML/CSS fragment outside <!-- NEGATIVE --> ... <!-- /NEGATIVE --> blocks in docs/design/visual-reference.html. High-signal patterns only — broad words like 'streak' or raw '#000' are intentionally NOT listed because they have legitimate uses (daily-checkin counter, dynamic island, on-color text).",
-      "tokens": [
-        {
-          "id": "FDP-01",
-          "pattern": "-webkit-background-clip:\\s*text",
-          "reason": "gradient-text display violates editorial restraint"
-        },
-        {
-          "id": "FDP-02",
-          "pattern": "background:\\s*linear-gradient\\([^)]*\\)\\s*;[^}]*color:\\s*transparent",
-          "reason": "gradient-text display violates editorial restraint"
-        },
-        {
-          "id": "FDP-03",
-          "pattern": "confetti|medal-earned|xp-bar\\b|level-up-toast",
-          "reason": "gamification chrome forbidden by product-core; daily-checkin counters are fine, chrome is not"
-        },
-        {
-          "id": "FDP-04",
-          "pattern": "position:\\s*fixed[^}]*bottom:\\s*0[^}]*width:\\s*100%",
-          "reason": "full-width bottom tabbar; use floating capsule"
-        },
-        {
-          "id": "FDP-05",
-          "pattern": "--fb-know|--fb-unsure|--fb-prof\\b|--fb-forgot",
-          "reason": "removed self-assess tokens; 2-level only (fb-confident / fb-review)"
-        },
-        {
-          "id": "FDP-06",
-          "pattern": "font-family:[^;]*serif",
-          "reason": "serifs forbidden in this product (geometric sans only)"
-        }
+    "design_iteration": {
+      "owner": "spec/machine-acceptance.json#harness_strategy.experience_acceptance",
+      "baseline_use": "Start from the relevant current screen or design reference. Models may explore and update implementation and baseline in one task; a separate accepted artifact is optional.",
+      "record": "Use the ordinary PR validation section for the task exercised, observations and relevant unverified scope. Refer to a design or capture when it explains the change; no mandatory AP/Q answers or historical artifact allowlist.",
+      "evidence_boundary": "A document, URL, screenshot, source pattern or author claim alone cannot prove that the user can complete the task. Validation of a PR declaration is not UX acceptance.",
+      "retained_boundaries": [
+        "product_semantics",
+        "accessibility_and_reachable_actions",
+        "metadata_leak_prevention",
+        "content_authorization",
+        "account_and_data_integrity",
+        "truthful_external_evidence"
       ]
     },
-    "design_artifact_gate": {
-      "_note": "This is the implementation-facing gate for the product_truth rule above. It keeps user-facing design decisions out of ad hoc component code.",
-      "applies_to": [
-        "new_user_facing_screen",
-        "user_facing_component_or_state_change",
-        "visual_style_change",
-        "empty_loading_error_or_paywall_state",
-        "navigation_or_chrome_change"
-      ],
-      "accepted_artifacts": [
-        "docs/design/visual-reference.html",
-        "docs/design/canon.md",
-        "docs/design/briefs/*.md",
-        "docs/design/decisions/*.md",
-        "docs/design/interaction-motion/*.md",
-        "docs/design/physical-space/*.md",
-        "docs/design/mocks/*.md",
-        "docs/design/storyboards/*.md",
-        "linked_external_design_file"
-      ],
-      "implementation_mapping_artifacts": [
-        "docs/design/mapping/*.md",
-        "PR_body_implementation_mapping"
-      ],
-      "not_accepted_as_design_authority": [
-        "existing_RN_component_without_design_reference",
-        "post_implementation_screenshot_after_coding",
-        "agent_or_developer_personal_taste_statement",
-        "task_local_design_brief_for_implementation_pr",
-        "author_design_claim_without_running_product_evidence",
-        "quarantined_design_artifact",
-        "artifact_with_user_visible_metadata_leakage",
-        "non_operable_one_screen_flow"
-      ],
-      "required_before": "implementation_that_changes_user_facing_UI",
-      "pull_request_must_state": "design_artifact_source_implementation_mapping_and_design_review_checklist"
-    },
-    "design_review_checklist": {
-      "_note": "Any agent producing visual output (mock, component, screen, reference HTML) or implementing user-facing UI must answer these before declaring work complete. 4 universal + 2 conditional. Answers go into the PR body or agent output; missing answers = incomplete work.",
-      "universal": [
-        {
-          "id": "Q1",
-          "question": "Which library is the current one on this screen, and is the single strong accent bound to it? (Law of One)"
-        },
-        {
-          "id": "Q2",
-          "question": "What is the focal object, and is the first-read path (focal → secondary → chrome) clear when squinted?"
-        },
-        {
-          "id": "Q3",
-          "question": "Does the screen silhouette match the interaction's canonical silhouette in visual-language.json#interaction_silhouettes? If not, which interaction is it and why does the shape differ?"
-        },
-        {
-          "id": "Q4",
-          "question": "Any forbidden_design_patterns present? Gradient text, gamification chrome, full-width tabbar, pure #000/#fff, removed self-assess tokens, serifs?"
-        }
-      ],
-      "conditional": [
-        {
-          "id": "Q5",
-          "condition": "any rendered phone frame or constrained viewport",
-          "question": "Layout containment: no horizontal overflow, safe-area respected, no clipped CTA or tabbar at target width?"
-        },
-        {
-          "id": "Q6",
-          "condition": "surface is stats/learning/flip",
-          "question": "Surface-specific: flip uses exactly 2 self-assess pills (有把握 / 需要复习); stats uses tabular-nums; learning does not expose module-selection as primary path."
-        }
+    "review_prompts": {
+      "_note": "Optional prompts selected for the current risk. Do not answer every question mechanically or create a new record for each prompt.",
+      "questions": [
+        "Can the learner identify the current task, operate it, understand the feedback and continue?",
+        "Does the feedback explain something useful without overstating completion, confidence or mastery?",
+        "Are reading material and actions usable at the affected screen size, text size and keyboard state?",
+        "Does space communicate current location, ownership and a clear way back to learning?",
+        "Is the visual hierarchy coherent, with decoration and navigation supporting the learning task?"
       ]
     }
   },
@@ -475,23 +363,23 @@
     },
     {
       "id": "VL-AP-06",
-      "name": "full_width_bottom_tabbar_or_square_corner_card_frames",
-      "correction": "floating_capsule_tabbar_and_28px_card_radius_unless_surface_contract_overrides"
+      "name": "navigation_or_decoration_obscures_learning",
+      "correction": "keep_the_primary_task_readable_and_actions_reachable_adapting_layout_to_the_platform"
     },
     {
       "id": "VL-AP-07",
-      "name": "skipping_design_review_checklist_on_visual_output",
-      "correction": "any_visual_output_must_answer_universal_Q1_Q4_plus_conditional_Q5_Q6_where_applicable"
+      "name": "treating_checklist_completion_as_product_quality",
+      "correction": "judge_the_actual_task_and_feedback_not_the_presence_of_review_keywords"
     },
     {
       "id": "VL-AP-08",
-      "name": "promoting_implementation_hypothesis_hex_into_product_truth",
-      "correction": "only_hue_family_and_semantic_binding_are_product_truth_hex_values_are_tunable_within_plus_minus_5_percent_but_the_7_library_identity_hex_and_2_self_assess_hex_are_locked_as_mirrored_source_of_truth"
+      "name": "locking_style_defaults_as_product_truth",
+      "correction": "revise_style_defaults_consistently_when_it_improves_the_task_preserving_recognizable_semantics"
     },
     {
       "id": "VL-AP-09",
-      "name": "implementing_user_facing_UI_without_design_artifact",
-      "correction": "create_or_reference_accepted_design_artifact_before_RN_or_other_user_facing_implementation"
+      "name": "treating_a_design_reference_as_execution_evidence",
+      "correction": "use_references_as_revisable_baselines_and_record_actual_observations_and_limitations"
     },
     {
       "id": "VL-AP-10",
@@ -506,16 +394,13 @@
   ],
   "agent_usage": {
     "when_to_read": [
-      "any_task_that_produces_visual_output_mocks_screens_components_mockups",
-      "any_implementation_task_that_renders_library_feedback_or_map_surfaces",
-      "any_task_that_changes_user_facing_UI",
-      "any_review_task_that_checks_for_product_distortion_in_visual_layer"
+      "visual_or_interaction_change_where_this_baseline_is_relevant",
+      "review_of_visual_or_spatial_product_comprehension"
     ],
-    "stop_when": "visual_output_or_user_facing_implementation_has_an_accepted_design_artifact_and_inherits_tokens_and_silhouettes_from_this_file_without_reinventing_them",
+    "stop_when": "the_task_relevant_product_behavior_is_observed_and_reviewed_to_the_required_risk_level_with_remaining_limits_explicit",
     "escalate_when": [
-      "authoritative_product_spec_disagrees_with_a_claim_here",
-      "a_new_library_or_new_interaction_appears_that_has_no_identity_mapping",
-      "a_surface_requires_a_visual_semantic_not_covered_here"
+      "the_user_goal_conflicts_with_an_essential_product_concept",
+      "a_required_external_fact_or_task_critical_input_is_missing"
     ]
   }
 }

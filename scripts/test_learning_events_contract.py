@@ -126,6 +126,31 @@ class LearningEventsContractTests(unittest.TestCase):
             "default ordering basis",
         )
 
+    def test_relevant_read_owners_allow_compact_or_reordered_routes(self):
+        owners = [
+            "spec/account-sync-contract.json",
+            "infra/cloudbase/learning-events-v2-runtime-contract.md",
+        ]
+        for route in (
+            owners,
+            list(reversed(owners)),
+            ["spec/runtime-boundaries.json", *owners],
+        ):
+            with self.subTest(route=route):
+                agent = copy.deepcopy(self.agent)
+                agent["read_paths"]["learning_events_runtime"] = route
+                self.assertEqual([], self.findings(agent=agent))
+
+    def test_read_route_cannot_omit_account_owner(self):
+        agent = copy.deepcopy(self.agent)
+        agent["read_paths"]["learning_events_runtime"] = [
+            "infra/cloudbase/learning-events-v2-runtime-contract.md",
+        ]
+        self.assert_finding(
+            self.findings(agent=agent),
+            "agent read path learning_events_runtime",
+        )
+
     def test_runtime_read_path_and_eval_regressions_are_required(self):
         missing_read_path = copy.deepcopy(self.agent)
         missing_read_path["read_paths"]["learning_events_runtime"].remove(

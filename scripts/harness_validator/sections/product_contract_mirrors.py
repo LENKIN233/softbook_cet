@@ -284,11 +284,17 @@ def validate(context) -> None:
         or release_targets.get("harmonyos") is not False
     ):
         errors.append("platform release targets must remain iOS, Android, and Web")
-    if product["product_promise"] != "帮助中国大学生以更轻松、更低负担、但仍然可信的方式通过 CET4/CET6。":
-        errors.append("product promise drifted from the CET4/CET6 owner")
-    if requirement["learning_model"]["single_card_flow"] is not True:
+    # Judge the wording in model review; compare structured product concepts
+    # here instead of requiring a verbatim marketing sentence.
+    if (
+        requirement["learning_model"]["single_card_flow"] is not True
+        or product["learning_experience"]["single_card_flow"] is not True
+    ):
         errors.append("single-card flow must remain product truth")
-    if requirement["physical_space"]["is_core_differentiator"] is not True:
+    if (
+        requirement["physical_space"]["is_core_differentiator"] is not True
+        or product["physical_space"]["is_core_differentiator"] is not True
+    ):
         errors.append("physical space must remain a core differentiator")
 
     interaction_ids = {entry["id"] for entry in interactions["interactions"]}

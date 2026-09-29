@@ -18,9 +18,10 @@ Design work can pass through four states:
 - `quarantined`: blocked from implementation until repaired and re-reviewed.
 - `rejected`: intentionally preserved failure record.
 
-Existing documents are not automatically trusted because they live under
-`docs/design/`. Their authority comes from manifest status, accepted lifecycle
-evidence, and passing this quarantine gate.
+These states describe references when useful; they do not impose a design-file
+prerequisite on implementation. A file under `docs/design/` is not proof of
+quality. Judge its actual user-visible content against the task and product
+owners, and repair observed leakage together with the implementation.
 
 ## Quarantine Triggers
 
@@ -69,9 +70,10 @@ The quarantine gate applies to:
 The gate also applies to generated screenshots or external design files when
 they are used as accepted proof.
 
-## Required Review Questions
+## Review Focus
 
-Before a design artifact can be accepted, the reviewer must answer:
+Inspect the relevant rendered states. The following are diagnostic prompts,
+not a mandatory questionnaire or a substitute for observing the repair:
 
 - Does any user-visible string contain internal process or engineering language?
 - Are loading, empty, error, permission, paywall, and recovery states free of

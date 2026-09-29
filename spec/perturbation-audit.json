@@ -171,37 +171,56 @@
     },
     {
       "id": "P-24",
-      "change": "Use two library identity colors simultaneously as strong accents on a single screen (e.g. listening indigo CTA + vocabulary rose highlight together)",
-      "expected_failure": "breaks Law of One and dissolves the library identity semantics the user can learn to navigate by",
-      "guarded_by": ["spec/visual-language.json", "spec/knowledge-map.json", "spec/agent-harness.json"],
+      "change": "Use conflicting library identity and feedback cues so the current task or location is no longer recognizable",
+      "expected_failure": "confuses learned spatial identity and primary actions; multiple colors alone are not a failure",
+      "guarded_by": [
+        "spec/visual-language.json",
+        "spec/knowledge-map.json",
+        "spec/agent-harness.json"
+      ],
       "status": "rejected"
     },
     {
       "id": "P-25",
-      "change": "Re-inflate self-assess feedback from 2 levels (有把握/再回看) back to 4 levels (掌握/知道/不确定/忘了)",
-      "expected_failure": "violates product-core user_cost_minimization ('反复做高成本掌握度判断') and diverges from apps/mobile/src/learning/LearningSurface.tsx canonical implementation",
-      "guarded_by": ["spec/visual-language.json", "spec/product-core.json", "spec/interactions.json", "scripts/validate_harness.py"],
+      "change": "Replace the two-state flip self-assessment with repeated high-cost four-level ratings",
+      "expected_failure": "adds unnecessary judgment cost and loses the two-state light self-assessment concept",
+      "guarded_by": [
+        "spec/visual-language.json",
+        "spec/product-core.json",
+        "spec/interactions.json",
+        "scripts/validate_harness.py"
+      ],
       "status": "rejected"
     },
     {
       "id": "P-26",
-      "change": "Paint the review self-assess level red (#F15B6E) instead of amber, implying '错了/惩罚'",
-      "expected_failure": "turns a warm 'come back to this' signal into punishment, contradicting the light_self_assess semantic in spec/interactions.json",
-      "guarded_by": ["spec/visual-language.json", "spec/interactions.json"],
+      "change": "Present a learner asking for review as having failed an objective question",
+      "expected_failure": "misrepresents self-assessment and adds punitive feedback; a particular hex value is not the invariant",
+      "guarded_by": [
+        "spec/visual-language.json",
+        "spec/interactions.json"
+      ],
       "status": "rejected"
     },
     {
       "id": "P-27",
-      "change": "Ship visual output (screens, mocks, reference HTML changes) without answering the design_review_checklist",
-      "expected_failure": "removes the machine-owned design acceptance gate; reintroduces taste drift and layout bugs that the checklist and visual evals would have caught",
-      "guarded_by": ["spec/visual-language.json", "spec/agent-harness.json"],
+      "change": "Declare a rendered experience passed solely because Q/AP checklist words or CSS tokens are present",
+      "expected_failure": "substitutes prose or source spelling for observed readability, operability and learning value",
+      "guarded_by": [
+        "spec/machine-acceptance.json",
+        "spec/agent-harness.json",
+        "spec/evals.json"
+      ],
       "status": "rejected"
     },
     {
       "id": "P-28",
-      "change": "Promote hex values in visual-language.json#implementation_hypothesis into inflexible product_truth and enforce them as literal strings across all docs and code",
-      "expected_failure": "collapses the implementation_hypothesis layer and makes micro-tuning a governance event; only the 7 library identities + 2 self-assess hexes belong in the locked mirror set",
-      "guarded_by": ["spec/visual-language.json", "spec/authority-map.json"],
+      "change": "Promote visual implementation defaults into immutable product truth enforced as literal source strings",
+      "expected_failure": "blocks legitimate visual improvements while failing to prove stable identity, clarity or usable contrast",
+      "guarded_by": [
+        "spec/visual-language.json",
+        "spec/authority-map.json"
+      ],
       "status": "rejected"
     },
     {
@@ -227,16 +246,24 @@
     },
     {
       "id": "P-32",
-      "change": "Implement user-facing UI directly from RN code or agent taste without an accepted design artifact",
-      "expected_failure": "solidifies an unreviewed visual layer into product implementation and bypasses the design-artifact gate",
-      "guarded_by": ["spec/visual-language.json", "spec/repo-delivery-contract.json", "spec/agent-harness.json", "spec/evals.json"],
+      "change": "Reject a directly implemented user-facing improvement only because no prior accepted design artifact exists",
+      "expected_failure": "blocks task-relevant model exploration despite preserved product semantics and actual running verification",
+      "guarded_by": [
+        "spec/machine-acceptance.json",
+        "spec/agent-harness.json",
+        "spec/evals.json"
+      ],
       "status": "rejected"
     },
     {
       "id": "P-33",
-      "change": "Use a task-local design brief as the authority for the same implementation PR",
-      "expected_failure": "lets agents self-author design justification and implementation in one pass without accepted artifact review",
-      "guarded_by": ["spec/repo-delivery-contract.json", "spec/visual-language.json", "scripts/validate_pr_design_gate.py"],
+      "change": "Treat a task-local design brief or an existing accepted artifact as sufficient proof that its implementation works",
+      "expected_failure": "author rationale cannot replace observation of the user task; either kind of artifact may be revised with implementation",
+      "guarded_by": [
+        "spec/machine-acceptance.json",
+        "spec/agent-harness.json",
+        "spec/evals.json"
+      ],
       "status": "rejected"
     },
     {
@@ -262,15 +289,19 @@
     },
     {
       "id": "P-37",
-      "change": "Promote the first AI-generated core-surface design as accepted without search, pairwise review, fragment harvest, targeted mutation, or promotion evidence",
-      "expected_failure": "turns the harness back into one-shot generation and cannot prove that the design content was optimized against softbook product constraints",
-      "guarded_by": ["docs/design/design-harness.md", "docs/design/search-runs/README.md", "spec/agent-harness.json", "spec/evals.json", "scripts/validate_design_search_run.py"],
+      "change": "Claim a design is optimized because a fixed number of candidates or review passes was recorded",
+      "expected_failure": "counts and ceremony do not prove quality; choose comparisons or fresh-context review when the task uncertainty calls for them",
+      "guarded_by": [
+        "spec/machine-acceptance.json",
+        "spec/agent-harness.json",
+        "spec/evals.json"
+      ],
       "status": "rejected"
     },
     {
       "id": "P-38",
-      "change": "Let a design search run pass with copied templates, one pairwise review, surviving candidates without visual evidence, pairwise reviews without visual evidence, or a promotion record that only names proof text without proof artifacts",
-      "expected_failure": "makes the Design Evolution Engine look complete while preserving no concrete generation, visual comparison, mutation, or rendered evidence",
+      "change": "Accept a recorded design comparison with missing evidence, proof borrowed from an unselected candidate, or an unknown selected alternative",
+      "expected_failure": "makes a reference-integrity check endorse inconsistent claims; the number of candidates and optional lifecycle documents do not determine quality",
       "guarded_by": ["docs/design/search-runs/README.md", "scripts/validate_design_search_run.py", "scripts/validate_harness.py"],
       "status": "rejected"
     }

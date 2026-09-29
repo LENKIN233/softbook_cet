@@ -16,7 +16,6 @@ def validate(context) -> None:
 
     harness_architecture_spec = load("harness-architecture.json")
 
-    check_equal("harness architecture version", "vnext-8", harness_architecture_spec["version"])
     check_equal("harness architecture layer", "repo_governance_truth", harness_architecture_spec["layer"])
 
     runner_contract = harness_architecture_spec["runner_contract"]
@@ -438,16 +437,6 @@ def validate(context) -> None:
         if mirror not in architecture_mirrors:
             errors.append(f"harness architecture authority mirrors missing {mirror}")
 
-    for output in [
-        "independent_local_quality_entrypoint",
-        "dev_pr_release_gate_profiles",
-        "local_gate_report_v1",
-        "redacted_ignored_local_gate_outputs",
-        "tracked_worktree_integrity_after_local_gates",
-    ]:
-        if output not in harness["task_briefs"]["harness_architecture"]["outputs"]:
-            errors.append(f"agent harness architecture outputs missing {output}")
-
     delivery_local_feedback = delivery["pull_request_contract"]["local_quality_feedback"]
     check_equal(
         "delivery local gate architecture owner",
@@ -672,28 +661,6 @@ def validate(context) -> None:
         for job in ["backend-contract", "mobile-quality", "web-quality"]:
             if job not in runtime_layer.get("ci_jobs", []):
                 errors.append(f"runtime_smoke_layer missing CI job: {job}")
-
-    architecture_task = harness["task_briefs"].get("harness_architecture")
-    if not architecture_task:
-        errors.append("agent harness must define harness_architecture task brief")
-    else:
-        for output in [
-            "layer_ownership_map",
-            "pure_layer_side_effect_boundary",
-            "runtime_smoke_delegation",
-            "structured_runner_interface",
-            "harness_result_v1",
-            "partial_run_completeness",
-            "explicit_validate_context_modules",
-            "isolated_section_workers",
-            "read_only_context_capability_enforcement",
-            "read_only_runtime_capability_enforcement",
-            "section_timeout_isolation",
-            "fixture_context_capability_enforcement",
-            "zero_legacy_exec_paths",
-        ]:
-            if output not in architecture_task.get("outputs", []):
-                errors.append(f"harness_architecture task brief missing output: {output}")
 
     for anti_pattern_id in ["AP-37", "AP-38", "AP-42"]:
         if not find_by_id(harness["anti_patterns"], anti_pattern_id):

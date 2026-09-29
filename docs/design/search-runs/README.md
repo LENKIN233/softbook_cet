@@ -1,132 +1,31 @@
-# Design Search Runs
+# 可选的设计比较记录
 
-## 当前任务引用的 spec
+设计探索服务于当前用户任务。是否比较方案、比较几个、是否继续一轮，由问题的不确定性、发现与预算决定；普通修复、新界面和重大改版都没有固定候选数量或代数。
 
-- `spec/product-core.json`
-- `spec/visual-language.json`
-- `spec/agent-harness.json`
-- `spec/evals.json`
-- `docs/design/design-harness.md`
+可以直接在运行中的实现里试验，也可以先比较草图。设计与 React Native / Web 实现可以在同一 PR 更新。产品概念由产品 spec 维护，验证与审查范围统一遵循 `spec/machine-acceptance.json#harness_strategy.experience_acceptance`。
 
-## Product Truth
+## 有助于决策时再比较
 
-Design search runs do not replace accepted design artifacts. They are a pre-acceptance optimization layer for core surfaces whose visual or interaction quality is still underdetermined.
+先说清要改善什么，例如读懂首卡反馈、找到当前盒或在键盘弹出时完成登录。只保留相关产品边界，选择能暴露差别的材料和运行状态。
+两个方案、现有界面与一个改进方案，或者一次有具体依据的调整都可以。需要时继续探索；没有新信息时停止。不要为了八个候选、胜率、连续代数或晋级记录补造工作。
 
-User-facing implementation still consumes only accepted artifacts, implementation mapping, and applicable interaction/motion or physical-space proof. A search run may become evidence for a design-only PR, but it cannot authorize same-PR RN or Web implementation.
+字体、圆角、导航形态、配色数值和剪影是可修订的表现选择。守住单卡任务、交互语义、轻自评、知识空间归属、可读与可操作，不用历史 Space 文件名或六问答案决定好坏。
 
-## Implementation Hypothesis
+## 记录实际做过的比较
 
-The Design Evolution Engine improves design content by treating AI output as a search process:
+通常 PR 的“验证”段落和相关操作产物已经足够。只有需要保留方案比较时，才使用本目录的 bundle。沿用现有文件名以便读取历史资料，按需留下：
 
-```text
-constraints
-  -> generate candidate population
-  -> hard-filter product and layout violations
-  -> pairwise-rank surviving candidates
-  -> harvest strongest fragments
-  -> apply targeted mutations
-  -> repeat until a candidate beats the accepted baseline
-  -> promote one accepted artifact
-  -> sediment failures back into the harness
-```
+- `context-pack.md`：用户任务、比较范围和实际约束。
+- `candidates/*.md`：方案说明；文件名识别方案，`Artifact` / `Screenshots` 或 `Visual Evidence` 引用实际材料。
+- `pairwise-reviews/*.md`：仅记录做过的比较。保留 Candidate A/B、Winner（可无胜者）、Visual Evidence、Rationale，说明观察和限制。
+- `promotion-record.md`：仅在确有选择或合成决定时保留。指出已有方案、依据和实际渲染材料；不自动授权上线或证明原生体验。
 
-This is the Creation and Judgment harness before Delivery harness. It exists because PR gates can prove that implementation has design evidence, but they cannot by themselves produce the best design evidence.
+`candidate-index.md`、筛选、片段提取、mutation log、promotion 与 templates 都是可选工具。没有比较过的方案不需要伪造配对记录；未渲染或未运行的平台明确说明。
 
-## When To Use
+## 校验边界
 
-Use a design search run for:
+`python3 scripts/validate_design_search_run.py --run <bundle>` 只检查记录内部的一致性：比较对象存在，引用的本地材料存在，双方材料与方案相符，选择不把已拒绝的方案写成通过。共享文件应使用可区别方案的路径或锚点。外链只能记录引用，脚本不会证明链接可用、内容已看过或方案有效。
 
-- a new core Learning, Space, interaction, motion, or platform surface;
-- a major redesign of a user-visible surface;
-- a design gap where one artifact is not enough to prove quality;
-- an AI-tool comparison that should influence the accepted design baseline.
+脚本不强制人口规模、代数、比较图覆盖率、固定基准文件、独立设计 PR、CSS 写法或审美结论。它通过只代表引用关系检查通过；实际质量仍须根据相应用户任务和运行观察判断。metadata 泄露、内容授权和数据安全由各自检查承担。
 
-Do not require a full search run for:
-
-- narrow copy changes;
-- bug fixes that only restore an accepted artifact;
-- small implementation mapping clarifications;
-- visual-output cleanup where the accepted design is already stable.
-
-## Required Loop
-
-1. Objective
-   Define hard constraints and soft objectives. Hard constraints include product truth, Law of One, interaction silhouettes, Space physical hierarchy, forbidden patterns, and implementation authority boundaries.
-
-2. Population
-   Generate at least 8 materially different candidates for a completed core-surface search run. Candidates may come from Codex HTML, Figma Make, Stitch, v0, external design files, or different prompts/models, but they must consume the same context pack. Every candidate that survives hard filtering must point to rendered visual evidence, a screenshot, an external prototype, or another concrete visual-evidence file; rejected candidates may instead state a concrete no-render rationale.
-
-3. Hard Filter
-   Reject candidates that violate product truth, collapse Space into a list/dashboard/favorite box, collapse Learning into a generic flashcard, fail required visual-language checklist items, or cannot be rendered/proved at the target device class.
-
-4. Pairwise Review
-   Compare surviving candidates pairwise instead of assigning a single aesthetic score. Each comparison must name the visual evidence used for Candidate A and Candidate B, name the winner, and explain product-truth fit, first-read clarity, Space/interaction fit, implementation mapping, and known risk.
-
-5. Fragment Harvest
-   Extract the strongest reusable parts before synthesis: focal object, first-read path, state language, motion causality, platform adaptation, and any risky but useful breakthrough.
-
-6. Targeted Mutation
-   Mutate the next generation from named failures, not from vague instructions such as "make it better." Each mutation must state the failure signal and the specific design change.
-
-7. Promotion
-   Promote only one candidate or synthesis into an accepted artifact. Promotion must state the winning candidate, borrowed fragments, rejected fragments, rendered proof, mapping expectations, unimplemented gaps, and failure sedimentation.
-
-8. Failure Sedimentation
-   Every meaningful failure must be recorded in `docs/design/rejected/`, `spec/evals.json`, `spec/perturbation-audit.json`, `spec/visual-language.json`, or a validator regression when it is likely to recur.
-
-## Run Layout
-
-Completed search runs live under:
-
-```text
-docs/design/search-runs/<yyyy-mm-dd>-<surface>/
-  context-pack.md
-  candidate-index.md
-  hard-filter-results.md
-  candidates/
-    <candidate-id>.md
-  candidate-proofs/
-    survivor-comparison.html or per-candidate rendered/screenshot proof
-  pairwise-reviews/
-    <round>-<candidate-a>-vs-<candidate-b>.md
-  fragment-harvest.md
-  mutation-log.md
-  promotion-record.md
-  rendered-proof.html or external-prototype.md
-  screenshots/
-```
-
-The templates in `docs/design/search-runs/templates/` define the required headings for each record.
-
-The validator rejects copied templates and placeholder-only records. A completed run must contain concrete provenance, concrete checklist answers, concrete hard-filter results, candidate-bound visual evidence for every surviving candidate, enough pairwise reviews to cover the candidate set, candidate-bound pairwise visual evidence for both compared candidates, and promotion proof backed by a rendered file, screenshot set, external prototype record, or URL.
-
-## Baseline Comparison
-
-Every search run must name the accepted baseline it is trying to beat. For Space, the current baseline is:
-
-- `docs/design/mocks/space-surface-visual-refinement-v1.md`
-
-Promotion is not justified unless the winning candidate beats the baseline on product-truth fit and at least one soft objective without regressing layout, accessibility, mapping, or implementation authority.
-
-## Stop Conditions
-
-Stop a run when one of these is true:
-
-- a top candidate wins two consecutive generations and passes hard filters;
-- a candidate beats the accepted baseline in at least 70% of relevant pairwise reviews;
-- every candidate is hard-filtered, which means the context pack or objective is wrong;
-- the run reaches its budget limit, usually 3 generations.
-
-## Design Review Checklist Answers
-
-Q1: A search run must name the current library in its context pack and candidate records. Law of One remains a hard filter, not a subjective preference.
-
-Q2: Every candidate must name its focal object and first-read path before visual review.
-
-Q3: Learning candidates must bind to a canonical interaction silhouette. Space candidates must prove physical hierarchy with current box or card focus.
-
-Q4: Forbidden design patterns are hard-filtered before pairwise review.
-
-Q5: Rendered candidates must include containment evidence for the target viewport. Surviving candidates need concrete candidate-bound visual evidence; shared proof files must use candidate-specific anchors or paths. Hard-filtered candidates may explain why the artifact is not rendered.
-
-Q6: Learning/flip/stats rules remain surface-specific hard constraints; search runs cannot mutate two-level self-assess, tabular stats, or system-sequenced Learning.
+历史 bundle 与 templates 保留当时的记录和格式，不重新变成当前任务的工作指令。历史通过也不能证明当前实现可用。遇到真实、可复现、可能重复的问题，再按收益增加行为检查；不把每次主观取舍都沉淀成新规则。

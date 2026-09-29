@@ -87,27 +87,8 @@ def validate(context) -> None:
         )
 
     workspace_read_path = harness["read_paths"].get("workspace_boundary_or_repo_structure", [])
-    for required_path in [
-        "spec/authority-map.json",
-        "spec/workspace-boundary.json",
-        "spec/agent-harness.json",
-        "spec/repo-delivery-contract.json",
-        "spec/evals.json",
-    ]:
-        if required_path not in workspace_read_path:
-            errors.append(f"workspace boundary read path must include {required_path}")
-
-    workspace_task = harness["task_briefs"].get("workspace_boundary")
-    if not workspace_task:
-        errors.append("agent harness must define workspace_boundary task brief")
-    else:
-        for output in [
-            "active_truth_source_and_contract_scope",
-            "excluded_generated_dependency_cache_archive_scope",
-            "external_workspace_boundary_if_any",
-        ]:
-            if output not in workspace_task.get("outputs", []):
-                errors.append(f"workspace_boundary task brief missing output: {output}")
+    if "spec/workspace-boundary.json" not in workspace_read_path:
+        errors.append("workspace boundary read path must expose its owner")
 
     for anti_pattern_id in ["AP-35", "AP-36", "AP-41"]:
         if not find_by_id(harness["anti_patterns"], anti_pattern_id):

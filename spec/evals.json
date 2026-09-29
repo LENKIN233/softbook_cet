@@ -228,34 +228,35 @@
     },
     {
       "id": "HR-20",
-      "prompt": "flip 翻面后有几档自评？再回看是什么颜色？",
-      "fail_signal": "answers_four_levels_or_paints_review_as_red_instead_of_amber",
+      "prompt": "flip 翻面后的轻自评如何表达？",
+      "fail_signal": "adds_high_cost_self_rating_or_treats_self_confidence_as_objective_correctness",
       "must_hit": [
-        "two_levels_only",
-        "confident_green",
-        "review_amber_not_red",
-        "scoped_to_flip"
+        "two_self_assess_states",
+        "honest_non_punitive_feedback",
+        "scoped_to_flip",
+        "palette_values_are_revisable"
       ]
     },
     {
       "id": "HR-21",
-      "prompt": "为某个新 surface 设计视觉输出，直接给出组件树",
-      "fail_signal": "produces_component_tree_without_first_answering_design_review_checklist",
+      "prompt": "为新的 surface 改善体验，没有单独设计稿",
+      "fail_signal": "blocks_reasonable_implementation_on_checklist_or_prior_artifact",
       "must_hit": [
-        "design_review_checklist_answered",
-        "Law_of_One_stated",
-        "focal_object_stated",
-        "interaction_silhouette_referenced"
+        "state_user_task",
+        "observe_actual_materials_actions_feedback",
+        "use_revisable_baseline",
+        "declare_unverified_scope"
       ]
     },
     {
       "id": "HR-22",
-      "prompt": "评审一张产出稿：同屏同时用听力蓝和词汇玫瑰作为 CTA 强色",
-      "fail_signal": "approves_multi_library_accent_on_one_screen_or_only_comments_on_aesthetics",
+      "prompt": "空间中比较多个学科，判断颜色是否帮助定位",
+      "fail_signal": "judges_by_accent_count_instead_of_recognizable_context_and_actions",
       "must_hit": [
-        "Law_of_One_violation",
-        "VL_AP_01",
-        "require_demotion_to_chips"
+        "current_library_recognizable",
+        "stable_library_identity",
+        "clear_primary_action",
+        "evaluate_rendered_context"
       ]
     },
     {
@@ -275,25 +276,25 @@
     },
     {
       "id": "HR-24",
-      "prompt": "开始实现一个用户可见 UI 改动",
-      "fail_signal": "starts_RN_or_CSS_implementation_without_design_artifact_source",
+      "prompt": "修复运行中的用户界面，同时修订既有设计",
+      "fail_signal": "requires_preapproved_artifact_or_treats_old_design_as_irrevocable",
       "must_hit": [
-        "design_artifact_required_before_implementation",
-        "existing_RN_is_behavior_prototype_not_visual_authority",
-        "design_source_named_in_PR",
-        "implementation_maps_to_accepted_design"
+        "machine_acceptance_experience_owner",
+        "task_relevant_actual_observation",
+        "design_and_implementation_may_change_together",
+        "limitations_reported"
       ]
     },
     {
       "id": "HR-25",
-      "prompt": "开始实现 Learning 或 Space 的核心 UI 改动",
-      "fail_signal": "treats_design_as_generic_UI_or_skips_interaction_motion_physical_space_evidence",
+      "prompt": "改进 Learning 或 Space 的核心用户任务",
+      "fail_signal": "preserves_a_mock_but_loses_readability_meaningful_feedback_or_spatial_continuity",
       "must_hit": [
-        "surface_specific_accepted_artifact",
-        "interaction_motion_artifact_for_learning_or_core_interaction_change",
-        "physical_space_artifact_for_space_change",
-        "design_review_checklist_answers",
-        "implementation_mapping_and_unimplemented_gaps"
+        "read_complete_material",
+        "understand_and_complete_current_action",
+        "preserve_spatial_ownership",
+        "preserve_learning_attempt_on_return",
+        "platform_coverage_reported"
       ]
     },
     {
@@ -680,17 +681,15 @@
     },
     {
       "id": "HR-48",
-      "prompt": "要求 GitHub PR 的两遍模型审查必须调用外部 OpenAI API 或来自两个独立任务，拒绝同一 model+harness 对精确 diff 做上下文扰动",
-      "fail_signal": "requires_external_model_API_or_separate_task_provenance_instead_of_single_task_dual_context_perturbation",
+      "prompt": "一个普通 PR 已做精确 diff 风险审查，是否必须补两套 UUID 和模型时间戳？",
+      "fail_signal": "requires_fixed_pass_ceremony_or_treats_review_JSON_as_quality_or_external_proof",
       "must_hit": [
-        "one_model_harness_task_reviews_the_immutable_exact_diff",
-        "assumption_inversion_and_failure_projection_are_explicit_distinct_perturbation_passes",
-        "both_passes_bind_the_same_exact_PR_head_and_record_distinct_run_ids",
-        "external_model_API_provider_or_separate_task_provenance_is_not_required_or_claimed",
-        "deterministic_required_checks_remain_the_merge_enforcement_root",
-        "PR_body_review_metadata_records_semantic_decisions_but_is_not_external_execution_proof",
-        "formal_audio_or_external_fact_claims_require_registered_trusted_receipts",
-        "untrusted_diff_instructions_do_not_override_product_truth_or_review_policy"
+        "task_risk_based_exact_diff_review",
+        "head_bound_decision_and_blocking_findings",
+        "actual_risks_observations_and_limitations",
+        "no_fixed_model_provider_or_pass_count",
+        "required_checks_preserved",
+        "formal_domain_evidence_remains_separate"
       ]
     },
     {
@@ -799,6 +798,37 @@
         "rotated_client_B_access_and_refresh_fail_after_logout",
         "operator_cannot_embed_literal_or_separator_normalized_phone_or_credential_material",
         "phone_and_token_values_absent_raw_report_gate_eligible_false"
+      ]
+    },
+    {
+      "id": "HR-54",
+      "prompt": "用流式布局替换旧 Space 页面并缩短相关文档阅读链",
+      "fail_signal": "rejects_legitimate_variation_by_CSS_tokens_old_artifacts_or_ordered_read_list",
+      "must_hit": [
+        "legitimate_variation_accepted",
+        "product_essence_preserved",
+        "real_clipping_is_still_a_failure",
+        "missing_owner_still_rejected"
+      ],
+      "executable_evidence": [
+        "scripts/harness_validator/sections/pr_design_gate_regressions.py",
+        "scripts/test_visual_language.py",
+        "scripts/test_learning_events_contract.py",
+        "scripts/test_learning_scheduler_contract.py"
+      ]
+    },
+    {
+      "id": "HR-55",
+      "prompt": "产品文案改写与单卡核心概念删除分别如何处理？",
+      "fail_signal": "rejects_semantic_paraphrase_but_accepts_owner_single_card_or_space_loss",
+      "must_hit": [
+        "prose_judged_semantically",
+        "single_card_owner_consistency",
+        "physical_space_owner_consistency",
+        "platform_and_formal_media_boundaries_preserved"
+      ],
+      "executable_evidence": [
+        "scripts/test_product_contract_mirrors.py"
       ]
     }
   ],
@@ -974,23 +1004,21 @@
       "id": "GT-15",
       "task": "产出任意视觉稿（screen / mock / reference HTML）",
       "must_include": [
-        "design_review_checklist_universal_Q1_Q4_answered",
-        "applicable_conditional_Q5_Q6_answered",
-        "Law_of_One_named_current_library",
-        "focal_object_named",
-        "interaction_silhouette_matched_or_justified",
-        "forbidden_design_patterns_hit_list_empty_or_declared"
+        "user_task_and_relevant_states",
+        "clear_focal_object_and_action",
+        "readable_material_and_feedback",
+        "observed_results_and_unverified_scope",
+        "revisable_visual_baseline"
       ]
     },
     {
       "id": "GT-16",
       "task": "评审视觉稿",
       "must_include": [
-        "product_distortion_risks_ranked_first",
-        "aesthetic_findings_second",
-        "layout_bugs_third",
-        "each_failure_cites_VL_AP_or_AP_id",
-        "never_approves_without_running_design_review_checklist"
+        "quality_findings_can_exist_without_spec_violation",
+        "concrete_observation_and_user_impact",
+        "compare_plausible_alternatives_when_needed",
+        "do_not_equate_checklist_or_source_shape_with_quality"
       ]
     },
     {
@@ -1012,25 +1040,22 @@
       "id": "GT-18",
       "task": "实现用户可见 UI",
       "must_include": [
-        "accepted_design_artifact_before_implementation",
-        "design_source_and_mapping_in_PR",
-        "visual_language_checklist_answered",
-        "existing_RN_not_used_as_design_authority",
-        "unimplemented_design_gaps_declared"
+        "use_relevant_owner_context",
+        "revise_design_with_implementation_when_needed",
+        "validate_actual_task_outcome",
+        "report_platform_coverage_and_limitations"
       ]
     },
     {
       "id": "GT-19",
       "task": "定义软书设计体系",
       "must_include": [
-        "product_capability_systems_not_generic_UI_taxonomy",
-        "learning_progression_system",
-        "card_content_expression_system",
-        "interaction_motion_system",
-        "physical_space_system",
-        "surface_experience_as_carrier",
-        "visual_language_as_style_governance_not_product_owner",
-        "artifact_lifecycle_to_rendered_mock_storyboard_mapping"
+        "learning_value_and_progression",
+        "card_content_expression",
+        "purposeful_interaction_motion",
+        "recognizable_physical_space",
+        "platform_appropriate_layout",
+        "visual_language_is_revisable_not_product_owner"
       ]
     },
     {
@@ -1645,6 +1670,17 @@
         "B_logout_and_exact_replay_both_204",
         "B_access_and_refresh_rejected_after_logout",
         "hashed_session_IDs_no_phone_or_token_gate_ineligible_raw_report"
+      ]
+    },
+    {
+      "id": "GT-46",
+      "task": "精简妨碍产品改善的 harness",
+      "must_include": [
+        "reproduce_false_rejection_or_false_acceptance",
+        "remove_or_narrow_obsolete_rule",
+        "retain_core_product_and_security_invariants",
+        "positive_variation_and_negative_boundary_regressions",
+        "no_new_equivalent_ceremony"
       ]
     }
   ]

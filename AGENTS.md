@@ -10,135 +10,40 @@ status: active
 ---
 # 软书四六级 Agent 入口
 
-## 产品一句话
+软书四六级面向中国大学生，以单卡学习、高价值交互和物理空间知识地图支持 CET4/6 备考。
 
-软书四六级是一个面向中国大学生的 CET4/6 备考产品：用单卡流、高价值交互和物理空间知识地图，让用户更轻松地通过考试。
+## 工作方式
 
-## 活跃源
+- 先确认用户目标、当前分支、HEAD 和已有改动；保留其他任务的工作。按当前任务执行，不从本文件推导新的业务或发布任务。
+- 产品内部不存在人工或用户审核 gate。`spec/machine-acceptance.json` 是 model+harness 授权、验收和精简 harness 的唯一 owner；在用户授权范围内自主完成工作。
+- 从 `spec/doc-manifest.json` 和 `spec/authority-map.json` 定位权威，只读取相关 owner。定义变更对照 `spec/requirement-memory.json`；实现方案可由运行结果修正。
+- 同一规则只写一次。新增静态 guard 必须先有可复现失败与代表性 eval；优先验证行为与结果，清理重复流程时回跑受影响的代表性检查。
 
-- `spec/requirement-memory.json`
-- `spec/machine-acceptance.json`（产品内部判断权、无需人工/用户审核、machine evidence、2026-09 上线目标与精简 harness 原则的唯一 owner）
-- `spec/authority-map.json`
-- `spec/workspace-boundary.json`
-- `spec/harness-architecture.json`
-- `spec/product-core.json`
-- `spec/account-sync-contract.json`
-- `spec/platform-contract.json`
-- `infra/cloudbase/auth-v2-runtime-contract.md`（仅在认证、账号删除、session revocation 或 SMS runtime 任务中读取；账号删除 worker、receiver timer 与真实删除演练边界以此为准）
-- `spec/action-surface.json`
-- `spec/card-system.json`
-- `spec/interactions.json`
-- `spec/knowledge-map.json`
-- `spec/space-operations.json`
-- `spec/box-catalog.json`
-- `spec/membership.json`
-- `spec/runtime-boundaries.json`
-- `spec/cet4-closed-beta-readiness.json`（仅在 CET4 正式封闭内测 candidate、gate、receiver evidence、真机验收或 readiness 状态任务中读取；其 `ready` 不替代正式产品 launch readiness）
-- `spec/trusted-media-run-receipt.json`（仅在正式音频/媒体执行收据、GitHub Artifact Attestation 或 CET4 content/media evidence 注册任务中读取；结构校验不得替代真实 attestation）
-- `spec/release-operational-policy.json`（仅在上线证据、外部账号 capability、SLO、备份恢复、渗透或回滚演练任务中读取；定义不得降低的正式证据阈值、外部控制面检查、gate 非替代与模拟非正式边界）
-- `infra/cloudbase/learning-events-v2-runtime-contract.md`（仅在 learning events 合同或实现任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
-- `infra/cloudbase/learning-session-v1-runtime-contract.md`（仅在服务端调度或 learning session 任务中读取；当前为仓库内已实现、移动端未接线且未部署的 runtime 边界）
-- `infra/cloudbase/content-manifest-v1-runtime-contract.md`（仅在音频资源、内容 manifest 或私有下载任务中读取；当前为后端、移动解析、原生缓存与显式播放适配已在仓库实现，但私有资源真机验证、发布 key 注入与部署未完成的 runtime 边界）
-- `infra/cloudbase/release-bundle-v1-runtime-contract.md`（仅在独立交付、正式内容发布、回滚或空白环境重建任务中读取；当前为 profile/bundle 校验、接收方 CloudBase adapter、统一交付命令、publisher 编排与仓库内模拟演练已实现，接收方正式演练未完成的 runtime 边界）
-- `infra/cloudbase/controlled-pilot-v1-runtime-contract.md`（仅在 CET4 受控产品试点的 120 卡 bundle、批准、音频 QC、运行模式或发布任务中读取；全部 artifact 均 `gate_eligible=false`，当前主线仅实现仓库内校验、发布排序与 runtime-mode 内容权威，接收环境和试点专用体验未部署）
-- `infra/cloudbase/beta-entitlement-v1-runtime-contract.md`（仅在封闭内测会员资格发放、撤销或审计任务中读取；当前为仓库内运维命令与服务端叠加读取已实现、接收方环境未执行的 runtime 边界）
-- `infra/cloudbase/space-actions-v2-runtime-contract.md`（仅在物理空间 action、同步或调度联动任务中读取；当前为仓库内已实现、未部署的 runtime 边界）
-- `spec/repo-delivery-contract.json`
-- `spec/agent-harness.json`
-- `spec/agent-run-record.json`
-- `spec/evals.json`
-- `spec/doc-manifest.json`
-- `spec/visual-language.json`（视觉实现假设锚，绑定 `docs/design/visual-reference.html`、`docs/design/canon.md` 与 `docs/design/design-harness.md`）
-- 同级外部内容工作区：`/Users/lenkin/programing/card make`（卡片候选内容生产与审批边界；本仓库只消费其导出的卡片 payload）
+## 按任务读取
 
-## 读取顺序
+| 任务 | 入口 |
+| --- | --- |
+| 产品、交互、物理空间、会员 | `spec/product-core.json` 与 authority-map 中的对应 owner |
+| 账号、同步、服务端与部署 | `spec/account-sync-contract.json`、`spec/runtime-boundaries.json` 及相关 `infra/cloudbase/*-runtime-contract.md` |
+| 学习事件或调度 | `infra/cloudbase/learning-events-v2-runtime-contract.md`、`infra/cloudbase/learning-session-v1-runtime-contract.md` |
+| 视觉或用户可见交互 | `spec/visual-language.json`、`docs/design/design-harness.md`、对应设计与实现；体验验收方式以 machine-acceptance 为准 |
+| 卡片内容交接 | `spec/card-system.json`、`spec/box-catalog.json`、`infra/cloudbase/mobile-runtime-contract.md` 与外部内容工作区 |
+| PR、CI、检查架构 | `spec/agent-harness.json`、`spec/repo-delivery-contract.json`、`spec/harness-architecture.json`、`spec/evals.json` |
+| 上线、正式封测或媒体证据 | `spec/release-operational-policy.json` 与对应 readiness、media receipt、runtime owner |
+| 工作区分类 | `spec/workspace-boundary.json` |
 
-- 原始需求校准：`requirement-memory`
-- 权威定位：`authority-map`
-- 产品/范围：`requirement-memory -> machine-acceptance -> product-core`
-- 认证/同步/购买：`requirement-memory -> account-sync-contract -> membership -> runtime-boundaries`（实现账号删除或 auth/session runtime 时追加 `infra/cloudbase/auth-v2-runtime-contract.md`；实现 learning events 时追加 `infra/cloudbase/learning-events-v2-runtime-contract.md`；实现物理空间同步时追加 `infra/cloudbase/space-actions-v2-runtime-contract.md`）
-- 服务端学习调度：`requirement-memory -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> infra/cloudbase/learning-events-v2-runtime-contract.md -> infra/cloudbase/learning-session-v1-runtime-contract.md`
-- 物理空间 action 同步：`requirement-memory -> product-core -> account-sync-contract -> knowledge-map -> space-operations -> box-catalog -> runtime-boundaries -> infra/cloudbase/space-actions-v2-runtime-contract.md`
-- 多端/端形态：`requirement-memory -> product-core -> platform-contract -> runtime-boundaries`
-- 卡片/交互：`requirement-memory -> product-core -> action-surface -> card-system -> interactions`
-- 音频资源：`requirement-memory -> product-core -> platform-contract -> card-system -> interactions -> runtime-boundaries -> infra/cloudbase/content-manifest-v1-runtime-contract.md`
-- 卡片内容交接：`requirement-memory -> product-core -> card-system -> box-catalog -> runtime-boundaries -> agent-harness -> infra/cloudbase/mobile-runtime-contract.md -> /Users/lenkin/programing/card make`
-- 物理空间/盒码：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog`
-- 会员/试用：`requirement-memory -> product-core -> membership`（涉及封闭内测资格发放、撤销或审计时追加 `account-sync-contract -> runtime-boundaries -> infra/cloudbase/beta-entitlement-v1-runtime-contract.md`）
-- CET4 受控试点：`requirement-memory -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> infra/cloudbase/learning-session-v1-runtime-contract.md -> infra/cloudbase/content-manifest-v1-runtime-contract.md -> infra/cloudbase/controlled-pilot-v1-runtime-contract.md`（正式发布非替代校验追加 `infra/cloudbase/release-bundle-v1-runtime-contract.md`）
-- CET4 正式封闭内测 readiness：`requirement-memory -> machine-acceptance -> product-core -> account-sync-contract -> membership -> runtime-boundaries -> cet4-closed-beta-readiness -> trusted-media-run-receipt（涉及正式媒体证据时） -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
-- 交付 / PR / CI：`authority-map -> machine-acceptance -> agent-harness -> repo-delivery-contract -> evals`（涉及接收方环境、正式内容发布或回滚时追加 `runtime-boundaries -> infra/cloudbase/release-bundle-v1-runtime-contract.md`）
-- 上线证据 / 外部账号 capability / SLO / 恢复演练：`authority-map -> machine-acceptance -> account-sync-contract -> runtime-boundaries -> release-operational-policy -> infra/cloudbase/release-bundle-v1-runtime-contract.md -> agent-harness -> repo-delivery-contract -> evals`
-- Agent run records / context handoff：`authority-map -> agent-run-record -> workspace-boundary -> harness-architecture -> agent-harness -> repo-delivery-contract -> evals`
-- 工作区边界 / agent 默认读取：`authority-map -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
-- Harness 架构 / validator 分层：`authority-map -> harness-architecture -> workspace-boundary -> agent-harness -> repo-delivery-contract -> evals`
-- 视觉输出/设计反推：`requirement-memory -> 相关产品 spec -> visual-language -> docs/design/design-harness.md -> docs/design/visual-reference.html`
-- 交互 / 动效设计：`requirement-memory -> product-core -> interactions -> visual-language -> docs/design/design-harness.md -> docs/design/interaction-motion/README.md -> docs/design/storyboards/README.md`
-- 物理空间设计：`requirement-memory -> product-core -> knowledge-map -> space-operations -> box-catalog -> visual-language -> docs/design/design-harness.md -> docs/design/physical-space/README.md`
-- 用户可见 UI 实现：`requirement-memory -> 相关产品 spec -> visual-language -> 已接受设计稿 -> interaction/motion 或 physical-space artifact（如适用） -> implementation mapping -> runtime-boundaries`
-- 实现：相关产品 spec -> 合同 spec -> `runtime-boundaries`（若需渲染用户可见 UI，追加 `visual-language`、已接受设计稿与 implementation mapping）
-- 审查/验收：相关 spec -> `agent-harness` -> `evals`
+## 应保留的边界
 
-## 硬约束
+- 候选卡片生产、审查和授权属于同级 `/Users/lenkin/programing/card make`；本仓库消费导出的 payload，并执行导入、审计和运行验证。开发 fixture 不计为正式内容。
+- 外部账号、凭证、部署、真机与用户结果必须有实际证据。结构通过、模拟、dry-run、本地报告和历史批准各自只证明其覆盖的范围；不能替代正式发布或当前内容授权。
+- 正式证据遵守对应 owner 的精确 commit、scope、hash、环境与产物绑定；不因入口精简而降低完整性、数据安全或恢复要求。
+- 设计基准可由实际任务失败推翻；普通修复可在同一 PR 修改设计和实现。验证真实运行结果，设计文字和作者自评不替代体验证据。
+- 默认不加载 archive、generated、dependency、cache 或其他工作区全量内容；需要时按任务读取。
 
-- 产品内部不存在人工或用户审核 gate；model+harness 拥有产品、内容、音频、设计、PR、发布与部署的持续决策权，不得把工作停在“请用户确认/审核/点击批准”
-- 外部平台的账号、凭证、实名、备案、审核、部署与真机状态必须据实读取；harness 可以执行已授权操作，但不得伪造不存在的外部事实或把它们改写成主观人工审核
-- Harness 默认相信 model：同一规则只写一次，只加载任务相关上下文；新增静态 guard 必须先有可复现失败与代表性 eval，历史流程规则按组删除并回跑同一 eval
+## 验证与交付
 
-- 不要把产品写成泛英语教学系统或背单词工具
-- 不要把物理空间缩成收藏/休眠二盒展示
-- 不要把提示层写成独立卡型
-- 不要把音频写成独立交互家族
-- 不要把统计、计数器、复杂状态机写成产品核心
-- 不要在 `softbook_cet` 内生产候选卡片内容、批准卡片批次或把 dev seed cards 当作正式内容量；候选内容生产和审批发生在同级 `/Users/lenkin/programing/card make`，本仓库只接收其导出的 payload、dry-run/import、audit、runtime smoke 和报告 coverage delta
-- 不要默认读取 `archive/legacy-v3/` 或 `archive/transitional-vnext-prose/` 作为活跃真相源
-- 不要默认把 generated / dependency / cache / machine-local / archive / external workspace 当作 agent 语义上下文；先按 `spec/workspace-boundary.json` 分类，再决定是否读取
-- 不要把 truth/workspace 纯检查、delivery 远端治理、design fixture 回归和 runtime smoke 混在同一 harness 层；按 `spec/harness-architecture.json` 分层
-- 不要把 `scripts/run_local_gates` 的本地报告当作 GitHub required checks、Agent review、正式内容批准或 launch readiness；`dev` / `pr` / `release` profile 与 `local-gate-report.v1` 以 `spec/harness-architecture.json#local_gate_runner_contract` 为准
-- 不要把仓库内存模拟、dry-run、任意 JSON 或仅有路径/哈希的文件当作外部运行事实；release evidence 必须绑定同一 commit/profile/environment/release/build cohort，引用可重验的实际 artifact，并以独立 machine run 验证。模拟只能证明本地实现，不得伪造部署、平台账号、真机或用户结果
-- 不要把 CET4 受控试点的 120 卡、60 卡 free 子集、pilot profile/bundle/release/entitlement/outcome report 当作正式封闭内测或 launch evidence；当前仓库开发卡源、candidate handoff、dry-run 和 runtime fixture 也不得计入 120 张正式批准卡
-- 不要把 CET4 closed-beta readiness 的 `ready` 当作正式产品 launch readiness；它只覆盖精确 CET4 1,180 卡/108 盒/301 音频与其封闭内测 cohort，不降低 CET6、公开分发、支付、合规或 `docs/release/launch-readiness.v1.json` 的任何 gate
-- 不要为每个屏幕/每个 agent 各自重造视觉语言；视觉输出必须从 `spec/visual-language.json` 与 `docs/design/visual-reference.html` 继承 token 与剪影
-- 用户可见实现应从现有设计基准出发；真实截图和操作结果可证明基准失败，修订权与验收方式由 `spec/machine-acceptance.json#harness_strategy.experience_acceptance` 统一定义
-- 设计基准可由实际用户任务失败推翻；普通修复允许在同一 PR 修订设计与实现，按 `spec/machine-acceptance.json#harness_strategy.experience_acceptance` 验收运行结果，设计文字不能替代执行证据
-- 不要把 task-local design brief 当作 implementation PR 的正式设计权威；它只能作为探索草稿
-- 不要把核心交互 / 小动效当作 UI 完成后的装饰；Learning 或核心交互实现必须先有 interaction/motion artifact 或 storyboard
-- 不要把物理空间当作普通页面 UI；Space 实现必须先有 spatial model / state transition / Learning ↔ Space 连续性 artifact
-- 不要在产出任何视觉稿（mock / screen / reference HTML 改动）后跳过 `spec/visual-language.json#design_review_checklist`；答案必须出现在 PR 描述或 agent 输出里，4 通用 + 2 条件（AP-22 / VL-AP-07）
-- 不要把 self-assess 画成 4 档或用红色表达"再回看"；权威实现在 `apps/mobile/src/learning/LearningSurface.tsx`，2 档=有把握(mint)/再回看(amber)（AP-23）
-
-## 工程治理约束
-
-- 普通 PR 不再新增 tracked `docs/agent-runs` 记录；以精简 PR 摘要、trusted OpenAI Codex Action exact-diff review 与 required checks 为交付记录。外部 release/deploy 事实仍写入其专用 evidence schema
-- `main` 是只读集成分支，不要直接在 `main` 上开发、提交、合并或推送
-- 若本地 `main` worktree 存在且干净，merge 后只允许 fast-forward 到 `origin/main`；不要把 stale local main 或 worktree lock 当成远端 merge 失败
-- 开发前先切到 `infra/*`、`shell/*`、`module/*`、`cross/*` 或 `fix/*`
-- clone 或新增 worktree 后先运行 `./scripts/install_git_hooks.sh`
-- 若发现本地 hooks 或 GitHub `main` 保护漂移，先修治理再继续功能开发
-- 任何会持久化仓库改动的任务，除非用户明确要求只做本地修改，否则默认在 topic branch 上完成提交、开/更新指向 `main` 的 PR；同一 model+harness 任务必须对精确 diff 完成两轮不同扰动视角审查并在 PR 描述记录结论，required gates 全绿后自动合并，不等待用户或人工批准
-- 两轮扰动审查分别使用假设反转与失败投影视角；它们不依赖外部模型 API，不声称是不同提供商或不同任务，只证明当前单一任务对同一精确 diff 做了两次明确重审
-- 未完成双扰动 review、PR 描述未记录 passed review、required gates 未全绿，或权限/环境阻止 merge 时，不要提前合并到 `main`
-- 如果权限或环境阻止创建 PR，必须明确交付 branch、commit、验证结果与阻塞原因
-
-## 输出要求
-
-- PR 输出必须记录引用 spec、变更摘要和验证；模型复核由 trusted base workflow 直接产出，不把作者可编辑 PR body 当作信任根；不再要求新增 `docs/agent-runs/*.md`
-- 先指出当前任务引用了哪些 spec
-- 若任务会影响产品定义，先用 `spec/requirement-memory.json` 对齐原始需求
-- 如果多个 spec 出现同一概念，严格以 `spec/authority-map.json` 指定的 owner 为准
-- 默认只读完成任务所需的最小 spec 子集；只有跨域耦合或明确冲突时才升级读取范围
-- 明确区分 `product_truth` 与 `implementation_hypothesis`
-- 如果新增交互、盒码或访问规则，先更新对应 spec，再给结论
-- 若任务包含持久化仓库改动，PR 描述只保留引用 spec、变更摘要、验证与 Model review；设计、内容交接、发布和外部事实由各自 owner validator 按实际改动路径要求证据，不复制无关 checklist；默认在 review + gate 通过后自动收口合并
-
-## 压缩保留
-
-- `spec/requirement-memory.json`
-- `spec/workspace-boundary.json`
-- 当前任务依赖的 spec 文件
-- 当前关键决定与未决点
-- 会员/试用结构
-- 核心交互和空间语义
-- `card make` 外部内容工作区边界
-- 已修改文件列表
-- 当前 agent run record 路径
+- 选择与改动相关的验证和 required checks；具体命令、PR 字段与交付规则由 repo-delivery-contract 和 agent-harness 维护，避免在入口复制。
+- `main` 用于集成，开发使用当前治理允许的 topic branch。新增 checkout 时按治理安装 hooks；merge 后仅在干净的本地 main 上 fast-forward。
+- 用户要求本地修改时保持本地；适用完整交付的任务按 owner 完成提交、PR、精确 diff 审查、required checks 和自动合并，不额外索要主观审核。
+- 不再要求新增 `docs/agent-runs/*.md`。普通 PR 只记录相关 spec、变更、验证与 Model review；正式外部事实写入对应 evidence schema。
+- 最终说明完成内容、验证结果及确有证据的剩余限制。上下文交接保留目标、当前状态、关键决定、修改文件和未完成工作，不重复整个规则集。

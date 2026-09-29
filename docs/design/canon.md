@@ -41,7 +41,9 @@
 
 动效遵循 `interaction-motion/light-studio-motion-v1.md`：按压、选择、揭示、翻面、换卡、空间层级和播放状态各自表达实际反馈，后台与减少动态效果设置停止装饰循环。
 
-## 设计映射
+## 按需参考
+
+以下入口用于定位相关设计与历史决定，不是逐项阅读或实现前置条件。当前任务可以按实际体验修订基准。
 
 - 当前三端决定：`docs/design/decisions/light-studio-three-surfaces-v1.md`。
 - 渲染基准：`docs/design/visual-reference.html`。
@@ -51,9 +53,7 @@
 
 ## 审查
 
-Q1 学科色是否正确且只作当前强调；Q2 首读对象与次级信息是否清楚；Q3 动作是否改变真正的学习对象；Q4 是否引入无关装饰或奖励负担；Q5 材料、操作和安全区是否可用；Q6 是否保持两档自评及系统顺序学习。
-
-这些问题必须结合实际页面与操作回答，不能把引用本文件当成通过结论。
+审查深度和方法由 `spec/machine-acceptance.json#harness_strategy.experience_acceptance` 维护。结合当前用户任务判断实际页面与操作；不要求逐项填写固定问卷，也不能把引用本文件当成通过结论。
 
 ## 文案
 

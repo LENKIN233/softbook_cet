@@ -1,5 +1,5 @@
 {
-  "version": "vnext-8",
+  "version": "vnext-9",
   "layer": "repo_governance_truth",
   "purpose": "Define a lean layered Harness: owner and behavior invariants stay local, task-relevant CI runs by changed path, and runtime or external facts remain delegated and diagnosable.",
   "authority_note": "This file owns validator layer boundaries, section ownership, and side-effect policy. It does not own product truth, UI design truth, workspace classification, or PR delivery policy; those remain in their owner specs.",
@@ -320,7 +320,7 @@
         "product_contract_mirrors",
         "visual_language"
       ],
-      "responsibility": "Check active truth, owner/mirror consistency, product contract mirrors, and visual-language mirrors using local files only.",
+      "responsibility": "Check owner/schema consistency and structured product invariants using local files; do not grade product quality from copied prose or design source shape.",
       "side_effect_policy": "pure_local_file_checks",
       "allowed_operations": [
         "read_local_files",
@@ -386,7 +386,7 @@
         "design_search_regressions",
         "pr_design_gate_regressions"
       ],
-      "responsibility": "Check design artifact lifecycle, quarantine, single-card UX contract, design-search fixtures, and visual-output PR gate regressions.",
+      "responsibility": "Keep metadata isolation and optional design-search fixtures separate from ordinary PR validation declarations. Declaration completeness is not evidence of design quality or successful runtime execution.",
       "side_effect_policy": "allowed_temporary_design_fixtures_no_remote",
       "allowed_operations": [
         "read_design_artifacts",
