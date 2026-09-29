@@ -8,4 +8,3 @@ export type TrackStudyStatistics = {
   reviewAttemptCount: number;
   cumulativeLearnedCardCount: number;
 };
-
