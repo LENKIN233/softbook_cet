@@ -1,7 +1,7 @@
 import React from 'react';
 import TestRenderer, {act} from 'react-test-renderer';
 import {AccessibilityInfo, Animated, Pressable, View, StyleSheet} from 'react-native';
-import {NativeMotionProvider, MotionPressable, MotionWaveform, useCardMotion} from '../src/learning/NativeMotion';
+import {NativeMotionProvider, MotionView, MotionPressable, MotionWaveform, useCardMotion} from '../src/learning/NativeMotion';
 
 let completions: Array<() => void>;
 let changePreference: (reduced: boolean) => void;
@@ -90,13 +90,13 @@ it('keeps an outgoing route hidden until the new route commits', async () => {
   act(() => view.root.findByProps({testID: 'space'}).props.onPress());
   act(finishQueued);
   expect(changeRoute).toHaveBeenCalledTimes(1);
-  const opacity = view.root.findByProps({testID: 'page'}).props.style.opacity as Animated.Value & {__getValue: () => number};
-  expect(opacity.__getValue()).toBe(0);
+  const opacity = () => view.root.findByProps({testID: 'page'}).props.style.opacity as Animated.Value & {__getValue: () => number};
+  expect(opacity().__getValue()).toBe(0);
   expect(completions).toHaveLength(0);
   act(() => view.update(<NativeMotionProvider><RouteHarness route="space" /></NativeMotionProvider>));
-  expect(opacity.__getValue()).toBe(0);
+  expect(opacity().__getValue()).toBe(0);
   act(finishQueued);
-  expect(opacity.__getValue()).toBe(1);
+  expect(opacity().__getValue()).toBe(1);
   act(() => view.unmount());
 });
 
@@ -137,4 +137,53 @@ it('stops the playback cue on pause, reduced motion and unmount', async () => {
   expect(start).toHaveBeenCalledTimes(3);
   act(() => view.unmount());
   expect(stop).toHaveBeenCalledTimes(3);
+});
+
+
+it('commits an entering result at its initial opacity without a full-opacity flash', async () => {
+  const renderedStarts: number[] = [];
+  const interpolate = Animated.Value.prototype.interpolate;
+  jest.spyOn(Animated.Value.prototype, 'interpolate').mockImplementation(function (this: Animated.Value & {__getValue: () => number}, config) {
+    if (config.outputRange[0] === 0.3) renderedStarts.push(this.__getValue());
+    return interpolate.call(this, config);
+  });
+  const content = (identity?: string) => <NativeMotionProvider>{identity
+    ? <MotionView motionKey={identity} enter kind="result"><View /></MotionView> : null}</NativeMotionProvider>;
+  let view!: TestRenderer.ReactTestRenderer;
+  await act(async () => {view = TestRenderer.create(content());});
+  act(() => view.update(content('first')));
+  expect(renderedStarts[0]).toBe(0);
+  act(finishQueued);
+  renderedStarts.length = 0;
+  act(() => view.update(content('second')));
+  expect(renderedStarts[0]).toBe(0);
+  act(finishQueued);
+  renderedStarts.length = 0;
+  act(() => changePreference(true));
+  expect(renderedStarts[0]).toBe(1);
+  expect(completions).toHaveLength(0);
+  act(() => view.unmount());
+});
+
+
+it('renders the next card with its entrance values before any layout effect', async () => {
+  const rendered: Array<{identity: string; opacity: number; travel: number}> = [];
+  function CardCapture({identity}: {identity: string}) {
+    const motion = useCardMotion(identity);
+    const value = (node: Animated.Value) => (node as Animated.Value & {__getValue: () => number}).__getValue();
+    rendered.push({identity, opacity: value(motion.cardStyle.opacity), travel: value(motion.cardStyle.transform[0].translateX!)});
+    return <View style={motion.cardStyle} />;
+  }
+  const content = (identity: string) => <NativeMotionProvider><CardCapture identity={identity} /></NativeMotionProvider>;
+  let view!: TestRenderer.ReactTestRenderer;
+  await act(async () => {view = TestRenderer.create(content('old'));});
+  rendered.length = 0;
+  act(() => view.update(content('next')));
+  expect(rendered[0]).toEqual({identity: 'next', opacity: 0, travel: 28});
+  act(finishQueued);
+  act(() => changePreference(true));
+  rendered.length = 0;
+  act(() => view.update(content('reduced')));
+  expect(rendered[0]).toEqual({identity: 'reduced', opacity: 1, travel: 0});
+  act(() => view.unmount());
 });

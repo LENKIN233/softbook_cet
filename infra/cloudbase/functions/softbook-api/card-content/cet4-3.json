@@ -3456,9 +3456,9 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 模版句式",
-      "prompt": "补全论证链：\n\nGroup projects can improve communication skills. {{blank}}, students must explain their ideas and respond to different views. {{blank}}, a team preparing a class presentation has to divide tasks and resolve disagreements. {{blank}}, group work gives students repeated practice in clear discussion.\n\n词库：This is because / For example / As a result / However / In contrast",
-      "support": "补全论证链：\n\nGroup projects can improve communication skills. {{blank}}, students must explain their ideas and respond to different views. {{blank}}, a team preparing a class presentation has to divide tasks and resolve disagreements. {{blank}}, group work gives students repeated practice in clear discussion.\n\n词库：This is because / For example / As a result / However / In contrast",
-      "context": "补全论证链：\n\nGroup projects can improve communication skills. {{blank}}, students must explain their ideas and respond to different views. {{blank}}, a team preparing a class presentation has to divide tasks and resolve disagreements. {{blank}}, group work gives students repeated practice in clear discussion.\n\n词库：This is because / For example / As a result / However / In contrast"
+      "prompt": "补全论证链：\n\nGroup projects can improve communication skills. {{blank}} students must explain their ideas and respond to different views. {{blank}}, a team preparing a class presentation has to divide tasks and resolve disagreements. {{blank}}, group work gives students repeated practice in clear discussion.\n\n词库：This is because / For example / As a result / However / In contrast",
+      "support": "补全论证链：\n\nGroup projects can improve communication skills. {{blank}} students must explain their ideas and respond to different views. {{blank}}, a team preparing a class presentation has to divide tasks and resolve disagreements. {{blank}}, group work gives students repeated practice in clear discussion.\n\n词库：This is because / For example / As a result / However / In contrast",
+      "context": "补全论证链：\n\nGroup projects can improve communication skills. {{blank}} students must explain their ideas and respond to different views. {{blank}}, a team preparing a class presentation has to divide tasks and resolve disagreements. {{blank}}, group work gives students repeated practice in clear discussion.\n\n词库：This is because / For example / As a result / However / In contrast"
     },
     "analysis": {
       "title": "解析",
@@ -4955,7 +4955,7 @@
     "analysis": {
       "title": "解析",
       "summary": "这句不是因果，也不是转折，而是‘先用于 A，后来用于 B’的顺承并列。正确译法用 At first ... and later ... 把时间推进和功能变化放在同一条线上。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先标出“之初”和“后来”两段时间，再让两种运输用途使用平行结构。"
     },
     "space_metadata": {
       "box_ref": "0400",
@@ -4979,7 +4979,7 @@
     "analysis": {
       "title": "解析",
       "summary": "‘却’提示的是反预期对照：家长明明投入很多，结果孩子并没有进步。英文用 yet 把两个结果并列对照，能保留‘前半句很重，后半句打脸’的语气。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "圈出“却”，检查孩子受苦与学业未进步是对照关系，连接词能否保留这种反预期。"
     },
     "space_metadata": {
       "box_ref": "0400",
@@ -5055,7 +5055,7 @@
     "analysis": {
       "title": "解析",
       "summary": "句子核心是“完善基础设施 + 推动协同发展”的并列推进，用同层动词结构最稳。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "让“完善”和“推动”共享 China 这一主语，再检查 and 两侧动词形式是否平行。"
     },
     "space_metadata": {
       "box_ref": "0400",
@@ -5079,7 +5079,7 @@
     "analysis": {
       "title": "解析",
       "summary": "not only ... but also ... 是并列强化结构，第二连接词必须补全。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "先找到 not only，再检查空格与 also 能否组成对应结构；两侧都应承接政策效果。"
     },
     "space_metadata": {
       "box_ref": "0400",
@@ -5120,7 +5120,7 @@
     "analysis": {
       "title": "解析",
       "summary": "并列句要保证两个谓语共享主语，语义层级一致。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "分别写出“发挥作用”和“提供思路”，检查两个谓语是否都由中医药这一主语发出。"
     },
     "space_metadata": {
       "box_ref": "0400",
@@ -5144,7 +5144,7 @@
     "analysis": {
       "title": "解析",
       "summary": "reduced costs 与 strengthened incentives 对应两项结果，to innovate 说明积极性所针对的行动。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "把 costs 与 incentives 分别配上“降低”和“提高”的动词，别把两项变化译成同一方向。"
     },
     "space_metadata": {
       "box_ref": "0400",
@@ -5168,7 +5168,7 @@
     "analysis": {
       "title": "解析",
       "summary": "结果并列可用 not only doing ... but also doing ...，同时压缩句子长度。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "看空格后的 improving 和 driving：两项结果需要成对连接，且动词形式保持一致。"
     },
     "space_metadata": {
       "box_ref": "0400",
@@ -5220,7 +5220,7 @@
     "analysis": {
       "title": "解析",
       "summary": "两个并列谓语 broadened 与 strengthened 共同承载双结果。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "将销售渠道与市场参与能力分开译，再让两个谓语共享 Digital platforms 这一主语。"
     },
     "space_metadata": {
       "box_ref": "0400",
@@ -5506,14 +5506,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：那座古镇里保存完好的街巷，见证了几代人的生活变迁。\n\n任务：先汉译英，再检查定语从句是否准确限定“街巷”。",
-      "support": "原句：那座古镇里保存完好的街巷，见证了几代人的生活变迁。\n\n任务：先汉译英，再检查定语从句是否准确限定“街巷”。",
-      "context": "原句：那座古镇里保存完好的街巷，见证了几代人的生活变迁。\n\n任务：先汉译英，再检查定语从句是否准确限定“街巷”。"
+      "prompt": "原句：那座古镇里保存完好的街巷，见证了几代人的生活变迁。\n\n任务：先汉译英，再检查修饰语是否准确限定“街巷”。",
+      "support": "原句：那座古镇里保存完好的街巷，见证了几代人的生活变迁。\n\n任务：先汉译英，再检查修饰语是否准确限定“街巷”。",
+      "context": "原句：那座古镇里保存完好的街巷，见证了几代人的生活变迁。\n\n任务：先汉译英，再检查修饰语是否准确限定“街巷”。"
     },
     "analysis": {
       "title": "解析",
       "summary": "well-preserved 限定街巷，over several generations 标明跨代变化。此句无需强行添加定语从句。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先确定主语是街巷，再把保存状况、古镇位置和跨代时间分别挂到对应内容上。"
     },
     "space_metadata": {
       "box_ref": "0401",
@@ -5537,7 +5537,7 @@
     "analysis": {
       "title": "解析",
       "summary": "限制性定语从句 who have worked ... 用于限定医生群体。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先写 Doctors，再用从句限定哪类医生；把“长期工作”与主句的“通常了解”分开。"
     },
     "space_metadata": {
       "box_ref": "0401",
@@ -5561,7 +5561,7 @@
     "analysis": {
       "title": "解析",
       "summary": "过去分词 launched by ... 可压缩被动定语从句。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "判断 program 与政府推出动作的关系，再检查 by the government 前需要哪种分词形式。"
     },
     "space_metadata": {
       "box_ref": "0401",
@@ -5602,7 +5602,7 @@
     "analysis": {
       "title": "解析",
       "summary": "who can combine ... 为限制性定语从句，限定“哪类学生”。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先把“能结合理论与实践”放入限定学生的从句，再写主句的通常表现。"
     },
     "space_metadata": {
       "box_ref": "0401",
@@ -5626,7 +5626,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调句框架是 It is/was + 被强调成分 + that + 其余部分。当被强调成分指人时，that 可替换为 who，语气更自然、更地道。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先写出“这些厨师完善烹饪艺术”的普通句，再用 It was ... that/who ... 突出人这一焦点。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5650,7 +5650,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调时间状语时，框架仍是 It was + 时间状语 + that + 原句动作。强调地点或时间时，关联词只能用 that，不能换成 when 或 where。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先找被强调的完整时间短语，再试着去掉 It was ... that ...，检查余下是否成句。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5674,7 +5674,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调地点状语时，关联词只能用 that，不能换成 where。用 where 会把句子变成定语从句，修饰 province，不再是强调句。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "把 in this province 看作强调焦点，先补前后框架，再确认后面的主谓关系完整。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5726,7 +5726,7 @@
     "analysis": {
       "title": "解析",
       "summary": "“移动互联网的出现”是名词短语，表示过去已发生的历史性事件，强调句框架用 It was ... that，后续谓语也用过去式 made。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "将“移动互联网的出现”整体当作原因焦点，检查强调框架与 made 的时态是否协调。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5774,7 +5774,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调介词短语状语（通过这一政策引导）时，框架仍是 It was + 介词短语 + that + 其余部分。“才”字是汉语强调句的典型助词，对应英文强调句的焦点聚合功能。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "把 through this policy guidance 整体括出，检查强调框架包住的是方式信息而非企业名称。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5826,7 +5826,7 @@
     "analysis": {
       "title": "解析",
       "summary": "时空距离在这里表示交通往来更便捷，可具体表达为缩短旅行时间、拉近城市联系，不宜机械堆成 time-space distance。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先把“时空距离缩短”理解为旅行更快、联系更紧，再突出高铁网络改善这一原因。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5850,7 +5850,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调句的完整框架是 It is/was + 被强调成分 + that + 其余部分。这里强调的是理念本身，因此第一空填 It is，第二空填 that。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "先找 this philosophy 指向的完整名词短语，检查它在强调框架中与 has encouraged 的关系。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5902,7 +5902,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调句用于突出真正起决定作用的因素。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "把长期、稳定两个限定都保留在 policy support 内，再将它放到强调焦点位置。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5926,7 +5926,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调背景条件时，that 连接词仍保持固定，不可替换为 when/where。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先划清背景条件的边界，再检查 regional innovation efficiency 是后半句主语，避免主语重复。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -5950,7 +5950,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调焦点成分可直接放在 It is 与 that 之间。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "先圈出 institutional opening-up 这一焦点，再用后面的 has strengthened 检查强调结构是否闭合。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -6002,7 +6002,7 @@
     "analysis": {
       "title": "解析",
       "summary": "强调句应把“真正驱动因素”完整放入焦点位置。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "把“企业在关键环节持续投入”作为一个完整焦点，不要只强调企业而漏掉投入行为。"
     },
     "space_metadata": {
       "box_ref": "0402",
@@ -6126,7 +6126,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Not only 句首前置后，前半句需要部分倒装：be 动词 are 提前到主语 kites 前。后半句通常保持正常语序，用 but also 衔接补充信息。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先写 kites are toys，再把 Not only 前置，观察 be 动词应移到哪个位置。"
     },
     "space_metadata": {
       "box_ref": "0403",
@@ -6150,7 +6150,7 @@
     "analysis": {
       "title": "解析",
       "summary": "前半句因为 Not only 前置而触发部分倒装：has 提前到主语前；后半句是并列补充，通常保持正常语序，只需用 but ... also 衔接。完成时也保留，因为句子强调的是发展累积带来的结果。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先还原 the development has promoted，再前置 Not only；后半句单独检查正常主谓顺序。"
     },
     "space_metadata": {
       "box_ref": "0403",
@@ -6226,7 +6226,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Only 引导方式状语前置时，主句需部分倒装：can + 主语 + 动词原形。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先圈出 Only by 引导的方式短语，再检查主句中 can 与 Chinese manufacturing 的前后顺序。"
     },
     "space_metadata": {
       "box_ref": "0403",
@@ -6250,7 +6250,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Not until 句首前置后，主句需 did 倒装，后接动词原形 achieve。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "Not until 从句已有 were；空格属于后面的主句，结合 achieve 的原形和过去语境选择助动词。"
     },
     "space_metadata": {
       "box_ref": "0403",
@@ -6291,7 +6291,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Only + 方式状语前置时，主句必须部分倒装。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "把 Only by 后的方式信息完整括出，再检查其后主句是否为情态动词、主语、动词原形。"
     },
     "space_metadata": {
       "box_ref": "0403",
@@ -6315,7 +6315,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Not until 前置后主句需 did 倒装。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先分开时间从句与效率提高的主句，倒装应发生在哪一部分？"
     },
     "space_metadata": {
       "box_ref": "0403",

@@ -96,11 +96,13 @@ const leakagePatterns = [
     pattern:
       /(?:听力|阅读|写作|翻译|词汇|仔细阅读|快速阅读|定位词抓取|细节题|细节定位盒)/,
     reason: 'raw Chinese library/group/box label in visual design artifact',
+    renderedOnly: true,
   },
   {
     pattern:
       /\b(?:listening|reading|writing|translation|vocabulary|locating-keywords)\b/i,
     reason: 'raw English library/group label in visual design artifact',
+    renderedOnly: true,
   },
   {
     pattern: metadataFieldPattern,
@@ -372,7 +374,9 @@ function scanText(filePath, source) {
           },
           { kind: 'source token', text: source, rules: leakagePatterns },
         ]
-      : [{ kind: 'markdown text', text: source, rules: leakagePatterns }];
+      // Words such as 阅读 in a design note describe reading behaviour, not
+      // a rendered library label. Technical keys remain checked in prose.
+      : [{ kind: 'markdown text', text: source, rules: leakagePatterns.filter(rule => !rule.renderedOnly) }];
   const findings = [];
 
   for (const target of scanTargets) {

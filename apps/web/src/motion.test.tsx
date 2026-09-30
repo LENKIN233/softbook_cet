@@ -51,28 +51,28 @@ it('waits for successful remote continuation and enters the new object only once
   const response = deferred(); const request = vi.fn(() => response.promise);
   render(<AsyncAdvanceHarness request={request} />);
   fireEvent.click(screen.getByText('Continue'));
-  await act(async () => animations[0].finish());
   expect(request).toHaveBeenCalledTimes(1);
-  expect(animations).toHaveLength(1);
+  expect(animations).toHaveLength(0);
+  expect(screen.getByText('old-answer')).toBeVisible();
   expect(screen.getByText('moving')).toBeInTheDocument();
   fireEvent.click(screen.getByText('Continue'));
   expect(request).toHaveBeenCalledTimes(1);
   await act(async () => response.resolve());
-  expect(animations).toHaveLength(2);
-  expect(animations[1].text).toContain('new-question');
-  expect(animations[1].text).not.toContain('old-answer');
+  expect(animations).toHaveLength(1);
+  expect(animations[0].text).toContain('new-question');
+  expect(animations[0].text).not.toContain('old-answer');
   expect(screen.getByText('ready')).toBeInTheDocument();
 });
 
-it('restores the previous object only after the asynchronous continuation fails', async () => {
+it('keeps the previous answer visible throughout a failed continuation', async () => {
   const response = deferred();
   render(<AsyncAdvanceHarness request={() => response.promise} />);
   fireEvent.click(screen.getByText('Continue'));
-  await act(async () => animations[0].finish());
-  expect(animations).toHaveLength(1);
+  expect(animations).toHaveLength(0);
+  expect(screen.getByText('old-answer')).toBeVisible();
   await act(async () => response.reject(new Error('Offline')));
-  expect(animations).toHaveLength(2);
-  expect(animations[1].text).toContain('old-answer');
+  expect(animations).toHaveLength(0);
+  expect(screen.getByText('old-answer')).toBeVisible();
   expect(screen.getByText('ready')).toBeInTheDocument();
 });
 
@@ -92,17 +92,15 @@ it('ignores a continuation that settles after its surface is unmounted', async (
   const response = deferred();
   const view = render(<AsyncAdvanceHarness request={() => response.promise} changeCard={false} />);
   fireEvent.click(screen.getByText('Continue'));
-  await act(async () => animations[0].finish());
   view.unmount();
   await act(async () => response.resolve());
-  expect(animations).toHaveLength(1);
+  expect(animations).toHaveLength(0);
 });
 
 it('keeps an in-flight request single when reduced motion interrupts its wait', async () => {
   const response = deferred(); const request = vi.fn(() => response.promise);
   render(<AsyncAdvanceHarness request={request} />);
   fireEvent.click(screen.getByText('Continue'));
-  await act(async () => animations[0].finish());
   act(() => {reduced = true; preferenceListeners.forEach(listener => listener());});
   fireEvent.click(screen.getByText('Continue'));
   expect(request).toHaveBeenCalledTimes(1);
@@ -110,7 +108,7 @@ it('keeps an in-flight request single when reduced motion interrupts its wait', 
   await act(async () => response.resolve());
   expect(screen.getByText('new-question')).toBeInTheDocument();
   expect(screen.getByText('ready')).toBeInTheDocument();
-  expect(animations).toHaveLength(1);
+  expect(animations).toHaveLength(0);
 });
 
 it.each(['reduced', 'unsupported'])('keeps asynchronous advance exclusive with the %s fallback', async fallback => {

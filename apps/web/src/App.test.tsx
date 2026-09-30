@@ -146,14 +146,46 @@ async function saved() {
 }
 
 describe("local study user journey", () => {
-  it("starts answer review at the top of its reading area", async () => {
+  it("starts objective answer review at the top of its reading area", async () => {
     await enter();
+    reach("multiple_choice");
     const body = screen.getByRole('article').querySelector('.paper-body')!;
     body.scrollTop = 180;
     answer();
     expect(body.scrollTop).toBe(0);
     expect(screen.getByRole('region', {name: '答案对照'})).toBeInTheDocument();
   }, 20000); // This test is first and includes the lazy module's cold transform.
+
+  it("keeps the flip back and reading position after confidence is recorded", async () => {
+    await enter();
+    const card = current();
+    if (card.interaction_id !== 'flip') throw new Error('Expected flip');
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    const body = screen.getByRole('article').querySelector('.paper-body')!;
+    const heading = screen.getByRole('heading', {name: card.back_text});
+    const recall = screen.getByText('回看题目').closest('details')!;
+    fireEvent.click(screen.getByText('回看题目'));
+    body.scrollTop = 180;
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    expect(body.scrollTop).toBe(180);
+    expect(screen.getByRole('heading', {name: card.back_text})).toBe(heading);
+    expect(screen.getByText('回看题目').closest('details')).toBe(recall);
+    expect(recall.open).toBe(true);
+    expect(screen.getByRole('button', {name: '下一张'})).toBeEnabled();
+  });
+
+  it("presents elimination results as content to cross out", async () => {
+    await enter();
+    const card = reach('elimination');
+    answer(card);
+    const result = screen.getByRole('region', {name: '答案对照'});
+    expect(result).toHaveTextContent('应划去的部分');
+    expect(result).not.toHaveTextContent('正确答案');
+    if (card.interaction_id !== 'elimination') throw new Error('Expected elimination');
+    for (const item of card.elimination_items.filter(item => card.answer_key.correct_items.includes(item.id))) {
+      expect(within(result).getByRole('heading', {level: 2})).toHaveTextContent(item.text);
+    }
+  });
 
   it("offers track selection and learning without phone or fake code fields", async () => {
     render(<App />);

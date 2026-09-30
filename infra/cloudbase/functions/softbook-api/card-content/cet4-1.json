@@ -43,7 +43,7 @@
     "analysis": {
       "title": "解析",
       "summary": "I’m not sure 表示不确定，不支持断言她肯定没有离开的真实打算。",
-      "exam_tip": "帮助用户在CET4听力任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "区分 she 说过的话与说话人对其真实性的判断，保留 not sure 的不确定程度。"
     },
     "space_metadata": {
       "box_ref": "0040",
@@ -1463,7 +1463,7 @@
     "analysis": {
       "title": "解析",
       "summary": "本段开头已给出这一主题，第二句限定将讨论通信与项目管理；其他录音不一定总把主题放在第一句。",
-      "exam_tip": "帮助用户在CET4听力任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先用第一句概括讨论对象，再检查第二句列出的两个方面是否属于该主题。"
     },
     "space_metadata": {
       "box_ref": "0050",
@@ -1523,7 +1523,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Good morning 是寒暄，Today we will focus on 后才宣布具体主题；不要求点击某个时刻。",
-      "exam_tip": "帮助用户在CET4听力任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "略过问候语，找到 will focus on 后的对象和关系，用一句话概括。"
     },
     "space_metadata": {
       "box_ref": "0050",
@@ -1553,7 +1553,7 @@
     "analysis": {
       "title": "解析",
       "summary": "第一句总述作用，第二句预告展开方式；两者功能不同。",
-      "exam_tip": "帮助用户在CET4听力任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "把第一句的两个作用与第二句的案例安排分开：一个说主题，一个说展开方式。"
     },
     "space_metadata": {
       "box_ref": "0050",
@@ -2714,7 +2714,7 @@
     "analysis": {
       "title": "解析",
       "summary": "同一段有多个时间，必须逐个对应事件。这里 2011 属于首次获奖，2022 属于换菜单和再次获奖。",
-      "exam_tip": "帮助用户在多个时间表达并存时优先选择排他性更强的硬数字。"
+      "exam_tip": "将两个年份分别连到 first won、replaced 和 again，按题目问的事件取时间。"
     },
     "space_metadata": {
       "box_ref": "0100",
@@ -2899,7 +2899,7 @@
     "analysis": {
       "title": "解析",
       "summary": "roads and water supply 对应基础设施，decline in resident population 对应居民减少。材料没有说游客数量下降。",
-      "exam_tip": "帮助用户先用机构年份定位，再读结果词，避免把坐标当答案。"
+      "exam_tip": "分别划出 roads and water supply 与 resident population 对应的变化，检查两者各有哪句证据。"
     },
     "space_metadata": {
       "box_ref": "0100",
@@ -3249,7 +3249,7 @@
     "analysis": {
       "title": "解析",
       "summary": "词语在具体文章中的出现频率必须实际核对。较具体的词组常有帮助，但不能把经验写成未经检查的全文事实。",
-      "exam_tip": "帮助用户克服优先抓熟词的直觉偏差，改用频率和论点绑定度判断。"
+      "exam_tip": "先问自己是否见到了完整原文；没有原文时，词频判断能否得到核实？"
     },
     "space_metadata": {
       "box_ref": "0101",
@@ -7475,8 +7475,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：proved/turned out/came out 后接形容词时，是系动词用法，表示「结果变成何种状态」；后接宾语时才是实义动词。\n\n② 核心规律：proved 此处等于 was，inconclusive 直接描述主语 The findings，是形容词表语。\n\n③ 验证：The findings proved inconclusive = The findings were inconclusive ✓，确认是主系表结构，表语是 inconclusive。",
-      "exam_tip": "proved/turned out 后接形容词=系动词；proved + 名词 + 宾语=实义动词，两种用法要分清。"
+      "summary": "The findings proved inconclusive 中，proved 表示“结果是”，inconclusive 描述 findings 的性质，是表语。可对照 The findings were inconclusive 理解这个关系，但 proved 还带有结果显现的意味。\n\n另一种用法是 The evidence proved his innocence：这里 proved 表示“证明”，his innocence 是宾语。不能按后面是形容词还是名词就机械分类，要看它是在描述主语还是表示被证明的内容。\n\n本题的 leaving researchers with more questions than answers 是结果补充，说明研究仍留下许多问题，不属于表语。",
+      "exam_tip": "看 proved 后的成分是在描述 findings 的性质，还是表示被证明的内容；试用 were 替换来核对本句关系。"
     },
     "space_metadata": {
       "box_ref": "0122",

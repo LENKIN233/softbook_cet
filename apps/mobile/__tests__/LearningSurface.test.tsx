@@ -360,7 +360,7 @@ test('swipe gesture commits at 25% distance or the velocity threshold', () => {
   ).toBe('left');
 });
 
-test('keeps verified audio as an explicit accessible chip attached to the card', () => {
+test.each([false, true])('keeps verified audio accessible and locks mutations while the outgoing card is retained: %s', interactionLocked => {
   const session = createLocalLearningSession('cet4');
   const currentCard = {
     ...session.catalogCards[0],
@@ -376,6 +376,7 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
     tree = ReactTestRenderer.create(
       <LearningSurface
         audioAttemptId="local-test-attempt-001"
+        interactionLocked={interactionLocked}
         completedResults={[]}
         contentManifest={{
           access: {
@@ -443,9 +444,11 @@ test('keeps verified audio as an explicit accessible chip attached to the card',
   expect(control.props.accessibilityLabel).toBe('播放音频');
   expect(control.props.accessibilityState).toEqual({
     busy: false,
-    disabled: false,
+    disabled: interactionLocked,
     selected: false,
   });
+  expect(tree!.root.findByProps({testID: 'learning-favorite-button'}).props.disabled).toBe(interactionLocked);
+  expect(tree!.root.findByType(LearningAudioPlayer).props.disabled).toBe(interactionLocked);
   expect(
     tree!.root.findByType(LearningAudioPlayer).props.selection,
   ).toMatchObject({
@@ -868,7 +871,7 @@ test('lock rows reveal the next controls only after the current row is correct',
 
   expect(canSubmitLearningCard(currentCard, cardState)).toBe(true);
   expect(tree!.root.findAllByProps({testID: 'learning-submit-button'})).toHaveLength(0);
-  expect(tree!.root.findByProps({testID:'learning-forming-sentence'}).props.children).toBe(currentCard.answer_key.lock_pattern.join(' '));
+  expect(tree!.root.findByProps({testID:'learning-forming-sentence'}).props.children).toBe('主语：The policy\n谓语：reduces\n宾语：test anxiety');
   expect(onSubmitCurrentCard).not.toHaveBeenCalled();
 });
 
@@ -1271,6 +1274,10 @@ test.each(['flip', 'multiple_choice', 'lock', 'elimination', 'swipe'] as const)(
       />);
     });
     expect(visibleText(tree.toJSON())).toContain(card.analysis.summary);
+    if (interaction === 'elimination') {
+      expect(visibleText(tree.toJSON())).toContain('应划去的部分');
+      expect(visibleText(tree.toJSON())).not.toContain('正确答案');
+    }
     expect(visibleText(tree.toJSON())).not.toContain(card.front.prompt);
     expect(visibleText(tree.toJSON())).not.toContain(card.front.support);
     ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-question-toggle'}).props.onPress());
@@ -1287,3 +1294,32 @@ test.each(['flip', 'multiple_choice', 'lock', 'elimination', 'swipe'] as const)(
     ReactTestRenderer.act(() => tree.unmount());
   },
 );
+
+
+test('flip confidence preserves the existing answer and an opened original question', () => {
+  const session = createLocalLearningSession('cet4');
+  const card = session.cards.find(item => item.interaction_id === 'flip')!;
+  const props: React.ComponentProps<typeof LearningSurface> = {
+    audioAttemptId: null, palette, sessionCards: [card], sessionLabel: session.sourceLabel,
+    phase: 'learning', currentCard: card, currentCardState: {...createLearningCardState(card), isFlipped: true},
+    currentIndex: 0, currentResult: null, completedResults: [], reviewCandidateCount: 0,
+    onOpenResultDetail: jest.fn(), onToggleHint: jest.fn(), onTogglePeek: jest.fn(),
+    onToggleFavorite: jest.fn(), onFlip: jest.fn(), onSetFlipConfidence: jest.fn(), onSelectOption: jest.fn(),
+    onSetLockSelection: jest.fn(), onToggleEliminationItem: jest.fn(), onSelectSwipeState: jest.fn(),
+    onSubmitCurrentCard: jest.fn(), onAdvanceCard: jest.fn(), onRestartDeck: jest.fn(),
+  };
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<LearningSurface {...props} />);});
+  const answer = tree.root.findByProps({testID: 'learning-correct-answer'});
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'learning-question-toggle'}).props.onPress());
+  ReactTestRenderer.act(() => tree.update(<LearningSurface {...props} currentResult={{
+    cardId: card.card_id, interactionId: 'flip', outcome: 'confident', completedAt: '2026-09-30T00:00:00Z',
+    isFavorited: false, usedPeek: false, usedHint: false,
+  }} />));
+  expect(tree.root.findByProps({testID: 'learning-correct-answer'})).toBe(answer);
+  expect(tree.root.findByProps({testID: 'learning-question-content'})).toBeTruthy();
+  expect(visibleText(tree.toJSON())).toContain(card.front.prompt);
+  expect(tree.root.findByProps({testID: 'learning-open-result-detail-button'})).toBeTruthy();
+  expect(tree.root.findByProps({testID: 'learning-next-button'})).toBeTruthy();
+  ReactTestRenderer.act(() => tree.unmount());
+});

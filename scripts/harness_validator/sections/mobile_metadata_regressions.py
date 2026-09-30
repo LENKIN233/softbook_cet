@@ -1807,6 +1807,22 @@ def validate(context) -> None:
             "}\n",
             encoding="utf-8",
         )
+        (tmp_app_root / "src/learning/CardStyleAndCopy.tsx").write_text(
+            "export function CardStyleAndCopy({ card, palette }) {\n"
+            "  return <Text\n"
+            "    style={{ color: card.interaction_id === 'elimination' ? palette.muted : palette.ink }}\n"
+            "  >{card.interaction_id === 'elimination' ? '应划去的部分' : '你的选择'}</Text>;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        (tmp_app_root / "src/learning/ConditionalValueLeak.tsx").write_text(
+            "export const ConditionalValueLeak = ({ card }) => <Text>{card.isReady ? card.card_id : '等待'}</Text>;\n",
+            encoding="utf-8",
+        )
+        (tmp_app_root / "src/learning/TextChildrenLeak.tsx").write_text(
+            "export const TextChildrenLeak = ({ card }) => <Text children={card.card_id} />;\n",
+            encoding="utf-8",
+        )
         metadata_scanner_fixture = context.run_validator(
             "apps/mobile/scripts/check-metadata-leaks.mjs",
             cwd=tmp_app_root,
@@ -1814,6 +1830,11 @@ def validate(context) -> None:
         metadata_scanner_output = (
             metadata_scanner_fixture.stdout + metadata_scanner_fixture.stderr
         )
+        if "src/learning/CardStyleAndCopy.tsx" in metadata_scanner_output:
+            errors.append("mobile metadata scanner must allow styling and predicates that only render reader-facing literal copy")
+        for name in ["ConditionalValueLeak.tsx", "TextChildrenLeak.tsx"]:
+            if f"src/learning/{name}" not in metadata_scanner_output:
+                errors.append(f"mobile metadata scanner must still reject rendered values in {name}")
         if metadata_scanner_fixture.returncode == 0:
             errors.append(
                 "mobile metadata scanner must reject old Learning deck copy in visible TS sources"

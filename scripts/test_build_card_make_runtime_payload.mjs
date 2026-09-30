@@ -18,6 +18,7 @@ import {
   buildCorrectOption,
   buildOptions,
   buildRuntimeAudio,
+  buildRuntimeCardWithoutAudio,
   buildSwipeStates,
   deriveModelOwnedPilotScope,
   loadAudioContext,
@@ -500,6 +501,26 @@ function testAnalysisHeadingIsReaderFacing() {
   assert.equal(result.exam_tip, card.analysis.tips[0]);
   assert.equal(buildAnalysis({...card, analysis: {...card.analysis, title: '听清转折后的观点'}}, {}).title, '听清转折后的观点');
 }
+
+function testRepeatedLockAnswersKeepBothSlots() {
+  const card = {
+    card_id: '042106', track: 'cet4', interaction_id: 'lock',
+    knowledge_ref: {box_prefix: '0421', track: 'cet4'},
+    front: {task_prompt: 'It was built {{blank}} transporting grain and used {{blank}} transporting other goods.'},
+    analysis: {text: 'Both slots express purpose.', tips: ['Check each following verb form.']},
+    word_bank: ['for', 'to', 'of', 'for'],
+    answer_key: {lock_pattern: ['for', 'for']},
+  };
+  const result = buildRuntimeCardWithoutAudio({card});
+  assert.deepEqual(result.answer_key.lock_pattern, ['for', 'for']);
+  assert.deepEqual(result.lock_slots.map(slot => slot.id), ['slot_1', 'slot_2']);
+  assert.deepEqual(result.lock_slots.map(slot => slot.options), [
+    ['for', 'to', 'of'], ['for', 'to', 'of'],
+  ]);
+  assert.throws(() => buildRuntimeCardWithoutAudio({card: {...card,
+    answer_key: {lock_pattern: ['for', '']}}}), /non-empty sequence/);
+}
+testRepeatedLockAnswersKeepBothSlots();
 testAnalysisHeadingIsReaderFacing();
 testFrontDoesNotBorrowAnAnswer();
 assert.deepEqual(roundRobin([['a', 'b'], ['c']]), ['a', 'c', 'b']);

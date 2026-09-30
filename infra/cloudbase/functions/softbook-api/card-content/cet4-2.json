@@ -1399,7 +1399,7 @@
     "analysis": {
       "title": "解析",
       "summary": "句首 Despite... 是让步状语，句尾 collecting data throughout the night 是伴随分词短语；它内部另含时间状语 throughout the night。外层与内层是嵌套关系，不能把三者都算成同一级的独立附加项。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先括出逗号外的两段修饰，再检查 throughout the night 是否包含在其中一段内部。"
     },
     "space_metadata": {
       "box_ref": "0131",
@@ -1519,7 +1519,7 @@
     "analysis": {
       "title": "解析",
       "summary": "because 从句解释项目为何按时完成，是原因状语。was completed 是被动谓语，但被动语态本身不等同于不及物；判断从句功能仍应看本句的意义与结构。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中快速判断当前表达或策略是否成立，并形成可重复执行的作答步骤。"
+      "exam_tip": "先问 because 从句回答“完成了什么”还是“为什么按时完成”，再确定它与主句的关系。"
     },
     "space_metadata": {
       "box_ref": "0131",
@@ -1656,7 +1656,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Even though... 表示缺少经验这一让步背景，主句说明委员会仍对分析能力印象深刻。两部分都是句子提供的信息，不能把从句内容理解成作者否认的事实。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
+      "exam_tip": "找到 Even though 的起点和逗号的终点，连起来判断它提出了什么让步背景。"
     },
     "space_metadata": {
       "box_ref": "0131",
@@ -1746,7 +1746,7 @@
     "analysis": {
       "title": "解析",
       "summary": "① When oil prices rise 是时间/条件状语从句，主句为 transportation costs increase。② Oil prices rising 是带自身逻辑主语的 -ing 从句，在该句中整体作 caused 的主语；它不是独立主格状语。① 本身不必然证明因果，② 则用 caused 明确表达因果。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先各圈出主句谓语 increase 和 caused，再检查 Oil prices rising 在第二句中占据哪个位置。"
     },
     "space_metadata": {
       "box_ref": "0131",
@@ -1770,7 +1770,7 @@
     "analysis": {
       "title": "解析",
       "summary": "As 从句交代需求继续增长的背景，可结合上下文理解其时间与原因色彩。as 表示随着时属于时间关系；表示如同某人所做的那样时才是方式用法。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "把 As 从句与主句配对，试读“随着需求增长”是否说明制造商扩产的背景。"
     },
     "space_metadata": {
       "box_ref": "0131",
@@ -1819,7 +1819,7 @@
     "analysis": {
       "title": "解析",
       "summary": "应划去句首的完整方式短语 By consistently investing in employee training over the past decade。consistently 是该短语内部的副词，题目要求选择整个外层成分，不重复选择内层片段。in the market 在这里说明竞争优势的范围。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
+      "exam_tip": "从 By 一直读到 decade，先框出整个方式短语，再检查选项是否只截取了内部词语。"
     },
     "space_metadata": {
       "box_ref": "0131",
@@ -1909,7 +1909,7 @@
     "analysis": {
       "title": "解析",
       "summary": "① 中 that he had resigned 解释 rumor 的内容，是名词内容从句，传统教学称同位语从句。② 中 who discovered the virus 修饰 scientist，who 在从句中作主语，因此不能直接省略。不能仅凭前面有抽象名词就判定从句类别。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "分别检查从句是否缺主语，以及它是在说明 rumor 的内容还是限定 scientist 的身份。"
     },
     "space_metadata": {
       "box_ref": "0132",
@@ -2256,7 +2256,7 @@
     "analysis": {
       "title": "解析",
       "summary": "① 的 that 从句由动词 believed 引出，作其内容宾语；② 的 that 从句说明名词 belief 的内容。区别在依附对象和功能，不是删除后能否独立成句：He believed 在适当语境中也能成立。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "看 that 从句依附的词：① 是 believed，② 是 belief；再分别问“相信什么”和“哪种信念”。"
     },
     "space_metadata": {
       "box_ref": "0132",
@@ -3187,7 +3187,7 @@
     "analysis": {
       "title": "解析",
       "summary": "看起来自发，与邮件显示的精心安排相对。looked 描述表象，revealed 引出后发现的信息。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
+      "exam_tip": "对照 looked 与 revealed，把表面印象和邮件揭示的情况分开，再判断 but 的作用。"
     },
     "space_metadata": {
       "box_ref": "0140",
@@ -3235,7 +3235,7 @@
     "analysis": {
       "title": "解析",
       "summary": "namely 引出具体说明，that 从句补充 prerequisite 的内容。不是任何随后出现的词都属于定义，要看它实际对应的对象。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中快速判断当前表达或策略是否成立，并形成可重复执行的作答步骤。"
+      "exam_tip": "找到 namely 后的完整要求，检查它是否能回答“prerequisite 具体是什么”。"
     },
     "space_metadata": {
       "box_ref": "0140",
@@ -3347,7 +3347,7 @@
     "analysis": {
       "title": "解析",
       "summary": "neither...nor... 说明既未充分否认，也未明确确认，支持含糊而非肯定或否定的明确表态。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
+      "exam_tip": "将 neither denying 与 nor confirming 逐一还原，检查选项有没有把不明确改成明确表态。"
     },
     "space_metadata": {
       "box_ref": "0140",
@@ -4009,7 +4009,7 @@
     "analysis": {
       "title": "解析",
       "summary": "划去 B 和 D。-ation 在这些词中构成表示行为或结果的名词；re- 与 calibrate 组合为重新校准。-ate 和 -ize 都可能构成动词，但属于不同词的固定构词形式，不能随意替换。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中逐项排除不符合证据的内容，并形成可重复执行的作答步骤。"
+      "exam_tip": "先将 overrepresentation 和 recalibrate 拆成可识别的部分，再核对词缀功能与整词词性。"
     },
     "space_metadata": {
       "box_ref": "0142",
@@ -4057,7 +4057,7 @@
     "analysis": {
       "title": "解析",
       "summary": "构词法提供线索，而不是保证。比如 re- 在 rebuild 中表示重新，但不能把任何以 re 开头的词都按相同方式拆解。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中快速判断当前表达或策略是否成立，并形成可重复执行的作答步骤。"
+      "exam_tip": "用 rebuild 试验“re- 表示重新”的解释，再想想只有开头字母相同是否足够。"
     },
     "space_metadata": {
       "box_ref": "0142",
@@ -4096,7 +4096,7 @@
     "analysis": {
       "title": "解析",
       "summary": "应按当前三个完整单词解释词缀功能。不能把 un- 一概定义为绝对缺失，也不能断言所有含这些字母的词都具有同一方向。",
-      "exam_tip": "帮助用户在CET4仔细阅读任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "分别拆分 under-estimate、un-diagnosed、under-reporting，结合上下文核对“程度不足”和“未发生”的差别。"
     },
     "space_metadata": {
       "box_ref": "0142",

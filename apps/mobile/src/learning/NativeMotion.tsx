@@ -21,16 +21,19 @@ export function NativeMotionProvider({children}: {children: React.ReactNode}) {
 // Visual feedback never owns the answer. Interruptions cancel only the motion.
 function useFeedback(trigger: unknown, enter = false) {
   const reduced = useReducedMotion();
-  const progress = React.useRef(new Animated.Value(1)).current;
   const previous = React.useRef(trigger);
   const first = React.useRef(true);
+  // A new feedback identity must carry its starting value into the native
+  // commit. Resetting the previous value in an effect paints one full frame.
+  const progress = React.useMemo(() => new Animated.Value(
+    !reduced && (first.current ? enter : previous.current !== trigger) ? 0 : 1,
+  ), [enter, reduced, trigger]);
   React.useLayoutEffect(() => {
     const changed = previous.current !== trigger || (first.current && enter);
     previous.current = trigger;
     first.current = false;
     progress.stopAnimation();
     if (!changed || reduced) {progress.setValue(1); return;}
-    progress.setValue(0);
     const animation = Animated.timing(progress, {toValue: 1, duration: STUDIO.motion.enter, easing: ease, useNativeDriver: true, isInteraction: false});
     animation.start();
     return () => animation.stop();
@@ -153,16 +156,23 @@ export function StrikeText({struck, color, style, ...props}: TextProps & {struck
 
 export function useCardMotion(identity: string | null, arrival: 'card' | 'space' | 'focus' = 'card') {
   const reduced = useReducedMotion();
-  const opacity = React.useRef(new Animated.Value(1)).current;
-  const travel = React.useRef(new Animated.Value(0)).current;
-  const zoom = React.useRef(new Animated.Value(1)).current;
+  const lastIdentity = React.useRef(identity);
+  // Identity replacement creates native nodes with their entrance values.
+  // Mutating the outgoing nodes after commit exposes a full-bright new frame.
+  const {opacity, travel, zoom, flip, flipOpacity} = React.useMemo(() => {
+    const entering = !reduced && lastIdentity.current !== identity && identity !== null;
+    return {
+      opacity: new Animated.Value(entering ? 0 : 1),
+      travel: new Animated.Value(entering && arrival === 'card' ? 28 : 0),
+      zoom: new Animated.Value(entering ? arrival === 'space' ? 1.04 : arrival === 'focus' ? 0.94 : 1 : 1),
+      flip: new Animated.Value(0),
+      flipOpacity: new Animated.Value(1),
+    };
+  }, [arrival, identity, reduced]);
   const pending = React.useRef<(() => void) | null>(null);
-  const flip = React.useRef(new Animated.Value(0)).current;
-  const flipOpacity = React.useRef(new Animated.Value(1)).current;
   const sequence = React.useRef(0);
   const active = React.useRef(false);
   const [busy, setBusy] = React.useState(false);
-  const lastIdentity = React.useRef(identity);
   const stop = React.useCallback(() => {
     opacity.stopAnimation(); travel.stopAnimation(); zoom.stopAnimation(); flip.stopAnimation(); flipOpacity.stopAnimation();
   }, [flip, flipOpacity, opacity, travel, zoom]);

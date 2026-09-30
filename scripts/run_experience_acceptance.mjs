@@ -7,7 +7,7 @@ import {dirname, resolve, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {captureExperience} from './lib/experience_capture.mjs';
-import {readableBilingualExperienceText, readableExperienceText as readable} from './lib/experience_text_match.mjs';
+import {isEnglishExperienceAnswer, readableBilingualExperienceText, readableExperienceText as readable} from './lib/experience_text_match.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const options = {device: null, output: null, calibrateOnly: false};
@@ -143,29 +143,35 @@ try {
       return matches[0];
     });
     const observations = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...paths], 'journey-ocr.log'));
-    const unreadableMaterial = samples.flatMap(([, kind], index) => kind === 'material' &&
-      !readable(observations[index], expected.material) ? [index] : []);
-    const englishMaterial = new Map();
-    if (unreadableMaterial.length) {
+    const englishRetryIndices = samples.flatMap(([, kind], index) => {
+      const answer = kind === 'answer' || kind === 'elimination';
+      const eligible = kind === 'material' || (answer && isEnglishExperienceAnswer(expected[kind]));
+      return eligible && !readable(observations[index], expected[kind], {answer}) ? [index] : [];
+    });
+    const englishObservations = new Map();
+    if (englishRetryIndices.length) {
       const alternates = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', '--english-first',
-        ...unreadableMaterial.map(index => paths[index])], 'material-english-ocr.log'));
-      if (!Array.isArray(alternates) || alternates.length !== unreadableMaterial.length) {
+        ...englishRetryIndices.map(index => paths[index])], 'english-priority-ocr.log'));
+      if (!Array.isArray(alternates) || alternates.length !== englishRetryIndices.length) {
         throw new Error('English-priority OCR did not return the exact requested screenshots.');
       }
-      unreadableMaterial.forEach((index, offset) => {
+      englishRetryIndices.forEach((index, offset) => {
         if (alternates[offset].path !== paths[index]) throw new Error('English-priority OCR image identity changed.');
-        englishMaterial.set(index, alternates[offset]);
+        englishObservations.set(index, alternates[offset]);
       });
     }
     report.journeys = samples.map(([name, kind], index) => {
       const primaryReadable = readable(observations[index], expected[kind],
         {answer: kind === 'answer' || kind === 'elimination'});
-      const bilingualReadable = kind === 'material' && englishMaterial.has(index) &&
-        readableBilingualExperienceText(observations[index], englishMaterial.get(index), expected.material);
+      const bilingualReadable = kind === 'material' && englishObservations.has(index) &&
+        readableBilingualExperienceText(observations[index], englishObservations.get(index), expected.material);
+      const englishAnswerReadable = (kind === 'answer' || kind === 'elimination') &&
+        isEnglishExperienceAnswer(expected[kind]) && englishObservations.has(index) &&
+        readable(englishObservations.get(index), expected[kind], {answer: true});
       return {name, expected: expected[kind], screenshot: paths[index],
         image_sha256: hash(readFileSync(paths[index])),
-        readable: primaryReadable || bilingualReadable,
-        ocr_mode: primaryReadable ? 'chinese_first' : bilingualReadable ? 'bilingual_same_image' : 'unreadable'};
+        readable: primaryReadable || bilingualReadable || englishAnswerReadable,
+        ocr_mode: primaryReadable ? 'chinese_first' : bilingualReadable ? 'bilingual_same_image' : englishAnswerReadable ? 'english_same_image' : 'unreadable'};
     });
     if (report.journeys.some(item => !item.readable)) throw new Error('Required reading material or correct answer is not readable in the actual screenshot.');
     // Calibrated against the 3c4492 Android capture: this used to be displayed

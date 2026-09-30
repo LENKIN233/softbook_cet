@@ -13,7 +13,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Only through 前置触发倒装，且被动语态用 be + done。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "先判断能力是主动加强还是被加强，再同时检查 Only through 前置带来的倒装。"
     },
     "space_metadata": {
       "box_ref": "0403",
@@ -65,7 +65,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Under no circumstances 前置后主句应倒装。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "把 Under no circumstances 视为前置的否定状语，检查 should 是否放在 we 前面。"
     },
     "space_metadata": {
       "box_ref": "0403",
@@ -113,7 +113,7 @@
     "analysis": {
       "title": "解析",
       "summary": "expect sb to do 是高频非谓语框架，能够把「期望孩子做两件事」压缩在一个结构里。后面并列两个动词原形 grow up 和 make，避免重复从句。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先搭“期望孩子做某事”的结构，再将 grow up 与 make 两项行动并列放在同一个 to 后。"
     },
     "space_metadata": {
       "box_ref": "0404",
@@ -137,7 +137,7 @@
     "analysis": {
       "title": "解析",
       "summary": "句尾用现在分词 improving 作为结果/伴随补充，把「不断提高」压缩成非谓语。这样既保留过程感，又避免再起一个并列谓语句，信息层级更清晰。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "主句已有 encourages；检查逗号后的“提高竞争力”是否作为补充结果，避免再放一个独立谓语。"
     },
     "space_metadata": {
       "box_ref": "0404",
@@ -178,7 +178,7 @@
     "analysis": {
       "title": "解析",
       "summary": "enable sb to do 是标准非谓语搭配。中文的「使某人能……」若硬拆成 that 从句，语义可以通，但通常不如 enable + to do 简洁稳妥。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先找“使谁能够做什么”的三部分，再让 read 跟在 enable 所需的结构中。"
     },
     "space_metadata": {
       "box_ref": "0404",
@@ -202,7 +202,7 @@
     "analysis": {
       "title": "解析",
       "summary": "with + 名词 + doing 可以高效承载背景变化条件。这里用 with the number ... increasing，把「私家车数量不断增多」压缩成背景伴随信息，主句聚焦在「交通问题加剧」。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "将“车辆数量增加”放进 with 背景结构，主句单独保留“交通问题加重”。"
     },
     "space_metadata": {
       "box_ref": "0404",
@@ -226,7 +226,7 @@
     "analysis": {
       "title": "解析",
       "summary": "before 后接动作名词化时常用 doing。这里 before landing 对应「才落地」，同时 made of wood and bamboo 也是过去分词短语，压缩了定语信息。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "before 后没有另一个主语；检查所选词能否直接表示风筝的落地动作。"
     },
     "space_metadata": {
       "box_ref": "0404",
@@ -697,7 +697,7 @@
     "analysis": {
       "title": "解析",
       "summary": "并列句可同时承载文化价值与历史功能两层信息。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "把审美价值与记录社会生活分成两项，确认两个谓语都指向 Peking Opera。"
     },
     "space_metadata": {
       "box_ref": "0410",
@@ -721,7 +721,7 @@
     "analysis": {
       "title": "解析",
       "summary": "not only ... but also ... 能凸显历史作用的双重并列结果。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先列贸易往来、文明互鉴两项作用，再检查 not only 与 but also 后结构是否对应。"
     },
     "space_metadata": {
       "box_ref": "0410",
@@ -745,7 +745,7 @@
     "analysis": {
       "title": "解析",
       "summary": "主句后可用 while doing ... and doing ... 承接并列补充效果。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "先看 strengthening 与 reinforcing 的平行关系，再判断整段如何补充主句的节日作用。"
     },
     "space_metadata": {
       "box_ref": "0410",
@@ -797,7 +797,7 @@
     "analysis": {
       "title": "解析",
       "summary": "improved ... and promoted ... 并列承接双结果，语义清晰。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "把“提高文化品位”和“推动文旅融合”分别译出，再检查主语与两个谓语的衔接。"
     },
     "space_metadata": {
       "box_ref": "0410",
@@ -821,7 +821,7 @@
     "analysis": {
       "title": "解析",
       "summary": "社会发展类句子常描述“近年持续变化”，时间锚点是过去到现在的区间。用 has been booming 可以保留持续增长态势，比简单过去时更贴近趋势叙述。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "圈出 In the past few years，判断发展是否延续到现在，再选择能表达持续趋势的时态。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -845,7 +845,7 @@
     "analysis": {
       "title": "解析",
       "summary": "not only ... but also ... 结构里，后半句可并列多个同级动作。这里 keeps one subject (this form of tourism) and carries two coordinated outcomes, matching the Chinese progression.",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先数清游客受益、农民增收、农村经济发展三项结果，别在并列时漏掉最后一项。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -910,7 +910,7 @@
     "analysis": {
       "title": "解析",
       "summary": "原因由 thanks to 引出，目的由 to broaden ... 压缩。社会发展题里“政策背景 + 行为选择 + 目标结果”常见这类三层结构。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "分出政策背景、出国或交流的选择、拓宽视野的目的，再按这三层组织句子。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -934,7 +934,7 @@
     "analysis": {
       "title": "解析",
       "summary": "“提供有力支撑”在社会发展语境里通常用 provide strong support for。主语可名词化（the enhancement of ...）以贴合政策/报告语体。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先把“竞争力增强”整体作为主语，再检查 support 后接的是被支持的发展对象。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -958,7 +958,7 @@
     "analysis": {
       "title": "解析",
       "summary": "宁愿A而不愿B 的稳定骨架是 prefer to do A rather than do B。保持 to 只在前项出现，后项用动词原形。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "从 rather than use 向前找与之平行的 to pay，检查词库中哪个动词能统领两种选择。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -999,7 +999,7 @@
     "analysis": {
       "title": "解析",
       "summary": "两个 made 结构分别保留服务效率和居民参与的便利，不必逐字写成 convenience of participation。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "分别问平台让什么更高效、让谁更方便做什么；用两个对应结构表达两项变化。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -1023,7 +1023,7 @@
     "analysis": {
       "title": "解析",
       "summary": "被动语态中动作发出者常用 by 引导，符合“被……接受”的结构。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "先判断 residents 是接受动作的执行者还是对象，再选择被动句中引出这一角色的介词。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -1064,7 +1064,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Long-running 表达长期开展；help one another 将互助意识落实为相互帮助的倾向。原句未限定每个居民都参加活动。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "把“长期开展”只用于修饰志愿服务活动，再检查译文是否凭空扩大到所有居民。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -1088,7 +1088,7 @@
     "analysis": {
       "title": "解析",
       "summary": "that attach importance to ... 作为限制性从句限定城市类型。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先用从句限定重视数字化的城市，再保留“通常”和“更快”两个程度限定。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -1112,7 +1112,7 @@
     "analysis": {
       "title": "解析",
       "summary": "established by schools 压缩了被动定语从句。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "主句已有 has provided，空格应修饰 mechanism；结合 by schools 判断主动还是被动。"
     },
     "space_metadata": {
       "box_ref": "0411",
@@ -1355,7 +1355,7 @@
     "analysis": {
       "title": "解析",
       "summary": "这类生态功能句通常包含“双功能”结构。英文用 not only ... but also ... 可把“调节气候”和“提供栖息地”放在同一层级。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "分别列出调节气候与提供栖息地，再将两个功能放在同一并列层级。"
     },
     "space_metadata": {
       "box_ref": "0412",
@@ -1379,7 +1379,7 @@
     "analysis": {
       "title": "解析",
       "summary": "表示“通过某种手段”时，最稳的结构是 by + doing。这里 by building sponge cities 直接对应“通过建设海绵城市”。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "空格后是 building，先判断建设海绵城市与能力提升之间是手段、目的还是时间关系。"
     },
     "space_metadata": {
       "box_ref": "0412",
@@ -1420,7 +1420,7 @@
     "analysis": {
       "title": "解析",
       "summary": "地理生态句常为“治理行动—生态能力变化”链条。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先把“湿地修复持续推进”组成主语，再明确增强的是哪一个生态系统的哪种能力。"
     },
     "space_metadata": {
       "box_ref": "0412",
@@ -1444,7 +1444,7 @@
     "analysis": {
       "title": "解析",
       "summary": "not only ... but also ... 可稳定承接生态治理的双重结果。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先将治理行动变成句子主语，再并列防灾减灾和改善生态两个结果。"
     },
     "space_metadata": {
       "box_ref": "0412",
@@ -1468,7 +1468,7 @@
     "analysis": {
       "title": "解析",
       "summary": "respond to ... 是固定搭配，to 不可省略。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "把 respond 与后面的事件一起读，核对它连接回应对象时所需的介词。"
     },
     "space_metadata": {
       "box_ref": "0412",
@@ -1533,7 +1533,7 @@
     "analysis": {
       "title": "解析",
       "summary": "教育政策类句子常见“趋势判断 + 路径判断”双层结构。前半句写政策重视趋势，后半句写具体路径，有助于保持逻辑清晰。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先分清前半句“重视什么”与后半句“什么是有效途径”，两部分各安排完整主谓。"
     },
     "space_metadata": {
       "box_ref": "0413",
@@ -1622,7 +1622,7 @@
     "analysis": {
       "title": "解析",
       "summary": "“提供有力支撑”在教育经济语境中常用 provide strong support for。将“增强”名词化为 the enhancement of ... 可保持报告文体。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "把企业竞争力的增强作为支撑来源，再用 for 引出支撑所面向的发展目标。"
     },
     "space_metadata": {
       "box_ref": "0413",
@@ -1735,7 +1735,7 @@
     "analysis": {
       "title": "解析",
       "summary": "provide space for... 是固定搭配，用于表达“为……提供空间/可能”。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "看 space 后的 innovation 表示空间用于何事，核对 provide ... for ... 的关系。"
     },
     "space_metadata": {
       "box_ref": "0413",
@@ -1865,7 +1865,7 @@
     "analysis": {
       "title": "解析",
       "summary": "sustainability of ... 对应“……的可持续性”表达稳定。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先把“完善继续教育体系”作为行动主语，再将长期职业发展的可持续性放到结果位置。"
     },
     "space_metadata": {
       "box_ref": "0413",
@@ -2180,7 +2180,7 @@
     "analysis": {
       "title": "解析",
       "summary": "动名词主语可压缩政策动作，主句表达支持结果。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "将完善服务体系写成 -ing 主语，再确认支持的对象是中小企业、行动是拓展国际市场。"
     },
     "space_metadata": {
       "box_ref": "0414",
@@ -2245,7 +2245,7 @@
     "analysis": {
       "title": "解析",
       "summary": "“完善监管机制”可由动词短语 improve... 名词化为 the improvement of...，再放入 through 介词框架，使句式更正式。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先将 improve regulatory mechanisms 改成名词短语，再把它放入表示手段的 through 结构。"
     },
     "space_metadata": {
       "box_ref": "0420",
@@ -2269,7 +2269,7 @@
     "analysis": {
       "title": "解析",
       "summary": "“加大投入”可名词化为 increased investment in...，避免连续动词链导致句子松散。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "把“加大研发投入”压成 investment 名词短语，同时保留投入增加这一变化。"
     },
     "space_metadata": {
       "box_ref": "0420",
@@ -2293,7 +2293,7 @@
     "analysis": {
       "title": "解析",
       "summary": "optimize 可名词化为 optimization，再置入 Through the optimization of...，形成正式书面表达。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "空格后已有 service procedures，比较词块是否能把“优化”与这一对象连成完整介词短语。"
     },
     "space_metadata": {
       "box_ref": "0420",
@@ -2334,7 +2334,7 @@
     "analysis": {
       "title": "解析",
       "summary": "“持续改进”可写作 continuous improvement in...，其中 in 标示改进维度。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "把“持续”保留为 improvement 的修饰语，再用介词短语说明改进的是产品质量。"
     },
     "space_metadata": {
       "box_ref": "0420",
@@ -2358,7 +2358,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Stronger protection 用名词结构表示加强保护，incentives 表达创新积极性。innovators 比 innovation entities 更自然。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先将“加强保护”组织为名词结构，再明确受到激励的是创新者，避免生硬直译。"
     },
     "space_metadata": {
       "box_ref": "0420",
@@ -2382,7 +2382,7 @@
     "analysis": {
       "title": "解析",
       "summary": "deepen 的名词化形式是 deepening。Through the deepening of... 是标准政策表达。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "空格位于 the 与 of 之间，先判断需要的词性，再检查 deepen 的哪种形式适合这里。"
     },
     "space_metadata": {
       "box_ref": "0420",
@@ -2636,7 +2636,7 @@
     "analysis": {
       "title": "解析",
       "summary": "方位修饰可连续用 on / in / from 三个介词短语分层：先河流位置，再平原区域，再城市距离。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "分别标出河流位置、平原区域和距城市的距离，给三层地点关系各选介词。"
     },
     "space_metadata": {
       "box_ref": "0421",
@@ -2660,7 +2660,7 @@
     "analysis": {
       "title": "解析",
       "summary": "“在……领域”是典型介词短语修饰，in fields such as ... 可将行业范围信息压缩为后置修饰层。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "先看 fields such as 列举的是发展领域，再判断空格表达位置范围还是时间。"
     },
     "space_metadata": {
       "box_ref": "0421",
@@ -2701,7 +2701,7 @@
     "analysis": {
       "title": "解析",
       "summary": "Efforts 作推广行为的主语，people’s understanding 作结果，避免让理解能力本身成为推广的执行者。",
-      "exam_tip": "帮助用户在CET4翻译任务中依据题面证据完成选项判断，并形成可重复执行的作答步骤。"
+      "exam_tip": "先问谁在推广健康饮食，再将认识加深作为结果；不要让 understanding 执行推广动作。"
     },
     "space_metadata": {
       "box_ref": "0421",
@@ -2725,7 +2725,7 @@
     "analysis": {
       "title": "解析",
       "summary": "“在长江上”是地点修饰层，最稳的处理是 on the Yangtze River。将地点后置，主句先给实体信息。",
-      "exam_tip": "帮助用户在CET4翻译任务中识别并解释关键知识或解题线索，并形成可重复执行的作答步骤。"
+      "exam_tip": "先写水电站这一实体及其位置动词，再将长江作为完整的地点介词短语后置。"
     },
     "space_metadata": {
       "box_ref": "0421",
@@ -2749,7 +2749,7 @@
     "analysis": {
       "title": "解析",
       "summary": "用途修饰常用 for + doing。将“为了运输粮食/用于运输其他商品”统一到 for 短语，可保持并列对称。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "两个空格后都接 transporting，先判断它们表达运输目的还是发生时间，再检查并列是否对称。"
     },
     "space_metadata": {
       "box_ref": "0421",
@@ -2767,10 +2767,21 @@
           "of",
           "with"
         ]
+      },
+      {
+        "id": "slot_2",
+        "label": "空 2",
+        "options": [
+          "for",
+          "to",
+          "of",
+          "with"
+        ]
       }
     ],
     "answer_key": {
       "lock_pattern": [
+        "for",
         "for"
       ]
     },
@@ -2838,7 +2849,7 @@
     "analysis": {
       "title": "解析",
       "summary": "from rural schools 表示来自农村学校，in the competition 表示比赛情境。at 或 during 在适当表达中也可成立，不是绝对禁用。",
-      "exam_tip": "帮助用户在CET4翻译任务中锁定并组织符合要求的输出，并形成可重复执行的作答步骤。"
+      "exam_tip": "第一空说明学生来源，第二空说明展示创造力的情境，分别核对而不要选同一个介词。"
     },
     "space_metadata": {
       "box_ref": "0421",
@@ -3961,8 +3972,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：原文出现\"动词+副词/介词\"短语（give up、carry out、come up with、turn out to be），而题干只用了一个动词（abandon、conduct、devise、prove）；外观差异极大，但动作核心一致。\n\n② 核心规律：有效短语替换必须同时满足：(a) 动作方向相同（放弃→放弃，执行→执行）；(b) 对象范围未被压缩或扩展；(c) 主动/被动没有切换（carry out 是主动执行，be conducted 是被动受施，已经是不同结构）。\n\n③ 验证：give up smoking = abandon the habit（方向：放弃；对象：同一行为）✓；come up with a plan = devise a strategy（方向：主动构思；对象：均为解决方案）✓；turn out to be effective = prove effective（方向：结果显示；对象：有效性）✓。",
-      "exam_tip": "看到命题用单个动词替代原文短语时，立刻检查动作方向与对象范围这两项，而不是死记短语表。"
+      "summary": "先把短语与单词放回同一个事件中，核对动作含义、施事、受事、时态、否定和范围。例如 Researchers carried out the experiment 与 The experiment was conducted by researchers 保留了同一个事件，虽然主被动语态不同。\n\n只替换原句中的一个词块时，必须保持替换处的句法适配；改写整句时可以调整语态和语序，但不能把研究者改成被研究者，或把一个实验扩大成所有实验。\n\ngive up the habit 与 abandon the habit 在放弃该习惯的语境中可以对应；come up with a solution 与 devise a solution 都可表达想出方案，仍需结合具体上下文核对。",
+      "exam_tip": "先列出“谁对什么做了什么”，再比较改写后的时态、否定和范围；不要仅因主被动变化就判错。"
     },
     "space_metadata": {
       "box_ref": "0502",
@@ -3970,7 +3981,7 @@
       "group": "同义词替换",
       "box": "短语类替换"
     },
-    "back_text": "难点在于：我们认识每个单词，却不一定把\"give up\"和\"abandon\"配对起来——因为字面拼写毫无交集。\n\n判断时优先核对两个维度：\n1. 动作方向——短语和单词是主动放弃、主动执行还是主动构想？方向必须一致。\n2. 对象范围——替换后宾语的范围有没有缩小或扩大？原文是\"give up the habit\"，若改写成\"abandon all plans\"就属于范围越界，不算有效替换。"
+    "back_text": "先核对动作含义，再核对参与者与对象范围。\n\ncarry out an experiment 与 conduct an experiment 可表达实施实验；give up the habit 与 abandon the habit 可表达放弃该习惯。有效改写保留同一事件的角色和限定，可以改变主被动语态。"
   },
   {
     "card_id": "050202",

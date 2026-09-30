@@ -1,19 +1,19 @@
 {
   "schema_version": "bundled-card-library.v1",
   "upstream_repository": "LENKIN233/card-make",
-  "upstream_commit": "e35dbe7434d0d7923454b4a17e184ec333fc5e8a",
+  "upstream_commit": "2ffd3a84b66d0c93aa6da174b2e230bc9430bcbe",
   "release_authorization": "candidate",
   "tracks": {
     "cet4": {
-      "payload_sha256": "sha256:1daab1bdbce697f95f754337fe32413edb85e6eb158014e10c8e6893b8a4cab8",
-      "content_version": "sha256:7312b39bba3ce8976ee157877e656436aeab4db09fb0f9469301abc12e5aa21d",
+      "payload_sha256": "sha256:c938b86800e38e6ced12ccaf1e547e8f5cd7f9ea90c7e07c116b6afdbac96510",
+      "content_version": "sha256:383da103d6c703998939632a1ec4efb5263b6b1939c4d9564508a47a6f31e4c0",
       "card_count": 1180,
       "box_count": 108,
       "audio_asset_count": 301
     },
     "cet6": {
-      "payload_sha256": "sha256:cadfc11b9edb8fee925865fc2d12fa6e59c4655a12eccd24b29fa06d4a3acb48",
-      "content_version": "sha256:fa93a19b1a5ed41be5f257b320e972d991aafee931f907809ce1867e0241694d",
+      "payload_sha256": "sha256:2cf0629f48a9e22b91c6a4e0e10428b564b189d007283b97241ab998b596e4b6",
+      "content_version": "sha256:def3764213cc61919d112c4508ab6c76570f2d0640d3f773ef08b5e952aa781f",
       "card_count": 1234,
       "box_count": 110,
       "audio_asset_count": 328

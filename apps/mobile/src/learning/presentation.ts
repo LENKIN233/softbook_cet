@@ -1,4 +1,4 @@
-import type { EliminationCard, LearningCard, LearningCardState } from './model';
+import type { EliminationCard, LearningCard, LearningCardState, LockCard } from './model';
 
 // Never guess which distinct front text is optional: imported front material
 // remains visible. Only exact repeats of already-visible text are suppressed.
@@ -17,18 +17,72 @@ function withoutRepeatedTask(text: string, prompt: string) {
   return text;
 }
 
-export function displayCardText(card: LearningCard, text: string) {
-  return card.interaction_id === 'lock' ? text.replace(/\{\{blank\}\}/g, '____') : text;
+export function displayCardText(card: LearningCard, text: string, state?: LearningCardState) {
+  if (card.interaction_id !== 'lock') return text;
+  const blank = /\{\{blank\}\}|_{2,}/g;
+  if (state && (text.match(blank)?.length ?? 0) === card.lock_slots.length) {
+    let index = 0;
+    return text.replace(blank, () => {
+      const slot = card.lock_slots[index];
+      const expected = card.answer_key.lock_pattern[index++];
+      return state.lockSelections[slot.id] === expected ? expected : '____';
+    });
+  }
+  return text.replace(/\{\{blank\}\}/g, '____');
 }
 
-export function frontMaterial(card: LearningCard) {
-  const seen = new Set([displayCardText(card, card.front.prompt).trim()]);
+export function frontMaterial(card: LearningCard, state?: LearningCardState) {
+  const seen = new Set([displayCardText(card, card.front.prompt, state).trim()]);
   return [card.front.support, card.front.context].flatMap(text => {
-    const value = displayCardText(card, withoutRepeatedTask(text, card.front.prompt)).trim();
+    const value = displayCardText(card, withoutRepeatedTask(text, card.front.prompt), state).trim();
     if (!value || seen.has(value)) return [];
     seen.add(value);
     return [value];
   });
+}
+
+// Paragraph boundaries are authored content. Keep them, and only soften a
+// standalone glossary when every entry has an explicit word: meaning structure.
+export function cardTextBlocks(text: string) {
+  const paragraphs = text.trim().split(/\n\s*\n/);
+  return paragraphs.map((value, index) => ({
+    text: value,
+    gloss: paragraphs.length > 1 && index === paragraphs.length - 1 &&
+      value.split(/[；;]/).every(entry => /^[A-Za-z][A-Za-z '\u2019-]{0,55}[：:]\s*[^\n。？！?!；;]{1,28}$/.test(entry.trim())),
+  }));
+}
+
+export function lockTemplate(card: LockCard) {
+  const blank = /\{\{blank\}\}|_{2,}/g;
+  for (const source of [card.front.prompt, card.front.support, card.front.context]) {
+    if ((source.match(blank)?.length ?? 0) !== card.lock_slots.length) continue;
+    // Show the complete authored sentence/task containing the slots, not a
+    // guessed sentence made by concatenating answers or stripping punctuation.
+    const paragraphs = source.split(/\n\s*\n/).filter(text => /\{\{blank\}\}|_{2,}/.test(text));
+    return paragraphs.join('\n\n');
+  }
+  return null;
+}
+
+export function lockAnswerText(card: LockCard, values: readonly (string | null)[]) {
+  const template = lockTemplate(card);
+  if (template) {
+    let index = 0;
+    return template.replace(/\{\{blank\}\}|_{2,}/g, () => values[index++] ?? '____');
+  }
+  // Some locks classify sentence components rather than fill a template.
+  // Preserve those labels; their order alone is not a grammatical sentence.
+  return card.lock_slots.map((slot, index) => `${slot.label}：${values[index] ?? '____'}`).join('\n');
+}
+
+export function resultAnswerLabel(card: LearningCard) {
+  switch (card.interaction_id) {
+    case 'flip': return '核对答案';
+    case 'elimination': return '应划去的部分';
+    case 'lock': return '填写结果';
+    case 'swipe': return '正确判断';
+    default: return '正确答案';
+  }
 }
 
 export function spaceCardPreview(card: LearningCard) {
@@ -114,7 +168,7 @@ export function answerComparison(card: LearningCard, state: LearningCardState) {
     };
   }
   if (card.interaction_id === 'lock') {
-    return { correct: card.answer_key.lock_pattern.join(' '), selected: null };
+    return { correct: lockAnswerText(card, card.answer_key.lock_pattern), selected: null };
   }
   if (card.interaction_id === 'swipe') {
     const stateText = (id: string | null) => {
@@ -128,8 +182,8 @@ export function answerComparison(card: LearningCard, state: LearningCardState) {
   }
   const itemText = (ids: readonly string[]) => card.elimination_items
     .filter(item => ids.includes(item.id))
-    .map(item => item.text)
-    .join(' · ');
+    .map(item => `− ${item.text}`)
+    .join('\n');
   // These are the exact choices being graded. Rejoining the remaining text can
   // leave non-selectable connectors behind and teach an ungrammatical sentence.
   return {

@@ -857,6 +857,14 @@ function AppShell({
   const [learningStateSyncState, setLearningStateSyncState] =
     useState<LearningStateSyncState>(INITIAL_LEARNING_STATE_SYNC_STATE);
   const [learningAdvancePending, setLearningAdvancePending] = useState(false);
+  // Presentation only: canonical session/selection authority still clears and
+  // reloads normally after a durable completion. This cannot authorize writes.
+  const [outgoingLearningResult, setOutgoingLearningResult] = useState<{
+    scope: string; track: LearningTrack; card: LearningCard;
+    cardState: LearningCardState; result: LearningCardResult;
+    session: LearningSession; phase: LearningPhase; index: number;
+    cards: LearningCard[]; results: LearningCardResult[]; attemptId: string | null;
+  } | null>(null);
   const [spaceStateSyncState, setSpaceStateSyncState] =
     useState<SpaceStateSyncState>(INITIAL_SPACE_STATE_SYNC_STATE);
   const [pendingLearningEventCount, setPendingLearningEventCount] = useState(0);
@@ -1002,6 +1010,7 @@ function AppShell({
       setLearningEventRecoveryPending(false);
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningAdvancePending(false);
+      setOutgoingLearningResult(null);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
       setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
       startTransition(() => {
@@ -1804,6 +1813,14 @@ function AppShell({
         card => card.card_id === currentRoundCompletion.spaceCardId,
       ) ?? null
     : null;
+  const outgoingResult = outgoingLearningResult?.scope ===
+    getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) &&
+    outgoingLearningResult.track === learningTrack ? outgoingLearningResult : null;
+
+  const presentedLearningCard = outgoingResult?.card ?? currentLearningCard;
+  const presentedLearningCardState = outgoingResult?.cardState ?? learningCardState;
+  const presentedLearningResult = outgoingResult?.result ?? learningCurrentResult;
+  const presentedLearningPhase = outgoingResult?.phase ?? learningPhase;
   const activeLearningContextCard =
     currentLearningCard ?? currentRoundSpaceCard;
   // A durable sleep intent hides this question while the server chooses its
@@ -1820,8 +1837,9 @@ function AppShell({
   );
   const isServerSelectionEmptyRef = useRef(isServerSelectionEmpty);
   isServerSelectionEmptyRef.current = isServerSelectionEmpty;
-  const activeLibraryTone = activeLearningContextCard
-    ? resolveLibraryTone(activeLearningContextCard.space_metadata.library)
+  const visibleContextCard = outgoingResult?.card ?? activeLearningContextCard;
+  const activeLibraryTone = visibleContextCard
+    ? resolveLibraryTone(visibleContextCard.space_metadata.library)
     : null;
   const learningPalette: Palette = activeLibraryTone
     ? {
@@ -4221,7 +4239,10 @@ function AppShell({
         setLearningSession(session);
         setLearningRoundContinuePending(false);
         setLearningRoundContinueError(null);
-        if (!preservesServerAttempt) setLearningCurrentResult(null);
+        if (!preservesServerAttempt) {
+          setLearningCurrentResult(null);
+          setLearningScreen('practice');
+        }
         setLearningCompletedResults(canonicalLearningState.learningResults);
         const scheduledPhase =
           session.schedulingMode === 'server' &&
@@ -4273,6 +4294,9 @@ function AppShell({
           setLearningCardState(
             nextCard ? createTrackedLearningAttemptState(nextCard) : null,
           );
+        }
+        if (learningEventEnqueueInFlight.current === null && pendingLearningEventCountRef.current === 0) {
+          setOutgoingLearningResult(null);
         }
         setLearningBootstrapStatus('ready');
       })
@@ -5434,6 +5458,21 @@ function AppShell({
       setLearningScreen('practice');
     },
     onAdvanceCard: () => {
+      if (outgoingResult !== null) {
+        if (learningAdvancePending || (learningStateSyncState.state !== 'error' &&
+          !(learningBootstrapStatus === 'error' && accountBootstrapStatus !== 'pending'))) return;
+        const retryScope = outgoingResult.scope;
+        const retryTrack = outgoingResult.track;
+        learningEventReplayPaused.current = false;
+        setLearningAdvancePending(true);
+        startMutationReplay({allowCanonicalRefreshRetry: true}).then(() => {
+          if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== retryScope || learningTrackRef.current !== retryTrack) return;
+          if (pendingLearningEventCountRef.current === 0) requestLearningSessionRefresh();
+        }).catch(() => undefined).finally(() => {
+          if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === retryScope && learningTrackRef.current === retryTrack) setLearningAdvancePending(false);
+        });
+        return;
+      }
       if (
         learningCurrentResult === null ||
         learningAdvancePending ||
@@ -5524,6 +5563,13 @@ function AppShell({
       };
 
       learningEventEnqueueInFlight.current = enqueueOperation;
+      if (currentLearningCard !== null && learningCardState !== null) {
+        setOutgoingLearningResult({scope: completionSessionScopeKey, track: completedTrack,
+          card: currentLearningCard, cardState: learningCardState, result: completedResult,
+          session: learningSession, phase: learningPhase, index: presentedIndex,
+          cards: presentedCards, results: presentedResults, attemptId: learningAudioAttemptId});
+        setLearningScreen('practice');
+      }
       setLearningAdvancePending(true);
       setLearningStateSyncState({
         detail: '正在保存答题记录。',
@@ -5591,6 +5637,7 @@ function AppShell({
             return;
           }
 
+          setOutgoingLearningResult(null);
           setLearningStateSyncState({
             detail: getUserFacingErrorMessage(
               error,
@@ -6112,7 +6159,17 @@ function AppShell({
               : '设置已同步',
         }
       : null;
-  const learningAdvanceState = {
+  const outgoingResultError = outgoingResult !== null && (
+    learningStateSyncState.state === 'error' ||
+    (learningBootstrapStatus === 'error' && accountBootstrapStatus !== 'pending')
+  );
+  const learningAdvanceState = outgoingResult !== null ? {
+    busy: learningAdvancePending || !outgoingResultError,
+    detail: outgoingResultError
+      ? learningStateSyncState.state === 'error' ? learningStateSyncState.detail : learningBootstrapError
+      : '正在准备下一张…',
+    needsRetry: outgoingResultError && !learningAdvancePending,
+  } : {
     busy: learningAdvancePending,
     detail:
       learningCurrentResult === null
@@ -6155,6 +6212,7 @@ function AppShell({
       // Commit the new track only after both canonical reads have succeeded.
       learningTrackRef.current = nextTrack;
       setLearningTrack(nextTrack);
+      setOutgoingLearningResult(null);
       applyAuthenticatedRuntimeHydration(hydration, {forceFresh: true});
       learningSessionScopeKeyRef.current = scopeKey;
       learningAuthoritySnapshotRef.current = hydration.accountBootstrap;
@@ -6207,6 +6265,7 @@ function AppShell({
       progressSyncState={progressSyncState}
     />
   ) : route.key === 'learning' &&
+    outgoingResult === null &&
     (learningBootstrapStatus !== 'ready' || learningSession === null) ? (
     <LearningBootstrapSurface
       error={
@@ -6218,6 +6277,7 @@ function AppShell({
       status={learningBootstrapStatus === 'ready' ? 'loading' : learningBootstrapStatus}
     />
   ) : route.key === 'learning' &&
+    outgoingResult === null &&
     learningPhase === 'learning' &&
     visibleLearningCards.length === 0 &&
     learningSession?.schedulingMode !== 'server' ? (
@@ -6243,34 +6303,37 @@ function AppShell({
   ) : route.key === 'learning' &&
     learningScreen === 'result_detail' &&
     !isServerSelectionSleeping &&
-    currentLearningCard !== null &&
-    learningCardState !== null &&
-    learningCurrentResult !== null ? (
+    presentedLearningCard !== null &&
+    presentedLearningCardState !== null &&
+    presentedLearningResult !== null ? (
     <LearningResultDetailSurface
       advanceState={learningAdvanceState}
-      card={currentLearningCard}
-      cardState={learningCardState}
-      currentIndex={presentedIndex}
+      card={presentedLearningCard}
+      cardState={presentedLearningCardState}
+      currentIndex={outgoingResult?.index ?? presentedIndex}
       isLastCard={isLocalLearning && learningIndex + 1 >= localGroup.end}
-      onAdvanceCard={() => routeMotion.perform('advance', learningHandlers.onAdvanceCard)}
+      onAdvanceCard={() => runtimeLearningEventsMode === 'remote'
+        ? learningHandlers.onAdvanceCard() : routeMotion.perform('advance', learningHandlers.onAdvanceCard)}
       onBackToPractice={() => setLearningScreen('practice')}
       palette={palette}
-      phase={learningPhase}
-      result={learningCurrentResult}
-      sessionCardCount={presentedCards.length}
-      sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
+      phase={presentedLearningPhase}
+      result={presentedLearningResult}
+      sessionCardCount={(outgoingResult?.cards ?? presentedCards).length}
+      sessionLabel={formatLearningSessionDisplayLabel(presentedLearningPhase)}
     />
   ) : route.key === 'learning' ? (
     <LearningSurface
       advanceState={learningAdvanceState}
-      audioAttemptId={learningAudioAttemptId}
-      showCardProgress={learningSession?.schedulingMode !== 'server'}
+      deferAdvanceMotion={runtimeLearningEventsMode === 'remote'}
+      interactionLocked={outgoingResult !== null}
+      audioAttemptId={outgoingResult?.attemptId ?? learningAudioAttemptId}
+      showCardProgress={(outgoingResult?.session ?? learningSession)?.schedulingMode !== 'server'}
       allowBundledAudio={learningSession?.schedulingMode === 'local' && learningSession.sourceId === 'bundled-card-make-v1'}
-      completedResults={presentedResults}
-      contentManifest={learningSession?.contentManifest ?? null}
+      completedResults={outgoingResult?.results ?? presentedResults}
+      contentManifest={(outgoingResult?.session ?? learningSession)?.contentManifest ?? null}
       refreshAudioDownload={refreshLearningAudioDownload}
-      currentCard={isServerSelectionSleeping || (isLocalLearning && localBatchComplete) ? null : currentLearningCard}
-      currentCardState={isServerSelectionSleeping ? null : learningCardState}
+      currentCard={outgoingResult?.card ?? (isServerSelectionSleeping || (isLocalLearning && localBatchComplete) ? null : currentLearningCard)}
+      currentCardState={outgoingResult?.cardState ?? (isServerSelectionSleeping ? null : learningCardState)}
       emptySession={learningSession?.schedulingMode === 'server' ? {
         nextDueAt: learningSession.nextDueAt,
         pendingSleep: isServerSelectionSleeping,
@@ -6278,9 +6341,9 @@ function AppShell({
         onRefresh: retryEmptyLearningSession,
         onOpenSpace: () => handleSelectRoute('space'),
       } : null}
-      currentIndex={presentedIndex}
-      currentResult={learningCurrentResult}
-      phase={learningPhase}
+      currentIndex={outgoingResult?.index ?? presentedIndex}
+      currentResult={outgoingResult?.result ?? learningCurrentResult}
+      phase={outgoingResult?.phase ?? learningPhase}
       onAdvanceCard={learningHandlers.onAdvanceCard}
       onFlip={learningHandlers.onFlip}
       onOpenResultDetail={() => setLearningScreen('result_detail')}
@@ -6311,8 +6374,8 @@ function AppShell({
       }
       roundContinueError={learningRoundContinueError}
       roundContinuePending={learningRoundContinuePending}
-      sessionCards={presentedCards}
-      sessionLabel={formatLearningSessionDisplayLabel(learningPhase)}
+      sessionCards={outgoingResult?.cards ?? presentedCards}
+      sessionLabel={formatLearningSessionDisplayLabel(presentedLearningPhase)}
     />
   ) : route.key === 'space' ? (
     <SpaceSurface
@@ -6384,8 +6447,8 @@ function AppShell({
       : '返回学习可接着这张卡。');
     handleSelectRoute('statistics');
   };
-  const contentWithSessionActions = route.key === 'learning' && learningBootstrapStatus === 'ready'
-    ? visibleSegment?.summaryVisible ? (
+  const contentWithSessionActions = route.key === 'learning' && (learningBootstrapStatus === 'ready' || outgoingResult !== null)
+    ? visibleSegment?.summaryVisible && outgoingResult === null ? (
       <ScrollView contentContainerStyle={styles.segmentSummary} testID="learning-segment-summary">
         <Text accessibilityRole="header" style={[styles.segmentTitle, {color: palette.text}]}>这一小段练完了</Text>
         <Text style={[styles.segmentDetail, {color: palette.textMuted}]}>刚才练了：找比较对象、根据线索判断范围。</Text>
@@ -6518,7 +6581,7 @@ function AppShell({
           <PhoneShell
             activeRoute={activeRoute}
             track={learningTrack}
-            readingResetKey={`${currentLearningCard?.card_id ?? 'complete'}:${learningPhase}:${learningScreen}:${Boolean(learningCurrentResult)}:${Boolean(learningCardState?.isFlipped)}`}
+            readingResetKey={`${presentedLearningCard?.card_id ?? 'complete'}:${presentedLearningPhase}:${learningScreen}:${presentedLearningCard?.interaction_id === 'flip' ? 'flip' : Boolean(presentedLearningResult)}:${Boolean(presentedLearningCardState?.isFlipped)}`}
             authState={authState}
             content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithSessionActions}</Animated.View>}
             onSelectRoute={handleSelectRoute}

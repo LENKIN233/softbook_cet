@@ -11,7 +11,7 @@ import {createLocalLearningStore, LocalLearningStorageError, type LocalLearningS
 import {getChinaDayKey as chinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {authFailure} from '../../mobile/src/auth/authErrorCopy';
 import {endsLocalBatch, localBatch, localResumeIndex} from '../../mobile/src/learning/localBatch';
-import {displayCardText, frontMaterial, eliminationPassage, answerComparison, spaceCardPreview} from '../../mobile/src/learning/presentation';
+import {displayCardText, frontMaterial, eliminationPassage, answerComparison, spaceCardPreview, cardTextBlocks, lockAnswerText, lockTemplate, resultAnswerLabel} from '../../mobile/src/learning/presentation';
 import {resolveLibraryTone} from '../../mobile/src/visual/tokens';
 import {useObjectMotion, useRouteMotion, transitionObjectName} from './motion';
 import {
@@ -1694,11 +1694,11 @@ function LearningSurface(props: LearningSurfaceProps) {
   const onContinue = useCallback(() => perform('advance', props.onContinue), [perform, props.onContinue]);
   const onFlip = useCallback(() => perform('flip', () => onState(previous => previous ? {...previous, isFlipped: true} : previous)), [onState, perform]);
   useEffect(() => {
-    if (!resolved || !answerRef.current) return;
+    if (!resolved || card?.interaction_id === 'flip' || !answerRef.current) return;
     answerRef.current.focus({preventScroll: true});
     const body = cardRef.current?.querySelector('.paper-body');
     if (body) body.scrollTop = 0;
-  }, [resolved]);
+  }, [resolved, card?.interaction_id]);
   useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null;
@@ -1722,7 +1722,7 @@ function LearningSurface(props: LearningSurfaceProps) {
   const group = formatSpaceDisplayName(card.space_metadata.group, '当前分区');
   const box = formatSpaceDisplayName(card.space_metadata.box, '当前卡盒');
   const passage = card.interaction_id === 'elimination' ? eliminationPassage(card) : null;
-  const material = frontMaterial(card).filter(text => !passage || text !== passage.source);
+  const material = frontMaterial(card, cardState).filter(text => !passage || text !== passage.source);
   const comparison = answerComparison(card, cardState);
   const continueLabel = props.serverSequenced || props.currentIndex < props.total - 1 ? '下一张' : '完成本组';
   const questionContext = spaceCardPreview(card);
@@ -1742,25 +1742,33 @@ function LearningSurface(props: LearningSurfaceProps) {
       <button className="address-button" onClick={props.onOpenSpace}><small><span className="library-dot" />{courseName} · {library} / {group}</small><strong id="learning-title">{box}</strong></button>
       <div className="studio-address-tools"><span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '复习' : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span><button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button></div>
     </div>
-    {props.serverSequenced && resolved && motionBusy ? <p className="notice next-card-status" role="status">正在准备下一张…</p> : null}
+    {props.serverSequenced && resolved && motionBusy ? <p className="sr-only" role="status">正在准备下一张…</p> : null}
     <div className="studio-learning-layout">
-    <article ref={cardRef} inert={props.serverSequenced && Boolean(resolved) && motionBusy} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
+    <article ref={cardRef} aria-busy={props.serverSequenced && Boolean(resolved) && motionBusy} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
       <span className="sr-only">{props.phase === 'review' ? '复习' : INTERACTION_LABELS[card.interaction_id]}</span>
       <div className="paper-body">
-        {resolved ? audioControl : null}
-        {resolved ? <section className={`result-slip ${resultTone(resolved)}`} aria-label="答案对照" aria-live="polite">
-          <p className="result-label">{card.interaction_id === 'flip' ? resultLabel(resolved) : '正确答案'}</p>
-          <h2 ref={answerRef} tabIndex={-1} className={`answer-first${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{comparison.correct}</h2>
-          {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>你的选择</span> {comparison.selected}</p> : null}
+        {resolved && !backVisible ? audioControl : null}
+        {backVisible ? <section className="flip-back" aria-label={resolved ? '答案对照' : '核对答案'}>
+          <p className="flip-back-label">核对答案</p>
+          <h2 className={isLongQuestion(comparison.correct) ? 'long-question' : undefined}>{comparison.correct}</h2>
+          <p className="answer-reason">{card.analysis.summary}</p>
+          <details className="full-analysis"><summary>回看题目</summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
+          {audioControl}
+          {resolved && card.audio?.transcript?.trim() ? <details className="full-analysis"><summary>听力原文</summary><p className="front-material">{card.audio.transcript}</p></details> : null}
+          {resolved ? <p className="self-assess-receipt" role="status">已记录：<span>{resolved.outcome === 'confident' ? '有把握' : '需要复习'}</span></p> : null}
+          {resolved ? <ResultExplanation card={card} /> : <LearningHelp key={`help:${props.motionIdentity}`} card={card} state={cardState} patch={patchState} />}
+        </section> : resolved ? <section className={`result-slip ${resultTone(resolved)}${card.interaction_id === 'elimination' ? ' elimination-result' : ''}`} aria-label="答案对照" aria-live="polite">
+          <p className="result-label">{resultAnswerLabel(card)}</p>
+          <h2 ref={answerRef} tabIndex={-1} className={`answer-first${card.interaction_id === 'lock' || card.interaction_id === 'elimination' ? ' contextual-answer' : ''}${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{comparison.correct}</h2>
+          {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</span> {comparison.selected}</p> : null}
           <details className="full-analysis"><summary>回看题目</summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
           <p className="answer-reason">{card.analysis.summary}</p>
           {card.interaction_id === 'lock' && resolved.outcome === 'incorrect' ? <p className="answer-reason">已解锁，稍后复习。</p> : null}
           {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary>听力原文</summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           <ResultExplanation card={card} />
         </section> : <>
-          {card.interaction_id !== 'swipe' ? <h2 className={isLongQuestion(backVisible ? comparison.correct : card.front.prompt) ? 'long-question' : undefined}>{backVisible ? comparison.correct : displayCardText(card, card.front.prompt)}</h2> : null}
-          {backVisible ? <p className="answer-reason">{card.analysis.summary}</p> : null}
-          {!backVisible ? material.map(text => <p className="front-material" key={text}>{text}</p>) : null}
+          {card.interaction_id !== 'swipe' ? <CardPrompt text={displayCardText(card, card.front.prompt, cardState)} /> : null}
+          {material.map(text => <p className="front-material" key={text}>{text}</p>)}
           {audioControl}
           {card.interaction_id !== 'flip' ? interaction : null}
           <LearningHelp key={`help:${props.motionIdentity}`} card={card} state={cardState} patch={patchState} />
@@ -1770,12 +1778,18 @@ function LearningSurface(props: LearningSurfaceProps) {
         {props.statusMessage ? <p className="notice error" role="alert">{props.statusMessage}</p> : null}
         {!['已保存在本机', '已同步', ''].includes(props.syncStatus) ? <p className="notice" role="status">学习记录 · {props.syncStatus}</p> : null}
       </div>
-      {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>{continueLabel}</button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}>提交答案</button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
+      {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>{props.serverSequenced && motionBusy ? '正在准备下一张…' : continueLabel}</button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}>提交答案</button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
     </article>
     <aside className="learning-context"><p className="context-caption">卡片位置</p><p className="context-address">{library} / {group}</p><button className="context-box" onClick={props.onOpenSpace}><small>打开卡盒 →</small><strong>{box}</strong></button></aside>
     </div>
     {resolved || !backVisible ? <p className="shortcut-note">{resolved ? `键盘：Enter ${continueLabel}` : shortcutLabel(card)}</p> : null}
   </main>;
+}
+
+function CardPrompt({text, body = false}: {text: string; body?: boolean}) {
+  const blocks = cardTextBlocks(text);
+  if (!body && blocks.length === 1) return <h2 className={isLongQuestion(text) ? 'long-question' : undefined}>{text}</h2>;
+  return <div className="card-prompt-blocks">{blocks.map((block, index) => <p className={block.gloss ? 'card-gloss' : 'card-prompt-body'} key={index}>{block.text}</p>)}</div>;
 }
 
 function LearningHelp({card, state, patch}: {card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void}) {
@@ -1831,7 +1845,7 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
     case 'lock':
       return (
         <div className="interaction lock-list" role="group" aria-label="开锁槽位">
-          <p className="forming-sentence" aria-label="已填写的内容">{card.lock_slots.map((slot, index) => state.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? state.lockSelections[slot.id] : '____').join(' ')}</p>
+          {lockTemplate(card) === null ? <p className="forming-sentence" aria-label="已填写的内容">{lockAnswerText(card, card.lock_slots.map((slot, index) => state.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? state.lockSelections[slot.id] : null))}</p> : null}
           {card.lock_slots.map((slot, slotIndex) => {
             const selectedValue = state.lockSelections[slot.id];
             const expectedValue = card.answer_key.lock_pattern[slotIndex];
@@ -1997,7 +2011,7 @@ function SwipeInteraction({
           }}
         >
 
-          <strong>{resolved ? '已完成本次判断' : card.front.prompt}</strong>
+          {resolved ? <strong>已完成本次判断</strong> : <CardPrompt text={displayCardText(card, card.front.prompt)} body />}
           {resolved ? <div className="swipe-comparison"><p>你的选择：{selectedState?.label} · {selectedState?.description}</p><p>正确判断：{card.swipe_states.find(item => item.id === card.answer_key.correct_state)?.description}</p></div> : <p>向左或向右拖动，也可点下方选项。</p>}
         </div>
       </div>
@@ -2384,10 +2398,7 @@ function currentCompletionStatus(sync: WebLearningCompletionSync) {
   return sync.completionStatus ?? (sync.status === 'confirmed' ? 'confirmed' : sync.pendingEventCount > 0 ? 'queued' : 'rejected');
 }
 
-function resultLabel(result: LearningCardResult) {
-  const labels: Record<LearningCardResult['outcome'], string> = {correct: '判断正确', incorrect: '这张需要复习', confident: '有把握', review: '已加入复习'};
-  return labels[result.outcome];
-}
+
 
 function shortcutLabel(card: LearningCard) {
   switch (card.interaction_id) {

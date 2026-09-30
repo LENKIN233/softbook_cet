@@ -552,7 +552,7 @@ function buildRuntimeCardWithoutAudio(record) {
       };
     }
     case 'lock': {
-      const lockPattern = requireStringArray(
+      const lockPattern = requireOrderedStrings(
         card.answer_key?.lock_pattern,
         `${card.card_id} answer_key.lock_pattern`,
       );
@@ -912,6 +912,16 @@ function requireStringArray(value, fieldName) {
   }
 
   return uniqueStrings(value);
+}
+
+function requireOrderedStrings(value, fieldName) {
+  if (!Array.isArray(value) || value.length === 0 ||
+      value.some(item => typeof item !== 'string' || !item.trim())) {
+    throw new Error(`${fieldName} must be a non-empty sequence of non-empty strings.`);
+  }
+  // Each entry belongs to one slot; identical answers in two positions are
+  // still two required selections, not duplicate options to remove.
+  return value.map(item => item.trim());
 }
 
 function uniqueStrings(values) {

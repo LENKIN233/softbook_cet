@@ -1,3 +1,4 @@
+import {LearningSurface} from '../src/learning/LearningSurface';
 import {StatisticsSurface} from '../src/statistics/StatisticsSurface';
 /**
  * @format
@@ -369,9 +370,11 @@ test('Android back unwinds detail and space navigation without advancing the car
     await ReactTestRenderer.act(() => {
       findPressableByTestId(root, 'learning-flip-button').props.onPress();
     });
+    const readingResetKey = root.find(node => typeof node.props.readingResetKey === 'string').props.readingResetKey;
     await ReactTestRenderer.act(() => {
       findPressableByTestId(root, 'learning-flip-review-button').props.onPress();
     });
+    expect(root.find(node => typeof node.props.readingResetKey === 'string').props.readingResetKey).toBe(readingResetKey);
     await ReactTestRenderer.act(() => {
       findPressableByTestId(root, 'learning-open-result-detail-button').props.onPress();
     });
@@ -4278,7 +4281,7 @@ test('does not apply a remote space action when durable mutation storage fails',
     expect(
       root.findByProps({testID: 'learning-favorite-button'}).props
         .accessibilityState,
-    ).toEqual({selected: false});
+    ).toMatchObject({selected: false});
     expect(spaceActionRequests).toHaveLength(0);
   } finally {
     setItemMock.mockImplementation(originalSetItem!);
@@ -4470,8 +4473,7 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
       await flushAsyncEffects();
     });
     if (
-      root.findAllByProps({ testID: 'learning-bootstrap-retry-button' })
-        .length > 0
+      root.findByType(LearningSurface).props.advanceState.needsRetry
     ) {
       break;
     }
@@ -4485,6 +4487,8 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
     0,
   );
 
+  expect(root.findByType(LearningSurface).props.currentResult).not.toBeNull();
+  expect(root.findByType(LearningSurface).props.advanceState.needsRetry).toBe(true);
   const nextSession = createLocalLearningSession('cet4');
   resolvedSession = {
     ...nextSession,
@@ -4494,7 +4498,7 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
   await ReactTestRenderer.act(async () => {
     findPressableByTestId(
       root,
-      'learning-bootstrap-retry-button',
+      'learning-next-button',
     ).props.onPress();
     await flushAsyncEffects();
   });
@@ -4673,7 +4677,7 @@ test('quarantines a removed-card space action and restores canonical state', asy
   expect(
     root.findByProps({testID: 'learning-favorite-button'}).props
       .accessibilityState,
-  ).toEqual({selected: false});
+  ).toMatchObject({selected: false});
 
   await openRoute(root, 'space');
 
@@ -7569,7 +7573,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(
     root.findByProps({testID: 'learning-favorite-button'}).props
       .accessibilityState,
-  ).toEqual({selected: true});
+  ).toMatchObject({selected: true});
   expect(
     root.findByProps({testID: 'learning-favorite-button'}).findByType(Text)
       .props.children,
@@ -8013,4 +8017,101 @@ test('continuing a paused lesson clears the notice on a later statistics visit',
   await openRoute(root, 'statistics');
   expect(root.findAllByProps({testID: 'learning-pause-notice'})).toHaveLength(0);
   await ReactTestRenderer.act(() => tree.unmount());
+});
+
+
+test.each(['none', 'read', 'submit'] as const)('retains the answered card across remote advance and retries without a new completion (failure=%s)', async failure => {
+  const ack = createDeferred<void>();
+  const bootstrap = createDeferred<void>();
+  const nextLoad = createDeferred<LearningSession>();
+  const accepted: MockLearningEvent[] = [];
+  const requests: MockLearningEventsRequest[] = [];
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'},
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) {
+      if (accepted.length) await bootstrap.promise;
+      return createJsonResponse(createAccountBootstrapPayload(createLocalLearningSession('cet4'), 'premium', accepted));
+    }
+    if (input.endsWith('/v2/learning/events')) {
+      const request = readLearningEventsRequest(init); requests.push(request);
+      await ack.promise;
+      if (failure === 'submit' && requests.length === 1) return createJsonResponse({}, 503);
+      accepted.push(...request.events);
+      return createLearningEventsAckResponse(init);
+    }
+    throw new Error(`Unexpected request: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    const root = tree.root;
+    await loginIntoLearningFlow(root);
+    const firstCard = root.findByType(LearningSurface).props.currentCard.card_id;
+    await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-button'}).props.onPress();});
+    await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();});
+    let retainedSurface = root.findByType(LearningSurface);
+    const assertRetained = (retry = false) => {
+      expect(root.findByType(LearningSurface)).toBe(retainedSurface);
+      expect(root.findByProps({testID: 'learning-pause-button'})).toBeTruthy();
+      const surface = root.findByType(LearningSurface).props;
+      expect(surface.currentCard.card_id).toBe(firstCard);
+      expect(surface.currentResult.cardId).toBe(firstCard);
+      expect(surface.advanceState).toMatchObject({busy: !retry, needsRetry: retry});
+      expect(surface.interactionLocked).toBe(true);
+      expect(root.findAllByProps({testID: 'learning-bootstrap-loading'})).toHaveLength(0);
+      expect(root.findAllByProps({testID: 'learning-session-refresh'})).toHaveLength(0);
+    };
+    mockLoadSession.mockImplementation(() => nextLoad.promise);
+    await ReactTestRenderer.act(async () => {
+      root.findByProps({testID: 'learning-next-button'}).props.onPress();
+      await flushAsyncEffects();
+    });
+    assertRetained();
+    await ReactTestRenderer.act(async () => {
+      root.findByType(LearningSurface).props.onAdvanceCard();
+      await flushAsyncEffects();
+    });
+    expect(requests).toHaveLength(1);
+    await ReactTestRenderer.act(async () => {ack.resolve(); await flushAsyncEffects();});
+    if (failure === 'submit') {
+      assertRetained(true);
+      await ReactTestRenderer.act(async () => {
+        root.findByProps({testID: 'learning-next-button'}).props.onPress();
+        await flushAsyncEffects();
+      });
+      expect(requests).toHaveLength(2);
+      expect(requests[1]).toEqual(requests[0]);
+    }
+    assertRetained();
+    await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-open-result-detail-button'}).props.onPress();});
+    expect(root.findByProps({testID: 'learning-result-detail-screen'})).toBeTruthy();
+    await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-result-back-button'}).props.onPress();});
+    retainedSurface = root.findByType(LearningSurface);
+    assertRetained();
+    await ReactTestRenderer.act(async () => {bootstrap.resolve(); await flushAsyncEffects();});
+    assertRetained();
+    expect(mockLoadSession).toHaveBeenCalledTimes(2);
+    const catalog = createLocalLearningSession('cet4');
+    const nextSession = resolveSessionForRuntime({...catalog, cards: catalog.cards.slice(1), contentVersion: TEST_CONTENT_VERSION});
+    if (failure === 'read') {
+      await ReactTestRenderer.act(async () => {nextLoad.reject(new Error('Unavailable')); await flushAsyncEffects();});
+      assertRetained(true);
+      mockLoadSession.mockResolvedValue(nextSession);
+      await ReactTestRenderer.act(async () => {
+        root.findByProps({testID: 'learning-next-button'}).props.onPress();
+        for (let i = 0; i < 4; i++) await flushAsyncEffects();
+      });
+    } else {
+      await ReactTestRenderer.act(async () => {nextLoad.resolve(nextSession); await flushAsyncEffects();});
+    }
+    expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(nextSession.cards[0].card_id);
+    expect(root.findByType(LearningSurface).props.currentResult).toBeNull();
+    expect(requests).toHaveLength(failure === 'submit' ? 2 : 1);
+    expect(JSON.parse(String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY))).entries).toEqual([]);
+  } finally {await ReactTestRenderer.act(() => tree.unmount());}
 });

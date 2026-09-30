@@ -64,3 +64,15 @@ test('invalid arguments fail closed with exit code two', () => {
     assert.match(result.stderr, /FAIL:/);
   }
 });
+
+test('design prose may describe reading while actual metadata keys remain rejected', () => {
+  withFixture(fixtureRoot => {
+    const file = path.join(fixtureRoot, 'docs/design/mocks/notes.md');
+    fs.writeFileSync(file, '翻面自评保留已经读到的背面与阅读位置。\nKeep the reading position stable.\n');
+    assert.equal(runScanner(['--root', fixtureRoot]).status, 0);
+    fs.appendFileSync(file, '显示 answer_key 与 auth_token。\n');
+    const result = runScanner(['--root', fixtureRoot]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /raw metadata field name/);
+  });
+});

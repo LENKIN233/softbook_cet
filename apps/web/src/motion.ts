@@ -57,9 +57,6 @@ export function useObjectMotion(identity: string | null, ref: RefObject<HTMLElem
     const current = {token, committed: false};
     operation.current = current;
     setState({identity, busy: true});
-    const transform = kind === 'flip' ? 'perspective(1000px) rotateY(80deg)'
-      : kind === 'advance' ? 'translateX(-32px) rotate(-1deg)'
-      : `translateX(${kind === 'left' ? '-' : ''}${Math.max((node?.getBoundingClientRect().width ?? 0) * 1.2, 320)}px) rotate(${kind === 'left' ? '-' : ''}8deg)`;
     const finish = () => {
       if (token !== generation.current || operation.current !== current) return;
       // Flush state queued by an async continuation before deciding whether
@@ -68,6 +65,9 @@ export function useObjectMotion(identity: string | null, ref: RefObject<HTMLElem
       if (token !== generation.current || operation.current !== current) return;
       operation.current = null; commitPending.current = null;
       running.current?.cancel(); running.current = null;
+      // Advance leaves the current answer readable while the next card loads.
+      // A new identity owns its entrance; a failure needs no visual restoration.
+      if (kind === 'advance') return;
       if (token !== generation.current || !ref.current?.animate || prefersReducedMotion()) return;
       running.current = ref.current.animate([
         {opacity: 0, transform: kind === 'flip' ? 'perspective(1000px) rotateY(-80deg)' : 'translateX(28px)'},
@@ -85,14 +85,17 @@ export function useObjectMotion(identity: string | null, ref: RefObject<HTMLElem
         finish();
         return;
       }
-      // Keep the outgoing object's final frame until the request settles.
-      // Failure (or no replacement) restores it; success enters only the new card.
+      // Keep the current object until the request settles. Advance has not
+      // hidden it; flip/swipe may need restoration when no replacement arrives.
       if (completion && typeof completion.then === 'function') {
         void completion.then(finish, finish);
       } else finish();
     };
     commitPending.current = commit;
+    if (kind === 'advance') {commit(); return;}
     if (!node?.animate || prefersReducedMotion()) {commit(); return;}
+    const transform = kind === 'flip' ? 'perspective(1000px) rotateY(80deg)'
+      : `translateX(${kind === 'left' ? '-' : ''}${Math.max((node.getBoundingClientRect().width ?? 0) * 1.2, 320)}px) rotate(${kind === 'left' ? '-' : ''}8deg)`;
     try {
       running.current = node.animate([{opacity: 1, transform: getComputedStyle(node).transform}, {opacity: 0, transform}], {duration: kind === 'left' || kind === 'right' ? STUDIO.motion.reveal : STUDIO.motion.leave, easing, fill: 'forwards'});
       void running.current.finished.then(commit, commit);

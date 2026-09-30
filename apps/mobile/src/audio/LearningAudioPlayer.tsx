@@ -20,12 +20,14 @@ export type LearningAudioPlayerProps = {
   palette: LearningSurfacePalette;
   selection: AnyLearningAudioSelection;
   refreshDownload?: RefreshLearningAudioDownload;
+  disabled?: boolean;
 };
 
 export function LearningAudioPlayer({
   palette,
   selection,
   refreshDownload,
+  disabled = false,
 }: LearningAudioPlayerProps) {
   const refreshDownloadRef = useRef(refreshDownload);
   refreshDownloadRef.current = refreshDownload;
@@ -69,6 +71,10 @@ export function LearningAudioPlayer({
     return () => subscription.remove();
   }, [controller]);
 
+  useEffect(() => {
+    if (disabled) controller.pauseForInterruption().catch(() => undefined);
+  }, [controller, disabled]);
+
   useEffect(() => () => controller.dispose(), [controller]);
 
   const presentation = getAudioPresentation(state);
@@ -85,11 +91,11 @@ export function LearningAudioPlayer({
       accessibilityRole="button"
       accessibilityState={{
         busy: isLoading,
-        disabled: isLoading,
+        disabled: disabled || isLoading,
         selected: isPlaying,
       }}
-      disabled={isLoading}
-      onPress={() => controller.press().catch(() => undefined)}
+      disabled={disabled || isLoading}
+      onPress={() => {if (!disabled) controller.press().catch(() => undefined);}}
       style={({ pressed }) => [
         styles.chip,
         {
