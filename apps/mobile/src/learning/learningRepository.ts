@@ -36,6 +36,7 @@ export type LearningSessionRepository = {
   loadSession: (
     context: LearningSessionRepositoryContext,
     track: LearningTrack,
+    options?: {intent: 'review'},
   ) => Promise<LearningSession>;
 };
 

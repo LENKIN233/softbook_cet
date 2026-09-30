@@ -219,6 +219,7 @@ export type WebRemoteRuntimeController = {
   dispose: () => void;
   isAuthenticated: () => boolean;
   loadAuthenticatedState: () => Promise<WebRemoteSnapshot>;
+  requestReview: () => Promise<WebRemoteSnapshot>;
   refreshStatistics: () => Promise<Pick<WebRemoteSnapshot, 'bootstrap' | 'checkInSync'>>;
   switchTrack: (track: LearningTrack) => Promise<WebRemoteSnapshot>;
   logout: () => Promise<WebAccountDeletionOutcome | null>;
@@ -1442,7 +1443,7 @@ export function createWebRemoteRuntimeController(
     return nextBootstrapGeneration;
   };
 
-  const loadAuthenticatedState = async (requestTrack = activeTrack): Promise<WebRemoteSnapshot> => {
+  const loadAuthenticatedState = async (requestTrack = activeTrack, sessionOptions?: {intent: 'review'}): Promise<WebRemoteSnapshot> => {
     const context = await requireAuthenticatedContext();
     const requestSessionScopeKey = getAuthSessionScopeKey(
       dependencies.authSessionCoordinator.getCurrentSession(),
@@ -1547,11 +1548,9 @@ export function createWebRemoteRuntimeController(
       }
     }
 
-    const learningSession =
-      await dependencies.learningSessionRepository.loadSession(
-        context,
-        requestTrack,
-      );
+    const learningSession = sessionOptions
+      ? await dependencies.learningSessionRepository.loadSession(context, requestTrack, sessionOptions)
+      : await dependencies.learningSessionRepository.loadSession(context, requestTrack);
     if (
       learningSession.membershipStage !== null &&
       learningSession.membershipStage !== bootstrap.membership.state.stage
@@ -1939,6 +1938,7 @@ export function createWebRemoteRuntimeController(
     },
 
     loadAuthenticatedState: () => loadAuthenticatedState(),
+    requestReview: () => loadAuthenticatedState(activeTrack, {intent: 'review'}),
 
     async switchTrack(track) {
       if (track !== 'cet4' && track !== 'cet6') throw new Error('请选择英语四级或六级。');

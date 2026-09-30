@@ -1,3 +1,5 @@
+import {usesLargeTextLayout} from './src/learning/readability';
+import {ScaledText as Text} from './src/visual/ScaledText';
 import {StudioRouteIcon as RouteIcon} from './src/visual/StudioRouteIcon';
 import {LocalStudyApp} from './src/local/LocalStudyApp';
 import {localLearningCardSource} from './src/learning/localCardSource';
@@ -32,7 +34,6 @@ import {
   StatusBar,
   StyleProp,
   StyleSheet,
-  Text,
   TextInput,
   useWindowDimensions,
   View,
@@ -807,6 +808,14 @@ function AppShell({
   const [learningSession, setLearningSession] =
     useState<LearningSession | null>(null);
   const learningSessionScopeKeyRef = useRef<string | null>(null);
+  const learningSessionIntentRef = useRef<'review' | null>(null);
+  const [reviewOnlySession, setReviewOnlySession] = useState(false);
+  const reviewOnlySessionRef = useRef(reviewOnlySession);
+  reviewOnlySessionRef.current = reviewOnlySession;
+  const preReviewDraftRef = useRef<{
+    scope: string; track: LearningTrack; contentVersion: string | null;
+    cardId: string; state: LearningCardState;
+  } | null>(null);
   const [learningBootstrapStatus, setLearningBootstrapStatus] =
     useState<LearningBootstrapStatus>('idle');
   const learningBootstrapStatusRef = useRef(learningBootstrapStatus);
@@ -818,6 +827,7 @@ function AppShell({
       learningBootstrapStatusRef.current !== 'ready' &&
       learningBootstrapStatusRef.current !== 'error'
     ) return;
+    if (reviewOnlySessionRef.current && isServerSelectionEmptyRef.current) learningSessionIntentRef.current = 'review';
     learningBootstrapStatusRef.current = 'idle';
     setLearningBootstrapStatus('idle');
     setLearningBootstrapError(null);
@@ -864,6 +874,8 @@ function AppShell({
     cardState: LearningCardState; result: LearningCardResult;
     session: LearningSession; phase: LearningPhase; index: number;
     cards: LearningCard[]; results: LearningCardResult[]; attemptId: string | null;
+    saveState: 'saving' | 'queued' | 'accepted' | 'rejected';
+    nextReady: boolean; advanceRequested: boolean;
   } | null>(null);
   const [spaceStateSyncState, setSpaceStateSyncState] =
     useState<SpaceStateSyncState>(INITIAL_SPACE_STATE_SYNC_STATE);
@@ -1011,6 +1023,9 @@ function AppShell({
       setProgressSyncState(INITIAL_PROGRESS_SYNC_STATE);
       setLearningAdvancePending(false);
       setOutgoingLearningResult(null);
+      learningSessionIntentRef.current = null;
+      preReviewDraftRef.current = null;
+      setReviewOnlySession(false);
       setLearningStateSyncState(INITIAL_LEARNING_STATE_SYNC_STATE);
       setSpaceStateSyncState(INITIAL_SPACE_STATE_SYNC_STATE);
       startTransition(() => {
@@ -1623,7 +1638,7 @@ function AppShell({
     completeAcceptedAccountDeletionCleanup, deletionRecoveryChallenge, deletionRecoveryCode, deletionRecoveryResendAt]);
   const { width, height, fontScale } = useWindowDimensions();
   const deviceClass = getDeviceClass(width, height);
-  const usesAccessibilityLayout = fontScale >= 1.3;
+  const usesAccessibilityLayout = usesLargeTextLayout(fontScale);
   const route = ROUTES.find(item => item.key === activeRoute) ?? ROUTES[0];
   const isAuthenticated = authState.stage === 'authenticated';
   const activeLearningNoticeScope = isAuthenticated
@@ -1818,9 +1833,13 @@ function AppShell({
     outgoingLearningResult.track === learningTrack ? outgoingLearningResult : null;
 
   const presentedLearningCard = outgoingResult?.card ?? currentLearningCard;
-  const presentedLearningCardState = outgoingResult?.cardState ?? learningCardState;
+  const presentedLearningCardState = outgoingResult
+    ? {...outgoingResult.cardState, isFavorited: readSpaceCardState(outgoingResult.card.card_id).isFavorited}
+    : learningCardState;
   const presentedLearningResult = outgoingResult?.result ?? learningCurrentResult;
   const presentedLearningPhase = outgoingResult?.phase ?? learningPhase;
+  const presentedLearningSession = outgoingResult?.session ?? learningSession;
+  const presentedLearningAttemptId = outgoingResult?.attemptId ?? learningAudioAttemptId;
   const activeLearningContextCard =
     currentLearningCard ?? currentRoundSpaceCard;
   // A durable sleep intent hides this question while the server chooses its
@@ -2172,6 +2191,25 @@ function AppShell({
     !deletionRecoveryReadBlocked &&
     accountBootstrapHydrationSettled &&
     !accountBootstrapIntegrityBlocked;
+  const presentedResourcesLocked = outgoingResult !== null && (
+    outgoingResult.saveState !== 'accepted' || !outgoingResult.nextReady ||
+    outgoingResult.advanceRequested || learningAdvancePending ||
+    learningBootstrapStatus !== 'ready' || !canWriteAccountState ||
+    learningSession?.track !== outgoingResult.track ||
+    learningSession?.sourceId !== outgoingResult.session.sourceId ||
+    learningSession?.contentVersion !== outgoingResult.session.contentVersion ||
+    !learningSession?.catalogCards.some(card => card.card_id === outgoingResult.card.card_id)
+  );
+  const presentedResourceIdentity = JSON.stringify([
+    activeLearningNoticeScope, activeRoute, learningTrack,
+    presentedLearningSession?.track, presentedLearningSession?.sourceId,
+    presentedLearningSession?.contentVersion, presentedLearningAttemptId,
+    presentedLearningCard?.card_id, presentedLearningCard?.audio,
+    presentedResourcesLocked, canWriteAccountState,
+    Boolean(presentedLearningCard && readSpaceCardState(presentedLearningCard.card_id).isSleeping),
+  ]);
+  const presentedResourceIdentityRef = useRef(presentedResourceIdentity);
+  presentedResourceIdentityRef.current = presentedResourceIdentity;
   const hasCheckedInToday = checkedInDayKey === todayKey;
   const learningCompletedCount = canonicalProgressSnapshot
     ? Math.max(
@@ -2803,6 +2841,14 @@ function AppShell({
           setPendingLearningEventCount(replay.pendingCount);
           setRejectedLearningNotice({sessionScopeKey: replaySessionScopeKey, count: replay.rejectedCount});
           const hasNewRejection = replay.rejectedEntries.length > 0;
+          setOutgoingLearningResult(previous => {
+            if (!previous || previous.scope !== replaySessionScopeKey) return previous;
+            const matches = (entry: typeof replay.acknowledgedEntries[number]) =>
+              entry.track === previous.track && entry.event.selection_id === previous.session.serverSelection?.selectionId;
+            if (replay.acknowledgedEntries.some(matches)) return {...previous, saveState: 'accepted'};
+            if (replay.rejectedEntries.some(rejected => matches(rejected.entry))) return {...previous, saveState: 'rejected'};
+            return previous;
+          });
           if (replay.acknowledgedEntries.length > 0 || hasNewRejection) {
             if (runtimeAccountBootstrapMode === 'remote') {
               setLearningSession(null);
@@ -3395,10 +3441,9 @@ function AppShell({
         stateMap,
         nextMembershipState,
       );
-      const nextReviewCards = selectReviewCards(
-        nextVisibleCards,
-        learningCompletedResults,
-      );
+      const nextReviewCards = learningPhase === 'review' && learningCurrentResult !== null
+        ? reviewSessionCards.filter(card => nextVisibleCards.some(visible => visible.card_id === card.card_id))
+        : selectReviewCards(nextVisibleCards, learningCompletedResults);
       const shouldStayInReview =
         learningPhase === 'review' &&
         resolveMembershipAccess(nextMembershipState).completeAlgorithm &&
@@ -3407,7 +3452,9 @@ function AppShell({
       const nextSessionCards = shouldStayInReview
         ? nextReviewCards
         : nextVisibleCards;
-      const nextIndex = shouldStayInReview
+      const retainedIndex = nextPhase === learningPhase
+        ? nextSessionCards.findIndex(card => card.card_id === currentLearningCardIdRef.current) : -1;
+      const nextIndex = retainedIndex >= 0 ? retainedIndex : shouldStayInReview
         ? countCompletedCards(nextReviewCards, reviewCompletedResults)
         : countCompletedCards(nextVisibleCards, learningCompletedResults);
 
@@ -3441,11 +3488,13 @@ function AppShell({
       countCompletedCards,
       createTrackedLearningAttemptState,
       learningCompletedResults,
+      learningCurrentResult,
       learningPhase,
       learningSession,
       membershipState,
       resolveVisibleLearningCards,
       reviewCompletedResults,
+      reviewSessionCards,
       spaceCardStateById,
     ],
   );
@@ -4116,8 +4165,11 @@ function AppShell({
       return;
     }
 
-    learningSessionRepository
-      .loadSession(authenticatedRuntimeContext, learningTrack)
+    const requestedIntent = learningSessionIntentRef.current;
+    const loadSession = requestedIntent === 'review'
+      ? learningSessionRepository.loadSession(authenticatedRuntimeContext, learningTrack, {intent: 'review'})
+      : learningSessionRepository.loadSession(authenticatedRuntimeContext, learningTrack);
+    loadSession
       .then(async session => {
         if (isCancelled ||
           getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== learningLoadSessionScopeKey) {
@@ -4237,6 +4289,8 @@ function AppShell({
         learningAuthoritySnapshotRef.current = accountBootstrapSnapshot;
         setMappedAccountBootstrapSnapshot(accountBootstrapSnapshot);
         setLearningSession(session);
+        learningSessionIntentRef.current = null;
+        setReviewOnlySession(requestedIntent === 'review');
         setLearningRoundContinuePending(false);
         setLearningRoundContinueError(null);
         if (!preservesServerAttempt) {
@@ -4291,12 +4345,17 @@ function AppShell({
             isFavorited: readSpaceCardState(nextCard.card_id).isFavorited,
           });
         } else {
-          setLearningCardState(
-            nextCard ? createTrackedLearningAttemptState(nextCard) : null,
-          );
+          const draft = preReviewDraftRef.current;
+          const restoreDraft = session.schedulingMode === 'server' && session.serverSelection?.phase === 'learning' &&
+            draft?.scope === learningLoadSessionScopeKey && draft.track === session.track &&
+            draft.contentVersion === session.contentVersion && draft.cardId === nextCard?.card_id;
+          setLearningCardState(restoreDraft ? {...draft.state, isFavorited: readSpaceCardState(draft.cardId).isFavorited}
+            : nextCard ? createTrackedLearningAttemptState(nextCard) : null);
+          if (restoreDraft) preReviewDraftRef.current = null;
         }
         if (learningEventEnqueueInFlight.current === null && pendingLearningEventCountRef.current === 0) {
-          setOutgoingLearningResult(null);
+          setOutgoingLearningResult(previous => previous?.scope === learningLoadSessionScopeKey && previous.track === session.track
+            ? previous.advanceRequested ? null : {...previous, nextReady: true} : previous);
         }
         setLearningBootstrapStatus('ready');
       })
@@ -4309,6 +4368,16 @@ function AppShell({
           return;
         }
 
+        if (requestedIntent === 'review' && error instanceof RemoteHttpError && error.code === 'review_access_unavailable') {
+          learningSessionIntentRef.current = null;
+          setReviewOnlySession(false);
+          setLearningBootstrapStatus('ready');
+          setMembershipGate('review');
+          setMembershipError('复习权限已变化，请查看当前会员状态。');
+          setActiveRoute('mine');
+          retryCanonicalAccountBootstrap({forceFresh: true}).catch(() => undefined);
+          return;
+        }
         if (isRemoteAuthorizationError(error)) {
           clearOriginSessionAfterAuthorizationError(
             error,
@@ -4590,7 +4659,7 @@ function AppShell({
   const patchLearningCardState = (
     updater: (state: LearningCardState) => LearningCardState,
   ) => {
-    if (currentLearningCard === null || learningCurrentResult !== null) {
+    if (currentLearningCard === null || learningCurrentResult !== null || outgoingResult !== null) {
       return;
     }
 
@@ -5190,7 +5259,8 @@ function AppShell({
   };
 
   const commitLearningCardAdvance = (completedResult: LearningCardResult) => {
-    const nextResults = [...activeCompletedResults, completedResult];
+    const nextResults = activeCompletedResults.some(result => result === completedResult)
+      ? activeCompletedResults : [...activeCompletedResults, completedResult];
     const nextIndex = learningIndex + 1;
 
     if (learningPhase === 'review') {
@@ -5352,172 +5422,20 @@ function AppShell({
     ],
   );
 
-  const learningHandlers = {
-    onTogglePeek: () => {
-      patchLearningCardState(current => ({
-        ...current,
-        hasUsedPeek: true,
-        isPeeked: !current.isPeeked,
-      }));
-    },
-    onToggleFavorite: () => {
-      if (currentLearningCard === null || learningCardState === null) {
-        return;
+  // Confirming an answer saves it. Next only leaves the read-only result.
+  const saveLearningCardResult = (completedResult: LearningCardResult, completedState: LearningCardState) => {
+    if (learningEventEnqueueInFlight.current !== null || outgoingResult !== null) return;
+    if (runtimeLearningEventsMode === 'local') {
+      if (learningPhase === 'review') {
+        setReviewCompletedResults(previous => [...previous.filter(result => result.cardId !== completedResult.cardId), completedResult]);
+        setLearningCompletedResults(previous => [...previous.filter(result => result.cardId !== completedResult.cardId), completedResult]);
+      } else {
+        setLearningCompletedResults(previous => [...previous.filter(result => result.cardId !== completedResult.cardId), completedResult]);
       }
-
-      const cardId = currentLearningCard.card_id;
-      const nextFavorited = !learningCardState.isFavorited;
-
-      persistSpaceAction(cardId, 'favorite', nextFavorited, action => {
-        applyDurableSpaceAction(action);
-
-        if (currentLearningCardIdRef.current === cardId) {
-          setLearningCardState(current =>
-            current === null
-              ? null
-              : { ...current, isFavorited: nextFavorited },
-          );
-        }
-      });
-    },
-    onToggleHint: () => {
-      patchLearningCardState(current => ({
-        ...current,
-        hasUsedHint: true,
-        isHintVisible: !current.isHintVisible,
-      }));
-    },
-    onFlip: () => {
-      patchLearningCardState(current => ({
-        ...current,
-        isFlipped: true,
-      }));
-    },
-    onSetFlipConfidence: (value: 'confident' | 'review') => {
-      if (currentLearningCard === null || learningCardState === null) {
-        return;
-      }
-
-      const nextState = {
-        ...learningCardState,
-        isFlipped: true,
-        flipConfidence: value,
-      };
-
-      setLearningCardState(nextState);
-      setLearningCurrentResult(
-        evaluateLearningCard(currentLearningCard, nextState),
-      );
-      setLearningScreen('practice');
-    },
-    onSelectOption: (optionId: string) => {
-      patchLearningCardState(current => ({
-        ...current,
-        selectedOptionId: optionId,
-      }));
-    },
-    onSetLockSelection: (slotId: string, value: string) => {
-      if (!currentLearningCard || currentLearningCard.interaction_id !== 'lock' || !learningCardState || learningCurrentResult) return;
-      const nextState = selectLockOption(currentLearningCard, learningCardState, slotId, value);
-      setLearningCardState(nextState);
-      const result = evaluateLearningCard(currentLearningCard, nextState);
-      if (result) {setLearningCurrentResult(result); setLearningScreen('practice');}
-    },
-    onToggleEliminationItem: (itemId: string) => {
-      patchLearningCardState(current => ({
-        ...current,
-        eliminatedItemIds: current.eliminatedItemIds.includes(itemId)
-          ? current.eliminatedItemIds.filter(currentId => currentId !== itemId)
-          : [...current.eliminatedItemIds, itemId],
-      }));
-    },
-    onSelectSwipeState: (stateId: string) => {
-      if (currentLearningCard === null || learningCardState === null) {
-        return;
-      }
-
-      const nextState = {
-        ...learningCardState,
-        swipeSelection: stateId,
-      };
-
-      setLearningCardState(nextState);
-      setLearningCurrentResult(
-        evaluateLearningCard(currentLearningCard, nextState),
-      );
-      setLearningScreen('practice');
-    },
-    onSubmitCurrentCard: () => {
-      if (currentLearningCard === null || learningCardState === null) {
-        return;
-      }
-
-      setLearningCurrentResult(
-        evaluateLearningCard(currentLearningCard, learningCardState),
-      );
-      setLearningScreen('practice');
-    },
-    onAdvanceCard: () => {
-      if (outgoingResult !== null) {
-        if (learningAdvancePending || (learningStateSyncState.state !== 'error' &&
-          !(learningBootstrapStatus === 'error' && accountBootstrapStatus !== 'pending'))) return;
-        const retryScope = outgoingResult.scope;
-        const retryTrack = outgoingResult.track;
-        learningEventReplayPaused.current = false;
-        setLearningAdvancePending(true);
-        startMutationReplay({allowCanonicalRefreshRetry: true}).then(() => {
-          if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== retryScope || learningTrackRef.current !== retryTrack) return;
-          if (pendingLearningEventCountRef.current === 0) requestLearningSessionRefresh();
-        }).catch(() => undefined).finally(() => {
-          if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === retryScope && learningTrackRef.current === retryTrack) setLearningAdvancePending(false);
-        });
-        return;
-      }
-      if (
-        learningCurrentResult === null ||
-        learningAdvancePending ||
-        learningEventEnqueueInFlight.current !== null
-      ) {
-        return;
-      }
-
-      if (
-        runtimeLearningEventsMode === 'remote' &&
-        pendingLearningEventCountRef.current > 0
-      ) {
-        setLearningAdvancePending(true);
-        setLearningStateSyncState({
-          detail: '正在同步答题记录，完成后即可继续。',
-          label: '同步中',
-          state: 'syncing',
-        });
-        startMutationReplay()
-          .catch((error: unknown) => {
-            setLearningStateSyncState({
-              detail: getUserFacingErrorMessage(
-                error,
-                '已保留的答题记录暂时无法同步，请重试。',
-              ),
-              label: '同步失败',
-              state: 'error',
-            });
-          })
-          .finally(() => setLearningAdvancePending(false));
-        return;
-      }
-
-      const completedResult = learningCurrentResult;
-
-      if (runtimeLearningEventsMode === 'local') {
-        commitLearningCardAdvance(completedResult);
-        setLearningStateSyncState({
-          detail: '答题记录已保存。',
-          label: '已记录',
-          state: 'idle',
-        });
-        return;
-      }
-
+      setLearningStateSyncState({detail: '本次作答已保存。', label: '已记录', state: 'idle'});
+      return;
+    }
+    if (pendingLearningEventCountRef.current > 0) return;
       const completionSession = authSessionCoordinator.getCurrentSession();
       const completionSessionScopeKey =
         getAuthSessionScopeKey(completionSession);
@@ -5563,11 +5481,12 @@ function AppShell({
       };
 
       learningEventEnqueueInFlight.current = enqueueOperation;
-      if (currentLearningCard !== null && learningCardState !== null) {
+      if (currentLearningCard !== null) {
         setOutgoingLearningResult({scope: completionSessionScopeKey, track: completedTrack,
-          card: currentLearningCard, cardState: learningCardState, result: completedResult,
+          card: currentLearningCard, cardState: completedState, result: completedResult,
           session: learningSession, phase: learningPhase, index: presentedIndex,
-          cards: presentedCards, results: presentedResults, attemptId: learningAudioAttemptId});
+          cards: presentedCards, results: presentedResults, attemptId: learningAudioAttemptId,
+          saveState: 'saving', nextReady: false, advanceRequested: false});
         setLearningScreen('practice');
       }
       setLearningAdvancePending(true);
@@ -5591,7 +5510,7 @@ function AppShell({
           if (
             getAuthSessionScopeKey(
               authSessionCoordinator.getCurrentSession(),
-            ) !== completionSessionScopeKey
+            ) !== completionSessionScopeKey || learningTrackRef.current !== completedTrack
           ) {
             return;
           }
@@ -5616,12 +5535,13 @@ function AppShell({
           if (
             getAuthSessionScopeKey(
               authSessionCoordinator.getCurrentSession(),
-            ) !== completionSessionScopeKey
+            ) !== completionSessionScopeKey || learningTrackRef.current !== completedTrack
           ) {
             return;
           }
 
-          commitLearningCardAdvance(completedResult);
+          setOutgoingLearningResult(previous => previous?.scope === completionSessionScopeKey &&
+            previous.track === completedTrack ? {...previous, saveState: 'queued'} : previous);
           setLearningStateSyncState({
             detail: '答题记录已保留，联网后会自动更新。',
             label: '待同步',
@@ -5632,7 +5552,7 @@ function AppShell({
           if (
             getAuthSessionScopeKey(
               authSessionCoordinator.getCurrentSession(),
-            ) !== completionSessionScopeKey
+            ) !== completionSessionScopeKey || learningTrackRef.current !== completedTrack
           ) {
             return;
           }
@@ -5650,11 +5570,180 @@ function AppShell({
           if (learningEventEnqueueInFlight.current === enqueueOperation) {
             learningEventEnqueueInFlight.current = null;
           }
-          setLearningAdvancePending(false);
+          if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === completionSessionScopeKey && learningTrackRef.current === completedTrack) setLearningAdvancePending(false);
         }
       })();
+  };
+
+  const startRemoteReview = () => {
+    if (!membershipAccess.completeAlgorithm) {
+      setMembershipGate('review');
+      setActiveRoute('mine');
+      setLearningScreen('practice');
+      return;
+    }
+    if (!canWriteAccountState || learningAdvancePending || learningEventEnqueueInFlight.current !== null ||
+      pendingLearningEventCountRef.current > 0 || learningEventRecoveryPending ||
+      (learningBootstrapStatus !== 'ready' && learningBootstrapStatus !== 'error')) {
+      setPauseNotice('还有记录等待同步，请同步后再开始复习。');
+      return;
+    }
+    const scope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
+    if (!scope) return;
+    if (learningPhase === 'learning' && currentLearningCard && learningCardState && !learningCurrentResult && !outgoingResult) {
+      preReviewDraftRef.current = {scope, track: learningTrack, contentVersion: learningSession?.contentVersion ?? null,
+        cardId: currentLearningCard.card_id, state: learningCardState};
+    }
+    setOutgoingLearningResult(null);
+    learningSessionIntentRef.current = 'review';
+    setReviewOnlySession(true);
+    setPauseNotice(null);
+    setActiveRoute('learning');
+    setLearningScreen('practice');
+    requestLearningSessionRefresh();
+  };
+
+  const learningHandlers = {
+    onTogglePeek: () => {
+      patchLearningCardState(current => ({
+        ...current,
+        hasUsedPeek: true,
+        isPeeked: !current.isPeeked,
+      }));
+    },
+    onToggleFavorite: () => {
+      if (presentedLearningCard === null || presentedLearningCardState === null ||
+          presentedResourcesLocked || presentedResourceIdentityRef.current !== presentedResourceIdentity ||
+          getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== activeLearningNoticeScope) {
+        return;
+      }
+
+      const cardId = presentedLearningCard.card_id;
+      const nextFavorited = !presentedLearningCardState.isFavorited;
+      const originTrack = learningTrack;
+      const originContentVersion = presentedLearningSession?.contentVersion;
+
+      persistSpaceAction(cardId, 'favorite', nextFavorited, action => {
+        if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== activeLearningNoticeScope ||
+            learningTrackRef.current !== originTrack ||
+            (runtimeAccountBootstrapMode === 'remote' &&
+              accountBootstrapSnapshotRef.current?.content.version !== originContentVersion)) return;
+        applyDurableSpaceAction(action);
+
+        if (currentLearningCardIdRef.current === cardId) {
+          setLearningCardState(current =>
+            current === null
+              ? null
+              : { ...current, isFavorited: nextFavorited },
+          );
+        }
+      });
+    },
+    onToggleHint: () => {
+      patchLearningCardState(current => ({
+        ...current,
+        hasUsedHint: true,
+        isHintVisible: !current.isHintVisible,
+      }));
+    },
+    onFlip: () => {
+      patchLearningCardState(current => ({
+        ...current,
+        isFlipped: true,
+      }));
+    },
+    onSetFlipConfidence: (value: 'confident' | 'review') => {
+      if (currentLearningCard === null || learningCardState === null || learningCurrentResult !== null || outgoingResult !== null) {
+        return;
+      }
+
+      const nextState = {
+        ...learningCardState,
+        isFlipped: true,
+        flipConfidence: value,
+      };
+
+      setLearningCardState(nextState);
+      const result = evaluateLearningCard(currentLearningCard, nextState);
+      setLearningCurrentResult(result);
+      if (result) saveLearningCardResult(result, nextState);
+      setLearningScreen('practice');
+    },
+    onSelectOption: (optionId: string) => {
+      patchLearningCardState(current => ({
+        ...current,
+        selectedOptionId: optionId,
+      }));
+    },
+    onSetLockSelection: (slotId: string, value: string) => {
+      if (!currentLearningCard || currentLearningCard.interaction_id !== 'lock' || !learningCardState || learningCurrentResult || outgoingResult) return;
+      const nextState = selectLockOption(currentLearningCard, learningCardState, slotId, value);
+      setLearningCardState(nextState);
+      const result = evaluateLearningCard(currentLearningCard, nextState);
+      if (result) {setLearningCurrentResult(result); setLearningScreen('practice'); saveLearningCardResult(result, nextState);}
+    },
+    onToggleEliminationItem: (itemId: string) => {
+      patchLearningCardState(current => ({
+        ...current,
+        eliminatedItemIds: current.eliminatedItemIds.includes(itemId)
+          ? current.eliminatedItemIds.filter(currentId => currentId !== itemId)
+          : [...current.eliminatedItemIds, itemId],
+      }));
+    },
+    onSelectSwipeState: (stateId: string) => {
+      if (currentLearningCard === null || learningCardState === null || learningCurrentResult !== null || outgoingResult !== null) {
+        return;
+      }
+
+      const nextState = {
+        ...learningCardState,
+        swipeSelection: stateId,
+      };
+
+      setLearningCardState(nextState);
+      const result = evaluateLearningCard(currentLearningCard, nextState);
+      setLearningCurrentResult(result);
+      if (result) saveLearningCardResult(result, nextState);
+      setLearningScreen('practice');
+    },
+    onSubmitCurrentCard: () => {
+      if (currentLearningCard === null || learningCardState === null || learningCurrentResult !== null || outgoingResult !== null) {
+        return;
+      }
+
+      const result = evaluateLearningCard(currentLearningCard, learningCardState);
+      setLearningCurrentResult(result);
+      if (result) saveLearningCardResult(result, learningCardState);
+      setLearningScreen('practice');
+    },
+    onAdvanceCard: () => {
+      if (outgoingResult !== null) {
+        if (outgoingResult.nextReady && pendingLearningEventCountRef.current === 0 && !learningAdvancePending) {
+          setOutgoingLearningResult(null);
+          setLearningScreen('practice');
+          return;
+        }
+        setOutgoingLearningResult(previous => previous ? {...previous, advanceRequested: true} : previous);
+        if (learningAdvancePending || (learningStateSyncState.state !== 'error' &&
+          !(learningBootstrapStatus === 'error' && accountBootstrapStatus !== 'pending'))) return;
+        const retryScope = outgoingResult.scope;
+        const retryTrack = outgoingResult.track;
+        learningEventReplayPaused.current = false;
+        setLearningAdvancePending(true);
+        startMutationReplay({allowCanonicalRefreshRetry: true}).then(() => {
+          if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== retryScope || learningTrackRef.current !== retryTrack) return;
+          if (pendingLearningEventCountRef.current === 0) requestLearningSessionRefresh();
+        }).catch(() => undefined).finally(() => {
+          if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === retryScope && learningTrackRef.current === retryTrack) setLearningAdvancePending(false);
+        });
+        return;
+      }
+      if (!learningCurrentResult || !learningCardState || learningAdvancePending || learningEventEnqueueInFlight.current !== null) return;
+      if (runtimeLearningEventsMode === 'local') commitLearningCardAdvance(learningCurrentResult);
+      else saveLearningCardResult(learningCurrentResult, learningCardState);
     },
     onStartReview: () => {
+      if (runtimeLearningEventsMode === 'remote') { startRemoteReview(); return; }
       if (reviewCandidateCards.length === 0) {
         return;
       }
@@ -5969,6 +6058,7 @@ function AppShell({
     });
   };
   const startReviewFromStatistics = () => {
+    if (runtimeLearningEventsMode === 'remote') { startRemoteReview(); return; }
     if (reviewCandidateCards.length === 0) {
       openLearningRoute();
       return;
@@ -6000,6 +6090,13 @@ function AppShell({
     setLearningBootstrapError(null);
   };
   const retryEmptyLearningSession = () => {
+    if (reviewOnlySession) {
+      reviewOnlySessionRef.current = false;
+      learningSessionIntentRef.current = null;
+      setReviewOnlySession(false);
+      requestLearningSessionRefresh();
+      return;
+    }
     if (pendingLearningEventCountRef.current > 0 || isServerSelectionSleeping) {
       const retryScope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
       startMutationReplay({allowCanonicalRefreshRetry: true}).then(() => {
@@ -6017,31 +6114,28 @@ function AppShell({
     }
     requestLearningSessionRefresh();
   };
-  const audioRefreshIdentity = JSON.stringify([
-    activeLearningNoticeScope, activeRoute, learningSession?.track,
-    learningSession?.sourceId, learningSession?.contentVersion,
-    learningAudioAttemptId, currentLearningCard?.card_id,
-    currentLearningCard?.audio?.asset_id, currentLearningCard?.audio?.sha256,
-    currentLearningCard?.audio?.duration_ms, isServerSelectionSleeping,
-    canWriteAccountState,
-  ]);
-  const audioRefreshIdentityRef = useRef(audioRefreshIdentity);
-  audioRefreshIdentityRef.current = audioRefreshIdentity;
   const refreshLearningAudioDownload = useCallback<RefreshLearningAudioDownload>(async selection => {
     const origin = authSessionCoordinator.getCurrentSession();
     const originScope = getAuthSessionScopeKey(origin);
-    const card = currentLearningCard;
-    const session = learningSession;
+    const card = presentedLearningCard;
+    const session = presentedLearningSession;
     const isCurrent = () =>
       originScope !== null &&
       getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === originScope &&
-      audioRefreshIdentityRef.current === audioRefreshIdentity;
+      learningTrackRef.current === session?.track &&
+      presentedResourceIdentityRef.current === presentedResourceIdentity &&
+      (runtimeAccountBootstrapMode !== 'remote' || (
+        accountBootstrapSnapshotRef.current?.track === session?.track &&
+        accountBootstrapSnapshotRef.current?.content.source.id === session?.sourceId &&
+        accountBootstrapSnapshotRef.current?.content.version === session?.contentVersion
+      ));
     if (
       !origin || !isCurrent() || activeRoute !== 'learning' ||
-      !canWriteAccountState || isServerSelectionSleeping ||
+      !canWriteAccountState || presentedResourcesLocked ||
+      (card && readSpaceCardState(card.card_id).isSleeping) ||
       !card?.audio || !session ||
       !learningSessionRepository.refreshAudioDownload ||
-      selection.authorityToken !== learningAudioAttemptId ||
+      selection.authorityToken !== presentedLearningAttemptId ||
       selection.cardToken !== `${card.card_id}:${card.audio.sha256}` ||
       selection.asset.asset_id !== card.audio.asset_id ||
       selection.asset.sha256 !== card.audio.sha256 ||
@@ -6056,9 +6150,9 @@ function AppShell({
     if (!isCurrent()) throw new RemoteRequestLifecycleError('caller_cancelled');
     return download;
   }, [
-    activeRoute, audioRefreshIdentity, authSessionCoordinator, canWriteAccountState,
-    currentLearningCard, isServerSelectionSleeping, learningAudioAttemptId,
-    learningSession, learningSessionRepository,
+    activeRoute, presentedResourceIdentity, authSessionCoordinator, canWriteAccountState,
+    presentedLearningCard, presentedResourcesLocked, presentedLearningAttemptId,
+    presentedLearningSession, learningSessionRepository, readSpaceCardState, runtimeAccountBootstrapMode,
   ]);
 
   const accessibleSpaceCards = learningSession
@@ -6159,15 +6253,17 @@ function AppShell({
               : '设置已同步',
         }
       : null;
-  const outgoingResultError = outgoingResult !== null && (
+  const outgoingResultError = outgoingResult !== null && !outgoingResult.nextReady && (
     learningStateSyncState.state === 'error' ||
     (learningBootstrapStatus === 'error' && accountBootstrapStatus !== 'pending')
   );
   const learningAdvanceState = outgoingResult !== null ? {
-    busy: learningAdvancePending || !outgoingResultError,
+    busy: learningAdvancePending || (!outgoingResult.nextReady && !outgoingResultError),
     detail: outgoingResultError
       ? learningStateSyncState.state === 'error' ? learningStateSyncState.detail : learningBootstrapError
-      : '正在准备下一张…',
+      : outgoingResult.saveState === 'rejected' ? '这次作答未计入，可以继续学习。'
+      : outgoingResult.saveState === 'accepted' ? outgoingResult.nextReady ? '本次作答已保存。' : '答题记录已保存，正在更新学习安排。'
+      : outgoingResult.saveState === 'queued' ? '答题记录已保存在本机，正在同步。' : '正在保存答题记录。',
     needsRetry: outgoingResultError && !learningAdvancePending,
   } : {
     busy: learningAdvancePending,
@@ -6213,6 +6309,9 @@ function AppShell({
       learningTrackRef.current = nextTrack;
       setLearningTrack(nextTrack);
       setOutgoingLearningResult(null);
+      learningSessionIntentRef.current = null;
+      preReviewDraftRef.current = null;
+      setReviewOnlySession(false);
       applyAuthenticatedRuntimeHydration(hydration, {forceFresh: true});
       learningSessionScopeKeyRef.current = scopeKey;
       learningAuthoritySnapshotRef.current = hydration.accountBootstrap;
@@ -6325,7 +6424,7 @@ function AppShell({
     <LearningSurface
       advanceState={learningAdvanceState}
       deferAdvanceMotion={runtimeLearningEventsMode === 'remote'}
-      interactionLocked={outgoingResult !== null}
+      interactionLocked={presentedResourcesLocked}
       audioAttemptId={outgoingResult?.attemptId ?? learningAudioAttemptId}
       showCardProgress={(outgoingResult?.session ?? learningSession)?.schedulingMode !== 'server'}
       allowBundledAudio={learningSession?.schedulingMode === 'local' && learningSession.sourceId === 'bundled-card-make-v1'}
@@ -6333,9 +6432,10 @@ function AppShell({
       contentManifest={(outgoingResult?.session ?? learningSession)?.contentManifest ?? null}
       refreshAudioDownload={refreshLearningAudioDownload}
       currentCard={outgoingResult?.card ?? (isServerSelectionSleeping || (isLocalLearning && localBatchComplete) ? null : currentLearningCard)}
-      currentCardState={outgoingResult?.cardState ?? (isServerSelectionSleeping ? null : learningCardState)}
+      currentCardState={outgoingResult ? presentedLearningCardState : (isServerSelectionSleeping ? null : learningCardState)}
       emptySession={learningSession?.schedulingMode === 'server' ? {
         nextDueAt: learningSession.nextDueAt,
+        reviewOnly: reviewOnlySession,
         pendingSleep: isServerSelectionSleeping,
         pendingSync: pendingLearningEventCount > 0 || learningEventRecoveryPending,
         onRefresh: retryEmptyLearningSession,
@@ -6449,7 +6549,7 @@ function AppShell({
   };
   const contentWithSessionActions = route.key === 'learning' && (learningBootstrapStatus === 'ready' || outgoingResult !== null)
     ? visibleSegment?.summaryVisible && outgoingResult === null ? (
-      <ScrollView contentContainerStyle={styles.segmentSummary} testID="learning-segment-summary">
+      <ScrollView style={{flex: 1}} contentContainerStyle={styles.segmentSummary} testID="learning-segment-summary">
         <Text accessibilityRole="header" style={[styles.segmentTitle, {color: palette.text}]}>这一小段练完了</Text>
         <Text style={[styles.segmentDetail, {color: palette.textMuted}]}>刚才练了：找比较对象、根据线索判断范围。</Text>
         <Pressable accessibilityRole="button" testID="learning-segment-continue" style={[styles.segmentPrimary, {backgroundColor: palette.primaryActionSurface}]} onPress={() => setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous)}>
@@ -7303,7 +7403,7 @@ function PhoneShell({
   route: ShellRoute;
 }) {
   const { fontScale } = useWindowDimensions();
-  const usesAccessibilityLayout = fontScale >= 1.3;
+  const usesAccessibilityLayout = usesLargeTextLayout(fontScale);
   const readingScroll = useRef<ScrollView>(null);
   useEffect(() => {
     if (activeRoute === 'learning') readingScroll.current?.scrollTo({y: 0, animated: false});
@@ -7319,7 +7419,7 @@ function PhoneShell({
         route={route}
       />
       <View style={styles.shellContent}>
-        {usesAccessibilityLayout ? (
+        {usesAccessibilityLayout && activeRoute !== 'learning' ? (
           <ScrollView
             ref={readingScroll}
             contentContainerStyle={styles.shellAccessibleContent}
@@ -9758,9 +9858,9 @@ function getMembershipCardSummary(
 
 const styles = StyleSheet.create({
   sessionContent: {flex: 1},
-  sessionToolbar: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20},
-  sessionCount: {fontSize: 12},
-  segmentSecondary: {minHeight: 44, paddingHorizontal: 12, justifyContent: 'center', alignItems: 'center'},
+  sessionToolbar: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 20},
+  sessionCount: {fontSize: 12, flexShrink: 1},
+  segmentSecondary: {minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center', alignItems: 'center'},
   segmentSummary: {padding: 24, gap: 20, flexGrow: 1, justifyContent: 'center'},
   segmentTitle: {fontSize: 26, fontWeight: '600'},
   segmentDetail: {fontSize: 16, lineHeight: 26},
@@ -11409,7 +11509,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0, elevation: 0,
   },
   phoneTabLabel: {
-    fontSize: 10, fontWeight: '500', lineHeight: 15,
+    fontSize: 10, fontWeight: '500', lineHeight: 15, textAlign: 'center',
   },
 });
 

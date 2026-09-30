@@ -1401,14 +1401,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "【长难句主干：主谓宾补】\n\n本盒训练识别“宾语 + 宾补”结构：主语 + 谓语 + 宾语 + 补足成分。\n\n高频形式：\n1) make/find/consider + 宾语 + 形容词/名词\n2) keep/leave + 宾语 + doing/done\n3) appoint/name + 宾语 + 名词补语\n\n关键：补语不是新动作，而是对宾语状态或身份的补充说明。",
-      "support": "【长难句主干：主谓宾补】\n\n本盒训练识别“宾语 + 宾补”结构：主语 + 谓语 + 宾语 + 补足成分。\n\n高频形式：\n1) make/find/consider + 宾语 + 形容词/名词\n2) keep/leave + 宾语 + doing/done\n3) appoint/name + 宾语 + 名词补语\n\n关键：补语不是新动作，而是对宾语状态或身份的补充说明。",
-      "context": "【长难句主干：主谓宾补】\n\n本盒训练识别“宾语 + 宾补”结构：主语 + 谓语 + 宾语 + 补足成分。\n\n高频形式：\n1) make/find/consider + 宾语 + 形容词/名词\n2) keep/leave + 宾语 + doing/done\n3) appoint/name + 宾语 + 名词补语\n\n关键：补语不是新动作，而是对宾语状态或身份的补充说明。"
+      "prompt": "比较两个句子：\nThey named Maya captain.\nThey watched Maya cross the field.\n\n任务：每句中 Maya 后面的成分在说明谁？它表达身份还是动作？",
+      "support": "比较两个句子：\nThey named Maya captain.\nThey watched Maya cross the field.\n\n任务：每句中 Maya 后面的成分在说明谁？它表达身份还是动作？",
+      "context": "比较两个句子：\nThey named Maya captain.\nThey watched Maya cross the field.\n\n任务：每句中 Maya 后面的成分在说明谁？它表达身份还是动作？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "宾语补足语说明宾语的状态、身份或动作，不是第二个并列宾语。形容词或名词补语常能用“O 是什么或怎么样”来理解；动作型补语及具体搭配需要结合原动词分析。",
-      "exam_tip": "能形成“O is/becomes OC”是强验证信号。"
+      "summary": "name + 宾语 + 名词可给宾语确定身份；watch + 宾语 + 动词原形可表达观察到宾语完成某个动作。宾补可以说明状态、身份或动作。“Maya is captain”能检查身份关系，但动作型补语不能机械改成 be 句；还要看前面动词允许哪种形式。",
+      "exam_tip": "先问“谁是 captain、谁在 cross the field”，再看两个成分与 Maya 的关系。"
     },
     "space_metadata": {
       "box_ref": "1124",
@@ -1416,7 +1416,7 @@
       "group": "长难句主干",
       "box": "主谓宾补"
     },
-    "back_text": "宾语补足语说明宾语的状态、身份或动作，不是第二个并列宾语。形容词或名词补语常能用“O 是什么或怎么样”来理解；动作型补语及具体搭配需要结合原动词分析。"
+    "back_text": "captain 说明 Maya 的身份；cross the field 说明 Maya 的动作。两者都补充说明宾语 Maya，不是另一个并列宾语。"
   },
   {
     "card_id": "112402",

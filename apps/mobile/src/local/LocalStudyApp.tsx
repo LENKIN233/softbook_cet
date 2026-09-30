@@ -1,3 +1,4 @@
+import {usesLargeTextLayout} from '../learning/readability';
 import {StudioPressable as Pressable} from '../learning/NativeMotion';
 import {StudioMark} from '../visual/StudioMark';
 import {StudioRouteIcon} from '../visual/StudioRouteIcon';
@@ -717,7 +718,7 @@ export function LocalStudyApp({
               <SpaceSurface
                 palette={palette}
                 deviceClass={deviceClass}
-                usesAccessibilityLayout={fontScale >= 1.3}
+                usesAccessibilityLayout={usesLargeTextLayout(fontScale)}
                 spaceCards={cards}
                 cardStateById={rows}
                 currentLearningCard={card}

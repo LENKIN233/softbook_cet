@@ -1,3 +1,4 @@
+import {ScaledText as Text} from '../visual/ScaledText';
 import {filterSpaceCards, type SpaceCardFilter} from './cardFilters';
 import { spaceCardPreview } from '../learning/presentation';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -7,7 +8,6 @@ import {
   ScrollView,
   StyleProp,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
   ViewStyle,

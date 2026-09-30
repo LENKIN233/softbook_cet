@@ -164,7 +164,7 @@ export type LearningServerSelection = {
   cardId: string;
   dueAt: string | null;
   phase: 'learning' | 'review';
-  reason: 'persisted_cursor' | 'due_review' | 'catalog_new';
+  reason: 'persisted_cursor' | 'due_review' | 'requested_review' | 'catalog_new';
   selectionId: string;
 };
 

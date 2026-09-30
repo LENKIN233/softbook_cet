@@ -46,6 +46,7 @@ import {
   type MembershipState,
 } from '../../mobile/src/membership/localMembership';
 import {getUserFacingErrorMessage} from '../../mobile/src/runtime/userFacingError';
+import {RemoteHttpError} from '../../mobile/src/runtime/remoteHttpError';
 import {findClientUpdateRequiredError} from '../../mobile/src/runtime/clientVersion';
 import {formatSpaceDisplayName} from '../../mobile/src/shared/uiMetadata/displayMetadata';
 import {
@@ -148,6 +149,8 @@ function AccountApp({
   const [learningPhase, setLearningPhase] = useState<'learning' | 'review'>('learning');
   const [reviewCards, setReviewCards] = useState<LearningCard[]>([]);
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [requestedReview, setRequestedReview] = useState(false);
+  const reviewResumeDraft = useRef<{epoch: number; phone: string; track: LearningTrack; version: string | null; cardId: string; state: LearningCardState; result?: LearningCardResult | null} | null>(null);
   const [cardState, setCardState] = useState<LearningCardState | null>(() =>
     null,
   );
@@ -522,7 +525,7 @@ function AccountApp({
     window.scrollTo({behavior: 'auto', top: 0});
   }, [currentIndex, currentCard?.card_id, session?.serverSelection?.selectionId, learningPhase, route]);
 
-  function applyRemoteSnapshot(snapshot: WebRemoteSnapshot) {
+  function applyRemoteSnapshot(snapshot: WebRemoteSnapshot, reviewOnly = false) {
     statisticsRequestGeneration.current += 1;
     setStatisticsLoading(false);
     setDayNeedsRefresh(false);
@@ -532,6 +535,10 @@ function AccountApp({
       `${phone}:${nextSession.track}`, nextSession.track,
       snapshot.bootstrap.learning.cardStates.map(result => result.cardId)));
     const nextCard = nextSession.cards[0] ?? null;
+    const draft = reviewResumeDraft.current;
+    const restoredDraft = draft && draft.epoch === accountAuthorityGeneration.current && draft.phone === phone &&
+      draft.track === nextSession.track && draft.version === nextSession.contentVersion &&
+      draft.cardId === nextCard?.card_id && nextSession.serverSelection?.phase === 'learning' ? draft.state : null;
     const previousSelectionId = session?.serverSelection?.selectionId ?? null;
     const nextSelectionId = nextSession.serverSelection?.selectionId ?? null;
     const preservesCurrentCardDraft =
@@ -542,6 +549,7 @@ function AccountApp({
       currentCard !== null &&
       nextCard?.card_id === currentCard.card_id;
     setSession(nextSession);
+    setRequestedReview(reviewOnly);
     setCurrentIndex(0);
     setLearningPhase(nextSession.serverSelection?.phase ?? 'learning');
     setReviewCards([]);
@@ -574,8 +582,10 @@ function AccountApp({
           isFavorited: snapshot.favorites.includes(nextCard.card_id),
         };
       }
+      if (restoredDraft && nextCard) return {...restoredDraft, isFavorited: snapshot.favorites.includes(nextCard.card_id)};
       return nextCard ? withFavoriteState(nextCard, snapshot.favorites) : null;
     });
+    if (restoredDraft) reviewResumeDraft.current = null;
     setRemoteError(
       snapshot.spaceSync.rejectedActionCount > 0
         ? '设置未能保存。请刷新后重新操作。'
@@ -712,13 +722,14 @@ function AccountApp({
     }
   }
 
-  async function reloadRemoteState() {
+  async function reloadRemoteState(continueNormalLearning = false) {
     if (remoteController === null) return;
     const generation = accountAuthorityGeneration.current;
     setRemoteBusy(true);
     try {
-      const snapshot = await remoteController.loadAuthenticatedState();
-      if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot);
+      const reviewOnly = requestedReview && sessionComplete && !session?.roundCompletion && !continueNormalLearning;
+      const snapshot = reviewOnly ? await remoteController.requestReview() : await remoteController.loadAuthenticatedState();
+      if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot, reviewOnly);
     } catch (error) {
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '学习进度加载失败，请重试。');
     } finally {
@@ -761,6 +772,8 @@ function AccountApp({
   }
 
   function resetAccountState() {
+    setRequestedReview(false);
+    reviewResumeDraft.current = null;
     statisticsRequestGeneration.current += 1;
     setStatisticsLoading(false);
     setLearningSegment(null);
@@ -952,7 +965,7 @@ function AccountApp({
   async function continueLearning() {
     if (isServerSelectionSleeping) return;
     if (runtime.mode === 'remote') {
-      await reloadRemoteState();
+      await reloadRemoteState(true);
       return;
     }
     if (!activeCards.length || !resolved) return;
@@ -961,6 +974,58 @@ function AccountApp({
     setCurrentIndex(nextIndex);
     setCardState(activeCards[nextIndex] ? withFavoriteState(activeCards[nextIndex], favorites) : null);
     setSessionComplete(endsLocalBatch(nextIndex, activeCards.length));
+  }
+
+  async function startReviewFromStatistics() {
+    if (productBusy) return;
+    if (!membershipAccess?.completeAlgorithm) {
+      setRemoteError('试用或开通会员后，可主动开始复习。');
+      navigateRoute('mine');
+      return;
+    }
+    if (runtime.mode === 'remote') {
+      if (!remoteController) return;
+      const generation = accountAuthorityGeneration.current;
+      if (currentCard && cardState && learningPhase === 'learning' && !resolved && session) {
+        reviewResumeDraft.current = {epoch: generation, phone, track: session.track, version: session.contentVersion, cardId: currentCard.card_id, state: cardState};
+      }
+      setRemoteBusy(true);
+      setRemoteError('');
+      try {
+        if (session?.roundCompletion) {
+          await remoteController.continueServerRound();
+          if (accountAuthorityGeneration.current !== generation) return;
+        }
+        const snapshot = await remoteController.requestReview();
+        if (accountAuthorityGeneration.current !== generation) return;
+        applyRemoteSnapshot(snapshot, true);
+        setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous);
+        setPauseNotice(null);
+        navigateRoute('learning');
+      } catch (error) {
+        if (accountAuthorityGeneration.current !== generation) return;
+        if (error instanceof RemoteHttpError && error.code === 'review_access_unavailable') {
+          setRequestedReview(false);
+          setRemoteError('复习权限已变化，请查看当前会员状态。');
+          navigateRoute('mine');
+        } else {
+          await handleRemoteFailure(error, '复习暂时无法开始，请重试。');
+        }
+      } finally {
+        if (accountAuthorityGeneration.current === generation) setRemoteBusy(false);
+      }
+      return;
+    }
+    const candidates = localLearningCards.filter(card => pendingReviewIds.includes(card.card_id));
+    if (!candidates.length) return;
+    if (learningPhase === 'learning') {
+      setLocalResumeCardId(localLearningCards[currentIndex]?.card_id ?? null);
+      if (session && currentCard && cardState) reviewResumeDraft.current = {epoch: accountAuthorityGeneration.current, phone,
+        track: session.track, version: session.contentVersion, cardId: currentCard.card_id, state: cardState, result: resolved};
+    }
+    setLearningPhase('review'); setReviewCards(candidates); setSessionComplete(false);
+    setCurrentIndex(0); setResolved(null); setCardState(withFavoriteState(candidates[0], favorites));
+    navigateRoute('learning');
   }
 
   function presentAcknowledgedLearningResult(result: LearningCardResult) {
@@ -1438,6 +1503,13 @@ function AccountApp({
               <p className="notice" role="status">学习记录 · {genericSyncStatus}</p>
             </section>
           </main>
+        ) : runtime.mode === 'remote' && requestedReview && sessionComplete && !session?.roundCompletion ? (
+          <main className="workbench"><section className="learning-card" aria-labelledby="empty-review-title">
+            <h1 id="empty-review-title">暂时没有需要复习的卡片</h1>
+            <p>可以继续学习新内容，之后按学习安排复习。</p>
+            {remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}
+            <button className="primary" disabled={productBusy} onClick={() => void reloadRemoteState(true)}>继续学习</button>
+          </section></main>
         ) : sessionComplete ? (
           <SessionCompleteSurface
             phase={learningPhase}
@@ -1475,39 +1547,18 @@ function AccountApp({
               }
               const resumeIndex = learningPhase === 'review' && resumeLearningIndex < localLearningCards.length ? resumeLearningIndex : 0;
               const nextIndex = Math.max(0, resumeIndex);
+              const draft = reviewResumeDraft.current;
+              const restored = draft && draft.epoch === accountAuthorityGeneration.current && draft.phone === phone &&
+                draft.track === session?.track && draft.version === session?.contentVersion && draft.cardId === localLearningCards[nextIndex]?.card_id ? draft : null;
               setLearningPhase('learning');
               setReviewCards([]);
               setSessionComplete(false);
               setCurrentIndex(nextIndex);
-              setResolved(null);
-              setCardState(localLearningCards[nextIndex] ? withFavoriteState(localLearningCards[nextIndex], favorites) : null);
+              setResolved(restored?.result ?? null);
+              setCardState(restored ? {...restored.state, isFavorited: favorites.includes(restored.cardId)} : localLearningCards[nextIndex] ? withFavoriteState(localLearningCards[nextIndex], favorites) : null);
+              reviewResumeDraft.current = null;
             }}
-            onStartReview={() => {
-              if (runtime.mode === 'remote') {
-                if (remoteController === null) return;
-                setRemoteBusy(true);
-                const action = session?.roundCompletion
-                  ? remoteController.continueServerRound()
-                  : remoteController.loadAuthenticatedState();
-                void action
-                  .then(applyRemoteSnapshot)
-                  .catch(error => handleRemoteFailure(error, '复习暂时无法开始。'))
-                  .finally(() => setRemoteBusy(false));
-                return;
-              }
-              const candidates = (session?.cards ?? []).filter(card =>
-                !sleeping.includes(card.card_id) && results.some(result => result.cardId === card.card_id &&
-                  (result.outcome === 'incorrect' || result.outcome === 'review')),
-              );
-              if (!candidates.length) return;
-              if (learningPhase === 'learning') setLocalResumeCardId(localLearningCards[currentIndex]?.card_id ?? null);
-              setLearningPhase('review');
-              setReviewCards(candidates);
-              setSessionComplete(false);
-              setCurrentIndex(0);
-              setResolved(null);
-              setCardState(withFavoriteState(candidates[0], favorites));
-            }}
+            onStartReview={() => void startReviewFromStatistics()}
           />
         ) : <LearningSurface
           card={currentCard}
@@ -1589,7 +1640,7 @@ function AccountApp({
         />
       ) : null}
       {route === 'statistics' ? (
-        <>{pauseNotice ? <p className="learning-pause-notice" role="status">{pauseNotice}</p> : null}{dayNeedsRefresh ? <main className="ledger-workbench"><section className="ledger"><h1>学习统计</h1><p role="status">{statisticsLoading ? '正在读取今天的记录…' : '今天的记录还未更新，请重新读取。'}</p><button className="primary" disabled={statisticsLoading} onClick={() => void refreshStatistics()}>重新读取</button></section></main> : <StatisticsSurface
+        <>{pauseNotice ? <p className="learning-pause-notice" role="status">{pauseNotice}</p> : null}{remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}{dayNeedsRefresh ? <main className="ledger-workbench"><section className="ledger"><h1>学习统计</h1><p role="status">{statisticsLoading ? '正在读取今天的记录…' : '今天的记录还未更新，请重新读取。'}</p><button className="primary" disabled={statisticsLoading} onClick={() => void refreshStatistics()}>重新读取</button></section></main> : <StatisticsSurface
           statisticsLoading={statisticsLoading}
           statistics={trackStatistics?.track === session?.track && trackStatistics?.dayKey === liveChinaDay ? trackStatistics : null}
           track={session?.track ?? runtime.track}
@@ -1602,7 +1653,8 @@ function AccountApp({
           syncStatus={genericSyncStatus}
           cumulativeLearnedCount={catalogResults.length}
           pendingReviewCount={pendingReviewIds.length}
-          onContinueLearning={() => navigateRoute('learning')}
+          onReview={() => void startReviewFromStatistics()}
+          onContinueLearning={() => {if (runtime.mode === 'remote' && requestedReview && sessionComplete) void reloadRemoteState(true); navigateRoute('learning');}}
         />}</>
       ) : null}
       {route === 'mine' && membership === null ? (

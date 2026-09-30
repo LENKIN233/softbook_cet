@@ -775,6 +775,22 @@ async function handleHttpRequest(config, request) {
       });
     }
 
+    if (method === 'POST' && path === '/v2/learning/review') {
+      const session = await config.authV2.requireActiveSession(request);
+      if (Object.keys(request.query).length > 0 || !isObject(request.body) ||
+          Object.keys(request.body).length !== 1 || !Object.hasOwn(request.body, 'track')) {
+        throw httpError(400, 'learning_session_authority_input_forbidden', 'Review accepts only its track; selection authority remains on the server.');
+      }
+      return jsonResponse(200, {
+        data: await config.learningSchedulerV1.requestReview({
+          accountKey: session.accountKey,
+          phoneNumber: session.phoneNumber,
+          sessionAuthority: session,
+          track: requireTrack(request.body.track),
+        }),
+      });
+    }
+
     if (method === 'GET' && path === '/v2/content/manifest') {
       const session = await config.authV2.requireActiveSession(request);
       assertContentManifestRequest(request);

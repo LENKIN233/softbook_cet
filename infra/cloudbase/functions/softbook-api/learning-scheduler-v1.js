@@ -70,6 +70,7 @@ function createLearningSchedulerV1Service(options) {
   return {
     continueRound: input => continuePilotRound(config, input),
     read: input => readLearningSession(config, input),
+    requestReview: input => readLearningSession(config, {...input, reviewRequested: true}),
   };
 }
 
@@ -147,6 +148,9 @@ async function readLearningSession(config, input) {
     ) {
       continue;
     }
+    if (input.reviewRequested && context.membershipStage === 'free') {
+      throw learningSchedulerError(409, 'review_access_unavailable', 'Review access is unavailable for the current membership.');
+    }
     const roundCompletion = await resolvePendingRoundCompletion(
       config,
       context,
@@ -200,7 +204,9 @@ async function readLearningSession(config, input) {
         roundCompletion,
       );
     }
-    const resumed = resumePersistedCursor(context);
+    const resumable = resumePersistedCursor(context);
+    const resumed = input.reviewRequested && resumable?.cursor.phase !== 'review'
+      ? null : resumable;
 
     if (resumed) {
       if (
@@ -243,12 +249,20 @@ async function readLearningSession(config, input) {
       return serializeLearningSession(context, resumed, 'persisted_cursor');
     }
 
-    const next = selectNextCard(context, config.randomBytes);
+    const next = selectNextCard(context, config.randomBytes, input.reviewRequested === true);
+    if (input.reviewRequested && next.selection === null && context.membershipStage === 'trial_available') {
+      // An empty request cannot start Trial or return trial_available in the
+      // active-session DTO. Normal learning entry can start it with a card.
+      throw learningSchedulerError(409, 'review_access_unavailable', 'Start learning before requesting an empty review.');
+    }
     const cursor = next.selection?.cursor ?? null;
+    // An empty explicit review request must not discard another unfinished
+    // learning selection. Confirm the same authority without replacing it.
+    const preserveLearningCursor = input.reviewRequested && cursor === null && resumable !== null;
     const cursorAlreadyEmpty =
       context.sessionState.cursor === null && cursor === null;
     const cursorStateAccepted =
-      cursorAlreadyEmpty && context.sessionState.revision > 0
+      (cursorAlreadyEmpty || preserveLearningCursor) && context.sessionState.revision > 0
       ? await config.store.confirmLearningSessionCursor({
           accountKey: input.accountKey,
           expectedLearningAcknowledgedAt:
@@ -836,9 +850,10 @@ function resumePersistedCursor(context) {
   return {cursor};
 }
 
-function selectNextCard(context, randomBytes) {
+function selectNextCard(context, randomBytes, reviewOnly = false) {
   const due = [];
   const future = [];
+  const needsPractice = [];
 
   for (const card of context.accessibleCards) {
     if (context.sleepingCardIds.has(card.cardId)) {
@@ -865,6 +880,7 @@ function selectNextCard(context, randomBytes) {
       due.push(candidate);
     } else {
       future.push(candidate);
+      if (event.answer_grade === 'review_needed') needsPractice.push(candidate);
     }
   }
 
@@ -877,11 +893,20 @@ function selectNextCard(context, randomBytes) {
         context,
         due[0].cardId,
         'review',
-        'due_review',
+        reviewOnly ? 'requested_review' : 'due_review',
         due[0].dueAt,
         randomBytes,
       ),
     };
+  }
+
+  if (reviewOnly) {
+    needsPractice.sort(compareDueCandidate);
+    future.sort(compareDueCandidate);
+    return needsPractice.length > 0 ? {
+      nextDueAt: null,
+      selection: createSelection(context, needsPractice[0].cardId, 'review', 'requested_review', needsPractice[0].dueAt, randomBytes),
+    } : {nextDueAt: future[0]?.dueAt ?? null, selection: null};
   }
 
   for (const card of context.accessibleCards) {
@@ -1419,7 +1444,7 @@ function normalizeLearningSessionCursor(value, expectedTrack) {
   );
   const reason = requireEnum(
     value.reason,
-    ['catalog_new', 'due_review'],
+    ['catalog_new', 'due_review', 'requested_review'],
     'learning session cursor.reason',
   );
   const dueAt =
@@ -1433,7 +1458,7 @@ function normalizeLearningSessionCursor(value, expectedTrack) {
   if (
     value.track !== expectedTrack ||
     (phase === 'learning' && (reason !== 'catalog_new' || dueAt !== null)) ||
-    (phase === 'review' && (reason !== 'due_review' || dueAt === null))
+    (phase === 'review' && (!['due_review', 'requested_review'].includes(reason) || dueAt === null))
   ) {
     throw new Error('Learning session cursor authority is invalid.');
   }

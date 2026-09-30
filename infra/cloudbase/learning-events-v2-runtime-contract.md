@@ -464,6 +464,15 @@ stay disabled and retries must use byte-equivalent result facts or perform a
 fresh canonical reload. This is repository
 behavior only, not deployed-browser evidence.
 
+Native and Web finalize one completion when the learner confirms an answer or
+flip self-assessment, rather than when requesting the next card. The result
+can remain visible for reading and listening after acknowledgement. Next only
+advances presentation under canonical selection authority and never creates a
+second completion. Pausing after acknowledgement therefore includes the answer
+in current-track statistics; a queued or failed acknowledgement remains
+truthfully pending and is not counted as accepted. Feedback describing the
+self-assessment is separate from save/acknowledgement status.
+
 Generic mutation queue operations are serialized and use candidate persistence:
 memory changes only after storage succeeds. A late remote result removes or
 increments retry state only for the exact unchanged head entry, so a same-ID

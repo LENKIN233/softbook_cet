@@ -144,6 +144,88 @@ async function learningSession(api, session, extra = {}) {
   });
 }
 
+async function requestReview(api, session, extra = {}) {
+  return request(api, {
+    headers: session ? {authorization: `Bearer ${session.access_token}`} : {},
+    method: 'POST', path: '/v2/learning/review',
+    body: {track: 'cet4', ...(extra.body ?? {})}, query: extra.query ?? {},
+  });
+}
+
+test('explicit review authenticates and rejects selection authority from the client', async () => {
+  const {api} = createTestApi();
+  assert.equal((await requestReview(api, null)).statusCode, 401);
+  const session = await authenticatedSession(api);
+  const notStarted = await requestReview(api, session);
+  assert.equal(notStarted.statusCode, 409);
+  assert.equal(notStarted.body.error.code, 'review_access_unavailable');
+  for (const body of [{card_id: '000001'}, {phone_number: PHONE}, {day_key: DAY_KEY}, {track: 'other'}]) {
+    assert.equal((await requestReview(api, session, {body})).statusCode, 400);
+  }
+  assert.equal((await requestReview(api, session, {query: {track: 'cet4'}})).statusCode, 400);
+  const current = await learningSession(api, session);
+  const empty = await requestReview(api, session);
+  assert.equal(empty.statusCode, 200, JSON.stringify(empty.body));
+  assert.equal(empty.body.data.selection, null);
+  const retained = await learningSession(api, session);
+  assert.equal(retained.body.data.selection.selection_id, current.body.data.selection.selection_id);
+});
+
+test('explicit review replaces an unseen cursor with an uncertain card and completes exactly once', async () => {
+  const store = createMemoryStore();
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api);
+  const source = await cardSource(api, session);
+  const uncertain = eventFor(source, 0, {outcome: 'review', answer_grade: 'review_needed'});
+  assert.equal((await submit(api, session, source, [uncertain])).statusCode, 200);
+  const nextNew = await learningSession(api, session);
+  assert.equal(nextNew.body.data.selection.card_id, source.card_records[1].card_id);
+  const manual = await requestReview(api, session);
+  assert.equal(manual.statusCode, 200, JSON.stringify(manual.body));
+  assert.equal(manual.body.data.selection.card_id, uncertain.card_id);
+  assert.equal(manual.body.data.selection.phase, 'review');
+  assert.equal(manual.body.data.selection.reason, 'requested_review');
+  assert.ok(Date.parse(manual.body.data.selection.due_at) > START_TIME.getTime());
+  assert.notEqual(manual.body.data.selection.selection_id, nextNew.body.data.selection.selection_id);
+  const resumed = await requestReview(api, session);
+  assert.equal(resumed.body.data.selection.selection_id, manual.body.data.selection.selection_id);
+  const completion = eventFor(source, 0, {
+    event_id: 'manual_review_event_0002', phase: 'review',
+    selection_id: manual.body.data.selection.selection_id,
+    device_cursor: {device_id: 'scheduler_device_0001', sequence: 2},
+  });
+  assert.equal((await submit(api, session, source, [completion])).statusCode, 200);
+  const duplicate = await submit(api, session, source, [completion]);
+  assert.equal(duplicate.body.data.results[0].status, 'duplicate');
+  const projection = [...store.snapshot().learningStates.values()].find(value => value.projection_version === 'learning-events.v2');
+  assert.equal(projection.scheduler_by_card_id[uncertain.card_id].card.reps, 2);
+  assert.equal((await requestReview(api, session)).body.data.selection, null);
+  assert.equal((await learningSession(api, session)).body.data.selection.card_id, source.card_records[1].card_id);
+});
+
+test('explicit review respects sleep, track isolation and current membership', async () => {
+  const store = createMemoryStore();
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api);
+  const source = await cardSource(api, session);
+  assert.equal((await submit(api, session, source, [eventFor(source, 0, {
+    outcome: 'review', answer_grade: 'review_needed',
+  })])).statusCode, 200);
+  const sibling = await requestReview(api, session, {body: {track: 'cet6'}});
+  assert.equal(sibling.statusCode, 200, JSON.stringify(sibling.body));
+  assert.equal(sibling.body.data.selection, null);
+  await submitSpaceActions(api, session, source, [{action_id: 'manual_review_sleep_001',
+    card_id: source.card_records[0].card_id, client_occurred_at: START_TIME.toISOString(),
+    dimension: 'sleep', value: true}]);
+  assert.equal((await requestReview(api, session)).body.data.selection, null);
+  const membership = await store.getMembership(PHONE);
+  const {acknowledged_at: ignored, ...entitlement} = membership;
+  store.snapshot().memberships.set(PHONE, {entitlement: {...entitlement, stage: 'free'}, updated_at: START_TIME.toISOString()});
+  const denied = await requestReview(api, session);
+  assert.equal(denied.statusCode, 409);
+  assert.equal(denied.body.error.code, 'review_access_unavailable');
+});
+
 test('learning session serializes transaction-backed canonical reads', async () => {
   const baseStore = createMemoryStore();
   const store = {...baseStore};

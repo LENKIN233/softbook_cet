@@ -1,5 +1,6 @@
+import {ScaledText as Text} from '../visual/ScaledText';
 import React from 'react';
-import {AccessibilityInfo, Animated, Easing, Pressable, Text, View} from 'react-native';
+import {AccessibilityInfo, Animated, Easing, Pressable, View} from 'react-native';
 import type {PressableProps, StyleProp, TextProps, ViewProps, ViewStyle} from 'react-native';
 import {STUDIO} from '../visual/studio';
 

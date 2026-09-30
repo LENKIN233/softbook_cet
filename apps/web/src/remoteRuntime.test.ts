@@ -29,6 +29,42 @@ import {
 const PHONE = '13800138000';
 
 describe('authenticated Web remote orchestration', () => {
+  it('replays pending events before requesting review and preserves an empty review response', async () => {
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const operations: string[] = [];
+    const events = createEmptyEventSyncRepository();
+    const replay = vi.spyOn(events, 'startReplay');
+    const empty = {...createLearningSessionFixture(null), cards: [], serverSelection: null};
+    const loadSession = vi.fn(async (_context, _track, options?: {intent: 'review'}) => {
+      operations.push(options?.intent === 'review' ? 'review-selection' : 'normal-selection');
+      return options ? empty : createLearningSessionFixture(null);
+    });
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {load: async () => createBootstrapFixture(createInitialMembershipState())},
+      authRepository, authSessionCoordinator, learningEventSyncRepository: events,
+      learningSessionRepository: {continueRound: async () => undefined, loadSession},
+      mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    operations.length = 0;
+    replay.mockImplementationOnce(async () => {
+      operations.push('replay');
+      return {acknowledgements: [], acknowledgedEntries: [], rejectedEntries: [], rejectedCount: 0, pendingCount: 0};
+    });
+    const reviewed = await controller.requestReview();
+    expect(operations).toEqual(['replay', 'review-selection']);
+    expect(reviewed.learningSession.cards).toEqual([]);
+    expect(loadSession).toHaveBeenLastCalledWith(expect.any(Object), 'cet4', {intent: 'review'});
+    const selectedBefore = loadSession.mock.calls.length;
+    replay.mockResolvedValueOnce({acknowledgements: [], acknowledgedEntries: [], rejectedEntries: [], rejectedCount: 0, pendingCount: 1});
+    await expect(controller.requestReview()).rejects.toThrow('仍有学习结果等待服务端确认');
+    expect(loadSession).toHaveBeenCalledTimes(selectedBefore);
+    expect((await controller.loadAuthenticatedState()).learningSession.cards).toHaveLength(1);
+    expect(loadSession).toHaveBeenLastCalledWith(expect.any(Object), 'cet4');
+  });
+
   it('refreshes canonical statistics without selecting another card or replaying mutations', async () => {
     const authRepository = createSimpleAuthRepository();
     const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
