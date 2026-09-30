@@ -59,7 +59,11 @@ export function lockTemplate(card: LockCard) {
     // Show the complete authored sentence/task containing the slots, not a
     // guessed sentence made by concatenating answers or stripping punctuation.
     const paragraphs = source.split(/\n\s*\n/).filter(text => /\{\{blank\}\}|_{2,}/.test(text));
-    return paragraphs.join('\n\n');
+    return paragraphs.map(paragraph => paragraph.split('\n').filter(line =>
+      // Only an explicit standalone task line is omitted from the result.
+      // Slot-bearing lines and all other authored context stay intact.
+      !line.trimStart().startsWith('结构练习：') || /\{\{blank\}\}|_{2,}/.test(line),
+    ).join('\n')).join('\n\n');
   }
   return null;
 }
