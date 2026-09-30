@@ -41,7 +41,11 @@ test('a filtered favorite opens its original box without changing the current le
       onReturnToLearning={onReturnToLearning} onToggleFavoriteTag={jest.fn()} onToggleSleepState={jest.fn()}
     />);
   });
+  expect(tree.root.findAllByProps({testID: 'space-browse-rail'})).toHaveLength(0);
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-browse-toggle'}).props.onPress());
   ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-filter-favorites'}).props.onPress());
+  expect(collectRenderedText(tree.toJSON()).join(' ')).toContain('当前科目全部卡盒');
+  expect(tree.root.findByProps({testID: 'space-clear-filter'})).toBeTruthy();
   expect(collectTestIDs(tree.toJSON()).filter(id => id.startsWith('space-filter-card-'))).toEqual(['space-filter-card-0']);
   const result = tree.root.findByProps({testID: 'space-filter-card-0'});
   expect(collectRenderedText(tree.toJSON()).join('')).toContain(favorite.space_metadata.box);
@@ -192,6 +196,7 @@ test('keeps 44dp hierarchy targets reachable in a scroll viewport at 393x852', (
   const root = tree!.root;
   expect(root.findByProps({testID: 'space-scroll-viewport'})).toBeTruthy();
   expect(root.findAllByProps({testID: 'space-fixed-viewport'})).toHaveLength(0);
+  ReactTestRenderer.act(() => root.findByProps({testID: 'space-browse-toggle'}).props.onPress());
   for (const level of ['library', 'group', 'box']) {
     const targets = root.findAll(node => typeof node.props.testID === 'string' && node.props.testID.startsWith(`space-${level}-choice-`) && typeof node.props.onPress === 'function');
     expect(targets.length).toBeGreaterThan(0);
@@ -485,7 +490,7 @@ test('defaults Space first-read focus to the current learning card box', () => {
   expect(renderedText).toContain('查看卡片');
   expect(renderedText).toContain('休眠区');
   expect(renderedText).toContain('暂无休眠');
-  expect(renderedText).toContain('继续学习');
+  expect(renderedText).toContain('返回学习');
   expect(
     root.findAllByProps({ testID: 'space-open-box-lid' }).length,
   ).toBeGreaterThan(0);
@@ -587,6 +592,10 @@ test('browses sibling boxes, groups, and libraries while preserving the current-
   });
 
   const root = tree!.root;
+  expect(root.findAllByProps({testID: 'space-browse-rail'})).toHaveLength(0);
+  const initialIds = collectTestIDs(tree!.toJSON());
+  expect(initialIds.indexOf('space-open-box-deck')).toBeLessThan(initialIds.indexOf('space-browse-toggle'));
+  ReactTestRenderer.act(() => root.findByProps({testID: 'space-browse-toggle'}).props.onPress());
   expect(root.findByProps({testID: 'space-browse-rail'})).toBeTruthy();
   expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain(
     '当前学习卡提示',

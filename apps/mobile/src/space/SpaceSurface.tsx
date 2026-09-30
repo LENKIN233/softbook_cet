@@ -150,6 +150,7 @@ export function SpaceSurface({
     useWindowDimensions();
   const usesShortViewport = isShortSpaceViewport(viewportWidth, viewportHeight);
   const [filter, setFilter] = useState<SpaceCardFilter>('all');
+  const [isBrowsing, setIsBrowsing] = useState(false);
   const [filterLimit, setFilterLimit] = useState(40);
   const matches = filterSpaceCards(spaceCards, filter, Object.keys(cardStateById).filter(id => cardStateById[id].isFavorited), pendingReviewIds);
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
@@ -348,6 +349,7 @@ export function SpaceSurface({
       return;
     }
 
+    setFilter('all');
     setSelectionMode('follow_current');
     setSelectedLibraryName(focusedSelection.libraryName);
     setSelectedGroupName(focusedSelection.groupName);
@@ -500,7 +502,7 @@ export function SpaceSurface({
                   />
                 ) : null}
                 <ActionChip
-                  label="继续学习"
+                  label="返回学习"
                   onPress={onReturnToLearning}
                   palette={palette}
                   testID="space-return-learning"
@@ -649,6 +651,7 @@ export function SpaceSurface({
   const selectedSource = spaceCards.find(
     card => card.card_id === selectedCard?.cardId,
   );
+  const selectedTrackLabel = (selectedSource?.track ?? currentLearningCard?.track) === 'cet6' ? '六级' : '四级';
   const selectedPreview = selectedSource
     ? spaceCardPreview(selectedSource)
     : { title: selectedCard?.prompt ?? '暂无卡片', detail: [] };
@@ -689,24 +692,20 @@ export function SpaceSurface({
       deviceClass={deviceClass}
       usesAccessibilityLayout={usesAccessibilityLayout}
       usesShortViewport={usesScrollableViewport || deviceClass === 'tablet'}
+      focusKey={`${selectedBox.boxRef}:${filter}:${screen}`}
     >
       <View style={styles.spaceComposition} testID="space-shelf-desk">
-        {hasStateRail ? (
-          <View testID="space-address-shelf">
+        <View testID="space-address-shelf">
             <Text
               style={[styles.spaceLocation, { color: palette.textMuted }]}
-            >{`${visibleShelfName} / ${visibleSectionName} / ${visibleContainerName}`}</Text>
+            >{`${selectedTrackLabel} · ${visibleShelfName} / ${visibleSectionName}`}</Text>
           </View>
-        ) : null}
         {stateRailStack}
-        <View style={styles.filterBar} accessibilityRole="toolbar" testID="space-filter-bar">
-          {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习']] as const).map(([value, label, name]) => <Pressable key={value}
-            accessibilityRole="button" accessibilityLabel={name} accessibilityState={{selected: filter === value}}
-            onPress={() => {setFilter(value); setFilterLimit(40);}} style={[styles.filterButton, {borderBottomColor: filter === value ? palette.accent : 'transparent'}]} testID={`space-filter-${value}`}>
-            <Text style={{color: filter === value ? palette.text : palette.textMuted}}>{label}</Text>
-          </Pressable>)}
-        </View>
         {filter !== 'all' ? <View style={styles.filterResults} testID="space-filter-results">
+          <View style={styles.filterSummary}>
+            <Text style={[styles.spaceMeta, {color: palette.text}]}>{filter === 'favorites' ? '只看收藏' : '只看待复习'} · 当前科目全部卡盒</Text>
+            <ActionChip label="清除筛选" onPress={() => setFilter('all')} palette={palette} testID="space-clear-filter" />
+          </View>
           <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。' : '目前没有待复习的卡片。'}</Text>
           {matches.slice(0, filterLimit).map((item, index) => {
             const locationLabel = formatSpacePathByNames(
@@ -731,7 +730,7 @@ export function SpaceSurface({
                   {previewTitle}
                 </Text>
                 {isCurrent ? (
-                  <Text style={{color: palette.accent}}>当前学习</Text>
+                  <Text style={{color: palette.accent}}>正在学习</Text>
                 ) : null}
               </Pressable>
             );
@@ -739,197 +738,6 @@ export function SpaceSurface({
           {matches.length > filterLimit ? <Pressable accessibilityRole="button" style={styles.filterButton} onPress={() => setFilterLimit(value => value + 40)}><Text style={{color: palette.text}}>显示更多</Text></Pressable> : null}
         </View> : screen === 'overview' ? (
           <View style={styles.spaceComposition} testID="space-current-box-tray">
-            <View style={styles.shelfNavigator} testID="space-browse-rail">
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.shelfLibraryRow}
-                testID="space-library-strip"
-              >
-                {seed.libraries.map((library, index) => {
-                  const displayName = formatSpaceDisplayName(
-                    library.libraryName,
-                    '书架',
-                  );
-                  return (
-                    <Pressable
-                      key={library.libraryName}
-                      accessibilityRole="tab"
-                      accessibilityLabel={displayName}
-                      accessibilityState={{
-                        selected: index === selectedLibraryIndex,
-                      }}
-                      onPress={() => selectLibraryAt(index)}
-                      style={[
-                        styles.shelfLibraryTab,
-                        {
-                          backgroundColor:
-                            index === selectedLibraryIndex
-                              ? solidPanelStrong
-                              : 'transparent',
-                        },
-                      ]}
-                      testID={`space-library-choice-${index + 1}`}
-                    >
-                      <View
-                        style={[
-                          styles.shelfLibraryDot,
-                          {
-                            backgroundColor: resolveLibraryTone(
-                              library.libraryName,
-                            ).accent,
-                          },
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          styles.shelfLibraryLabel,
-                          {
-                            color:
-                              index === selectedLibraryIndex
-                                ? palette.text
-                                : palette.textMuted,
-                          },
-                        ]}
-                      >
-                        {displayName}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.shelfGroupTabs}
-                testID="space-group-strip"
-              >
-                {selectedLibrary.groups.map((group, index) => {
-                  const displayName = formatSpaceDisplayName(
-                    group.groupName,
-                    '分区',
-                  );
-                  return (
-                    <Pressable
-                      key={group.groupName}
-                      accessibilityRole="tab"
-                      accessibilityLabel={displayName}
-                      accessibilityState={{
-                        selected: index === selectedGroupIndex,
-                      }}
-                      onPress={() => selectGroupAt(index)}
-                      style={[
-                        styles.shelfGroupTab,
-                        {
-                          borderBottomColor:
-                            index === selectedGroupIndex
-                              ? selectedTone.accent
-                              : 'transparent',
-                        },
-                      ]}
-                      testID={`space-group-choice-${index + 1}`}
-                    >
-                      <Text
-                        style={[
-                          styles.shelfGroupLabel,
-                          {
-                            color:
-                              index === selectedGroupIndex
-                                ? palette.text
-                                : palette.textMuted,
-                          },
-                        ]}
-                      >
-                        {displayName}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-              <View
-                style={[
-                  styles.shelfBoard,
-                  { borderBottomColor: palette.border },
-                ]}
-              >
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.siblingBoxRow}
-                  testID="space-sibling-boxes"
-                >
-                  {selectedGroup.boxes.map((box, index) => {
-                    const displayName = formatSpaceDisplayName(
-                      box.boxName,
-                      '卡盒',
-                    );
-                    const countLabel = `${box.cards.length} 张`;
-                    const accessibleLabel = `${displayName}，${countLabel}`;
-                    return (
-                      <Pressable
-                        key={box.boxRef}
-                        accessibilityRole="button"
-                        accessibilityLabel={accessibleLabel}
-                        accessibilityState={{
-                          selected: index === selectedBoxIndex,
-                        }}
-                        onPress={() => selectBoxAt(index)}
-                        style={[
-                          styles.siblingBox,
-                          {
-                            backgroundColor:
-                              index === selectedBoxIndex
-                                ? selectedTone.accentSoft
-                                : solidPanelStrong,
-                            borderColor: palette.border,
-                            borderTopColor:
-                              index === selectedBoxIndex
-                                ? selectedTone.accent
-                                : palette.border,
-                          },
-                        ]}
-                        testID={`space-box-choice-${index + 1}`}
-                      >
-                        <Text
-                          style={[
-                            styles.siblingBoxName,
-                            { color: palette.text },
-                          ]}
-                        >
-                          {displayName}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.siblingBoxCount,
-                            { color: palette.textMuted },
-                          ]}
-                        >
-                          {countLabel}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-              {!selectedBoxIsCurrent && focusedSelection ? (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={followCurrentBox}
-                  style={styles.followCurrentLink}
-                  testID="space-follow-current-box"
-                >
-                  <Text
-                    style={[
-                      styles.followCurrentLinkText,
-                      { color: palette.textMuted },
-                    ]}
-                  >
-                    查看当前卡片 →
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-
             <MotionView motionKey={selectedBox.boxRef} kind="space"
               style={[
                 styles.openTray,
@@ -1008,7 +816,7 @@ export function SpaceSurface({
                       >
                         {[
                           card.interactionLabel,
-                          isCurrent ? '当前' : '',
+                          isCurrent ? '正在学习' : '',
                           status?.isFavorited ? '已收藏' : '',
                           status?.isSleeping ? '休眠' : '',
                         ]
@@ -1235,6 +1043,11 @@ export function SpaceSurface({
             </View>
           </>
         )}
+        {!selectedBoxIsCurrent && focusedSelection ? (
+          <Pressable accessibilityRole="button" onPress={followCurrentBox} style={styles.followCurrentLink} testID="space-follow-current-box">
+            <Text style={[styles.followCurrentLinkText, {color: palette.accentStrong}]}>回到当前卡盒</Text>
+          </Pressable>
+        ) : null}
         <View style={styles.spaceFooter} testID="space-browse-card-continuity">
           {screen === 'card_list' ? (
             <Pressable
@@ -1252,7 +1065,7 @@ export function SpaceSurface({
           ) : null}
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="继续学习"
+            accessibilityLabel="返回学习"
             onPress={onReturnToLearning}
             style={[
               styles.returnAction,
@@ -1263,10 +1076,221 @@ export function SpaceSurface({
             <Text
               style={[styles.returnActionText, { color: primaryActionText }]}
             >
-              继续学习
+              返回学习
             </Text>
           </Pressable>
         </View>
+        {screen === 'overview' && filter === 'all' && selectedGroup.boxes.length > 1 ? (
+          <View style={styles.neighborSection}>
+            <Text style={[styles.spaceMeta, {color: palette.textMuted}]}>本组其他卡盒</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.neighborRow}>
+              {selectedGroup.boxes.map((box, index) => {
+                if (box.boxRef === selectedBox.boxRef) return null;
+                const displayName = formatSpaceDisplayName(box.boxName, '卡盒');
+                return <ActionChip
+                  key={box.boxRef}
+                  label={displayName}
+                  onPress={() => selectBoxAt(index)}
+                  palette={palette}
+                  testID={`space-neighbor-box-choice-${index + 1}`}
+                />;
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
+        {screen === 'overview' ? (
+          <View style={[styles.browserSection, {borderTopColor: palette.border}]}>
+            <Pressable accessibilityRole="button" accessibilityState={{expanded: isBrowsing}} onPress={() => setIsBrowsing(value => !value)} style={styles.browserToggle} testID="space-browse-toggle">
+              <Text style={[styles.quietActionText, {color: palette.text}]}>{isBrowsing ? '收起卡盒目录' : '浏览全部卡盒'}</Text>
+              <Text style={[styles.spaceMeta, {color: palette.textMuted}]}>{isBrowsing ? '−' : '+'}</Text>
+            </Pressable>
+            {isBrowsing ? <>
+              <Text style={[styles.spaceMeta, {color: palette.textMuted}]}>筛选当前科目全部卡盒，卡片保留原来的位置。</Text>
+        <View style={styles.filterBar} accessibilityRole="toolbar" testID="space-filter-bar">
+          {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习']] as const).map(([value, label, name]) => <Pressable key={value}
+            accessibilityRole="button" accessibilityLabel={name} accessibilityState={{selected: filter === value}}
+            onPress={() => {setFilter(value); setFilterLimit(40);}} style={[styles.filterButton, {borderBottomColor: filter === value ? palette.accent : 'transparent'}]} testID={`space-filter-${value}`}>
+            <Text style={{color: filter === value ? palette.text : palette.textMuted}}>{label}</Text>
+          </Pressable>)}
+        </View>
+
+            {filter === 'all' ? <View style={styles.shelfNavigator} testID="space-browse-rail">
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.shelfLibraryRow}
+                testID="space-library-strip"
+              >
+                {seed.libraries.map((library, index) => {
+                  const displayName = formatSpaceDisplayName(
+                    library.libraryName,
+                    '书架',
+                  );
+                  return (
+                    <Pressable
+                      key={library.libraryName}
+                      accessibilityRole="tab"
+                      accessibilityLabel={displayName}
+                      accessibilityState={{
+                        selected: index === selectedLibraryIndex,
+                      }}
+                      onPress={() => selectLibraryAt(index)}
+                      style={[
+                        styles.shelfLibraryTab,
+                        {
+                          backgroundColor:
+                            index === selectedLibraryIndex
+                              ? solidPanelStrong
+                              : 'transparent',
+                        },
+                      ]}
+                      testID={`space-library-choice-${index + 1}`}
+                    >
+                      <View
+                        style={[
+                          styles.shelfLibraryDot,
+                          {
+                            backgroundColor: resolveLibraryTone(
+                              library.libraryName,
+                            ).accent,
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.shelfLibraryLabel,
+                          {
+                            color:
+                              index === selectedLibraryIndex
+                                ? palette.text
+                                : palette.textMuted,
+                          },
+                        ]}
+                      >
+                        {displayName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.shelfGroupTabs}
+                testID="space-group-strip"
+              >
+                {selectedLibrary.groups.map((group, index) => {
+                  const displayName = formatSpaceDisplayName(
+                    group.groupName,
+                    '分区',
+                  );
+                  return (
+                    <Pressable
+                      key={group.groupName}
+                      accessibilityRole="tab"
+                      accessibilityLabel={displayName}
+                      accessibilityState={{
+                        selected: index === selectedGroupIndex,
+                      }}
+                      onPress={() => selectGroupAt(index)}
+                      style={[
+                        styles.shelfGroupTab,
+                        {
+                          borderBottomColor:
+                            index === selectedGroupIndex
+                              ? selectedTone.accent
+                              : 'transparent',
+                        },
+                      ]}
+                      testID={`space-group-choice-${index + 1}`}
+                    >
+                      <Text
+                        style={[
+                          styles.shelfGroupLabel,
+                          {
+                            color:
+                              index === selectedGroupIndex
+                                ? palette.text
+                                : palette.textMuted,
+                          },
+                        ]}
+                      >
+                        {displayName}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              <View
+                style={[
+                  styles.shelfBoard,
+                  { borderBottomColor: palette.border },
+                ]}
+              >
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.siblingBoxRow}
+                  testID="space-sibling-boxes"
+                >
+                  {selectedGroup.boxes.map((box, index) => {
+                    const displayName = formatSpaceDisplayName(
+                      box.boxName,
+                      '卡盒',
+                    );
+                    const countLabel = `${box.cards.length} 张`;
+                    const accessibleLabel = `${displayName}，${countLabel}`;
+                    return (
+                      <Pressable
+                        key={box.boxRef}
+                        accessibilityRole="button"
+                        accessibilityLabel={accessibleLabel}
+                        accessibilityState={{
+                          selected: index === selectedBoxIndex,
+                        }}
+                        onPress={() => selectBoxAt(index)}
+                        style={[
+                          styles.siblingBox,
+                          {
+                            backgroundColor:
+                              index === selectedBoxIndex
+                                ? selectedTone.accentSoft
+                                : solidPanelStrong,
+                            borderColor: palette.border,
+                            borderTopColor:
+                              index === selectedBoxIndex
+                                ? selectedTone.accent
+                                : palette.border,
+                          },
+                        ]}
+                        testID={`space-box-choice-${index + 1}`}
+                      >
+                        <Text
+                          style={[
+                            styles.siblingBoxName,
+                            { color: palette.text },
+                          ]}
+                        >
+                          {displayName}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.siblingBoxCount,
+                            { color: palette.textMuted },
+                          ]}
+                        >
+                          {countLabel}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            </View> : null}
+
+            </> : null}
+          </View>
+        ) : null}
       </View>
     </SpaceViewport>
   );
@@ -1274,15 +1298,21 @@ export function SpaceSurface({
 
 function SpaceViewport({
   children,
+  focusKey,
   deviceClass,
   usesAccessibilityLayout,
   usesShortViewport,
 }: {
   children: React.ReactNode;
+  focusKey?: string;
   deviceClass: DeviceClass;
   usesAccessibilityLayout: boolean;
   usesShortViewport: boolean;
 }) {
+  const scrollRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({y: 0, animated: false});
+  }, [focusKey]);
   const baseStyle = [
     styles.content,
     deviceClass === 'tablet' ? styles.contentTablet : null,
@@ -1291,6 +1321,7 @@ function SpaceViewport({
   if (usesShortViewport) {
     return (
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[...baseStyle, styles.contentShortViewport]}
         showsVerticalScrollIndicator={false}
         style={styles.contentScroll}
@@ -1653,16 +1684,21 @@ function buildOverviewDeckCards(
     : undefined;
 
   if (!currentCard) {
-    return cards.slice(0, 3);
+    return cards.slice(0, 1);
   }
 
   return [
     currentCard,
     ...cards.filter(card => card.cardId !== currentCard.cardId),
-  ].slice(0, 3);
+  ].slice(0, 1);
 }
 
 const styles = StyleSheet.create({
+  filterSummary: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8},
+  neighborSection: {gap: 6},
+  neighborRow: {gap: 8},
+  browserSection: {borderTopWidth: 1, gap: 12},
+  browserToggle: {minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12},
   filterBar: {flexDirection: 'row', flexWrap: 'wrap', gap: 16},
   filterButton: {minHeight: 44, justifyContent: 'center', paddingHorizontal: 4, paddingVertical: 10, borderBottomWidth: 2},
   filterResults: {gap: 12},

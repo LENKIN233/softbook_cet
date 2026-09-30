@@ -119,7 +119,9 @@ jobs:
         run: ./scripts/install_git_hooks.sh
 
       - name: Validate Maestro selectors
-        run: python3 scripts/validate_maestro_selectors.py
+        run: |
+          python3 scripts/test_validate_maestro_selectors.py
+          python3 scripts/validate_maestro_selectors.py
 
       - name: Test iOS runtime target resolution
         run: node --test infra/cloudbase/test-resolve-ios-simulator.mjs

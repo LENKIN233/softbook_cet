@@ -84,6 +84,19 @@ export function assertAccountBootstrapRevisionTransition(
   if (trackIsSame) {
     assertLearningFactsDoNotRegress(previous, next, dayIsSame);
     assertLearningOwnerInvariants(previous, next, contentIsSame, dayIsSame);
+    if (dayIsSame && previous.statistics && next.statistics) {
+      const before = previous.statistics;
+      const after = next.statistics;
+      const counts = ['completedCardCount', 'completedAttemptCount',
+        'reviewAttemptCount', 'cumulativeLearnedCardCount'] as const;
+      if (counts.some(key => after[key] < before[key])) {
+        throw new Error('Bootstrap study statistics must not regress within a day.');
+      }
+      if (previousRevisions.learning.eventServerSequence ===
+          nextRevisions.learning.eventServerSequence && !jsonEqual(before, after)) {
+        throw new Error('Bootstrap study statistics changed without a new event revision.');
+      }
+    }
   }
   if (dayIsSame) {
     assertDailyProgressFactsDoNotRegress(previous, next);

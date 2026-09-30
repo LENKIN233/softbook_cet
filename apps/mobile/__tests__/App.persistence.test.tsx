@@ -1,3 +1,4 @@
+import {StatisticsSurface} from '../src/statistics/StatisticsSurface';
 /**
  * @format
  */
@@ -348,7 +349,8 @@ test('retains completed local learning and its cursor after relaunch', async () 
   const restored = await renderAppAndWaitForLearning();
   expect(JSON.stringify(restored.toJSON())).toContain(nextCard.front.prompt);
   await openRoute(restored.root, 'statistics');
-  expect(restored.root.findByProps({testID: 'statistics-metric-completed-value'}).props.children).toBe('1');
+  expect(restored.root.findByType(StatisticsSurface).props.learningCompletedCount).toBe(1);
+  expect(restored.root.findAllByProps({testID: 'statistics-unavailable'}).length).toBeGreaterThan(0);
   await ReactTestRenderer.act(() => restored.unmount());
 });
 

@@ -49,6 +49,7 @@ test('complete analysis preserves a long answer and the optional original at ord
   const answer = tree.root.findAllByType(Text).find(node => node.props.children === longCard.back_text)!;
   expect(answer.props.numberOfLines).toBeUndefined();
   expect(answer.props.children).toContain('FINAL_ANSWER_LINE');
+  Renderer.act(() => {tree.root.findByProps({testID: 'learning-question-toggle'}).props.onPress();});
   const question = tree.root.findAllByType(Text).find(node => node.props.children === longCard.front.prompt)!;
   expect(question.props.numberOfLines).toBeUndefined();
   Renderer.act(() => {tree.root.findByProps({testID: 'learning-transcript-toggle'}).props.onPress();});

@@ -168,7 +168,8 @@
       "nullable_learning_cursor",
       "physical_space_state",
       "content_version",
-      "component_revisions"
+      "component_revisions",
+      "track_study_statistics"
     ],
     "identity_rule": "derive the account only from the active v2 session; bootstrap never accepts phone_number in its query or body",
     "day_key_rule": "mobile derives the China product day from the current instant at fixed UTC+8 through one shared helper; bootstrap, explicit check-in, and local daily presentation must never use the host timezone or the UTC calendar date as independent authorities",
@@ -193,7 +194,16 @@
     "client_rule": "an authenticated client may use validated cached state while offline, but must reconcile with this server read before pushing restored state; without previously validated canonical state and required content, mobile keeps a valid session retryable but blocks learning, local persistence of the reconciled snapshot, mutation replay, and product-state writes until bootstrap succeeds and the loaded card-source content version matches",
     "client_projection_mapping_rule": "learning card_states, their source metadata, the bootstrap cursor, and Space states are retained account projections and are not constrained by the current content card_count or active source ID; after the bootstrap content identity is validated, mobile maps only source ID, card ID, and interaction ID facts compatible with the loaded current catalog into current-session UI, leaves current selection authority to the validated learning-session response, and uses canonical Progress rather than recounting filtered historical projections",
     "retained_event_replay_rule": "after a fresh authenticated bootstrap validates the account and active release, a durable pending learning event keeps its immutable retained content_version, selection_id, track, card, and interaction and replays before mobile asks the scheduler for a replacement current selection; the replay endpoint validates that retained event independently, acknowledgement is exact-once, and only then may mobile load and map the active release; a content or China-day change must not deadlock the outbox behind current-session UI hydration",
-    "known_gap": "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, physical-space actions, React Native and PC Web durable producer/replay, server scheduler, and mobile/Web scheduler-session binding are implemented but not deployed; production publication remains unimplemented"
+    "known_gap": "the repository-local CloudBase learning-events.v2 backend, explicit daily check-in, physical-space actions, React Native and PC Web durable producer/replay, server scheduler, and mobile/Web scheduler-session binding are implemented but not deployed; production publication remains unimplemented",
+    "track_study_statistics": {
+      "schema_version": "track-study-statistics.v1",
+      "scope": "active account, requested cet4 or cet6 track, requested China product day",
+      "daily_count_rule": "completed_card_count is distinct card IDs from accepted immutable events; completed_attempt_count is distinct event IDs and review_attempt_count is its phase=review subset; same-card retries with new accepted event IDs add attempts but never duplicate cards, while exact event replay adds nothing",
+      "cumulative_rule": "cumulative_learned_card_count is the distinct-card size of the complete requested-track Learning projection, including retained compatible legacy history and independent of the current catalog",
+      "revision_rule": "event_server_sequence equals the Learning owner watermark; immutable events newer than that watermark are excluded; same-track same-day counters cannot change at the same watermark or regress",
+      "compatibility_rule": "the additive nullable statistics field leaves account-day progress and explicit check-in unchanged; older servers may omit it; clients show unavailable state rather than substitute latest-card results, zero, or account-wide counts",
+      "completeness_rule": "CloudBase reads one bounded account-track-day immutable-event page outside transactions without unsupported orderBy or unordered skip; a full 1000-row page is unproven complete and yields statistics=null without blocking learning; a retained nonempty legacy day snapshot also yields null because its attempt and card history is not reconstructible"
+    }
   },
   "daily_check_in_v2": {
     "classification": "implementation_hypothesis",

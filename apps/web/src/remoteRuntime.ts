@@ -219,6 +219,7 @@ export type WebRemoteRuntimeController = {
   dispose: () => void;
   isAuthenticated: () => boolean;
   loadAuthenticatedState: () => Promise<WebRemoteSnapshot>;
+  refreshStatistics: () => Promise<Pick<WebRemoteSnapshot, 'bootstrap' | 'checkInSync'>>;
   switchTrack: (track: LearningTrack) => Promise<WebRemoteSnapshot>;
   logout: () => Promise<WebAccountDeletionOutcome | null>;
   playCardAudio: (
@@ -1432,6 +1433,15 @@ export function createWebRemoteRuntimeController(
     return finishAcceptedAccountDeletion(session.phoneNumber);
   };
 
+  const allocateBootstrapGeneration = () => {
+    if (nextBootstrapGeneration >= Number.MAX_SAFE_INTEGER) {
+      throw new Error('Web bootstrap generation is exhausted.');
+    }
+    nextBootstrapGeneration += 1;
+    latestStartedBootstrapGeneration = nextBootstrapGeneration;
+    return nextBootstrapGeneration;
+  };
+
   const loadAuthenticatedState = async (requestTrack = activeTrack): Promise<WebRemoteSnapshot> => {
     const context = await requireAuthenticatedContext();
     const requestSessionScopeKey = getAuthSessionScopeKey(
@@ -1448,14 +1458,6 @@ export function createWebRemoteRuntimeController(
       ) === requestSessionScopeKey &&
       sessionDeletionRevision === requestDeletionRevision &&
       dependencies.isAccountWriteQuarantined?.() !== true;
-    const allocateBootstrapGeneration = () => {
-      if (nextBootstrapGeneration >= Number.MAX_SAFE_INTEGER) {
-        throw new Error('Web bootstrap generation is exhausted.');
-      }
-      nextBootstrapGeneration += 1;
-      latestStartedBootstrapGeneration = nextBootstrapGeneration;
-      return nextBootstrapGeneration;
-    };
     const requestStartGeneration = allocateBootstrapGeneration();
     let requestBootstrapCount = 0;
     let finalBootstrapGeneration = requestStartGeneration;
@@ -1689,6 +1691,41 @@ export function createWebRemoteRuntimeController(
   };
 
   return {
+    async refreshStatistics() {
+      const context = await requireAuthenticatedContext();
+      const requestTrack = activeTrack;
+      const requestSessionScopeKey = getAuthSessionScopeKey(
+        dependencies.authSessionCoordinator.getCurrentSession(),
+      );
+      const requestDeletionRevision = sessionDeletionRevision;
+      const requestCompletionRevision = learningCompletionRevision;
+      if (requestSessionScopeKey === null || currentLearningSession === null || trackSwitchInFlight) {
+        throw new WebAccountEpochError();
+      }
+      const generation = allocateBootstrapGeneration();
+      const dayKey = getChinaDayKey(now());
+      const bootstrap = await dependencies.accountBootstrapRepository.load(requestTrack, dayKey, {forceFresh: true});
+      if (bootstrap === null) throw new Error('远端账户没有返回可验证的当前状态。');
+      const pending = await dependencies.mutationQueueRepository.hasPendingCheckIn(context.phoneNumber, dayKey);
+      return runWithAuthenticatedAuthority(requestSessionScopeKey, requestDeletionRevision, () => {
+        if (generation !== latestStartedBootstrapGeneration || requestTrack !== activeTrack ||
+            requestCompletionRevision !== learningCompletionRevision || trackSwitchInFlight) {
+          throw new WebAccountEpochError('较新的账户状态读取已经开始，本次迟到结果不会呈现。');
+        }
+        // Statistics are a read-only view. Keep the content-version authority
+        // bound to the selected learning session for later card mutations.
+        return {
+          bootstrap,
+          checkInSync: {
+            checkedInToday: bootstrap.progress.snapshot.checkedInToday,
+            pending,
+            status: bootstrap.progress.snapshot.checkedInToday ? 'confirmed' as const :
+              pending ? 'queued' as const :
+              bootstrap.progress.snapshot.totalCompletedCount > 0 ? 'ready' as const : 'unavailable' as const,
+          },
+        };
+      });
+    },
     async applySpaceState(cardId, dimension, value) {
       const context = await requireAuthenticatedContext();
       if (currentBootstrap === null) {

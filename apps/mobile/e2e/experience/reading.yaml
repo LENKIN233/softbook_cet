@@ -124,13 +124,7 @@ name: read-material-and-correction
     timeout: 10000
 - tapOn:
     id: learning-help-button
-- scrollUntilVisible:
-    element:
-      id: learning-peek-button
-    direction: DOWN
-    timeout: 10000
-- tapOn:
-    id: learning-peek-button
+# Help now reveals the guidance in one action, including on elimination cards.
 - assertVisible:
     id: learning-help-content
 - scrollUntilVisible:

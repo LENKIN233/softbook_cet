@@ -9,6 +9,7 @@ import {
   evaluateLearningCard,
 } from '../learning/sessionCore';
 import { getChinaDayKey } from '../shared/chinaDay';
+import type {TrackStudyStatistics} from '../statistics/trackStudyStatistics';
 
 export type StudyFrame = {
   phase: 'learning' | 'review';
@@ -20,17 +21,24 @@ export type StudyFrame = {
   results: LearningCardResult[];
 };
 export type ReviewTiming = { dueAt: string; days: number; successes: number };
+export type StudyDayCounts = {
+  learning: number;
+  review: number;
+  correct: number;
+  hints: number;
+  // Missing on old nonempty days whose distinct cards cannot be reconstructed.
+  completedCardIds?: string[];
+};
 export type StudyState = {
   frame: StudyFrame;
   resume: StudyFrame | null;
   results: LearningCardResult[];
+  // Retained across content updates, independently of current-card results.
+  learnedCardIds?: string[];
   favorites: string[];
   sleeping: string[];
   schedule: Record<string, ReviewTiming>;
-  days: Record<
-    string,
-    { learning: number; review: number; correct: number; hints: number }
-  >;
+  days: Record<string, StudyDayCounts>;
   checkIns: string[];
 };
 export type StudyAction =
@@ -155,6 +163,7 @@ export function createStudyState(cards: readonly LearningCard[]): StudyState {
     },
     resume: null,
     results: [],
+    learnedCardIds: [],
     favorites: [],
     sleeping: [],
     schedule: {},
@@ -232,6 +241,7 @@ export function reduceStudy(
         review: 0,
         correct: 0,
         hints: 0,
+        completedCardIds: [],
       };
     return {
       ...state,
@@ -248,6 +258,7 @@ export function reduceStudy(
         ...state.results.filter(item => item.cardId !== result.cardId),
         result,
       ],
+      learnedCardIds: [...new Set([...learnedStudyCardIds(state), result.cardId])],
       schedule: {
         ...state.schedule,
         [card.card_id]: {
@@ -265,6 +276,9 @@ export function reduceStudy(
           [frame.phase]: counts[frame.phase] + 1,
           correct: counts.correct + (result.outcome === 'correct' ? 1 : 0),
           hints: counts.hints + (result.usedHint ? 1 : 0),
+          ...(counts.completedCardIds || counts.learning + counts.review === 0
+            ? {completedCardIds: [...new Set([...(counts.completedCardIds ?? []), result.cardId])]}
+            : {}),
         },
       },
     };
@@ -363,8 +377,34 @@ export function studyDay(state: StudyState, now = new Date()) {
       review: 0,
       correct: 0,
       hints: 0,
+      completedCardIds: [],
     }
   );
+}
+export function learnedStudyCardIds(state: StudyState): string[] {
+  return [...new Set([
+    ...(state.learnedCardIds ?? []),
+    ...state.results.map(result => result.cardId),
+    ...Object.values(state.days).flatMap(day => day.completedCardIds ?? []),
+  ])];
+}
+export function studyStatistics(
+  state: StudyState,
+  track: LearningTrack,
+  now = new Date(),
+): TrackStudyStatistics | undefined {
+  const counts = studyDay(state, now);
+  if (!counts.completedCardIds && counts.learning + counts.review > 0) {
+    return undefined;
+  }
+  return {
+    dayKey: getChinaDayKey(now),
+    track,
+    completedCardCount: counts.completedCardIds?.length ?? 0,
+    completedAttemptCount: counts.learning + counts.review,
+    reviewAttemptCount: counts.review,
+    cumulativeLearnedCardCount: learnedStudyCardIds(state).length,
+  };
 }
 export function nextStudyDue(state: StudyState): string | null {
   const dates = Object.entries(state.schedule)
@@ -536,7 +576,13 @@ export function validateStudyState(
       'schedule',
       'days',
       'checkIns',
+      ...(Object.hasOwn(state, 'learnedCardIds') ? ['learnedCardIds'] : []),
     ]) ||
+    (Object.hasOwn(state, 'learnedCardIds') && (
+      !Array.isArray(state.learnedCardIds) ||
+      new Set(state.learnedCardIds).size !== state.learnedCardIds.length ||
+      state.learnedCardIds.some(id => typeof id !== 'string' || !/^\d{6}$/.test(id))
+    )) ||
     !ids(state.favorites) ||
     !ids(state.sleeping) ||
     !Array.isArray(state.results) ||
@@ -568,8 +614,17 @@ export function validateStudyState(
   for (const [day, counts] of Object.entries(state.days)) {
     if (
       !date(day) ||
-      !keys(counts, ['learning', 'review', 'correct', 'hints']) ||
-      !Object.values(counts).every(n => Number.isSafeInteger(n) && n >= 0)
+      !keys(counts, ['learning', 'review', 'correct', 'hints',
+        ...(Object.hasOwn(counts, 'completedCardIds') ? ['completedCardIds'] : [])]) ||
+      ![counts.learning, counts.review, counts.correct, counts.hints]
+        .every(n => Number.isSafeInteger(n) && n >= 0) ||
+      (counts.completedCardIds !== undefined && (
+        !Array.isArray(counts.completedCardIds) ||
+        new Set(counts.completedCardIds).size !== counts.completedCardIds.length ||
+        counts.completedCardIds.some(id => typeof id !== 'string' || !/^\d{6}$/.test(id)) ||
+        counts.completedCardIds.length > counts.learning + counts.review ||
+        (counts.completedCardIds.length === 0) !== (counts.learning + counts.review === 0)
+      ))
     )
       fail();
   }
@@ -584,6 +639,7 @@ export function hasStudyActivity(state: StudyState): boolean {
   const draft = state.frame.draft;
   return (
     state.results.length > 0 ||
+    (state.learnedCardIds?.length ?? 0) > 0 ||
     state.favorites.length > 0 ||
     state.sleeping.length > 0 ||
     state.checkIns.length > 0 ||

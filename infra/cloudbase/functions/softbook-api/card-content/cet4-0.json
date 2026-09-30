@@ -6,14 +6,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "电动公交、柴油车队、运营费用、排放。\n\n这些词可能属于什么话题？想好后再听。",
-      "support": "电动公交、柴油车队、运营费用、排放。\n\n这些词可能属于什么话题？想好后再听。",
-      "context": "电动公交、柴油车队、运营费用、排放。\n\n这些词可能属于什么话题？想好后再听。"
+      "prompt": "electric buses / diesel vehicles / running costs / emissions\n\n这些线索共同指向什么比较？先找比较对象，再找比较维度。",
+      "support": "electric buses / diesel vehicles / running costs / emissions\n\n这些线索共同指向什么比较？先找比较对象，再找比较维度。",
+      "context": "electric buses / diesel vehicles / running costs / emissions\n\n这些线索共同指向什么比较？先找比较对象，再找比较维度。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "关键词有共同范围，但在听之前不能推定哪一类车在所有方面都更好。",
-      "exam_tip": "预判是暂时的判断，具体答案和范围仍以材料为准。"
+      "summary": "先把名词分成两组：electric buses（电动公交）和 diesel vehicles（柴油车）回答“比较谁”；running costs（运行费用）和 emissions（排放）回答“比较什么”。\n\n听前先定比较范围，听时再找比较结果。这里只有对象和维度，不能据此判断哪类车更便宜或排放更少。",
+      "exam_tip": "把线索分成“事物”和“评价方面”两组，再试着连成一句话。"
     },
     "space_metadata": {
       "box_ref": "0000",
@@ -27,7 +27,7 @@
       "sha256": "sha256:b84a2819a8566aa8e84bba46ff23c841a1f21de3bbc6316ff63d15de7058c06b",
       "transcript": "We are comparing electric buses with the diesel vehicles the town uses now. The study looks at running costs and emissions, and the results will help the council decide which vehicles to buy next."
     },
-    "back_text": "两种公交车辆在费用和排放方面的比较。"
+    "back_text": "两类公交车辆的运行费用与排放。"
   },
   {
     "card_id": "000002",
@@ -36,14 +36,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "咨询预约、考试压力、校园支持、学生反馈。\n\n这些词让你想到哪种校园服务？想好后再听。",
-      "support": "咨询预约、考试压力、校园支持、学生反馈。\n\n这些词让你想到哪种校园服务？想好后再听。",
-      "context": "咨询预约、考试压力、校园支持、学生反馈。\n\n这些词让你想到哪种校园服务？想好后再听。"
+      "prompt": "examination period / counselling service / appointments / support / feedback\n\n这些线索指向什么校园话题？用一句话把服务和时间背景连起来。\n\ncounselling：咨询",
+      "support": "examination period / counselling service / appointments / support / feedback\n\n这些线索指向什么校园话题？用一句话把服务和时间背景连起来。\n\ncounselling：咨询",
+      "context": "examination period / counselling service / appointments / support / feedback\n\n这些线索指向什么校园话题？用一句话把服务和时间背景连起来。\n\ncounselling：咨询"
     },
     "analysis": {
       "title": "解析",
-      "summary": "共同关键词支持这一话题范围；服务效果还需要听具体材料，不能从服务名称直接推断已经有效。",
-      "exam_tip": "预判是暂时的判断，具体答案和范围仍以材料为准。"
+      "summary": "先用 counselling service 和 appointments 确定服务，再把 examination period 接上，得到“考试期间的校园咨询”。support 和 feedback 让范围进一步落到学生需要的支持与服务改进。\n\n不要只抓 examination 就猜成考试安排，也不要把“收集反馈以改进服务”说成“服务已经有效减压”：效果需要材料中的结果支持。",
+      "exam_tip": "先找表示服务的词，再找它发生在什么时候；不必逐词翻译。"
     },
     "space_metadata": {
       "box_ref": "0000",
@@ -57,7 +57,7 @@
       "sha256": "sha256:a952fe2e7da123da47dccfdac76764b902317008e350fcba6bf9cd65ebe58c29",
       "transcript": "During the examination period, the university will offer more appointments with its counselling service. Students have been asked which kinds of support they find useful, and the staff will use their feedback to improve the service."
     },
-    "back_text": "校园咨询服务与考试季的学生压力。"
+    "back_text": "考试期间的校园咨询服务及其改进。"
   },
   {
     "card_id": "000003",
@@ -66,14 +66,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "水的重复利用、处理成本、不同方案、长期使用。\n\n录音可能会比较什么？想好后再听。",
-      "support": "水的重复利用、处理成本、不同方案、长期使用。\n\n录音可能会比较什么？想好后再听。",
-      "context": "水的重复利用、处理成本、不同方案、长期使用。\n\n录音可能会比较什么？想好后再听。"
+      "prompt": "three ways of reusing water / costs and requirements / practical over a long period / initial price\n\n哪条线索说明比较不限于眼前成本？它把话题引向哪一方面？\n\nreusing：再次利用；practical：切实可行",
+      "support": "three ways of reusing water / costs and requirements / practical over a long period / initial price\n\n哪条线索说明比较不限于眼前成本？它把话题引向哪一方面？\n\nreusing：再次利用；practical：切实可行",
+      "context": "three ways of reusing water / costs and requirements / practical over a long period / initial price\n\n哪条线索说明比较不限于眼前成本？它把话题引向哪一方面？\n\nreusing：再次利用；practical：切实可行"
     },
     "analysis": {
       "title": "解析",
-      "summary": "先关注方案、成本和使用条件等共同维度；不能只听到 water 就假定是介绍饮用水品牌。",
-      "exam_tip": "预判是暂时的判断，具体答案和范围仍以材料为准。"
+      "summary": "看到 initial price，先把它记成一个比较维度，不急着把整段概括成“哪种方案最便宜”。practical over a long period 才限定了评价范围：要看方案长期能否实行。\n\n把时间限定带进话题，就能区分“初期价格低”和“长期可行”。这些线索没有给出三种方案的具体结果，也不能据此选出最佳方案。",
+      "exam_tip": "找限定时间的短语，想想它与“初期价格”覆盖的范围是否相同。"
     },
     "space_metadata": {
       "box_ref": "0000",
@@ -87,7 +87,7 @@
       "sha256": "sha256:eb2d46e61ba5e72ede2f9d1d9e6229871f9f4f06df71543befdc982adb961f77",
       "transcript": "Today I will describe three ways of reusing water in a city. Each has different costs and requirements. We will consider which one might remain practical over a long period, rather than judging only the initial price."
     },
-    "back_text": "几种水循环或水回用方案的长期可行性。"
+    "back_text": "practical over a long period：水回用方案的长期可行性。"
   },
   {
     "card_id": "000004",
@@ -96,14 +96,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "远程实习、导师交流、面对面指导、支持质量。\n\n这段录音可能围绕什么问题？想好后再听。",
-      "support": "远程实习、导师交流、面对面指导、支持质量。\n\n这段录音可能围绕什么问题？想好后再听。",
-      "context": "远程实习、导师交流、面对面指导、支持质量。\n\n这段录音可能围绕什么问题？想好后再听。"
+      "prompt": "remote interns / mentors online / meeting someone in the workplace / quality of the guidance\n\n先说出可能的比较问题。这些线索能证明远程指导效果更好吗？\n\nmentors：导师；guidance：指导",
+      "support": "remote interns / mentors online / meeting someone in the workplace / quality of the guidance\n\n先说出可能的比较问题。这些线索能证明远程指导效果更好吗？\n\nmentors：导师；guidance：指导",
+      "context": "remote interns / mentors online / meeting someone in the workplace / quality of the guidance\n\n先说出可能的比较问题。这些线索能证明远程指导效果更好吗？\n\nmentors：导师；guidance：指导"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项提示比较指导方式与质量，并不预先决定远程或线下哪一种一定更好。",
-      "exam_tip": "预判是暂时的判断，具体答案和范围仍以材料为准。"
+      "summary": "把两种方式与 quality of the guidance 连起来，预测的问题是“远程指导能否达到面对面指导的质量”。问“能否达到”是在提出问题，并未作出肯定结论。\n\n录音也用 is that support as useful as… 提问，随后说要调查实习生与主管。即使每周都能线上交流，交流频率也不能单独证明指导效果更好。",
+      "exam_tip": "分别找出比较对象和评价维度，再检查有没有表示比较结果的证据。"
     },
     "space_metadata": {
       "box_ref": "0000",
@@ -117,7 +117,7 @@
       "sha256": "sha256:7fc3aa95a64eaac172bbdbaddf367ee28b380411eb1e599bc109b210dd4df5f1",
       "transcript": "Remote interns can speak to their mentors online every week. But is that support as useful as meeting someone in the workplace? Our survey asks both interns and supervisors about the quality of the guidance they receive."
     },
-    "back_text": "远程实习是否能提供与面对面实习相当的指导。"
+    "back_text": "要比较远程与面对面指导的质量；还不能断定远程更好。"
   },
   {
     "card_id": "000005",
@@ -126,14 +126,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "年轻访客、互动展览、博物馆、参观体验。\n\n录音可能会介绍什么做法？为什么这样做？想好后再听。",
-      "support": "年轻访客、互动展览、博物馆、参观体验。\n\n录音可能会介绍什么做法？为什么这样做？想好后再听。",
-      "context": "年轻访客、互动展览、博物馆、参观体验。\n\n录音可能会介绍什么做法？为什么这样做？想好后再听。"
+      "prompt": "museum / young visitors / touch screens and short games / easier to understand\n\n用一句话预测话题，连起做法和目的。",
+      "support": "museum / young visitors / touch screens and short games / easier to understand\n\n用一句话预测话题，连起做法和目的。",
+      "context": "museum / young visitors / touch screens and short games / easier to understand\n\n用一句话预测话题，连起做法和目的。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "应把做法与服务对象联系起来；录音具体给出触摸屏和短游戏，不应自行补成降低所有门票。",
-      "exam_tip": "预判是暂时的判断，具体答案和范围仍以材料为准。"
+      "summary": "先把线索连成“博物馆—触摸屏与短游戏—年轻访客”，再用 easier to understand 补上理解馆藏这一目的。这样比只说“介绍博物馆”具体，也不会停在“用了新设备”的表面。\n\n录音说工作人员将观察活动使用情况并询问效果，说明结果仍待了解。可以预测做法与目的，不能把它写成“互动展示已经让所有年轻人更懂馆藏”。",
+      "exam_tip": "用“谁，采取什么做法，希望达到什么目的”组织一句话。"
     },
     "space_metadata": {
       "box_ref": "0000",
@@ -147,7 +147,7 @@
       "sha256": "sha256:d2be751ad4da09bfb9017b24ab2880fd41f8fb1838024f1db507f74c1d3b2606",
       "transcript": "The museum wants to attract more young visitors. It has added touch screens and short games to several displays. Staff will observe which activities people use and ask whether they make the collection easier to understand."
     },
-    "back_text": "博物馆利用互动展览吸引年轻访客。"
+    "back_text": "博物馆通过互动展示吸引年轻访客，并考察它是否帮助理解馆藏。"
   },
   {
     "card_id": "000006",

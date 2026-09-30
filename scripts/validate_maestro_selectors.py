@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Maestro smoke selectors and one-screen flow guardrails."""
+"""Validate Maestro selectors and retain one-screen guardrails for smoke flows."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FLOW_DIR = ROOT / "apps" / "mobile" / "e2e" / "maestro"
+EXPERIENCE_FLOW_DIR = ROOT / "apps" / "mobile" / "e2e" / "experience"
 TEST_ID_SOURCE_GLOBS = (
     "apps/mobile/App.tsx",
     "apps/mobile/src/**/*.tsx",
@@ -29,16 +30,14 @@ SCALAR_COMMAND_RE = re.compile(
 SCALAR_KEY_RE = re.compile(
     r"^\s*(?P<key>[A-Za-z][A-Za-z0-9_]*)\s*:\s*(?P<value>.+?)\s*$"
 )
-ID_KEY_RE = re.compile(
-    r"^\s*id\s*:\s*(?P<quote>['\"]?)(?P<id>[^'\"\s,#}]+)(?P=quote)"
-)
-INLINE_ID_RE = re.compile(
-    r"\bid\s*:\s*(?P<quote>['\"]?)(?P<id>[^'\"\s,#}]+)(?P=quote)"
-)
+ID_VALUE_RE = r"(?P<quote>['\"]?)(?P<id>(?:\$\{[^}]+\}|[^'\"\s,#}])+)(?P=quote)"
+ID_KEY_RE = re.compile(r"^\s*id\s*:\s*" + ID_VALUE_RE)
+INLINE_ID_RE = re.compile(r"\bid\s*:\s*" + ID_VALUE_RE)
 TEST_ID_LITERAL_RE = re.compile(r"testID\s*=\s*['\"](?P<id>[^'\"]+)['\"]")
 STRING_LITERAL_RE = re.compile(r"['\"](?P<id>[a-z][a-z0-9_-]+)['\"]")
 TEMPLATE_LITERAL_RE = re.compile(r"`(?P<template>[^`]*\$\{[^`]+)`", re.DOTALL)
 TEMPLATE_EXPR_RE = re.compile(r"\$\{[^}]+\}")
+MAESTRO_PARAMETER_RE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*\}")
 
 
 IdReference = tuple[Path, int, str]
@@ -56,7 +55,10 @@ def parse_args() -> argparse.Namespace:
         "--file",
         action="append",
         default=[],
-        help="Maestro YAML flow to validate. Defaults to apps/mobile/e2e/maestro/*.yaml.",
+        help=(
+            "Maestro YAML flow to validate. Defaults to YAML flows recursively "
+            "under apps/mobile/e2e/maestro and apps/mobile/e2e/experience."
+        ),
     )
     return parser.parse_args()
 
@@ -166,6 +168,11 @@ def is_supported_test_id(
     exact_ids: set[str],
     pattern_ids: list[re.Pattern[str]],
 ) -> bool:
+    # A Maestro variable can occupy a dynamic source testID segment. Keep its
+    # fixed prefix/suffix so a variable never excuses a deleted selector family.
+    if MAESTRO_PARAMETER_RE.search(selector_id):
+        parameterized_id = MAESTRO_PARAMETER_RE.sub("MaestroParameter", selector_id)
+        return any(pattern.fullmatch(parameterized_id) for pattern in pattern_ids)
     return selector_id in exact_ids or any(
         pattern.fullmatch(selector_id) for pattern in pattern_ids
     )
@@ -173,12 +180,13 @@ def is_supported_test_id(
 
 def validate_file(path: Path) -> list[str]:
     errors: list[str] = []
+    is_experience_flow = path.resolve().is_relative_to(EXPERIENCE_FLOW_DIR.resolve())
     for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         command_match = SCALAR_COMMAND_RE.match(line)
         if command_match:
             key = command_match.group("key")
             value = command_match.group("value")
-            if key == "scrollUntilVisible":
+            if key == "scrollUntilVisible" and not is_experience_flow:
                 errors.append(
                     f"{path}:{lineno}: scrollUntilVisible is forbidden in "
                     "one-screen smoke flows; assert visible controls directly"
@@ -227,9 +235,12 @@ def validate_id_coverage(files: list[Path]) -> list[str]:
 
 
 def default_files() -> list[Path]:
-    return sorted(DEFAULT_FLOW_DIR.glob("*.yaml")) + sorted(
-        DEFAULT_FLOW_DIR.glob("*.yml")
-    )
+    return sorted({
+        path
+        for directory in (DEFAULT_FLOW_DIR, EXPERIENCE_FLOW_DIR)
+        for pattern in ("*.yaml", "*.yml")
+        for path in directory.rglob(pattern)
+    })
 
 
 def main() -> int:
@@ -238,7 +249,9 @@ def main() -> int:
     errors: list[str] = []
 
     if not files:
-        errors.append(f"no Maestro YAML flows found under {DEFAULT_FLOW_DIR}")
+        errors.append(
+            f"no Maestro YAML flows found under {DEFAULT_FLOW_DIR} or {EXPERIENCE_FLOW_DIR}"
+        )
 
     for file in files:
         if not file.exists():

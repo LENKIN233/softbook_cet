@@ -1,7 +1,7 @@
 import {isLongQuestion, stackChoiceOptions} from './readability';
 import {resultFeedback} from './resultFeedback';
 import {EliminationPassageText} from './EliminationPassageText';
-import {displayCardText, answerComparison, eliminationPassage, frontMaterial, spaceCardPreview} from './presentation';
+import {displayCardText, answerComparison, eliminationPassage, frontMaterial} from './presentation';
 import {useCardMotion, useReducedMotion, MotionView, MotionPressable, StudioPressable as Pressable, LockMotionGlyph, StrikeText} from './NativeMotion';
 import {STUDIO} from '../visual/studio';
 import React from 'react';
@@ -26,7 +26,6 @@ import {
 } from '../audio/contentManifestRepository';
 
 import {
-  INTERACTION_LABELS,
   LearningCard,
   LearningCardResult,
   LearningCardState,
@@ -537,7 +536,7 @@ export function LearningSurface({
   })();
   const passage = currentCard.interaction_id === 'elimination' ? eliminationPassage(currentCard) : null;
   const material = frontMaterial(currentCard).filter(text => !passage || text !== passage.source);
-  const shouldShowContextCard = currentResult === null && material.length > 0;
+  const shouldShowContextCard = currentResult === null && !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped) && material.length > 0;
   const shouldCenterShortFlip = false;
   const minimumSheetHeight = 0;
 
@@ -780,6 +779,7 @@ export function LearningSurface({
                   <ResultPanel
                     advanceState={advanceState}
                     card={currentCard}
+                    cardState={currentCardState}
                     palette={palette}
                     result={currentResult}
                     onAdvanceCard={() => cardMotion.perform('advance', onAdvanceCard)}
@@ -1010,26 +1010,26 @@ function LearningHelp({card, state, palette, onToggleHint, onTogglePeek, onRevea
   return <View style={styles.learningHelpTools}>
     <Pressable accessibilityRole="button" accessibilityState={{expanded: open}}
       onPress={() => {
-        if (open) {if (state.isHintVisible) onToggleHint(); if (state.isPeeked) onTogglePeek();}
+        if (open) {
+          if (state.isHintVisible) onToggleHint();
+          if (state.isPeeked) onTogglePeek();
+        } else if (!state.isPeeked) {
+          // Opening the method now reveals actual help, so record its use.
+          onTogglePeek();
+        }
         setOpen(value => !value);
       }} style={styles.helpTextButton} testID="learning-help-button">
-      <Text style={[styles.helpTextLabel, {color: palette.textMuted}]}>{open ? '收起帮助' : '需要帮助'}</Text>
+      <Text style={[styles.helpTextLabel, {color: palette.textMuted}]}>{open ? '收起判断方法' : '看判断方法'}</Text>
     </Pressable>
     {open ? <MotionView motionKey={`${state.isHintVisible}:${state.isPeeked}`} enter onLayout={onReveal} style={[styles.helpContents, {borderLeftColor: palette.border}]} testID="learning-help-content">
+      <Text style={[styles.cardSupport, {color: palette.textMuted}]} testID="learning-method-text">{card.analysis.exam_tip}</Text>
       {card.hint_layer ? <View>
         <Pressable accessibilityRole="button" accessibilityState={{expanded: state.isHintVisible}}
           onPress={onToggleHint} style={styles.helpTextButton} testID="learning-hint-button">
-          <Text style={[styles.helpTextLabel, {color: palette.text}]}>{state.isHintVisible ? '收起提示' : '查看提示'}</Text>
+          <Text style={[styles.helpTextLabel, {color: palette.text}]}>{state.isHintVisible ? '收起提示' : '再看一点提示'}</Text>
         </Pressable>
         {state.isHintVisible ? <Text style={[styles.cardSupport, {color: palette.textMuted}]}>{card.hint_layer.content}</Text> : null}
       </View> : null}
-      <View>
-        <Pressable accessibilityRole="button" accessibilityState={{expanded: state.isPeeked}}
-          onPress={onTogglePeek} style={styles.helpTextButton} testID="learning-peek-button">
-          <Text style={[styles.helpTextLabel, {color: palette.text}]}>{state.isPeeked ? '收起思路' : '解题思路'}</Text>
-        </Pressable>
-        {state.isPeeked ? <Text style={[styles.cardSupport, {color: palette.textMuted}]}>{card.analysis.exam_tip}</Text> : null}
-      </View>
     </MotionView> : null}
   </View>;
 }
@@ -1098,7 +1098,8 @@ function InteractionBody({
             >
               {card.back_text}
             </Text>
-            <Text style={[styles.answerQuestion, {color:palette.textMuted,borderColor:palette.border}]}>{displayCardText(card, card.front.prompt)}</Text>
+            <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
+            <QuestionRecall key={card.card_id} card={card} palette={palette} />
           </View>
         </View>
       ) : null;
@@ -1785,20 +1786,7 @@ function getResolvedAnswerRows(
 ): DetailAnswerRow[] {
   switch (card.interaction_id) {
     case 'flip':
-      return [
-        {
-          label: '你的判断',
-          displayText:
-            cardState.flipConfidence === 'review' ? '需要复习' : '有把握',
-          testID: 'learning-detail-selected-answer',
-          tone: cardState.flipConfidence === 'review' ? 'warning' : 'success',
-        },
-        {
-          label: '答案要点',
-          displayText: card.back_text,
-          testID: 'learning-detail-correct-answer',
-        },
-      ];
+      return [{label: '答案要点', displayText: card.back_text, testID: 'learning-detail-correct-answer'}];
     case 'multiple_choice': {
       const selectedOption = card.options.find(
         option => option.id === cardState.selectedOptionId,
@@ -2038,7 +2026,7 @@ export function LearningResultDetailSurface({
                   { color: palette.text },
                 ]}
               >
-                {INTERACTION_LABELS[card.interaction_id]}
+                解析
               </Text>
             </View>
           </View>
@@ -2073,6 +2061,13 @@ export function LearningResultDetailSurface({
             </View>
           </View> : null}
         </View>
+
+        {isCompactPhone ? <Pressable
+          accessibilityRole="button"
+          onPress={onBackToPractice}
+          style={styles.analysisLink}
+          testID="learning-result-back-button"
+        ><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>返回卡面</Text></Pressable> : null}
 
         {!isCompactPhone ? (
           <View
@@ -2127,39 +2122,6 @@ export function LearningResultDetailSurface({
             </Pressable>
           </View>
         ) : null}
-
-        <View
-          style={[
-            styles.detailResolvedHero,
-            isCompactPhone ? styles.detailResolvedHeroCompact : null,
-            {
-              backgroundColor: palette.panelStrong,
-              borderColor: palette.border,
-            },
-          ]}
-        >
-          <View style={styles.detailTitleWrap}>
-            <View
-              style={[
-                styles.detailStatePill,
-                { backgroundColor: hexToRgba(resultTone, 0.11) },
-              ]}
-            >
-              <Text style={[styles.detailStateText, { color: resultTone }]}>
-                {feedback.badge}
-              </Text>
-            </View>
-            <Text
-              style={[
-                styles.detailPrompt,
-                isCompactPhone ? styles.detailPromptCompact : null,
-                { color: palette.text },
-              ]}
-            >
-              {displayCardText(card, card.front.prompt)}
-            </Text>
-          </View>
-        </View>
 
         <View
           style={[
@@ -2289,6 +2251,7 @@ export function LearningResultDetailSurface({
             >
               考试提示：{card.analysis.exam_tip}
             </Text>
+            <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
             <AudioTranscript key={card.card_id} card={card} palette={palette} />
           </View>
         </View>
@@ -2345,7 +2308,6 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
 }) {
   const comparison = answerComparison(card, cardState);
   const answerLabel = card.interaction_id === 'flip' ? '核对答案' : '正确答案';
-  const questionContext = spaceCardPreview(card);
   return <View style={styles.answerSummary} testID="learning-result-summary">
     <Text style={[styles.answerEyebrow, {color: palette.success}]}>{answerLabel}</Text>
     <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
@@ -2359,10 +2321,32 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
         已解锁，稍后复习
       </Text>
     ) : null}
-    <Text style={[styles.answerQuestion, {color: palette.textMuted, borderColor: palette.border}]}>{[questionContext.title, ...questionContext.detail].join('\n\n')}</Text>
     <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
+    <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
     <AudioTranscript key={card.card_id} card={card} palette={palette} />
     <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>展开完整解析 →</Text></Pressable>
+  </View>;
+}
+
+function QuestionRecall({card, palette}: {card: LearningCard; palette: LearningSurfacePalette}) {
+  const [open, setOpen] = React.useState(false);
+  const question = [displayCardText(card, card.front.prompt), ...frontMaterial(card)];
+  const options = card.interaction_id === 'multiple_choice'
+    ? card.options.map(option => `${option.label} · ${option.text}`)
+    : card.interaction_id === 'lock'
+    ? card.lock_slots.map(slot => `${slot.label}：${slot.options.join(' / ')}`)
+    : card.interaction_id === 'swipe'
+    ? card.swipe_states.map(option => `${option.label}：${option.description}`)
+    : card.interaction_id === 'elimination'
+    ? card.elimination_items.map(item => item.text)
+    : [];
+  return <View>
+    <Pressable accessibilityRole="button" accessibilityState={{expanded: open}} onPress={() => setOpen(value => !value)} style={styles.analysisLink} testID="learning-question-toggle">
+      <Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>{open ? '收起原题' : '回看原题'}</Text>
+    </Pressable>
+    {open ? <View style={styles.recalledQuestion} testID="learning-question-content">
+      {[...new Set([...question, ...options])].filter(Boolean).map((text, index) => <Text key={index} style={[styles.cardSupport, {color: palette.text}]}>{text}</Text>)}
+    </View> : null}
   </View>;
 }
 
@@ -2385,6 +2369,7 @@ function AudioTranscript({card, palette}: {card: LearningCard; palette: Learning
 function ResultPanel({
   advanceState,
   card,
+  cardState,
   palette,
   result,
   onAdvanceCard,
@@ -2392,12 +2377,14 @@ function ResultPanel({
 }: {
   advanceState: LearningAdvanceState;
   card: LearningCard;
+  cardState: LearningCardState;
   palette: LearningSurfacePalette;
   result: LearningCardResult;
   onAdvanceCard: () => void;
   isLastCard: boolean;
 }) {
   const borderTone = getResultTone(result, palette);
+  const answerLabel = card.interaction_id === 'flip' ? '核对答案' : '正确答案';
   const primaryAction = getPrimaryActionColors(palette);
 
   return (
@@ -2414,11 +2401,10 @@ function ResultPanel({
         <Text style={[styles.sectionTitle, { color: palette.text }]}>
           {resultFeedback(result.outcome).title}
         </Text>
-        <ResultBadge result={result} palette={palette} />
+
       </View>
-      <Text style={[styles.resultExplanationTitle, { color: palette.text }]}>
-        {card.analysis.title}
-      </Text>
+      <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{answerLabel}</Text>
+      <Text style={[styles.answerHeadline, {color: palette.text}]}>{answerComparison(card, cardState).correct}</Text>
       <Text
         style={[styles.resultExplanationBody, { color: palette.textMuted }]}
       >
@@ -2427,24 +2413,8 @@ function ResultPanel({
       <Text style={[styles.resultTip, { color: palette.textMuted }]}>
         考试提示：{card.analysis.exam_tip}
       </Text>
+      <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
       <AudioTranscript key={card.card_id} card={card} palette={palette} />
-      <View
-        style={[
-          styles.settlePanel,
-          {
-            backgroundColor: palette.panel,
-            borderColor: palette.success,
-          },
-        ]}
-        testID="learning-settle-panel"
-      >
-        <Text style={[styles.settleTitle, { color: palette.success }]}>
-          已作答
-        </Text>
-        <Text style={[styles.settleText, { color: palette.textMuted }]}>
-          看完解析后，下一张。
-        </Text>
-      </View>
       <Pressable
         disabled={advanceState.busy}
         onPress={onAdvanceCard}
@@ -2519,45 +2489,8 @@ function MetricPill({
   );
 }
 
-function ResultBadge({
-  result,
-  palette,
-}: {
-  result: LearningCardResult;
-  palette: LearningSurfacePalette;
-}) {
-  const {outcome} = result;
-  const isPositive = outcome === 'correct' || outcome === 'confident';
-  const badgeTone = getResultTone(result, palette);
-  const label =
-    result.interactionId === 'lock' && outcome === 'incorrect'
-      ? '已解锁，稍后复习'
-      : outcome === 'correct'
-      ? '回答正确'
-      : outcome === 'incorrect'
-      ? '回答错误'
-      : outcome === 'confident'
-      ? '有把握'
-      : '需要复习';
-
-  return (
-    <View
-      style={[
-        styles.resultBadge,
-        isPositive ? styles.resultBadgePositive : styles.resultBadgeNegative,
-        {
-          borderColor: badgeTone,
-        },
-      ]}
-    >
-      <Text style={[styles.resultBadgeLabel, { color: badgeTone }]}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
+  recalledQuestion: {gap: 12, paddingVertical: 8},
   viewportScroll: {flex: 1},
   viewportScrollContent: {flexGrow: 1},
   viewportScrollFit: {height: '100%'},

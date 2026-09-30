@@ -8,6 +8,7 @@ import type {
 import { createLearningCardState } from '../learning/sessionCore';
 import {
   createStudyState,
+  learnedStudyCardIds,
   planLocalCards,
   validateStudyState,
   type StudyFrame,
@@ -111,6 +112,7 @@ function migrateState(
     frame: adapt(old.frame),
     resume: old.resume ? adapt(old.resume) : null,
     results,
+    learnedCardIds: learnedStudyCardIds(old),
     favorites,
     sleeping,
     schedule: Object.fromEntries(

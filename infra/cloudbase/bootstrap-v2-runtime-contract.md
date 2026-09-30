@@ -384,3 +384,28 @@ This contract does not prove:
   controlled-pilot payload, fixtures, dry-runs, or smoke reports into beta or
   launch evidence;
 - payment entitlement, deletion completion, or launch readiness.
+
+## Track study statistics
+
+Bootstrap adds nullable `statistics` with `schema_version: track-study-statistics.v1`,
+`track`, `day_key`, `event_server_sequence`, `completed_card_count`,
+`completed_attempt_count`, `review_attempt_count`, and
+`cumulative_learned_card_count`. Its single semantic owner is
+`spec/account-sync-contract.json#canonical_read.track_study_statistics`.
+
+Daily counts come from immutable accepted events filtered by account, requested
+track and the server-derived China `activity_day`. An exact retry counts once;
+a new accepted review of the same card adds an attempt but not a distinct card.
+The cumulative card set comes from the whole track Learning projection, not the
+active catalog or only today's results. Daily events above that projection's
+`event_server_sequence` are excluded so concurrent commits cannot make these
+statistics causally newer than the serialized Learning owner.
+
+`progress` remains account-wide for check-in and its existing compatibility
+contract. Clients consume `statistics` for track-specific presentation. Missing
+or null statistics mean unavailable, never zero or a client-derived substitute.
+A retained legacy day cannot reconstruct exact distinct cards and attempts, so
+its statistics are unavailable. The current FlexDB read is bounded at 1000
+matching rows: a full page yields null rather than silently truncating totals,
+using unsupported ordered pagination, or blocking the learning route. This
+repository-local change does not claim a deployed CloudBase change.

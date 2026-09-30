@@ -292,6 +292,78 @@ test('learning-events v2 writes canonical projections in memory and CloudBase', 
   }
 });
 
+test('track statistics count cards and attempts separately across tracks, days and exact retries', async () => {
+  for (const store of [createMemoryStore(), createCloudBaseStore({db: createFakeCloudBaseDb()})]) {
+    const clock = createClock();
+    const {api} = createTestApi({store, clock,
+      authV2AccessTokenTtlSeconds: 3 * 24 * 60 * 60,
+      authV2RefreshTokenTtlSeconds: 3 * 24 * 60 * 60});
+    const session = await authenticatedSession(api);
+    const source = await cardSource(api, session);
+    for (let index = 0; index < 5; index += 1) {
+      const event = eventFor(source, index);
+      const response = await submit(api, session, [event]);
+      assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+    }
+    clock.advanceDays(1);
+    const review = eventFor(source, 0, {event_id: 'event_statistics_review', phase: 'review',
+      device_cursor: {device_id: 'device_statistics', sequence: 1}});
+    assert.equal((await submit(api, session, [review])).statusCode, 200);
+    assert.equal((await submit(api, session, [review])).body.data.results[0].status, 'duplicate');
+    const cet6 = await cardSource(api, session, 'cet6');
+    const otherTrack = eventFor(cet6, 0, {event_id: 'event_statistics_cet6',
+      device_cursor: {device_id: 'device_statistics', sequence: 2}});
+    assert.equal((await submit(api, session, [otherTrack], 'cet6')).statusCode, 200);
+    const read = async (track, day = DAY_KEY) => {
+      const response = await request(api, {headers: {authorization: `Bearer ${session.access_token}`},
+        method: 'GET', path: '/v2/bootstrap', query: {track, day_key: day}});
+      assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+      return response.body.data;
+    };
+    const firstDay = await read('cet4');
+    assert.deepEqual(firstDay.statistics, {schema_version: 'track-study-statistics.v1',
+      day_key: DAY_KEY, track: 'cet4', event_server_sequence: 6,
+      completed_card_count: 5, completed_attempt_count: 6,
+      review_attempt_count: 1, cumulative_learned_card_count: 5});
+    assert.equal(firstDay.progress.total_completed_count, 7, 'account check-in progress remains account-wide');
+    assert.equal((await read('cet6')).statistics.completed_attempt_count, 1);
+    assert.equal((await read('cet6')).statistics.cumulative_learned_card_count, 1);
+    const dayTwo = '2026-05-01';
+    assert.equal((await read('cet4', dayTwo)).statistics.completed_card_count, 0);
+    const nextReview = eventFor(source, 1, {event_id: 'event_statistics_next_day', phase: 'review',
+      client_occurred_at: clock.now().toISOString(),
+      device_cursor: {device_id: 'device_statistics', sequence: 3}});
+    const completed = await submit(api, session, [nextReview]);
+    assert.equal(completed.statusCode, 200, JSON.stringify(completed.body));
+    const secondDay = await read('cet4', dayTwo);
+    assert.equal(secondDay.statistics.completed_card_count, 1);
+    assert.equal(secondDay.statistics.completed_attempt_count, 1);
+    assert.equal(secondDay.statistics.review_attempt_count, 1);
+    assert.equal(secondDay.statistics.cumulative_learned_card_count, 5);
+    assert.equal((await read('cet4')).statistics.completed_attempt_count, 6,
+      'a newer per-card result cannot erase earlier-day activity');
+  }
+});
+
+test('CloudBase statistics refuses a full unproven page instead of truncating the total', async () => {
+  const db = createFakeCloudBaseDb();
+  const store = createCloudBaseStore({db});
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api);
+  const source = await cardSource(api, session);
+  await submit(api, session, [eventFor(source)]);
+  const stored = [...db.snapshot().get('softbook_learning_events').values()][0];
+  for (let index = 1; index < 1000; index += 1) {
+    await db.collection('softbook_learning_events').doc(`extra_${index}`).set({...stored,
+      event_id: `extra_${index}`, payload: {...stored.payload, event_id: `extra_${index}`}});
+  }
+  const response = await request(api, {headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'GET', path: '/v2/bootstrap', query: {track: 'cet4', day_key: DAY_KEY}});
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.data.statistics, null);
+  assert.equal(response.body.data.learning.card_states.length, 1);
+});
+
 test('learning-events v2 rejects identity input and strict-schema drift', async () => {
   const store = createMemoryStore();
   const {api} = createTestApi({store});

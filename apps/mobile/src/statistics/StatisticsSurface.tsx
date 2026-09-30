@@ -1,806 +1,119 @@
-import React from 'react';
-import {StudioPressable as Pressable, MotionView} from '../learning/NativeMotion';
-import {STUDIO} from '../visual/studio';
-import {
-  ScrollView,
-  StyleProp,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-  ViewStyle,
-} from 'react-native';
-
-import { hexToRgba } from '../visual/tokens';
+import React, {useState} from 'react';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {StudioPressable as Pressable} from '../learning/NativeMotion';
+import type {TrackStudyStatistics} from './trackStudyStatistics';
 
 type StatisticsPalette = {
-  accent: string;
-  accentSoft: string;
-  accentStrong: string;
-  activeSurface: string;
-  activeText: string;
-  background: string;
-  border: string;
-  danger: string;
-  panel: string;
-  panelStrong: string;
-  primaryActionSurface: string;
-  primaryActionText: string;
-  primaryActionMuted: string;
-  success: string;
-  tabIdle: string;
-  text: string;
-  textMuted: string;
-  warning: string;
-  warningText: string;
+  accent: string; accentSoft: string; accentStrong: string; background: string; border: string;
+  activeSurface: string; activeText: string; danger: string; primaryActionMuted: string;
+  success: string; tabIdle: string; warning: string; warningText: string;
+  panel: string; panelStrong: string; primaryActionSurface: string;
+  primaryActionText: string; text: string; textMuted: string;
 };
 
-type DeviceClass = 'phone' | 'tablet';
-
-export function StatisticsSurface({
-  canCheckInToday,
-  cumulativeLearnedCount,
-  deviceClass,
-  hasCheckedInToday,
-  learningCompletedCount,
-  onCheckIn,
-  onGoToLearning,
-  onStartReview,
-  palette,
-  pendingReviewCount,
-  reviewCompletedCount,
-  syncStatusDetail,
-  syncStatusLabel,
-}: {
+type Props = {
+  statistics?: TrackStudyStatistics | null;
+  track: 'cet4' | 'cet6';
   canCheckInToday: boolean;
-  cumulativeLearnedCount?: number;
-  deviceClass: DeviceClass;
   hasCheckedInToday: boolean;
-  learningCompletedCount: number;
+  deviceClass: 'phone' | 'tablet';
   onCheckIn: () => void;
   onGoToLearning: () => void;
-  onStartReview: () => void;
   palette: StatisticsPalette;
-  pendingReviewCount: number;
-  reviewCompletedCount: number;
-  syncStatusDetail: string;
   syncStatusLabel: string;
-}) {
-  const { fontScale, height, width } = useWindowDimensions();
-  const usesCompactLayout =
-    deviceClass === 'phone' && (height < 800 || width < 370);
-  const usesAccessibilityLayout = fontScale >= 1.3;
-  const metricGrid =
-    deviceClass === 'phone' &&
-    !usesAccessibilityLayout &&
-    cumulativeLearnedCount !== undefined;
-  const totalCompletedCount = learningCompletedCount + reviewCompletedCount;
-  const hasLearningProgress = totalCompletedCount > 0;
-  const checkInSummary = hasCheckedInToday
-    ? '今天已签到。'
-    : canCheckInToday
-    ? '完成学习后可以签到。'
-    : '完成 1 张后可以签到。';
-  const nextStepIsReview = pendingReviewCount > 0;
-  const nextStepSummary = nextStepIsReview
-    ? `还有 ${pendingReviewCount} 张卡需要复习。`
-    : hasLearningProgress
-    ? '按顺序继续下一张。'
-    : '先完成第一张。';
-  const nextStepButtonLabel = nextStepIsReview ? '开始复习' : '继续学习';
-  const nextStepButtonTestID = nextStepIsReview
-    ? 'statistics-start-review-button'
-    : 'statistics-go-learning-button';
-  const onPressNextStep = nextStepIsReview ? onStartReview : onGoToLearning;
-  const syncLedgerDetail =
-    hasCheckedInToday && syncStatusLabel === '已记录'
-      ? undefined
-      : syncStatusDetail;
-  const checkInButtonBackground = hasCheckedInToday
-    ? palette.panelStrong
-    : canCheckInToday
-    ? palette.accent
-    : palette.tabIdle;
-  const checkInButtonBorder = hasCheckedInToday
-    ? hexToRgba(palette.accent, 0.18)
-    : canCheckInToday
-    ? palette.accent
-    : palette.border;
-  const checkInButtonLabelColor = hasCheckedInToday
-    ? palette.accentStrong
-    : canCheckInToday
-    ? palette.primaryActionText
-    : palette.panel;
+  syncStatusDetail: string;
+  // Older callers can continue supplying their progress snapshot. Its account
+  // totals must never be presented as track-specific statistics.
+  cumulativeLearnedCount?: number;
+  learningCompletedCount?: number;
+  reviewCompletedCount?: number;
+  pendingReviewCount?: number;
+  onStartReview?: () => void;
+};
 
-  return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.page,
-        deviceClass === 'tablet' ? styles.pageTablet : null,
-      ]}
-      showsVerticalScrollIndicator={false}
-      style={styles.pageScroll}
-      testID="statistics-scroll"
-    >
-      <SurfaceCard
-        palette={palette}
-        style={[
-          styles.dailyObjectCard,
-          usesCompactLayout ? styles.dailyObjectCardCompact : null,
-        ]}
-        testID="statistics-day-object"
-      >
-        <Text style={[styles.title, { color: palette.text }]}>学习统计</Text>
-        {!hasLearningProgress ? (
-          <Text style={[styles.summary, { color: palette.textMuted }]}>
-            完成第一张后，这里会显示记录。
-          </Text>
-        ) : null}
-      </SurfaceCard>
-
-      <View
-        style={[
-          styles.metricLedger,
-          usesAccessibilityLayout ? styles.metricLedgerAccessible : null,
-          metricGrid ? styles.metricLedgerGrid : null,
-        ]}
-        testID="statistics-metric-strip"
-      >
-        <MetricLedgerRow
-          grid={metricGrid}
-          detail={`学习 ${learningCompletedCount} 张`}
-          label="今日完成"
-          palette={palette}
-          testID="statistics-metric-completed"
-          value={`${totalCompletedCount}`}
-        />
-        <MetricLedgerRow
-          grid={metricGrid}
-          label="待复习"
-          palette={palette}
-          testID="statistics-metric-pending-review"
-          tone={pendingReviewCount > 0 ? 'warning' : 'success'}
-          value={`${pendingReviewCount}`}
-        />
-        <MetricLedgerRow
-          grid={metricGrid}
-          label="今日复习"
-          palette={palette}
-          testID="statistics-metric-review"
-          value={`${reviewCompletedCount}`}
-        />
-        {cumulativeLearnedCount !== undefined ? (
-          <MetricLedgerRow
-            grid={metricGrid}
-            label="累计学过"
-            palette={palette}
-            testID="statistics-metric-cumulative"
-            value={`${cumulativeLearnedCount}`}
-          />
-        ) : null}
+export function StatisticsSurface({statistics, track, canCheckInToday,
+  pendingReviewCount = 0, onStartReview,
+  hasCheckedInToday, deviceClass, onCheckIn, onGoToLearning, palette,
+  syncStatusLabel, syncStatusDetail}: Props) {
+  const [showExplanation, setShowExplanation] = useState(false);
+  const scope = statistics?.track ?? track;
+  const hasSyncNotice = !['已记录', '已同步', '暂无记录', '已保存在本机'].includes(syncStatusLabel);
+  return <ScrollView testID="statistics-scroll" showsVerticalScrollIndicator={false}
+    contentContainerStyle={[styles.page, deviceClass === 'tablet' && styles.tablet]}>
+    <View testID="statistics-day-object" style={styles.heading}>
+      <Text style={[styles.eyebrow, {color: palette.textMuted}]}>{scope === 'cet6' ? '英语六级' : '英语四级'} · 今天</Text>
+      <Text style={[styles.title, {color: palette.text}]}>学习统计</Text>
+    </View>
+    {statistics ? <View testID="statistics-metric-strip" style={styles.metrics}>
+      <View style={[styles.hero, {backgroundColor: palette.panel}]} testID="statistics-metric-completed">
+        <Text style={[styles.label, {color: palette.textMuted}]}>今天练过</Text>
+        <Text style={[styles.number, {color: palette.accentStrong}]} testID="statistics-metric-completed-value">{statistics.completedCardCount} 张卡</Text>
+        <Text style={[styles.detail, {color: palette.text}]} testID="statistics-metric-review">共完成 {statistics.completedAttemptCount} 次练习，含 {statistics.reviewAttemptCount} 次复习</Text>
+        {statistics.completedAttemptCount === 0 ? <Text style={[styles.detail, {color: palette.textMuted}]}>完成作答后，这里会显示记录。</Text> : null}
       </View>
-
-      <View
-        style={[
-          styles.actionDock,
-          {
-            backgroundColor: 'transparent',
-            borderColor: 'transparent',
-          },
-        ]}
-        testID="statistics-action-dock"
-      >
-        <View
-          style={[
-            styles.actionObjectRow,
-            styles.nextStepRow,
-            usesAccessibilityLayout ? styles.nextStepRowAccessible : null,
-            {
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
-            },
-          ]}
-          testID="statistics-next-step-card"
-        >
-          <View style={styles.nextStepCopy}>
-            <Text style={[styles.cardSummary, { color: palette.textMuted }]}>
-              {nextStepSummary}
-            </Text>
-          </View>
-          <Pressable
-            onPress={onPressNextStep}
-            style={[
-              styles.primaryButton,
-              styles.nextStepButton,
-              usesAccessibilityLayout ? styles.nextStepButtonAccessible : null,
-              {
-                backgroundColor: nextStepIsReview
-                  ? palette.warningText
-                  : palette.primaryActionSurface,
-                borderColor: nextStepIsReview
-                  ? palette.warningText
-                  : palette.primaryActionSurface,
-              },
-            ]}
-            testID={nextStepButtonTestID}
-          >
-            <Text
-              style={[
-                styles.primaryButtonLabel,
-                {
-                  color: nextStepIsReview
-                    ? palette.warningText
-                    : palette.primaryActionText,
-                },
-              ]}
-            >
-              {nextStepButtonLabel}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View
-          pointerEvents="none"
-          style={[
-            styles.actionDockDivider,
-            {
-              backgroundColor: hexToRgba(palette.textMuted, 0.12),
-            },
-          ]}
-        />
-
-        <View
-          style={[
-            styles.actionObjectRow,
-            {
-              backgroundColor: hexToRgba(palette.success, 0.085),
-              borderColor: 'transparent',
-            },
-            styles.checkInDockRow,
-            usesAccessibilityLayout ? styles.checkInDockRowAccessible : null,
-            deviceClass === 'tablet' ? styles.checkInDockRowTablet : null,
-          ]}
-          testID="statistics-checkin-card"
-        >
-          <View style={styles.checkInCopy}>
-            <Text style={[styles.checkInTitle, { color: palette.text }]}>
-              签到
-            </Text>
-            <Text
-              style={[styles.cardSummary, { color: palette.textMuted }]}
-              testID="statistics-checkin-summary"
-            >
-              {checkInSummary}
-            </Text>
-          </View>
-          <Pressable
-            disabled={!canCheckInToday || hasCheckedInToday}
-            onPress={onCheckIn}
-            style={[
-              styles.primaryButton,
-              styles.dailyPrimaryButton,
-              usesAccessibilityLayout
-                ? styles.dailyPrimaryButtonAccessible
-                : null,
-              {
-                backgroundColor: checkInButtonBackground,
-                borderColor: checkInButtonBorder,
-              },
-            ]}
-            testID="statistics-checkin-button"
-          >
-            <Text
-              style={[
-                styles.primaryButtonLabel,
-                { color: checkInButtonLabelColor },
-              ]}
-              testID={
-                hasCheckedInToday
-                  ? 'statistics-checkin-complete-label'
-                  : 'statistics-checkin-ready-label'
-              }
-            >
-              {hasCheckedInToday ? '今日已签到' : '签到'}
-            </Text>
-          </Pressable>
-        </View>
-
-        <View
-          pointerEvents="none"
-          style={[
-            styles.actionDockDivider,
-            {
-              backgroundColor: hexToRgba(palette.textMuted, 0.1),
-            },
-          ]}
-        />
-
-        {!['已记录', '已同步', '暂无记录', '已保存在本机'].includes(
-          syncStatusLabel,
-        ) ? (
-          <View style={styles.statusLedger} testID="statistics-status-ledger">
-            <View
-              style={[
-                styles.ledgerRail,
-                usesAccessibilityLayout ? styles.ledgerRailAccessible : null,
-              ]}
-              testID="statistics-ledger-rail"
-            >
-              <LedgerRow
-                detail={syncLedgerDetail}
-                detailTestID="statistics-sync-detail"
-                label="记录"
-                palette={palette}
-                testID="statistics-sync-label"
-                value={syncStatusLabel}
-              />
-            </View>
-          </View>
-        ) : null}
+      <View style={[styles.cumulative, {borderColor: palette.border}]} testID="statistics-metric-cumulative">
+        <Text style={[styles.label, {color: palette.textMuted}]}>累计学过</Text>
+        <Text style={[styles.cumulativeValue, {color: palette.text}]} testID="statistics-metric-cumulative-value">{statistics.cumulativeLearnedCardCount} 张</Text>
       </View>
-    </ScrollView>
-  );
-}
-
-function MetricLedgerRow({
-  grid = false,
-  detail,
-  label,
-  palette,
-  testID,
-  tone,
-  value,
-}: {
-  grid?: boolean;
-  detail?: string;
-  label: string;
-  palette: StatisticsPalette;
-  testID?: string;
-  tone?: 'success' | 'warning' | 'danger';
-  value: string;
-}) {
-  const valueColor =
-    tone === 'success'
-      ? palette.success
-      : tone === 'warning'
-      ? palette.warningText
-      : tone === 'danger'
-      ? palette.danger
-      : palette.accentStrong;
-
-  return (
-    <View
-      style={[
-        styles.metricLedgerRow,
-        grid ? styles.metricLedgerRowGrid : null,
-        {
-          backgroundColor: palette.panel,
-          borderColor: 'transparent',
-        },
-      ]}
-      testID={testID}
-    >
-      <View style={styles.metricCopy}>
-        <Text style={[styles.metricLabel, { color: palette.textMuted }]}>
-          {label}
+    </View> : <View style={[styles.hero, {backgroundColor: palette.panel}]} testID="statistics-unavailable">
+      <Text style={[styles.detail, {color: palette.text}]}>当前科目的统计暂时无法读取。</Text>
+      <Text style={[styles.detail, {color: palette.textMuted}]}>你可以继续学习，记录恢复后会在这里显示。</Text>
+    </View>}
+    <Pressable accessibilityRole="button" testID="statistics-go-learning-button" onPress={onGoToLearning}
+      style={[styles.primary, {backgroundColor: palette.primaryActionSurface}]}>
+      <Text style={[styles.buttonLabel, {color: palette.primaryActionText}]}>继续学习</Text>
+    </Pressable>
+    <Pressable accessibilityRole="button" accessibilityState={{expanded: showExplanation}}
+      testID="statistics-explanation-toggle" onPress={() => setShowExplanation(value => !value)} style={styles.textButton}>
+      <Text style={[styles.detail, {color: palette.textMuted}]}>{showExplanation ? '收起统计说明' : '如何统计'}</Text>
+    </Pressable>
+    {showExplanation ? <Text style={[styles.explanation, {color: palette.textMuted}]} testID="statistics-explanation">
+      完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。
+    </Text> : null}
+    {pendingReviewCount > 0 && onStartReview ? <View style={styles.reviewEntry}>
+      <Text style={[styles.detail, {color: palette.textMuted}]}>有 {pendingReviewCount} 张卡需要再练。</Text>
+      <Pressable accessibilityRole="button" testID="statistics-start-review-button" onPress={onStartReview} style={styles.textButton}>
+        <Text style={[styles.detail, {color: palette.accentStrong}]}>开始复习</Text>
+      </Pressable>
+    </View> : null}
+    <View testID="statistics-checkin-card" style={[styles.checkIn, {borderColor: palette.border}]}>
+      <View style={styles.checkInCopy}>
+        <Text style={[styles.label, {color: palette.text}]}>签到</Text>
+        <Text testID="statistics-checkin-summary" style={[styles.detail, {color: palette.textMuted}]}>
+          {hasCheckedInToday ? '今天已签到。' : canCheckInToday ? '今天的学习已记录，可以签到。' : '完成一张卡后可以签到，四六级共用签到记录。'}
         </Text>
-        {detail ? (
-          <Text style={[styles.metricDetail, { color: palette.textMuted }]}>
-            {detail}
-          </Text>
-        ) : null}
       </View>
-      <MotionView motionKey={value} kind="result">
-      <Text
-        style={[styles.metricValue, { color: valueColor }]}
-        testID={testID ? `${testID}-value` : undefined}
-      >
-        {value}
-      </Text>
-      </MotionView>
+      <Pressable accessibilityRole="button" testID="statistics-checkin-button" disabled={!canCheckInToday || hasCheckedInToday}
+        onPress={onCheckIn} style={[styles.secondary, {borderColor: palette.border}]}>
+        <Text style={[styles.buttonLabel, {color: palette.textMuted}]} testID={hasCheckedInToday ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>{hasCheckedInToday ? '今日已签到' : '签到'}</Text>
+      </Pressable>
     </View>
-  );
-}
-
-function SurfaceCard({
-  children,
-  palette,
-  style,
-  testID,
-}: {
-  children: React.ReactNode;
-  palette: StatisticsPalette;
-  style?: StyleProp<ViewStyle>;
-  testID?: string;
-}) {
-  return (
-    <View
-      style={[
-        styles.surfaceCard,
-        style,
-        { backgroundColor: 'transparent', borderColor: palette.border },
-      ]}
-      testID={testID}
-    >
-      {children}
-    </View>
-  );
-}
-
-function LedgerRow({
-  detail,
-  detailTestID,
-  label,
-  palette,
-  testID,
-  value,
-}: {
-  detail?: string;
-  detailTestID?: string;
-  label: string;
-  palette: StatisticsPalette;
-  testID?: string;
-  value: string;
-}) {
-  return (
-    <View
-      style={[
-        styles.ledgerRow,
-        {
-          backgroundColor: palette.panelStrong,
-          borderColor: 'transparent',
-        },
-      ]}
-    >
-      <Text style={[styles.ledgerLabel, { color: palette.textMuted }]}>
-        {label}
-      </Text>
-      <View style={styles.ledgerValueStack}>
-        <Text
-          numberOfLines={1}
-          style={[styles.ledgerValue, { color: palette.text }]}
-          testID={testID}
-        >
-          {value}
-        </Text>
-        {detail ? (
-          <Text
-            numberOfLines={1}
-            style={[styles.ledgerDetail, { color: palette.textMuted }]}
-            testID={detailTestID}
-          >
-            {detail}
-          </Text>
-        ) : null}
-      </View>
-    </View>
-  );
+    {hasSyncNotice ? <View testID="statistics-status-ledger">
+      <Text testID="statistics-sync-label" accessibilityLiveRegion="polite" style={[styles.detail, {color: palette.textMuted}]}>{syncStatusLabel}</Text>
+      <Text testID="statistics-sync-detail" style={[styles.detail, {color: palette.textMuted}]}>{syncStatusDetail}</Text>
+    </View> : null}
+  </ScrollView>;
 }
 
 const styles = StyleSheet.create({
-  page: {
-    flexGrow: 1,
-    paddingHorizontal: STUDIO.space.phone,
-    paddingTop: 8,
-    paddingBottom: 16,
-    gap: 18,
-  },
-  pageScroll: {
-    flex: 1,
-  },
-  pageTablet: {
-    paddingHorizontal: 24,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0,
-  },
-  title: {
-    fontSize: 22,
-    lineHeight: 27,
-    fontWeight: '600',
-  },
-  summary: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  metricLedger: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  metricLedgerGrid: { flexWrap: 'wrap' },
-  metricLedgerRowGrid: { flexBasis: '45%', flexGrow: 1, flexShrink: 1 },
-  metricLedgerAccessible: {
-    flexDirection: 'column',
-  },
-  metricLedgerRow: {
-    alignItems: 'flex-start',
-    borderRadius: 16,
-    borderWidth: 0,
-    flex: 1,
-    gap: 9,
-    justifyContent: 'center',
-    minHeight: 104,
-    minWidth: 0,
-    paddingHorizontal: 17,
-    paddingVertical: 18,
-  },
-  metricValue: {
-    fontSize: 34,
-    fontWeight: '500',
-    fontVariant: ['tabular-nums'],
-    lineHeight: 41,
-    minWidth: 0,
-    textAlign: 'left',
-  },
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: '400',
-    lineHeight: 18,
-  },
-  metricCopy: {
-    flex: 1,
-    gap: 1,
-    minWidth: 0,
-  },
-  metricDetail: {
-    fontSize: 11,
-    fontWeight: '400',
-    lineHeight: 17,
-  },
-  surfaceCard: {
-    borderWidth: 0,
-    borderRadius: 0,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 8,
-    flexShrink: 1,
-  },
-  cardSummary: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  dailyObjectCard: {
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-
-    borderRadius: STUDIO.radius.section,
-  },
-  dailyObjectCardCompact: {
-    gap: 12,
-    paddingVertical: 22,
-  },
-  dailyHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  dailyHeaderAccessible: {
-    alignItems: 'stretch',
-    flexDirection: 'column',
-  },
-  dailyHeading: {
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
-  },
-  dailyEyebrowRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-  },
-  dailySignal: {
-    borderRadius: 999,
-    height: 8,
-    width: 8,
-  },
-  checkInStatusPill: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  checkInStatusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  progressDock: {
-    borderRadius: 16,
-    borderWidth: 0,
-    gap: 7,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-  },
-  progressHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  progressCopy: {
-    flex: 1,
-    gap: 2,
-    minWidth: 0,
-  },
-  progressEyebrow: {
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 15,
-  },
-  progressTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 20,
-  },
-  progressRatio: {
-    fontSize: 20,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
-    lineHeight: 24,
-  },
-  progressTrack: {
-    borderRadius: 999,
-    height: 9,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    borderRadius: 999,
-    height: '100%',
-  },
-  actionDock: {
-    borderRadius: 24,
-    borderWidth: 0,
-    flexShrink: 0,
-    gap: 14,
-    overflow: 'hidden',
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0,
-    shadowRadius: 24,
-    elevation: 0,
-  },
-  actionObjectRow: {
-    borderRadius: 19,
-    borderWidth: 0,
-  },
-  nextStepRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 18,
-    paddingBottom: 12,
-    paddingTop: 12,
-
-    paddingVertical: 20,
-    borderRadius: 18,
-  },
-  nextStepRowAccessible: {
-    alignItems: 'stretch',
-    flexDirection: 'column',
-  },
-  actionDockDivider: {
-    height: 0,
-  },
-  nextStepCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  nextStepEyebrow: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0,
-  },
-  nextStepTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    lineHeight: 21,
-  },
-  checkInDockRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    minHeight: 72,
-    paddingHorizontal: 18,
-    paddingBottom: 11,
-    paddingTop: 11,
-
-    paddingVertical: 18,
-    borderRadius: 18,
-  },
-  checkInDockRowTablet: {
-    alignItems: 'flex-start',
-  },
-  checkInDockRowAccessible: {
-    alignItems: 'stretch',
-    flexDirection: 'column',
-  },
-  checkInCopy: {
-    flex: 1,
-    gap: 5,
-  },
-  checkInTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 16,
-  },
-  primaryButton: {
-    borderWidth: 0,
-    borderRadius: STUDIO.radius.control,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-  },
-  primaryButtonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  dailyPrimaryButton: {
-    borderRadius: 14,
-    minWidth: 96,
-    paddingHorizontal: 13,
-    paddingVertical: 8,
-  },
-  dailyPrimaryButtonAccessible: {
-    alignSelf: 'stretch',
-  },
-  nextStepButton: {
-    borderRadius: 14,
-    minWidth: 86,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
-  },
-  nextStepButtonAccessible: {
-    alignSelf: 'stretch',
-  },
-  ledgerRail: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  ledgerRailAccessible: {
-    flexDirection: 'column',
-  },
-  ledgerLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0,
-  },
-  ledgerValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  ledgerDetail: {
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 15,
-  },
-  ledgerRow: {
-    alignItems: 'flex-start',
-    borderRadius: 14,
-    borderWidth: 0,
-    flex: 1,
-    gap: 2,
-    justifyContent: 'center',
-    minHeight: 54,
-    minWidth: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  ledgerValueStack: {
-    alignItems: 'flex-start',
-    gap: 1,
-    minWidth: 0,
-    width: '100%',
-  },
-  statusLedger: {
-    paddingHorizontal: 0,
-    paddingTop: 0,
-    paddingBottom: 0,
-  },
+  reviewEntry: {gap: 2},
+  page: {padding: 20, paddingBottom: 28, gap: 18, flexGrow: 1},
+  tablet: {paddingHorizontal: 36, maxWidth: 780, width: '100%', alignSelf: 'center'},
+  heading: {gap: 8, paddingVertical: 12},
+  eyebrow: {fontSize: 13, lineHeight: 20},
+  title: {fontSize: 26, lineHeight: 34, fontWeight: '600'},
+  metrics: {gap: 16},
+  hero: {borderRadius: 24, padding: 24, gap: 12},
+  label: {fontSize: 15, lineHeight: 23},
+  number: {fontSize: 38, lineHeight: 48, fontWeight: '600', fontVariant: ['tabular-nums']},
+  detail: {fontSize: 14, lineHeight: 23},
+  cumulative: {flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, padding: 18, borderBottomWidth: StyleSheet.hairlineWidth},
+  cumulativeValue: {fontSize: 21, lineHeight: 28, fontWeight: '500'},
+  primary: {minHeight: 50, padding: 14, borderRadius: 16, alignItems: 'center', justifyContent: 'center'},
+  buttonLabel: {fontSize: 15, fontWeight: '600', lineHeight: 22},
+  textButton: {minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start'},
+  explanation: {fontSize: 13, lineHeight: 22},
+  checkIn: {flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 18},
+  checkInCopy: {flex: 1, gap: 6},
+  secondary: {minHeight: 44, padding: 12, borderWidth: 1, borderRadius: 12, justifyContent: 'center'},
 });

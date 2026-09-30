@@ -408,3 +408,14 @@ input + label { margin-top: .75rem; }
 
 .contained-card:not(.selected) > strong {display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 .account-logout {color:var(--muted);font-weight:400;}
+
+.study-statistics-hero {padding: 24px; margin: 24px 0 8px; border-radius: 22px; background: var(--brand-soft, #e7e8ff);}
+.study-statistics-hero > strong {display: block; font-size: clamp(32px, 5vw, 46px); line-height: 1.3; color: var(--brand, #5658d6);}
+.study-statistics-hero p {margin: 10px 0;}
+.study-statistics-cumulative {display: flex; justify-content: space-between; gap: 16px; padding: 16px 0;}
+.study-statistics > .full-analysis {margin-top: 16px;}
+
+.learning-session-actions {display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;}
+.learning-session-actions .text-button {font-size:13px;padding-inline:8px;}
+.learning-pause-notice {grid-column:2;margin:0;padding:8px 32px;color:var(--muted);font-size:14px;}
+@media(max-width:700px){.mobile-header:has(.learning-session-actions) .brand-lockup{display:none}.learning-session-actions{gap:4px}.learning-pause-notice{padding-inline:18px}}
