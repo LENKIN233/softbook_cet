@@ -64,7 +64,7 @@
     "typescript": "^5.8.3"
   },
   "overrides": {
-    "brace-expansion": "5.0.9",
+    "brace-expansion": "5.0.12",
     "@eslint/eslintrc": {
       "js-yaml": "4.3.2"
     },

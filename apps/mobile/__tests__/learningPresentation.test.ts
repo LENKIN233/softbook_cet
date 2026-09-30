@@ -219,6 +219,38 @@ it.each(['030006', '050507', '050509'])('keeps the authored meaning of real lock
   if (id === '030006') expect(output).toBe('锁定任务清单：对象是 first-year students；核心动作是 invite。');
 });
 
+it.each([
+  ['cet4', '040011', "Rural infrastructure has been continuously improved, not only improving residents' living conditions but also driving the upgrading of rural industries."],
+  ['cet6', '141011', "Public cultural platforms have been continuously improved, not only enriching people's spiritual life but also raising the level of equalized cultural services."],
+] as const)('omits the standalone structure task only from the completed answer of %s %s', (track, id, expected) => {
+  const record = bundledCardLibrary[track].cards.find(item => item.card_id === id)!;
+  const card = normalizeLearningCardRecord(record);
+  if (card.interaction_id !== 'lock') throw new Error('Expected real lock');
+  const before = JSON.stringify(card);
+  expect(answerComparison(card, createLearningCardState(card)).correct).toBe(expected);
+  expect(displayCardText(card, card.front.prompt)).toContain('结构练习：');
+  expect(displayCardText(card, card.front.prompt)).toContain('补全英文句子。');
+  expect(JSON.stringify(card)).toBe(before);
+});
+
+it('keeps every other line of authored lock context when omitting an explicit structure task', () => {
+  const card = localLearningCardRecords.find(item => item.interaction_id === 'lock');
+  if (card?.interaction_id !== 'lock') throw new Error('Missing lock sample');
+  const support = '结构练习：选择介词。\nThe student chose music.\nShe is interested\n{{blank}} music.\nHer interest has grown.';
+  const single = {...card, lock_slots: [card.lock_slots[0]], answer_key: {lock_pattern: ['in']},
+    front: {...card.front, prompt: 'Choose the preposition.', support, context: ''}};
+  expect(lockAnswerText(single, ['in'])).toBe('The student chose music.\nShe is interested\nin music.\nHer interest has grown.');
+  expect(frontMaterial(single)).toEqual([support.replace('{{blank}}', '____')]);
+  for (const unchanged of [
+    '结构练习：She is interested {{blank}} music.',
+    '选择介词。\nShe is interested {{blank}} music.',
+    '说明：结构练习：选择介词。\nShe is interested {{blank}} music.',
+  ]) {
+    expect(lockAnswerText({...single, front: {...single.front, support: unchanged}}, ['in']))
+      .toBe(unchanged.replace('{{blank}}', 'in'));
+  }
+});
+
 it('updates only verified lock choices inside their original sentence, preserving other front material', () => {
   const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === '030006')!;
   const card = normalizeLearningCardRecord(record);
