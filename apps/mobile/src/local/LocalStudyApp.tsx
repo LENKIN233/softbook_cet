@@ -736,6 +736,7 @@ export function LocalStudyApp({
             ) : null}
             {route === 'statistics' ? (
               <StatisticsSurface
+                track={track}
                 statistics={studyStatistics(state, track, now) ?? null}
                 palette={palette}
                 deviceClass={deviceClass}

@@ -8,7 +8,7 @@ const palette: Parameters<typeof StatisticsSurface>[0]['palette'] = {
   success: '#267153', tabIdle: '#626477', warning: '#8F6520', warningText: '#72530D',
   panel: '#FFFFFF', panelStrong: '#F7F7FB', primaryActionSurface: '#5658D6', primaryActionText: '#FFFFFF', text: '#242435', textMuted: '#626477',
 };
-const base = {deviceClass: 'phone' as const, palette, canCheckInToday: true, hasCheckedInToday: false,
+const base = {track: 'cet4' as const, deviceClass: 'phone' as const, palette, canCheckInToday: true, hasCheckedInToday: false,
   onCheckIn: jest.fn(), onGoToLearning: jest.fn(), syncStatusLabel: '已同步', syncStatusDetail: ''};
 function text(node: unknown): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node);

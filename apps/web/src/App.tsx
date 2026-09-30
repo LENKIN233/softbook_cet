@@ -2023,11 +2023,11 @@ function SwipeInteraction({
   );
 }
 
-function StatisticsSurface({statistics, statisticsLoading = false, track = 'cet4', localOnly, busy, checkInSync,
+function StatisticsSurface({statistics, statisticsLoading = false, track, localOnly, busy, checkInSync,
   disabled, onCheckIn, syncStatus, onContinueLearning, onReview, pendingReviewCount}: {
   statistics?: TrackStudyStatistics | null;
   statisticsLoading?: boolean;
-  track?: LearningTrack;
+  track: LearningTrack;
   localOnly: boolean; busy: boolean;
   checkInSync: WebRemoteSnapshot['checkInSync'] | null;
   disabled: boolean; onCheckIn: () => void; syncStatus: string;

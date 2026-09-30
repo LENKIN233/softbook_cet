@@ -520,7 +520,8 @@ export function LocalStudyApp({
           ) : null}
           {route === "statistics" ? (
             <Statistics
-              statistics={studyStatistics(state, track, now) ?? null}
+              track={track}
+                statistics={studyStatistics(state, track, now) ?? null}
               localOnly
               busy={busy}
               disabled={busy}

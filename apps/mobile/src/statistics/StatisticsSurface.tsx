@@ -13,7 +13,7 @@ type StatisticsPalette = {
 
 type Props = {
   statistics?: TrackStudyStatistics | null;
-  track?: 'cet4' | 'cet6';
+  track: 'cet4' | 'cet6';
   canCheckInToday: boolean;
   hasCheckedInToday: boolean;
   deviceClass: 'phone' | 'tablet';
@@ -31,7 +31,7 @@ type Props = {
   onStartReview?: () => void;
 };
 
-export function StatisticsSurface({statistics, track = 'cet4', canCheckInToday,
+export function StatisticsSurface({statistics, track, canCheckInToday,
   pendingReviewCount = 0, onStartReview,
   hasCheckedInToday, deviceClass, onCheckIn, onGoToLearning, palette,
   syncStatusLabel, syncStatusDetail}: Props) {
