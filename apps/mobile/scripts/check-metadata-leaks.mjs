@@ -51,6 +51,7 @@ const visibleCopyPropNames = [
   'accessibilityValue',
   'body',
   'caption',
+  'children',
   'description',
   'detail',
   'emptyMessage',
@@ -217,9 +218,44 @@ function hasRawMetadataExpression(text) {
   );
 }
 
+// Text attributes choose appearance; visible/accessibility props are checked
+// separately below. Preserve newlines so diagnostics still point to the source.
+function withoutTextOpeningTags(source) {
+  const result = source.split('');
+  const opening = /<(?:Animated\.)?Text\b/g;
+  for (const match of source.matchAll(opening)) {
+    let braces = 0;
+    let quote = null;
+    let escaped = false;
+    for (let index = match.index; index < source.length; index += 1) {
+      const char = source[index];
+      if (char !== '\n') result[index] = ' ';
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (char === '\\') escaped = true;
+        else if (char === quote) quote = null;
+      } else if (char === '"' || char === "'" || char === '`') quote = char;
+      else if (char === '{') braces += 1;
+      else if (char === '}') braces -= 1;
+      else if (char === '>' && braces === 0) break;
+    }
+  }
+  return result.join('');
+}
+
+// A predicate does not render its raw value when both outcomes are literal
+// copy. Keep inspecting both outcomes; do not whitelist the metadata field.
+function literalChoiceValues(text) {
+  return text.replace(/\{([^{}]*)\}/g, (expression, body) => {
+    const choice = body.match(/^([^?{}]+)\?\s*((?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))\s*:\s*((?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'))\s*$/);
+    return choice ? `${choice[2]} ${choice[3]}` : expression;
+  });
+}
+
 function checkTextNodeMetadata(filePath) {
   const source = fs.readFileSync(filePath, 'utf8');
   const lines = source.split('\n');
+  const displayLines = withoutTextOpeningTags(source).split('\n');
   const findings = [];
   let inTextNode = false;
 
@@ -227,14 +263,11 @@ function checkTextNodeMetadata(filePath) {
     const line = lines[index];
     const trimmed = line.trim();
 
-    if (trimmed.includes('<Text') || trimmed.includes('<Text ')) {
+    if (/<(?:Animated\.)?Text\b/.test(trimmed)) {
       inTextNode = true;
     }
 
-    const isStyleOnlyName =
-      /\bstyles\.(?:libraryName|groupName|boxName)\b/.test(trimmed);
-
-    if (inTextNode && hasRawMetadataExpression(trimmed) && !isStyleOnlyName) {
+    if (inTextNode && hasRawMetadataExpression(literalChoiceValues(displayLines[index]))) {
       findings.push({
         filePath,
         line: index + 1,
@@ -243,7 +276,7 @@ function checkTextNodeMetadata(filePath) {
       });
     }
 
-    if (trimmed.includes('</Text>')) {
+    if (/<\/(?:Animated\.)?Text\s*>/.test(trimmed) || /<(?:Animated\.)?Text\b[^>]*\/>/.test(trimmed)) {
       inTextNode = false;
     }
   }

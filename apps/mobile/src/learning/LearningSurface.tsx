@@ -1,7 +1,7 @@
 import {isLongQuestion, stackChoiceOptions} from './readability';
 import {resultFeedback} from './resultFeedback';
 import {EliminationPassageText} from './EliminationPassageText';
-import {displayCardText, answerComparison, eliminationPassage, frontMaterial} from './presentation';
+import {displayCardText, answerComparison, eliminationPassage, frontMaterial, cardTextBlocks, lockAnswerText, lockTemplate, resultAnswerLabel} from './presentation';
 import {useCardMotion, useReducedMotion, MotionView, MotionPressable, StudioPressable as Pressable, LockMotionGlyph, StrikeText} from './NativeMotion';
 import {STUDIO} from '../visual/studio';
 import React from 'react';
@@ -62,6 +62,8 @@ export type LearningSurfacePalette = {
 
 type LearningSurfaceProps = {
   advanceState?: LearningAdvanceState;
+  deferAdvanceMotion?: boolean;
+  interactionLocked?: boolean;
   audioAttemptId: string | null;
   onContinueLocalBatch?: () => void;
   resumeLocalLearning?: boolean;
@@ -186,6 +188,8 @@ function formatCompactListeningCue(text: string) {
 
 export function LearningSurface({
   advanceState = DEFAULT_LEARNING_ADVANCE_STATE,
+  deferAdvanceMotion = false,
+  interactionLocked = false,
   audioAttemptId,
   onContinueLocalBatch,
   resumeLocalLearning = false,
@@ -235,10 +239,11 @@ export function LearningSurface({
   const [addressHeight, setAddressHeight] = React.useState(96);
   const needsPageScroll = viewportHeight < 500;
   const minimumPageHeight = addressHeight + Math.max(actionHeight, 80) + STUDIO.space.card * 2 + 32 + 180;
+  const scrollResult = currentCard?.interaction_id === 'flip' ? null : currentResult;
   React.useEffect(() => {
     pageScroll.current?.scrollTo({y: 0, animated: false});
     readingScroll.current?.scrollTo({y: 0, animated: false});
-  }, [currentCard?.card_id, currentResult, currentCardState?.isFlipped]);
+  }, [currentCard?.card_id, scrollResult, currentCardState?.isFlipped]);
   const cardMotion = useCardMotion(currentCard ? `${currentCard.card_id}:${audioAttemptId ?? phase}` : null);
   const isCompactPhone = isCompactLearningViewport(
     viewportWidth,
@@ -535,7 +540,7 @@ export function LearningSurface({
     }
   })();
   const passage = currentCard.interaction_id === 'elimination' ? eliminationPassage(currentCard) : null;
-  const material = frontMaterial(currentCard).filter(text => !passage || text !== passage.source);
+  const material = frontMaterial(currentCard, currentCardState).filter(text => !passage || text !== passage.source);
   const shouldShowContextCard = currentResult === null && !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped) && material.length > 0;
   const shouldCenterShortFlip = false;
   const minimumSheetHeight = 0;
@@ -651,7 +656,8 @@ export function LearningSurface({
                 currentCardState.isFavorited ? '取消收藏' : '收藏当前卡'
               }
               accessibilityRole="button"
-              accessibilityState={{ selected: currentCardState.isFavorited }}
+              accessibilityState={{ selected: currentCardState.isFavorited, disabled: interactionLocked }}
+              disabled={interactionLocked}
               onPress={onToggleFavorite}
               style={[
                 styles.cardIdentityTool,
@@ -699,7 +705,7 @@ export function LearningSurface({
               contentContainerStyle={[
                 styles.cardTaskBandContent,
                 isCompactPhone ? styles.cardTaskBandContentCompact : null,
-                currentResult && onOpenResultDetail ? styles.cardTaskBandWithResultDock : null,
+                currentResult && onOpenResultDetail && currentCard.interaction_id !== 'flip' ? styles.cardTaskBandWithResultDock : null,
                 shouldCenterShortFlip
                   ? styles.cardTaskBandContentCentered
                   : null,
@@ -732,19 +738,12 @@ export function LearningSurface({
                 ]}
               >
                 <View style={styles.studyTitleWrap}>
-                  <Text
-                    style={[
-                      styles.cardPrompt,
-                      styles.cardPromptOneScreen,
-                      isCompactPhone ? styles.cardPromptOneScreenCompact : null,
-                      (isAccessibilityText || isLongQuestion(currentCard.front.prompt)) ? styles.longQuestion : null,
-                      { color: palette.text },
-                    ]}
-                  >
-                    {isCompactPhone && Platform.OS === 'android' && currentCard.audio
-                      ? formatCompactListeningCue(displayCardText(currentCard, currentCard.front.prompt))
-                      : displayCardText(currentCard, currentCard.front.prompt)}
-                  </Text>
+                  <CardPromptText
+                    text={isCompactPhone && Platform.OS === 'android' && currentCard.audio
+                      ? formatCompactListeningCue(displayCardText(currentCard, currentCard.front.prompt, currentCardState))
+                      : displayCardText(currentCard, currentCard.front.prompt, currentCardState)}
+                    palette={palette} compact={isCompactPhone} accessibleText={isAccessibilityText}
+                  />
                 </View>
               </View>
 
@@ -756,6 +755,7 @@ export function LearningSurface({
                   testID="learning-audio-slot"
                 >
                   <LearningAudioPlayer
+                    disabled={interactionLocked}
                     palette={palette}
                     selection={audioSelection}
                     refreshDownload={refreshAudioDownload}
@@ -765,7 +765,10 @@ export function LearningSurface({
 
               {shouldShowContextCard ? <View style={styles.contextCard} testID="learning-current-card-context">{material.map(text => <Text key={text} style={[styles.cardSupport, {color: palette.text}]}>{text}</Text>)}</View> : null}
 
-              {currentResult ? (
+              {currentCard.interaction_id === 'flip' && currentCardState.isFlipped ? (
+                <FlipBack card={currentCard} compact={isCompactPhone} palette={palette}
+                  result={currentResult} onOpenResultDetail={onOpenResultDetail} />
+              ) : currentResult ? (
                 onOpenResultDetail ? (
                   <MotionView motionKey={currentResult.outcome} kind="result" enter><ResultSummaryPanel
                     card={currentCard}
@@ -782,7 +785,7 @@ export function LearningSurface({
                     cardState={currentCardState}
                     palette={palette}
                     result={currentResult}
-                    onAdvanceCard={() => cardMotion.perform('advance', onAdvanceCard)}
+                    onAdvanceCard={() => deferAdvanceMotion ? onAdvanceCard() : cardMotion.perform('advance', onAdvanceCard)}
                     isLastCard={!emptySession && currentIndex === sessionCards.length - 1}
                   />
                 )
@@ -829,14 +832,14 @@ export function LearningSurface({
         </View>
 
         <View style={styles.actionPanel} onLayout={event => setActionHeight(Math.ceil(event.nativeEvent.layout.height))}>
-        {currentResult && onOpenResultDetail ? (
+        {currentResult && (onOpenResultDetail || currentCard.interaction_id === 'flip') ? (
           <View
             style={[styles.oneScreenDock, styles.resultActionRail]}
             testID="learning-action-dock"
           >
             <Pressable
               disabled={advanceState.busy || cardMotion.busy}
-              onPress={() => cardMotion.perform('advance', onAdvanceCard)}
+              onPress={() => deferAdvanceMotion ? onAdvanceCard() : cardMotion.perform('advance', onAdvanceCard)}
               style={[
                 styles.primaryButton,
                 { backgroundColor: primaryAction.surface },
@@ -1068,41 +1071,7 @@ function InteractionBody({
 
   switch (card.interaction_id) {
     case 'flip':
-      return cardState.isFlipped ? (
-        <View
-          style={[
-            styles.interactionBody,
-            compact ? styles.interactionBodyCompact : null,
-          ]}
-        >
-          <View
-            style={[
-              styles.revealPanel,
-              compact ? styles.revealPanelCompact : null,
-              {
-                backgroundColor: 'transparent',
-                borderColor: 'transparent',
-              },
-            ]}
-          >
-            <Text style={[styles.revealTitle, { color: tone.accent }]}>
-              核对答案
-            </Text>
-            <Text
-              style={[
-                styles.revealText,
-                compact ? styles.revealTextCompact : null,
-                isLongQuestion(card.back_text) ? styles.longQuestion : null,
-                { color: palette.text },
-              ]}
-            >
-              {card.back_text}
-            </Text>
-            <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
-            <QuestionRecall key={card.card_id} card={card} palette={palette} />
-          </View>
-        </View>
-      ) : null;
+      return null;
     case 'multiple_choice':
       return (
         <View
@@ -1209,7 +1178,7 @@ function InteractionBody({
         </View>
       );
     case 'lock':
-      const formingSentence = card.lock_slots.map((slot,index) => cardState.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? cardState.lockSelections[slot.id] : '____').join(' ');
+      const formingSentence = lockAnswerText(card, card.lock_slots.map((slot,index) => cardState.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? cardState.lockSelections[slot.id] : null));
       return (
         <View
           style={[
@@ -1220,7 +1189,7 @@ function InteractionBody({
           <View
             style={[styles.lockList, compact ? styles.lockListCompact : null]}
           >
-            <Text style={[styles.formingSentence,{color:palette.text,borderColor:palette.border}]} accessibilityLabel={`已填写的内容：${formingSentence}`} testID="learning-forming-sentence">{formingSentence}</Text>
+            {lockTemplate(card) === null ? <Text style={[styles.formingSentence,{color:palette.text,borderColor:palette.border}]} accessibilityLabel={`已填写的内容：${formingSentence}`} testID="learning-forming-sentence">{formingSentence}</Text> : null}
           {card.lock_slots.map((slot, index) => {
               const selectedValue = cardState.lockSelections[slot.id];
               const expectedValue = card.answer_key.lock_pattern[index];
@@ -1699,9 +1668,7 @@ function SwipeInteraction({
           ]}
           testID="learning-swipe-draggable-card"
         >
-          <Text style={[styles.swipePromptText, { color: palette.text }]}>
-            {displayCardText(card, card.front.prompt)}
-          </Text>
+          <CardPromptText text={displayCardText(card, card.front.prompt)} palette={palette} body />
         </Animated.View>
       </View>
       <View
@@ -1824,13 +1791,8 @@ function getResolvedAnswerRows(
           testID: 'learning-detail-selected-answer',
         },
         {
-          label: '正确主干',
-          displayText: card.lock_slots
-            .map(
-              (slot, index) =>
-                `${slot.label} ${card.answer_key.lock_pattern[index]}`,
-            )
-            .join(' · '),
+          label: resultAnswerLabel(card),
+          displayText: lockAnswerText(card, card.answer_key.lock_pattern),
           testID: 'learning-detail-correct-answer',
           tone: 'success',
         },
@@ -1845,17 +1807,16 @@ function getResolvedAnswerRows(
 
       return [
         {
-          label: '你删除的部分',
+          label: '你划去的部分',
           displayText: selectedItems.length
             ? selectedItems.map(item => item.text).join(' · ')
-            : '未删除任何内容',
+            : '未划去任何内容',
           testID: 'learning-detail-selected-answer',
         },
         {
-          label: '应删除的部分',
+          label: resultAnswerLabel(card),
           displayText: correctItems.map(item => item.text).join(' · '),
           testID: 'learning-detail-correct-answer',
-          tone: 'success',
         },
       ];
     }
@@ -2206,6 +2167,7 @@ export function LearningResultDetailSurface({
                         ? styles.detailAnswerValueStacked
                         : null,
                       { color: palette.text },
+                      card.interaction_id === 'elimination' ? styles.excludedAnswer : null,
                     ]}
                   >
                     {row.displayText}
@@ -2302,17 +2264,51 @@ export function LearningResultDetailSurface({
   );
 }
 
+function CardPromptText({text, palette, compact = false, accessibleText = false, body = false}: {
+  text: string; palette: LearningSurfacePalette; compact?: boolean; accessibleText?: boolean; body?: boolean;
+}) {
+  const blocks = cardTextBlocks(text);
+  const useBody = body || blocks.length > 1;
+  return <View style={styles.promptBlocks}>{blocks.map((block, index) => <Text key={index}
+    style={[styles.cardPrompt, styles.cardPromptOneScreen,
+      compact ? styles.cardPromptOneScreenCompact : null,
+      accessibleText || isLongQuestion(text) ? styles.longQuestion : null,
+      useBody ? styles.promptBody : null,
+      block.gloss ? styles.promptGloss : null,
+      {color: block.gloss ? palette.textMuted : palette.text}]}>{block.text}</Text>)}</View>;
+}
+
+function FlipBack({card, compact, palette, result, onOpenResultDetail}: {
+  card: Extract<LearningCard, {interaction_id: 'flip'}>; compact: boolean;
+  palette: LearningSurfacePalette; result: LearningCardResult | null; onOpenResultDetail?: () => void;
+}) {
+  const tone = resolveLibraryTone(card.space_metadata.library);
+  return <View style={[styles.revealPanel, compact ? styles.revealPanelCompact : null]} testID={result ? "learning-result-summary" : "learning-flip-back"}>
+    <Text style={[styles.revealTitle, {color: tone.accent}]}>核对答案</Text>
+    <Text style={[styles.revealText, compact ? styles.revealTextCompact : null,
+      isLongQuestion(card.back_text) ? styles.longQuestion : null, {color: palette.text}]}
+      testID="learning-correct-answer">{card.back_text}</Text>
+    <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
+    <QuestionRecall key={card.card_id} card={card} palette={palette} />
+    {result ? <AudioTranscript key={card.card_id} card={card} palette={palette} /> : null}
+    {result ? <Text accessibilityLiveRegion="polite" style={[styles.answerEyebrow, {color: palette.textMuted}]}>
+      {result.outcome === 'confident' ? '已记录：有把握' : '已记录：需要复习'}
+    </Text> : null}
+    {result && onOpenResultDetail ? <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>展开完整解析 →</Text></Pressable> : null}
+  </View>;
+}
+
 function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetail}: {
   card: LearningCard; cardState: LearningCardState; compact: boolean;
   palette: LearningSurfacePalette; result: LearningCardResult; onOpenResultDetail: () => void;
 }) {
   const comparison = answerComparison(card, cardState);
-  const answerLabel = card.interaction_id === 'flip' ? '核对答案' : '正确答案';
+  const answerLabel = resultAnswerLabel(card);
   return <View style={styles.answerSummary} testID="learning-result-summary">
-    <Text style={[styles.answerEyebrow, {color: palette.success}]}>{answerLabel}</Text>
-    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
+    <Text style={[styles.answerEyebrow, {color: card.interaction_id === 'elimination' ? palette.textMuted : palette.success}]}>{answerLabel}</Text>
+    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, card.interaction_id === 'elimination' ? styles.excludedAnswer : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
     {comparison.selected && comparison.selected !== comparison.correct ? <View style={styles.answerSelectionRow}>
-      <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>你的选择</Text>
+      <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</Text>
       <Text style={[styles.answerSelection, {color: palette.danger}]}>{comparison.selected}</Text>
     </View> : null}
     {result.outcome === 'confident' || result.outcome === 'review' ? <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{result.outcome === 'confident' ? '有把握' : '需要复习'}</Text> : null}
@@ -2384,7 +2380,7 @@ function ResultPanel({
   isLastCard: boolean;
 }) {
   const borderTone = getResultTone(result, palette);
-  const answerLabel = card.interaction_id === 'flip' ? '核对答案' : '正确答案';
+  const answerLabel = resultAnswerLabel(card);
   const primaryAction = getPrimaryActionColors(palette);
 
   return (
@@ -2404,7 +2400,7 @@ function ResultPanel({
 
       </View>
       <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{answerLabel}</Text>
-      <Text style={[styles.answerHeadline, {color: palette.text}]}>{answerComparison(card, cardState).correct}</Text>
+      <Text style={[styles.answerHeadline, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, card.interaction_id === 'elimination' ? styles.excludedAnswer : null, {color: palette.text}]}>{answerComparison(card, cardState).correct}</Text>
       <Text
         style={[styles.resultExplanationBody, { color: palette.textMuted }]}
       >
@@ -2491,6 +2487,11 @@ function MetricPill({
 
 const styles = StyleSheet.create({
   recalledQuestion: {gap: 12, paddingVertical: 8},
+  promptBlocks: {gap: 16},
+  promptBody: {fontSize: 18, lineHeight: 30, fontWeight: '400', marginBottom: 0},
+  promptGloss: {fontSize: 14, lineHeight: 23, fontWeight: '400'},
+  contextualAnswer: {fontSize: 19, lineHeight: 30, fontWeight: '400'},
+  excludedAnswer: {textDecorationLine: 'line-through', fontWeight: '400'},
   viewportScroll: {flex: 1},
   viewportScrollContent: {flexGrow: 1},
   viewportScrollFit: {height: '100%'},
@@ -2750,10 +2751,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   detailAnswerCellStacked: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: 'stretch',
+    flexDirection: 'column',
     flex: 0,
+    gap: 6,
     minHeight: 42,
+    paddingVertical: 10,
   },
   detailAnswerLabel: {
     fontSize: 11,
@@ -2761,8 +2764,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   detailAnswerLabelStacked: {
-    flexShrink: 0,
-    minWidth: 54,
+    alignSelf: 'flex-start',
   },
   detailAnswerValue: {
     fontSize: 16,
@@ -2770,7 +2772,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   detailAnswerValueStacked: {
-    flex: 1,
+    flexShrink: 1,
     minWidth: 0,
   },
   detailExplanationSlip: {
@@ -3446,9 +3448,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.8,
-  },
-  swipePromptText: {
-    fontSize: 20, fontWeight: '600', lineHeight: 29,
   },
   swipeTrailRow: {
     flexDirection: 'row',

@@ -8,6 +8,8 @@ import {
   frontMaterial,
   displayCardText,
   spaceCardPreview,
+  lockAnswerText,
+  cardTextBlocks,
 } from '../src/learning/presentation';
 import { localLearningCardRecords } from './fixtures/interactionCards';
 import { createLearningCardState } from '../src/learning/sessionCore';
@@ -191,4 +193,53 @@ it('renders imported lock placeholders as blanks without changing source content
   expect(frontMaterial(card).join(' ')).not.toContain('{{blank}}');
   expect(JSON.stringify(card)).toBe(before);
   expect(displayCardText(elimination, 'Keep {{blank}} literally.')).toBe('Keep {{blank}} literally.');
+});
+
+
+it('fills authored lock context and never invents a sentence by joining slot answers', () => {
+  const card = localLearningCardRecords.find(item => item.interaction_id === 'lock');
+  if (card?.interaction_id !== 'lock') throw new Error('Missing lock sample');
+  const single = {...card, lock_slots: [card.lock_slots[0]], answer_key: {lock_pattern: ['in']},
+    front: {...card.front, prompt: 'Choose the preposition.', support: 'She is interested {{blank}} music.', context: ''}};
+  expect(lockAnswerText(single, ['in'])).toBe('She is interested in music.');
+  expect(lockAnswerText(single, [null])).toBe('She is interested ____ music.');
+  expect(lockAnswerText({...single, front: {...single.front, support: 'Both {{blank}} and {{blank}}.'}}, ['in']))
+    .toBe('主语：in');
+  expect(lockAnswerText(card, card.answer_key.lock_pattern)).toBe('主语：The policy\n谓语：reduces\n宾语：test anxiety');
+});
+
+it.each(['030006', '050507', '050509'])('keeps the authored meaning of real lock %s in the completed answer', id => {
+  const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === id)!;
+  const card = normalizeLearningCardRecord(record);
+  if (card.interaction_id !== 'lock') throw new Error('Expected real lock');
+  const output = answerComparison(card, createLearningCardState(card)).correct;
+  expect(output).not.toBe(card.answer_key.lock_pattern.join(' '));
+  for (const value of card.answer_key.lock_pattern) expect(output).toContain(value);
+  expect(output).not.toMatch(/\{\{blank\}\}|____/);
+  if (id === '030006') expect(output).toBe('锁定任务清单：对象是 first-year students；核心动作是 invite。');
+});
+
+it('updates only verified lock choices inside their original sentence, preserving other front material', () => {
+  const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === '030006')!;
+  const card = normalizeLearningCardRecord(record);
+  if (card.interaction_id !== 'lock') throw new Error('Expected real lock');
+  const state = createLearningCardState(card);
+  state.lockSelections[card.lock_slots[0].id] = card.answer_key.lock_pattern[0];
+  state.lockSelections[card.lock_slots[1].id] = 'complain';
+  const output = displayCardText(card, card.front.prompt, state);
+  expect(output).toContain('对象是 first-year students；核心动作是 ____。');
+  expect(output).toContain('Write a notice');
+  expect(output).toContain('词库：');
+  expect(frontMaterial(card, state)).toEqual([]);
+});
+
+it('keeps authored paragraphs and only softens a separate explicit vocabulary gloss', () => {
+  const text = 'Passage paragraph.\n\nWhich claim is supported?\n\nreusing：再次利用；practical：切实可行';
+  expect(cardTextBlocks(text)).toEqual([
+    {text: 'Passage paragraph.', gloss: false},
+    {text: 'Which claim is supported?', gloss: false},
+    {text: 'reusing：再次利用；practical：切实可行', gloss: true},
+  ]);
+  expect(cardTextBlocks('Question?\n\nWhy: is this true?')[1].gloss).toBe(false);
+  expect(cardTextBlocks('practical：切实可行')[0].gloss).toBe(false);
 });

@@ -20,10 +20,11 @@ test('wrapped answers tolerate only standalone answer-column labels', () => {
     line.text === '正确答案' ? {text: '遗漏的正文'} : line)}, expected, {answer: true}), false);
 });
 
-test('result labels merged into a wrapped deletion answer do not hide actual words', () => {
+for (const label of ['应删除的部分', '应划去的部分', '你划去的部分']) {
+test(`${label} merged into a wrapped deletion answer does not hide actual words`, () => {
   const observation = {lines: [
     {text: 'with many traveling from nearby'},
-    {text: '应删除的部分towns · only a few cycling in warm'},
+    {text: `${label}towns · only a few cycling in warm`},
     {text: 'weather'},
   ]};
   const expected = [
@@ -33,9 +34,10 @@ test('result labels merged into a wrapped deletion answer do not hide actual wor
   assert.equal(readableExperienceText(observation, expected, {answer: true}), true);
   assert.equal(readableExperienceText(observation, expected), false);
   assert.equal(readableExperienceText({lines: observation.lines.map(line =>
-    line.text.includes('towns') ? {text: '应删除的部分 · only a few cycling in warm'} : line)},
+    line.text.includes('towns') ? {text: `${label} · only a few cycling in warm`} : line)},
   expected, {answer: true}), false);
 });
+}
 
 test('two language priorities must find the same actual material without inventing missing English', () => {
   const expected = '模拟句子：Most customers choose private cars, with many traveling from nearby towns and only a few cycling in warm weather.';

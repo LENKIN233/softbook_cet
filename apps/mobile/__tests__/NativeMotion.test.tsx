@@ -1,7 +1,7 @@
 import React from 'react';
 import TestRenderer, {act} from 'react-test-renderer';
 import {AccessibilityInfo, Animated, Pressable, View, StyleSheet} from 'react-native';
-import {NativeMotionProvider, MotionPressable, MotionWaveform, useCardMotion} from '../src/learning/NativeMotion';
+import {NativeMotionProvider, MotionView, MotionPressable, MotionWaveform, useCardMotion} from '../src/learning/NativeMotion';
 
 let completions: Array<() => void>;
 let changePreference: (reduced: boolean) => void;
@@ -137,4 +137,30 @@ it('stops the playback cue on pause, reduced motion and unmount', async () => {
   expect(start).toHaveBeenCalledTimes(3);
   act(() => view.unmount());
   expect(stop).toHaveBeenCalledTimes(3);
+});
+
+
+it('commits an entering result at its initial opacity without a full-opacity flash', async () => {
+  const renderedStarts: number[] = [];
+  const interpolate = Animated.Value.prototype.interpolate;
+  jest.spyOn(Animated.Value.prototype, 'interpolate').mockImplementation(function (this: Animated.Value & {__getValue: () => number}, config) {
+    if (config.outputRange[0] === 0.3) renderedStarts.push(this.__getValue());
+    return interpolate.call(this, config);
+  });
+  const content = (identity?: string) => <NativeMotionProvider>{identity
+    ? <MotionView motionKey={identity} enter kind="result"><View /></MotionView> : null}</NativeMotionProvider>;
+  let view!: TestRenderer.ReactTestRenderer;
+  await act(async () => {view = TestRenderer.create(content());});
+  act(() => view.update(content('first')));
+  expect(renderedStarts[0]).toBe(0);
+  act(finishQueued);
+  renderedStarts.length = 0;
+  act(() => view.update(content('second')));
+  expect(renderedStarts[0]).toBe(0);
+  act(finishQueued);
+  renderedStarts.length = 0;
+  act(() => changePreference(true));
+  expect(renderedStarts[0]).toBe(1);
+  expect(completions).toHaveLength(0);
+  act(() => view.unmount());
 });

@@ -1,6 +1,6 @@
 const normalize = text => text.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-const answerLabels = new Set(['正确答案', '你的选择', '核对答案', '应删除的部分', '你删除的部分']);
-const inlineDeletionLabels = ['应删除的部分', '你删除的部分'];
+const inlineDeletionLabels = ['应删除的部分', '你删除的部分', '应划去的部分', '你划去的部分'];
+const answerLabels = new Set(['正确答案', '你的选择', '核对答案', ...inlineDeletionLabels]);
 
 export function readableExperienceText(observation, expected, {answer = false} = {}) {
   // Vision may interleave or merge an exact left-column label into a wrapped

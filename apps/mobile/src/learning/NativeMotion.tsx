@@ -21,16 +21,19 @@ export function NativeMotionProvider({children}: {children: React.ReactNode}) {
 // Visual feedback never owns the answer. Interruptions cancel only the motion.
 function useFeedback(trigger: unknown, enter = false) {
   const reduced = useReducedMotion();
-  const progress = React.useRef(new Animated.Value(1)).current;
   const previous = React.useRef(trigger);
   const first = React.useRef(true);
+  // A new feedback identity must carry its starting value into the native
+  // commit. Resetting the previous value in an effect paints one full frame.
+  const progress = React.useMemo(() => new Animated.Value(
+    !reduced && (first.current ? enter : previous.current !== trigger) ? 0 : 1,
+  ), [enter, reduced, trigger]);
   React.useLayoutEffect(() => {
     const changed = previous.current !== trigger || (first.current && enter);
     previous.current = trigger;
     first.current = false;
     progress.stopAnimation();
     if (!changed || reduced) {progress.setValue(1); return;}
-    progress.setValue(0);
     const animation = Animated.timing(progress, {toValue: 1, duration: STUDIO.motion.enter, easing: ease, useNativeDriver: true, isInteraction: false});
     animation.start();
     return () => animation.stop();

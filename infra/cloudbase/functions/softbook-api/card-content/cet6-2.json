@@ -2037,14 +2037,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断：后置介词短语默认修饰离它最近的名词，因此无需结合语义关系再判断指向。",
-      "support": "判断：后置介词短语默认修饰离它最近的名词，因此无需结合语义关系再判断指向。",
-      "context": "判断：后置介词短语默认修饰离它最近的名词，因此无需结合语义关系再判断指向。"
+      "prompt": "练习句子：A photograph of the research station taken from orbit showed extensive damage to its roof.\n\n判断：taken from orbit 修饰 photograph，说明照片的拍摄位置，而不是研究站被搬到了轨道上。",
+      "support": "练习句子：A photograph of the research station taken from orbit showed extensive damage to its roof.\n\n判断：taken from orbit 修饰 photograph，说明照片的拍摄位置，而不是研究站被搬到了轨道上。",
+      "context": "练习句子：A photograph of the research station taken from orbit showed extensive damage to its roof.\n\n判断：taken from orbit 修饰 photograph，说明照片的拍摄位置，而不是研究站被搬到了轨道上。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\n定语指向需结合句法与语义共同判定。\n“就近原则”可作线索，但不能替代完整判断。\n\n修饰语要同时满足句法和语义指向，不能仅凭词序就近绑定。",
-      "exam_tip": "修饰语要同时满足句法和语义指向，不能仅凭词序就近绑定。"
+      "summary": "taken from orbit 说明照片是在轨道上拍摄的，of the research station 说明照片拍的是研究站。主句为 A photograph ... showed extensive damage。判断修饰指向时，要同时检查结构和语义，不能仅凭最近的名词。",
+      "exam_tip": "先找 showed 的主语，再试着问“什么被拍摄”，检查 taken 与哪个名词构成合理关系。"
     },
     "space_metadata": {
       "box_ref": "1130",
@@ -2065,7 +2065,7 @@
       }
     ],
     "answer_key": {
-      "correct_state": "false"
+      "correct_state": "true"
     },
     "auto_scoring": true
   },
@@ -2223,14 +2223,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断正误：\n\n句子 \"The regulatory framework governing cross-border data transfers has been criticized as inadequate by privacy advocates.\" 中，governing cross-border data transfers 是时间状语从句，说明数据转移发生时框架的状态。\n\n这个判断正确吗？",
-      "support": "判断正误：\n\n句子 \"The regulatory framework governing cross-border data transfers has been criticized as inadequate by privacy advocates.\" 中，governing cross-border data transfers 是时间状语从句，说明数据转移发生时框架的状态。\n\n这个判断正确吗？",
-      "context": "判断正误：\n\n句子 \"The regulatory framework governing cross-border data transfers has been criticized as inadequate by privacy advocates.\" 中，governing cross-border data transfers 是时间状语从句，说明数据转移发生时框架的状态。\n\n这个判断正确吗？"
+      "prompt": "练习句子：The regulatory framework governing cross-border data transfers has been criticized as inadequate by privacy advocates.\n\n判断：governing 是本句的主句谓语，has been criticized 说明 data transfers 受到批评。",
+      "support": "练习句子：The regulatory framework governing cross-border data transfers has been criticized as inadequate by privacy advocates.\n\n判断：governing 是本句的主句谓语，has been criticized 说明 data transfers 受到批评。",
+      "context": "练习句子：The regulatory framework governing cross-border data transfers has been criticized as inadequate by privacy advocates.\n\n判断：governing 是本句的主句谓语，has been criticized 说明 data transfers 受到批评。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "governing cross-border data transfers 是现在分词短语，在这里修饰 framework，说明框架管辖什么。它不是时间状语从句。判断依据是本句的修饰关系，不能只用“没有 when/while”这类形式口诀，因为分词短语也可以在其他句子中作状语。",
-      "exam_tip": "无连接词的 -ing 短语紧跟名词 = 定语；带连接词且修饰谓语 = 状语从句。"
+      "summary": "主句是 The regulatory framework has been criticized ...，受到批评的是监管框架。governing cross-border data transfers 是修饰 framework 的分词短语，说明框架管辖的事项；它不是另一个主句谓语。",
+      "exam_tip": "先圈出带时态的 has been criticized，再检查 governing 这段是在限定哪个名词。"
     },
     "space_metadata": {
       "box_ref": "1130",
@@ -2359,14 +2359,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断正误：\n\n句子 \"The conditions under which the treaty was signed remain a subject of historical controversy.\" 中，under which the treaty was signed 是方式状语从句，说明签署条约的方式。\n\n这个判断正确吗？",
-      "support": "判断正误：\n\n句子 \"The conditions under which the treaty was signed remain a subject of historical controversy.\" 中，under which the treaty was signed 是方式状语从句，说明签署条约的方式。\n\n这个判断正确吗？",
-      "context": "判断正误：\n\n句子 \"The conditions under which the treaty was signed remain a subject of historical controversy.\" 中，under which the treaty was signed 是方式状语从句，说明签署条约的方式。\n\n这个判断正确吗？"
+      "prompt": "练习句子：The conditions under which the treaty was signed remain a subject of historical controversy.\n\n判断：under which 指签署条约所处的条件；全句主干是 The conditions remain a subject of historical controversy。",
+      "support": "练习句子：The conditions under which the treaty was signed remain a subject of historical controversy.\n\n判断：under which 指签署条约所处的条件；全句主干是 The conditions remain a subject of historical controversy。",
+      "context": "练习句子：The conditions under which the treaty was signed remain a subject of historical controversy.\n\n判断：under which 指签署条约所处的条件；全句主干是 The conditions remain a subject of historical controversy。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：介词 + which/whom 引导的从句紧跟名词，是定语从句（介词前置形式）而非状语从句。\n\n② 核心规律：in/under/by/with + which 引导的从句，先行词是紧前名词；状语从句须由 when/where/how/because/if 等引导，且修饰谓语而非名词。\n\n③ 验证：The conditions [under which the treaty was signed] —— 即\"签署条约所处的条件\"，是限定名词的定语从句。",
-      "exam_tip": "介词 + which/whom 是定语从句中的关系词，不是状语引导词，不可误判为状语从句。"
+      "summary": "which 回指 conditions；从句可还原为 the treaty was signed under those conditions。整个从句限定条件，主句谓语是 remain。这里的 under which 与主句形成名词修饰关系，不是在说明 remain 的方式。",
+      "exam_tip": "将 under which 暂换成 under those conditions，检查还原后从句与 conditions 的联系。"
     },
     "space_metadata": {
       "box_ref": "1130",
@@ -2387,7 +2387,7 @@
       }
     ],
     "answer_key": {
-      "correct_state": "false"
+      "correct_state": "true"
     },
     "auto_scoring": true
   },
@@ -2519,14 +2519,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断：句首介词结构（如 With...）通常只修饰最近名词，不会作用于整句谓语关系。",
-      "support": "判断：句首介词结构（如 With...）通常只修饰最近名词，不会作用于整句谓语关系。",
-      "context": "判断：句首介词结构（如 With...）通常只修饰最近名词，不会作用于整句谓语关系。"
+      "prompt": "练习句子：With the only bridge closed for repairs, commuters had to take a twenty-kilometre detour.\n\n判断：with 结构交代绕行的背景，closed 描述 bridge 的状态；主句动作是 commuters had to take a detour。",
+      "support": "练习句子：With the only bridge closed for repairs, commuters had to take a twenty-kilometre detour.\n\n判断：with 结构交代绕行的背景，closed 描述 bridge 的状态；主句动作是 commuters had to take a detour。",
+      "context": "练习句子：With the only bridge closed for repairs, commuters had to take a twenty-kilometre detour.\n\n判断：with 结构交代绕行的背景，closed 描述 bridge 的状态；主句动作是 commuters had to take a detour。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\n句首 with 结构常作为全句背景状语，直接约束主句解释框架。\n不能机械按就近名词绑定。\n\n分别标出时间、原因、条件与让步；先后发生本身不证明因果。",
-      "exam_tip": "分别标出时间、原因、条件与让步；先后发生本身不证明因果。"
+      "summary": "With the only bridge closed for repairs 给出桥梁关闭的背景，主句说明通勤者不得不绕行。closed 在 with 结构中补充说明 bridge 的状态，had to take 才是主句谓语。理解时既要找到主干，也要保留关闭桥梁这一限制。",
+      "exam_tip": "先找 had to take 的主语，再括出 with 的完整范围，检查 closed 描述谁的状态。"
     },
     "space_metadata": {
       "box_ref": "1131",
@@ -2547,7 +2547,7 @@
       }
     ],
     "answer_key": {
-      "correct_state": "false"
+      "correct_state": "true"
     },
     "auto_scoring": true
   },
@@ -2707,14 +2707,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "练习句子：While the short-term economic benefits of deregulation are widely acknowledged, its long-term consequences for social equity remain deeply contested.\n\n判断：这里的 while 必须表示时间，应译为“当……的时候”。",
-      "support": "练习句子：While the short-term economic benefits of deregulation are widely acknowledged, its long-term consequences for social equity remain deeply contested.\n\n判断：这里的 while 必须表示时间，应译为“当……的时候”。",
-      "context": "练习句子：While the short-term economic benefits of deregulation are widely acknowledged, its long-term consequences for social equity remain deeply contested.\n\n判断：这里的 while 必须表示时间，应译为“当……的时候”。"
+      "prompt": "练习句子：While the short-term economic benefits of deregulation are widely acknowledged, its long-term consequences for social equity remain deeply contested.\n\n判断：while 交代两个事件同时发生：短期经济收益被认可时，长期社会影响开始受到质疑。",
+      "support": "练习句子：While the short-term economic benefits of deregulation are widely acknowledged, its long-term consequences for social equity remain deeply contested.\n\n判断：while 交代两个事件同时发生：短期经济收益被认可时，长期社会影响开始受到质疑。",
+      "context": "练习句子：While the short-term economic benefits of deregulation are widely acknowledged, its long-term consequences for social equity remain deeply contested.\n\n判断：while 交代两个事件同时发生：短期经济收益被认可时，长期社会影响开始受到质疑。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "前后比较的是已被认可的短期经济收益与仍有争议的长期社会后果。while 在这里表示对照或让步，不是在交代一个事件发生的时点。",
-      "exam_tip": "while 作让步状语时相当于 although（尽管），常在对比句中出现，与时间 while（同时）需区分。"
+      "summary": "这里对照的是已被广泛认可的短期收益与仍然存在争议的长期影响。while 带有对照、让步色彩；remain 表示争议仍在，不能改成“开始受到质疑”，句子也没有给出同时开始的两个事件。",
+      "exam_tip": "对照 short-term 与 long-term、acknowledged 与 contested，再看 remain 是否表示一个新事件开始。"
     },
     "space_metadata": {
       "box_ref": "1131",
@@ -2870,14 +2870,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断正误：\n\n句子 \"The initiative failed, not because the concept was flawed, but because implementation was poorly managed.\" 中，because the concept was flawed 和 because implementation was poorly managed 都是宾语从句，分别说明失败的不同方面。\n\n这个判断正确吗？",
-      "support": "判断正误：\n\n句子 \"The initiative failed, not because the concept was flawed, but because implementation was poorly managed.\" 中，because the concept was flawed 和 because implementation was poorly managed 都是宾语从句，分别说明失败的不同方面。\n\n这个判断正确吗？",
-      "context": "判断正误：\n\n句子 \"The initiative failed, not because the concept was flawed, but because implementation was poorly managed.\" 中，because the concept was flawed 和 because implementation was poorly managed 都是宾语从句，分别说明失败的不同方面。\n\n这个判断正确吗？"
+      "prompt": "练习句子：The initiative failed, not because the concept was flawed, but because implementation was poorly managed.\n\n判断：本句承认计划失败，并把失败归因于执行管理不善，排除了“构想有缺陷”这一失败原因。",
+      "support": "练习句子：The initiative failed, not because the concept was flawed, but because implementation was poorly managed.\n\n判断：本句承认计划失败，并把失败归因于执行管理不善，排除了“构想有缺陷”这一失败原因。",
+      "context": "练习句子：The initiative failed, not because the concept was flawed, but because implementation was poorly managed.\n\n判断：本句承认计划失败，并把失败归因于执行管理不善，排除了“构想有缺陷”这一失败原因。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "本句两个 because 从句分别给出被排除的原因与实际原因，修饰 failed，并不作其宾语。辨认从句功能要看具体支配关系；不能把“所有宾语从句都只能紧跟及物动词”当成普遍规则。",
-      "exam_tip": "not because A but because B 是原因对比结构，两个 because 从句均为原因状语从句，阅读时注意否定范围（not 否定的是不成立的原因）。"
+      "summary": "failed 没有被否定。not because A but because B 否定的是 A 作为本次失败原因的解释，并提出 B。它不等于宣称所有相关构想都完美，也不等于否认失败本身。",
+      "exam_tip": "分别找 failed、not because 和 but because 的范围，检查 not 否定的是事件还是原因解释。"
     },
     "space_metadata": {
       "box_ref": "1131",
@@ -2898,7 +2898,7 @@
       }
     ],
     "answer_key": {
-      "correct_state": "false"
+      "correct_state": "true"
     },
     "auto_scoring": true
   },
@@ -3030,14 +3030,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断：that 从句只要出现在名词后，就一定是定语从句，不可能是同位语从句。",
-      "support": "判断：that 从句只要出现在名词后，就一定是定语从句，不可能是同位语从句。",
-      "context": "判断：that 从句只要出现在名词后，就一定是定语从句，不可能是同位语从句。"
+      "prompt": "练习句子：The claim that the editor rejected was repeated in the revised report.\n\n判断：that the editor rejected 说明 claim 的具体内容，即“编辑驳回了某事”，属于同位语从句。",
+      "support": "练习句子：The claim that the editor rejected was repeated in the revised report.\n\n判断：that the editor rejected 说明 claim 的具体内容，即“编辑驳回了某事”，属于同位语从句。",
+      "context": "练习句子：The claim that the editor rejected was repeated in the revised report.\n\n判断：that the editor rejected 说明 claim 的具体内容，即“编辑驳回了某事”，属于同位语从句。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\nthat 从句既可能是定语，也可能是同位语。\n判断关键在于：它是在“限制名词范围”还是在“解释名词内容”。\n\n判断从句是在补充名词的内容，还是在限制名词所指的对象。",
-      "exam_tip": "判断从句是在补充名词的内容，还是在限制名词所指的对象。"
+      "summary": "the editor rejected 后缺少被驳回的对象，that 在从句中充当该对象并回指 claim。因此从句限定“编辑驳回的那一主张”，属于定语从句；它没有说明主张本身的具体内容。",
+      "exam_tip": "先看 rejected 后是否还缺宾语，再检查 that 能否回指 claim 来补上这个位置。"
     },
     "space_metadata": {
       "box_ref": "1132",
@@ -3218,14 +3218,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断正误：\n\n句子 \"The revelation that senior officials had approved the surveillance program without legislative oversight triggered a constitutional review.\" 中，that senior officials had approved the surveillance program without legislative oversight 是定语从句，限定\"哪一次 revelation\"。\n\n这个判断正确吗？",
-      "support": "判断正误：\n\n句子 \"The revelation that senior officials had approved the surveillance program without legislative oversight triggered a constitutional review.\" 中，that senior officials had approved the surveillance program without legislative oversight 是定语从句，限定\"哪一次 revelation\"。\n\n这个判断正确吗？",
-      "context": "判断正误：\n\n句子 \"The revelation that senior officials had approved the surveillance program without legislative oversight triggered a constitutional review.\" 中，that senior officials had approved the surveillance program without legislative oversight 是定语从句，限定\"哪一次 revelation\"。\n\n这个判断正确吗？"
+      "prompt": "练习句子：The revelation that senior officials had approved the surveillance program without legislative oversight triggered a constitutional review.\n\n判断：that 从句说明披露的内容；触发审查的是这一披露，主句谓语为 triggered。",
+      "support": "练习句子：The revelation that senior officials had approved the surveillance program without legislative oversight triggered a constitutional review.\n\n判断：that 从句说明披露的内容；触发审查的是这一披露，主句谓语为 triggered。",
+      "context": "练习句子：The revelation that senior officials had approved the surveillance program without legislative oversight triggered a constitutional review.\n\n判断：that 从句说明披露的内容；触发审查的是这一披露，主句谓语为 triggered。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：revelation/disclosure/finding/discovery + that 从句 = 同位语从句，解释\"所揭露/所发现的事实\"。\n\n② 核心规律：\"限定哪一个\"（定语从句）vs \"解释内容是什么\"（同位语从句）——用内容替换测试：revelation = that officials had approved… ✓，内容等价，确认同位语从句。\n\n③ 验证：内容替换成立（revelation 的内容 = 官员批准了监控），确认为同位语从句。",
-      "exam_tip": "revelation/disclosure/finding/discovery + that = 同位语从句，新闻/政策类六级文章高频。"
+      "summary": "that 从句内部已有 officials、had approved 与 the surveillance program，主谓宾完整。它说明 revelation 的内容，传统教学称同位语从句。整句以 The revelation 为主语、triggered 为谓语，不能因从句较长而丢失主干。",
+      "exam_tip": "分别找 officials had approved 和 revelation triggered，再检查 that 是否承担了从句中缺少的成分。"
     },
     "space_metadata": {
       "box_ref": "1132",
@@ -3246,7 +3246,7 @@
       }
     ],
     "answer_key": {
-      "correct_state": "false"
+      "correct_state": "true"
     },
     "auto_scoring": true
   },
@@ -3381,14 +3381,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断正误：\n\n句子 \"Recent neurological studies have lent credence to the hypothesis that chronic stress permanently alters the architecture of the prefrontal cortex.\" 中，that chronic stress permanently alters the architecture of the prefrontal cortex 是宾语从句，作 lent 的宾语。\n\n这个判断正确吗？",
-      "support": "判断正误：\n\n句子 \"Recent neurological studies have lent credence to the hypothesis that chronic stress permanently alters the architecture of the prefrontal cortex.\" 中，that chronic stress permanently alters the architecture of the prefrontal cortex 是宾语从句，作 lent 的宾语。\n\n这个判断正确吗？",
-      "context": "判断正误：\n\n句子 \"Recent neurological studies have lent credence to the hypothesis that chronic stress permanently alters the architecture of the prefrontal cortex.\" 中，that chronic stress permanently alters the architecture of the prefrontal cortex 是宾语从句，作 lent 的宾语。\n\n这个判断正确吗？"
+      "prompt": "练习句子：A small pilot study lent support to the hypothesis that spaced practice improves recall.\n\n判断：that spaced practice improves recall 直接作 lent 的宾语，说明这项研究提供了什么。",
+      "support": "练习句子：A small pilot study lent support to the hypothesis that spaced practice improves recall.\n\n判断：that spaced practice improves recall 直接作 lent 的宾语，说明这项研究提供了什么。",
+      "context": "练习句子：A small pilot study lent support to the hypothesis that spaced practice improves recall.\n\n判断：that spaced practice improves recall 直接作 lent 的宾语，说明这项研究提供了什么。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "lent 的直接宾语是 credence，to the hypothesis 中的 hypothesis 是介词 to 的宾语。that 从句接着说明 hypothesis 的具体内容，并非 lent 的宾语从句。不能只按“动词后出现了从句”就忽略中间的名词与介词关系。",
-      "exam_tip": "lend credence/support to the hypothesis that = \"为假说…提供支持\"，是学术文章中同位语从句的常见框架。"
+      "summary": "lent 的直接宾语是 support，to 引出支持所针对的 hypothesis。that 从句说明假说内容，依附 hypothesis，不能跳过 support 和 to 直接把它接到 lent 上。句子报告的是提供支持，未把假说说成已经定论。",
+      "exam_tip": "先把 lent support to 连成一组，再问 that 从句是在展开 support 还是 hypothesis 的内容。"
     },
     "space_metadata": {
       "box_ref": "1132",
@@ -3541,14 +3541,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断：插入语在句中出现时，通常承担主句核心谓语功能，删除后会导致主干不完整。",
-      "support": "判断：插入语在句中出现时，通常承担主句核心谓语功能，删除后会导致主干不完整。",
-      "context": "判断：插入语在句中出现时，通常承担主句核心谓语功能，删除后会导致主干不完整。"
+      "prompt": "练习句子：The framework, critics argue, privileges efficiency over procedural fairness.\n\n判断：critics argue 标明这项评价来自批评者；去掉它虽保留主谓结构，却会丢失观点来源。",
+      "support": "练习句子：The framework, critics argue, privileges efficiency over procedural fairness.\n\n判断：critics argue 标明这项评价来自批评者；去掉它虽保留主谓结构，却会丢失观点来源。",
+      "context": "练习句子：The framework, critics argue, privileges efficiency over procedural fairness.\n\n判断：critics argue 标明这项评价来自批评者；去掉它虽保留主谓结构，却会丢失观点来源。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\n多数插入语可删除且主干仍成立。\n其作用是补充语气、来源或评价，不是主干谓语骨架。\n\n抽去插入语检查主干，再把观点来源与语气限定加回理解。",
-      "exam_tip": "抽去插入语检查主干，再把观点来源与语气限定加回理解。"
+      "summary": "主干为 The framework privileges efficiency over procedural fairness。critics argue 是插入评注，可改述为 Critics argue that the framework ...。删除后句法仍完整，但读者不再知道这是批评者的判断，不能把“可删除”理解成“没有信息价值”。",
+      "exam_tip": "先读去掉逗号中内容后的句子，再比较它与 Critics argue that ... 在观点来源上的差别。"
     },
     "space_metadata": {
       "box_ref": "1133",
@@ -3569,7 +3569,7 @@
       }
     ],
     "answer_key": {
-      "correct_state": "false"
+      "correct_state": "true"
     },
     "auto_scoring": true
   },
@@ -3729,14 +3729,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断：\n\n句子 \"The proposal, in principle, appears fiscally sound but politically untenable.\" 中，in principle 属于主语的一部分，不能删除。\n\n这个判断正确吗？",
-      "support": "判断：\n\n句子 \"The proposal, in principle, appears fiscally sound but politically untenable.\" 中，in principle 属于主语的一部分，不能删除。\n\n这个判断正确吗？",
-      "context": "判断：\n\n句子 \"The proposal, in principle, appears fiscally sound but politically untenable.\" 中，in principle 属于主语的一部分，不能删除。\n\n这个判断正确吗？"
+      "prompt": "练习句子：The proposal, in principle, appears fiscally sound but politically untenable.\n\n判断：去掉 in principle 后主句仍完整，因此原句是在确认该提案实际执行起来财政上可行。",
+      "support": "练习句子：The proposal, in principle, appears fiscally sound but politically untenable.\n\n判断：去掉 in principle 后主句仍完整，因此原句是在确认该提案实际执行起来财政上可行。",
+      "context": "练习句子：The proposal, in principle, appears fiscally sound but politically untenable.\n\n判断：去掉 in principle 后主句仍完整，因此原句是在确认该提案实际执行起来财政上可行。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：in principle/in practice/in theory 等常作插入评注。\n\n② 核心规律：这类短语通常作用于整句判断的“适用范围/语气”，不进入主干句法。\n\n③ 验证：删去后主干谓语 appears 仍完整。",
-      "exam_tip": "in principle 与 in practice 常构成理论-现实对比。"
+      "summary": "删除 in principle 后主语 proposal 与谓语 appears 仍成立，但语义限定随之减少。in principle 将评价限定在原则或理论层面，appears 也保留判断余地；原句没有确认实际执行结果。结构可删不代表意义可忽略。",
+      "exam_tip": "先检查主谓能否独立，再看 in principle 和 appears 对结论确定程度各加了什么限制。"
     },
     "space_metadata": {
       "box_ref": "1133",
@@ -3892,14 +3892,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句关键修饰",
-      "prompt": "判断：\n\n句子 \"The framework, critics argue, privileges efficiency over procedural fairness.\" 中，critics argue 是定语从句。\n\n这个判断正确吗？",
-      "support": "判断：\n\n句子 \"The framework, critics argue, privileges efficiency over procedural fairness.\" 中，critics argue 是定语从句。\n\n这个判断正确吗？",
-      "context": "判断：\n\n句子 \"The framework, critics argue, privileges efficiency over procedural fairness.\" 中，critics argue 是定语从句。\n\n这个判断正确吗？"
+      "prompt": "练习句子：The trial, according to the preliminary report, reduced waiting times at two clinics.\n\n判断：这句话的证据范围是初步报告所述的两家诊所，不能直接据此概括所有诊所的效果。",
+      "support": "练习句子：The trial, according to the preliminary report, reduced waiting times at two clinics.\n\n判断：这句话的证据范围是初步报告所述的两家诊所，不能直接据此概括所有诊所的效果。",
+      "context": "练习句子：The trial, according to the preliminary report, reduced waiting times at two clinics.\n\n判断：这句话的证据范围是初步报告所述的两家诊所，不能直接据此概括所有诊所的效果。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "critics argue 在这里说明观点来源，可以改述为 Critics argue that the framework...，并不用于限定“哪个 framework”。判断从句功能不能只看是否出现关系词，因为有些关系从句可以省略宾格关系词。",
-      "exam_tip": "插入评注常呈“X, S+V, ...”结构。"
+      "summary": "according to the preliminary report 标出来源及其初步性质，at two clinics 限定观察范围。主句报告试验在两家诊所减少了等候时间，没有提供所有诊所的结果。读主干时应将来源、阶段和范围重新带回结论。",
+      "exam_tip": "分别标出 according to 的来源、preliminary 的阶段和 two clinics 的范围，再检查判断是否扩大了证据。"
     },
     "space_metadata": {
       "box_ref": "1133",
@@ -3920,7 +3920,7 @@
       }
     ],
     "answer_key": {
-      "correct_state": "false"
+      "correct_state": "true"
     },
     "auto_scoring": true
   },
