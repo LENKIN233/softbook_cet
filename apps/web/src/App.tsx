@@ -1742,6 +1742,9 @@ function LearningSurface(props: LearningSurfaceProps) {
   const {card, cardState, resolved, onResolve, onState} = props;
   const cardRef = useRef<HTMLElement | null>(null);
   const answerRef = useRef<HTMLHeadingElement | null>(null);
+  const activeLockSlot = card?.interaction_id === 'lock' && cardState
+    ? card.lock_slots.findIndex((slot, index) => cardState.lockSelections[slot.id] !== card.answer_key.lock_pattern[index])
+    : -1;
   const {perform, busy: motionBusy} = useObjectMotion(props.motionIdentity, cardRef);
   const onContinue = useCallback(() => perform('advance', props.onContinue), [perform, props.onContinue]);
   const onFlip = useCallback(() => perform('flip', () => onState(previous => previous ? {...previous, isFlipped: true} : previous)), [onState, perform]);
@@ -1751,6 +1754,11 @@ function LearningSurface(props: LearningSurfaceProps) {
     const body = cardRef.current?.querySelector('.paper-body');
     if (body) body.scrollTop = 0;
   }, [resolved, card?.interaction_id]);
+  useLayoutEffect(() => {
+    if (!resolved && activeLockSlot > 0) {
+      cardRef.current?.querySelector('.lock-row.available')?.scrollIntoView?.({block: 'nearest', inline: 'nearest'});
+    }
+  }, [activeLockSlot, props.motionIdentity, resolved]);
   useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null;
@@ -1846,10 +1854,15 @@ function CardPrompt({text, body = false}: {text: string; body?: boolean}) {
 
 function LearningHelp({card, state, patch}: {card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void}) {
   const open = state.isPeeked;
+  const methodRef = useRef<HTMLParagraphElement>(null);
+  const hintRef = useRef<HTMLParagraphElement>(null);
+  useLayoutEffect(() => {
+    if (open) (state.isHintVisible ? hintRef.current : methodRef.current)?.scrollIntoView?.({block: 'nearest', inline: 'nearest'});
+  }, [open, state.isHintVisible]);
   return <div className="learning-help">
     <button className="text-button" aria-expanded={open} onClick={() => patch({hasUsedPeek: true, isPeeked: !open})}>{open ? '收起判断方法' : '看判断方法'}</button>
-    {open ? <div><p className="attached-note">{card.analysis.exam_tip}</p>
-      {card.hint_layer ? <><button className="text-button" aria-expanded={state.isHintVisible} onClick={() => patch({hasUsedHint: true, isHintVisible: !state.isHintVisible})}>{state.isHintVisible ? '收起提示' : '再看一个提示'}</button>{state.isHintVisible ? <p className="attached-note">{card.hint_layer.content}</p> : null}</> : null}
+    {open ? <div><p ref={methodRef} className="attached-note">{card.analysis.exam_tip}</p>
+      {card.hint_layer ? <><button className="text-button" aria-expanded={state.isHintVisible} onClick={() => patch({hasUsedHint: true, isHintVisible: !state.isHintVisible})}>{state.isHintVisible ? '收起提示' : '再看一个提示'}</button>{state.isHintVisible ? <p ref={hintRef} className="attached-note">{card.hint_layer.content}</p> : null}</> : null}
     </div> : null}
   </div>;
 }
