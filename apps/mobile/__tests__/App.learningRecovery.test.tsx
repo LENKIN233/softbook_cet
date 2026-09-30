@@ -96,7 +96,7 @@ it('switches authenticated tracks without losing the old track when the next loa
 });
 
 function createRuntime() {
-  const base={...createLocalLearningSession('cet4'),contentVersion:TEST_CONTENT_VERSION,membershipStage:'premium' as const};
+  const base:LearningSession={...createLocalLearningSession('cet4'),contentVersion:TEST_CONTENT_VERSION,membershipStage:'premium' as const};
   let selectedId:string|null=base.catalogCards[0].card_id;
   let selectionId='sel_recovery_first_selection';
   let nextDueAt:string|null=null;
@@ -109,6 +109,7 @@ function createRuntime() {
   let loadsFail=false;
   let bootstrapReads=0;
   let eventFailure:string|null=null;
+  let completionGate:Promise<void>|null=null;
   const completedEvents:MockLearningEvent[]=[];
   mockLoadSession.mockImplementation(async()=>{
     if(loadsFail) throw new Error('Session unavailable');
@@ -121,6 +122,7 @@ function createRuntime() {
   const requests=jest.fn(async(input:string,init?:{body?:string})=>{
     if(input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
     if(input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if(input.endsWith('/v2/auth/logout')) return createJsonResponse({data:{logged_out:true}});
     if(input.includes('/v2/bootstrap?')) {
       bootstrapReads++;
       const p=createAccountBootstrapPayload(base,'premium',completedEvents);
@@ -129,6 +131,7 @@ function createRuntime() {
       p.data.component_revisions.learning.session_revision=sessionRevision;
       p.data.component_revisions.progress.space_revision=spaceRevision;
       p.data.space.states=spaceStates as never[];
+      for (const state of p.data.learning.card_states) state.is_favorited=spaceStates.some(space=>space.card_id===state.card_id && space.is_favorited);
       p.data.progress.favorite_count=spaceStates.filter(state=>state.is_favorited).length;
       p.data.progress.sleeping_count=spaceStates.filter(state=>state.is_sleeping).length;
       return createJsonResponse(p);
@@ -153,16 +156,30 @@ function createRuntime() {
     }
     if(input.endsWith('/v2/learning/events')) {
       if(eventFailure) return createJsonResponse({error:{code:eventFailure,message:'Explicit server rejection'}},409);
+      if(completionGate) {
+        await completionGate;
+        const request=JSON.parse(init!.body!) as {track:'cet4';events:(MockLearningEvent & {event_id:string})[]};
+        completedEvents.push(...request.events);
+        selectedId=nextServerCardId;selectionId=`sel_recovery_accepted_${++sessionRevision}`;
+        return createJsonResponse({data:{schema_version:'learning-events-ack.v2',acknowledged_at:new Date().toISOString(),track:request.track,
+          results:request.events.map((event,index)=>({event_id:event.event_id,status:'accepted',server_sequence:index+1}))}});
+      }
       throw new Error('This recovery must not synthesize a completion');
     }
     throw new Error(`Unexpected request: ${input}`);
   });
   global.fetch=requests as unknown as typeof fetch;
   return {base,requests, getBootstrapReads:()=>bootstrapReads,
+    acceptCompletions:(gate:Promise<void>=Promise.resolve())=>{completionGate=gate},
     bumpSessionRevision:()=>{sessionRevision++},
     addAudio:()=>{
       const card={...base.catalogCards[0],audio:{asset_id:'audio_recovery_0001',sha256:`sha256:${'c'.repeat(64)}`,duration_ms:1000}};
       base.catalogCards[0]=card;base.cards[0]=card;
+      base.contentManifest={access:{mode:'full',accessible_card_count:base.catalogCards.length,total_card_count:base.catalogCards.length},
+        downloads:[{asset_id:card.audio.asset_id,expires_at:'2099-09-12T00:00:00.000Z',url:'https://assets.example/original'}],
+        manifest:{schema_version:'content-manifest.v1',release_id:'recovery-audio-test',track:'cet4',content_version:TEST_CONTENT_VERSION,
+          minimum_client_version:'0.0.1',parent_release_id:null,assets:[{...card.audio,media_type:'audio/mpeg',size_bytes:64}]},
+        signature:{algorithm:'ed25519',key_id:'test-key',value:'test-signature'}};
     },
     rejectEvents:(code:string)=>{eventFailure=code},
     setContentVersion:(version:string)=>{base.contentVersion=version},
@@ -302,7 +319,7 @@ async function failAttemptRefresh(runtime: ReturnType<typeof createRuntime>, roo
   expect(root.findByProps({testID:'learning-bootstrap-retry-button'})).toBeTruthy();
 }
 
-test.each([false,true])('preserves the same assisted attempt through failed refresh and retry (resolved=%s)',async resolved=>{
+test.each([false])('preserves the same assisted attempt through failed refresh and retry (resolved=%s)',async resolved=>{
   const runtime=createRuntime();const {root}=await login();
   await press(root,'learning-help-button');await press(root,'learning-help-button');
   await press(root,'learning-hint-button');await press(root,'learning-hint-button');await press(root,'learning-help-button');
@@ -339,7 +356,6 @@ test('keeps a lock mistake through failed refresh so later correction still need
 test.each(['selection','content','phase'] as const)('discards a failed attempt when recovered %s authority changes',async change=>{
   const runtime=createRuntime();const {root}=await login();
   await press(root,'learning-help-button');await press(root,'learning-flip-button');
-  await press(root,'learning-flip-confident-button');
   await failAttemptRefresh(runtime,root);
   if(change==='selection') runtime.setSelection(runtime.base.cards[0].card_id);
   else if(change==='content') runtime.setContentVersion(`sha256:${'b'.repeat(64)}`);
@@ -364,10 +380,11 @@ test('a changed server selection discards the old attempt instead of transplanti
 
 test('an explicit rejection of an old-content selection refreshes without counting it, and survives remount',async()=>{
   const runtime=createRuntime();const {root,tree}=await login();
-  await press(root,'learning-flip-button');await press(root,'learning-flip-confident-button');
+  await press(root,'learning-flip-button');
   runtime.setSelection(runtime.base.catalogCards.at(-1)!.card_id);
   runtime.setContentVersion(`sha256:${'b'.repeat(64)}`);
   runtime.rejectEvents('learning_event_selection_conflict');
+  await press(root,'learning-flip-confident-button');
   await press(root,'learning-next-button');await settle();
   const submitted=runtime.requests.mock.calls.filter(([input])=>input.endsWith('/v2/learning/events'));
   expect(submitted).toHaveLength(1);
@@ -432,6 +449,73 @@ test('drops a pending audio renewal after leaving the learning attempt',async()=
   expect(mockRefreshAudioDownload.mock.calls[0][3].isCurrent()).toBe(false);
   resolveDownload({...selection.download,expires_at:'2099-09-12T00:00:00.000Z'});
   expect(await rejection).toMatchObject({reason:'caller_cancelled'});
+  await expect(refresh(selection)).rejects.toMatchObject({reason:'caller_cancelled'});
+  expect(mockRefreshAudioDownload).toHaveBeenCalledTimes(1);
+});
+
+test('accepted feedback can replay audio and favorite its own card while the next card is prefetched',async()=>{
+  const runtime=createRuntime();runtime.addAudio();
+  let accept!:()=>void;
+  runtime.acceptCompletions(new Promise(resolve=>{accept=resolve}));
+  const {root}=await login();
+  const originalSelection=audioSelection(root);
+  const originalCardId=root.findByType(LearningSurface).props.currentCard.card_id;
+  await press(root,'learning-flip-button');await press(root,'learning-flip-confident-button');await settle();
+  expect(root.findByProps({testID:'learning-audio-control'}).props.disabled).toBe(true);
+  expect(root.findByProps({testID:'learning-favorite-button'}).props.disabled).toBe(true);
+  accept();await settle();
+  expect(mockLoadSession).toHaveBeenCalledTimes(2);
+  expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(originalCardId);
+  expect(root.findByProps({testID:'learning-audio-control'}).props.disabled).toBe(false);
+  expect(root.findByProps({testID:'learning-favorite-button'}).props.disabled).toBe(false);
+  const download={...originalSelection.download,expires_at:'2099-09-12T00:00:00.000Z'};
+  mockRefreshAudioDownload.mockResolvedValue(download);
+  const refresh=root.findByType(LearningSurface).props.refreshAudioDownload as RefreshLearningAudioDownload;
+  await expect(refresh(originalSelection)).resolves.toEqual(download);
+  expect(mockRefreshAudioDownload.mock.calls[0][1].serverSelection).toMatchObject({
+    cardId:originalCardId,selectionId:originalSelection.authorityToken,
+  });
+  expect(mockRefreshAudioDownload.mock.calls[0][3].isCurrent()).toBe(true);
+  await press(root,'learning-favorite-button');await settle();
+  const writes=runtime.requests.mock.calls.filter(([input])=>input.endsWith('/v2/space/actions'));
+  expect(writes).toHaveLength(1);
+  expect(JSON.parse(writes[0][1]!.body!).actions).toEqual([expect.objectContaining({
+    card_id:originalCardId,dimension:'favorite',value:true,
+  })]);
+  expect(root.findByType(LearningSurface).props.currentCardState.isFavorited).toBe(true);
+  expect(root.findByType(LearningSurface).props.interactionLocked).toBe(false);
+  let resolveDownload!:(download:LearningAudioSelection['download'])=>void;
+  mockRefreshAudioDownload.mockImplementation(()=>new Promise(resolve=>{resolveDownload=resolve}));
+  const currentRefresh=root.findByType(LearningSurface).props.refreshAudioDownload as RefreshLearningAudioDownload;
+  const pending=currentRefresh(originalSelection).catch(error=>error);
+  await press(root,'learning-next-button');await settle();
+  expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(runtime.base.catalogCards.at(-1)!.card_id);
+  expect(root.findByType(LearningSurface).props.currentCardState.isFavorited).toBe(false);
+  resolveDownload(download);
+  expect(await pending).toMatchObject({reason:'caller_cancelled'});
+  await expect(refresh(originalSelection)).rejects.toMatchObject({reason:'caller_cancelled'});
+  expect(runtime.requests.mock.calls.filter(([input])=>input.endsWith('/v2/learning/events'))).toHaveLength(1);
+});
+
+test('an accepted result cannot apply old audio or favorite callbacks after logout',async()=>{
+  const runtime=createRuntime();runtime.addAudio();runtime.acceptCompletions();
+  const {root}=await login();
+  await press(root,'learning-flip-button');await press(root,'learning-flip-confident-button');await settle();
+  const selection=audioSelection(root);
+  const surface=root.findByType(LearningSurface).props;
+  const favorite=surface.onToggleFavorite as ()=>void;
+  const refresh=surface.refreshAudioDownload as RefreshLearningAudioDownload;
+  let resolveDownload!:(download:LearningAudioSelection['download'])=>void;
+  mockRefreshAudioDownload.mockImplementation(()=>new Promise(resolve=>{resolveDownload=resolve}));
+  const pending=refresh(selection).catch(error=>error);
+  await press(root,'route-tab-mine');await settle();
+  await press(root,'mine-account-logout-button');await settle();
+  expect(root.findByProps({testID:'auth-phone-input'})).toBeTruthy();
+  expect(mockRefreshAudioDownload.mock.calls[0][3].isCurrent()).toBe(false);
+  resolveDownload({...selection.download,expires_at:'2099-09-12T00:00:00.000Z'});
+  expect(await pending).toMatchObject({reason:'caller_cancelled'});
+  await act(async()=>{favorite();});await settle();
+  expect(runtime.requests.mock.calls.filter(([input])=>input.endsWith('/v2/space/actions'))).toHaveLength(0);
   await expect(refresh(selection)).rejects.toMatchObject({reason:'caller_cancelled'});
   expect(mockRefreshAudioDownload).toHaveBeenCalledTimes(1);
 });

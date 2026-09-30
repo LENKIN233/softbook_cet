@@ -1463,14 +1463,14 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 主题化例句",
-      "prompt": "原句：公共文化平台持续完善，既丰富了群众精神生活，也提升了文化服务均等化水平。\n\n先做汉译英，再补全骨架：\nPublic cultural platforms have been continuously improved, {{blank}} enriching people's spiritual life {{blank}} raising the level of equalized cultural services.",
-      "support": "原句：公共文化平台持续完善，既丰富了群众精神生活，也提升了文化服务均等化水平。\n\n先做汉译英，再补全骨架：\nPublic cultural platforms have been continuously improved, {{blank}} enriching people's spiritual life {{blank}} raising the level of equalized cultural services.",
-      "context": "原句：公共文化平台持续完善，既丰富了群众精神生活，也提升了文化服务均等化水平。\n\n先做汉译英，再补全骨架：\nPublic cultural platforms have been continuously improved, {{blank}} enriching people's spiritual life {{blank}} raising the level of equalized cultural services."
+      "prompt": "原句：公共文化平台持续完善，既丰富了群众精神生活，也提升了文化服务均等化水平。\n\n结构练习：用表示“不仅……而且……”的成对连词连接两项作用，补全英文句子。\nPublic cultural platforms have been continuously improved, {{blank}} enriching people's spiritual life {{blank}} raising the level of equalized cultural services.",
+      "support": "原句：公共文化平台持续完善，既丰富了群众精神生活，也提升了文化服务均等化水平。\n\n结构练习：用表示“不仅……而且……”的成对连词连接两项作用，补全英文句子。\nPublic cultural platforms have been continuously improved, {{blank}} enriching people's spiritual life {{blank}} raising the level of equalized cultural services.",
+      "context": "原句：公共文化平台持续完善，既丰富了群众精神生活，也提升了文化服务均等化水平。\n\n结构练习：用表示“不仅……而且……”的成对连词连接两项作用，补全英文句子。\nPublic cultural platforms have been continuously improved, {{blank}} enriching people's spiritual life {{blank}} raising the level of equalized cultural services."
     },
     "analysis": {
       "title": "解析",
-      "summary": "主句后并列结果可用 not only doing ... but also doing ... 进行压缩表达。",
-      "exam_tip": "并列 doing 结构需词性与语义对称。"
+      "summary": "本题练习 not only…but also… 的成对顺序。两部分分别接 enriching 与 raising，保持 -ing 形式平行。完整翻译可以有其他表达；这里限定的是这一种递进并列结构。",
+      "exam_tip": "先看题目指定的递进关系，再检查两个连接部分的先后顺序与后接动词形式。"
     },
     "space_metadata": {
       "box_ref": "1410",
@@ -1483,20 +1483,16 @@
         "id": "slot_1",
         "label": "空 1",
         "options": [
-          "not only",
           "but also",
-          "while",
-          "and"
+          "not only"
         ]
       },
       {
         "id": "slot_2",
         "label": "空 2",
         "options": [
-          "not only",
           "but also",
-          "while",
-          "and"
+          "not only"
         ]
       }
     ],

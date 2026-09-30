@@ -26,6 +26,7 @@ const SELECTION_PHASES = ['learning', 'review'] as const;
 const SELECTION_REASONS = [
   'persisted_cursor',
   'due_review',
+  'requested_review',
   'catalog_new',
 ] as const;
 
@@ -129,6 +130,7 @@ export async function loadRemoteLearningSession(
   track: LearningTrack,
   config: RemoteLearningSessionConfig,
   fetchImpl: FetchLike,
+  options?: {intent: 'review'},
 ): Promise<RemoteLearningSessionResponse> {
   if (!context.authToken) {
     throw new RemoteHttpError(
@@ -137,13 +139,17 @@ export async function loadRemoteLearningSession(
     );
   }
 
+  const review = options?.intent === 'review';
+  const reviewRequestBody = JSON.stringify({track});
   const response = await fetchImpl(
-    appendTrack(config.endpoint, track, config.trackQueryParam),
+    review ? config.endpoint.replace(/\/session(?:\?.*)?$/, '/review') : appendTrack(config.endpoint, track, config.trackQueryParam),
     {
-      method: 'GET',
+      method: review ? 'POST' : 'GET',
+      ...(review ? {body: reviewRequestBody} : {}),
       headers: {
         ...createSoftbookClientHeaders(config.clientKind, config.headers),
         Accept: 'application/json',
+        ...(review ? {'Content-Type': 'application/json'} : {}),
         Authorization: `Bearer ${context.authToken}`,
         ...(config.apiKey
           ? { [config.apiKeyHeader ?? 'x-api-key']: config.apiKey }
@@ -153,13 +159,25 @@ export async function loadRemoteLearningSession(
   );
 
   if (!response.ok) {
+    let errorCode: string | null = null;
+    if (review && response.status === 409) {
+      try {
+        const failure = await response.json() as {error?: {code?: unknown}};
+        if (failure.error?.code === 'review_access_unavailable') errorCode = failure.error.code;
+      } catch { /* Keep unknown authorization failures fail-closed. */ }
+    }
     throw new RemoteHttpError(
       `Remote learning session request failed with status ${response.status}.`,
       response.status,
+      errorCode,
     );
   }
 
-  return parseRemoteLearningSessionPayload(await response.json(), track);
+  const scheduled = parseRemoteLearningSessionPayload(await response.json(), track);
+  if (review && scheduled.selection?.phase === 'learning') {
+    throw new Error('Requested review cannot return a new learning card.');
+  }
+  return scheduled;
 }
 
 export function parseRemoteLearningSessionPayload(
@@ -533,7 +551,7 @@ function parseSelection(candidate: unknown): LearningServerSelection | null {
 
   if (
     (reason === 'catalog_new' && (phase !== 'learning' || dueAt !== null)) ||
-    (reason === 'due_review' && (phase !== 'review' || dueAt === null)) ||
+    ((reason === 'due_review' || reason === 'requested_review') && (phase !== 'review' || dueAt === null)) ||
     (reason === 'persisted_cursor' &&
       ((phase === 'learning' && dueAt !== null) ||
         (phase === 'review' && dueAt === null)))

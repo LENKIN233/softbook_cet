@@ -25,7 +25,7 @@ import {installStudioTheme} from '/@fs/${repository}/apps/web/src/visualTheme.ts
 import '/@fs/${repository}/apps/web/src/styles.css';
 installStudioTheme();
 const query = new URLSearchParams(location.search);
-const card = localLearningCardSource.loadCards(query.get('track')).find(card => card.interaction_id === query.get('kind'));
+const card = localLearningCardSource.loadCards(query.get('track')).find(card => query.has('id') ? card.card_id === query.get('id') : card.interaction_id === query.get('kind'));
 window.qaCard = card;
 function Harness() {
  const [state,setState] = useState(() => createLearningCardState(card));
@@ -54,6 +54,34 @@ const results = [];
 try {
   await server.listen();
   browser = await chromium.launch({executablePath, headless: true});
+  for (const id of ['021206', '022410', '031112']) {
+    const page = await browser.newPage({viewport:{width:390,height:844}, reducedMotion:'reduce'});
+    try {
+      await page.goto(`${server.resolvedUrls.local[0]}?track=cet4&id=${id}`);
+      if (id === '031112') await page.getByRole('button',{name:'翻面看答案',exact:true}).click();
+      await page.getByRole('button',{name:'看判断方法',exact:true}).click();
+      const visible = await page.locator('.learning-help .attached-note').first().evaluate(node => {
+        const note = node.getBoundingClientRect(), body = node.closest('.paper-body').getBoundingClientRect();
+        return note.top >= body.top - 1 && note.bottom <= body.bottom + 1;
+      });
+      assert.ok(visible, `${id}: expanded help remains outside the reading viewport`);
+      results.push({viewport:{width:390,height:844},track:'cet4',card:id,action:'reveal-help'});
+    } finally {await page.close();}
+  }
+  for (const [track,id] of [['cet4','040011'], ['cet6','141011']]) {
+    const page = await browser.newPage({viewport:{width:390,height:844}, reducedMotion:'reduce'});
+    try {
+      await page.goto(`${server.resolvedUrls.local[0]}?track=${track}&id=${id}`);
+      const card = await page.evaluate(() => window.qaCard);
+      await page.getByRole('button',{name:card.answer_key.lock_pattern[0],exact:true}).click();
+      const visible = await page.locator('.lock-row.available').evaluate(node => {
+        const slot = node.getBoundingClientRect(), body = node.closest('.paper-body').getBoundingClientRect();
+        return slot.top >= body.top - 1 && slot.bottom <= body.bottom + 1;
+      });
+      assert.ok(visible, `${id}: next lock slot remains outside the reading viewport`);
+      results.push({viewport:{width:390,height:844},track,card:id,action:'next-lock-slot'});
+    } finally {await page.close();}
+  }
   for (const viewport of [{width:667,height:320},{width:320,height:480}]) {
     for (const track of ['cet4','cet6']) for (const kind of ['flip','multiple_choice','lock','elimination','swipe']) {
       const page = await browser.newPage({viewport, reducedMotion:'reduce'});

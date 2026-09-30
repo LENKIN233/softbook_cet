@@ -1,5 +1,6 @@
+import {ScaledText as Text} from '../visual/ScaledText';
 import React, {useState} from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {ScrollView, StyleSheet, View} from 'react-native';
 import {StudioPressable as Pressable} from '../learning/NativeMotion';
 import type {TrackStudyStatistics} from './trackStudyStatistics';
 

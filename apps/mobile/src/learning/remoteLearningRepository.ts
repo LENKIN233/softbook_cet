@@ -86,7 +86,7 @@ export function createRemoteLearningSessionRepository(
       );
     },
 
-    loadSession: async (context, track) => {
+    loadSession: async (context, track, options) => {
       if (
         !config.remoteConfig ||
         !config.remoteSessionConfig ||
@@ -108,6 +108,7 @@ export function createRemoteLearningSessionRepository(
         track,
         config.remoteSessionConfig,
         fetchImpl,
+        options,
       );
 
       if (

@@ -7,8 +7,13 @@ export function isLongQuestion(text) {
   return readingUnits(text) > 44 || text.includes('\n');
 }
 
+// Android reports the 1.3 setting as a 32-bit float (about 1.29999995).
+export function usesLargeTextLayout(fontScale) {
+  return Math.round(fontScale * 100) >= 130;
+}
+
 export function stackChoiceOptions(options, availableWidth = 620, fontScale = 1) {
-  if (fontScale >= 1.3 || availableWidth < 310) return true;
+  if (usesLargeTextLayout(fontScale) || availableWidth < 310) return true;
   // Studio tiles place the letter above the text; four short lines remain
   // comparable. Longer material and large system text use one full-width row.
   const textWidth = (availableWidth - 10) / 2 - 24;

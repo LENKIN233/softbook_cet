@@ -36,6 +36,72 @@ describe('PC Web remote UI authority', () => {
     delete window.__SOFTBOOK_WEB_RUNTIME__;
   });
 
+  it('requests a server review from statistics and restores the interrupted new-card draft', async () => {
+    const initial = createSnapshot('premium');
+    const pending = {cardId: createCard(2).card_id, interactionId: 'flip' as const,
+      phase: 'learning' as const, outcome: 'review' as const, usedHint: false,
+      usedPeek: false, isFavorited: false, completedAt: new Date().toISOString(), serverSequence: 1};
+    initial.bootstrap.learning.cardStates = [pending];
+    const review = structuredClone(initial);
+    review.learningSession.cards = [createCard(2)];
+    review.learningSession.serverSelection = {...review.learningSession.serverSelection!, cardId: createCard(2).card_id,
+      phase: 'review', reason: 'requested_review', selectionId: 'sel_requested_ui_review', dueAt: new Date().toISOString()};
+    const resumed = structuredClone(initial);
+    resumed.learningSession.serverSelection!.selectionId = 'sel_fresh_learning_resume';
+    const controller = createController(initial, {
+      requestReview: vi.fn(async () => review), loadAuthenticatedState: vi.fn(async () => resumed),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    await screen.findByRole('button', {name: '有把握'});
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    fireEvent.click(await screen.findByRole('button', {name: '开始复习'}));
+    expect(await screen.findByRole('heading', {name: createCard(2).front.prompt})).toBeInTheDocument();
+    expect(controller.requestReview).toHaveBeenCalledTimes(1);
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(await screen.findByRole('button', {name: '下一张'}));
+    expect(await screen.findByRole('button', {name: '有把握'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: '翻面看答案'})).toBeNull();
+    expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an empty requested review without claiming all new learning is complete', async () => {
+    const initial = createSnapshot('premium');
+    initial.bootstrap.learning.cardStates = [{cardId: createCard(2).card_id, interactionId: 'flip',
+      phase: 'learning', outcome: 'review', usedHint: false, usedPeek: false,
+      isFavorited: false, completedAt: new Date().toISOString(), serverSequence: 1}];
+    const empty = structuredClone(initial);
+    empty.learningSession.cards = []; empty.learningSession.serverSelection = null;
+    const controller = createController(initial, {requestReview: vi.fn(async () => empty)});
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    fireEvent.click(await screen.findByRole('button', {name: '开始复习'}));
+    await screen.findByRole('heading', {name: '暂时没有需要复习的卡片'});
+    expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', {name: '继续学习'}));
+    await screen.findByRole('button', {name: '翻面看答案'});
+    expect(controller.loadAuthenticatedState).toHaveBeenCalledTimes(1);
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+  });
+
+  it('keeps authentication when review access expires and directs the learner to membership', async () => {
+    const initial = createSnapshot('premium');
+    initial.bootstrap.learning.cardStates = [{cardId: createCard(2).card_id, interactionId: 'flip',
+      phase: 'learning', outcome: 'review', usedHint: false, usedPeek: false,
+      isFavorited: false, completedAt: new Date().toISOString(), serverSequence: 1}];
+    const controller = createController(initial, {
+      requestReview: vi.fn(async () => {throw new RemoteHttpError('Review unavailable', 409, 'review_access_unavailable');}),
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    fireEvent.click(await screen.findByRole('button', {name: '开始复习'}));
+    expect(await screen.findByText('复习权限已变化，请查看当前会员状态。')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: '获取验证码'})).toBeNull();
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+  });
+
   it('pauses a completed first segment and resumes the next server card without another summary', async () => {
     const initial = createSnapshot('premium');
     const fifth = createCard(5), sixth = createCard(6);
@@ -1540,6 +1606,7 @@ function createController(
     dispose: vi.fn(),
     isAuthenticated: vi.fn(() => true),
     loadAuthenticatedState: vi.fn(async () => snapshot),
+    requestReview: vi.fn(async () => snapshot),
     refreshStatistics: vi.fn(async () => ({bootstrap: snapshot.bootstrap, checkInSync: snapshot.checkInSync})),
     switchTrack: vi.fn(async () => snapshot),
     logout: vi.fn(async () => null),

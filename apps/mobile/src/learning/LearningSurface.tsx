@@ -1,4 +1,5 @@
-import {isLongQuestion, stackChoiceOptions} from './readability';
+import {ScaledText as Text} from '../visual/ScaledText';
+import {isLongQuestion, stackChoiceOptions, usesLargeTextLayout} from './readability';
 import {resultFeedback} from './resultFeedback';
 import {EliminationPassageText} from './EliminationPassageText';
 import {displayCardText, answerComparison, eliminationPassage, frontMaterial, cardTextBlocks, lockAnswerText, lockTemplate, resultAnswerLabel} from './presentation';
@@ -12,7 +13,6 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -89,6 +89,7 @@ type LearningSurfaceProps = {
   roundContinueError?: string | null;
   roundContinuePending?: boolean;
   emptySession?: {
+    reviewOnly?: boolean;
     nextDueAt: string | null;
     pendingSleep: boolean;
     pendingSync: boolean;
@@ -231,14 +232,14 @@ export function LearningSurface({
     height: viewportHeight,
     width: viewportWidth,
   } = useWindowDimensions();
-  const isAccessibilityText = fontScale >= 1.3;
+  const isAccessibilityText = usesLargeTextLayout(fontScale);
   const readingScroll = React.useRef<ScrollView>(null);
   const pageScroll = React.useRef<ScrollView>(null);
   const [materialHeight, setMaterialHeight] = React.useState(0);
   const [actionHeight, setActionHeight] = React.useState(0);
-  const [addressHeight, setAddressHeight] = React.useState(96);
-  const needsPageScroll = viewportHeight < 500;
-  const minimumPageHeight = addressHeight + Math.max(actionHeight, 80) + STUDIO.space.card * 2 + 32 + 180;
+  // Large text needs one continuous reading surface: a fixed footer can
+  // otherwise consume the viewport before the question gets any height.
+  const needsPageScroll = isAccessibilityText || viewportHeight < 500;
   const scrollResult = currentCard?.interaction_id === 'flip' ? null : currentResult;
   React.useEffect(() => {
     pageScroll.current?.scrollTo({y: 0, animated: false});
@@ -276,13 +277,15 @@ export function LearningSurface({
           showsVerticalScrollIndicator={false} testID="learning-empty-session">
           <View style={[styles.heroCard, styles.completeHeroCard, {backgroundColor: palette.panel, borderColor: palette.border}]}>
             <Text style={[styles.heroTitle, {color: palette.text}]}>
-              {emptySession.pendingSleep ? '这张卡已暂停学习' : emptySession.pendingSync ? '正在更新学习安排' : dueLabel ? '暂时没有需要复习的卡片' : '当前没有可学习的卡片'}
+              {emptySession.pendingSleep ? '这张卡已暂停学习' : emptySession.pendingSync ? '正在更新学习安排' : emptySession.reviewOnly || dueLabel ? '暂时没有需要复习的卡片' : '当前没有可学习的卡片'}
             </Text>
             <Text style={[styles.heroSummary, {color: palette.textMuted}]}>
               {emptySession.pendingSleep
                 ? '休眠中的卡不会继续出题。同步完成后会更新学习安排，也可以回空间恢复学习。'
                 : emptySession.pendingSync
                 ? '本次答案已保留，确认后会更新学习安排。'
+                : emptySession.reviewOnly
+                ? '可以继续学习新卡，或到空间查看已学内容。'
                 : dueLabel
                 ? '下次复习时间会显示在下方。'
                 : '可以到空间查看卡片，或刷新学习进度。'}
@@ -298,7 +301,7 @@ export function LearningSurface({
               style={[styles.primaryButton, {backgroundColor: action.surface}]}
               testID="learning-refresh-session-button">
               <Text style={[styles.primaryButtonLabel, {color: action.text}]}>
-                {emptySession.pendingSleep || emptySession.pendingSync ? '重试同步' : '刷新学习进度'}
+                {emptySession.pendingSleep || emptySession.pendingSync ? '重试同步' : emptySession.reviewOnly ? '继续学习' : '刷新学习进度'}
               </Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={emptySession.onOpenSpace}
@@ -550,7 +553,7 @@ export function LearningSurface({
       style={[
         styles.oneScreenPage,
         isCompactPhone ? styles.oneScreenPageCompact : null,
-        needsPageScroll ? {flex: 0, height: minimumPageHeight} : null,
+        needsPageScroll ? styles.naturalHeight : null,
       ]}
       testID="learning-one-screen-flow"
     >
@@ -561,6 +564,7 @@ export function LearningSurface({
           styles.studyCardOneScreen,
           isCompactPhone ? styles.studyCardOneScreenCompact : null,
           styles.glassCard,
+          needsPageScroll ? styles.naturalHeight : null,
           {
             backgroundColor: 'transparent',
             borderColor: 'transparent',
@@ -571,7 +575,6 @@ export function LearningSurface({
         testID="learning-current-card"
       >
         <View
-          onLayout={event => setAddressHeight(Math.ceil(event.nativeEvent.layout.height))}
           style={[
             styles.cardAddressShelf,
             isCompactPhone ? styles.cardAddressShelfCompact : null,
@@ -690,11 +693,12 @@ export function LearningSurface({
           </View>
         </View>
         <View style={[styles.paperPanel, {backgroundColor: palette.panel},
-          materialHeight > 0 ? {maxHeight: materialHeight + actionHeight + STUDIO.space.card * 2 + STUDIO.space.gap} : null]}>
-        <View style={styles.cardStageBody}>
+          needsPageScroll ? styles.naturalHeight : materialHeight > 0 ? {maxHeight: materialHeight + actionHeight + STUDIO.space.card * 2 + STUDIO.space.gap} : null]}>
+        <View style={[styles.cardStageBody, needsPageScroll ? styles.naturalHeight : null]}>
           <Animated.View
             style={[
               styles.cardMaterialSheetFrame,
+              needsPageScroll ? styles.naturalHeight : null,
               cardMotion.flipStyle,
             ]}
             testID="learning-material-sheet"
@@ -714,10 +718,12 @@ export function LearningSurface({
                   ? styles.cardTaskBandWithHint
                   : null,
               ]}
+              scrollEnabled={!needsPageScroll}
               nestedScrollEnabled
               showsVerticalScrollIndicator
               style={[
                 styles.cardTaskBand,
+                needsPageScroll ? styles.naturalHeight : null,
                 {
                   backgroundColor: palette.panel,
                   borderColor: palette.border,
@@ -823,7 +829,7 @@ export function LearningSurface({
                     key={`help:${currentCard.card_id}:${audioAttemptId ?? phase}`}
                     card={currentCard} state={currentCardState} palette={palette}
                     onToggleHint={onToggleHint} onTogglePeek={onTogglePeek}
-                    onReveal={() => readingScroll.current?.scrollToEnd({animated: false})}
+                    onReveal={() => (needsPageScroll ? pageScroll : readingScroll).current?.scrollToEnd({animated: false})}
                   />
                 </View>
               )}
@@ -915,6 +921,7 @@ export function LearningSurface({
                 style={[
                   styles.confidenceRow,
                   isCompactPhone ? styles.confidenceRowCompact : null,
+                  isAccessibilityText ? styles.confidenceRowAccessible : null,
                 ]}
               >
                 <Pressable
@@ -927,6 +934,7 @@ export function LearningSurface({
                   style={[
                     styles.choicePill,
                     styles.choicePillWide,
+                    isAccessibilityText ? styles.choicePillAccessible : null,
                     isCompactPhone ? styles.choicePillCompact : null,
                     {
                       backgroundColor: hexToRgba(
@@ -957,6 +965,7 @@ export function LearningSurface({
                   style={[
                     styles.choicePill,
                     styles.choicePillWide,
+                    isAccessibilityText ? styles.choicePillAccessible : null,
                     isCompactPhone ? styles.choicePillCompact : null,
                     {
                       backgroundColor: hexToRgba(
@@ -1489,7 +1498,7 @@ function SwipeInteraction({
   palette: LearningSurfacePalette;
 }) {
   const {fontScale} = useWindowDimensions();
-  const isAccessibilityText = fontScale >= 1.3;
+  const isAccessibilityText = usesLargeTextLayout(fontScale);
   const libraryTone = resolveLibraryTone(card.space_metadata.library);
   const tone = { accent: libraryTone.accent };
   const dragX = React.useRef(new Animated.Value(0)).current;
@@ -1884,7 +1893,8 @@ export function LearningResultDetailSurface({
     height: viewportHeight,
     width: viewportWidth,
   } = useWindowDimensions();
-  const isAccessibilityText = fontScale >= 1.3;
+  const isAccessibilityText = usesLargeTextLayout(fontScale);
+  const needsPageScroll = isAccessibilityText || viewportHeight < 500;
   const shouldStackResolvedAnswers = viewportWidth < 600;
   const isCompactPhone = isCompactLearningViewport(
     viewportWidth,
@@ -1921,11 +1931,18 @@ export function LearningResultDetailSurface({
   const progressCount = `${progressOrdinal}/${boundedSessionCardCount}`;
 
   return (
+    <ScrollView
+      style={styles.viewportScroll}
+      contentContainerStyle={[styles.viewportScrollContent, !needsPageScroll ? styles.viewportScrollFit : null]}
+      scrollEnabled={needsPageScroll}
+      testID="learning-detail-viewport-scroll"
+    >
     <View
       style={[
         styles.oneScreenPage,
         styles.detailScreen,
         isCompactPhone ? styles.oneScreenPageCompact : null,
+        needsPageScroll ? styles.naturalHeight : null,
       ]}
       testID="learning-result-detail-screen"
     >
@@ -1935,8 +1952,10 @@ export function LearningResultDetailSurface({
           isCompactPhone ? styles.detailResolvedCardContentCompact : null,
         ]}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={!needsPageScroll}
         style={[
           styles.detailResolvedCard,
+          needsPageScroll ? styles.naturalHeight : null,
           styles.glassCard,
           {
             backgroundColor: palette.panel,
@@ -2049,13 +2068,13 @@ export function LearningResultDetailSurface({
             />
             <View style={styles.cardLocationTextWrap}>
               <Text
-                numberOfLines={1}
+                numberOfLines={isAccessibilityText ? undefined : 1}
                 style={[styles.cardLocationTitle, { color: palette.textMuted }]}
               >
                 {visibleContainerName}
               </Text>
               <Text
-                numberOfLines={1}
+                numberOfLines={isAccessibilityText ? undefined : 1}
                 style={[styles.cardLocationMeta, { color: palette.textMuted }]}
               >
                 {`${courseName} · ${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
@@ -2104,7 +2123,7 @@ export function LearningResultDetailSurface({
                 {detailOutcomeTitle}
               </Text>
               <Text
-                numberOfLines={1}
+                numberOfLines={isAccessibilityText ? undefined : 1}
                 style={[styles.detailSlipCaption, { color: palette.textMuted }]}
               >
                 {detailOutcomeCaption}
@@ -2213,7 +2232,7 @@ export function LearningResultDetailSurface({
               考试提示：{card.analysis.exam_tip}
             </Text>
             <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
-            <AudioTranscript key={card.card_id} card={card} palette={palette} />
+            <AudioTranscript key={`transcript:${card.card_id}`} card={card} palette={palette} />
           </View>
         </View>
 
@@ -2260,6 +2279,7 @@ export function LearningResultDetailSurface({
         ) : null}
       </View>
     </View>
+    </ScrollView>
   );
 }
 
@@ -2288,10 +2308,10 @@ function FlipBack({card, compact, palette, result, onOpenResultDetail}: {
       isLongQuestion(card.back_text) ? styles.longQuestion : null, {color: palette.text}]}
       testID="learning-correct-answer">{card.back_text}</Text>
     <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
-    <QuestionRecall key={card.card_id} card={card} palette={palette} />
-    {result ? <AudioTranscript key={card.card_id} card={card} palette={palette} /> : null}
+    <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
+    {result ? <AudioTranscript key={`transcript:${card.card_id}`} card={card} palette={palette} /> : null}
     {result ? <Text accessibilityLiveRegion="polite" style={[styles.answerEyebrow, {color: palette.textMuted}]}>
-      {result.outcome === 'confident' ? '已记录：有把握' : '已记录：需要复习'}
+      {result.outcome === 'confident' ? '本次自评：有把握' : '本次自评：需要复习'}
     </Text> : null}
     {result && onOpenResultDetail ? <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>展开完整解析 →</Text></Pressable> : null}
   </View>;
@@ -2318,7 +2338,7 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
     ) : null}
     <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
     <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
-    <AudioTranscript key={card.card_id} card={card} palette={palette} />
+    <AudioTranscript key={`transcript:${card.card_id}`} card={card} palette={palette} />
     <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>展开完整解析 →</Text></Pressable>
   </View>;
 }
@@ -2409,7 +2429,7 @@ function ResultPanel({
         考试提示：{card.analysis.exam_tip}
       </Text>
       <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
-      <AudioTranscript key={card.card_id} card={card} palette={palette} />
+      <AudioTranscript key={`transcript:${card.card_id}`} card={card} palette={palette} />
       <Pressable
         disabled={advanceState.busy}
         onPress={onAdvanceCard}
@@ -2490,6 +2510,9 @@ const styles = StyleSheet.create({
   promptBody: {fontSize: 18, lineHeight: 30, fontWeight: '400', marginBottom: 0},
   promptGloss: {fontSize: 14, lineHeight: 23, fontWeight: '400'},
   contextualAnswer: {fontSize: 19, lineHeight: 30, fontWeight: '400'},
+  naturalHeight: {flex: 0, flexGrow: 0, flexShrink: 0, height: 'auto', minHeight: 0},
+  confidenceRowAccessible: {flexDirection: 'column', alignItems: 'stretch', gap: 10},
+  choicePillAccessible: {flex: 0, flexShrink: 0, width: '100%'},
   viewportScroll: {flex: 1},
   viewportScrollContent: {flexGrow: 1},
   viewportScrollFit: {height: '100%'},

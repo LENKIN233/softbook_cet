@@ -1,6 +1,7 @@
+import {ScaledText as Text} from '../visual/ScaledText';
 import NetInfo from '@react-native-community/netinfo';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import {StudioPressable as Pressable, MotionWaveform} from '../learning/NativeMotion';
 import {STUDIO} from '../visual/studio';
 

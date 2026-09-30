@@ -2114,9 +2114,7 @@ test('submits the server review phase with the exact active selection', async ()
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
-  });
+  // The confirmed answer is saved before Next.
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
   });
@@ -2516,9 +2514,7 @@ test('locks writes after canonical owner drift until a valid revision advance', 
       .findByProps({testID: 'learning-flip-confident-button'})
       .props.onPress();
   });
-  await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'learning-next-button'}).props.onPress();
-  });
+  // The confirmed answer is saved before Next.
   expect(learningEventWriteCount).toBe(0);
   expect(
     (await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY)) ?? '',
@@ -2644,9 +2640,7 @@ test('clears the session and durable learning event when replay is forbidden', a
       .findByProps({testID: 'learning-flip-confident-button'})
       .props.onPress();
   });
-  await ReactTestRenderer.act(() => {
-    root.findByProps({testID: 'learning-next-button'}).props.onPress();
-  });
+  // The confirmed answer is saved before Next.
   for (let attempt = 0; attempt < 10; attempt += 1) {
     await ReactTestRenderer.act(async () => {
       await flushAsyncEffects();
@@ -2895,9 +2889,7 @@ test('replays a retained offline event before loading a replacement content sour
         .findByProps({ testID: 'learning-flip-confident-button' })
         .props.onPress();
     });
-    await ReactTestRenderer.act(() => {
-      root.findByProps({ testID: 'learning-next-button' }).props.onPress();
-    });
+  // The confirmed answer is saved before Next.
     await ReactTestRenderer.act(async () => {
       await flushAsyncEffects();
     });
@@ -3261,9 +3253,7 @@ test('queues a failed explicit remote check-in without uploading progress counte
     '__softbook_mutation_queue',
   );
   expect(queuedMutations).toContain('check_in_daily_progress');
-  expect(queuedMutations).not.toMatch(
-    /favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/,
-  );
+  expect(queuedMutations).not.toMatch(/favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/);
   expectNoUserVisibleMetadataLeakage(tree!);
 });
 
@@ -3582,9 +3572,7 @@ test('settles a failed retained replay across China-day and recovers on the next
         .findByProps({testID: 'learning-flip-confident-button'})
         .props.onPress();
     });
-    await ReactTestRenderer.act(() => {
-      root.findByProps({testID: 'learning-next-button'}).props.onPress();
-    });
+  // The confirmed answer is saved before Next.
     await ReactTestRenderer.act(async () => {
       for (let attempt = 0; attempt < 6; attempt += 1) {
         await flushAsyncEffects();
@@ -3711,10 +3699,7 @@ test('queues a failed remote learning event for exact later replay', async () =>
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
-  });
+  // The confirmed answer is saved before Next.
 
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
@@ -3732,10 +3717,8 @@ test('queues a failed remote learning event for exact later replay', async () =>
   const queuedMutations = await AsyncStorage.getItem(
     '__softbook_mutation_queue',
   );
-  expect(queuedMutations).toContain('check_in_daily_progress');
-  expect(queuedMutations).not.toMatch(
-    /favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/,
-  );
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(true);
+  expect(queuedMutations).toBeNull();
 
   await openRoute(root, 'mine');
   await ReactTestRenderer.act(async () => {
@@ -3785,12 +3768,6 @@ test('does not advance the card when durable learning event storage fails', asyn
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-button' }).props.onPress();
   });
-  await ReactTestRenderer.act(() => {
-    root
-      .findByProps({ testID: 'learning-flip-confident-button' })
-      .props.onPress();
-  });
-
   const setItemMock = jest.mocked(AsyncStorage.setItem);
   const originalSetItem = setItemMock.getMockImplementation();
   setItemMock.mockImplementation((key, value) => {
@@ -3800,6 +3777,13 @@ test('does not advance the card when durable learning event storage fails', asyn
 
     return originalSetItem!(key, value);
   });
+
+  await ReactTestRenderer.act(() => {
+    root
+      .findByProps({ testID: 'learning-flip-confident-button' })
+      .props.onPress();
+  });
+
 
   try {
     await ReactTestRenderer.act(async () => {
@@ -4359,10 +4343,7 @@ test('replays the exact queued learning event after network reconnect', async ()
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
-
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
-  });
+  // The confirmed answer is saved before Next.
 
   await openRoute(root, 'mine');
 
@@ -4464,9 +4445,7 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'learning-next-button' }).props.onPress();
-  });
+  // The confirmed answer is saved before Next.
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
     await ReactTestRenderer.act(async () => {
@@ -8113,5 +8092,158 @@ test.each(['none', 'read', 'submit'] as const)('retains the answered card across
     expect(root.findByType(LearningSurface).props.currentResult).toBeNull();
     expect(requests).toHaveLength(failure === 'submit' ? 2 : 1);
     expect(JSON.parse(String(await AsyncStorage.getItem(LEARNING_EVENT_OUTBOX_STORAGE_KEY))).entries).toEqual([]);
+  } finally {await ReactTestRenderer.act(() => tree.unmount());}
+});
+
+test.each([true, false])('saves confirmed answers before pause and starts only server-selected reviews (candidate=%s)', async hasReview => {
+  const accepted: MockLearningEvent[] = [];
+  const requests: MockLearningEventsRequest[] = [];
+  const catalog = createLocalLearningSession('cet4');
+  const first = catalog.cards[0];
+  const newCard = catalog.catalogCards.find(card => card.interaction_id === 'multiple_choice')!;
+  if (newCard.interaction_id !== 'multiple_choice') throw new Error('Choice card required');
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'},
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) return createJsonResponse(createAccountBootstrapPayload(catalog, 'premium', accepted));
+    if (input.endsWith('/v2/learning/events')) {
+      const request = readLearningEventsRequest(init); requests.push(request);
+      for (const event of request.events) if (!accepted.some(previous => previous.event_id === event.event_id)) accepted.push(event);
+      return createLearningEventsAckResponse(init);
+    }
+    throw new Error(`Unexpected request: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    const root = tree.root;
+    const press = async (id: string) => ReactTestRenderer.act(async () => {
+      root.findByProps({testID: id}).props.onPress();
+      for (let i = 0; i < 4; i++) await flushAsyncEffects();
+    });
+    await loginIntoLearningFlow(root);
+    const initialSelection = root.findByType(LearningSurface).props.audioAttemptId;
+    mockLoadSession.mockImplementation(async (_context, _track, options) => options?.intent === 'review' ? {
+      ...catalog, contentVersion: TEST_CONTENT_VERSION, schedulingMode: 'server',
+      cards: hasReview ? [first] : [], serverSelection: hasReview ? {
+        cardId: first.card_id, phase: 'review', reason: 'requested_review',
+        selectionId: 'sel_requested_review_00001', dueAt: '2026-10-01T00:00:00.000Z',
+      } : null,
+    } : resolveSessionForRuntime({...catalog, contentVersion: TEST_CONTENT_VERSION, cards: [newCard]}));
+    await press('learning-flip-button');
+    await press('learning-flip-review-button');
+    expect(requests).toHaveLength(1);
+    expect(requests[0].events[0].selection_id).toBe(initialSelection);
+    expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(first.card_id);
+    expect(root.findByType(LearningSurface).props.advanceState).toMatchObject({busy: false, detail: '本次作答已保存。'});
+    await press('learning-pause-button');
+    expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({completedCardCount: 1, completedAttemptCount: 1, reviewAttemptCount: 0});
+    await press('statistics-go-learning-button');
+    await press('learning-next-button');
+    expect(requests).toHaveLength(1);
+    expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(newCard.card_id);
+    await ReactTestRenderer.act(() => {root.findByType(LearningSurface).props.onSelectOption(newCard.options[0].id);});
+    await press('learning-pause-button');
+    await press('statistics-start-review-button');
+    expect(mockLoadSession).toHaveBeenLastCalledWith(expect.objectContaining({phoneNumber: '13800138000'}), 'cet4', {intent: 'review'});
+    if (hasReview) {
+      expect(root.findByType(LearningSurface).props.phase).toBe('review');
+      expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(first.card_id);
+      await press('learning-flip-button');
+      await press('learning-flip-confident-button');
+      expect(requests).toHaveLength(2);
+      expect(requests[1].events[0]).toMatchObject({phase: 'review', selection_id: 'sel_requested_review_00001'});
+      await press('learning-pause-button');
+      expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({completedCardCount: 1, completedAttemptCount: 2, reviewAttemptCount: 1});
+      await press('statistics-go-learning-button');
+      await press('learning-next-button');
+    } else {
+      expect(root.findByType(LearningSurface).props.currentCard).toBeNull();
+      expect(JSON.stringify(tree.toJSON())).toContain('暂时没有需要复习的卡片');
+      const {emitNetInfoState} = jest.requireMock('@react-native-community/netinfo');
+      await ReactTestRenderer.act(async () => {
+        emitNetInfoState({isConnected: false, isInternetReachable: false});
+        emitNetInfoState({isConnected: true, isInternetReachable: true});
+        for (let i = 0; i < 5; i++) await flushAsyncEffects();
+      });
+      expect(root.findByType(LearningSurface).props.currentCard).toBeNull();
+      expect(mockLoadSession.mock.calls.at(-1)?.[2]).toEqual({intent: 'review'});
+      await press('learning-refresh-session-button');
+    }
+    expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(newCard.card_id);
+    expect(root.findByType(LearningSurface).props.currentCardState.selectedOptionId).toBe(newCard.options[0].id);
+    expect(root.findByType(LearningSurface).props.currentResult).toBeNull();
+    expect(mockLoadSession.mock.calls.at(-1)).toHaveLength(2);
+    expect(requests).toHaveLength(hasReview ? 2 : 1);
+  } finally { await ReactTestRenderer.act(() => tree.unmount()); }
+});
+
+test('pause keeps a failed confirmed answer out of statistics and retry reuses its event exactly', async () => {
+  let fail = true;
+  const requests: MockLearningEventsRequest[] = [];
+  const accepted: MockLearningEvent[] = [];
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({baseUrl: 'https://api.softbook.example',
+    featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'}});
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) return createJsonResponse(createAccountBootstrapPayload(createLocalLearningSession('cet4'), 'premium', accepted));
+    if (input.endsWith('/v2/learning/events')) {
+      const request = readLearningEventsRequest(init); requests.push(request);
+      if (fail) return createJsonResponse({}, 503);
+      accepted.push(...request.events);
+      return createLearningEventsAckResponse(init);
+    }
+    throw new Error(`Unexpected request: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    const root = tree.root;
+    const press = async (id: string) => ReactTestRenderer.act(async () => {
+      root.findByProps({testID: id}).props.onPress();
+      for (let i = 0; i < 4; i++) await flushAsyncEffects();
+    });
+    await loginIntoLearningFlow(root);
+    await press('learning-flip-button'); await press('learning-flip-confident-button');
+    expect(requests).toHaveLength(1);
+    expect(root.findByType(LearningSurface).props.advanceState.needsRetry).toBe(true);
+    await press('learning-pause-button');
+    expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({completedCardCount: 0, completedAttemptCount: 0});
+    fail = false;
+    await press('statistics-go-learning-button'); await press('learning-next-button');
+    expect(requests).toHaveLength(2);
+    expect(requests[1]).toEqual(requests[0]);
+    await press('learning-pause-button');
+    expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({completedCardCount: 1, completedAttemptCount: 1});
+  } finally { await ReactTestRenderer.act(() => tree.unmount()); }
+});
+
+test('a locally confirmed review keeps its result during Space navigation and Next does not count it twice', async () => {
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    const root = tree.root;
+    await loginIntoLearningFlow(root); await startTrialFromProtectedEntry(root);
+    const press = async (id: string) => ReactTestRenderer.act(async () => {root.findByProps({testID: id}).props.onPress(); await flushAsyncEffects();});
+    await press('learning-flip-button'); await press('learning-flip-review-button');
+    await press('learning-pause-button'); await press('statistics-start-review-button');
+    await press('learning-flip-button'); await press('learning-flip-confident-button');
+    const result = root.findByType(LearningSurface).props.currentResult;
+    await openRoute(root, 'space'); await openSpaceCardList(root);
+    await press('space-card-next'); await press('space-favorite-2');
+    await press('space-return-learning');
+    expect(root.findByType(LearningSurface).props.currentResult).toEqual(result);
+    expect(root.findByType(LearningSurface).props.phase).toBe('review');
+    await press('learning-pause-button');
+    const beforeNext = root.findByType(StatisticsSurface).props.reviewCompletedCount;
+    expect(beforeNext).toBe(1);
+    await press('statistics-go-learning-button'); await press('learning-next-button');
+    await openRoute(root, 'statistics');
+    expect(root.findByType(StatisticsSurface).props.reviewCompletedCount).toBe(beforeNext);
   } finally {await ReactTestRenderer.act(() => tree.unmount());}
 });

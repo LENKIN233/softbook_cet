@@ -55,6 +55,37 @@ Rules:
 - Production retains the existing fail-closed content publication rule: the
   selected source must have a matching published `content-release.v1`.
 
+### Explicit review
+
+`POST /v2/learning/review` accepts only `{ "track": "cet4" | "cet6" }`
+and no query parameters. Account identity, card identity, timing, and access
+still come from canonical server state. It returns the same session response.
+
+This requests one review card. An eligible existing review cursor resumes;
+otherwise due reviews are preferred, then an accessible, non-sleeping card
+whose latest accepted answer needs review may be practised before its due time.
+The server orders these candidates by due time and canonical source order.
+The resulting phase is `review`, with reason `requested_review` and the real
+scheduled due time. Repeating the request resumes the same opaque cursor.
+Completing it creates one ordinary immutable review event; subsequent normal
+learning uses the default server sequence again.
+
+An explicit review request never falls back to unseen material. With no review
+candidate it returns a null selection and the next due time, while confirming
+and preserving an eligible unfinished learning cursor. Clients identify this
+as an empty review and offer an explicit return to normal learning; background
+refreshes must not turn that empty review into a new-card task. A saved draft
+may be restored only for the same account, track, content version and card,
+using the selection authority returned by the server.
+
+The existing controlled-pilot round acknowledgement takes precedence. Free
+membership cannot initiate this complete-algorithm action; the server returns
+`409 review_access_unavailable` without invalidating valid authentication.
+An empty request before Trial has started returns the same conflict rather
+than consuming Trial or returning an unsupported `trial_available` response.
+Membership checkpoints, projection watermarks, cursor revision checks, and
+the account-deletion fence are identical to the normal selection path.
+
 ## FSRS projection
 
 Each account-and-track `learning-events.v2` projection contains:
@@ -253,8 +284,8 @@ output.
 }
 ```
 
-`phase` is `review` for a due or legacy review and `learning` for a new card.
-`reason` is `catalog_new`, `due_review`, or `persisted_cursor`. A resumed
+`phase` is `review` for a due, requested or legacy review and `learning` for a new card.
+`reason` is `catalog_new`, `due_review`, `requested_review`, or `persisted_cursor`. A resumed
 cursor preserves its original phase and due time but reports
 `persisted_cursor`.
 

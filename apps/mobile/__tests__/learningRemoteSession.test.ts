@@ -273,3 +273,29 @@ test('requires authentication and preserves HTTP authorization failures', async 
     ),
   ).rejects.toMatchObject({ status: 401 });
 });
+
+test('requests manual review without client card authority and retains the future server due time', async () => {
+  const payload = createPayload();
+  payload.data.selection = {...payload.data.selection, phase: 'review', reason: 'requested_review', due_at: '2026-07-25T08:00:00.000Z' as never};
+  const request = jest.fn().mockResolvedValue({ok: true, status: 200, json: async () => payload});
+  const session = await loadRemoteLearningSession({authToken: 'current-token', phoneNumber: '13800138000'}, 'cet4',
+    createSoftbookRemoteLearningSessionConfig({baseUrl: 'https://api.softbook.example'}), request, {intent: 'review'});
+  expect(request).toHaveBeenCalledWith('https://api.softbook.example/v2/learning/review', expect.objectContaining({
+    method: 'POST', body: '{"track":"cet4"}', headers: expect.objectContaining({'Content-Type': 'application/json', Authorization: 'Bearer current-token'}),
+  }));
+  expect(session.selection).toMatchObject({phase: 'review', reason: 'requested_review', dueAt: '2026-07-25T08:00:00.000Z'});
+});
+
+test('manual review rejects a new-card response instead of silently entering new learning', async () => {
+  const request = jest.fn().mockResolvedValue({ok: true, status: 200, json: async () => createPayload()});
+  await expect(loadRemoteLearningSession({authToken: 'current-token', phoneNumber: '13800138000'}, 'cet4',
+    createSoftbookRemoteLearningSessionConfig({baseUrl: 'https://api.softbook.example'}), request, {intent: 'review'}))
+    .rejects.toThrow('Requested review cannot return a new learning card.');
+});
+
+test('preserves explicit review membership conflicts for account refresh without treating them as revoked auth', async () => {
+  const request = jest.fn().mockResolvedValue({ok: false, status: 409, json: async () => ({error: {code: 'review_access_unavailable'}})});
+  await expect(loadRemoteLearningSession({authToken: 'current-token', phoneNumber: '13800138000'}, 'cet4',
+    createSoftbookRemoteLearningSessionConfig({baseUrl: 'https://api.softbook.example'}), request, {intent: 'review'}))
+    .rejects.toMatchObject({status: 409, code: 'review_access_unavailable'});
+});

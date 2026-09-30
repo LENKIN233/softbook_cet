@@ -1,5 +1,6 @@
+import {ScaledText as Text} from '../visual/ScaledText';
 import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import {MotionPressable, StrikeText} from './NativeMotion';
 import type {PassageSegment} from './presentation';
 
