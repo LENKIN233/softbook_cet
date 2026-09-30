@@ -427,6 +427,5 @@ input + label { margin-top: .75rem; }
 .learning-pause-notice {grid-column:2;margin:0;padding:8px 32px;color:var(--muted);font-size:14px;}
 @media(max-width:700px){.mobile-header:has(.learning-session-actions) .brand-lockup{display:none}.learning-session-actions{gap:4px}.learning-pause-notice{padding-inline:18px}}
 
-/* Excluded claims remain readable, while visibly marked as content to remove. */
+/* Result text keeps authored context and uses removal markers for excluded claims. */
 .learning-card .answer-first.contextual-answer { font-size:18px; font-weight:400; line-height:1.75; white-space:pre-wrap; }
-.elimination-result .answer-first { text-decoration:line-through; text-decoration-thickness:1px; text-decoration-color:var(--muted); }

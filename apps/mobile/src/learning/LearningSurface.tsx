@@ -1809,13 +1809,13 @@ function getResolvedAnswerRows(
         {
           label: '你划去的部分',
           displayText: selectedItems.length
-            ? selectedItems.map(item => item.text).join(' · ')
+            ? selectedItems.map(item => `− ${item.text}`).join('\n')
             : '未划去任何内容',
           testID: 'learning-detail-selected-answer',
         },
         {
           label: resultAnswerLabel(card),
-          displayText: correctItems.map(item => item.text).join(' · '),
+          displayText: correctItems.map(item => `− ${item.text}`).join('\n'),
           testID: 'learning-detail-correct-answer',
         },
       ];
@@ -2167,7 +2167,6 @@ export function LearningResultDetailSurface({
                         ? styles.detailAnswerValueStacked
                         : null,
                       { color: palette.text },
-                      card.interaction_id === 'elimination' ? styles.excludedAnswer : null,
                     ]}
                   >
                     {row.displayText}
@@ -2306,7 +2305,7 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
   const answerLabel = resultAnswerLabel(card);
   return <View style={styles.answerSummary} testID="learning-result-summary">
     <Text style={[styles.answerEyebrow, {color: card.interaction_id === 'elimination' ? palette.textMuted : palette.success}]}>{answerLabel}</Text>
-    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, card.interaction_id === 'elimination' ? styles.excludedAnswer : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
+    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
     {comparison.selected && comparison.selected !== comparison.correct ? <View style={styles.answerSelectionRow}>
       <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</Text>
       <Text style={[styles.answerSelection, {color: palette.danger}]}>{comparison.selected}</Text>
@@ -2400,7 +2399,7 @@ function ResultPanel({
 
       </View>
       <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{answerLabel}</Text>
-      <Text style={[styles.answerHeadline, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, card.interaction_id === 'elimination' ? styles.excludedAnswer : null, {color: palette.text}]}>{answerComparison(card, cardState).correct}</Text>
+      <Text style={[styles.answerHeadline, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, {color: palette.text}]}>{answerComparison(card, cardState).correct}</Text>
       <Text
         style={[styles.resultExplanationBody, { color: palette.textMuted }]}
       >
@@ -2491,7 +2490,6 @@ const styles = StyleSheet.create({
   promptBody: {fontSize: 18, lineHeight: 30, fontWeight: '400', marginBottom: 0},
   promptGloss: {fontSize: 14, lineHeight: 23, fontWeight: '400'},
   contextualAnswer: {fontSize: 19, lineHeight: 30, fontWeight: '400'},
-  excludedAnswer: {textDecorationLine: 'line-through', fontWeight: '400'},
   viewportScroll: {flex: 1},
   viewportScrollContent: {flexGrow: 1},
   viewportScrollFit: {height: '100%'},

@@ -129,7 +129,7 @@ it.each([
   const card = normalizeLearningCardRecord(record) as EliminationCard;
   const state = createLearningCardState(card);
   state.eliminatedItemIds = card.answer_key.correct_items;
-  expect(answerComparison(card, state).correct).toBe(expected);
+  expect(answerComparison(card, state).correct).toBe(expected.split(' · ').map(text => `− ${text}`).join('\n'));
 });
 
 it('removes a selected clause comma from the actual passage rendering', () => {

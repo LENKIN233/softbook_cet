@@ -23,3 +23,12 @@ export function readableBilingualExperienceText(primary, englishFirst, expected)
   return readableExperienceText(primary, expected.slice(0, firstEnglish)) &&
     readableExperienceText(englishFirst, expected.slice(firstEnglish));
 }
+
+// Pure English answers may be misread under Vision's Chinese priority. The
+// alternate still has to read every expected word from the same image; it
+// cannot certify Chinese copy or fill gaps in a bilingual answer.
+export function isEnglishExperienceAnswer(expected) {
+  const values = Array.isArray(expected) ? expected : [expected];
+  return values.length > 0 && values.every(value =>
+    /[A-Za-z]/.test(value) && !/\p{Script=Han}/u.test(value));
+}

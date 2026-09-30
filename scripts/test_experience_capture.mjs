@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {captureExperience} from './lib/experience_capture.mjs';
-import {readableBilingualExperienceText, readableExperienceText} from './lib/experience_text_match.mjs';
+import {isEnglishExperienceAnswer, readableBilingualExperienceText, readableExperienceText} from './lib/experience_text_match.mjs';
 
 test('wrapped answers tolerate only standalone answer-column labels', () => {
   const observation = {lines: [
@@ -57,6 +57,17 @@ test('two language priorities must find the same actual material without inventi
   assert.equal(readableBilingualExperienceText({lines: primary.lines.slice(1)}, englishFirst, expected), false);
   assert.equal(readableBilingualExperienceText(primary,
     {lines: englishFirst.lines.filter(line => !line.text.includes('nearby towns'))}, expected), false);
+});
+
+test('English answer retry requires every word and cannot certify bilingual copy', () => {
+  const expected = ['with many traveling from nearby towns', 'only a few cycling in warm weather'];
+  assert.equal(isEnglishExperienceAnswer(expected), true);
+  assert.equal(isEnglishExperienceAnswer('A 电动公交与柴油车队'), false);
+  assert.equal(isEnglishExperienceAnswer(['with many travelers', '附近城镇']), false);
+  const english = {lines: [{text: '− with many traveling from nearby towns'}, {text: '− only a few cycling in warm weather'}]};
+  assert.equal(readableExperienceText(english, expected, {answer: true}), true);
+  assert.equal(readableExperienceText({lines: [{text: '− with many traveling from towns'}, english.lines[1]]}, expected, {answer: true}), false);
+  assert.equal(readableExperienceText({lines: [english.lines[0]]}, expected, {answer: true}), false);
 });
 
 function exercise(durations, failure = null) {

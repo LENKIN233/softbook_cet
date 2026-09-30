@@ -182,8 +182,8 @@ export function answerComparison(card: LearningCard, state: LearningCardState) {
   }
   const itemText = (ids: readonly string[]) => card.elimination_items
     .filter(item => ids.includes(item.id))
-    .map(item => item.text)
-    .join(' · ');
+    .map(item => `− ${item.text}`)
+    .join('\n');
   // These are the exact choices being graded. Rejoining the remaining text can
   // leave non-selectable connectors behind and teach an ungrammatical sentence.
   return {
