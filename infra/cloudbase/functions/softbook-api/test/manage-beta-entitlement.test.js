@@ -747,6 +747,7 @@ function createFixture(
 
 function dependencies(runner) {
   return {
+    clock: () => new Date('2026-09-01T00:00:00.000Z'),
     nodeVersion: deploymentSafety.REQUIRED_DEPLOYMENT_NODE_VERSION,
     repository: {
       branch: 'main',

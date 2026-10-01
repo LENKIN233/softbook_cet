@@ -6,14 +6,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟研究报告。播放录音后，这项调查能否直接证明学习小组提高了信心？",
-      "support": "这是一段模拟研究报告。播放录音后，这项调查能否直接证明学习小组提高了信心？",
-      "context": "这是一段模拟研究报告。播放录音后，这项调查能否直接证明学习小组提高了信心？"
+      "prompt": "听录音，调查为什么不能直接证明学习小组让学生更自信？",
+      "support": "听录音，调查为什么不能直接证明学习小组让学生更自信？",
+      "context": "听录音，调查为什么不能直接证明学习小组让学生更自信？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "调查报告的是相关表现，并指出自我选择这一可能解释；没有随机分组，不能忽略反向关系或其他因素。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "参加学习小组的人报告更自信，但学生并非随机分组。可能是原本更自信的人更愿意参加，因此无法只把差异归因于学习小组。",
+      "exam_tip": "听 already confident，注意自信也可能早于入组。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -36,14 +36,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟研究报告。播放录音后，总时间相同的两班表现如何，还有什么限制？",
-      "support": "这是一段模拟研究报告。播放录音后，总时间相同的两班表现如何，还有什么限制？",
-      "context": "这是一段模拟研究报告。播放录音后，总时间相同的两班表现如何，还有什么限制？"
+      "prompt": "听录音，两班复习总时间相同，哪班一周后记得更多？这项比较有什么限制？",
+      "support": "听录音，两班复习总时间相同，哪班一周后记得更多？这项比较有什么限制？",
+      "context": "听录音，两班复习总时间相同，哪班一周后记得更多？这项比较有什么限制？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "听出表现差异后还需保留分组限制，不能直接证明时间安排是差异的唯一原因。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "分四天复习的班比一次集中复习的班记得更多。两班没有随机分配，所以他们原先的差异也可能影响结果，不能只凭这次比较确定是安排方式造成的。",
+      "exam_tip": "先比复习方式，再听 had not been randomly assigned。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -66,14 +66,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟研究报告。播放录音后，推广这种方法前，还准备核对什么？",
-      "support": "这是一段模拟研究报告。播放录音后，推广这种方法前，还准备核对什么？",
-      "context": "这是一段模拟研究报告。播放录音后，推广这种方法前，还准备核对什么？"
+      "prompt": "听录音，在广泛推荐这种方法前，研究团队还要研究哪些人？",
+      "support": "听录音，在广泛推荐这种方法前，研究团队还要研究哪些人？",
+      "context": "听录音，在广泛推荐这种方法前，研究团队还要研究哪些人？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "当前样本是有经验的少量用户，后续计划针对样本覆盖限制，不表示新群体已经获得同样效果。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "当前改善出现在少量 experienced users，有经验的用户身上。团队还想在 beginners 和 different age groups 中重复研究，即初学者和不同年龄组。",
+      "exam_tip": "对照当前 experienced users 与接下来两类人群。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -96,14 +96,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟研究报告。播放录音后，哪些发现一致，哪些仍不确定？",
-      "support": "这是一段模拟研究报告。播放录音后，哪些发现一致，哪些仍不确定？",
-      "context": "这是一段模拟研究报告。播放录音后，哪些发现一致，哪些仍不确定？"
+      "prompt": "听录音，三项试验有哪些共同发现？为什么还要进一步测试？",
+      "support": "听录音，三项试验有哪些共同发现？为什么还要进一步测试？",
+      "context": "听录音，三项试验有哪些共同发现？为什么还要进一步测试？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "promising 是谨慎肯定，不能译成已经证明普遍有效。反复出现的模式也要结合样本和变化范围理解。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "三项试验都发现清楚说明与较少错误有关。但差异幅度不一，其中一项样本很小，所以团队用 promising 表示有希望，仍要求进一步测试。",
+      "exam_tip": "把共同趋势、差异大小和小样本分别记下。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -132,8 +132,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "supports与warns共同构成有条件支持。顾问并未主张取消课堂，也没有说有视频就足够完成学习。",
-      "exam_tip": "专家的支持意见常包含实施条件，不能只保留前半句。"
+      "summary": "顾问支持录播，因为学生可以重看难点。但她强调还要保留讨论、提问和应用练习；单有视频不够，学生也需要互动。",
+      "exam_tip": "听 supports 的理由，再听 only when 的条件。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -162,8 +162,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "expects与if限定预测，too limited排除立即翻倍的依据。建议是补充证据并渐进调整，不是认定需求必定达到某个数量。",
-      "exam_tip": "预测、证据充分程度与行动建议需要分别理解。"
+      "summary": "如果更多课程晚下课，顾问预计晚间公交需求会上升。不过现有数据太少，不足以支持立刻加倍班次；她建议再收集一学期数据，逐步调整。",
+      "exam_tip": "分开记“预计需求增长”和“建议先补数据”。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -192,8 +192,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Before与Once构成建议顺序。专家针对的是管理规则不清，不能只听到storage就以为她主张立即购买更多空间。",
-      "exam_tip": "建议的先后顺序往往反映专家认为的真正问题。"
+      "summary": "先查哪些文件重复、哪些必须保留，并弄清归属和保留期限。规则明确后，才估计还需多少存储空间；仅买容量解决不了文件管理混乱。",
+      "exam_tip": "按 Before 与 Once 记“先理文件，再算空间”。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -222,8 +222,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "worth examining不是否定平均数，而是要求结合分布。every...every是顾问反对的扩大范围，不能作为她的结论。",
-      "exam_tip": "平均水平与个体之间的全面比较不能互相替代。"
+      "summary": "顾问认为平均数差异值得研究，但应同时看数据分布。individual results overlap 表示两组个体结果有重叠，所以不能仅凭均值给每个人排出绝对高低。",
+      "exam_tip": "听 averages 与 individual results 的区别。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -237,7 +237,7 @@
       "sha256": "sha256:fe1fefdf8a909fa9fe05960ffdf64dbbad16fc7b3322706984536d4c32e5f3f9",
       "transcript": "The statistical adviser says the difference between the two averages is worth examining, but it should not be interpreted on its own. The groups vary in size, and individual results overlap substantially. She recommends looking at the spread of the data before claiming that every member of one group performs better than every member of the other."
     },
-    "back_text": "因为组别规模不同、个体结果大量重叠，平均差不能推出逐个成员的绝对排序。"
+    "back_text": "两组规模不同，个人结果也有大量重叠；平均数的差异不能说明一组每个人都比另一组所有人好。"
   },
   {
     "card_id": "103605",
@@ -252,8 +252,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "useful与Yet保留优点和限制。first step定位辅助作用，既不是完全排斥工具，也不是把它当成最终评判者。",
-      "exam_tip": "边界判断通常比全盘支持或反对更细致。"
+      "summary": "自动检查能发现重复词和部分拼写错误，但未必理解作者想说什么，也未必能判断例子是否支持论点。因此应先用工具检查，再细读和讨论。",
+      "exam_tip": "记工具擅长的表面问题，再记需要人理解的论证问题。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -282,8 +282,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "recommended是建议，not yet approved明确状态。下周的讨论也不等于永久方案已经实施，临时方案与最终改造需分开。",
-      "exam_tip": "建议、批准、临时措施和正式实施属于不同状态。"
+      "summary": "顾问建议把接待台移近无台阶入口，但学校尚未批准，因为还需电气施工。下周将讨论先设临时接待台；永久改造仍在评估。",
+      "exam_tip": "分别记“永久改造待批”和“临时桌台待讨论”。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -312,8 +312,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "专家并非反对增设线路，而是提醒覆盖面与可靠性需一起考虑；limited value 也不等于完全无用。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "if passengers cannot rely on the timetable 表示如果班次不可靠，增设线路的价值就有限。alongside 要求扩大覆盖与提高可靠性一起做。",
+      "exam_tip": "听 alongside 两边要并行改善的内容。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -342,8 +342,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "not enough 否定单一指标的充分性，并非说使用时长毫无参考价值；建议重点在实际理解表现。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "使用时长只能说明用了多久，不能充分说明是否理解。研究者建议检查学生能否 explain or apply，即解释或运用材料中的知识。",
+      "exam_tip": "听 checking 后要求观察的两种行为。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -372,8 +372,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "may serve better 是带条件的比较；材料并未说所有短路线都优于长路线。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "短路线若连接住宅和车站，可能比远离日常服务的长路线更有用。比较的关键是是否通向居民真正需要去的地方，不只是增加了多少公里。",
+      "exam_tip": "找 short route 后连接的两个目的地。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -402,8 +402,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "文件上线与便于使用不同。论点不是反对数字化，而是指出仅上传文件仍不足以解决查找困难。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "数字资料即使全已上线，如果说明不清、搜索不好用，仍难查找。图书馆员因此要求 clear descriptions 和 a reliable search system，清楚说明与可靠检索。",
+      "exam_tip": "把“文件上线”和“能找到、能使用”区分开。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -432,8 +432,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "声音确定与证据充分是两件事；专家没有要求拒绝所有语气坚定的说法。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "a confident presentation 可能让证据薄弱的说法听起来可信。研究者建议检查 evidence and its source，即证据及其来源，不能只看说话人多自信。",
+      "exam_tip": "听 rather than 前建议采取的判断方法。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -462,8 +462,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "员工觉得合适不必然意味着客户没有遇到问题；试行与全面推广是不同阶段。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "before applying it across the organisation 表示先小范围试行再决定推广。both...and... 要收集两类信息：员工反馈与服务质量，兼顾员工和客户的体验。",
+      "exam_tip": "题目问两类信息，就把 staff feedback 与 service quality 都记下。"
     },
     "space_metadata": {
       "box_ref": "1036",
@@ -477,7 +477,7 @@
       "sha256": "sha256:e9d0fbb0629c649005e3006cbc69fd99d3701dc3b9dd74fd27cfdbdea41f4157",
       "transcript": "A workplace consultant recommends testing a new schedule with one team before applying it across the organisation. The trial should collect both staff feedback and information about service quality, since an arrangement that suits employees may still create problems for customers."
     },
-    "back_text": "先在一支团队试行，同时收集员工反馈和服务质量信息。"
+    "back_text": "先在一支团队试行，同时看员工反馈和服务质量，因为员工满意的安排也可能给客户带来问题。"
   },
   {
     "card_id": "104001",
@@ -492,8 +492,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "开头肯定进步，though后指出推荐前的条件，Could you...给出真实请求。不是已经无条件接受，也不是要求整篇推倒重写。",
-      "exam_tip": "礼貌表扬之后的条件和请求往往决定实际行动。"
+      "summary": "开头肯定草稿的想法和引言，但推荐收录前还有要求：核对两项数字主张的来源。Could you... 明确请求补上引用，并在明天发修订稿。",
+      "exam_tip": "抓住 Could you 后的两个动作：add、send。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -552,8 +552,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "做饭是类比，不是要教授烹饪或建议更换课程。the same distinction applies to laboratory work 把例子转回实验学习这一主旨。",
-      "exam_tip": "例子需要联系说话人随后解释的论证目的。"
+      "summary": "做饭例子中，学生会照步骤做，却在缺一种食材时不会调整。说话人用它说明：实验学习也要理解每步为什么这样做，才能应对变化。",
+      "exam_tip": "听 the same distinction applies to...，找到例子要说明的领域。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -612,8 +612,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "It might be worth是委婉建议，that format回指每场后的讨论时段。开头肯定内容不等于认为日程无需改进。",
-      "exam_tip": "委婉表达仍可能包含明确的行动建议。"
+      "summary": "It might be worth trying... 是委婉建议。that format 指前句的每场报告后留一小段讨论时间，这样提前离开的人也有机会提问。",
+      "exam_tip": "回到 that format 前一句，找被建议采用的安排。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -642,8 +642,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "否定句先排除可能的误解，My concern 才指出真正关注的问题。continue the work表明仍支持推进，不应误读成完全反对项目。",
-      "exam_tip": "先排除被明确否认的立场，再抓实际主张。"
+      "summary": "I’m not suggesting... 先说明不是要求放弃项目。My concern 才说真正担心的事：试点还未评估，就承诺效果；他希望继续研究时把收益说得谨慎些。",
+      "exam_tip": "听 My concern 后到底担心什么。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -672,8 +672,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "建议增加观察角度，并没有否定比分的用途，也没有给出任何球员具体的恢复时长。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "比赛分数只反映赛果，未必反映球员承受多大负担。询问恢复用了多久，可以了解 how demanding the match was，即比赛对球员有多吃力。",
+      "exam_tip": "听 how demanding，找询问恢复时间的目的。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -702,8 +702,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "举例服务于说明如何发现变化，不是单纯推销学院，也不支持所有旧工厂都应改成花园。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "原工厂所在地现在有学院和公共花园，是城镇变化的具体例子。说话人想说明，比较具体街道比凭整体印象更容易发现变化。",
+      "exam_tip": "听 I mention...because 后直接说明的举例目的。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -732,8 +732,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "I do not mean...后接正面说明，用来重新界定准备方式；不是要求完全不看事实。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "I do not mean... 排除逐项背诵细节。后面三个要求才是讨论准备：读主要论点、记一个问题、准备解释它为什么重要。",
+      "exam_tip": "按 Read、note、be ready to explain 记三项要求。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -762,8 +762,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "举例针对听众的顾虑，并非批评这名志愿者没有能力。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "最有经验的志愿者也会向别人询问新系统，说明经验不等于知道所有陌生流程。说话人用这个例子消除听众顾虑，鼓励主动提问。",
+      "exam_tip": "听 I mention this because 后的 worried about asking questions。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -792,8 +792,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "他反对等到完全确定才行动，但也明确限制试验范围，不能概括成不顾风险地全面实施。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "说话人担心一直等到完全确定就无法发现问题，因此请求先做 limited test，小范围测试。测试还要有明确的停止或调整办法，不是立即无限制投入。",
+      "exam_tip": "听 limited test 后必须配备的 stop or adjust。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -822,8 +822,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "不会替听众选择结论，并不意味着不给任何帮助；重点是方法与可修正的判断。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "说话人将示范怎样比较两份报告，但让学习者自己根据证据下结论。还要求说明推理，并在其他解释更合适时修改观点。",
+      "exam_tip": "记三个动作：看证据、讲理由、必要时修正。"
     },
     "space_metadata": {
       "box_ref": "1040",
@@ -852,8 +852,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "accept、encouraged 与 remain concerned 共同刻画态度。不是无条件乐观，也不是反对技术本身；最后一句说明顾虑针对实施过程。",
-      "exam_tip": "将对方向的态度与对实施条件的担忧分开。"
+      "summary": "员工代表同意旧排班系统需要更换，也期待减少重复预约。但 remain concerned 表明他们担心过渡期间的培训与支持，希望每位使用者都能顺利适应。",
+      "exam_tip": "分别记“支持换系统”和“担心培训支持”。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -882,8 +882,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "promising 表示积极评价，hesitate 与 before限定最终判断。关注较小群体不是否定平均改善，而是避免平均数掩盖问题。",
-      "exam_tip": "总体态度可能由积极评价与限制条件共同构成。"
+      "summary": "promising 肯定早期结果，尤其等候时间减少。但说话人想先听使用困难者的反馈，再判断是否完全成功，因为平均改善可能掩盖部分人的问题。",
+      "exam_tip": "听 before 后还需要了解哪类用户。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -942,8 +942,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "appreciate与could still be useful保留肯定，in its present form限定反对对象。不能删掉条件而概括成永远支持或永远反对。",
-      "exam_tip": "批评可能针对当前版本，而不是方案的全部可能形式。"
+      "summary": "说话人认可方案背后的努力，但当前方案没交代网络受限的学生如何参加，因此不能支持。若补上合适的替代方式，方案仍可能有用。",
+      "exam_tip": "听 in its present form，反对的是当前方案缺少什么。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -972,8 +972,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "worries me给出态度，should check与opportunity to explain给出改进方向。录音没有说所有传闻都必定为假，而是反对未经核实就定论。",
-      "exam_tip": "区分对判断过程的批评与对每条信息真假的断言。"
+      "summary": "It worries me 明确表达担忧：传闻被重复后，很快变成人们对某人的定论。说话人主张先核实发生了什么，再给当事人解释机会。",
+      "exam_tip": "听 should check 和 give...an opportunity 两项建议。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -1002,8 +1002,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "cautiously optimistic直接表达态度，provided that限定乐观成立的条件。没有解决全部分歧，不等于没有进展；有进展也不等于已经成功。",
-      "exam_tip": "态度词旁边的条件决定评价强度。"
+      "summary": "cautiously optimistic 是谨慎乐观，因为最新会议更有建设性，双方同意交换数据。provided that 要求承诺接下来落实为行动，不能又停留在泛泛表态。",
+      "exam_tip": "把 cautiously optimistic 与后面的行动条件一起听。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -1032,8 +1032,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "两个态度对象不同；不能把对培训缺少安排的担忧扩大成完全反对设备更新。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "员工接受换旧设备，但 remain doubtful about 指向培训承诺。没有公布时间表和预算，让他们怀疑过渡期间能否获得支持。",
+      "exam_tip": "把 doubtful 的对象锁定为 promised training。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -1062,8 +1062,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "欢迎这一方向不等于无条件支持所有安排；before 引出永久改变之前的评估。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "顾问欢迎弹性工时，但要先试行、再决定是否永久改变。试行须同时评估员工满意度和客户能否获得稳定、可预期的服务。",
+      "exam_tip": "听 both 回指的两项评估内容。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -1092,8 +1092,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "both views 表明它保留不同体验，不能把其中一方的意见说成所有工人的一致看法。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "有些工人喜欢自由选择任务，另一些担心收入每月波动太大。报告保留两种体验，因此只说“灵活”不足以概括这种工作。",
+      "exam_tip": "用 Some...Others... 区分两类体验。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -1122,8 +1122,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "provided that 限定原先支持的条件；对投资的支持与对全部转型安排的认可需要分开。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "工会原先支持现代化的条件是受影响工人获得合适培训。现在公司对培训交代太少，所以不能把对投资的支持理解为已认可整个转型安排。",
+      "exam_tip": "听 provided that 后的条件，再核对现在缺少什么。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -1152,8 +1152,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "may no longer apply 明确限定观点范围，不能把价格差异的可能激励推广到任何市场。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "经济学家认为有限价差可能促使供应商改进服务，前提是客户有真实替代选择。若一家控制整个市场，客户无处可选，这套解释就可能不成立。",
+      "exam_tip": "听 real alternatives，再对照 one supplier 的情形。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -1182,8 +1182,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "材料在解释分歧，没有宣布某方已证明结论。不能把 proposal 当成已经实施的政策。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "支持者认为稳定的基本收入让工人更有底气拒绝恶劣工作条件。批评者质疑资金方案是否现实；说话人是在介绍两方分歧，未宣布谁已解决问题。",
+      "exam_tip": "分别记 supporters 的预期好处和 critics 的资金疑问。"
     },
     "space_metadata": {
       "box_ref": "1041",
@@ -1212,8 +1212,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "第一步是账号与预约绑定，结果才是冲突少、开始更准时。不能把使用顺畅直接归因为机器数量增加，录音没有提到新增设备。",
-      "exam_tip": "按措施、中间变化和最终结果连接因果。"
+      "summary": "系统把每次预约连到已验证的小组账号，避免同一小组用不同名字重复预约。冲突少了，工作人员处理冲突的时间减少，学生就能更接近预定时间开始。",
+      "exam_tip": "顺着“账号绑定 → 重复少 → 冲突少 → 更准时”听。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1242,8 +1242,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "网络故障与迟到同日出现，却被发送时间排除为直接原因。because引出地址错误，不能仅依据事件相邻就建立因果。",
-      "exam_tip": "用时间关系核对可能原因，再听明确的原因说明。"
+      "summary": "报告在网络故障前已经发出，迟到的原因是收件地址写错，邮件直到第二天早上才转发。网络故障与延误同日发生，并不等于前者导致后者。",
+      "exam_tip": "先核对 sent before，再听 because 后的地址错误。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1272,8 +1272,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "目的reduce mistakes不等于最初实际效果。instructions不清导致范围过宽，clarified之后才改变；问题不必归结为检查本身永远无用。",
-      "exam_tip": "区分措施目的、实施方式和实际结果。"
+      "summary": "额外检查本来为了减少错误，但没有说明何时需要做。员工几乎对所有申请都加查，连简单情况也查，直到办公室明确适用范围后才不再这样处理。",
+      "exam_tip": "听 clear instructions 缺少什么，以及 almost every request 的结果。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1302,8 +1302,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "partly、also与both共同表明多因素解释，probably保留不确定性。不能只抓第一项原因，或把其中一项提升为唯一已证实原因。",
-      "exam_tip": "多因素信号词决定结论的范围。"
+      "summary": "partly because 先说宣传覆盖了新人群；also 再说时间改到晚上，方便白天有课的学生。主办方用 probably 表示两项变化可能都有作用，未把全部增长归于广告。",
+      "exam_tip": "把宣传范围和上课时段两个变化都记下。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1332,8 +1332,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "directly observed与may also区分结果和扩展解释。不能把表格完整率提升当成已经证明团队互动全面改善。",
-      "exam_tip": "中间指标改善并不自动证明更广泛的最终效果。"
+      "summary": "直接观察到的是 incomplete forms 减少，表格填写更完整。合作也可能改善，是研究者的推测；他们没有测量小组互动质量，还要以后研究。",
+      "exam_tip": "区分 directly observed 与 may also。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1386,14 +1386,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 推理判断",
-      "prompt": "播放录音后，区分直接变化、间接影响和后续应对。",
-      "support": "播放录音后，区分直接变化、间接影响和后续应对。",
-      "context": "播放录音后，区分直接变化、间接影响和后续应对。"
+      "prompt": "听录音，港口自动化后，岗位、附近商店和政府应对分别怎样变化？",
+      "support": "听录音，港口自动化后，岗位、附近商店和政府应对分别怎样变化？",
+      "context": "听录音，港口自动化后，岗位、附近商店和政府应对分别怎样变化？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "再培训是后续应对，不是最初失业的原因，也不意味着立即补回全部岗位。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "自动化让部分任务所需工人减少，附近商店随后失去常客。城镇后来提供再培训，但没有马上补回所有消失的岗位。",
+      "exam_tip": "按“用工减少 → 商店客流减少 → 后来再培训”复述。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1422,8 +1422,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "产出增加不自动等于收益已由所有人分享。录音没有说工人反对任何提高效率的技术。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "公司宣布产出提高，却没说明岗位消失的员工如何获得帮助。工人要求把培训和支持写入协议；反对点是受影响员工的安排没有落实。",
+      "exam_tip": "听 because 后缺少的 plan，以及 wanted 后要求的支持。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1452,8 +1452,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "two reasons 与最后一句共同限定因果范围，不能把并存因素硬排成已证实的单一主因。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "two reasons 后列出两项：工厂多年没更新设备，竞争供应商交货更快。报告没有说其中任何一项单独造成全部订单下滑。",
+      "exam_tip": "把设备与交货速度各记一项。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1482,8 +1482,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "is investigating whether 表示后一条关系尚待调查；不能把可能的反馈关系写成已经证明。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "客流下降后，运营商减少晚间班次。居民说间隔变长让公交更难用；市政机构正在查，这种减班是否又导致客流继续下降。",
+      "exam_tip": "听 is investigating whether，后一层影响仍在调查。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1512,8 +1512,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "so 说明重复测量的原因；后续等待是应对办法，不是说加热器在所有实验中都不能使用。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "加热器启动使室温快速变化，影响传感器读数，所以团队重测。现在他们先等室内条件稳定再开始，目的是避免同样的干扰。",
+      "exam_tip": "按“温度变化 → 读数受影响 → 等稳定再测”听。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1542,8 +1542,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "需要比较两类成本，不能只看到某一项降低就断定总成本已下降。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "轻包装降低运输费，但更易损坏，造成额外换货和退货成本。公司因此要把运费节省与退货开支一起比较，才能判断总共是否省钱。",
+      "exam_tip": "分别记省下的运输费和增加的退货费。"
     },
     "space_metadata": {
       "box_ref": "1042",
@@ -1566,14 +1566,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 推理判断",
-      "prompt": "听录音：学校将在什么情况下扩大试点？",
-      "support": "听录音：学校将在什么情况下扩大试点？",
-      "context": "听录音：学校将在什么情况下扩大试点？"
+      "prompt": "听录音，学校在什么情况下才会考虑扩大试点？",
+      "support": "听录音，学校在什么情况下才会考虑扩大试点？",
+      "context": "听录音，学校在什么情况下才会考虑扩大试点？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "If给出两项条件，consider并不等于已决定，No decision进一步确认全校推广未定。不能把next year单独听成确定上线日期。",
-      "exam_tip": "未来计划需同时保留条件和决定是否已经作出。"
+      "summary": "If 后有两个条件：学生能可靠使用服务，员工工作量仍可承受。满足后学校也只是 consider extending，考虑明年扩大；全校推广尚未决定。",
+      "exam_tip": "把两个 if 条件和 consider 的语气一起记。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1602,8 +1602,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "may与expects都是预测，temporarily与once限定时间。不能把最初较大工作量当成永久趋势，也不能说额外人员已经确定长期保留。",
-      "exam_tip": "预测既有方向，也可能有持续时间和转折条件。"
+      "summary": "随着更多课程采用平台，支持需求可能暂时增多。顾问预计用户熟悉后会缓解，因此建议过渡期保留额外人手，而不是把首月工作量视为长期不变。",
+      "exam_tip": "听 temporarily 与 once users become familiar，确认增长多久。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1632,8 +1632,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Before与Only after形成顺序。总体设计达成共识不等于预算已经最终批准，简化也是报价比较之后才决定的可能动作。",
-      "exam_tip": "先做的行动与后续有条件的决策不要混在一起。"
+      "summary": "总体设计已达成共识，但材料能否本地取得仍不清楚。先联系供应商，比较答复后才决定是否简化；预算也还没有最终确定。",
+      "exam_tip": "听 Before 和 Only after，按顺序排动作。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1647,7 +1647,7 @@
       "sha256": "sha256:1121548e878a7ca8eeaacc3ddd813205ff750c4c81056f12c16ff3793ef930b4",
       "transcript": "We agree on the overall design, but we still need to know whether the proposed materials are available locally. Before finalising the budget, the team will contact three suppliers for quotations. Only after comparing those responses will we decide whether the design needs to be simplified."
     },
-    "back_text": "先联系三家供应商询价，再确定预算与是否简化设计。"
+    "back_text": "先联系三家供应商询价，了解材料供应，再据报价决定是否简化设计。"
   },
   {
     "card_id": "104304",
@@ -1692,8 +1692,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "may不等于保证，if引出不利条件，plans to test说明团队仍要验证理解。不能把访问频率直接当成学习效果。",
-      "exam_tip": "区分参与程度这一指标与真正想改善的学习结果。"
+      "summary": "额外功能可能增加使用次数，但若分散对材料的注意，也未必让人理解更好。团队打算只保留支持学习任务的功能，并检查学生用后能否解释内容。",
+      "exam_tip": "把 use more often 与 explain the content 分开听。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1722,8 +1722,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "not yet decided否定确定安排，depend on给出决策依据。expand和redesign是待比较的选项，不是两个已经排好的连续步骤。",
-      "exam_tip": "计划中列出多个动作不代表它们都已获准执行。"
+      "summary": "团队还没决定先扩展服务，还是先改预约流程。决定要看反馈里有多少用户遇到困难，以及小改动能否解决，还是需要重建。",
+      "exam_tip": "听 not yet decided，再记它后面两种选择。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1752,8 +1752,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "will meet 是已公布的计划，whether to keep it 仍是待决问题，不能混成已经批准长期运行。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "下月会开会评估试行公交，这是已公布的安排。要先看客流和居民反馈，尤其晚间出行信息，再决定 whether to keep it，是否保留。",
+      "exam_tip": "区分会评估与已决定保留。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1782,8 +1782,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "expects 与 if 都保留条件和预期，不能写成设备已经投入测试。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "If 要求本学期末前确认资金。满足此前提，团队预计明年初开始测试；在此之前继续用旧系统，并准备测试步骤。",
+      "exam_tip": "记“期末资金确认 → 预计明年初测试”。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1812,8 +1812,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "expected 不是已经投票，even if 也不是结果已发生。不能把支持提案直接等同于可以立即施工。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "预计三月投票，但部分成员还要了解成本，结果未定。Even if 表示即使投票通过，施工仍需另外取得规划批准。",
+      "exam_tip": "记“投票通过”和“规划批准”是两件事。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1842,8 +1842,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "if 指定前提，instead 引出替代方案。预期人数限制与取消展览不同。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "若周五前未修完，展览会改在小展厅开放。主办方预计同时入场人数减少，但目前没打算取消展览。",
+      "exam_tip": "听 if 后的条件，再听 instead 后的替代地点。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1872,8 +1872,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "may 与 if 表示条件下的可能，plans to compare 是后续计划，不能提前报告试验结果。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "动画一开始可能更吸引人，但频繁打断正文可能让长篇论证更难跟上。团队下一步比较动画数量不同的版本，尚未给出比较结果。",
+      "exam_tip": "先记可能问题，再记 plans to compare 的下一步。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1902,8 +1902,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "unless 与 may 保留条件和不确定性。延长试行的理由是数据时段可能不具代表性，不是已经证明需求必然回升。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "Unless demand rises 表示需求不增加时可能减班。市政机构认为假期客流偏少，应延长观察，再判断新时刻表下的需求。",
+      "exam_tip": "听 may reduce 的条件，再听 because 解释为何多观察。"
     },
     "space_metadata": {
       "box_ref": "1043",
@@ -1917,7 +1917,7 @@
       "sha256": "sha256:198874cc1d31f8593bbe7898f6347ad563a02f639af37ff2819d6b24c8a6b789",
       "transcript": "Unless demand rises during the next trial period, the operator may reduce the service again. The council has asked for a longer trial because the timetable changed during the holidays, when fewer regular passengers were travelling."
     },
-    "back_text": "如果需求不回升，可能再减班；有人认为假期客流较少，应再观察。"
+    "back_text": "如果下一轮试行需求不增加，运营商可能再减班；市政机构要求延长试行，因为改时刻表时正逢假期，常客较少。"
   },
   {
     "card_id": "105001",
@@ -1932,8 +1932,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "开场问题把crowded calendar与productive day对比，随后messages和meetings只是例子。Today I want to examine直接确定主旨，不是教人发送更多信息。",
-      "exam_tip": "开场例子要回到讲者明确提出的问题。"
+      "summary": "开头对比“日程排满”和“真正有产出”。Today I want to examine 后明确主题：怎样选择优先任务，以及留些时间余地为什么能改善完成的工作。",
+      "exam_tip": "主旨听 Today I want to examine 后的内容。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -1992,8 +1992,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "开场问为什么轻信自信陈述，后面明确比较delivery与evidence。不是建议所有表达清楚的人都不可信，也不是只教授演讲声音技巧。",
-      "exam_tip": "关注开头提出的区分，而不是只抓一个正面或负面词。"
+      "summary": "讲者问为什么人们会轻信自信的陈述，随后明确要区分 clarity of delivery 和 quality of evidence，即表达清晰与证据质量。主题是听众怎样避免混淆这两者。",
+      "exam_tip": "听 the difference between 后比较的两个方面。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2022,8 +2022,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "三个例子属于不同场景，但each concerns access提炼共同对象。same knowledge or resources又说明要考虑使用者差异，不能概括成统一所有人的偏好。",
-      "exam_tip": "主旨可能由多个例子的共同关系而非某个例子本身决定。"
+      "summary": "教室标牌、网站说明和申请表都涉及 access to information，获取信息。讲者认为减少不必要障碍能让更多人参与，因为用户原有知识和资源不同。",
+      "exam_tip": "从三个例子共同的 access to information 找主题。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2052,8 +2052,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "But后列出替代解释，最后一句明确主旨是如何理解需求。不是说访问次数毫无价值，而是说仅有这个指标不足。",
-      "exam_tip": "修正常见解释时，既要保留原解释的可能性，也要听见其他因素。"
+      "summary": "服务用得少，除了需求低，也可能是开放时间不便、说明不清或地点难到。讲者要讨论怎样评估需求，因此不能只数现有服务的访问次数。",
+      "exam_tip": "听 But 后补充的三种低使用原因。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2082,8 +2082,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "focus...narrower缩小讨论范围。开头的communication skills是背景，不能覆盖后面指定的组织与责任主题。",
-      "exam_tip": "讲者明确收窄范围后，应以新范围概括主旨。"
+      "summary": "My focus today is narrower 明确缩小范围：小组职责不清会怎样。接下来研究如何分工、记录决定，以及一人的工作怎样影响其他人下一步行动。",
+      "exam_tip": "听 narrower 后的问句，确定本场具体主题。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2112,8 +2112,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "提问旨在引起反思，并引出后续讨论；不能从一个问题推断所有听众都有同样经历。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "开头问完成一项任务后是否立刻看下一项，引出不断赶任务的习惯。Today I want to consider 后说明主题：这种习惯怎样影响我们对工作和他人的关注。",
+      "exam_tip": "听开头问题后，讲者用 Today... 明说讨论什么。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2142,8 +2142,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "but 引出评价角度变化，不能把论点简化成“所有忙碌都是假装”。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "完成很多事、日程很满，只说明一直有事做。讲者要区分 being occupied 与 doing something worthwhile，即忙着做事和做有价值的事。",
+      "exam_tip": "把 occupied 与 worthwhile 两个词对照。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2172,8 +2172,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "假设一个空闲小时是引入话题的方式，不表示听众现实中已经得到这段时间，也不是直接给出标准答案。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "多出一小时只是设想：立刻填满，还是留时间思考？That choice introduces... 把这个选择接到主旨上——怎样判断什么值得花时间。",
+      "exam_tip": "听 introduces 后直接点出的讨论问题。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2232,8 +2232,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "second possibility 指后一种解释，但最后明确不把它推广到所有忙碌的人。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "开头有两种解释：说忙可能在报告工作量，也可能在显示自己有用或重要。second possibility 指第二种；讲者只讨论这种可能，并未说人人都如此。",
+      "exam_tip": "回数前面的两种解释，确认 second 指哪一个。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2262,8 +2262,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "问题邀请听众检查自己的判断，并没有宣布所有第一印象都错误或要求完全放弃判断。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "讲者请听众回想只见过一次的人，以及还不了解处境时就作出的判断。这个问题引出 first impressions，第一印象如何形成、为何有时需要修正。",
+      "exam_tip": "听 explore 后列出的两个问题。"
     },
     "space_metadata": {
       "box_ref": "1050",
@@ -2292,8 +2292,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "In short引出总结，前面的software、procedures、training是讨论过的手段。结尾强调的是这些手段发挥作用所需的组织条件。",
-      "exam_tip": "结尾归纳常从具体措施上升到共同原则。"
+      "summary": "前面讨论软件、流程和培训，结尾用 In short 总结：要先明确每一步由谁负责，并可靠地跟进。工具若缺少这些配合，就难发挥作用。",
+      "exam_tip": "抓住 In short 后的 clear responsibilities 和 follow-up。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2322,8 +2322,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "reminders alone被限定为不够，To conclude后的三项行动才是建议主体。不是完全禁止提醒，也不是主要依靠处罚。",
-      "exam_tip": "抓总结句里的行动动词，同时保留对其他做法的限定。"
+      "summary": "To conclude 后列出管理者的三项行动：观察实际工作，与员工讨论障碍，示范期望的做法。提醒只能传达要求，参与实际工作才能发现为何难执行。",
+      "exam_tip": "听 observe、discuss、demonstrate 三个动词。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2352,8 +2352,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Overall后的判断保留in these classes，前面区分按时提交与分数。结尾提出进一步测试，而不是宣布所有学科效果相同。",
-      "exam_tip": "总结应保留结果指标与样本范围。"
+      "summary": "参与班级按时交作业的情况改善，但平均成绩几乎未变。结尾因此只说清单似乎有助于这些班级组织工作，还需在其他环境中测试。",
+      "exam_tip": "分开记“按时提交改善”和“成绩变化很小”。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2382,8 +2382,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Taken together汇总收益与限制，keeping和further expansion是不同决定。不能把暂缓扩展读成关闭已有服务，也不能忽略人员条件。",
-      "exam_tip": "结论可能对保留与扩大作出不同判断。"
+      "summary": "用户喜欢更长的开放时间，但人手不足让服务难以维持。结论支持保留现有服务；要继续扩大，先得有可行的人员安排。",
+      "exam_tip": "对照 keeping the service 与 further expansion。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2412,8 +2412,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Rather than排除一次改变所有习惯，choose、set、check构成具体行动。结果用于选择后续重点，不是承诺完成一次就掌握全部内容。",
-      "exam_tip": "结尾建议要区分具体下一步与长期目标。"
+      "summary": "choose、set、check 是三步：选主题、定复习时段、检查不看笔记能解释什么。结尾要求从一项小调整开始，再据结果决定下一步。",
+      "exam_tip": "按 choose → set → check 复述三步。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2427,7 +2427,7 @@
       "sha256": "sha256:e41af954454d26984da7cc2eeef6293c4b297f5329b395328a6019ce26d93c46",
       "transcript": "We have discussed several ways to make revision more manageable. Rather than trying to change everything at once, choose one topic this week, set a realistic review period, and check afterwards what you can explain without notes. Use that result to decide what needs attention next."
     },
-    "back_text": "本周先选一个主题，安排合理复习时间，再用不看笔记的解释检查下一步需要。"
+    "back_text": "本周先选一个主题，安排可行的复习时段，再试着不看笔记解释，用结果决定接下来复习什么。"
   },
   {
     "card_id": "105106",
@@ -2442,8 +2442,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "does not require明确否定排他选择，match...to...给出判断原则。不同形式各有适用情况，不等于两者在每个任务里都完全相同。",
-      "exam_tip": "总结有时会否定题目前面看似必然的二分。"
+      "summary": "线上服务可免去交通障碍，面对面支持适合复杂问题。结尾的 match...to... 建议根据任务和使用者需要选支持形式，两种形式都可以保留。",
+      "exam_tip": "听 match 后要匹配的 task 与 people。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2472,8 +2472,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "结尾没有否定计划的重要性，而是补充行为与目标是否一致这一层。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "计划重要，遇到困难时领导的行为同样影响团队信任。结尾补充三种做法：倾听、解释变化、共同承担责任，让目标更可信。",
+      "exam_tip": "听 Listening、explaining、sharing 三项并列行为。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2502,8 +2502,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "这是具体行动建议，并未要求每个人选择同一个习惯，也没有保证调整必然成功。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "结尾要求选一个想改的工作习惯，请同事诚实反馈，再试一项小调整，一个月后回顾。最后一句强调把想法放到实践里检验。",
+      "exam_tip": "记四步：选习惯 → 求反馈 → 小调整 → 一个月后回顾。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2532,8 +2532,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "类比服务于集体贡献这个观点，不是要讲体育规则或证明某位领导独自决定全部结果。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "接力跑者受益于已跑完队友的努力。In the same way 把它类比到领导工作：应该看见那些容易被忽视的贡献者。",
+      "exam_tip": "听 In the same way 后类比到哪一类贡献。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2562,8 +2562,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "前两项内容是回顾，最后的 request 是行动建议；它没有引入一个与前文无关的新主题。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "We have considered... 回顾听取反馈的困难及反馈的作用。My final request 再给行动：本周就自己的工作提一个清楚问题，先听完回答再解释自己的看法。",
+      "exam_tip": "用 We have considered 找回顾，用 final request 找行动。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2592,8 +2592,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "画面服务于总结“参与”的观点，不意味着管理者必须亲自完成每一项工作。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "与团队一起工作的经理能更早发现困难，也能解释为什么要改计划。That involvement 回指这种参与，讲者用具体形象总结管理者参与实际工作的价值。",
+      "exam_tip": "听 That involvement 回指前面的哪种工作方式。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2622,8 +2622,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "may 与 not...every...限制建议的作用，不能夸大成换几个词就能彻底改变生活。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "建议回答“这周怎样”时讲一件有趣的事，而不只说忙。这样可能更容易发现一周的价值；may 和 will not solve every problem 表明只是小帮助。",
+      "exam_tip": "记建议做什么，再听 may 限定能带来的作用。"
     },
     "space_metadata": {
       "box_ref": "1051",
@@ -2652,8 +2652,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "know what to expect、consistency与behaves as promised是同一重点的不同表达。fastest是对照，不是讲者反复强调的首要标准。",
-      "exam_tip": "重复重点可能通过同义改写出现，而不只是原词重读。"
+      "summary": "know what to expect、consistency、behaves as promised 都在说服务可靠、表现可预期。用户要靠它安排事情，重点是稳定兑现承诺，而非每次速度最快。",
+      "exam_tip": "找出三种说法共同强调的“可预期”。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2682,8 +2682,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "same pattern与consistent finding指向omissions。速度和满意度没有在两次研究都测量，不能补成共同发现。",
-      "exam_tip": "重复研究的共同结论只包括共同测量并重复出现的指标。"
+      "summary": "两次研究都发现，清楚的例子帮助参与者少漏填信息。same pattern 和 consistent finding 都指 fewer omissions；更快或更满意没有在两次研究中同时测量。",
+      "exam_tip": "把 repeated finding 对应到 omissions。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2712,8 +2712,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "distance remains与how far come反复对照，not arguing against goals排除了放弃目标的解释。gains as well as gaps才是完整主张。",
-      "exam_tip": "对照中的被限制做法，不一定被完全否定。"
+      "summary": "how far remains 是离目标还差多少，how far we have come 是已经进步多少。讲者要求评价努力时兼顾 gains 和 gaps，既看进步也看差距。",
+      "exam_tip": "听 as well as：两方面都要看。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2742,8 +2742,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "三个例子分别展示设备、时间、语言障碍，same point将它们归为可及性问题。不是说所有服务都应采用同一技术方案。",
-      "exam_tip": "不同例子可以反复支撑同一个抽象区别。"
+      "summary": "预约页在小屏难用、咨询台与上课时间冲突、指南术语陌生，都是“有服务却不方便用”的例子。共同观点是要让人真正能使用服务。",
+      "exam_tip": "把三个例子分别对应屏幕、时间和语言障碍。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2772,8 +2772,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "return to the same question与stressed throughout标明重点。价格、品牌、功能是比较对象，但没有取代任务适配这一首要标准。",
-      "exam_tip": "被反复提出的问题常比列举最多的细节更接近主旨。"
+      "summary": "讲者反复问 what problem must the equipment solve，设备要解决什么问题。便宜、品牌或功能多都不能替代“是否适合实际任务”这个购买标准。",
+      "exam_tip": "听 return to the same question 后重复的问题。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2802,8 +2802,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "provided that是首个条件，I repeat与两种used对照再次强调。can与may没有保证工具对所有使用方式都有效。",
-      "exam_tip": "被重复的限制条件属于主旨的一部分，不能在概括时删掉。"
+      "summary": "provided that 的条件是学生批判性地检查工具建议。I repeat 再强调：自己判断后使用，工具才可能帮助学习；照单全收可能把误解藏起来。",
+      "exam_tip": "把 useful suggestions 与 examine them critically 一起概括。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2832,8 +2832,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "重复强调的是观察到的模式，并没有把相关关系变成单向因果证明。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "三项调查都发现，觉得活动有意义的人往往更满意。讲者再次强调这种模式，同时说单凭调查无法确定是意义感带来满意，还是反过来。",
+      "exam_tip": "听 which factor caused the other，注意因果方向未确定。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2862,8 +2862,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "each of the age groups we studied 有明确范围，不等于 every population；结尾要求进一步研究。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "这种关联在受测的每个年龄组中都出现，但所有样本只来自一个地区。each age group 指研究中的年龄组，不是已经调查所有地区的所有人群。",
+      "exam_tip": "给 each age group 加回 we studied 的范围。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2892,8 +2892,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "重复出现不代表所有结果毫无差别；rather than 明确否定问题已经彻底解决的判断。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "前两项调查发现相似关联，第三项采用不同测量，结论更谨慎。综合来看，这个关系值得继续研究，但问题尚未解决。",
+      "exam_tip": "按 first、second、third 比较三项结果。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2922,8 +2922,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "实际论据来自研究设计与独立检验，而非单纯反复陈述；不能把修辞重复当作多次研究验证。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "讲者反复提同一发现，是为了串联例子。重复说本身不增加证据；研究是否设计合理、能否被其他研究者独立检验，才决定它有多可信。",
+      "exam_tip": "分开听重复的讲述作用和证据的来源。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2952,8 +2952,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "less than 在这里比较解释力或重要性，不是提供一个可直接换算成分数的数量公式。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "一天做多少活动，比不上投入质量和选择这些活动的原因更能说明体验。同样忙的日程，会因参与的理由不同而感觉很不一样。",
+      "exam_tip": "对照 number of activities 与 quality of involvement。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -2982,8 +2982,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "several 不等于所有，varied 更直接排除了无差别的普遍适用。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "多个群体都观察到关联，是共同模式；关联强度又随情境和测量方法而变。结论同时保留“会重复出现”和“并非处处一样”。",
+      "exam_tip": "听 observed 的共同发现，再听 varied 的差别。"
     },
     "space_metadata": {
       "box_ref": "1052",
@@ -3006,14 +3006,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "【定位词抓取：专有名词和数字】\n\n在六级仔细阅读中，最稳的定位线索是：\n1) 专有名词：人名、机构名、地名、项目名（如 NASA, WHO, New York）\n2) 数字信息：年份、比例、数量、区间（如 2019, 37%, 1.2 million）\n\n使用步骤：\n- 先在题干圈出专有名词和数字\n- 回原文做“同形匹配”（拼写、数字形态、单位）\n- 定位后读前后 1-2 句，不要只看命中句\n\n注意：\n- 题干数字可能发生改写（thirty percent -> 30%）\n- 原文同一数字可能对应不同对象，必须核对主语\n- 专有名词命中不等于答案正确，仍需判断语义关系",
-      "support": "【定位词抓取：专有名词和数字】\n\n在六级仔细阅读中，最稳的定位线索是：\n1) 专有名词：人名、机构名、地名、项目名（如 NASA, WHO, New York）\n2) 数字信息：年份、比例、数量、区间（如 2019, 37%, 1.2 million）\n\n使用步骤：\n- 先在题干圈出专有名词和数字\n- 回原文做“同形匹配”（拼写、数字形态、单位）\n- 定位后读前后 1-2 句，不要只看命中句\n\n注意：\n- 题干数字可能发生改写（thirty percent -> 30%）\n- 原文同一数字可能对应不同对象，必须核对主语\n- 专有名词命中不等于答案正确，仍需判断语义关系",
-      "context": "【定位词抓取：专有名词和数字】\n\n在六级仔细阅读中，最稳的定位线索是：\n1) 专有名词：人名、机构名、地名、项目名（如 NASA, WHO, New York）\n2) 数字信息：年份、比例、数量、区间（如 2019, 37%, 1.2 million）\n\n使用步骤：\n- 先在题干圈出专有名词和数字\n- 回原文做“同形匹配”（拼写、数字形态、单位）\n- 定位后读前后 1-2 句，不要只看命中句\n\n注意：\n- 题干数字可能发生改写（thirty percent -> 30%）\n- 原文同一数字可能对应不同对象，必须核对主语\n- 专有名词命中不等于答案正确，仍需判断语义关系"
+      "prompt": "练习材料（虚构情境）\nThe Northbridge Mobility Report, published in 2024, examined travel patterns in 2022. It found that 37% of urban respondents and 21% of suburban respondents had reduced weekday car use.\n\n报告发布于哪一年？37%说的是哪一类受访者、哪项变化？",
+      "support": "练习材料（虚构情境）\nThe Northbridge Mobility Report, published in 2024, examined travel patterns in 2022. It found that 37% of urban respondents and 21% of suburban respondents had reduced weekday car use.\n\n报告发布于哪一年？37%说的是哪一类受访者、哪项变化？",
+      "context": "练习材料（虚构情境）\nThe Northbridge Mobility Report, published in 2024, examined travel patterns in 2022. It found that 37% of urban respondents and 21% of suburban respondents had reduced weekday car use.\n\n报告发布于哪一年？37%说的是哪一类受访者、哪项变化？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "专有名词和数字的价值是把搜索范围缩小，不是替你判断答案。题干若同时出现 WHO 和 37%，先在原文找到同形或等值写法，再核对 37% 描述的是哪一组人、哪个时间段以及什么指标。\n\n真正决定正误的是命中位置附近的命题关系。若原文说 37% of urban respondents，选项改成 37% of all respondents，即使数字完全相同也不成立。\n\n稳定动作是“定位—核对主体和单位—读前后句—再判断”，不要停在关键词命中。",
-      "exam_tip": "数字可改写形式，但主体、单位和范围不能被替换。"
+      "summary": "published in 2024给出发布年，examined ... in 2022给出数据对应时间。37%紧跟urban respondents，不能挪给suburban respondents；变化是减少工作日用车，不是完全停止开车。",
+      "exam_tip": "看到数字先连到它所属的事件、人群和指标，再与选项比较。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3021,7 +3021,7 @@
       "group": "定位词抓取",
       "box": "专有名词和数字"
     },
-    "back_text": "翻卡结论：专有名词和数字只负责快速定位。命中后仍要核对主体、单位与前后语义，不能把同形出现直接当成正确答案。"
+    "back_text": "报告发布于2024年；37%指城市受访者减少了工作日用车。2022是所研究的出行年份。"
   },
   {
     "card_id": "110002",
@@ -3030,14 +3030,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nIn a 2021 survey by the International Energy Agency, 62% of urban households reported reducing weekday car use. In contrast, only 37% of suburban households made the same change.\n\n问题：哪一项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nIn a 2021 survey by the International Energy Agency, 62% of urban households reported reducing weekday car use. In contrast, only 37% of suburban households made the same change.\n\n问题：哪一项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nIn a 2021 survey by the International Energy Agency, 62% of urban households reported reducing weekday car use. In contrast, only 37% of suburban households made the same change.\n\n问题：哪一项与原文一致？"
+      "prompt": "哪一项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nIn a 2021 survey by the International Energy Agency, 62% of urban households reported reducing weekday car use. In contrast, only 37% of suburban households made the same change.\n\n任务：哪一项与原文一致？",
+      "context": "哪一项与原文一致？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文明确给出两组数字：\n- urban households: 62%\n- suburban households: 37%\n\n因此“城市家庭减少工作日用车的比例高于郊区家庭”与原文一致。\n\n将机构、年份、比例分别绑定到同一对象，再检查比较方向。",
-      "exam_tip": "将机构、年份、比例分别绑定到同一对象，再检查比较方向。"
+      "summary": "urban households对应62%，suburban households对应37%，B比较这两类家庭中报告减少用车的比例。A把37%移给城市家庭，C把2021改成2012，D把机构改成WHO。",
+      "exam_tip": "家庭中有多少比例改变行为，不等于每户减少了多少行程。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3054,7 +3054,7 @@
       {
         "id": "B",
         "label": "B",
-        "text": "Urban households showed a higher reduction rate than suburban households."
+        "text": "A larger share of urban than suburban households reported reducing weekday car use."
       },
       {
         "id": "C",
@@ -3085,8 +3085,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "材料给出研究者、18 项研究及 2008—2020 年区间。fewer than six hours 对应报告注意力问题的概率为对照组的 1.8 倍，不能写成增加了 1.8 倍。应划去把 18 改成 8、把研究区间改成 2010—2022 的两项。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "18项研究不是eight，2008—2020不是2010—2022，应划去2、4。1保留研究者与机构，3保留睡眠少于六小时者报告注意力问题的相对可能性。1.8 times as likely不是“增加了1.8倍”。",
+      "exam_tip": "倍数先判断是“为原来的几倍”还是“增加了几倍”，同时保留测量的结果。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3105,7 +3105,7 @@
       },
       {
         "id": "statement_3",
-        "text": "Short sleepers had a 1.8-fold risk of attention problems."
+        "text": "Participants sleeping fewer than six hours were 1.8 times as likely to report attention problems."
       },
       {
         "id": "statement_4",
@@ -3127,14 +3127,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "判断：题干出现专有名词（如机构名）且原文能匹配到同一拼写时，可以直接选该项，不必再核对数字和语义关系。",
-      "support": "判断：题干出现专有名词（如机构名）且原文能匹配到同一拼写时，可以直接选该项，不必再核对数字和语义关系。",
-      "context": "判断：题干出现专有名词（如机构名）且原文能匹配到同一拼写时，可以直接选该项，不必再核对数字和语义关系。"
+      "prompt": "判断：The Northbridge survey found that 62% of suburban households reduced weekday car use.",
+      "support": "练习材料（虚构情境）\nThe Northbridge survey reported that 62% of urban households and 37% of suburban households reduced weekday car use.\n\n任务：判断：The Northbridge survey found that 62% of suburban households reduced weekday car use.",
+      "context": "判断：The Northbridge survey found that 62% of suburban households reduced weekday car use."
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误\n\n专有名词命中只说明“定位成功”，不代表“语义正确”。\n仍需核对：\n1) 数字是否对应同一对象\n2) 比较方向是否一致（higher/lower）\n3) 时态与范围是否被偷换（past vs current / sample vs population）\n\n六级干扰项常用“真线索 + 假关系”误导。\n\n将机构、年份、比例分别绑定到同一对象，再检查比较方向。",
-      "exam_tip": "将机构、年份、比例分别绑定到同一对象，再检查比较方向。"
+      "summary": "报告名称虽然相同，判断句却把urban的62%移给suburban。专名和数字都在原文出现，仍需检查它们怎样配对。",
+      "exam_tip": "不要只画出命中数字，也要画出紧跟它的人群名称。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3166,14 +3166,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe OECD report released in 2023 estimated that remote workers saved an average of 72 minutes per workday. However, the same report noted that team response time increased by 14% in projects requiring cross-time-zone coordination.\n\n问题：哪一项最准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe OECD report released in 2023 estimated that remote workers saved an average of 72 minutes per workday. However, the same report noted that team response time increased by 14% in projects requiring cross-time-zone coordination.\n\n问题：哪一项最准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe OECD report released in 2023 estimated that remote workers saved an average of 72 minutes per workday. However, the same report noted that team response time increased by 14% in projects requiring cross-time-zone coordination.\n\n问题：哪一项最准确？"
+      "prompt": "哪一项最准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe OECD report released in 2023 estimated that remote workers saved an average of 72 minutes per workday. However, the same report noted that team response time increased by 14% in projects requiring cross-time-zone coordination.\n\n任务：哪一项最准确？",
+      "context": "哪一项最准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文给出两条并存信息：\n- 远程办公节省 72 分钟/工作日\n- 跨时区协作项目中，团队响应时间增加 14%\n\n因此最准确的是“效率收益与协作成本并存”。\n\n将机构、年份、比例分别绑定到同一对象，再检查比较方向。",
-      "exam_tip": "将机构、年份、比例分别绑定到同一对象，再检查比较方向。"
+      "summary": "72 minutes per workday是每工作日节省分钟数，A却写每周72小时。response time increased by14%表示响应变慢，B写成下降；C改错年份。D保留省时与协调成本并存。",
+      "exam_tip": "数字同时核对单位和增减方向，尤其时间增加可能意味着效率下降。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3216,13 +3216,13 @@
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
       "prompt": "哪组同时给出报告机构、发布年份、预计降幅和目标年份？",
-      "support": "练习材料（虚构情境）\n阅读片段：In its 2025 outlook, the International Renewable Energy Agency estimated that battery storage costs could fall by another 38% by 2030 if supply bottlenecks eased. The report cautioned, however, that grid reform would determine how much of that decline reached consumers.\n\n题干：Which clue best helps you return to the sentence about the projected cost decline?\n\n问题：哪组同时给出报告机构、发布年份、预计降幅和目标年份？",
+      "support": "练习材料（虚构情境）\n阅读片段：In its 2025 outlook, the International Renewable Energy Agency estimated that battery storage costs could fall by another 38% by 2030 if supply bottlenecks eased. The report cautioned, however, that grid reform would determine how much of that decline reached consumers.\n\n任务：哪组同时给出报告机构、发布年份、预计降幅和目标年份？",
       "context": "哪组同时给出报告机构、发布年份、预计降幅和目标年份？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "B 同时包含机构、2025、38% 与 2030；其余组合缺少题目要求的一部分。这是在核对信息类别，不证明某种搜索顺序在所有文章中都最快。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "机构是International Renewable Energy Agency，发布年2025，预计降幅38%，目标年2030，B四项完整。其余组合只列成本、供应或消费者等主题。could和if仍提示这是有条件预测。",
+      "exam_tip": "定位到数字后继续读could与if，不能把预测当成已实现。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3271,7 +3271,7 @@
     "analysis": {
       "title": "解析",
       "summary": "600 人是该校一年级学生样本。机构、年份、样本与比例要一起绑定；相同的 17% 不能被移到全市所有学生。",
-      "exam_tip": "把定位到的词与其对象、范围和关系一起核对。"
+      "exam_tip": "将 600 与 first-year students 连读，再核对 17% 是否仍只描述这个样本。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3312,14 +3312,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "判断：题目问某报告的发布年份时，先找报告名称，再核对相邻年份究竟表示发布、研究还是后续评估，是一种合理的定位步骤。",
-      "support": "判断：题目问某报告的发布年份时，先找报告名称，再核对相邻年份究竟表示发布、研究还是后续评估，是一种合理的定位步骤。",
-      "context": "判断：题目问某报告的发布年份时，先找报告名称，再核对相邻年份究竟表示发布、研究还是后续评估，是一种合理的定位步骤。"
+      "prompt": "判断：The review’s publication year was 2024, not the year when its data were collected.",
+      "support": "练习材料（虚构情境）\nThe Northbridge Housing Review was published in 2024 using data collected in 2022. A follow-up assessment began in 2025.\n\n任务：判断：The review’s publication year was 2024, not the year when its data were collected.",
+      "context": "判断：The review’s publication year was 2024, not the year when its data were collected."
     },
     "analysis": {
       "title": "解析",
-      "summary": "年份必须与对应事件绑定。找到报告名后仍要核对时间的具体含义，不能把附近任意一个年份直接作为答案。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "was published与2024相连，collected与2022相连，follow-up began则对应2025。三个年份说的是不同事件，不能仅挑离报告名称最近的任意数字。",
+      "exam_tip": "给每个年份配一个动作：发布、采集或后续评估。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3352,13 +3352,13 @@
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
       "prompt": "哪组完整包含数据来源、统计年份、两个国家和各自比例？",
-      "support": "练习材料（虚构情境）\n阅读片段：Data from Eurostat show that in 2024, women accounted for 46% of new artificial-intelligence hires in Estonia, compared with 29% in Germany. Analysts attributed part of the gap to early coding exposure in secondary schools.\n\n题干：Which detail is most useful if you want to locate the cross-country comparison immediately?\n\n问题：哪组完整包含数据来源、统计年份、两个国家和各自比例？",
+      "support": "练习材料（虚构情境）\n阅读片段：Data from Eurostat show that in 2024, women accounted for 46% of new artificial-intelligence hires in Estonia, compared with 29% in Germany. Analysts attributed part of the gap to early coding exposure in secondary schools.\n\n任务：哪组完整包含数据来源、统计年份、两个国家和各自比例？",
       "context": "哪组完整包含数据来源、统计年份、两个国家和各自比例？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "D 把 Eurostat、2024、Estonia、Germany 与 46%/29% 对应起来。判断仍要核对数字归属，不能只看到相同数字就确定答案。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "D完整列出Eurostat、2024、Estonia/Germany和46%/29%。其中46%属于Estonia的新增AI雇员，29%属于Germany；不能因数字都对就忽略国家归属。",
+      "exam_tip": "将每个比例紧接其国家写下，再比较哪个更高。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3407,7 +3407,7 @@
     "analysis": {
       "title": "解析",
       "summary": "by 2030 不是每年；up to 是上限，could 是可能，Route A 是限定对象。仅记住 14% 无法判断选项，必须同时核对这些范围。",
-      "exam_tip": "把定位到的词与其对象、范围和关系一起核对。"
+      "exam_tip": "分别圈出 by 2030、up to 和 Route A，检查年份、上限与路线是否被改动。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3448,14 +3448,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "判断：一项报告和评论者都使用同一个主题名词，所以评论者的解释可以直接当作报告已经证明的结论。",
-      "support": "判断：一项报告和评论者都使用同一个主题名词，所以评论者的解释可以直接当作报告已经证明的结论。",
-      "context": "判断：一项报告和评论者都使用同一个主题名词，所以评论者的解释可以直接当作报告已经证明的结论。"
+      "prompt": "判断：The report proved that the workshops improved final examination scores.",
+      "support": "练习材料（虚构情境）\nThe college report recorded higher workshop attendance. A commentator suggested that the workshops might also improve final examination scores.\n\n任务：判断：The report proved that the workshops improved final examination scores.",
+      "context": "判断：The report proved that the workshops improved final examination scores."
     },
     "analysis": {
       "title": "解析",
-      "summary": "共同主题词不等于共同信息来源。应分清报告实际发现了什么，以及评论者据此作出了什么解释。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "recorded higher attendance属于报告发现，suggested ... might improve scores属于评论者推测。判断句把后者换成report proved，既换了来源，也加强了确定程度。",
+      "exam_tip": "同时核对“谁说的”和“说得有多确定”。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3487,14 +3487,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：In 2018, Singapore became the first city-state to require national data-sharing standards across public hospitals. A later policy review credited the move with reducing duplicate testing by 11% within three years.\n\n题干：Which clue best signals that the sentence is about a policy milestone rather than a later evaluation?\n\n最好的定位组合是哪一个？",
-      "support": "练习材料（虚构情境）\n阅读片段：In 2018, Singapore became the first city-state to require national data-sharing standards across public hospitals. A later policy review credited the move with reducing duplicate testing by 11% within three years.\n\n题干：Which clue best signals that the sentence is about a policy milestone rather than a later evaluation?\n\n最好的定位组合是哪一个？",
-      "context": "练习材料（虚构情境）\n阅读片段：In 2018, Singapore became the first city-state to require national data-sharing standards across public hospitals. A later policy review credited the move with reducing duplicate testing by 11% within three years.\n\n题干：Which clue best signals that the sentence is about a policy milestone rather than a later evaluation?\n\n最好的定位组合是哪一个？"
+      "prompt": "要定位这项政策要求首次提出的事件，而不是后续成效评估，应选哪组信息？",
+      "support": "练习材料（虚构情境）\n阅读片段：In 2018, Singapore became the first city-state to require national data-sharing standards across public hospitals. A later policy review credited the move with reducing duplicate testing by 11% within three years.\n\n任务：要定位这项政策要求首次提出的事件，而不是后续成效评估，应选哪组信息？",
+      "context": "要定位这项政策要求首次提出的事件，而不是后续成效评估，应选哪组信息？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：里程碑题要优先抓首次性表达（first）和立法/要求类动作。\n\n② 核心规律：政策 milestone 与 policy evaluation 往往会在相邻句并存。里程碑看“首次做了什么”；评估看“后来产生了什么效果”。这两类信息不能混抓。\n\n③ 验证：2018 + first city-state + require standards 明确指向政策出台节点；11% within three years 是其后的效果评估。",
-      "exam_tip": "first + policy action 往往意味着制度性转折点。"
+      "summary": "2018、first city-state和require standards共同指首次提出要求的政策节点，A正确。later review、11%与within three years描述之后的评估结果，不是政策首次实施时间。",
+      "exam_tip": "题目问首次做什么，就找first加动作；问成效时再找后面的结果数字。"
     },
     "space_metadata": {
       "box_ref": "1100",
@@ -3536,14 +3536,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "【定位词抓取：实义名词】\n\n实义名词是六级细节题的高价值线索：\n- 主题名词（policy, inequality, metabolism）\n- 机制名词（constraint, incentive, exposure）\n- 结果名词（decline, improvement, disparity）\n\n操作：先抓题干2-3个实义名词，再回原文核对其与谓语关系。\n\n警惕：同名词可被用于不同对象，必须核对主语与比较方向。",
-      "support": "【定位词抓取：实义名词】\n\n实义名词是六级细节题的高价值线索：\n- 主题名词（policy, inequality, metabolism）\n- 机制名词（constraint, incentive, exposure）\n- 结果名词（decline, improvement, disparity）\n\n操作：先抓题干2-3个实义名词，再回原文核对其与谓语关系。\n\n警惕：同名词可被用于不同对象，必须核对主语与比较方向。",
-      "context": "【定位词抓取：实义名词】\n\n实义名词是六级细节题的高价值线索：\n- 主题名词（policy, inequality, metabolism）\n- 机制名词（constraint, incentive, exposure）\n- 结果名词（decline, improvement, disparity）\n\n操作：先抓题干2-3个实义名词，再回原文核对其与谓语关系。\n\n警惕：同名词可被用于不同对象，必须核对主语与比较方向。"
+      "prompt": "练习材料（虚构情境）\nThe subsidy increased access to training. The report linked that access to workers’ greater chances of finding stable employment.\n\n题目问培训机会与就业有什么联系。你会定位哪两个名词短语？用一句话说清它们的关系。",
+      "support": "练习材料（虚构情境）\nThe subsidy increased access to training. The report linked that access to workers’ greater chances of finding stable employment.\n\n题目问培训机会与就业有什么联系。你会定位哪两个名词短语？用一句话说清它们的关系。",
+      "context": "练习材料（虚构情境）\nThe subsidy increased access to training. The report linked that access to workers’ greater chances of finding stable employment.\n\n题目问培训机会与就业有什么联系。你会定位哪两个名词短语？用一句话说清它们的关系。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "实义名词要组成关系链才有定位价值。题干同时出现 policy、incentive 和 decline 时，不要分别搜索三个词；先确定题干在问“哪项政策通过什么机制导致什么变化”。\n\n回到原文后核对名词所连接的谓语。原文若是 exposure reduced inequality，选项写成 inequality reduced exposure，词都出现了，但施事与结果已经对调。\n\n先用 2—3 个名词锁定句群，再用主语、谓语和比较方向确认是否为同一命题。",
-      "exam_tip": "优先组合主题名词、机制名词和结果名词。"
+      "summary": "that access回指前句的access to training，后接的greater chances ...说明就业机会的变化。subsidy是政策背景；只找到这个词还没有回答培训机会与就业的联系。",
+      "exam_tip": "定位名词后读它们之间的动词linked，确认关系方向。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3551,7 +3551,7 @@
       "group": "定位词抓取",
       "box": "实义名词"
     },
-    "back_text": "翻卡结论：先从题干提取 2—3 个实义名词，再回原文核对这些名词与谓语的关系；同一个名词若对应不同主体，不能视为同一命题。"
+    "back_text": "定位 access to training 与 stable employment。报告把更多培训机会与更高的稳定就业机会联系起来。"
   },
   {
     "card_id": "110102",
@@ -3560,14 +3560,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe policy experiment reduced energy consumption in office buildings, but the strongest effect came not from new equipment, but from behavioral feedback dashboards shown weekly to employees.\n\n问题：哪一项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe policy experiment reduced energy consumption in office buildings, but the strongest effect came not from new equipment, but from behavioral feedback dashboards shown weekly to employees.\n\n问题：哪一项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe policy experiment reduced energy consumption in office buildings, but the strongest effect came not from new equipment, but from behavioral feedback dashboards shown weekly to employees.\n\n问题：哪一项与原文一致？"
+      "prompt": "哪一项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe policy experiment reduced energy consumption in office buildings, but the strongest effect came not from new equipment, but from behavioral feedback dashboards shown weekly to employees.\n\n任务：哪一项与原文一致？",
+      "context": "哪一项与原文一致？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "核心实义名词链为 policy experiment / energy consumption / equipment / feedback dashboards。\n原文明确表示 strongest effect 来自 feedback dashboards，而非 equipment。\n\n先定位实义名词，再核对它在句中执行的动作或承担的关系。",
-      "exam_tip": "先定位实义名词，再核对它在句中执行的动作或承担的关系。"
+      "summary": "not from new equipment, but from ... dashboards把最强效果归给反馈面板，所以B正确。A选了被排除对象，C反转能耗下降，D把weekly改成仅最后一次。",
+      "exam_tip": "读not A but B时，记清作者把主要作用给了谁。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3589,12 +3589,12 @@
       {
         "id": "C",
         "label": "C",
-        "text": "The survey was conducted in 2012."
+        "text": "Feedback dashboards raised energy consumption in the buildings."
       },
       {
         "id": "D",
         "label": "D",
-        "text": "The data came from WHO."
+        "text": "Employees received feedback only once at the end of the experiment."
       }
     ],
     "answer_key": {
@@ -3616,7 +3616,7 @@
     "analysis": {
       "title": "解析",
       "summary": "library opening 对应需求增加，staffing shortages 对应开放受限，recruiting more assistants 是后续应对。天气没有被提到，fewer 与 more 的方向也相反。",
-      "exam_tip": "把定位到的词与其对象、范围和关系一起核对。"
+      "exam_tip": "分别问图书馆开放带来什么、人员短缺限制什么、增聘助理要应对什么。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3657,14 +3657,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "判断：题干中的实义名词在原文出现同形词时，可以直接确定正确选项，不必核对谓语关系。",
-      "support": "判断：题干中的实义名词在原文出现同形词时，可以直接确定正确选项，不必核对谓语关系。",
-      "context": "判断：题干中的实义名词在原文出现同形词时，可以直接确定正确选项，不必核对谓语关系。"
+      "prompt": "判断：Reduced energy consumption was the reason employees received weekly feedback.",
+      "support": "练习材料（虚构情境）\nWeekly feedback helped employees reduce energy consumption in the office.\n\n任务：判断：Reduced energy consumption was the reason employees received weekly feedback.",
+      "context": "判断：Reduced energy consumption was the reason employees received weekly feedback."
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\n实义名词命中只是定位成功，不等于语义正确。\n仍需核对：\n1) 谁做了什么（主语-谓语）\n2) 方向是否反转（increase/decrease）\n3) 比较对象是否被偷换。\n\n先定位实义名词，再核对它在句中执行的动作或承担的关系。",
-      "exam_tip": "先定位实义名词，再核对它在句中执行的动作或承担的关系。"
+      "summary": "原句feedback是帮助实现变化的安排，reduce energy consumption是结果。判断句把结果放到reason位置，调换两者关系，即使关键词相同也不符合原文。",
+      "exam_tip": "先写明“什么帮助实现什么”，再核对选项有没有把原因和结果对调。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3696,14 +3696,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe clinical trial found a modest improvement in memory retention, but no significant change in processing speed. Researchers cautioned that sample size limitations may have masked subgroup differences.\n\n问题：哪项表述准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe clinical trial found a modest improvement in memory retention, but no significant change in processing speed. Researchers cautioned that sample size limitations may have masked subgroup differences.\n\n问题：哪项表述准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe clinical trial found a modest improvement in memory retention, but no significant change in processing speed. Researchers cautioned that sample size limitations may have masked subgroup differences.\n\n问题：哪项表述准确？"
+      "prompt": "哪项表述准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe clinical trial found a modest improvement in memory retention, but no significant change in processing speed. Researchers cautioned that sample size limitations may have masked subgroup differences.\n\n任务：哪项表述准确？",
+      "context": "哪项表述准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文三点并存：\n- memory retention：modest improvement\n- processing speed：no significant change\n- sample size limitations：可能掩盖亚组差异。\n\n先定位实义名词，再核对它在句中执行的动作或承担的关系。",
-      "exam_tip": "先定位实义名词，再核对它在句中执行的动作或承担的关系。"
+      "summary": "modest improvement in memory retention是记忆小幅改善，no significant change in processing speed是速度未见显著变化，A准确。B把两者都说成显著提高，C否认样本限制，D把clinical trial换成非临床调查。",
+      "exam_tip": "同句列多个指标时，一个个配上改善程度，别把某项变化复制给另一项。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3746,13 +3746,13 @@
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
       "prompt": "原文中哪个名词短语直接说明避免裁员所依靠的安排？",
-      "support": "练习材料（虚构情境）\n阅读片段：Economists expected wage subsidies to lift hiring, but the strongest response came from liquidity buffers that let small firms wait out demand shocks. Employers used the buffer not to expand immediately, but to avoid layoffs.\n\n题干：What most directly explains why the policy reduced layoffs?\n\n问题：原文中哪个名词短语直接说明避免裁员所依靠的安排？",
+      "support": "练习材料（虚构情境）\n阅读片段：Economists expected wage subsidies to lift hiring, but the strongest response came from liquidity buffers that let small firms wait out demand shocks. Employers used the buffer not to expand immediately, but to avoid layoffs.\n\n任务：原文中哪个名词短语直接说明避免裁员所依靠的安排？",
       "context": "原文中哪个名词短语直接说明避免裁员所依靠的安排？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "liquidity buffers 是材料给出的直接解释；wage subsidies 是原先预期的工具。这里依据实际句意辨认名词作用，不把未知的答案当成听前或读前必知的定位词。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "liquidity buffers让小公司wait out demand shocks，并被用来avoid layoffs，因此C直接回答。wage subsidies是最初预期的工具，demand shocks是面临的冲击，small firms是受影响企业。",
+      "exam_tip": "原因题不只找名词，还要读它后面let ...和used ... to说明的具体作用。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3801,7 +3801,7 @@
     "analysis": {
       "title": "解析",
       "summary": "separate systems 与重复录入联系，reconciling records 与增加的工作时间联系。两个错误项分别把系统关系和 more...than... 的比较方向反过来了。",
-      "exam_tip": "把定位到的词与其对象、范围和关系一起核对。"
+      "exam_tip": "把 separate systems 与重复录入连起来，再核对 more...than... 的比较方向。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3842,14 +3842,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "判断：在查找原因时，可以先用题干中指向讨论对象的词定位相关段落，再阅读该段的解释；不能把尚未读到的具体原因当成必知的第一步线索。",
-      "support": "判断：在查找原因时，可以先用题干中指向讨论对象的词定位相关段落，再阅读该段的解释；不能把尚未读到的具体原因当成必知的第一步线索。",
-      "context": "判断：在查找原因时，可以先用题干中指向讨论对象的词定位相关段落，再阅读该段的解释；不能把尚未读到的具体原因当成必知的第一步线索。"
+      "prompt": "判断：A question about why nurses have less time for patients is most directly answered in paragraph 2.",
+      "support": "练习材料（虚构情境）\nParagraph 1 lists nurses’ weekly working hours. Paragraph 2 explains how repeated record entry reduces the time available for patients. Paragraph 3 summarizes patients’ comments on meals.\n\n任务：判断：A question about why nurses have less time for patients is most directly answered in paragraph 2.",
+      "context": "判断：A question about why nurses have less time for patients is most directly answered in paragraph 2."
     },
     "analysis": {
       "title": "解析",
-      "summary": "题干通常先告诉你讨论什么，具体原因要从原文取得。定位与理解可以往返进行，不存在一律先猜出机制名词再去找原文的要求。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "why ... less time for patients与第二段reduces the time ... for patients相呼应，并给出repeated record entry这一原因。第一段只列工时，第三段谈餐食评价，都不直接回答本题。",
+      "exam_tip": "先用题目中的对象找到段落，再在段内读它给出的原因。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3882,13 +3882,13 @@
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
       "prompt": "作者用哪个名词短语命名抵消部分节能收益的现象？",
-      "support": "练习材料（虚构情境）\n阅读片段：The researchers found that the rebound effect erased part of the gains from household insulation. Once heating became cheaper, many residents increased indoor temperature and offset expected savings.\n\n题干：What weakened the expected energy savings?\n\n问题：作者用哪个名词短语命名抵消部分节能收益的现象？",
+      "support": "练习材料（虚构情境）\n阅读片段：The researchers found that the rebound effect erased part of the gains from household insulation. Once heating became cheaper, many residents increased indoor temperature and offset expected savings.\n\n任务：作者用哪个名词短语命名抵消部分节能收益的现象？",
       "context": "作者用哪个名词短语命名抵消部分节能收益的现象？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "作者将这种抵消命名为 rebound effect。室温提高是说明这一现象的具体行为；问题问名称，不能把行为与名称混在一起。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "作者把抵消节能收益的现象称为the rebound effect，故B正确。居民因取暖更便宜而提高室温是它的具体表现；insulation是原节能措施，expected savings是被抵消的收益。",
+      "exam_tip": "题目问现象的名称，就选作者给的名称；问表现时才答升高室温。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3937,7 +3937,7 @@
     "analysis": {
       "title": "解析",
       "summary": "rather than 排除较弱申请者这个解释。experience requirements 与 actual task performance 的联系被评价为差，不支持每种证书都能可靠衡量能力。",
-      "exam_tip": "把定位到的词与其对象、范围和关系一起核对。"
+      "exam_tip": "划出 rather than 排除的解释，再核对经验要求与实际表现之间的联系。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -3978,14 +3978,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "判断：当作者先给出一个大主题名词（如 innovation），随后给出更具体的机制名词（如 diffusion bottlenecks），题干如果问“为什么创新未扩散”，应优先抓后者。",
-      "support": "判断：当作者先给出一个大主题名词（如 innovation），随后给出更具体的机制名词（如 diffusion bottlenecks），题干如果问“为什么创新未扩散”，应优先抓后者。",
-      "context": "判断：当作者先给出一个大主题名词（如 innovation），随后给出更具体的机制名词（如 diffusion bottlenecks），题干如果问“为什么创新未扩散”，应优先抓后者。"
+      "prompt": "判断：The shortage of installers, rather than the price of the devices, was presented as the obstacle to wider adoption.",
+      "support": "练习材料（虚构情境）\nThe devices were affordable, but adoption remained slow because installation required technicians who were in short supply. The authors called this a diffusion bottleneck.\n\n任务：判断：The shortage of installers, rather than the price of the devices, was presented as the obstacle to wider adoption.",
+      "context": "判断：The shortage of installers, rather than the price of the devices, was presented as the obstacle to wider adoption."
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：大主题名词和机制名词同时存在时，题干问 why/how，优先抓机制名词。\n\n② 核心规律：主题名词通常负责定义段落话题，机制名词负责决定答案层。阅读定位要分清“这段在讲什么”和“这题在问什么”。\n\n③ 验证：如果题干问创新为何未扩散，innovation 只能带你进主题，diffusion bottlenecks 才能把你带到答案。",
-      "exam_tip": "主题词适合记段落，机制词适合做题。"
+      "summary": "affordable排除价格过高这一解释，because之后说明technicians were in short supply。diffusion bottleneck在这里给这种推广阻碍命名，不是另一个无关问题。",
+      "exam_tip": "遇到专门名词，读它前后给的具体行为或条件，别只背抽象译名。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -4018,13 +4018,13 @@
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
       "prompt": "哪个名词短语是作者给出的主要解释？",
-      "support": "练习材料（虚构情境）\n阅读片段：The study argued that civic disengagement was driven less by apathy than by institutional opacity. Residents stopped attending meetings because decision procedures were hard to follow and outcomes seemed detached from local input.\n\n题干：What most directly drove civic disengagement?\n\n问题：哪个名词短语是作者给出的主要解释？",
+      "support": "练习材料（虚构情境）\n阅读片段：The study argued that civic disengagement was driven less by apathy than by institutional opacity. Residents stopped attending meetings because decision procedures were hard to follow and outcomes seemed detached from local input.\n\n任务：哪个名词短语是作者给出的主要解释？",
       "context": "哪个名词短语是作者给出的主要解释？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "less by apathy than by institutional opacity 对照两种解释，作者更强调制度不透明。这个判断来自本句，不能推广成所有文章的答案都在某类名词后面。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "less by apathy than by institutional opacity更强调制度不透明，故D正确。后句decision procedures were hard to follow具体解释不透明怎样让居民停止参加会议；disengagement是结果，apathy是被弱化的原因。",
+      "exam_tip": "把抽象opacity与后面的具体表现相连：程序难懂、意见与结果脱节。"
     },
     "space_metadata": {
       "box_ref": "1101",
@@ -4066,14 +4066,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "【定位词抓取：逻辑限定词】\n\n逻辑限定词决定命题强度与适用范围，常见包括：\n- 频率：always / often / occasionally\n- 范围：all / most / some / a minority of\n- 证据强度：prove / suggest / may\n\n做题要点：先圈限定词，再判断选项是否放大、缩小或改写确定性。\n\n高危误判：把 may/likely 改成 will/certainly。",
-      "support": "【定位词抓取：逻辑限定词】\n\n逻辑限定词决定命题强度与适用范围，常见包括：\n- 频率：always / often / occasionally\n- 范围：all / most / some / a minority of\n- 证据强度：prove / suggest / may\n\n做题要点：先圈限定词，再判断选项是否放大、缩小或改写确定性。\n\n高危误判：把 may/likely 改成 will/certainly。",
-      "context": "【定位词抓取：逻辑限定词】\n\n逻辑限定词决定命题强度与适用范围，常见包括：\n- 频率：always / often / occasionally\n- 范围：all / most / some / a minority of\n- 证据强度：prove / suggest / may\n\n做题要点：先圈限定词，再判断选项是否放大、缩小或改写确定性。\n\n高危误判：把 may/likely 改成 will/certainly。"
+      "prompt": "练习材料（虚构情境）\nThe findings suggest that some students may benefit from weekly feedback if they have time to revise their work.\n\n这句话是否保证所有学生都会受益？请找出限制人数、确定程度和适用条件的表达。",
+      "support": "练习材料（虚构情境）\nThe findings suggest that some students may benefit from weekly feedback if they have time to revise their work.\n\n这句话是否保证所有学生都会受益？请找出限制人数、确定程度和适用条件的表达。",
+      "context": "练习材料（虚构情境）\nThe findings suggest that some students may benefit from weekly feedback if they have time to revise their work.\n\n这句话是否保证所有学生都会受益？请找出限制人数、确定程度和适用条件的表达。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "限定词决定一句话能承诺到什么程度。原文 says the findings suggest that some students may benefit，只支持“部分学生可能受益”；选项写 all students will benefit 就同时扩大范围、提高确定性。\n\n核对时把限定词单独标出：频率、数量范围、条件和证据强度各看一遍。删除 may、often、in some cases 之类词语，通常会把谨慎结论改成绝对结论。\n\n答案必须保留原文的强度和边界，不能只保留主题方向。",
-      "exam_tip": "may 与 will、most 与 all 不是同义改写。"
+      "summary": "原文给的是部分学生在有时间修改时可能受益。all students will benefit同时把人数扩大、可能性变确定，还漏掉修改条件，不是同义改写。",
+      "exam_tip": "先分别问哪些人、是否一定、需要什么条件，再核对选项。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4081,7 +4081,7 @@
       "group": "定位词抓取",
       "box": "逻辑限定词"
     },
-    "back_text": "翻卡结论：先圈出频率、范围和证据强度限定词，再检查选项是否放大范围或提高确定性；may、often、some 不能被改写成 must、always、all。"
+    "back_text": "没有保证。some限制人数，suggest/may保留推断余地，if they have time to revise限定有时间修改的条件。"
   },
   {
     "card_id": "110202",
@@ -4090,14 +4090,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nMost participants reported improved sleep quality after the intervention, but only a minority showed measurable changes in blood pressure.\n\n问题：哪项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nMost participants reported improved sleep quality after the intervention, but only a minority showed measurable changes in blood pressure.\n\n问题：哪项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nMost participants reported improved sleep quality after the intervention, but only a minority showed measurable changes in blood pressure.\n\n问题：哪项与原文一致？"
+      "prompt": "哪项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nMost participants reported improved sleep quality after the intervention, but only a minority showed measurable changes in blood pressure.\n\n任务：哪项与原文一致？",
+      "context": "哪项与原文一致？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "睡眠改善来自受试者报告，血压变化则是可测量指标。答案既要保留 most 与 only a minority，也要区分自我报告和客观测量。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "most对应reported improved sleep，only a minority对应measurable blood-pressure changes，B两项保留。A把多数挪给血压，C加入压力指标，D把两个结果都扩大到所有人。",
+      "exam_tip": "报告的感受与测量的指标要分别核对，不只记most和minority。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4145,8 +4145,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "第一项：suggests + may 对应“可能”而非“必然”。\n第三项：effect depends on 条件约束被完整保留。\n\n范围词、概率词和条件词不能在改写时被删除或强化。",
-      "exam_tip": "范围词、概率词和条件词不能在改写时被删除或强化。"
+      "summary": "suggests/may允许1的might；depends on支持3的条件限制。2的certainly/regardless与4的proves/always都去掉了可能性和条件，应划去。家庭能耗和办公室使用安排仍会影响结果。",
+      "exam_tip": "把“可能有效”与“无论条件都有效”分开，两句不是同一结论。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4187,14 +4187,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "判断：当原文出现 most 时，选项写成 all 通常仍可视为同义改写。",
-      "support": "判断：当原文出现 most 时，选项写成 all 通常仍可视为同义改写。",
-      "context": "判断：当原文出现 most 时，选项写成 all 通常仍可视为同义改写。"
+      "prompt": "判断：Every participant reported an improvement in sleep.",
+      "support": "练习材料（虚构情境）\nMost participants reported better sleep after the programme, although several noticed no change.\n\n任务：判断：Every participant reported an improvement in sleep.",
+      "context": "判断：Every participant reported an improvement in sleep."
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\nmost 与 all 在命题强度上不同。\nmost 允许例外，all 不允许例外；把 most 改成 all 属于非法强化。\n\n范围词、概率词和条件词不能在改写时被删除或强化。",
-      "exam_tip": "范围词、概率词和条件词不能在改写时被删除或强化。"
+      "summary": "most不是every，although several noticed no change还给了明确例外。因此不能因为总体改善就说每个人都报告改善。",
+      "exam_tip": "先找原文有没有例外，再判断every是否成立。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4226,14 +4226,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nResearchers found that students who reviewed notes weekly were more likely to retain key concepts. However, the study did not prove that weekly review alone caused higher final scores.\n\n问题：哪项准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nResearchers found that students who reviewed notes weekly were more likely to retain key concepts. However, the study did not prove that weekly review alone caused higher final scores.\n\n问题：哪项准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nResearchers found that students who reviewed notes weekly were more likely to retain key concepts. However, the study did not prove that weekly review alone caused higher final scores.\n\n问题：哪项准确？"
+      "prompt": "哪项准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nResearchers found that students who reviewed notes weekly were more likely to retain key concepts. However, the study did not prove that weekly review alone caused higher final scores.\n\n任务：哪项准确？",
+      "context": "哪项准确？"
     },
     "analysis": {
       "title": "解析",
       "summary": "more likely 比较保留概念的概率；后句明确说没有证明仅靠每周复习导致期末分提高。概念保留与期末分数是不同指标，且概率差异本身不等于已证明唯一因果。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "exam_tip": "先把概念保留与期末分数分开，再看 did not prove 排除了哪项因果结论。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4275,14 +4275,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The authors suggest that algorithmic screening can reduce hiring time in some sectors, but they stop short of claiming that it improves match quality across the board.\n\n题干：What do the authors say about match quality?\n\n哪项最准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：The authors suggest that algorithmic screening can reduce hiring time in some sectors, but they stop short of claiming that it improves match quality across the board.\n\n题干：What do the authors say about match quality?\n\n哪项最准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：The authors suggest that algorithmic screening can reduce hiring time in some sectors, but they stop short of claiming that it improves match quality across the board.\n\n题干：What do the authors say about match quality?\n\n哪项最准确？"
+      "prompt": "哪项最准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：The authors suggest that algorithmic screening can reduce hiring time in some sectors, but they stop short of claiming that it improves match quality across the board.\n\n任务：哪项最准确？",
+      "context": "哪项最准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：suggest 与 stop short of claiming 都在降低命题强度。\n\n② 核心规律：六级逻辑限定词题常把“局部可能有效”偷换成“整体已被证明”。这里 some sectors 与 across the board 正好构成局部/整体的边界对照。\n\n③ 验证：题干问 match quality，就不能被 reduce hiring time 这条支线带走，必须抓 stop short of claiming 那个边界表达。",
-      "exam_tip": "问哪一层信息，就抓那一层的限定词。"
+      "summary": "stop short of claiming ... across the board表示没有宣称在所有情形都改善匹配质量，A准确。reduce hiring time说效率，不是match quality；B、D扩大到全部，C又错误否认任何效率好处。",
+      "exam_tip": "先分清题目问招聘耗时还是匹配质量，再找相应限制。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4324,14 +4324,14 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "保留决定结论范围或适用条件的词语，划去其他候选项。",
-      "support": "练习材料（虚构情境）\n阅读片段：The briefing states that some flood defenses performed better than expected, although only under moderate storm conditions. During extreme events, failure risk remained substantial.\n\n任务：保留决定结论范围或适用条件的词语，划去其他候选项。",
-      "context": "保留决定结论范围或适用条件的词语，划去其他候选项。"
+      "prompt": "保留说明数量、适用情景和风险程度的表达；划去设施名称和笼统的良好表现。",
+      "support": "练习材料（虚构情境）\n阅读片段：The briefing states that some flood defenses performed better than expected, although only under moderate storm conditions. During extreme events, failure risk remained substantial.\n\n任务：保留说明数量、适用情景和风险程度的表达；划去设施名称和笼统的良好表现。",
+      "context": "保留说明数量、适用情景和风险程度的表达；划去设施名称和笼统的良好表现。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：some 与 only under... 是范围和条件边界，extreme events 则给出失效场景。\n\n② 核心规律：逻辑限定词题的核心是把“有效场景”和“失效场景”同时抓住。只抓 better than expected，会把结论误读成全面成功。\n\n③ 验证：moderate storm conditions 与 extreme events 形成鲜明对照，正是题干可能拿来出错项的地方。",
-      "exam_tip": "条件有效不等于普遍有效。"
+      "summary": "some限制数量，only under moderate storm conditions限定有效场景，extreme events与substantial说明极端情况下风险仍高。这些都保留。flood defenses只是设施名称，performed better than expected只说良好表现，按本题要求划去。",
+      "exam_tip": "把适用场景与风险程度一起保留，别将某些条件下表现好扩大成全面安全。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4380,14 +4380,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "阅读：The researchers describe the evidence as limited and say further trials are needed before reaching a firm conclusion.\n判断：这段话可改写为“研究者已经获得确凿结论”。",
-      "support": "阅读：The researchers describe the evidence as limited and say further trials are needed before reaching a firm conclusion.\n判断：这段话可改写为“研究者已经获得确凿结论”。",
-      "context": "阅读：The researchers describe the evidence as limited and say further trials are needed before reaching a firm conclusion.\n判断：这段话可改写为“研究者已经获得确凿结论”。"
+      "prompt": "判断：这段话可改写为“研究者已经获得确凿结论”。",
+      "support": "阅读：The researchers describe the evidence as limited and say further trials are needed before reaching a firm conclusion.\n\n任务：判断：这段话可改写为“研究者已经获得确凿结论”。",
+      "context": "判断：这段话可改写为“研究者已经获得确凿结论”。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "further trials are needed before reaching a firm conclusion 明确说明尚未定论。不能只按 limited 与 conclusive 两个孤立词机械排序，本题的判断依据是完整语境。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "further trials are needed before reaching a firm conclusion说还需试验才能形成确定结论，与“已经获得确凿结论”相反。limited表示当前证据有限，不能删掉后面的待研究条件。",
+      "exam_tip": "before reaching说明结论还没到那一步，注意完成状态。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4419,14 +4419,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The memo notes that a universal basic income could stabilize income volatility for some gig workers, but the outcome depends heavily on local rent levels and benefit design.\n\n题干：Which option best preserves the memo’s logic?\n\n哪项最准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：The memo notes that a universal basic income could stabilize income volatility for some gig workers, but the outcome depends heavily on local rent levels and benefit design.\n\n题干：Which option best preserves the memo’s logic?\n\n哪项最准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：The memo notes that a universal basic income could stabilize income volatility for some gig workers, but the outcome depends heavily on local rent levels and benefit design.\n\n题干：Which option best preserves the memo’s logic?\n\n哪项最准确？"
+      "prompt": "哪项最准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：The memo notes that a universal basic income could stabilize income volatility for some gig workers, but the outcome depends heavily on local rent levels and benefit design.\n\n任务：哪项最准确？",
+      "context": "哪项最准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：could、for some、depends heavily on 都在限制结论。\n\n② 核心规律：当一段同时给出 modal verb、范围词和条件词时，正确选项必须三者都尽量保留。只丢其中一个，结论就会变形。\n\n③ 验证：若选项写成 will stabilize income for gig workers generally，就把 could 与 for some 两层都偷掉了。",
-      "exam_tip": "多层限定出现时，正确选项往往要同时保留多层。"
+      "summary": "could是可能，for some gig workers限定部分人，depends on rent levels and benefit design限定当地租金与方案。C全部保留；A变成all/will，B否认任何作用，D否认租金影响，都不符。",
+      "exam_tip": "三个问题分别核对：可能还是必然、哪些人、还取决于什么。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4468,14 +4468,14 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "保留决定结论范围或适用条件的词语，划去其他候选项。",
-      "support": "练习材料（虚构情境）\n阅读片段：The review concludes that early reading interventions are generally effective, though gains appear to fade somewhat without continued support in later grades.\n\n任务：保留决定结论范围或适用条件的词语，划去其他候选项。",
-      "context": "保留决定结论范围或适用条件的词语，划去其他候选项。"
+      "prompt": "这次只标出总体程度、转折、效果减弱程度和有无持续支持这四项说明；划去研究对象名称及年级时间词。",
+      "support": "练习材料（虚构情境）\n阅读片段：The review concludes that early reading interventions are generally effective, though gains appear to fade somewhat without continued support in later grades.\n\n任务：这次只标出总体程度、转折、效果减弱程度和有无持续支持这四项说明；划去研究对象名称及年级时间词。",
+      "context": "这次只标出总体程度、转折、效果减弱程度和有无持续支持这四项说明；划去研究对象名称及年级时间词。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：generally 给出总体评价，though 引出保留条款，fade somewhat 给出减弱程度，without continued support 给出触发条件。\n\n② 核心规律：逻辑限定词题经常不是单个词决定真假，而是四五个词共同构成“主结论+保留条款”。\n\n③ 验证：若只抓 generally effective，就会错过后面的修正；若只抓 fade somewhat，又会把总体结论看漏。",
-      "exam_tip": "主结论和保留条款需要一起抓。"
+      "summary": "generally说明总体程度，though转折，fade somewhat说明减弱幅度，without continued support说明条件，四项保留。按本题的限定任务，early reading interventions和later grades暂时划去；读懂全文时年级信息仍须保留。",
+      "exam_tip": "先看本题要求标哪些成分；暂不标记的时间信息不等于理解时可忽略。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4524,14 +4524,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "阅读：The method is generally effective, though gains may fade without continued support.\n判断：该方法在任何条件下都具有永久效果。",
-      "support": "阅读：The method is generally effective, though gains may fade without continued support.\n判断：该方法在任何条件下都具有永久效果。",
-      "context": "阅读：The method is generally effective, though gains may fade without continued support.\n判断：该方法在任何条件下都具有永久效果。"
+      "prompt": "判断：该方法在任何条件下都具有永久效果。",
+      "support": "阅读：The method is generally effective, though gains may fade without continued support.\n\n任务：判断：该方法在任何条件下都具有永久效果。",
+      "context": "判断：该方法在任何条件下都具有永久效果。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "generally、may 和 without continued support 共同限制效果范围。原文也没有直接陈述作者的完整政策立场，不能把效果评价简单等同于完全支持或全盘反对。",
-      "exam_tip": "先区分句法层级与信息范围，再回到完整语境核对。"
+      "summary": "generally只说通常有效，may fade又指出无持续支持时可能减弱。因此“任何条件、永久效果”同时扩大了适用情况和持续时间。",
+      "exam_tip": "既读总体评价，也读though后说明效果可能变化的条件。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4563,14 +4563,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 定位词抓取",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The authors argue that the correlation is unlikely to be explained entirely by income, since neighborhood density and transit access still account for part of the pattern.\n\n题干：What do the authors argue about income?\n\n哪项最准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：The authors argue that the correlation is unlikely to be explained entirely by income, since neighborhood density and transit access still account for part of the pattern.\n\n题干：What do the authors argue about income?\n\n哪项最准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：The authors argue that the correlation is unlikely to be explained entirely by income, since neighborhood density and transit access still account for part of the pattern.\n\n题干：What do the authors argue about income?\n\n哪项最准确？"
+      "prompt": "哪项最准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：The authors argue that the correlation is unlikely to be explained entirely by income, since neighborhood density and transit access still account for part of the pattern.\n\n任务：哪项最准确？",
+      "context": "哪项最准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：unlikely、entirely、still account for part 都在防止“单因解释”。\n\n② 核心规律：逻辑限定词题经常考“不是全部由X造成”这种半否定结构。若选项改成 income has no role，就又走到另一端去了。\n\n③ 验证：neighborhood density 和 transit access 仍解释 part of the pattern，说明 income 有作用但不是全部。",
-      "exam_tip": "部分否定比全否定更难，需要特别留意 entirely / solely / purely。"
+      "summary": "unlikely ... entirely by income说不太可能完全由收入解释，B保留收入可能有关但不足以独自解释。density与transit access解释部分现象，因此A过强；材料也没有支持C的完全无关，D又否认已提到的交通因素。",
+      "exam_tip": "“不是全部由X解释”并不证明X毫无作用，也不必然证明X一定有多大作用。"
     },
     "space_metadata": {
       "box_ref": "1102",
@@ -4612,14 +4612,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "【干扰项排除：无中生有】\n\n无中生有指选项引入了原文未出现、也无法由原文推出的新信息。\n\n高频伪装方式：\n1) 新增原因/后果；\n2) 新增主体（政府、专家、企业等）；\n3) 新增时间与范围。\n\n作答流程：先定位原文信息边界，再检查选项是否越界补料。",
-      "support": "【干扰项排除：无中生有】\n\n无中生有指选项引入了原文未出现、也无法由原文推出的新信息。\n\n高频伪装方式：\n1) 新增原因/后果；\n2) 新增主体（政府、专家、企业等）；\n3) 新增时间与范围。\n\n作答流程：先定位原文信息边界，再检查选项是否越界补料。",
-      "context": "【干扰项排除：无中生有】\n\n无中生有指选项引入了原文未出现、也无法由原文推出的新信息。\n\n高频伪装方式：\n1) 新增原因/后果；\n2) 新增主体（政府、专家、企业等）；\n3) 新增时间与范围。\n\n作答流程：先定位原文信息边界，再检查选项是否越界补料。"
+      "prompt": "练习材料（虚构情境）\nThe pilot replaced paper forms with a digital application. Average processing time fell by two days.\n\n能据此断定居民对该机构的信任提高了吗？说明材料实际报告了什么。",
+      "support": "练习材料（虚构情境）\nThe pilot replaced paper forms with a digital application. Average processing time fell by two days.\n\n能据此断定居民对该机构的信任提高了吗？说明材料实际报告了什么。",
+      "context": "练习材料（虚构情境）\nThe pilot replaced paper forms with a digital application. Average processing time fell by two days.\n\n能据此断定居民对该机构的信任提高了吗？说明材料实际报告了什么。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项中的主体、原因、后果、时间和范围，必须能由原文直接支持或合理推出。主题相关、符合常识，都不能代替材料中的依据。",
-      "exam_tip": "常识正确不等于原文支持。"
+      "summary": "replaced paper forms说明措施，processing time fell说明效率结果。trust是另一个结果，可能相关也不等于这段材料已经证明，不能自行加进结论。",
+      "exam_tip": "先写出材料实际测量的指标，再查选项有没有换成别的结果。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -4627,7 +4627,7 @@
       "group": "干扰项排除",
       "box": "无中生有"
     },
-    "back_text": "选项中的主体、原因、后果、时间和范围，必须能由原文直接支持或合理推出。主题相关、符合常识，都不能代替材料中的依据。"
+    "back_text": "不能。材料报告申请方式改变和平均处理时间缩短，没有提供居民信任的变化。"
   },
   {
     "card_id": "111002",
@@ -4636,14 +4636,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe study tracked dietary habits in 12 cities and found that participants who prepared meals at home consumed less added sugar on average. The report did not evaluate exercise frequency.\n\n问题：哪项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe study tracked dietary habits in 12 cities and found that participants who prepared meals at home consumed less added sugar on average. The report did not evaluate exercise frequency.\n\n问题：哪项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe study tracked dietary habits in 12 cities and found that participants who prepared meals at home consumed less added sugar on average. The report did not evaluate exercise frequency.\n\n问题：哪项与原文一致？"
+      "prompt": "哪项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe study tracked dietary habits in 12 cities and found that participants who prepared meals at home consumed less added sugar on average. The report did not evaluate exercise frequency.\n\n任务：哪项与原文一致？",
+      "context": "哪项与原文一致？"
     },
     "analysis": {
       "title": "解析",
       "summary": "研究观察到在家做饭的参与者平均摄入较少添加糖，且明确没有评价运动频率。不能补出运动变化、健身效果或已经证实的唯一原因。",
-      "exam_tip": "区分原文报告了什么与没有评估什么；相关主题不能补成证据。"
+      "exam_tip": "把 less added sugar 与 did not evaluate exercise 分别标出，核对饮食结果和未测量项目。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -4691,8 +4691,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "A 保留“试点公交专用道+高峰通勤时间缩短”。\nC 保留“报告未评估空气质量变化”。\n其余选项新增了原文未给出的因果与扩展结论。\n\n区分原文报告了什么与没有评估什么；相关主题不能补成证据。",
-      "exam_tip": "区分原文报告了什么与没有评估什么；相关主题不能补成证据。"
+      "summary": "1保留高峰通勤缩短，3保留未测空气质量。2却宣布空气质量改善，4又增加私车拥有率下降并称其完全解释效果，这两项都没有研究依据，应划去。",
+      "exam_tip": "同属交通话题的空气质量、车主数量和通勤时间仍是不同指标。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -4733,14 +4733,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：只要选项与原文主题一致，即使补充了原文没有提到的细节，也可以判为正确。",
-      "support": "判断：只要选项与原文主题一致，即使补充了原文没有提到的细节，也可以判为正确。",
-      "context": "判断：只要选项与原文主题一致，即使补充了原文没有提到的细节，也可以判为正确。"
+      "prompt": "判断：The report showed that the park raised nearby housing prices.",
+      "support": "练习材料（虚构情境）\nAfter a new park opened, visits from nearby residents increased. The report contained no data on local housing prices.\n\n任务：判断：The report showed that the park raised nearby housing prices.",
+      "context": "判断：The report showed that the park raised nearby housing prices."
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\n主题一致不等于信息合法。\n若新增细节不在原文证据边界内，即构成无中生有，应判错。\n\n区分原文报告了什么与没有评估什么；相关主题不能补成证据。",
-      "exam_tip": "区分原文报告了什么与没有评估什么；相关主题不能补成证据。"
+      "summary": "visits increased是原文发现，housing prices并未测量。公园与房价同属社区话题，也不能把这个可能影响写成报告已证明的结果。",
+      "exam_tip": "找出showed后宣称的结果，确认报告是否真的提供该指标。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -4772,14 +4772,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nResearchers observed that students using retrieval practice performed better on delayed tests. However, the paper did not compare retrieval practice with all other learning methods.\n\n问题：哪项表述准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nResearchers observed that students using retrieval practice performed better on delayed tests. However, the paper did not compare retrieval practice with all other learning methods.\n\n问题：哪项表述准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nResearchers observed that students using retrieval practice performed better on delayed tests. However, the paper did not compare retrieval practice with all other learning methods.\n\n问题：哪项表述准确？"
+      "prompt": "哪项表述准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nResearchers observed that students using retrieval practice performed better on delayed tests. However, the paper did not compare retrieval practice with all other learning methods.\n\n任务：哪项表述准确？",
+      "context": "哪项表述准确？"
     },
     "analysis": {
       "title": "解析",
       "summary": "原文观察到使用检索练习的学生在延迟测验中表现较好，但没有与所有其他方法比较。应同时保留观察范围，避免额外写成普遍优势或已经证明的因果。",
-      "exam_tip": "区分原文报告了什么与没有评估什么；相关主题不能补成证据。"
+      "exam_tip": "先圈出 delayed tests，再找是否真的比较了所有其他学习方法。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -4821,14 +4821,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The analysis found that households using smart thermostats reduced heating peaks during winter evenings. The report did not examine whether the devices lowered total annual electricity bills.\n\n题干：Which statement adds unsupported information?\n\n哪项是无中生有？",
-      "support": "练习材料（虚构情境）\n阅读片段：The analysis found that households using smart thermostats reduced heating peaks during winter evenings. The report did not examine whether the devices lowered total annual electricity bills.\n\n题干：Which statement adds unsupported information?\n\n哪项是无中生有？",
-      "context": "练习材料（虚构情境）\n阅读片段：The analysis found that households using smart thermostats reduced heating peaks during winter evenings. The report did not examine whether the devices lowered total annual electricity bills.\n\n题干：Which statement adds unsupported information?\n\n哪项是无中生有？"
+      "prompt": "哪项是无中生有？",
+      "support": "练习材料（虚构情境）\n阅读片段：The analysis found that households using smart thermostats reduced heating peaks during winter evenings. The report did not examine whether the devices lowered total annual electricity bills.\n\n任务：哪项是无中生有？",
+      "context": "哪项是无中生有？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：原文明确说 did not examine annual bills，这是送分证据。\n\n② 核心规律：无中生有最常把局部技术效果扩大成全面经济收益。这里 heating peaks 是局部行为指标，annual bills 是全年经济结果，二者不是一回事。\n\n③ 验证：只要选项碰 annual electricity bills，就必须先回到原文核证；原文没有，就是错。",
-      "exam_tip": "局部运行指标不能自动推出全年成本结果。"
+      "summary": "D声称全年电费降低已经得到证明，原文却明确did not examine ... annual electricity bills。A、B说实际冬日晚间用能发现，C正确保留未检验账单这一限制；不是提到bills的选项都错。",
+      "exam_tip": "读完整断言：是说已经测得结果，还是说没有测量，不能只凭关键词排项。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -4870,14 +4870,14 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "阅读片段：A museum program increased weekday visits from local schools. The evaluation tracked attendance and teacher feedback, but it did not measure long-term effects on students’ art-related career choices.\n\n任务：找出无中生有的说法。",
-      "support": "练习材料（虚构情境）\n阅读片段：A museum program increased weekday visits from local schools. The evaluation tracked attendance and teacher feedback, but it did not measure long-term effects on students’ art-related career choices.\n\n任务：找出无中生有的说法。",
-      "context": "阅读片段：A museum program increased weekday visits from local schools. The evaluation tracked attendance and teacher feedback, but it did not measure long-term effects on students’ art-related career choices.\n\n任务：找出无中生有的说法。"
+      "prompt": "划去原文未能支持的说法。",
+      "support": "练习材料（虚构情境）\n阅读片段：A museum program increased weekday visits from local schools. The evaluation tracked attendance and teacher feedback, but it did not measure long-term effects on students’ art-related career choices.\n\n任务：划去原文未能支持的说法。",
+      "context": "划去原文未能支持的说法。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：评价指标被明确列出时，指标外的信息就是高风险新增。\n\n② 核心规律：无中生有题常从短期教育活动跳到长期人生结果，这是一种典型跨层外推。\n\n③ 验证：attendance 与 feedback 属于活动层；career choices 与 professional ambitions 属于人生路径层，原文没有桥接证据。",
-      "exam_tip": "活动效果不等于人生选择结果。"
+      "summary": "研究记录attendance与teacher feedback，支持1、2；未测长期art-related career choices，支持5。3的选择艺术职业、4的永久改变职业抱负都不是已测结果，应划去。",
+      "exam_tip": "分开记录研究看了什么、明确没看什么，尤其核对long-term与permanently。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -4922,14 +4922,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：若选项在真实证据后面再追加一个作者未提及的“社会影响”或“长期后果”，通常应判为无中生有。",
-      "support": "判断：若选项在真实证据后面再追加一个作者未提及的“社会影响”或“长期后果”，通常应判为无中生有。",
-      "context": "判断：若选项在真实证据后面再追加一个作者未提及的“社会影响”或“长期后果”，通常应判为无中生有。"
+      "prompt": "判断：The report supports shorter journeys, but does not establish that the shuttle created jobs.",
+      "support": "练习材料（虚构情境）\nThe new shuttle service reduced reported journey times. The study did not examine employment outcomes.\n\n任务：判断：The report supports shorter journeys, but does not establish that the shuttle created jobs.",
+      "context": "判断：The report supports shorter journeys, but does not establish that the shuttle created jobs."
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：选项里出现 therefore、which means、thus leading to 等因果延伸时，要重点检查后半句。\n\n② 核心规律：六级无中生有题越来越多地采用“前半真、后半假”的混合策略。真正的解法不是整体看感觉，而是分段验真。\n\n③ 验证：只要后半段新增信息找不到原文对应句，整项就不成立。",
-      "exam_tip": "混合型错项必须拆开验证。"
+      "summary": "journey times是报告结果，created jobs属于employment outcomes，后者没有研究。判断句保留了这条界限，而不是把两个可能相关的结果合并。",
+      "exam_tip": "一个选项有两个结论时，每个结论都要分别找依据。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -4961,14 +4961,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The report found that farmers adopting drip irrigation reduced water waste in drought-prone regions. It did not compare the method with every alternative irrigation system.\n\n题干：Which statement goes beyond the evidence?\n\n哪项是无中生有？",
-      "support": "练习材料（虚构情境）\n阅读片段：The report found that farmers adopting drip irrigation reduced water waste in drought-prone regions. It did not compare the method with every alternative irrigation system.\n\n题干：Which statement goes beyond the evidence?\n\n哪项是无中生有？",
-      "context": "练习材料（虚构情境）\n阅读片段：The report found that farmers adopting drip irrigation reduced water waste in drought-prone regions. It did not compare the method with every alternative irrigation system.\n\n题干：Which statement goes beyond the evidence?\n\n哪项是无中生有？"
+      "prompt": "哪项是无中生有？",
+      "support": "练习材料（虚构情境）\n阅读片段：The report found that farmers adopting drip irrigation reduced water waste in drought-prone regions. It did not compare the method with every alternative irrigation system.\n\n任务：哪项是无中生有？",
+      "context": "哪项是无中生有？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：原文主动交代 did not compare with every alternative system。\n\n② 核心规律：无中生有常通过“优于所有”“最佳方案”等全称比较来包装。原文若没做全面比较，就不能接受这种升级。\n\n③ 验证：reduced water waste 是局部事实，best among all alternatives 是额外排名结论。",
-      "exam_tip": "局部效果不等于全局最优。"
+      "summary": "reduced water waste支持A，drought-prone regions支持D；did not compare ... every alternative支持C。B却说已证明优于所有方法，正是本次研究没有完成的比较。",
+      "exam_tip": "某方法有效不等于它比所有其他方法更好，需要另有比较证据。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -5010,14 +5010,14 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "阅读片段：Researchers reported that older adults using hearing aids stayed more engaged in group conversation. The article did not test whether hearing-aid use slowed cognitive decline.\n\n任务：找出无中生有的说法。",
-      "support": "练习材料（虚构情境）\n阅读片段：Researchers reported that older adults using hearing aids stayed more engaged in group conversation. The article did not test whether hearing-aid use slowed cognitive decline.\n\n任务：找出无中生有的说法。",
-      "context": "阅读片段：Researchers reported that older adults using hearing aids stayed more engaged in group conversation. The article did not test whether hearing-aid use slowed cognitive decline.\n\n任务：找出无中生有的说法。"
+      "prompt": "划去材料没有证据支持的说法。",
+      "support": "练习材料（虚构情境）\n阅读片段：Researchers reported that older adults using hearing aids stayed more engaged in group conversation. The article did not test whether hearing-aid use slowed cognitive decline.\n\n任务：划去材料没有证据支持的说法。",
+      "context": "划去材料没有证据支持的说法。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：原文给的是 social engagement，没给 cognition。\n\n② 核心规律：无中生有常把“更愿意参与交流”直接拔高成“认知获益”甚至“疾病预防”。层级越往上跳，越可能没证据。\n\n③ 验证：只要选项碰到 cognitive decline 或 dementia，就要立刻回看 did not test 那句。",
-      "exam_tip": "社交参与提升不等于认知结局改善。"
+      "summary": "stayed more engaged in group conversation只报告交谈参与，支持1、5；未测认知衰退，支持2。3宣称减慢认知衰退，4进一步称预防痴呆，都不是这项材料给出的结果。",
+      "exam_tip": "关注具体测量指标，不因都是健康相关结果就互相推导。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -5062,14 +5062,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：如果原文只报告了相关性或观察结果，选项却进一步写成政策上“应立即全面推广”，这通常也要视为无中生有。",
-      "support": "判断：如果原文只报告了相关性或观察结果，选项却进一步写成政策上“应立即全面推广”，这通常也要视为无中生有。",
-      "context": "判断：如果原文只报告了相关性或观察结果，选项却进一步写成政策上“应立即全面推广”，这通常也要视为无中生有。"
+      "prompt": "判断：These findings alone do not establish that the programme should immediately be introduced nationwide.",
+      "support": "练习材料（虚构情境）\nParticipation increased during a small voluntary pilot. The authors noted that implementation costs had not yet been assessed.\n\n任务：判断：These findings alone do not establish that the programme should immediately be introduced nationwide.",
+      "context": "判断：These findings alone do not establish that the programme should immediately be introduced nationwide."
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：研究结果后面直接跳出 should, must, immediately, nationwide 等政策词，要高度警惕。\n\n② 核心规律：无中生有不只表现为新增事实，也表现为新增立场和建议。尤其是“应立即全面推广”这种语气，证据要求非常高。\n\n③ 验证：若原文只做观察、描述或有限评价，就不能被直接升级成全面政策主张。",
-      "exam_tip": "观察结果与政策建议之间并不能自动连通。"
+      "summary": "small voluntary pilot限定观察范围，costs had not yet been assessed指出仍未知的条件。immediately nationwide需要更多实施依据，不能把这项局部观察直接当作该建议的证明。",
+      "exam_tip": "从研究发现走到政策建议时，检查范围、成本与实施条件有没有在材料中交代。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -5101,14 +5101,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The review found that office plants slightly improved reported mood in shared workspaces. It did not study whether plants increased long-term staff retention.\n\n题干：Which option introduces unsupported information?\n\n哪项属于无中生有？",
-      "support": "练习材料（虚构情境）\n阅读片段：The review found that office plants slightly improved reported mood in shared workspaces. It did not study whether plants increased long-term staff retention.\n\n题干：Which option introduces unsupported information?\n\n哪项属于无中生有？",
-      "context": "练习材料（虚构情境）\n阅读片段：The review found that office plants slightly improved reported mood in shared workspaces. It did not study whether plants increased long-term staff retention.\n\n题干：Which option introduces unsupported information?\n\n哪项属于无中生有？"
+      "prompt": "哪项属于无中生有？",
+      "support": "练习材料（虚构情境）\n阅读片段：The review found that office plants slightly improved reported mood in shared workspaces. It did not study whether plants increased long-term staff retention.\n\n任务：哪项属于无中生有？",
+      "context": "哪项属于无中生有？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：slightly improved mood 是轻量结果，long-term staff retention 是组织层长期结果。\n\n② 核心规律：无中生有常通过结果升级来迷惑读者：先给你一个轻结果，再在选项里塞一个重结果。看起来像顺理成章，其实证据跨度很大。\n\n③ 验证：did not study retention 已经把这条选项堵死了。",
-      "exam_tip": "轻结果不能自动推出重结果。"
+      "summary": "reported mood slightly improved是已有结果，A保留；shared workspaces支持B。D保留未检验留任结果。C把心情变化换成long-term staff retention改善，材料不支持。",
+      "exam_tip": "心情是当时报告的感受，留任是之后的就业行为，不能当成同一个结果。"
     },
     "space_metadata": {
       "box_ref": "1110",
@@ -5150,14 +5150,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "【干扰项排除：绝对化】\n\n绝对化是把原文中的概率、范围或条件，改写成无条件、全称、必然。\n\n常见触发词：all, always, never, completely, certainly, must。\n\n判定步骤：\n1) 先找原文限定词（may, often, most, in some cases）；\n2) 再看选项是否把限定词抹掉。",
-      "support": "【干扰项排除：绝对化】\n\n绝对化是把原文中的概率、范围或条件，改写成无条件、全称、必然。\n\n常见触发词：all, always, never, completely, certainly, must。\n\n判定步骤：\n1) 先找原文限定词（may, often, most, in some cases）；\n2) 再看选项是否把限定词抹掉。",
-      "context": "【干扰项排除：绝对化】\n\n绝对化是把原文中的概率、范围或条件，改写成无条件、全称、必然。\n\n常见触发词：all, always, never, completely, certainly, must。\n\n判定步骤：\n1) 先找原文限定词（may, often, most, in some cases）；\n2) 再看选项是否把限定词抹掉。"
+      "prompt": "练习材料（虚构情境）\nSome seedlings survived the dry week when watered twice. The experiment did not test survival over an entire summer.\n\n能据此说“两次浇水保证所有幼苗度过整个夏天”吗？找出这句话改动了哪几处信息。",
+      "support": "练习材料（虚构情境）\nSome seedlings survived the dry week when watered twice. The experiment did not test survival over an entire summer.\n\n能据此说“两次浇水保证所有幼苗度过整个夏天”吗？找出这句话改动了哪几处信息。",
+      "context": "练习材料（虚构情境）\nSome seedlings survived the dry week when watered twice. The experiment did not test survival over an entire summer.\n\n能据此说“两次浇水保证所有幼苗度过整个夏天”吗？找出这句话改动了哪几处信息。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "绝对化干扰通常保留原文主题，却抹掉条件。原文中的 may、often、most、under certain conditions 都是命题的一部分，不能在改写时省略。\n\n若原文说 most participants improved after guided practice，选项写 guided practice always improves everyone，就把 most 改成 everyone、把观察结果改成必然规律。\n\n做题时把原文和选项的范围词成对比较；一边谨慎、一边绝对，优先判为不等值。",
-      "exam_tip": "all、never、must、completely 是高风险词，不是见到就错。"
+      "summary": "观察只涉及部分幼苗在一周内的存活，且明确未测整个夏季。选项把幼苗范围、确定程度与持续时间同时加强了，不能凭相同浇水次数就接受。",
+      "exam_tip": "分别核对多少对象、观察了多久，以及是观察结果还是保证。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5165,7 +5165,7 @@
       "group": "干扰项排除",
       "box": "绝对化"
     },
-    "back_text": "翻卡结论：原文若保留条件、概率或局部范围，选项却改成 all、always、never、must 等无条件断言，就是绝对化干扰。"
+    "back_text": "不能。some被改成所有，survived被改成保证，one dry week被扩大成整个夏天。"
   },
   {
     "card_id": "111102",
@@ -5174,14 +5174,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nMany participants reported reduced stress after the workshop, and some said the effect lasted for several weeks.\n\n问题：哪一项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nMany participants reported reduced stress after the workshop, and some said the effect lasted for several weeks.\n\n问题：哪一项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nMany participants reported reduced stress after the workshop, and some said the effect lasted for several weeks.\n\n问题：哪一项与原文一致？"
+      "prompt": "哪一项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nMany participants reported reduced stress after the workshop, and some said the effect lasted for several weeks.\n\n任务：哪一项与原文一致？",
+      "context": "哪一项与原文一致？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文是 many + some，表示部分人群受益、持续时间也仅限部分反馈。\nB 保留了范围限定，其余选项存在绝对化。\n\nmany、some 和 all 的范围不同，保留原文允许的例外。",
-      "exam_tip": "many、some 和 all 的范围不同，保留原文允许的例外。"
+      "summary": "many reported lower stress，some said lasted several weeks，B保留两类报告。A把部分持续变为所有长期，C增加永久消除，D把几周扩大成始终数月，都超出原文。",
+      "exam_tip": "把谁报告有效与谁报告持续效果分成两组记。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5229,8 +5229,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "A 保留了 can + some patients 的非全称表达。\nC 保留了 especially when... 的条件限定。\n\nmany、some 和 all 的范围不同，保留原文允许的例外。",
-      "exam_tip": "many、some 和 all 的范围不同，保留原文允许的例外。"
+      "summary": "can与some patients支持1，especially when regular follow-up支持3。2把可能和部分改成always/all；4宣称随访无关，否定原文强调的条件。应划去2、4。",
+      "exam_tip": "especially when不表示后面条件可以忽略，比较选项时读完整。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5271,14 +5271,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：如果原文出现 many 或 some，选项改写成 all 只是语气更强，不影响正误判断。",
-      "support": "判断：如果原文出现 many 或 some，选项改写成 all 只是语气更强，不影响正误判断。",
-      "context": "判断：如果原文出现 many 或 some，选项改写成 all 只是语气更强，不影响正误判断。"
+      "prompt": "判断：All participants benefited from the workshop.",
+      "support": "练习材料（虚构情境）\nMany workshop participants reported less stress, but several reported no improvement.\n\n任务：判断：All participants benefited from the workshop.",
+      "context": "判断：All participants benefited from the workshop."
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\nmany/some 与 all 在逻辑上不等价。\n将部分命题改写为全称命题属于绝对化干扰，应判错。\n\nmany、some 和 all 的范围不同，保留原文允许的例外。",
-      "exam_tip": "many、some 和 all 的范围不同，保留原文允许的例外。"
+      "summary": "many不能换成all；原文还明确有几个人没有改善。因此总体正面反馈不能改成人人受益。",
+      "exam_tip": "见all先在材料中找有没有与它相冲突的个别情况。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5310,14 +5310,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nResearchers found a moderate association between screen time and sleep quality, but they noted that causality could not be established from the available data.\n\n问题：哪项表述准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nResearchers found a moderate association between screen time and sleep quality, but they noted that causality could not be established from the available data.\n\n问题：哪项表述准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nResearchers found a moderate association between screen time and sleep quality, but they noted that causality could not be established from the available data.\n\n问题：哪项表述准确？"
+      "prompt": "哪项表述准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nResearchers found a moderate association between screen time and sleep quality, but they noted that causality could not be established from the available data.\n\n任务：哪项表述准确？",
+      "context": "哪项表述准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文只支持‘中等相关’，且明确‘不能确立因果’。\n任何把相关写成确定因果的选项都属于绝对化推断。\n\nmany、some 和 all 的范围不同，保留原文允许的例外。",
-      "exam_tip": "many、some 和 all 的范围不同，保留原文允许的例外。"
+      "summary": "moderate association是中等关联，causality could not be established明确未能确立因果，因此A正确。B、C说因果已证明，D用inevitably determines宣布必然决定，都加强了结论。",
+      "exam_tip": "找证据是在报告关联，还是明确检验了因果，不能把一个词当另一个。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5359,14 +5359,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The review suggests that mindfulness training often improves concentration, but not every participant reports the same benefit.\n\n题干：Which option turns the finding into an absolute claim?\n\n哪项是绝对化？",
-      "support": "练习材料（虚构情境）\n阅读片段：The review suggests that mindfulness training often improves concentration, but not every participant reports the same benefit.\n\n题干：Which option turns the finding into an absolute claim?\n\n哪项是绝对化？",
-      "context": "练习材料（虚构情境）\n阅读片段：The review suggests that mindfulness training often improves concentration, but not every participant reports the same benefit.\n\n题干：Which option turns the finding into an absolute claim?\n\n哪项是绝对化？"
+      "prompt": "哪项是绝对化？",
+      "support": "练习材料（虚构情境）\n阅读片段：The review suggests that mindfulness training often improves concentration, but not every participant reports the same benefit.\n\n任务：哪项是绝对化？",
+      "context": "哪项是绝对化？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：often 与 not every participant 已经说明“高频成立，但有例外”。\n\n② 核心规律：六级绝对化题常把“总体上有效”偷换成“对所有人都有效”。如果原文亲自保留了例外，all participants 基本直接出局。\n\n③ 验证：只要原文承认 not every participant，就不能接受 all participants。",
-      "exam_tip": "总体趋势和全称判断是两回事。"
+      "summary": "often说明常见改善，not every participant说明效果并非人人相同。B却说for all participants，应选B这个过强项。A、C、D都保留一般正向但有差异的意思。",
+      "exam_tip": "题目让选错误项时，找原文明确例外反驳哪一个结论。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5408,14 +5408,14 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "阅读片段：Some cities achieved substantial waste reduction through deposit-return schemes, although results varied sharply by enforcement quality and retailer participation.\n\n任务：找出绝对化表述。",
-      "support": "练习材料（虚构情境）\n阅读片段：Some cities achieved substantial waste reduction through deposit-return schemes, although results varied sharply by enforcement quality and retailer participation.\n\n任务：找出绝对化表述。",
-      "context": "阅读片段：Some cities achieved substantial waste reduction through deposit-return schemes, although results varied sharply by enforcement quality and retailer participation.\n\n任务：找出绝对化表述。"
+      "prompt": "划去把效果说成不随条件变化的说法。",
+      "support": "练习材料（虚构情境）\n阅读片段：Some cities achieved substantial waste reduction through deposit-return schemes, although results varied sharply by enforcement quality and retailer participation.\n\n任务：划去把效果说成不随条件变化的说法。",
+      "context": "划去把效果说成不随条件变化的说法。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：some cities 与 varied sharply 共同提示“效果存在差异”。\n\n② 核心规律：绝对化错项经常通过忽略条件差异，把一个依赖执行质量的政策写成 wherever, always, regardless of context。\n\n③ 验证：只要原文说 varied sharply，就已经明确反对“同样结果”“不受条件影响”这种写法。",
-      "exam_tip": "效果差异一旦被点明，就不能再接受“一律如此”。"
+      "summary": "results varied sharply by enforcement quality and retailer participation说明结果会随两项条件明显改变。3说始终相同，4说执行质量无关，都与它冲突；1、2、5保留实际发现或条件。",
+      "exam_tip": "把造成差异的条件列出来，再检查选项是否把它们删掉。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5460,14 +5460,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：如果原文说 a moderate association was observed，选项改写成 a certain causal law was established，就属于绝对化。",
-      "support": "判断：如果原文说 a moderate association was observed，选项改写成 a certain causal law was established，就属于绝对化。",
-      "context": "判断：如果原文说 a moderate association was observed，选项改写成 a certain causal law was established，就属于绝对化。"
+      "prompt": "判断：The reported result describes an association without stating that screen exposure determines sleep quality.",
+      "support": "练习材料（虚构情境）\nThe researchers observed a moderate association between screen exposure and sleep quality.\n\n任务：判断：The reported result describes an association without stating that screen exposure determines sleep quality.",
+      "context": "判断：The reported result describes an association without stating that screen exposure determines sleep quality."
     },
     "analysis": {
       "title": "解析",
-      "summary": "association 描述统计关联及其强弱，本身不直接给出因果方向。causal law 额外建立因果，certain 又提高确定程度，均超出这一句观察描述。",
-      "exam_tip": "相关不等于因果，弱相关更不等于确定规律。"
+      "summary": "moderate说明关联程度，association不直接确立因果方向。把它写成a certain causal law会增加“确定因果规律”的主张，而原句没有这样说。",
+      "exam_tip": "区分关联强弱与是否确立因果，这不是同一个尺度。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5499,14 +5499,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The paper argues that public feedback dashboards can improve compliance in many settings, though the gains are modest and uneven.\n\n题干：Which option most clearly overstates the finding?\n\n哪项是绝对化？",
-      "support": "练习材料（虚构情境）\n阅读片段：The paper argues that public feedback dashboards can improve compliance in many settings, though the gains are modest and uneven.\n\n题干：Which option most clearly overstates the finding?\n\n哪项是绝对化？",
-      "context": "练习材料（虚构情境）\n阅读片段：The paper argues that public feedback dashboards can improve compliance in many settings, though the gains are modest and uneven.\n\n题干：Which option most clearly overstates the finding?\n\n哪项是绝对化？"
+      "prompt": "哪项是绝对化？",
+      "support": "练习材料（虚构情境）\n阅读片段：The paper argues that public feedback dashboards can improve compliance in many settings, though the gains are modest and uneven.\n\n任务：哪项是绝对化？",
+      "context": "哪项是绝对化？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：many settings、modest、uneven 三个词都在限制结论。\n\n② 核心规律：当原文同时给出范围限定和程度限定时，错项最爱“双重绝对化”——一边把范围推到 everywhere，一边把程度推到 high/guaranteed。\n\n③ 验证：原文连 gain 都说 modest，选项若写 high compliance guarantees，几乎可以秒排。",
-      "exam_tip": "范围和程度都可能被绝对化。"
+      "summary": "A的guarantee、high、everywhere分别把可能帮助说成保证、把有限改善说成高水平、把许多场景扩成所有地方。B、C、D保留效果有限且不均匀，符合原文。",
+      "exam_tip": "把适用范围与改善程度分别核对，不只盯一个绝对词。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5548,14 +5548,14 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "阅读片段：Most respondents preferred hybrid schedules, but a noticeable minority still favored fully remote work.\n\n任务：找出绝对化表达。",
-      "support": "练习材料（虚构情境）\n阅读片段：Most respondents preferred hybrid schedules, but a noticeable minority still favored fully remote work.\n\n任务：找出绝对化表达。",
-      "context": "阅读片段：Most respondents preferred hybrid schedules, but a noticeable minority still favored fully remote work.\n\n任务：找出绝对化表达。"
+      "prompt": "划去与原文人数范围不符的说法。",
+      "support": "练习材料（虚构情境）\n阅读片段：Most respondents preferred hybrid schedules, but a noticeable minority still favored fully remote work.\n\n任务：划去与原文人数范围不符的说法。",
+      "context": "划去与原文人数范围不符的说法。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：most 与 minority 是经典“主趋势+例外”结构。\n\n② 核心规律：绝对化题最容易在调查类句子里出现，因为读者常把 most 误读成 almost all，再进一步误读成 everyone。\n\n③ 验证：只要 minority 明确存在，nobody 之类词就不成立。",
-      "exam_tip": "调查题先看量词。"
+      "summary": "a noticeable minority仍偏好全远程，直接反驳3的everyone preferred hybrid和4的nobody favored remote。1、2、5都保留多数偏好与少数例外。",
+      "exam_tip": "多数和少数可以并存，不能把总体偏好写成人人相同。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5600,14 +5600,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：作者只说某件事 likely。仅据这一表述，不能把同一判断改写成 certainly。",
-      "support": "判断：作者只说某件事 likely。仅据这一表述，不能把同一判断改写成 certainly。",
-      "context": "判断：作者只说某件事 likely。仅据这一表述，不能把同一判断改写成 certainly。"
+      "prompt": "判断：Lower costs are presented as a conditional expectation, not as a guaranteed outcome.",
+      "support": "练习材料（虚构情境）\nThe service is likely to cost less next year if fuel prices remain stable.\n\n任务：判断：Lower costs are presented as a conditional expectation, not as a guaranteed outcome.",
+      "context": "判断：Lower costs are presented as a conditional expectation, not as a guaranteed outcome."
     },
     "analysis": {
       "title": "解析",
-      "summary": "likely 表示很可能，certainly 表示确定；仅凭前者不能对同一事件作出后者那样的断言。",
-      "exam_tip": "概率词不能随手升级。"
+      "summary": "likely表示很可能，if fuel prices remain stable给出条件。guaranteed会删去不确定性，还可能让人忽略燃料价格条件。",
+      "exam_tip": "预测句把likely与if一起读，别只留下“成本会降”。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5639,14 +5639,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：The article indicates that younger workers are often more willing to switch employers, but the tendency is weaker in sectors with strong apprenticeship traditions.\n\n题干：Which option is the clearest absolute distortion?\n\n哪项是绝对化？",
-      "support": "练习材料（虚构情境）\n阅读片段：The article indicates that younger workers are often more willing to switch employers, but the tendency is weaker in sectors with strong apprenticeship traditions.\n\n题干：Which option is the clearest absolute distortion?\n\n哪项是绝对化？",
-      "context": "练习材料（虚构情境）\n阅读片段：The article indicates that younger workers are often more willing to switch employers, but the tendency is weaker in sectors with strong apprenticeship traditions.\n\n题干：Which option is the clearest absolute distortion?\n\n哪项是绝对化？"
+      "prompt": "哪项是绝对化？",
+      "support": "练习材料（虚构情境）\n阅读片段：The article indicates that younger workers are often more willing to switch employers, but the tendency is weaker in sectors with strong apprenticeship traditions.\n\n任务：哪项是绝对化？",
+      "context": "哪项是绝对化？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：often 与 weaker in some sectors 已给出双重保留。\n\n② 核心规律：带有场景差异的趋势，最容易被错项写成 everywhere / always / any employer。\n\n③ 验证：原文甚至指出 apprenticeship traditions 会削弱倾向，因此 any employer, always willing 这种写法直接越界。",
-      "exam_tip": "趋势词+场景差异，一定防绝对化。"
+      "summary": "often与weaker in sectors ...保留频率和行业差异。D的always、any employer、regardless of sector恰好把这些限制全去掉了。A、B、C仍保留趋势与限制。",
+      "exam_tip": "同一趋势在不同行业可能强弱不同，比较选项时别漏sector限定。"
     },
     "space_metadata": {
       "box_ref": "1111",
@@ -5688,14 +5688,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "【干扰项排除：与原文相反】\n\n该类干扰项会保留原文关键词，但把方向、比较关系或态度极性反转。\n\n高频反转位：\n1) increase ↔ decrease\n2) support ↔ oppose\n3) more likely ↔ less likely\n4) benefit ↔ harm\n\n策略：先抽取原文命题方向，再核对选项是否发生极性翻转。",
-      "support": "【干扰项排除：与原文相反】\n\n该类干扰项会保留原文关键词，但把方向、比较关系或态度极性反转。\n\n高频反转位：\n1) increase ↔ decrease\n2) support ↔ oppose\n3) more likely ↔ less likely\n4) benefit ↔ harm\n\n策略：先抽取原文命题方向，再核对选项是否发生极性翻转。",
-      "context": "【干扰项排除：与原文相反】\n\n该类干扰项会保留原文关键词，但把方向、比较关系或态度极性反转。\n\n高频反转位：\n1) increase ↔ decrease\n2) support ↔ oppose\n3) more likely ↔ less likely\n4) benefit ↔ harm\n\n策略：先抽取原文命题方向，再核对选项是否发生极性翻转。"
+      "prompt": "练习材料（虚构情境）\nRemote work reduced commuting time for urban staff, but increased the time they spent on scheduled online meetings.\n\n请分别写出通勤时间和线上会议时间的变化。把其中一项写成相反方向会怎样改变结论？",
+      "support": "练习材料（虚构情境）\nRemote work reduced commuting time for urban staff, but increased the time they spent on scheduled online meetings.\n\n请分别写出通勤时间和线上会议时间的变化。把其中一项写成相反方向会怎样改变结论？",
+      "context": "练习材料（虚构情境）\nRemote work reduced commuting time for urban staff, but increased the time they spent on scheduled online meetings.\n\n请分别写出通勤时间和线上会议时间的变化。把其中一项写成相反方向会怎样改变结论？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "相反项最常利用关键词复现掩盖方向翻转。先把原文压缩成“对象 + 变化 + 条件”，例如 remote work reduced commuting time for urban staff。\n\n再只比较方向：选项若说 commuting time increased，即使 remote work、urban staff 都原样出现，命题仍与原文相反。态度题同理，qualified support 不能改成 outright opposition。\n\n先写出增减、支持反对、利弊或概率高低，再核对选项，能避免被熟词带走。",
-      "exam_tip": "画一个 ↑/↓ 或 +/− 标记比重复读关键词更可靠。"
+      "summary": "reduced只接commuting time，increased接online meetings的用时。remote work这个主题相同，不代表所有时间指标变化方向相同。",
+      "exam_tip": "把指标和动词配成一对再比较，不单独背增减词。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -5703,7 +5703,7 @@
       "group": "干扰项排除",
       "box": "与原文相反"
     },
-    "back_text": "翻卡结论：先把原文压缩成“对象 + 变化方向”，再核对增减、支持反对和利弊极性；任一方向反转都会改变原命题。"
+    "back_text": "通勤时间减少，预定线上会议时间增加。不能把两项都写成减少或都写成增加。"
   },
   {
     "card_id": "111202",
@@ -5712,14 +5712,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nAfter the policy change, reported absenteeism declined by 18% in participating schools, while teacher retention remained stable.\n\n问题：哪项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nAfter the policy change, reported absenteeism declined by 18% in participating schools, while teacher retention remained stable.\n\n问题：哪项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nAfter the policy change, reported absenteeism declined by 18% in participating schools, while teacher retention remained stable.\n\n问题：哪项与原文一致？"
+      "prompt": "哪项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nAfter the policy change, reported absenteeism declined by 18% in participating schools, while teacher retention remained stable.\n\n任务：哪项与原文一致？",
+      "context": "哪项与原文一致？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文方向是 absenteeism declined，teacher retention remained stable。\n其余选项要么把下降反转为上升，要么把稳定改成下降/上升。\n\n把每个指标与它的增减方向配对，不以关键词重合代替理解。",
-      "exam_tip": "把每个指标与它的增减方向配对，不以关键词重合代替理解。"
+      "summary": "absenteeism declined by18%表示缺勤减少，teacher retention remained stable表示教师留任稳定，A保留两项。B反转缺勤方向，C、D都把稳定改成明显变化。",
+      "exam_tip": "先分清缺勤和留任两个指标，再各自核对变化。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -5767,8 +5767,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "A 保留了‘骑行者满意度更高’。\nC 保留了‘安全担忧仍然存在’。\n其余选项均出现方向反转或过度推断。\n\n把每个指标与它的增减方向配对，不以关键词重合代替理解。",
-      "exam_tip": "把每个指标与它的增减方向配对，不以关键词重合代替理解。"
+      "summary": "higher satisfaction支持1，concerns persisted支持3。2把更满意写成更不满意，4把仍有安全担忧写成已消失，应划去。满意度提高不代表所有问题都解决。",
+      "exam_tip": "读though两侧时，一边的改善不取消另一边仍存在的问题。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -5809,14 +5809,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：如果选项复用了原文中的核心名词，即使把 increase 改成 decrease，也可能是合理改写。",
-      "support": "判断：如果选项复用了原文中的核心名词，即使把 increase 改成 decrease，也可能是合理改写。",
-      "context": "判断：如果选项复用了原文中的核心名词，即使把 increase 改成 decrease，也可能是合理改写。"
+      "prompt": "判断：The number of missed appointments increased after the policy.",
+      "support": "练习材料（虚构情境）\nThe policy reduced the number of missed appointments, while the number of completed visits increased.\n\n任务：判断：The number of missed appointments increased after the policy.",
+      "context": "判断：The number of missed appointments increased after the policy."
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\n关键词重合不代表语义一致。\n若命题方向被反转（增减、支持反对、优劣），应判为与原文相反。\n\n把每个指标与它的增减方向配对，不以关键词重合代替理解。",
-      "exam_tip": "把每个指标与它的增减方向配对，不以关键词重合代替理解。"
+      "summary": "reduced对应missed appointments，increased对应completed visits。判断句保留appointments却错用了另一个指标的方向。",
+      "exam_tip": "把名词完整读到missed/completed，别只记最后共同的就诊话题。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -5848,14 +5848,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe experiment showed that spaced review improved long-term recall, but had little effect on immediate recognition scores.\n\n问题：哪项表述准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe experiment showed that spaced review improved long-term recall, but had little effect on immediate recognition scores.\n\n问题：哪项表述准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe experiment showed that spaced review improved long-term recall, but had little effect on immediate recognition scores.\n\n问题：哪项表述准确？"
+      "prompt": "哪项表述准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe experiment showed that spaced review improved long-term recall, but had little effect on immediate recognition scores.\n\n任务：哪项表述准确？",
+      "context": "哪项表述准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文是‘长期回忆提升 + 即时识别影响小’。\n把任一子命题反向改写都构成反转错误。\n\n把每个指标与它的增减方向配对，不以关键词重合代替理解。",
-      "exam_tip": "把每个指标与它的增减方向配对，不以关键词重合代替理解。"
+      "summary": "improved long-term recall对应长期回忆提升，little effect on immediate recognition对应即时识别影响有限，B正确。A、C把长期回忆写成变弱；D则把主要作用移到即时识别。",
+      "exam_tip": "先区分测验时间和任务：长期回忆不等于即时识别。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -5897,14 +5897,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nA longitudinal study found that schools adopting daily reading blocks saw measurable gains in comprehension, while math outcomes remained largely unchanged.\n\n问题：哪项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nA longitudinal study found that schools adopting daily reading blocks saw measurable gains in comprehension, while math outcomes remained largely unchanged.\n\n问题：哪项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nA longitudinal study found that schools adopting daily reading blocks saw measurable gains in comprehension, while math outcomes remained largely unchanged.\n\n问题：哪项与原文一致？"
+      "prompt": "哪项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nA longitudinal study found that schools adopting daily reading blocks saw measurable gains in comprehension, while math outcomes remained largely unchanged.\n\n任务：哪项与原文一致？",
+      "context": "哪项与原文一致？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：measurable gains 与 remained unchanged 给出两个独立方向信号。\n\n② 核心规律：判断一致项时要逐一核对每个子命题方向，不能只抓关键词。\n\n③ 验证：选项若同时保留“阅读提升+数学基本不变”，才与原文匹配。",
-      "exam_tip": "方向词（rise/fall/stable）优先级高于名词重合。"
+      "summary": "measurable gains修饰comprehension，largely unchanged修饰math outcomes，C保留两项。A、D反转某项结果，B把数学也说成明显改善。",
+      "exam_tip": "把每个学科各自的结果单独圈出来，别把同一评价套到两者。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -5916,22 +5916,22 @@
       {
         "id": "A",
         "label": "A",
-        "text": "阅读理解下降，但数学成绩提升明显"
+        "text": "Reading comprehension declined while mathematics improved markedly."
       },
       {
         "id": "B",
         "label": "B",
-        "text": "阅读和数学均出现显著提升"
+        "text": "Both comprehension and mathematics improved significantly."
       },
       {
         "id": "C",
         "label": "C",
-        "text": "阅读理解提升，而数学结果基本不变"
+        "text": "Reading comprehension improved while mathematics outcomes remained largely unchanged."
       },
       {
         "id": "D",
         "label": "D",
-        "text": "数学结果恶化，阅读结果不变"
+        "text": "Mathematics worsened while reading comprehension remained unchanged."
       }
     ],
     "answer_key": {
@@ -5953,7 +5953,7 @@
     "analysis": {
       "title": "解析",
       "summary": "两个指标的方向不同：通勤压力下降，孤立感上升。不能因它们同属工作体验就把方向合并。",
-      "exam_tip": "每项判断都要有材料依据，不能只匹配相同词语。"
+      "exam_tip": "给 commute stress 标下降、social isolation 标上升，检查选项是否把方向合并。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -5994,14 +5994,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：\n\n若选项把原文中的 less likely 改成 more likely，只要保留同一主语和行为，就仍可能是正确改写。\n\n这个判断正确吗？",
-      "support": "判断：\n\n若选项把原文中的 less likely 改成 more likely，只要保留同一主语和行为，就仍可能是正确改写。\n\n这个判断正确吗？",
-      "context": "判断：\n\n若选项把原文中的 less likely 改成 more likely，只要保留同一主语和行为，就仍可能是正确改写。\n\n这个判断正确吗？"
+      "prompt": "判断：Participants receiving reminders were more likely to miss follow-up appointments than the others.",
+      "support": "练习材料（虚构情境）\nParticipants receiving reminders were less likely than other participants to miss follow-up appointments.\n\n任务：判断：Participants receiving reminders were more likely to miss follow-up appointments than the others.",
+      "context": "判断：Participants receiving reminders were more likely to miss follow-up appointments than the others."
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：likely/probable 等概率词一旦取反，结论方向即变。\n\n② 核心规律：方向反转错误常伪装为“词汇高度重合”。\n\n③ 验证：将概率副词反向替换后，命题逻辑与原文不再一致。",
-      "exam_tip": "概率词是高风险反转位：more/less likely。"
+      "summary": "同样比较收到提醒者与其他人，原文less likely、判断句more likely，方向相反。两边都出现reminders与appointments，并不能抵消这一改变。",
+      "exam_tip": "先确认比较双方没有交换，再比较more/less。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -6033,14 +6033,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "方法卡：\n\n如何快速识别“与原文相反”型干扰项？请用 3 步说明。",
-      "support": "方法卡：\n\n如何快速识别“与原文相反”型干扰项？请用 3 步说明。",
-      "context": "方法卡：\n\n如何快速识别“与原文相反”型干扰项？请用 3 步说明。"
+      "prompt": "练习材料（虚构情境）\nThe new system cut average processing time from ten days to six.\n\n比较两种概括：A. Processing became faster. B. Processing took longer.\n哪一句与原文相反？为什么“时间更短”和“速度更快”并不矛盾？",
+      "support": "练习材料（虚构情境）\nThe new system cut average processing time from ten days to six.\n\n比较两种概括：A. Processing became faster. B. Processing took longer.\n哪一句与原文相反？为什么“时间更短”和“速度更快”并不矛盾？",
+      "context": "练习材料（虚构情境）\nThe new system cut average processing time from ten days to six.\n\n比较两种概括：A. Processing became faster. B. Processing took longer.\n哪一句与原文相反？为什么“时间更短”和“速度更快”并不矛盾？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：反转项常保留名词，偷换方向。\n\n② 核心规律：先方向、后细节；方向错则直接排除。\n\n③ 验证：回填后若出现“原文说升，选项说降”等冲突即为反转。",
-      "exam_tip": "方向与对象要配对检查，不可拆开。"
+      "summary": "cut ... from ten ... to six说明减少的是处理时长。faster描述速度，时间减少对应速度提高；不能仅因一个词表示增、一个表示减就判断矛盾。",
+      "exam_tip": "先确定比较的是耗时还是速度，两个指标的方向可能相反而意思一致。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -6048,7 +6048,7 @@
       "group": "干扰项排除",
       "box": "与原文相反"
     },
-    "back_text": "三步法：\n1) 抽方向词：increase/decrease, more/less, support/oppose。\n2) 定对象：是谁在变化、变化的是哪项指标。\n3) 回填核对：把选项命题代回原文看方向是否完全一致。\n\n若方向或对象任一不一致，即判反转项。"
+    "back_text": "B相反。办理从十天缩到六天，耗时更短，也就是办理更快，A与原文一致。"
   },
   {
     "card_id": "111210",
@@ -6057,14 +6057,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nParticipants exposed to the intervention were less likely to miss follow-up appointments, though adherence to medication schedules showed no significant change.\n\n问题：哪项表述准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nParticipants exposed to the intervention were less likely to miss follow-up appointments, though adherence to medication schedules showed no significant change.\n\n问题：哪项表述准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nParticipants exposed to the intervention were less likely to miss follow-up appointments, though adherence to medication schedules showed no significant change.\n\n问题：哪项表述准确？"
+      "prompt": "哪项表述准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nParticipants exposed to the intervention were less likely to miss follow-up appointments, though adherence to medication schedules showed no significant change.\n\n任务：哪项表述准确？",
+      "context": "哪项表述准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：less likely 与 no significant change 同时出现。\n\n② 核心规律：多命题句中需分别核对每个谓词极性。\n\n③ 验证：准确项应同时保留两条方向信息。",
-      "exam_tip": "no significant change 不是“变差”也不是“改善”。"
+      "summary": "less likely to miss表示缺席可能性下降，no significant change是服药依从性未见显著变化，B正确。A反转缺席，C改成缺席不变，D把服药也说成显著改善。",
+      "exam_tip": "less likely to miss有否定事件，先换成“更少缺席”再比较。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -6076,22 +6076,22 @@
       {
         "id": "A",
         "label": "A",
-        "text": "受干预者更常缺席复诊，服药依从性显著提高"
+        "text": "Participants missed more follow-ups and markedly improved medication adherence."
       },
       {
         "id": "B",
         "label": "B",
-        "text": "受干预者更少缺席复诊，但服药依从性无显著变化"
+        "text": "Participants were less likely to miss follow-ups, while medication adherence showed no significant change."
       },
       {
         "id": "C",
         "label": "C",
-        "text": "受干预者复诊缺席率不变，服药依从性明显下降"
+        "text": "Missed follow-ups were unchanged, while medication adherence declined markedly."
       },
       {
         "id": "D",
         "label": "D",
-        "text": "受干预者复诊和服药依从性都显著改善"
+        "text": "Both follow-up attendance and medication adherence improved significantly."
       }
     ],
     "answer_key": {
@@ -6113,7 +6113,7 @@
     "analysis": {
       "title": "解析",
       "summary": "总支出增加与农村诊所人均投入下降可以并存。overall 和 per-capita 衡量的对象不同，第三年连续下降也不能改成上升。",
-      "exam_tip": "每项判断都要有材料依据，不能只匹配相同词语。"
+      "exam_tip": "分别写出 overall spending 与 per-capita investment，再核对各自的增减。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -6154,14 +6154,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：\n\n在“与原文相反”题型中，只要选项出现绝对词（always/never），就必然错误。\n\n这个判断正确吗？",
-      "support": "判断：\n\n在“与原文相反”题型中，只要选项出现绝对词（always/never），就必然错误。\n\n这个判断正确吗？",
-      "context": "判断：\n\n在“与原文相反”题型中，只要选项出现绝对词（always/never），就必然错误。\n\n这个判断正确吗？"
+      "prompt": "判断：The statement “Every sample was examined” contradicts the passage.",
+      "support": "练习材料（虚构情境）\nThe laboratory examined all thirty-six samples; none was excluded.\n\n任务：判断：The statement “Every sample was examined” contradicts the passage.",
+      "context": "判断：The statement “Every sample was examined” contradicts the passage."
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：绝对词会提升错误概率，但不是充分条件。\n\n② 核心规律：排错应基于文本证据而非单一词形经验。\n\n③ 验证：若原文本身给出绝对陈述，含绝对词选项也可能正确。",
-      "exam_tip": "“高风险”不等于“必错”。"
+      "summary": "all thirty-six和none was excluded都表明样本全部接受检查，因此every有充分依据。不能仅看到绝对范围词就把选项判错。",
+      "exam_tip": "绝对表达能否成立取决于原文是否同样明确覆盖全部。"
     },
     "space_metadata": {
       "box_ref": "1112",
@@ -6193,14 +6193,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "【干扰项排除：偷换概念】\n\n偷换概念指选项把原文中的关键概念悄悄替换成近义但非等价概念。\n\n常见替换：\n1) efficiency ↔ productivity\n2) access ↔ quality\n3) correlation ↔ causation\n4) policy pilot ↔ nationwide policy\n\n解题动作：锁定原文核心名词，逐字核对概念边界是否被改写。",
-      "support": "【干扰项排除：偷换概念】\n\n偷换概念指选项把原文中的关键概念悄悄替换成近义但非等价概念。\n\n常见替换：\n1) efficiency ↔ productivity\n2) access ↔ quality\n3) correlation ↔ causation\n4) policy pilot ↔ nationwide policy\n\n解题动作：锁定原文核心名词，逐字核对概念边界是否被改写。",
-      "context": "【干扰项排除：偷换概念】\n\n偷换概念指选项把原文中的关键概念悄悄替换成近义但非等价概念。\n\n常见替换：\n1) efficiency ↔ productivity\n2) access ↔ quality\n3) correlation ↔ causation\n4) policy pilot ↔ nationwide policy\n\n解题动作：锁定原文核心名词，逐字核对概念边界是否被改写。"
+      "prompt": "练习材料（虚构情境）\nThe programme gave more students access to online materials. Test scores were not recorded.\n\n“学生更容易获取资料”和“学生成绩提高”是在说同一结果吗？哪一个有材料支持？",
+      "support": "练习材料（虚构情境）\nThe programme gave more students access to online materials. Test scores were not recorded.\n\n“学生更容易获取资料”和“学生成绩提高”是在说同一结果吗？哪一个有材料支持？",
+      "context": "练习材料（虚构情境）\nThe programme gave more students access to online materials. Test scores were not recorded.\n\n“学生更容易获取资料”和“学生成绩提高”是在说同一结果吗？哪一个有材料支持？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "偷换概念不是普通同义替换，而是把测量对象或证据等级换掉。correlation 与 causation、access 与 quality、pilot 与 nationwide policy 看起来相关，但回答的是不同问题。\n\n核对时分别给原文概念和选项概念下一个最短定义，再比较对象、指标、阶段与因果强度。原文只发现 two variables move together，不能推出 one causes the other。\n\n若两者只能说“有关”，却不能在当前句中互换，就应排除。",
-      "exam_tip": "近义词要放回当前测量维度判断。"
+      "summary": "access to online materials说能否获得资料；test scores说学习表现。前者可能有助于后者，但原文未记录成绩，不能把可能联系直接当成已观察结果。",
+      "exam_tip": "先问每个名词实际测的是什么，再判断能否互换。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6208,7 +6208,7 @@
       "group": "干扰项排除",
       "box": "偷换概念"
     },
-    "back_text": "翻卡结论：先分别定义原文与选项的核心概念，再核对对象、测量维度、证据等级和政策阶段；近义或相关不等于严格等价。"
+    "back_text": "不是同一结果。材料支持更容易获取资料，没有提供考试成绩的变化。"
   },
   {
     "card_id": "111302",
@@ -6217,14 +6217,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe program improved students' access to digital resources, but the report did not evaluate changes in learning quality.\n\n问题：哪项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe program improved students' access to digital resources, but the report did not evaluate changes in learning quality.\n\n问题：哪项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe program improved students' access to digital resources, but the report did not evaluate changes in learning quality.\n\n问题：哪项与原文一致？"
+      "prompt": "哪项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe program improved students' access to digital resources, but the report did not evaluate changes in learning quality.\n\n任务：哪项与原文一致？",
+      "context": "哪项与原文一致？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文概念是 access（可获得性）提升，未评估 learning quality（质量）。\n将 access 直接替换成 quality 属于偷换概念。\n\n先确认指标本身；可及性、质量、相关和因果分别是不同概念。",
-      "exam_tip": "先确认指标本身；可及性、质量、相关和因果分别是不同概念。"
+      "summary": "improved access只说资料更容易获得，did not evaluate learning quality明确质量未测，B保留。A、D宣布质量提升，C再增加考试成绩及原因，都换了原文的结果指标。",
+      "exam_tip": "“拿得到资料”与“学得更好”分开核对，不能当成同一个发现。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6272,8 +6272,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "A 保留了 correlation 关系。\nC 保留了‘因果路径尚不清晰’。\n其余选项把相关关系偷换成因果结论。\n\n先确认指标本身；可及性、质量、相关和因果分别是不同概念。",
-      "exam_tip": "先确认指标本身；可及性、质量、相关和因果分别是不同概念。"
+      "summary": "correlation支持1，causal pathways remain unclear支持3。2说直接因果已证明，4说完整因果路径已建立，都与未清楚的描述冲突，应划去。",
+      "exam_tip": "区分共同变化这一观察与原因怎样作用的解释。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6314,14 +6314,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：若两个词在日常语境中常被一起使用（如 access 与 quality），考试中可视为同一概念。",
-      "support": "判断：若两个词在日常语境中常被一起使用（如 access 与 quality），考试中可视为同一概念。",
-      "context": "判断：若两个词在日常语境中常被一起使用（如 access 与 quality），考试中可视为同一概念。"
+      "prompt": "判断：The evaluation demonstrated an improvement in service quality.",
+      "support": "练习材料（虚构情境）\nMore residents gained access to the online service. The evaluation did not assess service quality.\n\n任务：判断：The evaluation demonstrated an improvement in service quality.",
+      "context": "判断：The evaluation demonstrated an improvement in service quality."
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\n共现不等于等价。\n考试判定依据是文本概念边界，不是日常语感近似。\n\n先确认指标本身；可及性、质量、相关和因果分别是不同概念。",
-      "exam_tip": "先确认指标本身；可及性、质量、相关和因果分别是不同概念。"
+      "summary": "gained access描述获取机会，did not assess service quality明确没有评价质量。判断句把未测结果写成demonstrated，增加了原文没有的结论。",
+      "exam_tip": "用户数量与服务好坏是两项指标，不能互相代替。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6353,14 +6353,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe city launched a six-month pilot recycling scheme in two districts. Officials said the trial would inform future policy decisions.\n\n问题：哪项表述准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe city launched a six-month pilot recycling scheme in two districts. Officials said the trial would inform future policy decisions.\n\n问题：哪项表述准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe city launched a six-month pilot recycling scheme in two districts. Officials said the trial would inform future policy decisions.\n\n问题：哪项表述准确？"
+      "prompt": "哪项表述准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe city launched a six-month pilot recycling scheme in two districts. Officials said the trial would inform future policy decisions.\n\n任务：哪项表述准确？",
+      "context": "哪项表述准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "原文是 six-month pilot + two districts，用于 inform future policy。\n把试点偷换为‘全市/全国已实施政策’均为错误。\n\n先确认指标本身；可及性、质量、相关和因果分别是不同概念。",
-      "exam_tip": "先确认指标本身；可及性、质量、相关和因果分别是不同概念。"
+      "summary": "six-month pilot限定试验阶段和时长，two districts限定范围，inform future decisions说明用于以后决策，A保留。B改成永久全市实施，C宣称全国可推广已证明，D又写立即全国执行。",
+      "exam_tip": "分别检查阶段、地点范围和决策是否已经完成。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6402,14 +6402,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe briefing highlighted a strong association between early screen exposure and reduced sleep duration, but emphasized that causal mechanisms remain uncertain.\n\n问题：哪项与原文一致？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe briefing highlighted a strong association between early screen exposure and reduced sleep duration, but emphasized that causal mechanisms remain uncertain.\n\n问题：哪项与原文一致？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe briefing highlighted a strong association between early screen exposure and reduced sleep duration, but emphasized that causal mechanisms remain uncertain.\n\n问题：哪项与原文一致？"
+      "prompt": "哪项与原文一致？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe briefing highlighted a strong association between early screen exposure and reduced sleep duration, but emphasized that causal mechanisms remain uncertain.\n\n任务：哪项与原文一致？",
+      "context": "哪项与原文一致？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：association 与 causal mechanisms remain uncertain 同时出现。\n\n② 核心规律：相关不等于因果是偷换概念高频陷阱。\n\n③ 验证：正确项应保留“有相关，但因果未定”。",
-      "exam_tip": "相关-因果区分是阅读推断核心。"
+      "summary": "strong association与causal mechanisms remain uncertain分别保留关联和因果未知，A正确。B宣称证明因果，C否认关联，D把duration换成quality，都不符。",
+      "exam_tip": "strong修饰关联强度，不意味着因果机制也已确定。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6421,22 +6421,22 @@
       {
         "id": "A",
         "label": "A",
-        "text": "报告指出二者相关，但尚不能确认因果路径"
+        "text": "The report identifies an association but leaves the causal mechanism uncertain."
       },
       {
         "id": "B",
         "label": "B",
-        "text": "报告已证明早期屏幕暴露直接导致睡眠缩短"
+        "text": "The report proves that early screen exposure directly reduces sleep duration."
       },
       {
         "id": "C",
         "label": "C",
-        "text": "报告发现二者毫无关系"
+        "text": "The report finds no association between the variables."
       },
       {
         "id": "D",
         "label": "D",
-        "text": "报告仅讨论了睡眠质量，未涉及时长"
+        "text": "The report discusses sleep quality but not sleep duration."
       }
     ],
     "answer_key": {
@@ -6458,7 +6458,7 @@
     "analysis": {
       "title": "解析",
       "summary": "pilot、two districts 与 future decisions 分别限定阶段、范围和用途。试行不等于永久全市政策，提供决策依据也不等于已经作出所有决定。",
-      "exam_tip": "每项判断都要有材料依据，不能只匹配相同词语。"
+      "exam_tip": "同时圈出 pilot、two districts 和 future decisions，检查试行是否被写成全面实施。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6499,14 +6499,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：\n\n如果原文说 improved access，选项改写为 improved quality，通常可视为同义替换。\n\n这个判断正确吗？",
-      "support": "判断：\n\n如果原文说 improved access，选项改写为 improved quality，通常可视为同义替换。\n\n这个判断正确吗？",
-      "context": "判断：\n\n如果原文说 improved access，选项改写为 improved quality，通常可视为同义替换。\n\n这个判断正确吗？"
+      "prompt": "判断：The change was shown to improve the clinic’s treatment quality.",
+      "support": "练习材料（虚构情境）\nThe new bus route made the clinic easier to reach. No treatment outcomes were measured.\n\n任务：判断：The change was shown to improve the clinic’s treatment quality.",
+      "context": "判断：The change was shown to improve the clinic’s treatment quality."
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：access、quality、efficiency、equity 常并列出现但不等价。\n\n② 核心规律：概念维度不同即不可互换。\n\n③ 验证：若改写后测量对象变化（能否获得 vs 好坏程度），即为偷换。",
-      "exam_tip": "先判“维度”再判“方向”。"
+      "summary": "easier to reach是交通可达性，treatment quality是医疗服务质量。公交改善可能有帮助，但没有治疗数据就不能说质量已提高。",
+      "exam_tip": "把“到得了服务”和“服务做得怎样”分开。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6538,14 +6538,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "方法卡：\n\n“偷换概念”型干扰项与“与原文相反”型干扰项的关键区别是什么？",
-      "support": "方法卡：\n\n“偷换概念”型干扰项与“与原文相反”型干扰项的关键区别是什么？",
-      "context": "方法卡：\n\n“偷换概念”型干扰项与“与原文相反”型干扰项的关键区别是什么？"
+      "prompt": "练习材料（虚构情境）\nThe new booking system shortened waiting times, while recovery rates were unchanged.\n\n比较：A. Patients waited longer. B. Patients recovered more often.\n两项分别错在哪里？",
+      "support": "练习材料（虚构情境）\nThe new booking system shortened waiting times, while recovery rates were unchanged.\n\n比较：A. Patients waited longer. B. Patients recovered more often.\n两项分别错在哪里？",
+      "context": "练习材料（虚构情境）\nThe new booking system shortened waiting times, while recovery rates were unchanged.\n\n比较：A. Patients waited longer. B. Patients recovered more often.\n两项分别错在哪里？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：两类错误都可共享关键词，迷惑性高。\n\n② 核心规律：先“是什么”（概念），再“怎么样”（方向）。\n\n③ 验证：若概念不等价，方向再对也无效。",
-      "exam_tip": "概念边界优先于方向判断。"
+      "summary": "A仍谈waiting times，但改了增减方向。B改谈recovery rates，又给它加了原文没有的改善。先认清指标，再比较变化，才能区分两类错误。",
+      "exam_tip": "每个选项都问两件事：说的是同一指标吗，变化方向也一样吗？"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6553,7 +6553,7 @@
       "group": "干扰项排除",
       "box": "偷换概念"
     },
-    "back_text": "区别在“错位位置”：\n• 与原文相反：方向错（升降、支持反对等）。\n• 偷换概念：对象或概念维度错（access 换 quality，pilot 换 policy）。\n\n实战顺序：先核概念边界，再核方向极性。"
+    "back_text": "A把等待缩短写成更长；B把预约系统的等待改善换成康复率提高，原文说康复率未变。"
   },
   {
     "card_id": "111310",
@@ -6562,14 +6562,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nResearchers reported increased reporting rates after anonymity safeguards were introduced, but they cautioned that this did not necessarily indicate a rise in actual incidents.\n\n问题：哪项表述准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nResearchers reported increased reporting rates after anonymity safeguards were introduced, but they cautioned that this did not necessarily indicate a rise in actual incidents.\n\n问题：哪项表述准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nResearchers reported increased reporting rates after anonymity safeguards were introduced, but they cautioned that this did not necessarily indicate a rise in actual incidents.\n\n问题：哪项表述准确？"
+      "prompt": "哪项表述准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nResearchers reported increased reporting rates after anonymity safeguards were introduced, but they cautioned that this did not necessarily indicate a rise in actual incidents.\n\n任务：哪项表述准确？",
+      "context": "哪项表述准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：did not necessarily indicate 明示“不可直接推断”。\n\n② 核心规律：观测指标与真实状态是两层概念，不可直接等同。\n\n③ 验证：正确项应保留“报告率变化≠事件本体变化”。",
-      "exam_tip": "指标变化不必然代表本体变化。"
+      "summary": "原文说reporting rates上升，但did not necessarily indicate a rise in actual incidents，D保留。A把报告更多当成事件更多，B、C反改报告率方向。匿名措施可能使人更愿意报告，材料没有据此确认实际事件增加。",
+      "exam_tip": "记录得到的数量可能随报告意愿变化，不直接等于事情实际发生更多。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6581,22 +6581,22 @@
       {
         "id": "A",
         "label": "A",
-        "text": "匿名机制使真实事件数显著上升"
+        "text": "Anonymity safeguards substantially increased the actual number of incidents."
       },
       {
         "id": "B",
         "label": "B",
-        "text": "匿名机制对报告率没有影响"
+        "text": "Anonymity safeguards left reporting rates unchanged."
       },
       {
         "id": "C",
         "label": "C",
-        "text": "报告率下降说明事件减少"
+        "text": "A fall in reporting rates proved that incidents became less common."
       },
       {
         "id": "D",
         "label": "D",
-        "text": "报告率上升不必然说明真实事件增加"
+        "text": "Higher reporting rates did not necessarily mean that more incidents had actually occurred."
       }
     ],
     "answer_key": {
@@ -6618,7 +6618,7 @@
     "analysis": {
       "title": "解析",
       "summary": "原文明确区分短期情绪与长期结构变化，没有把二者等同，也没有给出从每次短期变化推出永久变化的规则。",
-      "exam_tip": "每项判断都要有材料依据，不能只匹配相同词语。"
+      "exam_tip": "对照 short-term sentiment 与 long-term structural changes，检查选项是否把两类变化当成同一件事。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6659,14 +6659,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 干扰项排除",
-      "prompt": "判断：\n\n在偷换概念题里，只要选项引入了“更具体”的术语，就更可能正确。\n\n这个判断正确吗？",
-      "support": "判断：\n\n在偷换概念题里，只要选项引入了“更具体”的术语，就更可能正确。\n\n这个判断正确吗？",
-      "context": "判断：\n\n在偷换概念题里，只要选项引入了“更具体”的术语，就更可能正确。\n\n这个判断正确吗？"
+      "prompt": "判断：The employees completed an online video course.",
+      "support": "练习材料（虚构情境）\nEmployees received additional training before using the new system. The report did not specify the training format.\n\n任务：判断：The employees completed an online video course.",
+      "context": "判断：The employees completed an online video course."
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：干扰项常通过术语精细化制造“专业感”。\n\n② 核心规律：准确性来自概念对齐，不来自术语复杂度。\n\n③ 验证：检查术语是否仍指向原文同一对象与维度。",
-      "exam_tip": "专业术语不是正确性的充分条件。"
+      "summary": "online video course比training更具体，但这种具体信息并没有材料依据。不能因为它像一种专业培训形式，就替作者补上。",
+      "exam_tip": "选项新增方式、地点或技术名词时，确认原文是否真的说明。"
     },
     "space_metadata": {
       "box_ref": "1113",
@@ -6698,14 +6698,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "【长难句主干：主谓】\n\n本盒只训练第一步：在复杂修饰成分中抓出主语与谓语。\n\n高频干扰：\n1) 介词短语插入主语后；\n2) 同位语与非谓语夹层；\n3) 定语从句把动词伪装成主句谓语。\n\n方法：先划掉修饰，再保留“谁 + 做什么/是什么”。",
-      "support": "【长难句主干：主谓】\n\n本盒只训练第一步：在复杂修饰成分中抓出主语与谓语。\n\n高频干扰：\n1) 介词短语插入主语后；\n2) 同位语与非谓语夹层；\n3) 定语从句把动词伪装成主句谓语。\n\n方法：先划掉修饰，再保留“谁 + 做什么/是什么”。",
-      "context": "【长难句主干：主谓】\n\n本盒只训练第一步：在复杂修饰成分中抓出主语与谓语。\n\n高频干扰：\n1) 介词短语插入主语后；\n2) 同位语与非谓语夹层；\n3) 定语从句把动词伪装成主句谓语。\n\n方法：先划掉修饰，再保留“谁 + 做什么/是什么”。"
+      "prompt": "句子：The report that two independent teams reviewed, despite several unresolved questions, contains useful evidence about migration.\n\n指出主句主语和谓语。reviewed 为什么不是主句谓语？",
+      "support": "句子：The report that two independent teams reviewed, despite several unresolved questions, contains useful evidence about migration.\n\n指出主句主语和谓语。reviewed 为什么不是主句谓语？",
+      "context": "句子：The report that two independent teams reviewed, despite several unresolved questions, contains useful evidence about migration.\n\n指出主句主语和谓语。reviewed 为什么不是主句谓语？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "先找主语与属于主句的带时态动词，这是结构分析的起点。及物动词还可能需要宾语，系动词还需要表语；只标出主语和动词，不代表已经留下完整句子。",
-      "exam_tip": "介词短语里的名词通常不是主语中心。"
+      "summary": "that two independent teams reviewed说明哪份报告，despite ... questions补充让步。先把这两处括起，就能连读The report contains useful evidence。完整句意仍需要contains后的宾语。",
+      "exam_tip": "找主句谓语时先识别从属标记that，再核对它外面的动词。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -6713,7 +6713,7 @@
       "group": "长难句主干",
       "box": "主谓"
     },
-    "back_text": "先找主语与属于主句的带时态动词，这是结构分析的起点。及物动词还可能需要宾语，系动词还需要表语；只标出主语和动词，不代表已经留下完整句子。"
+    "back_text": "主语是The report及其修饰，谓语是contains。reviewed属于that引导的修饰从句。"
   },
   {
     "card_id": "112002",
@@ -6722,14 +6722,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe rapid expansion of online certification programs in emerging markets, despite persistent quality concerns among employers, has created new pathways for adult learners.\n\n问题：该句主干主谓是哪一组？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe rapid expansion of online certification programs in emerging markets, despite persistent quality concerns among employers, has created new pathways for adult learners.\n\n问题：该句主干主谓是哪一组？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe rapid expansion of online certification programs in emerging markets, despite persistent quality concerns among employers, has created new pathways for adult learners.\n\n问题：该句主干主谓是哪一组？"
+      "prompt": "该句主干主谓是哪一组？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe rapid expansion of online certification programs in emerging markets, despite persistent quality concerns among employers, has created new pathways for adult learners.\n\n任务：该句主干主谓是哪一组？",
+      "context": "该句主干主谓是哪一组？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "主语核心是 The rapid expansion ... programs，谓语是 has created。\ndespite 短语是让步插入，不进入主干。\n\n暂时括起从句与非谓语修饰，确认主语中心和主句限定动词。",
-      "exam_tip": "暂时括起从句与非谓语修饰，确认主语中心和主句限定动词。"
+      "summary": "主语中心是单数expansion，has created是主句谓语，B正确。of ... programs与in ... markets都在补充扩张内容；despite ... concerns是让步，adult learners是受益者，不是主语。",
+      "exam_tip": "先找到最外层中心名词expansion，不让介词后的programs抢走主语位置。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -6771,14 +6771,14 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "模拟阅读材料：\n\nA series of policy adjustments targeting small manufacturers, along with temporary tax credits for green upgrades, has encouraged firms to modernize production lines.\n\n任务：划去错误的主谓识别判断。",
+      "prompt": "划去错误的主谓识别判断。",
       "support": "模拟阅读材料：\n\nA series of policy adjustments targeting small manufacturers, along with temporary tax credits for green upgrades, has encouraged firms to modernize production lines.\n\n任务：划去错误的主谓识别判断。",
-      "context": "模拟阅读材料：\n\nA series of policy adjustments targeting small manufacturers, along with temporary tax credits for green upgrades, has encouraged firms to modernize production lines.\n\n任务：划去错误的主谓识别判断。"
+      "context": "划去错误的主谓识别判断。"
     },
     "analysis": {
       "title": "解析",
       "summary": "主语中心是单数 a series，along with 后的 tax credits 是附加信息。谓语不能按 manufacturers 或 tax credits 的复数形式机械改写。应划去后两种错误依据。",
-      "exam_tip": "暂时括起从句与非谓语修饰，确认主语中心和主句限定动词。"
+      "exam_tip": "先找到 a series 这个单数中心，再括起 along with 的附加内容核对 has。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -6819,14 +6819,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "判断：长句中距离主语最近的动词通常就是主句谓语，不需要再核对主谓一致。",
-      "support": "判断：长句中距离主语最近的动词通常就是主句谓语，不需要再核对主谓一致。",
-      "context": "判断：长句中距离主语最近的动词通常就是主句谓语，不需要再核对主谓一致。"
+      "prompt": "判断：主句谓语是 bought，主句主语是 I。",
+      "support": "句子：The book that I bought yesterday contains several detailed maps.\n\n任务：判断：主句谓语是 bought，主句主语是 I。",
+      "context": "判断：主句谓语是 bought，主句主语是 I。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "错误。The book that I bought yesterday contains several maps 中，bought 属于修饰 book 的从句，主句谓语是 contains。找谓语时要识别从句边界，并把主语中心 book 与 contains 对齐，不能按最近的动词直接作答。\n\n暂时括起从句与非谓语修饰，确认主语中心和主句限定动词。",
-      "exam_tip": "暂时括起从句与非谓语修饰，确认主语中心和主句限定动词。"
+      "summary": "I bought属于修饰book的that从句，主句谓语contains与The book配对。不能把从句中完整的一组主谓拿来替代外层主句。",
+      "exam_tip": "先括起that I bought yesterday，再读剩余的句子。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -6858,14 +6858,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe decline in regional biodiversity, driven by habitat fragmentation and invasive species, remains a central concern for conservation planners.\n\n问题：哪项主干提取准确？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe decline in regional biodiversity, driven by habitat fragmentation and invasive species, remains a central concern for conservation planners.\n\n问题：哪项主干提取准确？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe decline in regional biodiversity, driven by habitat fragmentation and invasive species, remains a central concern for conservation planners.\n\n问题：哪项主干提取准确？"
+      "prompt": "哪项主干提取准确？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe decline in regional biodiversity, driven by habitat fragmentation and invasive species, remains a central concern for conservation planners.\n\n任务：哪项主干提取准确？",
+      "context": "哪项主干提取准确？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "主语是 The decline in regional biodiversity；谓语是 remains。\ndriven by... 为过去分词短语作后置修饰。\n\n暂时括起从句与非谓语修饰，确认主语中心和主句限定动词。",
-      "exam_tip": "暂时括起从句与非谓语修饰，确认主语中心和主句限定动词。"
+      "summary": "A的The decline ... remains是主句主谓。driven by habitat fragmentation and invasive species说明下降的原因；两个原因名词并不作remains的主语。表语a central concern说明这一下降仍是重要担忧。",
+      "exam_tip": "先找“什么仍是什么”，再看逗号内解释它为何出现。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -6907,14 +6907,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThat the industrial revolution fundamentally altered the relationship between human labor and natural resources is now broadly accepted by economic historians, though early accounts often overlooked its environmental consequences.\n\n问题：主句主谓是哪一组？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThat the industrial revolution fundamentally altered the relationship between human labor and natural resources is now broadly accepted by economic historians, though early accounts often overlooked its environmental consequences.\n\n问题：主句主谓是哪一组？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThat the industrial revolution fundamentally altered the relationship between human labor and natural resources is now broadly accepted by economic historians, though early accounts often overlooked its environmental consequences.\n\n问题：主句主谓是哪一组？"
+      "prompt": "主句主谓是哪一组？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThat the industrial revolution fundamentally altered the relationship between human labor and natural resources is now broadly accepted by economic historians, though early accounts often overlooked its environmental consequences.\n\n任务：主句主谓是哪一组？",
+      "context": "主句主谓是哪一组？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：That 引导名词性从句作主语；整个 that 从句结束后，紧跟主句谓语 is broadly accepted（被动语态）。though 从句是让步状语。\n\n② 核心规律：CET6 长句中名词性主语从句经常很长（15 词以上），考生常在中途迷失。策略：看到 That 开头，先读完整个从句找配对的 is/was/has，那才是主句谓语。\n\n③ 验证：That [从句] is broadly accepted——骨架完整；though 从句删去不影响主句。",
-      "exam_tip": "That 名词性从句作主语时，从句可能很长，但整个从句结束后紧跟的系/助动词才是主句谓语。"
+      "summary": "That ... natural resources整体表示工业革命改变关系这一事实，它与is now broadly accepted配对，B正确。industrial revolution altered在主语从句内部；though之后另说早期论述忽略后果。",
+      "exam_tip": "把句首That从句暂时换成“这件事”，看后面如何评价它。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -6956,14 +6956,14 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "划去不属于主句主语与谓语核心结构的候选成分，保留骨干。",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe persistent failure of multilateral negotiations, despite repeated calls from developing nations for a more equitable framework, has prompted unilateral action by several leading economies.\n\n任务：划去不属于主句主语与谓语核心结构的候选成分，保留骨干。",
-      "context": "划去不属于主句主语与谓语核心结构的候选成分，保留骨干。"
+      "prompt": "本题只标完整主语和主句谓语动词，暂时划去其余候选片段。",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe persistent failure of multilateral negotiations, despite repeated calls from developing nations for a more equitable framework, has prompted unilateral action by several leading economies.\n\n任务：本题只标完整主语和主句谓语动词，暂时划去其余候选片段。",
+      "context": "本题只标完整主语和主句谓语动词，暂时划去其余候选片段。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：despite 引导让步短语，夹在主语后，主语边界在 despite 前已经结束。主句谓语 has prompted 在让步短语关闭后出现。\n\n② 核心规律：despite / in spite of / notwithstanding 等让步介词短语通常夹在主语和谓语之间，读题时先整体跳过，再找主句谓语。\n\n③ 验证：The persistent failure of multilateral negotiations has prompted unilateral action——主谓宾骨架完整；despite 段删去不影响。",
-      "exam_tip": "despite/in spite of 短语插入主语后，先整体跳过，主句谓语在其后。"
+      "summary": "主语是The persistent failure of multilateral negotiations，谓语是has prompted。despite ... framework是让步说明，unilateral action ...是宾语，按本题只标主谓的要求暂时划去；完整句意仍需读回引发了什么行动。",
+      "exam_tip": "只标主谓与保留完整句子不是同一个任务，别据此认为prompt不需要宾语。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -7004,14 +7004,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "判断正误：\n\nOnly when governments commit to binding emissions targets will the transition to renewable energy gain the momentum it needs.\n\n此句的真正主语是 governments，谓语是 commit，因为它们比 will 和 gain 更靠近句首。",
-      "support": "判断正误：\n\nOnly when governments commit to binding emissions targets will the transition to renewable energy gain the momentum it needs.\n\n此句的真正主语是 governments，谓语是 commit，因为它们比 will 和 gain 更靠近句首。",
-      "context": "判断正误：\n\nOnly when governments commit to binding emissions targets will the transition to renewable energy gain the momentum it needs.\n\n此句的真正主语是 governments，谓语是 commit，因为它们比 will 和 gain 更靠近句首。"
+      "prompt": "判断：主句主语是governments，谓语是commit。",
+      "support": "句子：Only when governments commit to binding emissions targets will the transition to renewable energy gain the momentum it needs.\n\n任务：判断：主句主语是governments，谓语是commit。",
+      "context": "判断：主句主语是governments，谓语是commit。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：Only when / Only if / Only after 开头，主句发生倒装，助动词（will/can/do）提前，主语在助动词之后。\n\n② 核心规律：Only + 时间/条件状语从句提前时，主句倒装。真正主语在助动词（will）之后：will [the transition] gain...。从句内部的 governments commit 是从属层级，不是主句主谓。\n\n③ 验证：还原语序：The transition will gain momentum only when governments commit...——主句完整，主谓是 transition / will gain。",
-      "exam_tip": "Only when/if/after 开头：主句倒装，助动词先行，主语在助动词后——不要把从句主语当主句主语。"
+      "summary": "governments commit属于when时间条件从句。Only when前置后，主句will提前到the transition前；恢复顺序是The transition will gain ... only when governments commit ...。",
+      "exam_tip": "先把Only when条件括起，再寻找助动词后面的主句主语。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -7043,14 +7043,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "阅读片段：How efficiently a government allocates resources in times of crisis, as demonstrated by the divergent outcomes of the 2008 financial crisis response, often determines whether social trust can be rebuilt or permanently eroded.\n\n任务：(1) 全句真正的主谓是什么？(2) as demonstrated 短语是什么成分？",
+      "prompt": "(1) 全句真正的主谓是什么？(2) as demonstrated 短语是什么成分？",
       "support": "练习材料（虚构情境）\n阅读片段：How efficiently a government allocates resources in times of crisis, as demonstrated by the divergent outcomes of the 2008 financial crisis response, often determines whether social trust can be rebuilt or permanently eroded.\n\n任务：(1) 全句真正的主谓是什么？(2) as demonstrated 短语是什么成分？",
-      "context": "阅读片段：How efficiently a government allocates resources in times of crisis, as demonstrated by the divergent outcomes of the 2008 financial crisis response, often determines whether social trust can be rebuilt or permanently eroded.\n\n任务：(1) 全句真正的主谓是什么？(2) as demonstrated 短语是什么成分？"
+      "context": "(1) 全句真正的主谓是什么？(2) as demonstrated 短语是什么成分？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：How efficiently 引导名词性从句作主语，后跟状语插入 as demonstrated...，最终主句谓语是 determines（单数，与名词性从句主语一致）。\n\n② 核心规律：CET6 长句常将状语插入到主语与谓语之间，造成识别困难。策略：找到主句从句边界，先整体括起主语块，再到其后找唯一的限定动词。\n\n③ 验证：[How efficiently a government allocates resources in times of crisis] determines whether...——括号内是完整名词性从句主语，determines 为主句谓语；as...response 删去后骨架清晰。",
-      "exam_tip": "名词性从句主语（how/what/whether）后的插入成分（as demonstrated/as shown）先整体跳过。"
+      "summary": "主句说资源分配效率决定后面的社会信任结果，allocates属于how主语从句内部。as demonstrated by ...引用危机应对结果作为说明，暂时括起后，how从句可以直接与determines相连。",
+      "exam_tip": "先问整句用什么因素去“决定”什么，别把allocates误当外层谓语。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -7058,7 +7058,7 @@
       "group": "长难句主干",
       "box": "主谓"
     },
-    "back_text": "主谓：\n主语：How efficiently a government allocates resources in times of crisis（名词性从句）\n谓语：determines\n\nas demonstrated by the divergent outcomes... 是插入的状语（以 as 引导的方式/补充说明短语），夹在主语从句和主句谓语之间，可整体跳过。"
+    "back_text": "主语是How efficiently ... in times of crisis整个从句，主句谓语是determines。as demonstrated ...是补充证据的插入说明。"
   },
   {
     "card_id": "112010",
@@ -7067,14 +7067,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe evidence suggesting a causal link between social media use and declining civic participation among young adults remains inconclusive, with researchers calling for longitudinal studies that track behavior over decades.\n\n问题：主句主谓是哪一对？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe evidence suggesting a causal link between social media use and declining civic participation among young adults remains inconclusive, with researchers calling for longitudinal studies that track behavior over decades.\n\n问题：主句主谓是哪一对？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe evidence suggesting a causal link between social media use and declining civic participation among young adults remains inconclusive, with researchers calling for longitudinal studies that track behavior over decades.\n\n问题：主句主谓是哪一对？"
+      "prompt": "主句主谓是哪一对？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe evidence suggesting a causal link between social media use and declining civic participation among young adults remains inconclusive, with researchers calling for longitudinal studies that track behavior over decades.\n\n任务：主句主谓是哪一对？",
+      "context": "主句主谓是哪一对？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "① 识别信号：suggesting a causal link... 是现在分词短语修饰 The evidence，不是主句谓语；主句谓语是 remains（后接形容词 inconclusive，主系表结构）。\n\n② 核心规律：CET6 中主语后常带很长的现在分词修饰（suggesting/indicating/including...），考生容易把 suggesting 读成谓语。区分：有时态的有限动词（remains）才是谓语；-ing 分词无时态，是修饰。\n\n③ 验证：The evidence remains inconclusive——主系表骨架；with 结构是伴随说明，that 从句是 studies 的定语，均不属于主谓。",
-      "exam_tip": "现在分词短语（-ing）后置修饰名词不是谓语；真正主句谓语是有时态变化的有限动词。"
+      "summary": "The evidence与remains配对，A正确。suggesting ... adults修饰evidence，主句再说证据inconclusive。with researchers calling ...与that track ...分别是补充和修饰，不能替代remains。",
+      "exam_tip": "先找到带时态并能连接主语与状态的remains，不按逗号位置机械切分。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -7116,9 +7116,9 @@
     "interaction_id": "elimination",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nNeither the proposed fiscal stimulus package nor the central bank's emergency rate cuts have succeeded in restoring investor confidence to pre-crisis levels.\n\n任务：只保留完整主语和主句中带时态的动词词组，暂时划去其余候选片段。",
+      "prompt": "只保留完整主语和主句中带时态的动词词组，暂时划去其余候选片段。",
       "support": "练习材料（虚构情境）\n阅读片段：\n\nNeither the proposed fiscal stimulus package nor the central bank's emergency rate cuts have succeeded in restoring investor confidence to pre-crisis levels.\n\n任务：只保留完整主语和主句中带时态的动词词组，暂时划去其余候选片段。",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nNeither the proposed fiscal stimulus package nor the central bank's emergency rate cuts have succeeded in restoring investor confidence to pre-crisis levels.\n\n任务：只保留完整主语和主句中带时态的动词词组，暂时划去其余候选片段。"
+      "context": "只保留完整主语和主句中带时态的动词词组，暂时划去其余候选片段。"
     },
     "analysis": {
       "title": "解析",
@@ -7164,14 +7164,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "判断正误：\n\n在下面句子中，主句主语是 which，谓语是 resulted：\n\nThe committee endorsed a series of environmental standards, which resulted in significant operational disruptions for manufacturers relying on fossil fuels.",
-      "support": "判断正误：\n\n在下面句子中，主句主语是 which，谓语是 resulted：\n\nThe committee endorsed a series of environmental standards, which resulted in significant operational disruptions for manufacturers relying on fossil fuels.",
-      "context": "判断正误：\n\n在下面句子中，主句主语是 which，谓语是 resulted：\n\nThe committee endorsed a series of environmental standards, which resulted in significant operational disruptions for manufacturers relying on fossil fuels."
+      "prompt": "判断以下说法是否正确：主句主语是 which，谓语是 resulted。",
+      "support": "The committee endorsed a series of environmental standards, which resulted in significant operational disruptions for manufacturers relying on fossil fuels.\n\n任务：判断以下说法是否正确：主句主语是 which，谓语是 resulted。",
+      "context": "判断以下说法是否正确：主句主语是 which，谓语是 resulted。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "which 引导补充说明，其具体指向应结合语义理解，可以联系前述标准或前句所述事件。无论如何，该从句中的 resulted 都不是主句谓语；主句是 The committee endorsed a series of environmental standards。",
-      "exam_tip": "非限制性定语从句（逗号+which）的动词属于从句层级，绝不是主句谓语。"
+      "summary": "主句是The committee endorsed a series of environmental standards，主语committee、谓语endorsed。which之后的resulted属于补充从句，不是主句谓语；它具体联系标准还是前述事件，不影响本题主从层次判断。",
+      "exam_tip": "用which标出从句的起点，再检查主句在它之前已怎样成立。"
     },
     "space_metadata": {
       "box_ref": "1120",
@@ -7203,14 +7203,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "【长难句主干：主谓宾】\n\n本盒训练在长句中同时锁定主语、谓语、宾语三要素。\n\n常见干扰：\n1) 宾语前后插入长修饰；\n2) 从句动词伪装主句谓语；\n3) 介词宾语被误判为主句宾语。\n\n流程：删修饰 -> 定谓语 -> 问“谁对谁做了什么”。",
-      "support": "【长难句主干：主谓宾】\n\n本盒训练在长句中同时锁定主语、谓语、宾语三要素。\n\n常见干扰：\n1) 宾语前后插入长修饰；\n2) 从句动词伪装主句谓语；\n3) 介词宾语被误判为主句宾语。\n\n流程：删修饰 -> 定谓语 -> 问“谁对谁做了什么”。",
-      "context": "【长难句主干：主谓宾】\n\n本盒训练在长句中同时锁定主语、谓语、宾语三要素。\n\n常见干扰：\n1) 宾语前后插入长修饰；\n2) 从句动词伪装主句谓语；\n3) 介词宾语被误判为主句宾语。\n\n流程：删修饰 -> 定谓语 -> 问“谁对谁做了什么”。"
+      "prompt": "句子：The report that the committee released clarified the rules for local agencies.\n\n指出主句主语、谓语和直接宾语。committee 与 agencies 分别属于哪部分？",
+      "support": "句子：The report that the committee released clarified the rules for local agencies.\n\n指出主句主语、谓语和直接宾语。committee 与 agencies 分别属于哪部分？",
+      "context": "句子：The report that the committee released clarified the rules for local agencies.\n\n指出主句主语、谓语和直接宾语。committee 与 agencies 分别属于哪部分？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "主谓宾结构要回答“谁对什么做了什么”。The report that the committee released gives policymakers a clearer basis 中，主语是 report，谓语是 gives，直接宾语是 basis。\n\nthat 从句里的 committee 和 released 属于修饰 report 的内部结构；policymakers 是 gives 的接收者，不能把 released 当成主句谓语。\n\n先定主句谓语，再向左找施事、向右找它直接支配的对象。",
-      "exam_tip": "从句中的主谓不要抢占主句槽位。"
+      "summary": "that the committee released修饰report，for local agencies说明规则针对哪些机构。主句要回答报告clarified什么，答案是the rules，不是这些机构。",
+      "exam_tip": "先问主句动词直接涉及什么，再处理介词后的对象。"
     },
     "space_metadata": {
       "box_ref": "1121",
@@ -7218,7 +7218,7 @@
       "group": "长难句主干",
       "box": "主谓宾"
     },
-    "back_text": "翻卡结论：删去修饰后依次回答“谁—做什么—作用于谁或什么”；介词宾语和从句内部名词不能替代主句的直接宾语。"
+    "back_text": "主句是The report / clarified / the rules。committee在that从句里，agencies在for介词短语里。"
   },
   {
     "card_id": "112102",
@@ -7227,14 +7227,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "练习材料（虚构情境）\n阅读片段：\n\nThe committee on urban transport, after reviewing three pilot reports and several stakeholder submissions, rejected the proposal for mandatory weekend tolls.\n\n问题：哪一组最符合该句主谓宾主干？",
-      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe committee on urban transport, after reviewing three pilot reports and several stakeholder submissions, rejected the proposal for mandatory weekend tolls.\n\n问题：哪一组最符合该句主谓宾主干？",
-      "context": "练习材料（虚构情境）\n阅读片段：\n\nThe committee on urban transport, after reviewing three pilot reports and several stakeholder submissions, rejected the proposal for mandatory weekend tolls.\n\n问题：哪一组最符合该句主谓宾主干？"
+      "prompt": "哪一组最符合该句主谓宾主干？",
+      "support": "练习材料（虚构情境）\n阅读片段：\n\nThe committee on urban transport, after reviewing three pilot reports and several stakeholder submissions, rejected the proposal for mandatory weekend tolls.\n\n任务：哪一组最符合该句主谓宾主干？",
+      "context": "哪一组最符合该句主谓宾主干？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "主语是 The committee on urban transport；谓语是 rejected；宾语是 the proposal for mandatory weekend tolls。\nreviewing... 为插入背景，不进入主干。\n\n先确定主句谓语，再查明谁施行动作、动作作用于什么。",
-      "exam_tip": "先确定主句谓语，再查明谁施行动作、动作作用于什么。"
+      "summary": "主句是committee rejected the proposal，故B正确。after reviewing ...说明作决定之前的审阅过程；reports与submissions是审阅的材料，不能成为rejected的主语。",
+      "exam_tip": "先把after引出的背景括起，再读委员会对提案做了什么。"
     },
     "space_metadata": {
       "box_ref": "1121",
@@ -7282,8 +7282,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "第一项：主语中心是 coalition。\n第三项：谓语 has developed 之后的核心宾语是 toolkit，for rural clinics 为后置修饰。\n\n先确定主句谓语，再查明谁施行动作、动作作用于什么。",
-      "exam_tip": "先确定主句谓语，再查明谁施行动作、动作作用于什么。"
+      "summary": "coalition作主语，has developed作谓语，toolkit是开发的对象。rural clinics在for之后说明使用者，high-altitude regions说明地区，均不决定主句主谓宾。应划去2、4。",
+      "exam_tip": "先把“开发者—开发—工具包”连读，再放回使用者与地区。"
     },
     "space_metadata": {
       "box_ref": "1121",
@@ -7324,14 +7324,14 @@
     "interaction_id": "swipe",
     "front": {
       "eyebrow": "这张练习 | 长难句主干",
-      "prompt": "判断：只要句中出现 for/to 短语，其中名词通常就是主句宾语。",
-      "support": "判断：只要句中出现 for/to 短语，其中名词通常就是主句宾语。",
-      "context": "判断：只要句中出现 for/to 短语，其中名词通常就是主句宾语。"
+      "prompt": "判断：主句的直接宾语是 the ministry。",
+      "support": "句子：After consulting local councils, the agency submitted a revised proposal to the ministry.\n\n任务：判断：主句的直接宾语是 the ministry。",
+      "context": "判断：主句的直接宾语是 the ministry。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "❌ 错误。\n\nfor/to 短语多为介词结构或不定式补充，不必然充当主句宾语。\n宾语应直接受主句谓语支配。\n\n先确定主句谓语，再查明谁施行动作、动作作用于什么。",
-      "exam_tip": "先确定主句谓语，再查明谁施行动作、动作作用于什么。"
+      "summary": "提交的东西是proposal，接收方ministry由to引出。句首After ... councils只是事先咨询的背景，不能与主句宾语混用。",
+      "exam_tip": "分别问“提交什么”和“提交给谁”，前者才是submitted的直接宾语。"
     },
     "space_metadata": {
       "box_ref": "1121",

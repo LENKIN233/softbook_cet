@@ -407,9 +407,13 @@ audio QC, a release bundle, deployment evidence, or launch approval.
 For a complete pre-publication track handoff, use
 `--payload-mode full-track-candidate` with the exact complete track card-ID list
 and that track's passing technical-audio audit. The builder fails closed unless
-the result is exactly CET4 1,180 cards / 108 boxes / 301 audio assets or CET6
+the result is exactly CET4 1,180 cards / 108 boxes / 297 audio assets or CET6
 1,234 cards / 110 boxes / 328 audio assets, covers all five core interactions,
-and consumes every audited asset exactly once. This candidate mode proves that
+and consumes every audited asset exactly once. CET4 cards `060103`, `060106`,
+`062002`, and `062006` are text exercises: their previous audio omitted needed
+words, no longer matched the revised material, or read out the exercise answers,
+so those four references are excluded
+from the candidate handoff. This candidate mode proves that
 the complete content can enter the runtime schema; it deliberately does not
 replace per-track model authorization or model-owned complete-asset perceptual
 audio QC.

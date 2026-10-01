@@ -160,7 +160,7 @@ it('removes an inline verbatim task repeat without dropping a different instruct
   if (record?.interaction_id !== 'elimination') throw new Error('Missing real elimination card 061203');
   const card = normalizeLearningCardRecord(record) as EliminationCard;
   expect(frontMaterial(card)).toEqual([
-    '句子：Because the sample size was limited, the conclusion should be interpreted with caution.',
+    'Because the sample size was limited, the conclusion should be interpreted with caution.',
   ]);
   expect(eliminationPassage(card)?.source).toBe(frontMaterial(card)[0]);
 });
@@ -168,8 +168,8 @@ it('removes an inline verbatim task repeat without dropping a different instruct
 it.each([
   ['012103', '模拟句子：Most customers choose private cars.'],
   ['012003', '阅读片段：The greatest challenge for me was continuing to believe in myself.'],
-  ['061203', '句子：Because the sample size was limited.'],
-  ['061205', '句子：While the dataset appears comprehensive.'],
+  ['061203', 'Because the sample size was limited.'],
+  ['061205', 'While the dataset appears comprehensive.'],
 ])('deleting the actual correct spans leaves the intact source core in %s', (id, expected) => {
   const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === id);
   if (record?.interaction_id !== 'elimination') throw new Error(`Missing real elimination card ${id}`);
@@ -216,12 +216,12 @@ it.each(['030006', '050507', '050509'])('keeps the authored meaning of real lock
   expect(output).not.toBe(card.answer_key.lock_pattern.join(' '));
   for (const value of card.answer_key.lock_pattern) expect(output).toContain(value);
   expect(output).not.toMatch(/\{\{blank\}\}|____/);
-  if (id === '030006') expect(output).toBe('锁定任务清单：对象是 first-year students；核心动作是 invite。');
+  if (id === '030006') expect(output).toBe('补全这则通知的读者和目的：\n读者是 first-year students；要做的事是 invite。');
 });
 
 it.each([
   ['cet4', '040011', "Rural infrastructure has been continuously improved, not only improving residents' living conditions but also driving the upgrading of rural industries."],
-  ['cet6', '141011', "Public cultural platforms have been continuously improved, not only enriching people's spiritual life but also raising the level of equalized cultural services."],
+  ['cet6', '141011', "Public cultural platforms have been continuously improved, not only enriching people's cultural lives but also making access to cultural services more equal."],
 ] as const)('omits the standalone structure task only from the completed answer of %s %s', (track, id, expected) => {
   const record = bundledCardLibrary[track].cards.find(item => item.card_id === id)!;
   const card = normalizeLearningCardRecord(record);
@@ -229,7 +229,9 @@ it.each([
   const before = JSON.stringify(card);
   expect(answerComparison(card, createLearningCardState(card)).correct).toBe(expected);
   expect(displayCardText(card, card.front.prompt)).toContain('结构练习：');
-  expect(displayCardText(card, card.front.prompt)).toContain('补全英文句子。');
+  expect(displayCardText(card, card.front.prompt)).toContain(id === '141011'
+    ? '用表示“不仅……而且……”的成对连词连接两项作用。'
+    : '补全英文句子。');
   expect(JSON.stringify(card)).toBe(before);
 });
 
@@ -259,9 +261,9 @@ it('updates only verified lock choices inside their original sentence, preservin
   state.lockSelections[card.lock_slots[0].id] = card.answer_key.lock_pattern[0];
   state.lockSelections[card.lock_slots[1].id] = 'complain';
   const output = displayCardText(card, card.front.prompt, state);
-  expect(output).toContain('对象是 first-year students；核心动作是 ____。');
+  expect(output).toContain('读者是 first-year students；要做的事是 ____。');
   expect(output).toContain('Write a notice');
-  expect(output).toContain('词库：');
+  expect(output).toContain('补全这则通知的读者和目的：');
   expect(frontMaterial(card, state)).toEqual([]);
 });
 

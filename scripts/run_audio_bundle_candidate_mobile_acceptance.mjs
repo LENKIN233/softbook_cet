@@ -42,7 +42,7 @@ const CANDIDATE_KEYS = Object.freeze([
   'track',
 ]);
 const FULL_TRACK_POLICIES = Object.freeze({
-  cet4: Object.freeze({cardCount: 1180, boxCount: 108, audioCount: 301}),
+  cet4: Object.freeze({cardCount: 1180, boxCount: 108, audioCount: 297}),
   cet6: Object.freeze({cardCount: 1234, boxCount: 110, audioCount: 328}),
 });
 const SAFE_REPORT_KEYS = Object.freeze([

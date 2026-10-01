@@ -10,7 +10,7 @@ import {createLearningCardState, evaluateLearningCard} from '../src/learning/ses
 import {bundledAudioSelection} from '../src/audio/bundledAudio';
 import {LearningAudioController} from '../src/audio/learningAudioController';
 
-test.each([['cet4', 1180, 108, 301], ['cet6', 1234, 110, 328]] as const)(
+test.each([['cet4', 1180, 108, 297], ['cet6', 1234, 110, 328]] as const)(
   '%s exposes every real card and completes all five interactions with exact local audio bytes', async (track, count, boxes, audioCount) => {
     const session = createLocalLearningSession(track);
     const fromRepository = await createLearningSessionRepository({mode: 'local'}).loadSession({phoneNumber: '13800138000'}, track);
