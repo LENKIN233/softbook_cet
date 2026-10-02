@@ -158,6 +158,10 @@ describe('authenticated Web remote orchestration', () => {
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
     const auth = authSessionCoordinator.getCurrentSession();
+    const remember = vi.fn(() => {throw new Error('selection storage unavailable');});
+    await expect(controller.switchTrack('cet6', remember)).rejects.toThrow('selection storage unavailable');
+    expect(remember).toHaveBeenCalledWith(expect.objectContaining({learningSession: expect.objectContaining({track: 'cet6'})}));
+    expect((await controller.loadAuthenticatedState()).learningSession.track).toBe('cet4');
     expect((await controller.switchTrack('cet6')).learningSession.track).toBe('cet6');
     expect((await controller.loadAuthenticatedState()).bootstrap.track).toBe('cet6');
     expect(authSessionCoordinator.getCurrentSession()).toEqual(auth);

@@ -2,6 +2,7 @@ import {act, fireEvent, render, screen, cleanup, waitFor} from '@testing-library
 import {afterEach, beforeEach, expect, it} from 'vitest';
 import {App} from './App';
 import {resolveWebRuntime} from './runtime';
+import {FIRST_RUN_GUIDANCE_KEY} from './firstRunGuidanceStore';
 
 beforeEach(() => window.localStorage.clear());
 afterEach(async () => {cleanup(); await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));}); window.localStorage.clear();});
@@ -10,6 +11,7 @@ afterEach(() => {cleanup(); window.history.replaceState(null, '', '/');});
 
 it.each([['cet4', 1180], ['cet6', 1234]] as const)(
   'opens the full real %s library in five-card groups without SMS', async (track, count) => {
+    window.localStorage.setItem(FIRST_RUN_GUIDANCE_KEY, JSON.stringify({version: 1, selectedTrack: track, learningGuideSeen: true}));
     window.history.replaceState(null, '', `/?track=${track}`);
     expect(resolveWebRuntime()).toMatchObject({mode: 'development', track});
     render(<App />);

@@ -1,0 +1,11 @@
+appId: com.softbook.cet
+name: select-first-subject
+---
+- extendedWaitUntil:
+    visible:
+      id: first-subject-cet4
+    timeout: 30000
+- tapOn:
+    id: first-subject-cet4
+- tapOn:
+    id: first-subject-continue

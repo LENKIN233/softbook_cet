@@ -3,6 +3,7 @@ name: ios-auth-learning-space-statistics-smoke
 ---
 - clearState
 - launchApp
+- runFlow: first-run.yaml
 - extendedWaitUntil:
     visible:
       id: "auth-phone-input"
@@ -41,6 +42,12 @@ name: ios-auth-learning-space-statistics-smoke
     id: "auth-submit-button"
 - tapOn:
     id: "auth-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: first-learning-guide-start
+    timeout: 30000
+- tapOn:
+    id: first-learning-guide-start
 - assertNotVisible:
     id: "standalone-auth-screen"
 - tapOn:

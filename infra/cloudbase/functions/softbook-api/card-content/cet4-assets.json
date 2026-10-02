@@ -2328,14 +2328,6 @@
     "asset_path": "audio/cet4/0601/060102.mp3"
   },
   {
-    "asset_id": "cet4-060103-audio",
-    "duration_ms": 4440,
-    "media_type": "audio/mpeg",
-    "sha256": "sha256:f993657fb3eb7194e491bcaec0478663066f6b1f7afb923e80383727bac03ced",
-    "size_bytes": 26684,
-    "asset_path": "audio/cet4/0601/060103.mp3"
-  },
-  {
     "asset_id": "cet4-060104-audio",
     "duration_ms": 5928,
     "media_type": "audio/mpeg",
@@ -2352,28 +2344,12 @@
     "asset_path": "audio/cet4/0601/060105.mp3"
   },
   {
-    "asset_id": "cet4-060106-audio",
-    "duration_ms": 7200,
-    "media_type": "audio/mpeg",
-    "sha256": "sha256:e6ab6698fd86de7e565ae55e62cc9b91823e73296fa61c6761ceb70868618cbe",
-    "size_bytes": 43244,
-    "asset_path": "audio/cet4/0601/060106.mp3"
-  },
-  {
     "asset_id": "cet4-062001-audio",
     "duration_ms": 6744,
     "media_type": "audio/mpeg",
     "sha256": "sha256:d9a483bd478cc7f7a0012d8d9596516609d5bb5885db1177f8dd2703ce8a2c4a",
     "size_bytes": 40508,
     "asset_path": "audio/cet4/0620/062001.mp3"
-  },
-  {
-    "asset_id": "cet4-062002-audio",
-    "duration_ms": 7224,
-    "media_type": "audio/mpeg",
-    "sha256": "sha256:1117939c52b88b42644c5b099d88baeb7a5f19cf57eb5a8b68f75b31a6bf6cbb",
-    "size_bytes": 43388,
-    "asset_path": "audio/cet4/0620/062002.mp3"
   },
   {
     "asset_id": "cet4-062003-audio",
@@ -2398,13 +2374,5 @@
     "sha256": "sha256:19265a8010c2f144f087dca0ba3d4d0141e9f235eeafd6d9197b3078e4729c32",
     "size_bytes": 39356,
     "asset_path": "audio/cet4/0620/062005.mp3"
-  },
-  {
-    "asset_id": "cet4-062006-audio",
-    "duration_ms": 7488,
-    "media_type": "audio/mpeg",
-    "sha256": "sha256:3b9b8d69edffe20d154744b00264227b549402fc7b36d245895c3b03069bf861",
-    "size_bytes": 44972,
-    "asset_path": "audio/cet4/0620/062006.mp3"
   }
 ]

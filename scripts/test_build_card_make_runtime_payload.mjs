@@ -426,7 +426,7 @@ function testFullTrackCandidateSummary() {
     'swipe',
   ];
   const policies = [
-    ['cet4', 1180, 108, 301],
+    ['cet4', 1180, 108, 297],
     ['cet6', 1234, 110, 328],
   ];
 

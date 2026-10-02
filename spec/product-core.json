@@ -46,6 +46,13 @@
       "local_review_schedule": "failed_or_uncertain_answers_are_reviewable_immediately_and_due_after_10_minutes; successful_attempts_use_1_3_7_14_30_60_day_intervals; this_is_a_basic_product_heuristic_not_a_validated_exam_outcome_claim",
       "remote_boundary": "remote_sessions_continue_to_use_server_scheduling"
     },
+    "first_run_guidance": {
+      "first_open": "Require an explicit CET4 or CET6 choice before entering the normal product. No default selection or dismissal bypass.",
+      "device_preference": "Remember the choice on the current installation or browser; ordinary restarts do not repeat onboarding.",
+      "switching": "Show the My > Preparation subject switch location and preserve independent CET4 and CET6 progress.",
+      "learning_introduction": "After the first authenticated learning entry, offer one concise popup explaining reading the task, requesting help, answering, reviewing the explanation and the Space entry.",
+      "recovery": "Read, write and account-state failures remain visible and recoverable; retained account data and pending writes must not be cleared or bypassed."
+    },
     "single_card_flow": true,
     "default_learning_path": "system_sequenced_single_flow",
     "module_browsing_role": "secondary_entry_for_targeted_review_not_primary_learning_mode",

@@ -1,7 +1,15 @@
 import React from 'react';
 import ReactTestRenderer, {act} from 'react-test-renderer';
 import {AppState} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {FIRST_RUN_GUIDANCE_KEY, createFirstRunGuidanceStore} from '../src/onboarding/firstRunGuidanceStore';
 import App from '../App';
+
+// This suite covers journeys after the first-run flow.
+jest.mock('../src/onboarding/FirstRunGuidance', () => ({
+  ...jest.requireActual('../src/onboarding/FirstRunGuidance'),
+  FirstRunGuidanceBoundary: require('./fixtures/completedFirstRunGuidance').CompletedFirstRunGuidance,
+}));
 import {LearningSurface} from '../src/learning/LearningSurface';
 import {LearningEventOutbox} from '../src/sync/learningEventOutbox';
 import {createReactNativeLearningEventOutboxStorage} from '../src/sync/learningEventOutboxStorage.native';
@@ -81,9 +89,11 @@ it('switches authenticated tracks without losing the old track when the next loa
   await press(root, 'route-tab-mine'); await settle();
   await press(root, 'mine-track-cet6'); await settle();
   expect(root.findByProps({testID: 'mine-track-cet4'}).props.accessibilityState.selected).toBe(true);
+  expect(await createFirstRunGuidanceStore().load()).toMatchObject({selectedTrack: 'cet4'});
   failSix = false;
   await press(root, 'mine-track-cet6'); await settle();
   expect(root.findByProps({testID: 'mine-track-cet6'}).props.accessibilityState.selected).toBe(true);
+  expect(await createFirstRunGuidanceStore().load()).toMatchObject({selectedTrack: 'cet6'});
   await press(root, 'route-tab-learning'); await settle();
   expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(six.cards[0].card_id);
   expect(root.findByProps({testID: 'learning-progress-label'}).props.children).toContain('英语六级');
@@ -93,6 +103,29 @@ it('switches authenticated tracks without losing the old track when the next loa
   expect(root.findByProps({testID: 'mine-track-cet4'}).props.accessibilityState.selected).toBe(true);
   await press(root, 'route-tab-learning'); await settle();
   expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(runtime.base.cards[0].card_id);
+});
+
+it('keeps the current track when the new preference cannot be saved and permits retry', async () => {
+  createRuntime();
+  const loadFour = mockLoadSession.getMockImplementation()!;
+  const baseSix = createLocalLearningSession('cet6');
+  const six = {...baseSix, contentVersion: `sha256:${'b'.repeat(64)}`, membershipStage: 'premium' as const};
+  mockLoadSession.mockImplementation(async (context, value) => value === 'cet6' ? six : loadFour(context, value));
+  const fetchFour = global.fetch;
+  global.fetch = jest.fn(async (input, init) => String(input).includes('/v2/bootstrap?') && new URL(String(input)).searchParams.get('track') === 'cet6'
+    ? createJsonResponse(createAccountBootstrapPayload(six, 'premium', [])) as never : fetchFour(input, init));
+  const {root} = await login();
+  await press(root, 'route-tab-mine'); await settle();
+  const write = jest.mocked(AsyncStorage.setItem);
+  const original = write.getMockImplementation()!;
+  write.mockImplementation(async (key, value) => {if (key === FIRST_RUN_GUIDANCE_KEY) throw new Error('storage unavailable'); return original(key, value);});
+  await press(root, 'mine-track-cet6'); await settle();
+  expect(root.findByProps({testID: 'mine-track-cet4'}).props.accessibilityState.selected).toBe(true);
+  expect(await createFirstRunGuidanceStore().load()).toMatchObject({selectedTrack: 'cet4'});
+  write.mockImplementation(original);
+  await press(root, 'mine-track-cet6'); await settle();
+  expect(root.findByProps({testID: 'mine-track-cet6'}).props.accessibilityState.selected).toBe(true);
+  expect(await createFirstRunGuidanceStore().load()).toMatchObject({selectedTrack: 'cet6'});
 });
 
 function createRuntime() {

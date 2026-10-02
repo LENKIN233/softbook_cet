@@ -81,6 +81,10 @@ try {
   const expected = {material: requiredMaterial, answer: `${realAnswer.label} ${realAnswer.text}`, options: realChoice.options.map(option => option.text), elimination: expectedDeletions};
   report.sample_card_ids = sampleIds;
   report.inputs = Object.fromEntries([recordsPath, 'apps/mobile/index.experience.js', 'apps/mobile/e2e/experience/reading-cards.json', 'apps/mobile/App.tsx', 'apps/mobile/src/learning/LearningSurface.tsx', 'apps/mobile/src/learning/NativeMotion.tsx',
+    'apps/mobile/src/onboarding/FirstRunGuidance.tsx', 'apps/mobile/src/onboarding/firstRunGuidanceStore.ts',
+    'apps/mobile/src/onboarding/firstTrackSelectionGuard.ts',
+    'apps/mobile/src/persistence/authSessionStore.ts', 'apps/mobile/src/sync/learningEventOutbox.ts',
+    'apps/mobile/src/sync/mutationQueue.ts', 'apps/mobile/src/local/LocalStudyApp.tsx',
     'apps/mobile/src/learning/presentation.ts', 'apps/mobile/src/learning/EliminationPassageText.tsx',
     'apps/mobile/src/space/SpaceSurface.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',

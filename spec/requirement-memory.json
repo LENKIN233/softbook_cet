@@ -27,6 +27,10 @@
       "selected_artifact": "B 轻快；同会话三方案 HTML 比较后选择",
       "current_design_owner": "docs/design/decisions/light-studio-three-surfaces-v1.md",
       "copy_feedback": "为什么这上面会有一个黄色的，而且文案的 ai 味怎么这么重"
+    },
+    "first_run_guidance": {
+      "user_request": "现在没有指引，应该加入适当弹窗指引！应该强制让用户首次打开时选择四级还是六级并告诉用户如何切换",
+      "owner": "spec/product-core.json#learning_experience.first_run_guidance"
     }
   },
   "product_intent": {

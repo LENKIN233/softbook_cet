@@ -7,6 +7,12 @@ import ReactTestRenderer from 'react-test-renderer';
 import { installSoftbookAppRuntimeConfig } from '../src/runtime/installRuntimeConfig';
 import App from '../App';
 
+// This suite covers journeys after the first-run flow.
+jest.mock('../src/onboarding/FirstRunGuidance', () => ({
+  ...jest.requireActual('../src/onboarding/FirstRunGuidance'),
+  FirstRunGuidanceBoundary: require('./fixtures/completedFirstRunGuidance').CompletedFirstRunGuidance,
+}));
+
 jest.mock('react-native-safe-area-context', () => {
   const mockReact = require('react');
   const { View } = require('react-native');

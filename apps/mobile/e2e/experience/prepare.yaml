@@ -6,10 +6,24 @@ name: prepare-reading-device
 - launchApp
 - extendedWaitUntil:
     visible:
+      id: first-subject-cet4
+    timeout: 60000
+- tapOn:
+    id: first-subject-cet4
+- tapOn:
+    id: first-subject-continue
+- extendedWaitUntil:
+    visible:
       id: local-start-learning-button
     timeout: 60000
 - tapOn:
     id: local-start-learning-button
+- extendedWaitUntil:
+    visible:
+      id: first-learning-guide-start
+    timeout: 60000
+- tapOn:
+    id: first-learning-guide-start
 - extendedWaitUntil:
     visible:
       id: learning-option-1

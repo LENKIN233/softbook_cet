@@ -18,11 +18,13 @@ import type {
   WebRemoteSnapshot,
 } from './remoteRuntime';
 import {WebRemotePostAuthError} from './remoteRuntime';
+import {FIRST_RUN_GUIDANCE_KEY} from './firstRunGuidanceStore';
 
 const PHONE = '13800138000';
 
 describe('PC Web remote UI authority', () => {
   beforeEach(() => {
+    window.localStorage.setItem(FIRST_RUN_GUIDANCE_KEY, JSON.stringify({version: 1, selectedTrack: 'cet4', learningGuideSeen: true}));
     window.__SOFTBOOK_WEB_RUNTIME__ = {
       baseUrl: 'https://runtime.example.cn',
       clientKind: 'web',
@@ -33,6 +35,7 @@ describe('PC Web remote UI authority', () => {
   });
 
   afterEach(() => {
+    window.localStorage.removeItem(FIRST_RUN_GUIDANCE_KEY);
     delete window.__SOFTBOOK_WEB_RUNTIME__;
   });
 

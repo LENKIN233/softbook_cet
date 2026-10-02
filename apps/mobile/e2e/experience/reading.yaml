@@ -97,14 +97,25 @@ name: read-material-and-correction
       id: learning-next-button
     direction: DOWN
     timeout: 10000
-# Hosted iOS produced a visible, enabled button but did not deliver one tap.
-# Retry only when the page did not change; the next material assertion catches
-# both a missed advance and an accidental double advance.
-- tapOn:
-    id: learning-next-button
-    enabled: true
-    retryTapIfNoChange: true
-    waitToSettleTimeoutMs: 1000
+# Press feedback can change the hierarchy without advancing. Retry at most
+# three taps while the detail page remains and its Next button is enabled.
+# Stop on leaving the detail page; keep the next-card and material assertions.
+- repeat:
+    times: 3
+    while:
+      visible:
+        id: learning-result-detail-screen
+    commands:
+      - runFlow:
+          when:
+            visible:
+              id: learning-next-button
+              enabled: true
+          commands:
+            - tapOn:
+                id: learning-next-button
+                enabled: true
+                waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
     visible:
       id: learning-current-card

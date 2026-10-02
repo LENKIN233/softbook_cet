@@ -21,6 +21,8 @@ import type { StudyStorage } from "../../mobile/src/local/studyStore";
 import { createInitialMembershipState } from "../../mobile/src/membership/localMembership";
 import type { LocalWebSurfaces } from "./App";
 import { createBundledAudioController } from "./bundledAudio";
+import {FirstLearningDialog} from './FirstRunGuidance';
+import type {FirstRunGuidanceRecord} from './firstRunGuidanceStore';
 
 const storage: StudyStorage = {
   removeItem: (key) => localStorage.removeItem(key),
@@ -37,11 +39,16 @@ type Route = "learning" | "space" | "statistics" | "mine";
 export function LocalStudyApp({
   initialTrack,
   views,
+  firstRunRecord,
+  onRememberGuidance,
 }: {
   initialTrack: LearningTrack;
   views: LocalWebSurfaces;
+  firstRunRecord?: FirstRunGuidanceRecord;
+  onRememberGuidance?: (record: FirstRunGuidanceRecord) => void;
 }) {
   const [track, setTrack] = useState<LearningTrack>(() => {
+    if (firstRunRecord) return firstRunRecord.selectedTrack;
     try {
       const saved = localStorage.getItem(PREF);
       return saved === "cet4" || saved === "cet6" ? saved : initialTrack;
@@ -141,7 +148,8 @@ export function LocalStudyApp({
     if (next === track) return;
     void perform(async () => {
       await profile.flush();
-      await storage.setItem(PREF, next);
+      if (firstRunRecord && onRememberGuidance) onRememberGuidance({...firstRunRecord, selectedTrack: next});
+      else await storage.setItem(PREF, next);
       setTrack(next);
       setRoute("learning");
       setBackupInfo(null);
@@ -250,6 +258,7 @@ export function LocalStudyApp({
   );
   const trackPicker = (
     <div role="group" aria-label="选择考级" className="space-filters">
+      {route === 'mine' ? <span>备考科目</span> : null}
       {(["cet4", "cet6"] as const).map((value) => (
         <button
           className="text-button"
@@ -350,8 +359,10 @@ export function LocalStudyApp({
     ...createInitialMembershipState(),
     stage: "premium" as const,
   };
+  const showLearningGuide = route === 'learning' && card !== null && firstRunRecord?.learningGuideSeen === false;
   return (
-    <div className="app-shell local-study-shell" data-local-study="true">
+    <>
+    <div className="app-shell local-study-shell" data-local-study="true" inert={showLearningGuide || undefined}>
       <nav className="route-rail" aria-label="主要导航">
         <div className="rail-brand wordmark">软书四六级</div>
         <div className="route-list">
@@ -584,6 +595,8 @@ export function LocalStudyApp({
         </>
       )}
     </div>
+    {showLearningGuide && firstRunRecord && onRememberGuidance ? <FirstLearningDialog onContinue={() => onRememberGuidance({...firstRunRecord, learningGuideSeen: true})} /> : null}
+    </>
   );
 }
 function getChinaDay(value: string) {

@@ -87,6 +87,7 @@ export class LearningEventOutbox {
   private operationTail: Promise<void> = Promise.resolve();
   private state: LearningEventOutboxState | null = null;
   private readonly storage: LearningEventOutboxStorage;
+  private readonly strictRead: boolean;
 
   constructor(
     options: {
@@ -95,6 +96,7 @@ export class LearningEventOutbox {
       legacyKey?: string | null;
       now?: () => string;
       storage: LearningEventOutboxStorage;
+      strictRead?: boolean;
     },
   ) {
     this.createDeviceId = options.createDeviceId ?? createDefaultDeviceId;
@@ -105,6 +107,7 @@ export class LearningEventOutbox {
         : options.legacyKey;
     this.now = options.now ?? (() => new Date().toISOString());
     this.storage = options.storage;
+    this.strictRead = options.strictRead ?? false;
     this.hydrationPromise = this.storage.runExclusive
       ? this.storage.runExclusive(this.key, () => this.load())
       : this.load();
@@ -375,7 +378,7 @@ export class LearningEventOutbox {
   private async readPersistedState(): Promise<LearningEventOutboxState> {
     const stored = await this.storage.getItem(this.key);
 
-    if (!stored) {
+    if (stored === null || (!this.strictRead && stored.length === 0)) {
       return createEmptyState(this.createDeviceId());
     }
 
@@ -384,7 +387,14 @@ export class LearningEventOutbox {
     try {
       const parsed: unknown = JSON.parse(stored);
       sanitized = sanitizeState(parsed, this.createDeviceId);
-    } catch {
+      if (this.strictRead && (!isObject(parsed) || parsed.schemaVersion !== OUTBOX_SCHEMA_VERSION ||
+          !Array.isArray(parsed.entries) || parsed.entries.length !== sanitized.entries.length ||
+          (parsed.rejectedEntries !== undefined && (!Array.isArray(parsed.rejectedEntries) || parsed.rejectedEntries.length !== sanitized.rejectedEntries.length)) ||
+          parsed.deviceId !== sanitized.deviceId || !Number.isSafeInteger(parsed.nextSequence) || (parsed.nextSequence as number) <= 0)) {
+        throw new Error('Retained learning records could not be decoded without loss.');
+      }
+    } catch (error) {
+      if (this.strictRead) throw error;
       console.warn(
         '[LearningEventOutbox] Discarded unreadable persisted state.',
       );

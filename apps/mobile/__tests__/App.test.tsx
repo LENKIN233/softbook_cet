@@ -38,6 +38,12 @@ import {MutationQueueManager} from '../src/sync/mutationQueue';
 import {createReactNativeMutationQueueStorage} from '../src/sync/mutationQueueStorage.native';
 import App, { isCompactMineViewport } from '../App';
 
+// This suite covers journeys after the first-run flow.
+jest.mock('../src/onboarding/FirstRunGuidance', () => ({
+  ...jest.requireActual('../src/onboarding/FirstRunGuidance'),
+  FirstRunGuidanceBoundary: require('./fixtures/completedFirstRunGuidance').CompletedFirstRunGuidance,
+}));
+
 const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
 const mockContinueRound = jest.fn();

@@ -3,6 +3,7 @@ name: ios-auth-phone-ready-screenshot
 ---
 - clearState
 - launchApp
+- runFlow: first-run.yaml
 - extendedWaitUntil:
     visible:
       id: 'auth-phone-input'

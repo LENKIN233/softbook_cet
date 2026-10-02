@@ -9,6 +9,8 @@ import {endsLocalBatch, localBatch, localResumeIndex} from './src/learning/local
 import {NativeMotionProvider, useCardMotion, StudioPressable as Pressable} from './src/learning/NativeMotion';
 import {STUDIO} from './src/visual/studio';
 import {StudioMark} from './src/visual/StudioMark';
+import {FirstRunGuidanceBoundary, FirstLearningGuide, type FirstRunGuidance} from './src/onboarding/FirstRunGuidance';
+import {guardFirstTrackSelection} from './src/onboarding/firstTrackSelectionGuard';
 import {initializeLearningSegment, confirmLearningSegmentCard, type LearningSegmentProgress} from './src/learning/learningSegment';
 import React, {
   startTransition,
@@ -481,26 +483,26 @@ function App({
     return readSoftbookAppRuntimeConfig();
   }, [softbookRemoteRuntimeProfile]);
 
-  if (!deviceOnly && localLearningCardSource.sourceId === 'bundled-card-make-v1' && runtimeConfig?.auth?.mode !== 'remote') {
-    return <SafeAreaProvider><View style={{flex: 1, justifyContent: 'center', padding: 24}}><Text>服务尚未配置，请启动本地后端后重新打开应用。</Text></View></SafeAreaProvider>;
-  }
-
   return (
     <SafeAreaProvider>
-      <NativeMotionProvider>{deviceOnly && localLearningCardSource.sourceId === 'bundled-card-make-v1' && ['auth','accountBootstrap','contentManifest','learningSource','membership','progressSync','spaceState','learningState'].every(key => (runtimeConfig as Record<string, {mode?: string}> | undefined)?.[key]?.mode !== 'remote')
-        ? <LocalStudyApp initialTrack={resolveLearningTrack(runtimeConfig)} palette={LIGHT_PALETTE} />
-        : <AppShell runtimeConfig={runtimeConfig} />}</NativeMotionProvider>
+      <NativeMotionProvider><FirstRunGuidanceBoundary beforeSelectTrack={resolveAuthRepositoryConfig(runtimeConfig).mode === 'remote' ? nextTrack => guardFirstTrackSelection(nextTrack, resolveLearningTrack(runtimeConfig)) : undefined}>{guidance => !deviceOnly && localLearningCardSource.sourceId === 'bundled-card-make-v1' && runtimeConfig?.auth?.mode !== 'remote'
+        ? <View style={{flex: 1, justifyContent: 'center', padding: 24}}><Text>服务尚未配置，请启动本地后端后重新打开应用。</Text></View>
+        : deviceOnly && localLearningCardSource.sourceId === 'bundled-card-make-v1' && ['auth','accountBootstrap','contentManifest','learningSource','membership','progressSync','spaceState','learningState'].every(key => (runtimeConfig as Record<string, {mode?: string}> | undefined)?.[key]?.mode !== 'remote')
+        ? <LocalStudyApp initialTrack={guidance.record.selectedTrack} palette={LIGHT_PALETTE} guidance={guidance} />
+        : <AppShell runtimeConfig={runtimeConfig} guidance={guidance} />}</FirstRunGuidanceBoundary></NativeMotionProvider>
     </SafeAreaProvider>
   );
 }
 
 function AppShell({
   runtimeConfig,
+  guidance,
 }: {
   runtimeConfig: SoftbookAppRuntimeConfig | undefined;
+  guidance: FirstRunGuidance;
 }) {
   const palette = LIGHT_PALETTE;
-  const [learningTrack, setLearningTrack] = useState(() => resolveLearningTrack(runtimeConfig));
+  const [learningTrack, setLearningTrack] = useState(guidance.record.selectedTrack);
   const [trackSwitchPending, setTrackSwitchPending] = useState(false);
   const trackSwitchInFlight = useRef(false);
   const [trackSwitchError, setTrackSwitchError] = useState<string | null>(null);
@@ -6305,6 +6307,8 @@ function AppShell({
       if (hydration.accountBootstrapStatus !== 'ready' || hydration.accountBootstrap === null) throw new Error('暂时无法加载，请稍后再切换。');
       const canonical = resolveAccountBootstrapLearningState(hydration.accountBootstrap, nextSession);
       if (nextSession.membershipStage !== null && nextSession.membershipStage !== hydration.membershipState.stage) throw new Error('账号权限尚未更新，请稍后再切换。');
+      await guidance.selectTrack(nextTrack);
+      if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== scopeKey || accountDeletionOriginRef.current !== null || pendingAccountLogoutCleanupRef.current !== null) return;
       // Commit the new track only after both canonical reads have succeeded.
       learningTrackRef.current = nextTrack;
       setLearningTrack(nextTrack);
@@ -6697,6 +6701,7 @@ function AppShell({
         preparationFailed={accountDeletionPreparationFailed}
         state={accountDeletionSheetDismissed ? 'closed' : accountDeletionState}
       />
+      <FirstLearningGuide guidance={guidance} visible={isAuthenticated && activeRoute === 'learning' && learningBootstrapStatus === 'ready' && currentLearningCard !== null} />
     </SafeAreaView>
   );
 }

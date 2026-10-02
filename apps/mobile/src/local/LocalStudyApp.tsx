@@ -50,6 +50,7 @@ import {
   type StudyState,
 } from './studyModel';
 import { StudyStorageError, type StudyStorage } from './studyStore';
+import {FirstLearningGuide, type FirstRunGuidance} from '../onboarding/FirstRunGuidance';
 import {
   localStudyLock,
   useChinaDay,
@@ -68,9 +69,11 @@ type Route = 'learning' | 'space' | 'statistics' | 'mine';
 export function LocalStudyApp({
   initialTrack,
   palette,
+  guidance,
 }: {
   initialTrack: LearningTrack;
   palette: Palette;
+  guidance?: FirstRunGuidance;
 }) {
   const [track, setTrack] = useState(initialTrack);
   const [trackReady, setTrackReady] = useState(false);
@@ -93,7 +96,9 @@ export function LocalStudyApp({
   const { width, height, fontScale } = useWindowDimensions();
   const deviceClass = Math.min(width, height) >= 600 ? 'tablet' : 'phone';
   const { now, day, refresh } = useChinaDay();
+  const hasGuidance = guidance !== undefined;
   useEffect(() => {
+    if (hasGuidance) {setTrackReady(true); return;}
     let active = true;
     AsyncStorage.getItem(PREF)
       .then(saved => {
@@ -108,7 +113,7 @@ export function LocalStudyApp({
     return () => {
       active = false;
     };
-  }, []);
+  }, [hasGuidance]);
   useEffect(() => {
     const listener = AppState.addEventListener('change', value => {
       if (value === 'active') refresh();
@@ -295,7 +300,8 @@ export function LocalStudyApp({
     if (next === track) return;
     void perform(async () => {
       await study.flush();
-      await AsyncStorage.setItem(PREF, next);
+      if (guidance) await guidance.selectTrack(next);
+      else await AsyncStorage.setItem(PREF, next);
       setTrack(next);
       navigate('learning');
     });
@@ -822,6 +828,7 @@ export function LocalStudyApp({
           </Pressable>
         ))}
       </View>
+      {guidance && <FirstLearningGuide guidance={guidance} visible={route === 'learning' && state !== null && session !== null} />}
     </SafeAreaView>
   );
 }

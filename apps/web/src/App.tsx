@@ -58,6 +58,8 @@ import {
   type WebLearningCompletionSync,
 } from './remoteRuntime';
 import {resolveWebRuntime} from './runtime';
+import {FirstLearningDialog, FirstSubjectDialog} from './FirstRunGuidance';
+import {FirstRunGuidanceRecordError, readFirstRunGuidance, writeFirstRunGuidance, type FirstRunGuidanceRecord} from './firstRunGuidanceStore';
 
 type RouteKey = 'learning' | 'space' | 'statistics' | 'mine';
 type AuthStage = 'phone' | 'code' | 'authenticated';
@@ -111,21 +113,36 @@ type AppProps = {
 const LocalStudyApp = import.meta.env.MODE === 'test' || import.meta.env.MODE === 'device'
   ? lazy(() => import('./LocalStudyApp').then(module => ({default: module.LocalStudyApp}))) : null;
 export type LocalWebSurfaces = {Learning: typeof LearningSurface; Space: typeof SpaceSurface; Statistics: typeof StatisticsSurface};
+type GuidanceState = {record: FirstRunGuidanceRecord | null; readFailed: boolean; recoveringRecord: boolean};
+function loadGuidance(): GuidanceState {
+  try {return {record: readFirstRunGuidance(), readFailed: false, recoveringRecord: false};}
+  catch (error) {return {record: null, readFailed: !(error instanceof FirstRunGuidanceRecordError), recoveringRecord: error instanceof FirstRunGuidanceRecordError};}
+}
 export function App(props: AppProps = {}) {
   const runtime = useMemo(() => resolveWebRuntime(), []);
-  if (LocalStudyApp && runtime.mode === 'development') {
-    return <Suspense fallback={<main className="auth-shell">正在准备学习…</main>}><LocalStudyApp initialTrack={runtime.track} views={{Learning: LearningSurface, Space: SpaceSurface, Statistics: StatisticsSurface}} /></Suspense>;
+  const [guidance, setGuidance] = useState(loadGuidance);
+  function remember(record: FirstRunGuidanceRecord) {
+    writeFirstRunGuidance(record);
+    setGuidance({record, readFailed: false, recoveringRecord: false});
   }
-  return <AccountApp {...props} />;
+  if (guidance.record === null) {
+    return <FirstSubjectDialog loadError={guidance.readFailed} recoveringRecord={guidance.recoveringRecord} onRetry={() => setGuidance(loadGuidance())} onConfirm={selectedTrack => remember({version: 1, selectedTrack, learningGuideSeen: false})} />;
+  }
+  if (LocalStudyApp && runtime.mode === 'development') {
+    return <Suspense fallback={<main className="auth-shell">正在准备学习…</main>}><LocalStudyApp initialTrack={guidance.record.selectedTrack} firstRunRecord={guidance.record} onRememberGuidance={remember} views={{Learning: LearningSurface, Space: SpaceSurface, Statistics: StatisticsSurface}} /></Suspense>;
+  }
+  return <AccountApp {...props} firstRunRecord={guidance.record} onRememberGuidance={remember} />;
 }
 
 function AccountApp({
   remoteRuntimeFactory = createWebRemoteRuntime,
-}: AppProps = {}) {
+  firstRunRecord,
+  onRememberGuidance,
+}: AppProps & {firstRunRecord: FirstRunGuidanceRecord; onRememberGuidance: (record: FirstRunGuidanceRecord) => void}) {
   const {day: liveChinaDay, refresh: refreshDay} = useChinaDay();
   const previousChinaDay = useRef(liveChinaDay);
   const [dayNeedsRefresh, setDayNeedsRefresh] = useState(false);
-  const runtime = useMemo(() => resolveWebRuntime(), []);
+  const [runtime] = useState(() => ({...resolveWebRuntime(), track: firstRunRecord.selectedTrack}));
   const remoteController = useMemo(() => {
     if (runtime.mode !== 'remote') return null;
     try {
@@ -713,7 +730,10 @@ function AccountApp({
     remoteController.stopCardAudio?.();
     setAudioStatus('idle');
     try {
-      const snapshot = await remoteController.switchTrack(nextTrack);
+      const snapshot = await remoteController.switchTrack(nextTrack, () => {
+        if (accountAuthorityGeneration.current !== generation) throw new Error('当前账号已变化，请重新选择科目。');
+        onRememberGuidance({...firstRunRecord, selectedTrack: nextTrack});
+      });
       if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot);
     } catch (error) {
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '切换失败，已保留当前考试和学习记录，请重试。');
@@ -1418,8 +1438,10 @@ function AccountApp({
     );
   }
 
+  const showLearningGuide = route === 'learning' && currentCard !== null && !firstRunRecord.learningGuideSeen;
   return (
-    <div className="app-shell">
+    <>
+    <div className="app-shell" inert={showLearningGuide || undefined}>
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
         {route === 'learning' && session !== null && !learningSegment?.summaryVisible ? <div className="learning-session-actions" aria-label="本次学习">
@@ -1708,6 +1730,8 @@ function AccountApp({
         />
       ) : null}
     </div>
+    {showLearningGuide ? <FirstLearningDialog onContinue={() => onRememberGuidance({...firstRunRecord, learningGuideSeen: true})} /> : null}
+    </>
   );
 }
 
