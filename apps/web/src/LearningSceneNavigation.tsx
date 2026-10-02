@@ -7,6 +7,7 @@ export type LearningSceneProgress = {
 export type LearningSceneOverall = {
   learned: number | null;
   total: number | null;
+  scope?: 'accessible' | 'library';
   loading?: boolean;
 };
 
@@ -19,6 +20,7 @@ export function LearningSceneNavigation({progress, overall, onExit, onOpenSpace,
 }) {
   const total = Math.max(1, progress.total);
   const completed = Math.min(total, Math.max(0, progress.completedCount));
+  const overallLabel = overall.scope === 'accessible' ? '可学卡片' : '本库';
   return <nav className="learning-scene-navigation" aria-label="学习操作">
     <button className="scene-exit" onClick={onExit}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12 4-6 6 6 6" /></svg>先到这里</button>
     <div className="scene-progress" aria-live="polite">
@@ -28,6 +30,6 @@ export function LearningSceneNavigation({progress, overall, onExit, onOpenSpace,
       </ol>
     </div>
     <button className="scene-space" disabled={spaceDisabled} onClick={onOpenSpace}>空间<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 15 15 5M5 5h10v10" /></svg></button>
-    <small className="scene-overall">{overall.loading ? '本库进度更新中' : overall.learned === null || overall.total === null ? '本库进度暂不可读' : `本库已练过 ${overall.learned}/${overall.total} 张`}</small>
+    <small className="scene-overall">{overall.loading ? `${overallLabel}进度更新中` : overall.learned === null || overall.total === null ? `${overallLabel}进度暂不可读` : `${overall.scope === 'accessible' ? '可学卡片已练' : '本库已练过'} ${overall.learned}/${overall.total} 张`}</small>
   </nav>;
 }

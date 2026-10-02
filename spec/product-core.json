@@ -57,7 +57,7 @@
     },
     "immersive_study_scene": {
       "goal": "focused_reading_answering_and_feedback_in_one_complete_scene",
-      "progress": "visible_confirmed_round_progress_and_current_catalog_unique_card_coverage",
+      "progress": "visible_confirmed_round_progress_and_current_accessible_catalog_unique_card_coverage_with_matching_denominator_and_explicit_partial_scope",
       "navigation": "explicit_exit_and_space_entry_during_study; restore_normal_four_routes_after_exit",
       "continuity": "retain_current_question_draft_feedback_and_pending_write_authority",
       "content_integrity": "long_material_large_text_and_short_viewports_remain_complete_and_reachable"

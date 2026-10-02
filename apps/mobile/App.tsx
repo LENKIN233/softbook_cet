@@ -6599,12 +6599,17 @@ function AppShell({
     completed: Math.min(localGroup.index + Number(learningCurrentResult !== null), localGroup.size),
     total: localGroup.size,
   } : null;
-  const hasCurrentCatalogProgress = runtimeAccountBootstrapMode !== 'remote' || (
-    mappedAccountBootstrapSnapshot?.track === learningTrack && learningSession !== null &&
-    mappedAccountBootstrapSnapshot.content.version === learningSession.contentVersion
+  const hasCurrentCatalogProgress = learningSession !== null && learningSession.track === learningTrack && (
+    runtimeAccountBootstrapMode !== 'remote' || (
+      mappedAccountBootstrapSnapshot?.track === learningTrack &&
+      mappedAccountBootstrapSnapshot.content.version === learningSession.contentVersion &&
+      mappedAccountBootstrapSnapshot.content.source.id === learningSession.sourceId
+    )
   );
   const sceneLearnedCount = learningSession !== null && hasCurrentCatalogProgress ? catalogResults.length : null;
-  const sceneCatalogCount = currentBootstrap?.content.cardCount ?? learningSession?.catalogCards.length ?? null;
+  const sceneCatalogCount = learningSession !== null && hasCurrentCatalogProgress ? learningSession.catalogCards.length : null;
+  const sceneCatalogRestricted = sceneCatalogCount !== null && hasCurrentCatalogProgress &&
+    mappedAccountBootstrapSnapshot !== null && mappedAccountBootstrapSnapshot.content.cardCount > sceneCatalogCount;
   const sceneBody = segmentSummaryVisible && visibleSegment ? (
       <ScrollView style={{flex: 1}} contentContainerStyle={styles.segmentSummary} testID="learning-segment-summary">
         <Text accessibilityRole="header" style={[styles.segmentTitle, {color: palette.text}]}>{`第 ${visibleSegment.segmentIndex} 轮完成`}</Text>
@@ -6620,7 +6625,7 @@ function AppShell({
     ) : contentWithLearningNotice;
   const contentWithSessionActions = route.key === 'learning' ? (
     <StudyScene track={learningTrack} progress={sceneProgress}
-      learnedCount={sceneLearnedCount} catalogCount={sceneCatalogCount}
+      learnedCount={sceneLearnedCount} catalogCount={sceneCatalogCount} catalogRestricted={sceneCatalogRestricted}
       onPause={pauseLearning} onOpenSpace={() => handleSelectRoute('space')} palette={palette}>
       {sceneBody}
     </StudyScene>

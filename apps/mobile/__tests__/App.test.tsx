@@ -2352,6 +2352,40 @@ test('keeps the completed pilot progress while its checkpoint read is pending or
   }
 });
 
+test.each(['cet4', 'cet6'] as const)('shows %s progress for the accessible catalog when bootstrap also contains practiced locked cards', async track => {
+  const base = createLocalLearningSession(track);
+  const flip = base.catalogCards.find(card => card.interaction_id === 'flip')!;
+  const cards: LearningCard[] = Array.from({length: 8}, (_, index) => ({...flip,
+    card_id: `9900${String(index + 1).padStart(2, '0')}`, knowledge_ref: '9900',
+    space_metadata: {...flip.space_metadata, box_ref: '9900'},
+  }));
+  const full: LearningSession = {...base, cards: [cards[2]], catalogCards: cards, contentVersion: TEST_CONTENT_VERSION, membershipStage: 'free'};
+  const accessible: LearningSession = {...full, catalogCards: cards.slice(0, 4)};
+  const history: MockLearningEvent[] = [cards[0], cards[1], cards[6]].map((card, index) => ({
+    event_id: `event_prefix_history_${track}_${index}`, card_id: card.card_id,
+    selection_id: `sel_prefix_history_${track}_${index}_0001`, content_version: TEST_CONTENT_VERSION,
+    device_cursor: {device_id: 'device_prefix_history', sequence: index + 1},
+    interaction_id: 'flip', outcome: 'confident', phase: 'learning', answer_grade: 'passed',
+    client_occurred_at: new Date().toISOString(), used_hint: false, used_peek: false,
+  }));
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({baseUrl: 'https://api.softbook.example', learningTrack: track,
+    featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'}});
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) return createJsonResponse(createAccountBootstrapPayload(full, 'free', history));
+    throw new Error(`Unexpected prefix-progress fetch: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    await loginIntoLearningFlow(tree.root, accessible);
+    expect(tree.root.findByType(LearningSurface).props.currentCard.card_id).toBe(cards[2].card_id);
+    expect(tree.root.findByProps({testID: 'learning-catalog-progress'}).props.children).toBe('可学卡片已练 2/4 张');
+    expect(collectRenderedText(tree.toJSON()).join(' ')).not.toContain('已练过 2/8 张');
+  } finally { await ReactTestRenderer.act(() => tree.unmount()); }
+});
+
 test('blocks product state writes until canonical bootstrap succeeds on reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',

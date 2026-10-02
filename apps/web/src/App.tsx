@@ -1475,7 +1475,9 @@ function AccountApp({
     <>
     <div className={route === 'learning' ? 'app-shell learning-scene' : 'app-shell'} inert={showLearningGuide || undefined}>
       {route === 'learning' ? <LearningSceneNavigation progress={sceneProgress}
-        overall={{learned: canonicalSceneMatches && sceneCanonicalProgress!.readable ? catalogResults.length : null, total: canonicalSceneMatches ? sceneCanonicalProgress!.total : null, loading: statisticsLoading}}
+        overall={{learned: canonicalSceneMatches && sceneCanonicalProgress!.readable ? catalogResults.length : null,
+          total: canonicalSceneMatches ? session!.catalogCards.length : null,
+          scope: canonicalSceneMatches && sceneCanonicalProgress!.total > session!.catalogCards.length ? 'accessible' : 'library', loading: statisticsLoading}}
         onExit={() => {if (session === null) navigateRoute('mine'); else void pauseLearning();}}
         onOpenSpace={() => navigateRoute('space')} spaceDisabled={session === null} /> : <>
       <header className="mobile-header">

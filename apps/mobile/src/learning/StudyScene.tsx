@@ -8,12 +8,13 @@ import type {LearningSurfacePalette} from './LearningSurface';
 
 export type StudySceneProgress = {round: number; completed: number; total: number};
 
-export function StudyScene({children, track, progress, learnedCount, catalogCount, onPause, onOpenSpace, palette}: {
+export function StudyScene({children, track, progress, learnedCount, catalogCount, catalogRestricted = false, onPause, onOpenSpace, palette}: {
   children: React.ReactNode;
   track: LearningTrack;
   progress: StudySceneProgress | null;
   learnedCount: number | null;
   catalogCount: number | null;
+  catalogRestricted?: boolean;
   onPause: () => void;
   onOpenSpace: () => void;
   palette: LearningSurfacePalette;
@@ -34,7 +35,7 @@ export function StudyScene({children, track, progress, learnedCount, catalogCoun
         </View>
         <View style={styles.progressCopy}>
           {progress ? <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.count, {color: palette.text}]} testID="learning-segment-progress">{`第 ${progress.round} 轮 · 已完成 ${completed}/${progress.total}`}</Text> : <Text style={[styles.count, {color: palette.textMuted}]}>准备本轮学习</Text>}
-          <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.coverage, {color: palette.textMuted}]} testID="learning-catalog-progress">{learnedCount !== null && catalogCount !== null ? `已练过 ${learnedCount}/${catalogCount} 张` : '正在读取进度'}</Text>
+          <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.coverage, {color: palette.textMuted}]} testID="learning-catalog-progress">{learnedCount !== null && catalogCount !== null ? `${catalogRestricted ? '可学卡片已练' : '已练过'} ${learnedCount}/${catalogCount} 张` : '正在读取进度'}</Text>
         </View>
         {progress ? <View accessibilityRole="progressbar" accessibilityLabel="本轮练习进度" accessibilityValue={{min: 0, max: progress.total, now: completed, text: `已完成 ${completed} 次练习，共 ${progress.total} 次`}} style={styles.steps}>
           {Array.from({length: progress.total}, (_, index) => <View accessible={false} pointerEvents="none" key={index} style={styles.step}>

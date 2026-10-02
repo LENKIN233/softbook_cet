@@ -338,6 +338,25 @@ describe('PC Web remote UI authority', () => {
     expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
   });
 
+  it('reports coverage of the accessible prefix without claiming the locked full library', async () => {
+    const snapshot = createSnapshot('free');
+    snapshot.learningSession.catalogCards = snapshot.learningSession.catalogCards.slice(0, 2);
+    const history = {cardId: createCard(1).card_id, interactionId: 'flip' as const, phase: 'learning' as const,
+      outcome: 'confident' as const, serverSequence: 1, completedAt: new Date().toISOString(),
+      usedHint: false, usedPeek: false, isFavorited: false};
+    snapshot.bootstrap.learning.cardStates = [history, {...history, cardId: createCard(4).card_id, serverSequence: 2}];
+    snapshot.bootstrap.statistics = {...snapshot.bootstrap.statistics!, cumulativeLearnedCardCount: 2};
+    const controller = createController(snapshot, {refreshStatistics: vi.fn(async () => {throw new Error('network failure');})});
+    await authenticateRemote(controller);
+    expect(screen.getByText('可学卡片已练 1/2 张')).toBeInTheDocument();
+    expect(screen.queryByText('本库已练过 1/4 张')).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('button', {name: '下一张'});
+    expect(await screen.findByText('可学卡片进度暂不可读')).toBeInTheDocument();
+    expect(screen.queryByText(/(?:本库已练过|可学卡片已练) \d+\/\d+ 张/)).toBeNull();
+  });
+
   it('keeps the saved result and shows unreadable coverage after a canonical progress read fails', async () => {
     const controller = createController(createSnapshot('premium'), {refreshStatistics: vi.fn(async () => {throw new Error('network failure');})});
     await authenticateRemote(controller);
