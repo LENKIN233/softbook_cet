@@ -19,6 +19,7 @@ const source = `
 import React, {useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {LearningSceneNavigation} from '/@fs/${repository}/apps/web/src/LearningSceneNavigation.tsx';
+import {LearningHome} from '/@fs/${repository}/apps/web/src/LearningHome.tsx';
 import {LearningSurface} from '/@fs/${repository}/apps/web/src/App.tsx';
 import {localLearningCardSource} from '/@fs/${repository}/apps/mobile/src/learning/localCardSource.ts';
 import {createLearningCardState,evaluateLearningCard} from '/@fs/${repository}/apps/mobile/src/learning/sessionCore.ts';
@@ -26,12 +27,15 @@ import {installStudioTheme} from '/@fs/${repository}/apps/web/src/visualTheme.ts
 import '/@fs/${repository}/apps/web/src/styles.css';
 installStudioTheme();
 const query = new URLSearchParams(location.search);
-const card = localLearningCardSource.loadCards(query.get('track')).find(card => query.has('id') ? card.card_id === query.get('id') : card.interaction_id === query.get('kind'));
+const catalog = localLearningCardSource.loadCards(query.get('track'));
+const card = catalog.find(card => query.has('id') ? card.card_id === query.get('id') : card.interaction_id === query.get('kind'));
 window.qaCard = card;
 function Harness() {
+ const [entered,setEntered] = useState(false);
  const [state,setState] = useState(() => createLearningCardState(card));
  const [result,setResult] = useState(null);
- return <div className="app-shell learning-scene"><LearningSceneNavigation progress={{roundIndex:1,completedCount:result?1:0,total:5}} overall={{learned:0,total:5}} onExit={()=>{}} onOpenSpace={()=>{}}/>
+ if (!entered) return <div className="app-shell"><LearningHome track={card.track} today={null} pendingReview={null} overall={{learned:null,total:catalog.length}} continuing={Boolean(result||state.isFlipped)} onStart={()=>setEntered(true)}/></div>;
+ return <div className="app-shell learning-scene"><LearningSceneNavigation progress={{roundIndex:1,completedCount:result?1:0,total:5}} overall={{learned:0,total:5}} onExit={()=>setEntered(false)} onOpenSpace={()=>{}}/>
   <LearningSurface motionIdentity={card.card_id} card={card} cardState={state} currentIndex={0} phase="learning" total={5}
    resolved={result} onState={setState} onResolve={next=>{if(next)setState(next);setResult(evaluateLearningCard(card,next??state));}}
    onContinue={()=>{setState(createLearningCardState(card));setResult(null);}} onOpenSpace={()=>{}} onFavorite={()=>{}}
@@ -51,6 +55,14 @@ const server = await createServer({root:fixture, configFile: resolve(root, 'vite
   }]});
 let browser;
 const results = [];
+async function enterScene(page) {
+  await page.getByRole('heading', {name:/英语[四六]级/}).waitFor();
+  assert.equal(await page.locator('.learning-card').count(), 0, 'Reading surface mounted before explicit entry');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.locator('.learning-card').count(), 0, 'A learning shortcut opened the scene from home');
+  await page.getByRole('button', {name:'开始学习',exact:true}).click();
+  await page.locator('.learning-card').waitFor();
+}
 try {
   await server.listen();
   browser = await chromium.launch({executablePath, headless: true});
@@ -58,6 +70,7 @@ try {
     const page = await browser.newPage({viewport:{width:390,height:844}, reducedMotion:'reduce'});
     try {
       await page.goto(`${server.resolvedUrls.local[0]}?track=cet4&id=${id}`);
+      await enterScene(page);
       if (id === '031112') await page.getByRole('button',{name:'翻面看答案',exact:true}).click();
       await page.getByRole('button',{name:'看判断方法',exact:true}).click();
       const visible = await page.locator('.learning-help .attached-note').first().evaluate(node => {
@@ -72,6 +85,7 @@ try {
     const page = await browser.newPage({viewport:{width:390,height:844}, reducedMotion:'reduce'});
     try {
       await page.goto(`${server.resolvedUrls.local[0]}?track=${track}&id=${id}`);
+      await enterScene(page);
       const card = await page.evaluate(() => window.qaCard);
       await page.getByRole('button',{name:card.answer_key.lock_pattern[0],exact:true}).click();
       const visible = await page.locator('.lock-row.available').evaluate(node => {
@@ -89,6 +103,7 @@ try {
       const errors = []; page.on('pageerror', error => errors.push(error.message));
       try {
         await page.goto(`${server.resolvedUrls.local[0]}?track=${track}&kind=${kind}`);
+        await enterScene(page);
         await page.locator('.learning-card').waitFor();
         const body = page.locator('.paper-body');
         assert.ok(await body.evaluate(node => node.clientHeight >= 80), `${track}/${kind}: reading area collapsed`);

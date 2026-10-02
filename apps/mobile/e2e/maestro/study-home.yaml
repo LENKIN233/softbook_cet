@@ -1,0 +1,15 @@
+appId: com.softbook.cet
+name: enter-study-from-home
+---
+- extendedWaitUntil:
+    visible:
+      id: learning-home-start-button
+    timeout: 30000
+- assertVisible:
+    id: learning-study-home
+- assertVisible:
+    id: route-tab-learning
+- assertNotVisible:
+    id: learning-current-card
+- tapOn:
+    id: learning-home-start-button

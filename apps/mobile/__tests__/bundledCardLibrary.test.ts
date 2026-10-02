@@ -18,7 +18,8 @@ test.each([['cet4', 1180, 108, 297], ['cet6', 1234, 110, 328]] as const)(
     expect(session.cards).toHaveLength(count);
     expect(new Set(session.cards.map(card => card.knowledge_ref)).size).toBe(boxes);
     expect(new Set(session.cards.map(card => card.card_id)).size).toBe(count);
-    expect(session.cards.map(card => card.card_id)).toEqual(session.cards.map(card => card.card_id).sort());
+    expect(session.catalogCards.map(card => card.card_id)).toEqual(bundledCardLibrary[track].cards.map(card => card.card_id));
+    expect([...session.cards].sort((left, right) => left.card_id.localeCompare(right.card_id))).toEqual(session.catalogCards);
     expect(session.cards.every(card => card.track === track && card.card_id.startsWith(track === 'cet4' ? '0' : '1'))).toBe(true);
     const outcomes = new Set<string>();
     for (const card of session.cards) {

@@ -22,6 +22,7 @@ import {ACCOUNT_DELETION_CLEANUP_STORAGE_KEY} from '../src/account/accountDeleti
 import {USER_STATE_STORAGE_KEY} from '../src/persistence/userStateStore';
 import type { SoftbookAppRuntimeConfig } from '../src/learning/learningRuntimeConfig';
 import { LearningCard, LearningSession } from '../src/learning/model';
+import {createInitialMembershipState, resolveAccessibleLearningCardCount, type MembershipStage} from '../src/membership/localMembership';
 import { createLocalLearningSession } from './fixtures/interactionSession';
 import {
   createSoftbookRemoteRuntimeConfig as createProductionRemoteRuntimeConfig,
@@ -46,8 +47,10 @@ jest.mock('../src/onboarding/FirstRunGuidance', () => ({
 
 const mockCreateLearningSessionRepository = jest.fn();
 const mockLoadSession = jest.fn();
+const mockLoadCatalog = jest.fn();
 const mockContinueRound = jest.fn();
 const mockFetch = jest.fn();
+const mockCatalogEntitlements = new Map<string, {stage: MembershipStage; cardCount: number}>();
 const TEST_CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
 
 test('Mine compact mode covers 320dp and short phone viewports', () => {
@@ -192,6 +195,7 @@ jest.mock('../src/learning/learningRepository', () => ({
       continueRound: (...continueArgs: unknown[]) =>
         mockContinueRound(...continueArgs),
       loadSession: (...loadArgs: unknown[]) => mockLoadSession(...loadArgs),
+      loadCatalog: (...loadArgs: unknown[]) => mockLoadCatalog(...loadArgs),
     };
   },
 }));
@@ -233,6 +237,9 @@ beforeEach(() => {
   serverSelectionCounter = 0;
   mockCreateLearningSessionRepository.mockReset();
   mockLoadSession.mockReset();
+  mockLoadCatalog.mockReset();
+  mockCatalogEntitlements.clear();
+  mockLoadCatalog.mockImplementation(async (_context, track) => catalogOnlySession(createLocalLearningSession(track)));
   mockContinueRound.mockReset();
   mockContinueRound.mockResolvedValue(undefined);
   mockLoadSession.mockImplementation(() => pendingSession.promise);
@@ -256,12 +263,14 @@ afterEach(() => {
 async function authenticateIntoLearningBootstrap(
   root: ReactTestRenderer.ReactTestInstance,
   phoneNumber = '13800138000',
+  enterStudy = true,
 ) {
   if (root.findAllByProps({testID: 'local-start-learning-button'}).length) {
     await ReactTestRenderer.act(async () => {
       findPressableByTestId(root, 'local-start-learning-button').props.onPress();
       await flushAsyncEffects();
     });
+    if (enterStudy) await startStudyFromHome(root);
     return;
   }
   await ReactTestRenderer.act(() => {
@@ -286,13 +295,16 @@ async function authenticateIntoLearningBootstrap(
     root.findByProps({ testID: 'auth-submit-button' }).props.onPress();
     await flushAsyncEffects();
   });
+  if (enterStudy) await startStudyFromHome(root);
 }
 
 async function loginIntoLearningFlow(
   root: ReactTestRenderer.ReactTestInstance,
   session?: LearningSession,
 ) {
+  if (session) mockLoadCatalog.mockImplementation(async () => catalogOnlySession(session));
   await authenticateIntoLearningBootstrap(root);
+  await startStudyFromHome(root);
   await resolveLearningBootstrap(session);
   await waitForLearningSurface(root);
 }
@@ -300,6 +312,7 @@ async function loginIntoLearningFlow(
 async function openRoute(
   root: ReactTestRenderer.ReactTestInstance,
   route: 'learning' | 'space' | 'statistics' | 'mine',
+  enterStudy = true,
 ) {
   // StudyScene intentionally exposes Space and Exit, not the global four routes.
   if (!root.findAllByProps({testID: `route-tab-${route}`}).length) {
@@ -312,6 +325,24 @@ async function openRoute(
     findPressableByTestId(root, `route-tab-${route}`).props.onPress();
     await flushAsyncEffects();
   });
+  if (route === 'learning' && enterStudy) await startStudyFromHome(root);
+}
+
+async function startStudyFromHome(root: ReactTestRenderer.ReactTestInstance) {
+  const start = root.findAllByProps({testID: 'learning-home-start-button'}).find(node => typeof node.props.onPress === 'function');
+  if (!start) return;
+  await ReactTestRenderer.act(async () => {start.props.onPress(); await flushAsyncEffects();});
+}
+
+function catalogOnlySession(session: LearningSession): LearningSession {
+  const entitlement = mockCatalogEntitlements.get(session.track);
+  const cards = global.__SOFTBOOK_CET_RUNTIME_CONFIG__?.accountBootstrap?.mode === 'remote' && entitlement
+    ? session.catalogCards.slice(0, resolveAccessibleLearningCardCount(entitlement.cardCount, {...createInitialMembershipState(), stage: entitlement.stage}))
+    : session.catalogCards;
+  return {...session, contentVersion: session.contentVersion ?? TEST_CONTENT_VERSION,
+    cards: [], catalogCards: cards, serverSelection: null, roundCompletion: null,
+    schedulingMode: global.__SOFTBOOK_CET_RUNTIME_CONFIG__?.learningSource?.mode === 'remote' || session.schedulingMode === 'server' ? 'server' : 'local',
+    membershipStage: null, membershipTrialStartedAt: null, membershipTrialExpiresAt: null, membershipTrialRemainingSeconds: 0};
 }
 
 async function startTrialFromProtectedEntry(
@@ -408,10 +439,14 @@ test('Android back unwinds detail and space navigation without advancing the car
     for (const route of ['statistics', 'mine'] as const) {
       await openRoute(root, route);
       expect(await back()).toBe(true);
-      expect(root.findByProps({testID: 'learning-current-card'})).toBeTruthy();
+      expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+      expect(root.findAllByProps({testID: 'learning-current-card'})).toHaveLength(0);
+      await startStudyFromHome(root);
+      expect(root.findByProps({testID: 'learning-result-summary'})).toBeTruthy();
     }
     expect(await back()).toBe(true);
     expect(root.findByProps({testID: 'route-tab-learning'})).toBeTruthy();
+    expect(await back()).toBe(false);
   } finally {
     await ReactTestRenderer.act(() => { tree?.unmount(); });
     subscription.mockRestore();
@@ -428,6 +463,7 @@ async function resolveLearningBootstrap(
     contentVersion: session.contentVersion ?? TEST_CONTENT_VERSION,
   };
   const initialSession = resolveSessionForRuntime(resolvedSession);
+  mockLoadCatalog.mockImplementation(async () => catalogOnlySession(resolvedSession!));
 
   await ReactTestRenderer.act(async () => {
     pendingSession.resolve(initialSession);
@@ -887,6 +923,7 @@ function createAccountBootstrapPayload(
   learningEvents: MockLearningEvent[] = [],
   checkedInToday = false,
 ) {
+  mockCatalogEntitlements.set(session.track, {stage, cardCount: session.catalogCards.length});
   const dayKey = getChinaDayKey();
   const learningCompletedCount = learningEvents.filter(
     event => event.phase === 'learning',
@@ -1076,18 +1113,133 @@ test('offers local learning without collecting a phone or sending a code', async
   expectNoSyntheticProductCopy(tree);
 });
 
+test('remote authentication opens the study home without selecting a card or starting a trial', async () => {
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'},
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) return createJsonResponse(createAccountBootstrapPayload(createLocalLearningSession('cet4'), 'trial_available'));
+    throw new Error(`Unexpected home request: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    await authenticateIntoLearningBootstrap(tree.root, '13800138000', false);
+    expect(mockLoadSession).not.toHaveBeenCalled();
+    expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(tree.root.findAllByProps({testID: 'learning-study-scene'})).toHaveLength(0);
+    for (const route of ['learning', 'space', 'statistics', 'mine']) {
+      expect(tree.root.findByProps({testID: `route-tab-${route}`})).toBeTruthy();
+    }
+    await openRoute(tree.root, 'mine');
+    await openRoute(tree.root, 'learning', false);
+    expect(mockLoadSession).not.toHaveBeenCalled();
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(tree.root, 'learning-home-start-button').props.onPress();
+      await flushAsyncEffects();
+    });
+    expect(mockLoadSession).toHaveBeenCalledTimes(1);
+    expect(tree.root.findByProps({testID: 'learning-study-scene'})).toBeTruthy();
+    expect(tree.root.findAllByProps({testID: 'route-tab-mine'})).toHaveLength(0);
+    expect(mockFetch.mock.calls.some(([input]) => input.endsWith('/v2/membership/mutations'))).toBe(false);
+  } finally {await ReactTestRenderer.act(() => tree.unmount());}
+});
+
 test('opens the product shell from the local entry without any SMS request', async () => {
   let tree!: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => { tree = ReactTestRenderer.create(<App />); });
-  await authenticateIntoLearningBootstrap(tree.root);
+  await authenticateIntoLearningBootstrap(tree.root, '13800138000', false);
   expect(mockFetch).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({testID: 'local-learning-entry'})).toHaveLength(0);
-  expect(tree.root.findByProps({testID: 'learning-study-scene'})).toBeTruthy();
-  expect(tree.root.findAllByProps({testID: 'route-tab-mine'})).toHaveLength(0);
+  expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  expect(tree.root.findAllByProps({testID: 'learning-study-scene'})).toHaveLength(0);
+  expect(mockLoadSession).not.toHaveBeenCalled();
   await openRoute(tree.root, 'statistics');
   for (const route of ['learning', 'space', 'statistics', 'mine']) {
     expect(tree.root.findByProps({testID: `route-tab-${route}`})).toBeTruthy();
   }
+  await openRoute(tree.root, 'mine');
+  expect(tree.root.findByProps({testID: 'mine-membership-stage'}).props.children).toBe('可试用');
+});
+
+test('the study home leaves missing counts unknown when catalog reading fails', async () => {
+  const catalogRead = createDeferred<LearningSession>();
+  mockLoadCatalog.mockImplementation(() => catalogRead.promise);
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example', featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'},
+  });
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) {
+      const payload = createAccountBootstrapPayload(createLocalLearningSession('cet4'), 'premium');
+      const data = Object.fromEntries(Object.entries(payload.data).filter(([key]) => key !== 'statistics'));
+      return createJsonResponse({data});
+    }
+    throw new Error(`Unexpected home request: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    await authenticateIntoLearningBootstrap(tree.root, '13800138000', false);
+    expect(tree.root.findByProps({testID: 'learning-home-today-count'}).props.children).toBe('—');
+    expect(tree.root.findByProps({testID: 'learning-home-review-count'}).props.children).toBe('—');
+    await ReactTestRenderer.act(async () => {catalogRead.reject(new Error('Unavailable')); await flushAsyncEffects();});
+    expect(tree.root.findByProps({testID: 'learning-home-review-count'}).props.children).toBe('—');
+    expect(JSON.stringify(tree.toJSON())).toContain('学习记录暂时无法读取。');
+    expect(mockLoadSession).not.toHaveBeenCalled();
+    expectNoUserVisibleMetadataLeakage(tree);
+  } finally {await ReactTestRenderer.act(() => tree.unmount());}
+});
+
+test('starting from home reselects a legacy held card excluded by the current accessible catalog', async () => {
+  const base = createLocalLearningSession('cet4');
+  const flip = base.catalogCards.find(card => card.interaction_id === 'flip')!;
+  const cards: LearningCard[] = Array.from({length: 8}, (_, index) => ({...flip,
+    card_id: `9900${String(index + 1).padStart(2, '0')}`, knowledge_ref: '9900',
+    space_metadata: {...flip.space_metadata, box_ref: '9900', box: `语境判断 ${index + 1}`},
+  }));
+  const legacy: LearningSession = {...base, cards: [cards[7]], catalogCards: cards,
+    contentVersion: TEST_CONTENT_VERSION, membershipStage: null};
+  let stage: MembershipStage = 'premium';
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({baseUrl: 'https://api.softbook.example',
+    featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'}});
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) {
+      const payload = createAccountBootstrapPayload({...legacy, catalogCards: cards}, stage);
+      if (stage === 'free') payload.data.component_revisions.membership.base_membership_revision = 4;
+      return createJsonResponse(payload);
+    }
+    throw new Error(`Unexpected eligibility request: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    const root = tree.root;
+    await loginIntoLearningFlow(root, legacy);
+    await ReactTestRenderer.act(() => root.findByType(LearningSurface).props.onToggleHint());
+    expect(root.findByType(LearningSurface).props.currentCardState.hasUsedHint).toBe(true);
+    await openRoute(root, 'mine');
+    stage = 'free';
+    await openRoute(root, 'statistics');
+    await openRoute(root, 'mine');
+    await openRoute(root, 'learning', false);
+    expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(mockLoadSession).toHaveBeenCalledTimes(1);
+    mockLoadSession.mockImplementation(async () => resolveSessionForRuntime({...legacy,
+      cards: [cards[0]], catalogCards: cards.slice(0, 4), membershipStage: 'free'}));
+    await startStudyFromHome(root);
+    await waitForLearningSurface(root);
+    expect(mockLoadSession).toHaveBeenCalledTimes(2);
+    expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(cards[0].card_id);
+    expect(root.findByType(LearningSurface).props.currentCardState.hasUsedHint).toBe(false);
+    expect(root.findByType(LearningSurface).props.currentResult).toBeNull();
+  } finally {await ReactTestRenderer.act(() => tree.unmount());}
 });
 
 test('reads installed runtime config when the app mounts', async () => {
@@ -3748,7 +3900,8 @@ test('settles a failed retained replay across China-day and recovers on the next
         String(input).includes(`day_key=${nextDayKey}`),
       ),
     ).toBe(true);
-    expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(mockLoadSession).toHaveBeenCalledTimes(1);
+    expect(mockLoadCatalog.mock.calls.length).toBeGreaterThanOrEqual(2);
   } finally {
     await ReactTestRenderer.act(() => {
       tree!.unmount();
@@ -5783,6 +5936,8 @@ test('keeps source bootstrap errors inside learning and can retry', async () => 
 });
 
 test('keeps source bootstrap loading and errors attached to space', async () => {
+  let pendingCatalog = createDeferred<LearningSession>();
+  mockLoadCatalog.mockImplementation(() => pendingCatalog.promise);
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5803,17 +5958,17 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
     root.findAllByProps({ testID: 'space-current-box-tray' }).length,
   ).toBeGreaterThan(0);
 
-  await rejectLearningBootstrap('空间卡源暂时不可达。');
+  await ReactTestRenderer.act(async () => {pendingCatalog.reject(new Error('空间卡源暂时不可达。')); await flushAsyncEffects();});
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('空间内容暂时不可用');
-  expect(output).toContain('卡片加载失败。');
+  expect(output).toContain('学习记录暂时无法读取。');
   expect(output).toContain('重新加载空间内容');
   expect(
     root.findAllByProps({ testID: 'space-status-rail' }).length,
   ).toBeGreaterThan(0);
 
-  pendingSession = createDeferred<LearningSession>();
+  pendingCatalog = createDeferred<LearningSession>();
 
   await ReactTestRenderer.act(async () => {
     root
@@ -5825,7 +5980,7 @@ test('keeps source bootstrap loading and errors attached to space', async () => 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('正在加载空间');
 
-  await resolveLearningBootstrap();
+  await ReactTestRenderer.act(async () => {pendingCatalog.resolve(catalogOnlySession(createLocalLearningSession('cet4'))); await flushAsyncEffects();});
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('转折关系');
@@ -6076,6 +6231,8 @@ test('can start a review round from cards that need revisiting', async () => {
       .props.onPress();
   });
 
+  expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await startStudyFromHome(root);
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('复习');
   expect(output).toContain('转折关系');
@@ -6181,6 +6338,9 @@ test('can check in from statistics after making learning progress', async () => 
       .findByProps({ testID: 'statistics-go-learning-button' })
       .props.onPress();
   });
+
+  expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await startStudyFromHome(root);
 
   expect(
     root.findAllByProps({ testID: 'learning-current-card' }).length,
@@ -7541,6 +7701,8 @@ test('can move a card into sleep zone and remove it from learning flow', async (
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'route-tab-learning' }).props.onPress();
   });
+  expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await startStudyFromHome(root);
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('The committee postponed the vote');
@@ -7658,6 +7820,8 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'route-tab-learning' }).props.onPress();
   });
+  expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await startStudyFromHome(root);
 
   output = JSON.stringify(tree!.toJSON());
   expect(
@@ -7670,7 +7834,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   ).toBe('★');
 });
 
-test('starts the local trial automatically on the first authenticated entry', async () => {
+test('starts the local trial after the authenticated learner starts studying', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -8103,7 +8267,8 @@ test('continuing a paused lesson clears the notice on a later statistics visit',
   await loginIntoLearningFlow(root);
   await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-pause-button'}).props.onPress();});
   expect(root.findAllByProps({testID: 'learning-pause-notice'}).length).toBeGreaterThan(0);
-  await ReactTestRenderer.act(() => {root.findByProps({testID: 'statistics-go-learning-button'}).props.onPress();});
+  expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await startStudyFromHome(root);
   expect(root.findAllByProps({testID: 'learning-pause-notice'})).toHaveLength(0);
   await openRoute(root, 'space');
   await openRoute(root, 'statistics');
@@ -8254,14 +8419,22 @@ test.each([true, false])('saves confirmed answers before pause and starts only s
     expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(first.card_id);
     expect(root.findByType(LearningSurface).props.advanceState).toMatchObject({busy: false, detail: '本次作答已保存。'});
     await press('learning-pause-button');
+    expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    await openRoute(root, 'statistics');
     expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({completedCardCount: 1, completedAttemptCount: 1, reviewAttemptCount: 0});
     await press('statistics-go-learning-button');
+    await press('learning-home-start-button');
     await press('learning-next-button');
     expect(requests).toHaveLength(1);
     expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(newCard.card_id);
     await ReactTestRenderer.act(() => {root.findByType(LearningSurface).props.onSelectOption(newCard.options[0].id);});
     await press('learning-pause-button');
+    await openRoute(root, 'statistics');
+    const beforeReview = mockLoadSession.mock.calls.length;
     await press('statistics-start-review-button');
+    expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(mockLoadSession.mock.calls).toHaveLength(beforeReview);
+    await press('learning-home-start-button');
     expect(mockLoadSession).toHaveBeenLastCalledWith(expect.objectContaining({phoneNumber: '13800138000'}), 'cet4', {intent: 'review'});
     if (hasReview) {
       expect(root.findByType(LearningSurface).props.phase).toBe('review');
@@ -8271,8 +8444,11 @@ test.each([true, false])('saves confirmed answers before pause and starts only s
       expect(requests).toHaveLength(2);
       expect(requests[1].events[0]).toMatchObject({phase: 'review', selection_id: 'sel_requested_review_00001'});
       await press('learning-pause-button');
+      expect(root.findByProps({testID: 'learning-home-today-count'}).props.children).toBe('1 张');
+      await openRoute(root, 'statistics');
       expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({completedCardCount: 1, completedAttemptCount: 2, reviewAttemptCount: 1});
       await press('statistics-go-learning-button');
+      await press('learning-home-start-button');
       await press('learning-next-button');
     } else {
       expect(root.findByType(LearningSurface).props.currentCard).toBeNull();
@@ -8326,13 +8502,13 @@ test('pause keeps a failed confirmed answer out of statistics and retry reuses i
     expect(requests).toHaveLength(1);
     expect(root.findByType(LearningSurface).props.advanceState.needsRetry).toBe(true);
     await press('learning-pause-button');
-    expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({completedCardCount: 0, completedAttemptCount: 0});
+    expect(root.findByProps({testID: 'learning-home-today-count'}).props.children).toBe('0 张');
     fail = false;
-    await press('statistics-go-learning-button'); await press('learning-next-button');
+    await press('learning-home-start-button'); await press('learning-next-button');
     expect(requests).toHaveLength(2);
     expect(requests[1]).toEqual(requests[0]);
     await press('learning-pause-button');
-    expect(root.findByType(StatisticsSurface).props.statistics).toMatchObject({completedCardCount: 1, completedAttemptCount: 1});
+    expect(root.findByProps({testID: 'learning-home-today-count'}).props.children).toBe('1 张');
   } finally { await ReactTestRenderer.act(() => tree.unmount()); }
 });
 
@@ -8344,7 +8520,8 @@ test('a locally confirmed review keeps its result during Space navigation and Ne
     await loginIntoLearningFlow(root); await startTrialFromProtectedEntry(root);
     const press = async (id: string) => ReactTestRenderer.act(async () => {root.findByProps({testID: id}).props.onPress(); await flushAsyncEffects();});
     await press('learning-flip-button'); await press('learning-flip-review-button');
-    await press('learning-pause-button'); await press('statistics-start-review-button');
+    await press('learning-pause-button'); await openRoute(root, 'statistics');
+    await press('statistics-start-review-button'); await press('learning-home-start-button');
     await press('learning-flip-button'); await press('learning-flip-confident-button');
     const result = root.findByType(LearningSurface).props.currentResult;
     await openRoute(root, 'space'); await openSpaceCardList(root);
@@ -8352,10 +8529,10 @@ test('a locally confirmed review keeps its result during Space navigation and Ne
     await press('space-return-learning');
     expect(root.findByType(LearningSurface).props.currentResult).toEqual(result);
     expect(root.findByType(LearningSurface).props.phase).toBe('review');
-    await press('learning-pause-button');
+    await press('learning-pause-button'); await openRoute(root, 'statistics');
     const beforeNext = root.findByType(StatisticsSurface).props.reviewCompletedCount;
     expect(beforeNext).toBe(1);
-    await press('statistics-go-learning-button'); await press('learning-next-button');
+    await press('statistics-go-learning-button'); await press('learning-home-start-button'); await press('learning-next-button');
     await openRoute(root, 'statistics');
     expect(root.findByType(StatisticsSurface).props.reviewCompletedCount).toBe(beforeNext);
   } finally {await ReactTestRenderer.act(() => tree.unmount());}
@@ -8419,7 +8596,8 @@ test.each(['cet4', 'cet6'] as const)('ordinary %s server learning pauses after e
       expect(progressText()).toContain(`第 ${Math.floor(index / 5) + 1} 轮 · 已完成 ${(index % 5) + 1}/5`);
       if (index === 1 || index === 4) {
         await press('learning-pause-button');
-        await press('statistics-go-learning-button');
+        expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+        await press('learning-home-start-button');
         expect(progressText()).toContain(`第 1 轮 · 已完成 ${index + 1}/5`);
       }
       await press('learning-next-button');
@@ -8430,7 +8608,10 @@ test.each(['cet4', 'cet6'] as const)('ordinary %s server learning pauses after e
         const selectionReads = mockLoadSession.mock.calls.length;
         if (index === 9) {
           await press('learning-pause-button');
-          await press('statistics-go-learning-button');
+          await press('learning-home-start-button');
+          expect(root.findByProps({testID: 'learning-segment-summary'})).toBeTruthy();
+          expect(progressText()).toContain('第 2 轮 · 已完成 5/5');
+          await press('learning-segment-continue');
         } else await press('learning-segment-continue');
         expect(root.findAllByProps({testID: 'learning-segment-summary'})).toHaveLength(0);
         expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(cards[index + 1].card_id);

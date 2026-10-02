@@ -10,6 +10,7 @@ import {
 } from '../learning/sessionCore';
 import { getChinaDayKey } from '../shared/chinaDay';
 import type {TrackStudyStatistics} from '../statistics/trackStudyStatistics';
+import {knowledgePointOf, orderLearningCards, separateKnowledgePoints} from '../learning/learningSequence';
 
 export type StudyFrame = {
   phase: 'learning' | 'review';
@@ -55,34 +56,15 @@ export type StudyAction =
 const DAY = 86400000;
 export const GROUP_SIZE = 5;
 
-// Keep adjacent cards within each subject in their authored order. Alternate
-// short subject blocks so a learner does not spend 55 sessions on listening alone.
 export function planLocalCards(cards: readonly LearningCard[]): LearningCard[] {
-  const libraries = [
-    '听力',
-    '词汇',
-    '语法',
-    '仔细阅读',
-    '选词填空',
-    '写作',
-    '翻译',
-  ];
-  const groups = new Map<string, LearningCard[]>();
-  for (const card of [...cards].sort((a, b) =>
-    a.card_id.localeCompare(b.card_id),
-  )) {
-    const name = card.space_metadata.library;
-    groups.set(name, [...(groups.get(name) ?? []), card]);
-  }
-  const names = [
-    ...libraries.filter(name => groups.has(name)),
-    ...[...groups.keys()].filter(name => !libraries.includes(name)),
-  ];
-  const result: LearningCard[] = [];
-  while ([...groups.values()].some(group => group.length)) {
-    for (const name of names) result.push(...groups.get(name)!.splice(0, 2));
-  }
-  return result;
+  return orderLearningCards(cards);
+}
+
+function latestStudyPoint(state: StudyState, cards: readonly LearningCard[]): string | null {
+  const latest = state.results.reduce<LearningCardResult | null>((result, candidate) =>
+    result === null || Date.parse(candidate.completedAt) >= Date.parse(result.completedAt) ? candidate : result, null);
+  const card = latest ? cards.find(candidate => candidate.card_id === latest.cardId) : null;
+  return card ? knowledgePointOf(card) : null;
 }
 export function activeStudyCard(
   state: StudyState,
@@ -101,7 +83,7 @@ export function pendingStudyIds(
   const resultById = new Map(
     state.results.map(result => [result.cardId, result]),
   );
-  return cards
+  const candidates = cards
     .filter(
       card =>
         !state.sleeping.includes(card.card_id) &&
@@ -115,8 +97,8 @@ export function pendingStudyIds(
       (a, b) =>
         Date.parse(state.schedule[a.card_id]?.dueAt ?? now.toISOString()) -
         Date.parse(state.schedule[b.card_id]?.dueAt ?? now.toISOString()),
-    )
-    .map(card => card.card_id);
+    );
+  return separateKnowledgePoints(candidates, latestStudyPoint(state, cards)).map(card => card.card_id);
 }
 function makeFrame(
   ids: string[],
@@ -142,11 +124,11 @@ function makeFrame(
 }
 function newIds(state: StudyState, cards: readonly LearningCard[]) {
   const learned = new Set(state.results.map(result => result.cardId));
-  return planLocalCards(cards)
-    .filter(
+  const candidates = planLocalCards(cards).filter(
       card =>
         !learned.has(card.card_id) && !state.sleeping.includes(card.card_id),
-    )
+    );
+  return separateKnowledgePoints(candidates, latestStudyPoint(state, cards))
     .slice(0, GROUP_SIZE)
     .map(card => card.card_id);
 }

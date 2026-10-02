@@ -148,17 +148,15 @@ describe("shared local study workflow", () => {
     }
   });
 
-  it("alternates short subject blocks and preserves authored order and the complete corpus", () => {
+  it("separates adjacent knowledge points and preserves authored box order and the complete corpus", () => {
     const order = planLocalCards(cards);
-    expect(
-      order.slice(0, 5).map((card) => card.space_metadata.library)
-    ).toEqual(["听力", "听力", "词汇", "词汇", "听力"]);
-    expect(new Set(order.map((card) => card.card_id)).size).toBe(cards.length);
-    expect(
-      order
-        .filter((card) => card.space_metadata.library === "听力")
-        .map((card) => card.card_id)
-    ).toEqual(cards.slice(0, 7).map((card) => card.card_id));
+    expect(order.every((card, index) => index === 0 ||
+      card.space_metadata.box_ref !== order[index - 1].space_metadata.box_ref)).toBe(true);
+    expect(order.map(card => card.card_id).sort()).toEqual(cards.map(card => card.card_id).sort());
+    for (const box of new Set(cards.map(card => card.space_metadata.box_ref))) {
+      expect(order.filter(card => card.space_metadata.box_ref === box).map(card => card.card_id))
+        .toEqual(cards.filter(card => card.space_metadata.box_ref === box).map(card => card.card_id));
+    }
   });
   it("keeps a completed group stable when an earlier card is paused", () => {
     const completed = finish(createStudyState(cards));

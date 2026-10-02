@@ -28,6 +28,7 @@ name: ios-learning-home-screenshot
     id: "auth-submit-button"
 - tapOn:
     id: "auth-submit-button"
+- runFlow: study-home.yaml
 - extendedWaitUntil:
     visible:
       id: first-learning-guide-start
@@ -66,6 +67,7 @@ name: ios-learning-home-screenshot
     point: "94%,91%"
 - tapOn:
     id: "route-tab-learning"
+- runFlow: study-home.yaml
 - assertVisible:
     id: "learning-current-card"
 - assertVisible:

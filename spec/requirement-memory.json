@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-10",
   "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
   "source_anchors": {
     "authentication": {
@@ -18,7 +18,9 @@
     "learning_path": {
       "default_strategy": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习",
       "current_runtime_feedback": "当前卡片没有组别概念，用户似乎要无休止地学下去；按顺序一直下去导致某一个时间大量学习一种知识点；卡片知识地址是否随当前卡片改变",
-      "immersion_feedback": "用户现在看不到学习进度，学习不够沉浸，学习界面裸露在界面外；可以学习不背单词的设计思路"
+      "immersion_feedback": "用户现在看不到学习进度，学习不够沉浸，学习界面裸露在界面外；可以学习不背单词的设计思路",
+      "outer_entry_feedback": "学习做成内外都有一个页面，要从外面进入才能进入沉浸式学习；质量向不背单词靠拢",
+      "ordering_correction": "现在的排序仍然没有优化；用户确认问题为连续出现同一知识点"
     },
     "deployment": {
       "local_backend": "以本地为后端，只是暂时解决方案，最终还是要上线的"
@@ -110,10 +112,10 @@
     "default_learning_path": "system_sequenced_single_flow",
     "module_learning_role": "secondary_for_targeted_review_not_primary_recommendation",
     "finite_groups": "Both tracks repeatedly present five confirmed results per group, an explicit group progress and continue-or-stop boundary.",
-    "new_card_sequence": "Alternate short knowledge-subject blocks; preserve authored order within each subject and server authority for remote selections.",
+    "new_card_sequence": "Separate adjacent knowledge points when alternatives are eligible, including points within one subject; preserve authored order within each box and canonical membership access. Remote due work normally leads, with other due points preferred and a new point providing bounded spacing during a continuing same-point review run.",
     "current_knowledge_address": "Bind the displayed library, group and box to the current card; cards from the same box may share a title.",
     "progress_disclosure": "Separate each confirmed five-task round from current-accessible-catalog unique-card coverage; numerator and denominator share the same scope, partial access is labelled, and loading, unavailable statistics and repeated acknowledgement never manufacture progress.",
-    "immersive_scene": "A complete focused learning scene contains progress, knowledge address, task, help, feedback and primary action; explicit Exit and Space restore normal navigation without losing the current draft or feedback."
+    "immersive_scene": "A complete focused learning scene contains progress, knowledge address, task, help, feedback and primary action; authenticated entry opens a separate learning home and only its explicit Start or Continue opens the scene. Exit returns to that home without losing the current draft, feedback or confirmed round; ordinary navigation and homepage reads do not select a task or start Trial."
   },
   "physical_space": {
     "is_core_differentiator": true,

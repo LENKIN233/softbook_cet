@@ -14,6 +14,7 @@ import {
 } from './session';
 import { LearningCardSource, localLearningCardSource } from './localCardSource';
 import {BUNDLED_CARD_SOURCE_ID, bundledContentVersion} from './bundledCardLibrary';
+import {orderLearningCards} from './learningSequence';
 
 export type LearningRepositoryMode = 'local' | 'remote';
 
@@ -33,6 +34,10 @@ export type LearningSessionRepository = {
     context: LearningSessionRepositoryContext,
     session: LearningSession,
   ) => Promise<void>;
+  loadCatalog: (
+    context: LearningSessionRepositoryContext,
+    track: LearningTrack,
+  ) => Promise<LearningSession>;
   loadSession: (
     context: LearningSessionRepositoryContext,
     track: LearningTrack,
@@ -84,7 +89,7 @@ export function createLearningSessionRepository(
         cardCount,
         bundled ? bundledContentVersion(track) : null,
       );
-    if (bundled) session.cards = cards.slice(0, cardCount);
+    if (bundled) session.cards = orderLearningCards(cards).slice(0, cardCount);
     return assertNonEmptySession(session);
   };
 
@@ -92,6 +97,10 @@ export function createLearningSessionRepository(
     continueRound: async () => {
       throw new Error('Learning session has no remote round to continue.');
     },
+    loadCatalog: async (context, track) => ({
+      ...createLocalSession(track),
+      cards: [],
+    }),
     loadSession: async (context, track) => {
       return createLocalSession(track);
     },

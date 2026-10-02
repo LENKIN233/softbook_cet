@@ -192,9 +192,12 @@ describe("local study user journey", () => {
   it("offers track selection and learning without phone or fake code fields", async () => {
     render(<App />);
     expect(
-      await screen.findByRole("button", { name: "英语四级" }, {timeout: 10000})
-    ).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "英语六级" })).toBeEnabled();
+      await screen.findByRole("heading", { name: "英语四级" }, {timeout: 10000})
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", {name:"选择备考科目"}));
+    expect(await screen.findByRole("button", {name:"英语四级"})).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", {name:"英语六级"})).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", {name:"学习"}));
     expect(screen.queryByLabelText("手机号")).toBeNull();
     expect(
       await screen.findByRole("button", { name: "开始学习" })
@@ -210,6 +213,8 @@ describe("local study user journey", () => {
         .map((button) => button.textContent)
     ).toEqual(["学习", "空间", "统计", "我的"]);
     fireEvent.click(screen.getByRole("button", {name: "学习"}));
+    expect(screen.getByRole("heading", {name: "英语四级"})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", {name: "开始学习"}));
     expect(current().card_id).toBe("002001");
     expect(screen.getByRole("list", {name: "本轮已确认 0/5"})).toBeInTheDocument();
   });
@@ -294,14 +299,25 @@ describe("local study user journey", () => {
   });
   it("pausing a card changes only its availability, not its box or the rest of the group", async () => {
     await enter();
+    const paused = current();
+    await saved();
+    const frameIds = JSON.parse(localStorage.getItem("softbook-cet/study/v2/cet4")!).state.frame.ids;
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
     fireEvent.click(screen.getByRole("button", { name: "暂不学习这张卡" }));
-    expect(screen.getByRole("button", {name: /休眠中/})).toHaveTextContent(cards[0].front.prompt);
+    fireEvent.click(screen.getByText("浏览全部卡盒", {selector:"summary"}));
+    fireEvent.click(screen.getByRole("button", {name: paused.space_metadata.library}));
+    fireEvent.click(screen.getByRole("button", {name: paused.space_metadata.group}));
+    const boxCount = cards.filter(card => card.space_metadata.box_ref === paused.space_metadata.box_ref).length;
+    fireEvent.click(screen.getByRole("button", {name: `${paused.space_metadata.box} ${boxCount} 张`}));
+    expect(screen.getByRole("region", {name: `当前卡盒 ${paused.space_metadata.box}`})).toBeInTheDocument();
+    expect(screen.getByRole("button", {name: /休眠中/})).toHaveTextContent(paused.front.prompt);
     fireEvent.click(screen.getByRole("button", {name: /休眠中/}));
     expect(screen.getByRole("button", {name: "恢复学习"})).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
-    expect(current().card_id).toBe("002002");
+    expect(current().card_id).toBe(frameIds[1]);
     expect(screen.getByRole("list", {name: "本轮已确认 0/5"})).toBeInTheDocument();
+    await waitFor(() => expect(JSON.parse(localStorage.getItem("softbook-cet/study/v2/cet4")!).state.sleeping).toContain(paused.card_id));
+    expect(JSON.parse(localStorage.getItem("softbook-cet/study/v2/cet4")!).state.frame.ids).toEqual(frameIds);
   });
   it("restores an unfinished answer after page reload and leaving local study", async () => {
     const first = await enter();
@@ -334,6 +350,8 @@ describe("local study user journey", () => {
     fireEvent.click(screen.getByRole("button", { name: /A.*urgent/ }));
     const original = current().card_id;
     openGlobalRoute('统计');
+    fireEvent.click(screen.getByRole("button", { name: "开始复习" }));
+    expect(screen.queryByRole("article")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "开始复习" }));
     answer(current(), true);
     advance();
@@ -389,10 +407,14 @@ describe("local study user journey", () => {
     const original = current().card_id;
     openGlobalRoute('我的');
     fireEvent.click(screen.getByRole("button", { name: "英语六级" }));
+    await screen.findByRole("heading", {name:"英语六级"});
+    fireEvent.click(await screen.findByRole("button", {name:/^(开始学习|继续学习)$/}));
     await screen.findByRole("article");
     await waitFor(() => expect(screen.getByRole("list", {name: "本轮已确认 0/5"})).toBeInTheDocument());
     openGlobalRoute('我的');
     fireEvent.click(screen.getByRole("button", { name: "英语四级" }));
+    await screen.findByRole("heading", {name:"英语四级"});
+    fireEvent.click(await screen.findByRole("button", {name:/^(开始学习|继续学习)$/}));
     await screen.findByRole("article");
     expect(current().card_id).toBe(original);
   });
@@ -423,7 +445,7 @@ describe("local study user journey", () => {
     localStorage.setItem("softbook-cet/study/v2/cet4", "{broken");
     render(<App />);
     expect(await screen.findByRole("alert")).toHaveTextContent("原内容已保留");
-    expect(screen.getByRole("button", { name: "开始学习" })).toBeDisabled();
+    expect(screen.queryByRole("article")).toBeNull();
     expect(screen.getByRole("button", { name: "导出学习备份" })).toBeEnabled();
     expect(localStorage.getItem("softbook-cet/study/v2/cet4")).toBe("{broken");
   });

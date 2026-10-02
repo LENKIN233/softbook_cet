@@ -42,6 +42,7 @@ name: ios-auth-learning-space-statistics-smoke
     id: "auth-submit-button"
 - tapOn:
     id: "auth-submit-button"
+- runFlow: study-home.yaml
 - extendedWaitUntil:
     visible:
       id: first-learning-guide-start
@@ -81,6 +82,7 @@ name: ios-auth-learning-space-statistics-smoke
     id: "space-sleep-1"
 - tapOn:
     id: "route-tab-learning"
+- runFlow: study-home.yaml
 - assertVisible:
     id: "learning-current-card"
 

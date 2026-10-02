@@ -269,6 +269,56 @@ test('keeps full-catalog compatibility when a server-shaped session has no membe
   expect(result.reviewResults).toHaveLength(0);
 });
 
+test.each(['free', 'trial_available'] as const)('maps a read-only %s catalog without fabricating membership or selection', stage => {
+  const bootstrap = createBootstrapFixture();
+  const fullSession = createContentBoundSession();
+  bootstrap.membership.state.stage = stage;
+  const catalog = {
+    ...fullSession,
+    cards: [],
+    catalogCards: fullSession.catalogCards.slice(0, Math.ceil(fullSession.catalogCards.length / 2)),
+    membershipStage: null,
+    roundCompletion: null,
+    schedulingMode: 'server' as const,
+    serverSelection: null,
+  };
+  const result = resolveAccountBootstrapLearningState(bootstrap, catalog, {catalogOnly: true});
+  expect(result.learningResults).toHaveLength(1);
+  expect(catalog.membershipStage).toBeNull();
+  expect(bootstrap.membership.state.stage).toBe(stage);
+  expect(() => resolveAccountBootstrapLearningState(bootstrap, catalog)).toThrow();
+});
+
+test('a catalog-only mapping cannot masquerade an active task as a read-only page', () => {
+  expect(() => resolveAccountBootstrapLearningState(createBootstrapFixture(), createContentBoundSession(), {catalogOnly: true})).toThrow(/read-only catalog/);
+});
+
+test('binds a read-only signed manifest to canonical membership and full catalog size', () => {
+  const bootstrap = createBootstrapFixture();
+  const fullSession = createContentBoundSession();
+  const accessibleCount = Math.ceil(fullSession.catalogCards.length / 2);
+  const catalog = {
+    ...fullSession, cards: [], catalogCards: fullSession.catalogCards.slice(0, accessibleCount),
+    membershipStage: null, schedulingMode: 'server' as const, serverSelection: null,
+    contentManifest: {
+      access: {mode: 'trial_not_started' as 'trial_not_started' | 'free_subset', accessible_card_count: 0,
+        total_card_count: bootstrap.content.cardCount},
+      downloads: [],
+      manifest: {schema_version: 'content-manifest.v1' as const, assets: [], track: 'cet4' as const,
+        content_version: CONTENT_VERSION, release_id: 'catalog-fixture', minimum_client_version: '1.0.0', parent_release_id: null},
+      signature: {algorithm: 'ed25519' as const, key_id: 'fixture-key', value: 'c'.repeat(128)},
+    },
+  };
+  expect(() => resolveAccountBootstrapLearningState(bootstrap, catalog, {catalogOnly: true})).not.toThrow();
+  bootstrap.membership.state.stage = 'free';
+  expect(() => resolveAccountBootstrapLearningState(bootstrap, catalog, {catalogOnly: true})).toThrow(/membership/);
+  catalog.contentManifest.access.mode = 'free_subset';
+  catalog.contentManifest.access.accessible_card_count = accessibleCount;
+  expect(() => resolveAccountBootstrapLearningState(bootstrap, catalog, {catalogOnly: true})).not.toThrow();
+  catalog.contentManifest.access.total_card_count += 1;
+  expect(() => resolveAccountBootstrapLearningState(bootstrap, catalog, {catalogOnly: true})).toThrow(/membership/);
+});
+
 test('rejects a server catalog whose membership projection disagrees with bootstrap', () => {
   const bootstrap = createBootstrapFixture();
   const fullSession = createContentBoundSession();

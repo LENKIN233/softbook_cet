@@ -69,6 +69,7 @@ async function renderAppAndWaitForLearning(
     await ReactTestRenderer.act(async () => {
       await flushAsyncEffects();
     });
+    await startStudyFromHome(tree!.root);
 
     if (
       tree!.root.findAllByProps({ testID: 'learning-favorite-button' }).length >
@@ -111,6 +112,12 @@ async function openRoute(
     findPressableByTestId(root, `route-tab-${route}`).props.onPress();
     await flushAsyncEffects();
   });
+  if (route === 'learning') await startStudyFromHome(root);
+}
+
+async function startStudyFromHome(root: ReactTestRenderer.ReactTestInstance) {
+  const start = root.findAllByProps({testID: 'learning-home-start-button'}).find(node => typeof node.props.onPress === 'function');
+  if (start) await ReactTestRenderer.act(async () => {start.props.onPress(); await flushAsyncEffects();});
 }
 
 async function login(root: ReactTestRenderer.ReactTestInstance) {
@@ -119,6 +126,7 @@ async function login(root: ReactTestRenderer.ReactTestInstance) {
       findPressableByTestId(root, 'local-start-learning-button').props.onPress();
       await flushAsyncEffects();
     });
+    await startStudyFromHome(root);
     return;
   }
   await ReactTestRenderer.act(() => {
@@ -137,6 +145,7 @@ async function login(root: ReactTestRenderer.ReactTestInstance) {
     findPressableByTestId(root, 'auth-submit-button').props.onPress();
     await flushAsyncEffects();
   });
+  await startStudyFromHome(root);
 }
 
 function createRemoteSession(
@@ -909,6 +918,8 @@ test('replays a restored selection-bound v2 event before loading any stale selec
       }
     }
     expect(learningEventsWriteCount).toBe(1);
+    expect(tree!.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(learningSessionRequestCount).toBe(0);
     expect(
       tree!.root.findAllByProps({testID: 'learning-flip-button'}),
     ).toHaveLength(0);
@@ -934,6 +945,8 @@ test('replays a restored selection-bound v2 event before loading any stale selec
         },
       }),
     );
+
+    await startStudyFromHome(tree!.root);
 
     for (let attempt = 0; attempt < 12; attempt += 1) {
       await ReactTestRenderer.act(async () => {
@@ -1046,10 +1059,9 @@ test('does not persist canonical state before content version validation', async
       });
     }
 
-    expect(
-      tree!.root.findAllByProps({ testID: 'learning-bootstrap-retry-button' })
-        .length,
-    ).toBeGreaterThan(0);
+    expect(tree!.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(JSON.stringify(tree!.toJSON())).toContain('学习记录暂时无法读取。');
+    expect(fetchMock.mock.calls.some(([url]) => url.includes('/v2/learning/session?'))).toBe(false);
     await expect(createUserStateStore().load('13800138000')).resolves.toEqual(
       originalUserState,
     );

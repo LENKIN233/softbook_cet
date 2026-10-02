@@ -1,4 +1,5 @@
 import {LearningSceneNavigation} from './LearningSceneNavigation';
+import {LearningHome} from './LearningHome';
 import {StudioMark} from './StudioMark';
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
@@ -61,6 +62,8 @@ export function LocalStudyApp({
   const [libraryError, setLibraryError] = useState("");
   const [libraryAttempt, setLibraryAttempt] = useState(0);
   const [entered, setEntered] = useState(false);
+  const [reviewIntent, setReviewIntent] = useState(false);
+  const [spaceSceneReturn, setSpaceSceneReturn] = useState(false);
   const [route, setRoute] = useState<Route>("learning");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -152,6 +155,8 @@ export function LocalStudyApp({
       if (firstRunRecord && onRememberGuidance) onRememberGuidance({...firstRunRecord, selectedTrack: next});
       else await storage.setItem(PREF, next);
       setTrack(next);
+      setEntered(false);
+      setReviewIntent(false);
       setRoute("learning");
       setBackupInfo(null);
     });
@@ -314,32 +319,6 @@ export function LocalStudyApp({
       ) : null}
     </>
   );
-  if (!entered)
-    return (
-      <main className="auth-shell" data-local-study="true">
-        <section className="auth-object">
-          <div className="brand-lockup">
-            <span className="brand-mark"><StudioMark /></span>
-            <span className="wordmark">软书</span>
-          </div>
-          <h1>在这台设备上学习</h1>
-          <p>无需手机号或验证码。进度保存在当前浏览器中。</p>
-          {trackPicker}
-          {notices}
-          <button
-            className="primary wide"
-            disabled={!state || busy}
-            onClick={() => setEntered(true)}
-          >
-            {!state && !error
-              ? "正在准备…"
-              : state && hasStudyActivity(state)
-              ? "继续学习"
-              : "开始学习"}
-          </button>
-        </section>
-      </main>
-    );
   const Learning = views.Learning,
     Space = views.Space,
     Statistics = views.Statistics;
@@ -360,15 +339,26 @@ export function LocalStudyApp({
     ...createInitialMembershipState(),
     stage: "premium" as const,
   };
-  const showLearningGuide = route === 'learning' && card !== null && firstRunRecord?.learningGuideSeen === false;
+  const activeScene = route === 'learning' && entered;
+  const savedStatistics = profile.savedState ? studyStatistics(profile.savedState, track, now) : undefined;
+  const savedPending = profile.savedState ? pendingStudyIds(profile.savedState, cards, now).length : null;
+  const startLearning = () => {
+    if (!state || busy) return;
+    setEntered(true);
+    if (reviewIntent && (state.frame.phase !== 'review' || state.frame.complete)) profile.dispatch({type:'review'});
+    else if (!reviewIntent && state.frame.phase === 'review' && state.frame.complete) profile.dispatch({type:'continue'});
+  };
+  const showLearningGuide = activeScene && card !== null && firstRunRecord?.learningGuideSeen === false;
   return (
     <>
-    <div className={route === 'learning' ? 'app-shell local-study-shell learning-scene' : 'app-shell local-study-shell'} data-local-study="true" inert={showLearningGuide || undefined}>
-      {route === 'learning' ? <LearningSceneNavigation
+    <div className={activeScene ? 'app-shell local-study-shell learning-scene' : 'app-shell local-study-shell'} data-local-study="true" inert={showLearningGuide || undefined}>
+      {activeScene ? <LearningSceneNavigation
         progress={{roundIndex: null, completedCount: profile.savedState && state && profile.savedState.frame.ids.join(',') === state.frame.ids.join(',') ? profile.savedState.frame.results.length : 0, total: Math.max(1, state?.frame.ids.length ?? 5)}}
         overall={{learned: profile.savedState ? studyStatistics(profile.savedState, track, now)?.cumulativeLearnedCardCount ?? null : null, total: cards.length || null, loading: profile.status === 'saving'}}
-        onExit={() => {audio.current?.stop(); setRoute('statistics');}} onOpenSpace={() => {audio.current?.stop(); setRoute('space');}}
-      /> : <nav className="route-rail" aria-label="主要导航">
+        onExit={() => {audio.current?.stop(); setEntered(false); setSpaceSceneReturn(false);}} onOpenSpace={() => {audio.current?.stop(); setSpaceSceneReturn(true); setRoute('space');}}
+      /> : <>
+      <header className="mobile-header"><div className="brand-lockup"><span className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div><button className="course-switch" aria-label="选择备考科目" onClick={() => {setEntered(false);setRoute("mine");}}>CET {track === "cet6" ? "6" : "4"} ⌄</button></header>
+      <nav className="route-rail" aria-label="主要导航">
         <div className="rail-brand wordmark">软书四六级</div>
         <div className="route-list">
           {(
@@ -385,6 +375,9 @@ export function LocalStudyApp({
               key={value}
               onClick={() => {
                 audio.current?.stop();
+                setEntered(false);
+                setReviewIntent(false);
+                setSpaceSceneReturn(false);
                 setRoute(value);
                 window.scrollTo({ top: 0 });
               }}
@@ -396,16 +389,19 @@ export function LocalStudyApp({
         <span className="rail-account">
           {track === "cet4" ? "英语四级" : "英语六级"} · 本地学习
         </span>
-      </nav>}
+      </nav></>}
       <div className="local-global-notices">{notices}</div>
       {!state ? (
-        <main className="workbench">
-          <p>正在读取学习记录…</p>
-        </main>
+        route === 'learning' ? <LearningHome track={track} today={null} pendingReview={null}
+          overall={{learned:null,total:null,loading:!error}} continuing={false} busy={!error} disabled onStart={() => {}} />
+        : <main className="workbench"><p>{error ? '学习记录暂不可读，请恢复后继续。' : '正在读取学习记录…'}</p></main>
       ) : (
         <>
           {route === "learning" ? (
-            state.frame.complete ? (
+            !activeScene ? <LearningHome track={track} today={savedStatistics?.completedCardCount ?? null} pendingReview={savedPending}
+              overall={{learned:savedStatistics?.cumulativeLearnedCardCount ?? null,total:cards.length,loading:profile.status==='saving'}}
+              continuing={hasStudyActivity(state)} reviewIntent={reviewIntent} busy={busy} disabled={!state}
+              onStart={startLearning} /> : state.frame.complete ? (
               <main className="completion-workbench">
                 <section className="completion-object">
                   <h1>
@@ -451,7 +447,7 @@ export function LocalStudyApp({
                   ) : null}
                   <button
                     className="text-button"
-                    onClick={() => setRoute("space")}
+                    onClick={() => {setSpaceSceneReturn(true);setRoute("space");}}
                   >
                     查看卡片
                   </button>
@@ -481,7 +477,7 @@ export function LocalStudyApp({
                   profile.dispatch({ type: "answer", draft })
                 }
                 onContinue={() => profile.dispatch({ type: "advance" })}
-                onOpenSpace={() => setRoute("space")}
+                onOpenSpace={() => {setSpaceSceneReturn(true);setRoute("space");}}
                 onFavorite={(id) => profile.dispatch({ type: "favorite", id })}
                 onPlayAudio={
                   card?.audio
@@ -529,7 +525,7 @@ export function LocalStudyApp({
               membership={membership}
               onFavorite={(id) => profile.dispatch({ type: "favorite", id })}
               onSleep={(id) => profile.dispatch({ type: "sleep", id })}
-              onReturn={() => setRoute("learning")}
+              onReturn={() => {setEntered(spaceSceneReturn);setRoute("learning");}}
               statusMessage=""
               syncStatus={sync}
             />
@@ -545,7 +541,8 @@ export function LocalStudyApp({
                 (result) => getChinaDay(result.completedAt) === day
               )}
               onReview={() => {
-                profile.dispatch({ type: "review" });
+                setReviewIntent(true);
+                setEntered(false);
                 setRoute("learning");
               }}
               dailyCounts={counts}
@@ -567,7 +564,7 @@ export function LocalStudyApp({
                 profile.dispatch({ type: "checkin" });
                 profile.retry();
               }}
-              onContinueLearning={() => setRoute("learning")}
+              onContinueLearning={() => {setReviewIntent(false);setEntered(false);setRoute("learning");}}
             />
           ) : null}
           {route === "mine" ? (

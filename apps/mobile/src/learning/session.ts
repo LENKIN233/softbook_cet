@@ -1,6 +1,7 @@
 import {bundledContentVersion} from './bundledCardLibrary';
 import {LearningTrack} from './model';
 import {localLearningCardSource} from './localCardSource';
+import {orderLearningCards} from './learningSequence';
 import {
   createLearningSession,
 } from './sessionCore';
@@ -20,6 +21,6 @@ export function createLocalLearningSession(
     cardCount ?? cards.length,
     bundledContentVersion(track),
   );
-  session.cards = cards.slice(0, cardCount ?? cards.length);
+  session.cards = orderLearningCards(cards).slice(0, cardCount ?? cards.length);
   return session;
 }

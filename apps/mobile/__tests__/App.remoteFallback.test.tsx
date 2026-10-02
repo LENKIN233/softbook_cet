@@ -94,6 +94,11 @@ async function authenticateIntoLearningBootstrap(
     root.findByProps({ testID: 'auth-submit-button' }).props.onPress();
     await flushAsyncEffects();
   });
+  expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await ReactTestRenderer.act(async () => {
+    root.findAllByProps({testID: 'learning-home-start-button'}).find(node => typeof node.props.onPress === 'function')!.props.onPress();
+    await flushAsyncEffects();
+  });
 }
 
 async function flushAsyncEffects() {

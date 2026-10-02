@@ -24,7 +24,9 @@ jest.mock('../src/learning/learningRepository', () => ({
       ? jest
           .requireActual('../src/learning/learningRepository')
           .createLearningSessionRepository(config)
-      : { loadSession: mockLoadSession },
+      : {loadSession: mockLoadSession, loadCatalog: async (_context: unknown, track: 'cet4' | 'cet6') => ({
+          ...require('./fixtures/interactionSession').createLocalLearningSession(track), cards: [], serverSelection: null, roundCompletion: null, membershipStage: null,
+        })},
 }));
 jest.mock('react-native-safe-area-context', () => {
   const mockReact = require('react');
@@ -111,6 +113,10 @@ test('choosing six applies before learning, short guide appears once and survive
     learningGuideSeen: false,
   });
   await press(tree, 'local-start-learning-button');
+  expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  expect(mockLoadSession).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({testID: 'first-learning-guide-modal'})).toHaveLength(0);
+  await press(tree, 'learning-home-start-button');
   expect(mockLoadSession).toHaveBeenLastCalledWith(expect.anything(), 'cet6');
   expect(
     tree.root.findByProps({ testID: 'first-learning-guide-modal' }),
@@ -124,6 +130,7 @@ test('choosing six applies before learning, short guide appears once and survive
   ).toHaveLength(0);
   await act(() => tree.unmount());
   tree = await mount();
+  expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
   expect(
     tree.root.findAllByProps({ testID: 'first-subject-modal' }),
   ).toHaveLength(0);
@@ -151,6 +158,9 @@ test('old signed-in installations choose once without clearing their session or 
   expect(mockLoadSession).not.toHaveBeenCalled();
   await press(tree, 'first-subject-cet6');
   await press(tree, 'first-subject-continue');
+  expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  expect(mockLoadSession).not.toHaveBeenCalled();
+  await press(tree, 'learning-home-start-button');
   expect(mockLoadSession).toHaveBeenLastCalledWith(expect.anything(), 'cet6');
   expect(
     await AsyncStorage.getItem('__softbook_learning_event_outbox_v2'),
@@ -285,6 +295,9 @@ test.each([false, true])(
           .props.onChangeText('2468'),
       );
       await press(tree, 'auth-submit-button');
+      expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+      expect(requests.mock.calls.some(([url]) => url.includes('/v2/learning/session?'))).toBe(false);
+      await press(tree, 'learning-home-start-button');
       expect(
         tree.root.findByType(LearningSurface).props.currentCard.track,
       ).toBe('cet6');
@@ -302,6 +315,9 @@ test.each([false, true])(
       expect(
         tree.root.findAllByProps({ testID: 'first-subject-modal' }),
       ).toHaveLength(0);
+      expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+      expect(requests.mock.calls.some(([url]) => url.includes('/v2/learning/session?'))).toBe(false);
+      await press(tree, 'learning-home-start-button');
       expect(
         tree.root.findByType(LearningSurface).props.currentCard.track,
       ).toBe('cet6');
@@ -356,6 +372,9 @@ test.each([false, true])(
       expect(requests).not.toHaveBeenCalled();
       await press(tree, 'first-subject-cet6');
       await press(tree, 'first-subject-continue');
+      expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+      expect(requests.mock.calls.some(([url]) => url.includes('/v2/learning/session?'))).toBe(false);
+      await press(tree, 'learning-home-start-button');
       expect(
         tree.root.findByType(LearningSurface).props.currentCard.track,
       ).toBe('cet6');

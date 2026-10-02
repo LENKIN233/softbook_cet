@@ -1,5 +1,5 @@
 {
-  "version": "vnext-9",
+  "version": "vnext-10",
   "product_promise": "帮助中国大学生以更轻松、更低负担、但仍然可信的方式通过 CET4/CET6。",
   "source_anchors": {
     "default_learning_path": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
@@ -42,11 +42,11 @@
       "presentation_size": 5,
       "continuation": "retain_the_full_catalog_and_stable_card_ids_for_each_group; pause_wake_changes_never_relabel_a_completed_group",
       "review_return": "restore_the_exact_learning_group_draft_and_feedback_after_review",
-      "local_course_order": "alternate_short_subject_blocks_preserving_authored_order_within_each_subject",
+      "local_course_order": "alternate_subjects_and_separate_adjacent_knowledge_points_preserving_authored_order_within_each_box; retain_canonical_catalog_and_existing_unfinished_group",
       "local_review_schedule": "failed_or_uncertain_answers_are_reviewable_immediately_and_due_after_10_minutes; successful_attempts_use_1_3_7_14_30_60_day_intervals; this_is_a_basic_product_heuristic_not_a_validated_exam_outcome_claim",
       "remote_boundary": "remote_sessions_use_only_the_server_selected_card; five_confirmed_results_pause_presentation_with_continue_or_stop_without_local_reordering_or_invented_round_receipts",
       "remote_presentation_size": 5,
-      "remote_course_order": "server_due_review_first_then_alternating_two_card_subject_blocks_preserving_authored_subject_order"
+      "remote_course_order": "server_due_priority_with_recent_knowledge_point_separation; when_due_work_repeats_the_recent_point_and_no_other_due_point_exists_insert_one_accessible_new_point_before_returning_to_due_work"
     },
     "first_run_guidance": {
       "first_open": "Require an explicit CET4 or CET6 choice before entering the normal product. No default selection or dismissal bypass.",
@@ -57,8 +57,9 @@
     },
     "immersive_study_scene": {
       "goal": "focused_reading_answering_and_feedback_in_one_complete_scene",
+      "entry": "authenticated_learning_opens_an_outer_course_home_with_true_today_review_and_scope_progress; explicit_start_or_continue_enters_study_and_only_then_requests_selection_or_starts_trial",
       "progress": "visible_confirmed_round_progress_and_current_accessible_catalog_unique_card_coverage_with_matching_denominator_and_explicit_partial_scope",
-      "navigation": "explicit_exit_and_space_entry_during_study; restore_normal_four_routes_after_exit",
+      "navigation": "explicit_exit_returns_to_outer_learning_home_with_normal_four_routes; ordinary_learning_navigation_opens_home; explicit_space_return_preserves_an_entered_study_scene",
       "continuity": "retain_current_question_draft_feedback_and_pending_write_authority",
       "content_integrity": "long_material_large_text_and_short_viewports_remain_complete_and_reachable"
     },
