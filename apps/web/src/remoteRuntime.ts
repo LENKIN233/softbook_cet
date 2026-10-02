@@ -221,7 +221,7 @@ export type WebRemoteRuntimeController = {
   loadAuthenticatedState: () => Promise<WebRemoteSnapshot>;
   requestReview: () => Promise<WebRemoteSnapshot>;
   refreshStatistics: () => Promise<Pick<WebRemoteSnapshot, 'bootstrap' | 'checkInSync'>>;
-  switchTrack: (track: LearningTrack) => Promise<WebRemoteSnapshot>;
+  switchTrack: (track: LearningTrack, beforeCommit?: (snapshot: WebRemoteSnapshot) => void) => Promise<WebRemoteSnapshot>;
   logout: () => Promise<WebAccountDeletionOutcome | null>;
   playCardAudio: (
     card: LearningCard,
@@ -1443,7 +1443,7 @@ export function createWebRemoteRuntimeController(
     return nextBootstrapGeneration;
   };
 
-  const loadAuthenticatedState = async (requestTrack = activeTrack, sessionOptions?: {intent: 'review'}): Promise<WebRemoteSnapshot> => {
+  const loadAuthenticatedState = async (requestTrack = activeTrack, sessionOptions?: {intent: 'review'}, beforeTrackCommit?: (snapshot: WebRemoteSnapshot) => void): Promise<WebRemoteSnapshot> => {
     const context = await requireAuthenticatedContext();
     const requestSessionScopeKey = getAuthSessionScopeKey(
       dependencies.authSessionCoordinator.getCurrentSession(),
@@ -1650,6 +1650,9 @@ export function createWebRemoteRuntimeController(
             '较新的账户状态读取已经开始，本次迟到结果不会呈现。',
           );
         }
+        // A device preference must be durable before changing the active
+        // controller track. Failure keeps the current track and UI coherent.
+        beforeTrackCommit?.(nextSnapshot);
         const previousCardId =
           currentLearningSession?.cards[0]?.card_id ?? null;
         const nextCardId = learningSession.cards[0]?.card_id ?? null;
@@ -1940,7 +1943,7 @@ export function createWebRemoteRuntimeController(
     loadAuthenticatedState: () => loadAuthenticatedState(),
     requestReview: () => loadAuthenticatedState(activeTrack, {intent: 'review'}),
 
-    async switchTrack(track) {
+    async switchTrack(track, beforeCommit) {
       if (track !== 'cet4' && track !== 'cet6') throw new Error('请选择英语四级或六级。');
       if (trackSwitchInFlight) throw new Error('正在切换，请稍候。');
       trackSwitchInFlight = true;
@@ -1950,9 +1953,9 @@ export function createWebRemoteRuntimeController(
         if (current.learningSync.pendingEventCount > 0 || current.spaceSync.pendingActionCount > 0 || current.checkInSync.pending) {
           throw new Error('还有记录等待同步，请联网同步后再切换。');
         }
-        if (track === activeTrack) return current;
+        if (track === activeTrack) {beforeCommit?.(current); return current;}
         dependencies.stopAudio?.();
-        return await loadAuthenticatedState(track);
+        return await loadAuthenticatedState(track, undefined, beforeCommit);
       } finally {
         trackSwitchInFlight = false;
       }

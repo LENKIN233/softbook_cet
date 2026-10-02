@@ -7,6 +7,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 import App from '../App';
+
+// This suite covers journeys after the first-run flow.
+jest.mock('../src/onboarding/FirstRunGuidance', () => ({
+  ...jest.requireActual('../src/onboarding/FirstRunGuidance'),
+  FirstRunGuidanceBoundary: require('./fixtures/completedFirstRunGuidance').CompletedFirstRunGuidance,
+}));
 import { getChinaDayKey } from '../src/shared/chinaDay';
 import { createLocalLearningSession } from './fixtures/interactionSession';
 import { createAuthSessionStore } from '../src/persistence/authSessionStore';

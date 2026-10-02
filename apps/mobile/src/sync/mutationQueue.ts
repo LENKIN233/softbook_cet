@@ -99,6 +99,7 @@ export class MutationQueueManager {
   private readonly now: () => string;
   private readonly quarantineKey: string;
   private readonly storage: MutationQueueStorage;
+  private readonly strictRead: boolean;
   private entries: MutationQueueEntry[] = [];
   private quarantined: QuarantinedMutation[] = [];
   private hydrated = false;
@@ -110,12 +111,14 @@ export class MutationQueueManager {
       key?: string;
       now?: () => string;
       storage: MutationQueueStorage;
+      strictRead?: boolean;
     },
   ) {
     this.key = options.key ?? MUTATION_QUEUE_KEY;
     this.quarantineKey = `${this.key}${MUTATION_QUARANTINE_SUFFIX}`;
     this.now = options.now ?? (() => new Date().toISOString());
     this.storage = options.storage;
+    this.strictRead = options.strictRead ?? false;
   }
 
   private async load(): Promise<void> {
@@ -126,10 +129,13 @@ export class MutationQueueManager {
       this.storage.getItem(this.key),
       this.storage.getItem(this.quarantineKey),
     ]);
-    const entries = sanitizeMutationEntries(parsePersistedJson(storedEntries));
+    const parsedEntries = parsePersistedJson(storedEntries, this.strictRead);
+    const parsedQuarantine = parsePersistedJson(storedQuarantine, this.strictRead);
+    const entries = sanitizeMutationEntries(parsedEntries);
     const quarantined = sanitizeQuarantinedMutations(
-      parsePersistedJson(storedQuarantine),
+      parsedQuarantine,
     );
+    if (this.strictRead && (!Array.isArray(parsedEntries) || parsedEntries.some(entry => sanitizeMutationEntries([entry]).length === 0) || !Array.isArray(parsedQuarantine) || parsedQuarantine.length !== quarantined.length)) throw new Error('Retained account writes could not be decoded without loss.');
     const deferSanitization =
       (await this.storage.isAccountWriteQuarantined?.()) ?? false;
 
@@ -476,14 +482,15 @@ function isExactEmptyPersistedArray(value: string | null): boolean {
   }
 }
 
-function parsePersistedJson(stored: string | null): unknown {
-  if (stored === null || stored.length === 0) {
+function parsePersistedJson(stored: string | null, strictRead = false): unknown {
+  if (stored === null || (!strictRead && stored.length === 0)) {
     return [];
   }
 
   try {
     return JSON.parse(stored);
-  } catch {
+  } catch (error) {
+    if (strictRead) throw error;
     return [];
   }
 }

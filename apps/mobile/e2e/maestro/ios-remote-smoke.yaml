@@ -1,6 +1,11 @@
 appId: com.softbook.cet
 name: ios-remote-auth-learning-space-statistics-smoke
 ---
+- runFlow:
+    when:
+      visible:
+        id: first-subject-cet4
+    file: first-run.yaml
 - extendedWaitUntil:
     visible:
       id: "auth-phone-input"
@@ -39,6 +44,9 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "auth-submit-button"
 - tapOn:
     id: "auth-submit-button"
+- tapOn:
+    id: first-learning-guide-start
+    optional: true
 - assertNotVisible:
     id: "standalone-auth-screen"
 - tapOn:

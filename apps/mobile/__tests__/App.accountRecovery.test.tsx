@@ -5,6 +5,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
 
 import App from '../App';
+
+// This suite covers journeys after the first-run flow.
+jest.mock('../src/onboarding/FirstRunGuidance', () => ({
+  ...jest.requireActual('../src/onboarding/FirstRunGuidance'),
+  FirstRunGuidanceBoundary: require('./fixtures/completedFirstRunGuidance').CompletedFirstRunGuidance,
+}));
 import {
   ACCOUNT_LOGOUT_CLEANUP_STORAGE_KEY,
   createAccountLogoutCleanupStore,

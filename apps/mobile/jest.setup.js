@@ -90,6 +90,11 @@ beforeEach(async () => {
   if (typeof AsyncStorage.clear === 'function') {
     await AsyncStorage.clear();
   }
+  // Existing domain regressions start after onboarding. First-run integration
+  // cases explicitly remove this device preference to exercise the product gate.
+  await AsyncStorage.setItem('softbook-cet/first-run-guidance/v1', JSON.stringify({
+    version: 1, selectedTrack: 'cet4', learningGuideSeen: true,
+  }));
 
   if (typeof NetInfo.__reset === 'function') {
     NetInfo.__reset();

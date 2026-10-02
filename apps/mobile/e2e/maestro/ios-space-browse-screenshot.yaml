@@ -3,6 +3,7 @@ name: ios-space-browse-screenshot
 ---
 - clearState
 - launchApp
+- runFlow: first-run.yaml
 - extendedWaitUntil:
     visible:
       id: "auth-phone-input"
@@ -23,6 +24,12 @@ name: ios-space-browse-screenshot
     id: "auth-gate-keyboard-dismiss-target"
 - tapOn:
     id: "auth-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: first-learning-guide-start
+    timeout: 30000
+- tapOn:
+    id: first-learning-guide-start
 - tapOn:
     id: "route-tab-space"
 - extendedWaitUntil:

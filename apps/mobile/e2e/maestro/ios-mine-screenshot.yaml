@@ -3,6 +3,7 @@ name: ios-mine-screenshot
 ---
 - clearState
 - launchApp
+- runFlow: first-run.yaml
 - extendedWaitUntil:
     visible:
       id: "auth-phone-input"
@@ -27,6 +28,12 @@ name: ios-mine-screenshot
     id: "auth-submit-button"
 - tapOn:
     id: "auth-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: first-learning-guide-start
+    timeout: 30000
+- tapOn:
+    id: first-learning-guide-start
 - tapOn:
     id: "route-tab-learning"
 - assertVisible:

@@ -49,6 +49,7 @@ const authStorageOperationTails = new WeakMap<object, Promise<void>>();
 export function createAuthSessionStore(
   storage: AuthSessionSecureStorage = createReactNativeAuthSessionSecureStorage(),
   revocationStorage: AuthSessionRevocationStorage = AsyncStorage,
+  options: {failOnReadError?: boolean} = {},
 ): AuthSessionStore {
   const operations: AuthSessionStore = {
     async clear() {
@@ -106,6 +107,7 @@ export function createAuthSessionStore(
           '[AuthSessionStore] Failed to read the auth revocation marker.',
           error,
         );
+        if (options.failOnReadError) throw error;
         return null;
       }
 
@@ -130,6 +132,7 @@ export function createAuthSessionStore(
         credentials = await storage.loadCredentials();
       } catch (error) {
         console.warn('[AuthSessionStore] Failed to read auth session.', error);
+        if (options.failOnReadError) throw error;
         return null;
       }
 
@@ -140,6 +143,7 @@ export function createAuthSessionStore(
       try {
         return parseAuthSession(credentials.username, credentials.password);
       } catch (error) {
+        if (options.failOnReadError) throw error;
         console.warn(
           '[AuthSessionStore] Discarding invalid auth session.',
           error,

@@ -14,11 +14,13 @@ import {
 } from "@testing-library/react";
 import axe from "axe-core";
 import { App } from "./App";
+import {FIRST_RUN_GUIDANCE_KEY} from './firstRunGuidanceStore';
 import { createLocalLearningSession } from "../../mobile/__tests__/fixtures/interactionSession";
 import type { LearningCard } from "../../mobile/src/learning/model";
 const cards = createLocalLearningSession("cet4").catalogCards;
 beforeEach(() => {
   localStorage.clear();
+  localStorage.setItem(FIRST_RUN_GUIDANCE_KEY, JSON.stringify({version: 1, selectedTrack: 'cet4', learningGuideSeen: true}));
   window.history.replaceState(null, "", "/");
 });
 afterEach(async () => {
