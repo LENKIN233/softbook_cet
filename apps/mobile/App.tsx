@@ -6584,9 +6584,11 @@ function AppShell({
   const currentBootstrap = accountBootstrapSnapshot?.track === learningTrack ? accountBootstrapSnapshot : null;
   const pilotSequence = currentBootstrap?.content.releaseClass === 'controlled_pilot'
     ? currentBootstrap.componentRevisions.learning.eventServerSequence : null;
+  const pilotBoundaryPending = pilotSequence !== null && pilotSequence > 0 && pilotSequence % LEARNING_SEGMENT_SIZE === 0 &&
+    (outgoingResult !== null || !learningSession?.serverSelection);
   const sceneProgress: StudySceneProgress | null = pilotSequence !== null ? {
-    round: currentRoundCompletion ? Math.max(1, Math.ceil(currentRoundCompletion.completedCount / LEARNING_SEGMENT_SIZE)) : Math.floor(pilotSequence / LEARNING_SEGMENT_SIZE) + 1,
-    completed: currentRoundCompletion ? LEARNING_SEGMENT_SIZE : pilotSequence % LEARNING_SEGMENT_SIZE,
+    round: currentRoundCompletion ? Math.max(1, Math.ceil(currentRoundCompletion.completedCount / LEARNING_SEGMENT_SIZE)) : pilotBoundaryPending ? Math.ceil(pilotSequence / LEARNING_SEGMENT_SIZE) : Math.floor(pilotSequence / LEARNING_SEGMENT_SIZE) + 1,
+    completed: currentRoundCompletion || pilotBoundaryPending ? LEARNING_SEGMENT_SIZE : pilotSequence % LEARNING_SEGMENT_SIZE,
     total: LEARNING_SEGMENT_SIZE,
   } : visibleSegment ? {
     round: visibleSegment.segmentIndex,

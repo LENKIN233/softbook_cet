@@ -1464,9 +1464,12 @@ function AccountApp({
   const showLearningGuide = route === 'learning' && currentCard !== null && !firstRunRecord.learningGuideSeen;
   const canonicalSceneMatches = Boolean(sceneCanonicalProgress && session && sceneCanonicalProgress.track === session.track && sceneCanonicalProgress.contentVersion === session.contentVersion);
   const serverSceneSequence = canonicalSceneMatches ? sceneCanonicalProgress!.serverSequence : 0;
-  const sceneProgress = learningSegment ? {roundIndex: learningSegment.segmentIndex, completedCount: learningSegment.completedCards.length, total: LEARNING_SEGMENT_SIZE}
-    : runtime.mode === 'remote' ? {roundIndex: session?.roundCompletion ? Math.max(1, Math.ceil(session.roundCompletion.completedCount / LEARNING_SEGMENT_SIZE)) : Math.floor(serverSceneSequence / LEARNING_SEGMENT_SIZE) + 1,
-        completedCount: session?.roundCompletion ? LEARNING_SEGMENT_SIZE : serverSceneSequence % LEARNING_SEGMENT_SIZE, total: LEARNING_SEGMENT_SIZE}
+  const serverSceneBoundaryPending = serverSceneSequence > 0 && serverSceneSequence % LEARNING_SEGMENT_SIZE === 0 &&
+    (resolved !== null || !session?.serverSelection);
+  const sceneProgress = session?.roundCompletion ? {roundIndex: Math.max(1, Math.ceil(session.roundCompletion.completedCount / LEARNING_SEGMENT_SIZE)), completedCount: LEARNING_SEGMENT_SIZE, total: LEARNING_SEGMENT_SIZE}
+    : learningSegment ? {roundIndex: learningSegment.segmentIndex, completedCount: learningSegment.completedCards.length, total: LEARNING_SEGMENT_SIZE}
+    : runtime.mode === 'remote' ? {roundIndex: serverSceneBoundaryPending ? Math.ceil(serverSceneSequence / LEARNING_SEGMENT_SIZE) : Math.floor(serverSceneSequence / LEARNING_SEGMENT_SIZE) + 1,
+        completedCount: serverSceneBoundaryPending ? LEARNING_SEGMENT_SIZE : serverSceneSequence % LEARNING_SEGMENT_SIZE, total: LEARNING_SEGMENT_SIZE}
     : {roundIndex: Math.floor(currentIndex / LEARNING_SEGMENT_SIZE) + 1, completedCount: Math.min(batch.size, batch.index + (resolved ? 1 : 0)), total: Math.max(1, batch.size)};
   return (
     <>

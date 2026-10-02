@@ -257,6 +257,60 @@ describe('PC Web remote UI authority', () => {
     expect(screen.queryByRole('heading', {name: /第 .*轮完成/})).toBeNull();
   });
 
+  it('keeps the fifth pilot feedback at 5/5 until a next selection is read successfully', async () => {
+    const initial = createSnapshot('premium');
+    initial.bootstrap.content.releaseClass = 'controlled_pilot';
+    initial.bootstrap.componentRevisions.learning.eventServerSequence = 4;
+    const fifth = createCard(5), sixth = createCard(6);
+    initial.learningSession.cards = [fifth];
+    initial.learningSession.catalogCards.push(fifth, sixth);
+    initial.learningSession.serverSelection = {...initial.learningSession.serverSelection!, cardId: fifth.card_id};
+    const confirmedBootstrap = structuredClone(initial.bootstrap);
+    confirmedBootstrap.componentRevisions.learning.eventServerSequence = 5;
+    const next = structuredClone(initial);
+    next.bootstrap = confirmedBootstrap;
+    next.learningSession.cards = [sixth];
+    next.learningSession.serverSelection = {...next.learningSession.serverSelection!, cardId: sixth.card_id, selectionId: 'sel_after_fifth_feedback'};
+    let rejectNextRead: ((reason: Error) => void) | null = null;
+    const loadAuthenticatedState = vi.fn(async () => next).mockImplementationOnce(
+      () => new Promise<WebRemoteSnapshot>((_resolve, reject) => {rejectNextRead = reject;}),
+    );
+    const controller = createController(initial, {
+      loadAuthenticatedState,
+      refreshStatistics: vi.fn(async () => ({bootstrap: confirmedBootstrap, checkInSync: initial.checkInSync})),
+    });
+    await authenticateRemote(controller);
+    expect(screen.getByRole('status', {name: '第 1 轮 · 已完成 4/5'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('button', {name: '下一张'});
+    expect(await screen.findByRole('status', {name: '第 1 轮 · 已完成 5/5'})).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: '答案对照'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '下一张'}));
+    expect(screen.getByRole('button', {name: '正在准备下一张…'})).toBeDisabled();
+    expect(screen.getByRole('status', {name: '第 1 轮 · 已完成 5/5'})).toBeInTheDocument();
+    await act(async () => {rejectNextRead!(new Error('next selection unavailable'));});
+    expect(screen.getByRole('button', {name: '下一张'})).toBeEnabled();
+    expect(screen.getByRole('region', {name: '答案对照'})).toBeInTheDocument();
+    expect(screen.getByRole('status', {name: '第 1 轮 · 已完成 5/5'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '下一张'}));
+    await screen.findByRole('heading', {name: sixth.front.prompt});
+    expect(screen.queryByRole('region', {name: '答案对照'})).toBeNull();
+    expect(screen.getByRole('status', {name: '第 2 轮 · 已完成 0/5'})).toBeInTheDocument();
+    expect(loadAuthenticatedState).toHaveBeenCalledTimes(2);
+    expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a completed canonical pilot boundary while no server selection is available', async () => {
+    const snapshot = createSnapshot('premium');
+    snapshot.bootstrap.content.releaseClass = 'controlled_pilot';
+    snapshot.bootstrap.componentRevisions.learning.eventServerSequence = 10;
+    snapshot.learningSession.cards = [];
+    snapshot.learningSession.serverSelection = null;
+    await authenticateRemote(createController(snapshot));
+    expect(screen.getByRole('status', {name: '第 2 轮 · 已完成 5/5'})).toBeInTheDocument();
+  });
+
   it('enters a focused scene and restores global navigation without losing the current attempt', async () => {
     const snapshot = createSnapshot('premium');
     snapshot.bootstrap.statistics = {...snapshot.bootstrap.statistics!, cumulativeLearnedCardCount: 99};

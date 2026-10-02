@@ -2286,6 +2286,72 @@ test('continues an exact controlled-pilot round before requesting another server
   expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
 });
 
+test('keeps the completed pilot progress while its checkpoint read is pending or fails', async () => {
+  const originalAppInfo = NativeModules.SoftbookAppInfo;
+  NativeModules.SoftbookAppInfo = {platform: Platform.OS, version: '1.0.0'};
+  const base = createLocalLearningSession('cet4');
+  const flip = base.catalogCards.find(card => card.interaction_id === 'flip')!;
+  const cards: LearningCard[] = Array.from({length: 6}, (_, index) => ({...flip, card_id: `9900${String(index + 1).padStart(2, '0')}`, knowledge_ref: '9900', space_metadata: {...flip.space_metadata, box_ref: '9900'}}));
+  const catalog: LearningSession = {...base, cards: [cards[0]], catalogCards: cards, contentVersion: TEST_CONTENT_VERSION};
+  const checkpoint: LearningSession = {...catalog, schedulingMode: 'server', cards: [], serverSelection: null,
+    roundCompletion: {completedCount: 5, contentVersion: TEST_CONTENT_VERSION, pilotId: 'cet4-pilot-progress', receiptId: `prc_${'a'.repeat(43)}`, reviewCardIds: [], spaceCardId: cards[4].card_id}};
+  const accepted: MockLearningEvent[] = [];
+  const nextRead = createDeferred<LearningSession>();
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({baseUrl: 'https://api.softbook.example', featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'}});
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) {
+      const payload = createAccountBootstrapPayload(catalog, 'premium', accepted);
+      return createJsonResponse({...payload, data: {...payload.data, content: {
+        card_count: cards.length, expires_at: new Date(Date.now() + 86400000).toISOString(), gate_eligible: false,
+        minimum_client_versions: {android: '1.0.0', ios: '1.0.0'}, pilot_id: 'cet4-pilot-progress', release_class: 'controlled_pilot', release_id: 'pilot-progress-release', source: payload.data.content.source, version: TEST_CONTENT_VERSION,
+      }}});
+    }
+    if (input.endsWith('/v2/learning/events')) {
+      for (const event of readLearningEventsRequest(init).events) if (!accepted.some(prior => prior.event_id === event.event_id)) accepted.push(event);
+      return createLearningEventsAckResponse(init);
+    }
+    throw new Error(`Unexpected pilot-progress request: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  const press = async (id: string) => ReactTestRenderer.act(async () => {
+    findPressableByTestId(tree.root, id).props.onPress();
+    for (let i = 0; i < 8; i++) await flushAsyncEffects();
+  });
+  const progress = () => tree.root.findByProps({testID: 'learning-segment-progress'}).props.children;
+  try {
+    await loginIntoLearningFlow(tree.root, catalog);
+    mockLoadSession.mockImplementation(() => accepted.length < 5
+      ? Promise.resolve(resolveSessionForRuntime({...catalog, cards: [cards[accepted.length]]})) : nextRead.promise);
+    for (let index = 0; index < 5; index++) {
+      await press('learning-flip-button');
+      await press('learning-flip-confident-button');
+      expect(accepted).toHaveLength(index + 1);
+      if (index < 4) await press('learning-next-button');
+    }
+    expect(progress()).toBe('第 1 轮 · 已完成 5/5');
+    expect(tree.root.findByType(LearningSurface).props.currentResult.cardId).toBe(cards[4].card_id);
+    await ReactTestRenderer.act(async () => {nextRead.reject(new Error('Checkpoint unavailable')); for (let i = 0; i < 8; i++) await flushAsyncEffects();});
+    expect(progress()).toBe('第 1 轮 · 已完成 5/5');
+    expect(tree.root.findByType(LearningSurface).props.advanceState.needsRetry).toBe(true);
+    mockLoadSession.mockResolvedValue(checkpoint);
+    await press('learning-next-button');
+    expect(tree.root.findByProps({testID: 'learning-continue-round-button'})).toBeTruthy();
+    expect(progress()).toBe('第 1 轮 · 已完成 5/5');
+    mockLoadSession.mockResolvedValue(resolveSessionForRuntime({...catalog, cards: [cards[5]]}));
+    await press('learning-continue-round-button');
+    expect(mockContinueRound).toHaveBeenCalledTimes(1);
+    expect(progress()).toBe('第 2 轮 · 已完成 0/5');
+    expect(accepted).toHaveLength(5);
+  } finally {
+    await ReactTestRenderer.act(() => tree.unmount());
+    if (originalAppInfo === undefined) delete NativeModules.SoftbookAppInfo;
+    else NativeModules.SoftbookAppInfo = originalAppInfo;
+  }
+});
+
 test('blocks product state writes until canonical bootstrap succeeds on reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',
