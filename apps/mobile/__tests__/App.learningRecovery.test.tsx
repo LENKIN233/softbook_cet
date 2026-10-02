@@ -49,6 +49,10 @@ async function settle() {
   for(let i=0;i<8;i++) await act(async()=>{await new Promise(resolve=>setTimeout(resolve,0));});
 }
 async function press(root:ReactTestRenderer.ReactTestInstance,id:string) {
+  if (id.startsWith('route-tab-') && !root.findAllByProps({testID:id}).length) {
+    await act(async()=>{root.findByProps({testID:'learning-pause-button'}).props.onPress();await Promise.resolve();});
+    await settle();
+  }
   if (id === 'learning-hint-button' && !root.findAllByProps({testID:id}).length) {
     await act(async()=>{root.findByProps({testID:'learning-help-button'}).props.onPress();await Promise.resolve();});
   }
@@ -96,7 +100,8 @@ it('switches authenticated tracks without losing the old track when the next loa
   expect(await createFirstRunGuidanceStore().load()).toMatchObject({selectedTrack: 'cet6'});
   await press(root, 'route-tab-learning'); await settle();
   expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(six.cards[0].card_id);
-  expect(root.findByProps({testID: 'learning-progress-label'}).props.children).toContain('英语六级');
+  expect(root.findByType(LearningSurface).props.currentCard.track).toBe('cet6');
+  expect(root.findAll(node => node.props.children === '英语六级').length).toBeGreaterThan(0);
   expect(root.findAllByProps({testID: 'learning-progress-count'})).toHaveLength(0);
   await press(root, 'route-tab-mine'); await settle();
   await press(root, 'mine-track-cet4'); await settle();

@@ -51,6 +51,9 @@ async function mount() {
   return tree;
 }
 async function press(tree: ReactTestRenderer.ReactTestRenderer, id: string) {
+  if (id.startsWith('route-tab-') && !tree.root.findAllByProps({testID:id}).length) {
+    await press(tree, 'learning-pause-button');
+  }
   await act(async () => {
     tree.root
       .findAllByProps({ testID: id })

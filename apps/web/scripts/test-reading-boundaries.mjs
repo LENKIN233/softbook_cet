@@ -18,6 +18,7 @@ if (!executablePath) throw new Error('Install Chromium with: npx playwright-core
 const source = `
 import React, {useState} from 'react';
 import {createRoot} from 'react-dom/client';
+import {LearningSceneNavigation} from '/@fs/${repository}/apps/web/src/LearningSceneNavigation.tsx';
 import {LearningSurface} from '/@fs/${repository}/apps/web/src/App.tsx';
 import {localLearningCardSource} from '/@fs/${repository}/apps/mobile/src/learning/localCardSource.ts';
 import {createLearningCardState,evaluateLearningCard} from '/@fs/${repository}/apps/mobile/src/learning/sessionCore.ts';
@@ -30,14 +31,13 @@ window.qaCard = card;
 function Harness() {
  const [state,setState] = useState(() => createLearningCardState(card));
  const [result,setResult] = useState(null);
- return <div className="app-shell"><header className="mobile-header">软书</header>
+ return <div className="app-shell learning-scene"><LearningSceneNavigation progress={{roundIndex:1,completedCount:result?1:0,total:5}} overall={{learned:0,total:5}} onExit={()=>{}} onOpenSpace={()=>{}}/>
   <LearningSurface motionIdentity={card.card_id} card={card} cardState={state} currentIndex={0} phase="learning" total={5}
    resolved={result} onState={setState} onResolve={next=>{if(next)setState(next);setResult(evaluateLearningCard(card,next??state));}}
    onContinue={()=>{setState(createLearningCardState(card));setResult(null);}} onOpenSpace={()=>{}} onFavorite={()=>{}}
    onPlayAudio={()=>{}} audioStatus="idle" busy={false} canMutateSpace={true} queuedResult={null}
    rejectedCompletion={false} retryBusy={false} serverSequenced={false} statusMessage="" syncStatus=""
    onReloadQueued={()=>{}} onRetryQueued={()=>{}} />
-  <nav className="route-rail"><div className="route-list">{['学习','空间','统计','我的'].map(label=><button key={label} className="route">{label}</button>)}</div></nav>
  </div>;
 }
 createRoot(document.getElementById('root')).render(<Harness/>);
@@ -107,8 +107,8 @@ try {
           await page.getByRole('button',{name:'提交答案',exact:true}).click();
         } else await page.getByRole('group',{name:'左右滑动判断'}).getByRole('button').last().click();
         await page.getByRole('button',{name:'下一张',exact:true}).waitFor();
-        await body.evaluate(node => {node.scrollTop=node.scrollHeight;});
-        assert.ok(await body.evaluate(node => node.scrollHeight-node.clientHeight-node.scrollTop < 2), 'answer bottom is unreachable');
+        await page.getByRole('button',{name:'下一张',exact:true}).scrollIntoViewIfNeeded();
+        assert.ok(await page.getByRole('button',{name:'下一张',exact:true}).evaluate(node => {const r=node.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}), 'final action is unreachable in the natural page scroll');
         await page.getByRole('button',{name:'下一张',exact:true}).click();
         assert.deepEqual(errors, []);
         results.push({viewport,track,kind,card:card.card_id});

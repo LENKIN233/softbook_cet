@@ -20,7 +20,7 @@
 .space-filter-scope {font-size:12px;color:var(--muted);line-height:1.6;margin:8px 0 12px;}
 .space-filter-summary {display:flex;align-items:center;gap:16px;justify-content:space-between;font-size:14px;}
 .space-neighbors h2 {font-size:12px;font-weight:500;color:var(--muted);margin:0 0 6px;}
-.space-neighbors > div {display:flex;gap:10px;overflow-x:auto;}
+.space-neighbors > div {display:flex;gap:10px;overflow-x:auto;padding:6px;}
 .space-neighbors button {flex-shrink:0;display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 14px;}
 .space-neighbors small {color:var(--muted);}
 @media (min-width:1050px) {.space-current-first {max-width:900px;}}

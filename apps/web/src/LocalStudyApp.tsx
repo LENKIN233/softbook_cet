@@ -1,3 +1,4 @@
+import {LearningSceneNavigation} from './LearningSceneNavigation';
 import {StudioMark} from './StudioMark';
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
@@ -362,8 +363,12 @@ export function LocalStudyApp({
   const showLearningGuide = route === 'learning' && card !== null && firstRunRecord?.learningGuideSeen === false;
   return (
     <>
-    <div className="app-shell local-study-shell" data-local-study="true" inert={showLearningGuide || undefined}>
-      <nav className="route-rail" aria-label="主要导航">
+    <div className={route === 'learning' ? 'app-shell local-study-shell learning-scene' : 'app-shell local-study-shell'} data-local-study="true" inert={showLearningGuide || undefined}>
+      {route === 'learning' ? <LearningSceneNavigation
+        progress={{roundIndex: null, completedCount: profile.savedState && state && profile.savedState.frame.ids.join(',') === state.frame.ids.join(',') ? profile.savedState.frame.results.length : 0, total: Math.max(1, state?.frame.ids.length ?? 5)}}
+        overall={{learned: profile.savedState ? studyStatistics(profile.savedState, track, now)?.cumulativeLearnedCardCount ?? null : null, total: cards.length || null, loading: profile.status === 'saving'}}
+        onExit={() => {audio.current?.stop(); setRoute('statistics');}} onOpenSpace={() => {audio.current?.stop(); setRoute('space');}}
+      /> : <nav className="route-rail" aria-label="主要导航">
         <div className="rail-brand wordmark">软书四六级</div>
         <div className="route-list">
           {(
@@ -391,7 +396,7 @@ export function LocalStudyApp({
         <span className="rail-account">
           {track === "cet4" ? "英语四级" : "英语六级"} · 本地学习
         </span>
-      </nav>
+      </nav>}
       <div className="local-global-notices">{notices}</div>
       {!state ? (
         <main className="workbench">

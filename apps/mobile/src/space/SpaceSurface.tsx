@@ -748,7 +748,7 @@ export function SpaceSurface({
               ]}
               testID="space-open-box-deck"
             >
-              <View style={styles.trayHeading} testID="space-open-box-lid">
+              <View style={[styles.trayHeading, usesAccessibilityLayout ? styles.trayHeadingAccessible : null]} testID="space-open-box-lid">
                 <View style={styles.trayTitleCopy}>
                   <Text
                     style={[styles.spaceSectionTitle, { color: palette.text }]}
@@ -1100,7 +1100,7 @@ export function SpaceSurface({
         ) : null}
         {screen === 'overview' ? (
           <View style={[styles.browserSection, {borderTopColor: palette.border}]}>
-            <Pressable accessibilityRole="button" accessibilityState={{expanded: isBrowsing}} onPress={() => setIsBrowsing(value => !value)} style={styles.browserToggle} testID="space-browse-toggle">
+            <Pressable accessibilityRole="button" accessibilityLabel={isBrowsing ? '收起卡盒目录' : '浏览全部卡盒'} accessibilityState={{expanded: isBrowsing}} onPress={() => setIsBrowsing(value => !value)} style={styles.browserToggle} testID="space-browse-toggle">
               <Text style={[styles.quietActionText, {color: palette.text}]}>{isBrowsing ? '收起卡盒目录' : '浏览全部卡盒'}</Text>
               <Text style={[styles.spaceMeta, {color: palette.textMuted}]}>{isBrowsing ? '−' : '+'}</Text>
             </Pressable>
@@ -1709,6 +1709,7 @@ const styles = StyleSheet.create({
   spaceMeta: { fontSize: 12, lineHeight: 20 },
   openTray: { borderWidth: 1, borderRadius: STUDIO.radius.card, padding: 18, gap: 16 },
   trayHeading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  trayHeadingAccessible: { flexDirection: 'column', alignItems: 'stretch' },
   trayTitleCopy: { flex: 1, gap: 4 },
   quietAction: {
     minHeight: 44,
@@ -2014,6 +2015,7 @@ const styles = StyleSheet.create({
   },
   actionChip: {
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 12,
     borderWidth: 0,
     minHeight: 44,

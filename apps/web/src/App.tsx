@@ -1,6 +1,7 @@
+import {LearningSceneNavigation} from './LearningSceneNavigation';
 import {SpaceSurface} from './SpaceSurface';
 import type {TrackStudyStatistics} from '../../mobile/src/statistics/trackStudyStatistics';
-import {initializeLearningSegment, confirmLearningSegmentCard, type LearningSegmentProgress} from '../../mobile/src/learning/learningSegment';
+import {LEARNING_SEGMENT_SIZE, initializeLearningSegment, confirmLearningSegmentCard, continueLearningSegment, type ConfirmedLearningSegmentCard, type LearningSegmentProgress} from '../../mobile/src/learning/learningSegment';
 import {StudioMark} from './StudioMark';
 import {StudioAudio} from './StudioAudio';
 import {useChinaDay} from '../../mobile/src/local/useStudyProfile';
@@ -151,10 +152,12 @@ function AccountApp({
       return null;
     }
   }, [remoteRuntimeFactory, runtime]);
+  const [sceneCanonicalProgress, setSceneCanonicalProgress] = useState<{track: LearningTrack; contentVersion: string; total: number; serverSequence: number; readable: boolean} | null>(null);
   const [trackStatistics, setTrackStatistics] = useState<TrackStudyStatistics | null>(null);
   const [statisticsLoading, setStatisticsLoading] = useState(false);
   const statisticsRequestGeneration = useRef(0);
   const [learningSegment, setLearningSegment] = useState<LearningSegmentProgress | null>(null);
+  const pendingSegmentCompletion = useRef<{scope: string; card: ConfirmedLearningSegmentCard} | null>(null);
   const [pauseNotice, setPauseNotice] = useState<string | null>(null);
   const [session, setSession] = useState<LearningSession | null>(null);
   const [authStage, setAuthStage] = useState<AuthStage>('phone');
@@ -542,15 +545,21 @@ function AccountApp({
     window.scrollTo({behavior: 'auto', top: 0});
   }, [currentIndex, currentCard?.card_id, session?.serverSelection?.selectionId, learningPhase, route]);
 
+  function segmentScope(track: LearningTrack) {
+    return `${phone}:${accountAuthorityGeneration.current}:${track}`;
+  }
+
   function applyRemoteSnapshot(snapshot: WebRemoteSnapshot, reviewOnly = false) {
     statisticsRequestGeneration.current += 1;
     setStatisticsLoading(false);
     setDayNeedsRefresh(false);
     setTrackStatistics(snapshot.bootstrap.statistics ?? null);
+    setSceneCanonicalProgress({track: snapshot.bootstrap.track, contentVersion: snapshot.bootstrap.content.version,
+      total: snapshot.bootstrap.content.cardCount,
+      serverSequence: snapshot.bootstrap.componentRevisions.learning.eventServerSequence, readable: true});
     const nextSession = snapshot.learningSession;
-    setLearningSegment(previous => initializeLearningSegment(previous,
-      `${phone}:${nextSession.track}`, nextSession.track,
-      snapshot.bootstrap.learning.cardStates.map(result => result.cardId)));
+    setLearningSegment(previous => snapshot.bootstrap.content.releaseClass === 'controlled_pilot'
+      ? null : initializeLearningSegment(previous, segmentScope(nextSession.track), nextSession.track));
     const nextCard = nextSession.cards[0] ?? null;
     const draft = reviewResumeDraft.current;
     const restoredDraft = draft && draft.epoch === accountAuthorityGeneration.current && draft.phone === phone &&
@@ -797,6 +806,8 @@ function AccountApp({
     statisticsRequestGeneration.current += 1;
     setStatisticsLoading(false);
     setLearningSegment(null);
+    setSceneCanonicalProgress(null);
+    pendingSegmentCompletion.current = null;
     setPauseNotice(null);
     setDayNeedsRefresh(false);
     audioRequestGeneration.current += 1;
@@ -945,6 +956,11 @@ function AccountApp({
     if (runtime.mode === 'remote') {
       if (remoteController === null) return;
       const generation = accountAuthorityGeneration.current;
+      const metadata = currentCard.space_metadata;
+      pendingSegmentCompletion.current = {scope: segmentScope(currentCard.track), card: {
+        completionId: session?.serverSelection?.selectionId ?? '', cardId: currentCard.card_id,
+        library: metadata.library, group: metadata.group, box: metadata.box, boxRef: metadata.box_ref,
+      }};
       resolutionInFlight.current = true;
       setRemoteBusy(true);
       try {
@@ -1019,7 +1035,7 @@ function AccountApp({
         const snapshot = await remoteController.requestReview();
         if (accountAuthorityGeneration.current !== generation) return;
         applyRemoteSnapshot(snapshot, true);
-        setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous);
+        setLearningSegment(previous => previous ? continueLearningSegment(previous) : previous);
         setPauseNotice(null);
         navigateRoute('learning');
       } catch (error) {
@@ -1049,8 +1065,12 @@ function AccountApp({
   }
 
   function presentAcknowledgedLearningResult(result: LearningCardResult) {
-    setLearningSegment(previous => previous && previous.scope === `${phone}:${session?.track}`
-      ? confirmLearningSegmentCard(previous, result.cardId) : previous);
+    const completion = pendingSegmentCompletion.current;
+    if (completion && completion.card.cardId === result.cardId) {
+      setLearningSegment(previous => previous?.scope === completion.scope
+        ? confirmLearningSegmentCard(previous, completion.card) : previous);
+      pendingSegmentCompletion.current = null;
+    }
     setKnownResults(previous => [...previous.filter(item => item.cardId !== result.cardId), result]);
     setResolved(result);
     setResults(previous => [
@@ -1060,6 +1080,7 @@ function AccountApp({
     setQueuedLearningResult(null);
     setRejectedCompletion(false);
     setRemoteError('');
+    void refreshStatistics();
   }
 
   async function refreshStatistics() {
@@ -1072,24 +1093,26 @@ function AccountApp({
       const snapshot = await remoteController.refreshStatistics();
       if (accountAuthorityGeneration.current !== generation || request !== statisticsRequestGeneration.current) return;
       setTrackStatistics(snapshot.bootstrap.statistics ?? null);
+      if (snapshot.bootstrap.track === session.track && snapshot.bootstrap.content.version === session.contentVersion) setKnownResults(snapshot.bootstrap.learning.cardStates);
+      setSceneCanonicalProgress({track: snapshot.bootstrap.track, contentVersion: snapshot.bootstrap.content.version,
+        total: snapshot.bootstrap.content.cardCount,
+        serverSequence: snapshot.bootstrap.componentRevisions.learning.eventServerSequence, readable: true});
       setCheckInSync(snapshot.checkInSync);
       setDayNeedsRefresh(snapshot.bootstrap.dayKey !== liveChinaDay);
     } catch (error) {
-      if (accountAuthorityGeneration.current === generation && request === statisticsRequestGeneration.current) await handleRemoteFailure(error, '学习统计暂时没有更新。');
+      if (accountAuthorityGeneration.current === generation && request === statisticsRequestGeneration.current) {
+        setSceneCanonicalProgress(previous => previous ? {...previous, readable: false} : previous);
+        await handleRemoteFailure(error, '学习统计暂时没有更新。');
+      }
     } finally {
       if (accountAuthorityGeneration.current === generation && request === statisticsRequestGeneration.current) setStatisticsLoading(false);
     }
   }
 
   async function pauseLearning() {
-    const generation = accountAuthorityGeneration.current;
-    const completedSegment = learningSegment?.summaryVisible === true;
-    const saved = resolved !== null && runtime.mode === 'remote';
-    if (completedSegment) {
-      await continueLearning();
-      if (generation !== accountAuthorityGeneration.current) return;
-      setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous);
-    }
+    const completedSegment = learningSegment?.summaryVisible === true && resolved === null && !session?.roundCompletion;
+    const saved = runtime.mode === 'remote' && (resolved !== null || completedSegment);
+    if (completedSegment) setLearningSegment(previous => previous ? continueLearningSegment(previous) : previous);
     setPauseNotice(saved ? '进度已保存，下次接着学。' : '返回学习可接着这张卡。');
     navigateRoute('statistics');
   }
@@ -1439,16 +1462,21 @@ function AccountApp({
   }
 
   const showLearningGuide = route === 'learning' && currentCard !== null && !firstRunRecord.learningGuideSeen;
+  const canonicalSceneMatches = Boolean(sceneCanonicalProgress && session && sceneCanonicalProgress.track === session.track && sceneCanonicalProgress.contentVersion === session.contentVersion);
+  const serverSceneSequence = canonicalSceneMatches ? sceneCanonicalProgress!.serverSequence : 0;
+  const sceneProgress = learningSegment ? {roundIndex: learningSegment.segmentIndex, completedCount: learningSegment.completedCards.length, total: LEARNING_SEGMENT_SIZE}
+    : runtime.mode === 'remote' ? {roundIndex: session?.roundCompletion ? Math.max(1, Math.ceil(session.roundCompletion.completedCount / LEARNING_SEGMENT_SIZE)) : Math.floor(serverSceneSequence / LEARNING_SEGMENT_SIZE) + 1,
+        completedCount: session?.roundCompletion ? LEARNING_SEGMENT_SIZE : serverSceneSequence % LEARNING_SEGMENT_SIZE, total: LEARNING_SEGMENT_SIZE}
+    : {roundIndex: Math.floor(currentIndex / LEARNING_SEGMENT_SIZE) + 1, completedCount: Math.min(batch.size, batch.index + (resolved ? 1 : 0)), total: Math.max(1, batch.size)};
   return (
     <>
-    <div className="app-shell" inert={showLearningGuide || undefined}>
+    <div className={route === 'learning' ? 'app-shell learning-scene' : 'app-shell'} inert={showLearningGuide || undefined}>
+      {route === 'learning' ? <LearningSceneNavigation progress={sceneProgress}
+        overall={{learned: canonicalSceneMatches && sceneCanonicalProgress!.readable ? catalogResults.length : null, total: canonicalSceneMatches ? sceneCanonicalProgress!.total : null, loading: statisticsLoading}}
+        onExit={() => {if (session === null) navigateRoute('mine'); else void pauseLearning();}}
+        onOpenSpace={() => navigateRoute('space')} spaceDisabled={session === null} /> : <>
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
-        {route === 'learning' && session !== null && !learningSegment?.summaryVisible ? <div className="learning-session-actions" aria-label="本次学习">
-          {runtime.mode === 'remote' && learningSegment && learningSegment.sessionCardIds.length > 0
-            ? <span>本次已练 {learningSegment.sessionCardIds.length} 张卡</span> : null}
-          <button className="text-button" disabled={productBusy} onClick={pauseLearning}>先到这里</button>
-        </div> : null}
         <button className="course-switch" aria-label="选择备考科目" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}>{(session?.track ?? runtime.track) === 'cet6' ? 'CET 6' : 'CET 4'} <span aria-hidden="true">⌄</span></button>
       </header>
       <nav className="route-rail" aria-label="主要导航">
@@ -1481,21 +1509,22 @@ function AccountApp({
           <span>{maskPhone(phone)}</span>
         </div>
       </nav>
+      </>}
 
       {runtime.mode === 'development' && localSaveError ? <section className="notice error" role="alert">
         <p>{localSaveError}</p><button disabled={!localHydrated} onClick={() => setLocalSaveAttempt(value => value + 1)}>重试保存</button>
         <button onClick={() => {setLocalHydrated(false); void (localStore.current?.flush() ?? Promise.resolve()).then(() => setLocalLibraryAttempt(value => value + 1));}}>读取已保存进度</button>
       </section> : null}
       {route === 'learning' ? (
-        runtime.mode === 'remote' && learningSegment?.summaryVisible ? (
+        runtime.mode === 'remote' && learningSegment?.summaryVisible && resolved === null && !session?.roundCompletion ? (
           <main className="completion-workbench"><section className="completion-object" aria-labelledby="segment-summary-title">
-            <h1 id="segment-summary-title">这一小段练完了</h1>
-            <p>刚才练了：找比较对象、根据线索判断范围。</p>
+            <h1 id="segment-summary-title">第 {learningSegment.segmentIndex} 轮完成</h1>
+            <p>完成 {learningSegment.completedCards.length} 次练习，练过这些知识点：</p>
+            <ul aria-label="本轮练过的知识点">{learningSegment.completedCards.filter((card, index, cards) => cards.findIndex(other => other.boxRef === card.boxRef && other.library === card.library && other.group === card.group) === index).map(card => <li key={`${card.library}:${card.group}:${card.boxRef}`}>{formatSpaceDisplayName(card.library, '当前书架')} · {formatSpaceDisplayName(card.box, '当前卡盒')}</li>)}</ul>
             <button className="primary" disabled={productBusy} onClick={() => {
-              setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous);
-              void continueLearning();
-            }}>继续学习</button>
-            <button className="secondary" disabled={productBusy} onClick={pauseLearning}>先到这里</button>
+              setLearningSegment(previous => previous ? continueLearningSegment(previous) : previous);
+            }}>继续下一轮</button>
+            <button className="secondary" disabled={productBusy} onClick={() => void pauseLearning()}>结束学习</button>
           </section></main>
         ) : runtime.mode === 'development' && localLibraryStatus !== 'ready' ? (
           <main className="workbench"><section className="learning-card" aria-live="polite">
@@ -1557,8 +1586,13 @@ function AccountApp({
                 const action = session?.roundCompletion
                   ? remoteController.continueServerRound()
                   : remoteController.loadAuthenticatedState();
+                const generation = accountAuthorityGeneration.current;
                 void action
-                  .then(applyRemoteSnapshot)
+                  .then(snapshot => {
+                    if (accountAuthorityGeneration.current !== generation) return;
+                    applyRemoteSnapshot(snapshot);
+                    setLearningSegment(previous => previous ? continueLearningSegment(previous) : previous);
+                  })
                   .catch(error => handleRemoteFailure(error, '下一轮暂时无法开始。'))
                   .finally(() => setRemoteBusy(false));
                 return;
@@ -1596,6 +1630,7 @@ function AccountApp({
           audioStatus={audioStatus}
           canMutateSpace={membershipAccess?.completePhysicalSpace === true}
           serverSequenced={runtime.mode === 'remote'}
+          segmentProgress={runtime.mode === 'remote' && learningSegment ? {segmentIndex: learningSegment.segmentIndex, ordinal: Math.min(LEARNING_SEGMENT_SIZE, Math.max(1, learningSegment.completedCards.length + (resolved ? 0 : 1)))} : undefined}
           statusMessage={remoteError}
           syncStatus={genericSyncStatus}
           onState={setCardState}
@@ -1758,6 +1793,7 @@ type LearningSurfaceProps = {
   rejectedCompletion: boolean;
   retryBusy: boolean;
   serverSequenced: boolean;
+  segmentProgress?: {segmentIndex: number; ordinal: number};
   statusMessage: string;
   syncStatus: string;
 };
@@ -1777,6 +1813,7 @@ function LearningSurface(props: LearningSurfaceProps) {
     answerRef.current.focus({preventScroll: true});
     const body = cardRef.current?.querySelector('.paper-body');
     if (body) body.scrollTop = 0;
+    answerRef.current.scrollIntoView?.({block: 'start'});
   }, [resolved, card?.interaction_id]);
   useLayoutEffect(() => {
     if (!resolved && activeLockSlot > 0) {
@@ -1822,13 +1859,12 @@ function LearningSurface(props: LearningSurfaceProps) {
             onResolveFlip={value => onResolve({...cardState, isFlipped: true, flipConfidence: value})}
             onResolveSwipe={value => onResolve({...cardState, swipeSelection: value})} />;
   return <main className="workbench learning-workbench" style={libraryStyle(library)} aria-labelledby="learning-title">
-    <div className="learning-address">
-      <button className="address-button" onClick={props.onOpenSpace}><small><span className="library-dot" />{courseName} · {library} / {group}</small><strong id="learning-title">{box}</strong></button>
-      <div className="studio-address-tools"><span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '复习' : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span><button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button></div>
-    </div>
     {props.serverSequenced && resolved && motionBusy ? <p className="sr-only" role="status">正在准备下一张…</p> : null}
-    <div className="studio-learning-layout">
     <article ref={cardRef} aria-busy={props.serverSequenced && Boolean(resolved) && motionBusy} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
+      <header className="learning-paper-address">
+        <button className="paper-address-button" onClick={props.onOpenSpace} aria-label={`查看卡盒 ${box}`}><span className="paper-location"><span className="library-dot" />{courseName} · {library} / {group}</span><strong className="paper-knowledge" id="learning-title">{box} <span aria-hidden="true">↗</span></strong></button>
+        <button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button>
+      </header>
       <span className="sr-only">{props.phase === 'review' ? '复习' : INTERACTION_LABELS[card.interaction_id]}</span>
       <div className="paper-body">
         {resolved && !backVisible ? audioControl : null}
@@ -1864,8 +1900,6 @@ function LearningSurface(props: LearningSurfaceProps) {
       </div>
       {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>{props.serverSequenced && motionBusy ? '正在准备下一张…' : continueLabel}</button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}>提交答案</button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
     </article>
-    <aside className="learning-context"><p className="context-caption">卡片位置</p><p className="context-address">{library} / {group}</p><button className="context-box" onClick={props.onOpenSpace}><small>打开卡盒 →</small><strong>{box}</strong></button></aside>
-    </div>
     {resolved || !backVisible ? <p className="shortcut-note">{resolved ? `键盘：Enter ${continueLabel}` : shortcutLabel(card)}</p> : null}
   </main>;
 }

@@ -100,8 +100,15 @@ async function openRoute(
   root: ReactTestRenderer.ReactTestInstance,
   route: 'learning' | 'space' | 'statistics' | 'mine',
 ) {
+  // StudyScene intentionally exposes Space and Exit, not the global four routes.
+  if (!root.findAllByProps({testID: `route-tab-${route}`}).length) {
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(root, 'learning-pause-button').props.onPress();
+      await flushAsyncEffects();
+    });
+  }
   await ReactTestRenderer.act(async () => {
-    root.findByProps({ testID: `route-tab-${route}` }).props.onPress();
+    findPressableByTestId(root, `route-tab-${route}`).props.onPress();
     await flushAsyncEffects();
   });
 }

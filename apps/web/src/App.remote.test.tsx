@@ -1,8 +1,8 @@
 import {getChinaDayKey} from '../../mobile/src/shared/chinaDay';
-import {act, fireEvent, render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen, within} from '@testing-library/react';
 import {StrictMode} from 'react';
 
-import type {LearningCard, LearningSession} from '../../mobile/src/learning/model';
+import type {LearningCard, LearningCardResult, LearningSession} from '../../mobile/src/learning/model';
 import {AccountBootstrapIntegrityError} from '../../mobile/src/bootstrap/accountBootstrapRepository';
 import {ClientUpdateRequiredError} from '../../mobile/src/runtime/clientVersion';
 import {RemoteHttpError} from '../../mobile/src/runtime/remoteHttpError';
@@ -57,7 +57,7 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     await screen.findByRole('button', {name: '有把握'});
-    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    openGlobalRoute('统计');
     fireEvent.click(await screen.findByRole('button', {name: '开始复习'}));
     expect(await screen.findByRole('heading', {name: createCard(2).front.prompt})).toBeInTheDocument();
     expect(controller.requestReview).toHaveBeenCalledTimes(1);
@@ -79,7 +79,7 @@ describe('PC Web remote UI authority', () => {
     empty.learningSession.cards = []; empty.learningSession.serverSelection = null;
     const controller = createController(initial, {requestReview: vi.fn(async () => empty)});
     await authenticateRemote(controller);
-    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    openGlobalRoute('统计');
     fireEvent.click(await screen.findByRole('button', {name: '开始复习'}));
     await screen.findByRole('heading', {name: '暂时没有需要复习的卡片'});
     expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
@@ -98,14 +98,14 @@ describe('PC Web remote UI authority', () => {
       requestReview: vi.fn(async () => {throw new RemoteHttpError('Review unavailable', 409, 'review_access_unavailable');}),
     });
     await authenticateRemote(controller);
-    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    openGlobalRoute('统计');
     fireEvent.click(await screen.findByRole('button', {name: '开始复习'}));
     expect(await screen.findByText('复习权限已变化，请查看当前会员状态。')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: '获取验证码'})).toBeNull();
     expect(controller.completeCurrentCard).not.toHaveBeenCalled();
   });
 
-  it('pauses a completed first segment and resumes the next server card without another summary', async () => {
+  it('does not count bootstrap history as the current presentation segment', async () => {
     const initial = createSnapshot('premium');
     const fifth = createCard(5), sixth = createCard(6);
     const prior = [1, 2, 3, 4].map(index => ({cardId: createCard(index).card_id,
@@ -133,14 +133,181 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
-    await screen.findByRole('heading', {name: '这一小段练完了'});
+    await screen.findByRole('button', {name: '下一张'});
+    expect(screen.getByRole('status', {name: '第 1 轮 · 已完成 1/5'})).toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: /轮完成/})).toBeNull();
     fireEvent.click(screen.getByRole('button', {name: '先到这里'}));
     await screen.findByRole('heading', {name: '学习统计'});
     fireEvent.click(screen.getByRole('button', {name: '继续学习'}));
+    await screen.findByRole('button', {name: '下一张'});
+    expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', {name: '下一张'}));
     expect(await screen.findByRole('heading', {name: sixth.front.prompt})).toBeInTheDocument();
-    expect(screen.queryByRole('heading', {name: '这一小段练完了'})).toBeNull();
+    expect(screen.queryByRole('heading', {name: /轮完成/})).toBeNull();
     expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
     expect(controller.loadAuthenticatedState).toHaveBeenCalledTimes(1);
+  });
+
+  for (const track of ['cet4', 'cet6'] as const) {
+    it(`${track}: repeats two five-task rounds, counts only acknowledgements, and preserves paused feedback`, async () => {
+      window.localStorage.setItem(FIRST_RUN_GUIDANCE_KEY, JSON.stringify({version: 1, selectedTrack: track, learningGuideSeen: true}));
+      const cards = Array.from({length: 11}, (_, index) => ({...createCard(index + 20),
+        card_id: `${track === 'cet4' ? '0' : '1'}${String(index + 20).padStart(5, '0')}`, track,
+        front: {...createCard(index + 20).front, prompt: `${track} task ${index + 1}`},
+        space_metadata: {library: index % 2 ? '语法' : '听力', group: '本轮材料',
+          box: index % 2 ? '主谓结构' : '根据选项预测考点', box_ref: `actual-box-${index % 2}`},
+      })) as LearningCard[];
+      const accepted: LearningCardResult[] = [];
+      const snapshot = () => {
+        const value = createSnapshot('premium'), current = cards[accepted.length];
+        value.bootstrap.track = track;
+        value.bootstrap.content.cardCount = cards.length;
+        value.bootstrap.statistics = {...value.bootstrap.statistics!, track, completedCardCount: accepted.length,
+          completedAttemptCount: accepted.length, cumulativeLearnedCardCount: accepted.length};
+        value.bootstrap.learning.cardStates = accepted.map((result, index) => ({...result, phase: 'learning', serverSequence: index + 1}));
+        value.bootstrap.learning.cursor = {cardId: current.card_id, sourceId: value.learningSession.sourceId, track};
+        value.bootstrap.componentRevisions.learning.eventServerSequence = accepted.length;
+        value.bootstrap.componentRevisions.progress.learningServerSequence = accepted.length;
+        value.learningResults = [...accepted];
+        value.learningSession = {...value.learningSession, track, catalogCards: cards, cards: [current],
+          serverSelection: {...value.learningSession.serverSelection!, cardId: current.card_id, selectionId: `sel_${track}_actual_task_${accepted.length}`} };
+        return value;
+      };
+      let confirmFifth: (() => void) | null = null;
+      const completeCurrentCard = vi.fn(async (result: LearningCardResult) => {
+        if (accepted.length === 4) await new Promise<void>(resolve => {confirmFifth = resolve;});
+        accepted.push(result);
+        return {pendingEventCount: 0, status: 'confirmed' as const};
+      });
+      const loadAuthenticatedState = vi.fn(async () => snapshot());
+      const controller = createController(snapshot(), {completeCurrentCard, loadAuthenticatedState});
+      await authenticateRemote(controller);
+      for (let index = 0; index < 10; index += 1) {
+        expect(screen.getByRole('status', {name: `第 ${Math.floor(index / 5) + 1} 轮 · 已完成 ${index % 5}/5`})).toBeInTheDocument();
+        fireEvent.click(await screen.findByRole('button', {name: '翻面看答案'}));
+        fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+        if (index === 4) {
+          await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
+          expect(screen.getByRole('status', {name: '第 1 轮 · 已完成 4/5'})).toBeInTheDocument();
+          expect(screen.queryByRole('heading', {name: '第 1 轮完成'})).toBeNull();
+          await act(async () => {confirmFifth!();});
+        }
+        await screen.findByRole('button', {name: '下一张'});
+        if (index === 4) {
+          // The fifth answer explanation remains available before the summary.
+          expect(screen.queryByRole('heading', {name: '第 1 轮完成'})).toBeNull();
+          fireEvent.click(screen.getByRole('button', {name: '先到这里'}));
+          await screen.findByRole('heading', {name: '学习统计'});
+          fireEvent.click(screen.getByRole('button', {name: '继续学习'}));
+          await screen.findByRole('button', {name: '下一张'});
+          expect(screen.getByRole('status', {name: '第 1 轮 · 已完成 5/5'})).toBeInTheDocument();
+        }
+        fireEvent.click(screen.getByRole('button', {name: '下一张'}));
+        if ((index + 1) % 5 === 0) {
+          await screen.findByRole('heading', {name: `第 ${(index + 1) / 5} 轮完成`});
+          const topics = within(screen.getByRole('list', {name: '本轮练过的知识点'}));
+          expect(topics.getByText('听力 · 根据选项预测考点')).toBeInTheDocument();
+          expect(topics.getByText('语法 · 主谓结构')).toBeInTheDocument();
+          expect(screen.queryByText(/找比较对象、根据线索判断范围/)).toBeNull();
+          const loads = loadAuthenticatedState.mock.calls.length;
+          if (index === 9) {
+            fireEvent.click(screen.getByRole('button', {name: '结束学习'}));
+            await screen.findByRole('heading', {name: '学习统计'});
+            fireEvent.click(screen.getByRole('button', {name: '继续学习'}));
+          } else fireEvent.click(screen.getByRole('button', {name: '继续下一轮'}));
+          await screen.findByRole('heading', {name: cards[index + 1].front.prompt});
+          expect(loadAuthenticatedState).toHaveBeenCalledTimes(loads);
+          expect(completeCurrentCard).toHaveBeenCalledTimes(index + 1);
+        } else await screen.findByRole('heading', {name: cards[index + 1].front.prompt});
+      }
+      expect(screen.getByRole('status', {name: '第 3 轮 · 已完成 0/5'})).toBeInTheDocument();
+    });
+  }
+
+  it('preserves the canonical pilot checkpoint instead of layering an ordinary presentation segment', async () => {
+    const initial = createSnapshot('premium');
+    initial.bootstrap.content.releaseClass = 'controlled_pilot';
+    const last = {...createCard(5), space_metadata: {...createCard(5).space_metadata, box: '实际试点知识点'}};
+    initial.learningSession.cards = [last];
+    initial.learningSession.catalogCards.push(last);
+    initial.learningSession.serverSelection = {...initial.learningSession.serverSelection!, cardId: last.card_id};
+    const boundary = structuredClone(initial);
+    boundary.learningSession.cards = [];
+    boundary.learningSession.serverSelection = null;
+    boundary.learningSession.roundCompletion = {completedCount: 5, contentVersion: boundary.learningSession.contentVersion!,
+      pilotId: 'actual-pilot', receiptId: 'prc_actual_boundary', reviewCardIds: [], spaceCardId: last.card_id};
+    const continued = structuredClone(initial);
+    continued.learningSession.cards = [createCard(6)];
+    continued.learningSession.catalogCards.push(createCard(6));
+    continued.learningSession.serverSelection = {...initial.learningSession.serverSelection!, cardId: createCard(6).card_id, selectionId: 'sel_after_pilot_checkpoint'};
+    const controller = createController(initial, {loadAuthenticatedState: vi.fn(async () => boundary),
+      continueServerRound: vi.fn(async () => continued)});
+    await authenticateRemote(controller);
+    expect(screen.queryByText(/第 1 轮 · 已完成/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('button', {name: '下一张'});
+    fireEvent.click(screen.getByRole('button', {name: '下一张'}));
+    await screen.findByRole('heading', {name: '本轮完成'});
+    expect(screen.queryByRole('heading', {name: '第 1 轮完成'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '刷新学习进度'}));
+    await screen.findByRole('heading', {name: createCard(6).front.prompt});
+    expect(controller.continueServerRound).toHaveBeenCalledTimes(1);
+    expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('heading', {name: /第 .*轮完成/})).toBeNull();
+  });
+
+  it('enters a focused scene and restores global navigation without losing the current attempt', async () => {
+    const snapshot = createSnapshot('premium');
+    snapshot.bootstrap.statistics = {...snapshot.bootstrap.statistics!, cumulativeLearnedCardCount: 99};
+    const history = {cardId: createCard(2).card_id, interactionId: 'flip' as const, phase: 'learning' as const,
+      outcome: 'confident' as const, serverSequence: 1, completedAt: new Date().toISOString(),
+      usedHint: false, usedPeek: false, isFavorited: false};
+    snapshot.bootstrap.learning.cardStates = [history, {...history, cardId: '999999', serverSequence: 2}];
+    const controller = createController(snapshot);
+    await authenticateRemote(controller);
+    expect(screen.queryByRole('navigation', {name: '主要导航'})).toBeNull();
+    expect(screen.queryByRole('button', {name: '选择备考科目'})).toBeNull();
+    expect(screen.getByText('本库已练过 1/4 张')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    expect(screen.getByRole('list', {name: '本轮已确认 0/5'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    expect(screen.getByRole('navigation', {name: '主要导航'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '返回学习'}));
+    expect(screen.getByRole('button', {name: '有把握'})).toBeEnabled();
+    expect(screen.queryByRole('button', {name: '翻面看答案'})).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '先到这里'}));
+    expect(screen.getByRole('heading', {name: '学习统计'})).toBeInTheDocument();
+    expect(within(screen.getByRole('navigation', {name: '主要导航'})).getAllByRole('button')).toHaveLength(4);
+    fireEvent.click(screen.getByRole('button', {name: '学习'}));
+    expect(screen.getByRole('button', {name: '有把握'})).toBeEnabled();
+    expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
+  });
+
+  it('keeps the saved result and shows unreadable coverage after a canonical progress read fails', async () => {
+    const controller = createController(createSnapshot('premium'), {refreshStatistics: vi.fn(async () => {throw new Error('network failure');})});
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('button', {name: '下一张'});
+    expect(await screen.findByText('本库进度暂不可读')).toBeInTheDocument();
+    expect(screen.getByRole('list', {name: '本轮已确认 1/5'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '先到这里'})).toBeEnabled();
+    expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the canonical pilot round when its coverage refresh fails', async () => {
+    const snapshot = createSnapshot('premium');
+    snapshot.bootstrap.content.releaseClass = 'controlled_pilot';
+    snapshot.bootstrap.componentRevisions.learning.eventServerSequence = 7;
+    const controller = createController(snapshot, {refreshStatistics: vi.fn(async () => {throw new Error('network failure');})});
+    await authenticateRemote(controller);
+    expect(screen.getByRole('status', {name: '第 2 轮 · 已完成 2/5'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    await screen.findByRole('button', {name: '下一张'});
+    expect(await screen.findByText('本库进度暂不可读')).toBeInTheDocument();
+    expect(screen.getByRole('status', {name: '第 2 轮 · 已完成 2/5'})).toBeInTheDocument();
   });
 
   it('keeps the phone bound while a code request is in flight', async () => {
@@ -223,7 +390,7 @@ describe('PC Web remote UI authority', () => {
     expect(code).toHaveValue('');
     fireEvent.change(code, {target: {value: '654321'}});
     fireEvent.click(screen.getByRole('button', {name: '登录'}));
-    await screen.findByRole('navigation', {name: '主要导航'});
+    await screen.findByRole('navigation', {name: '学习操作'});
     expect(controller.requestSmsCode).toHaveBeenNthCalledWith(2, PHONE);
     expect(controller.verifySmsCode).toHaveBeenCalledTimes(2);
   });
@@ -278,7 +445,7 @@ describe('PC Web remote UI authority', () => {
     expect(screen.queryByRole('region', {name: '答案对照'})).toBeNull();
     expect(screen.getByRole('button', {name: '翻面看答案'})).toBeEnabled();
     expect(screen.getByText(/这次结果未计入，学习安排已更新/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    openGlobalRoute('统计');
     expect((await screen.findByText('今天练过')).closest('div')).toHaveTextContent('0 张卡');
     expect(screen.getByText(/1 次学习结果未计入/)).toBeInTheDocument();
   });
@@ -428,7 +595,7 @@ describe('PC Web remote UI authority', () => {
     expect(screen.getByRole('button',{name:'有把握'})).toBeEnabled();
     expect(screen.queryByRole('button',{name:'翻面看答案'})).toBeNull();
     expect(controller.completeCurrentCard).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button',{name:'统计'}));
+    openGlobalRoute('统计');
     expect((await screen.findByText('今天练过')).closest('div')).toHaveTextContent('0 张卡');
     fireEvent.click(screen.getByRole('button',{name:'学习'}));
     fireEvent.click(screen.getByRole('button',{name:'有把握'}));
@@ -557,7 +724,7 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(controller);
 
     expect(screen.getByText('暂时无法加载学习进度')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    openGlobalRoute('我的');
     expect(
       screen.getByRole('heading', {name: '暂时无法加载账号信息'}),
     ).toBeInTheDocument();
@@ -579,6 +746,8 @@ describe('PC Web remote UI authority', () => {
     expect(
       screen.getByRole('alert'),
     ).toHaveTextContent('请刷新页面，更新后可继续学习');
+    expect(screen.getByRole('navigation', {name: '学习操作'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '先到这里'}));
     expect(screen.getByRole('navigation', {name: '主要导航'})).toBeInTheDocument();
     expect(screen.queryByLabelText('短信验证码')).toBeNull();
   });
@@ -622,7 +791,7 @@ describe('PC Web remote UI authority', () => {
       .mockResolvedValueOnce({status: 'none'});
     await authenticateRemote(controller);
 
-    fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole('button', {name: '退出登录'}));
     expect(
       await screen.findByText('正在退出登录'),
@@ -690,9 +859,10 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(createController(snapshot));
 
     for (const routeName of ['学习', '空间', '统计', '我的']) {
-      fireEvent.click(
-        screen.getByRole('button', {name: new RegExp(`^${routeName}$`)}),
-      );
+      if (routeName !== '学习' || screen.queryByRole('navigation', {name: '主要导航'})) {
+        if (routeName === '统计' || routeName === '我的') openGlobalRoute(routeName);
+        else fireEvent.click(screen.getByRole('button', {name: new RegExp(`^${routeName}$`)}));
+      }
       expect(
         screen.getByText(
           /1 项设置未能保存；1 项设置等待同步/,
@@ -790,7 +960,7 @@ describe('PC Web remote UI authority', () => {
       checkInToday: vi.fn(async () => confirmed),
     });
     await authenticateRemote(controller);
-    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    openGlobalRoute('统计');
 
     fireEvent.click(await screen.findByRole('button', {name: '签到'}));
     expect(
@@ -801,7 +971,7 @@ describe('PC Web remote UI authority', () => {
 
   it('keeps explicit check-in unavailable before one canonical completion', async () => {
     await authenticateRemote(createController(createSnapshot('premium')));
-    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    openGlobalRoute('统计');
 
     expect(
       await screen.findByRole('button', {name: '签到暂不可用'}),
@@ -820,7 +990,7 @@ describe('PC Web remote UI authority', () => {
       })),
     });
     await authenticateRemote(controller);
-    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole('button', {name: '注销账号'}));
     fireEvent.click(screen.getByRole('button', {name: '确认注销账号'}));
 
@@ -830,9 +1000,9 @@ describe('PC Web remote UI authority', () => {
       screen.getByRole('navigation', {name: '主要导航'}),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '退出登录'})).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', {name: '统计'}));
+    openGlobalRoute('统计');
     expect(await screen.findByRole('button', {name: '签到'})).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole('button', {name: '重新查询'}));
     expect(controller.requestAccountDeletion).toHaveBeenCalledTimes(2);
   });
@@ -845,7 +1015,7 @@ describe('PC Web remote UI authority', () => {
       })),
     });
     await authenticateRemote(controller);
-    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole('button', {name: '注销账号'}));
     fireEvent.click(screen.getByRole('button', {name: '确认注销账号'}));
 
@@ -882,7 +1052,7 @@ describe('PC Web remote UI authority', () => {
       }),
     });
     await authenticateRemote(controller);
-    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    openGlobalRoute('我的');
     expect(screen.getByRole('heading', {name: '138 **** 8000'}))
       .toBeInTheDocument();
     expect(screen.getByText('会员')).toBeInTheDocument();
@@ -1037,7 +1207,7 @@ describe('PC Web remote UI authority', () => {
       }),
     });
     await authenticateRemote(controller);
-    fireEvent.click(screen.getByRole('button', {name: '我的'}));
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole('button', {name: '注销账号'}));
     fireEvent.click(screen.getByRole('button', {name: '确认注销账号'}));
 
@@ -1414,7 +1584,7 @@ describe('PC Web remote UI authority', () => {
       });
       await authenticateRemote(controller);
 
-      fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
+      openGlobalRoute('我的');
     fireEvent.click(screen.getByRole('button', {name: '退出登录'}));
 
       expect(await screen.findByText(expectedTitle)).toBeInTheDocument();
@@ -1428,9 +1598,9 @@ describe('PC Web remote UI authority', () => {
     });
     await authenticateRemote(controller);
 
-    fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole('button', {name: '退出登录'}));
-    fireEvent.click(screen.getByRole('button', {name: /^我的$/}));
+    openGlobalRoute('我的');
 
     expect(await screen.findByText('尚未确认注销结果')).toBeInTheDocument();
     expect(screen.getByRole('navigation', {name: '主要导航'})).toBeInTheDocument();
@@ -1590,7 +1760,7 @@ async function authenticateRemote(controller: WebRemoteRuntimeController) {
     target: {value: '123456'},
   });
   fireEvent.click(screen.getByRole('button', {name: '登录'}));
-  await screen.findByRole('navigation', {name: '主要导航'});
+  await screen.findByRole('navigation', {name: '学习操作'});
 }
 
 function createController(
@@ -1795,4 +1965,11 @@ function createCard(index: number): LearningCard {
     },
     track: 'cet4',
   };
+}
+
+function openGlobalRoute(name: '统计' | '我的') {
+  if (!screen.queryByRole('navigation', {name: '主要导航'})) {
+    fireEvent.click(screen.getByRole('button', {name: '先到这里'}));
+  }
+  fireEvent.click(screen.getByRole('button', {name}));
 }

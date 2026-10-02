@@ -34,8 +34,6 @@ name: ios-learning-home-screenshot
     timeout: 30000
 - tapOn:
     id: first-learning-guide-start
-- tapOn:
-    id: "route-tab-learning"
 - assertVisible:
     id: "learning-current-card"
 - assertVisible:

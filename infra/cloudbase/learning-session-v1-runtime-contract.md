@@ -165,8 +165,12 @@ The endpoint returns at most one card ID and never returns card body content.
    legacy cards are due immediately. Other cards are due when their FSRS
    `due` time is not later than server time. Sort by due time, canonical
    card-source index, then card ID.
-3. If no review is due, choose the first accessible, non-sleeping unseen card
-   in normalized `card_records` order.
+3. If no review is due, schedule accessible new cards in short subject blocks:
+   visit each `space_metadata.library` in its first catalog appearance order,
+   taking two cards at a time and preserving authored order within that subject.
+   Choose the first unseen, non-sleeping card in this sequence. Build the
+   sequence only from the canonical membership-accessible prefix; ordering
+   does not change source records, content hashes, or the accessible set.
 4. If neither exists, return `selection: null` and the earliest eligible future
    `next_due_at`, or `null` when no future review exists.
 
@@ -312,6 +316,14 @@ source under the same authenticated session. It requires exact track,
 `card_id`, and never reorders cards or reapplies client membership, sleep, or
 review policy. `selection: null` is valid and never triggers bundled-card
 fallback.
+
+Clients present ordinary learning in groups of five confirmed results on both
+tracks. A group boundary pauses presentation and offers continuing or stopping;
+it does not manufacture a server cursor or replace the selected card. Only
+accepted results count, and pending writes or acknowledgement replay never
+add another completion. The current card's knowledge address remains bound to
+its actual metadata, so consecutive cards in the same box may share a title.
+This presentation boundary is separate from controlled-pilot round receipts.
 
 A null selection is an empty schedule, not a completed zero-card round. The
 client shows `next_due_at` when supplied, offers an explicit refresh and Space

@@ -15,6 +15,7 @@ const SCHEDULER_ALGORITHM = 'FSRS-6';
 const SCHEDULER_LIBRARY = 'ts-fsrs';
 const SCHEDULER_LIBRARY_VERSION = '5.4.1';
 const SESSION_SELECTION_ATTEMPTS = 5;
+const NEW_CARD_SUBJECT_BLOCK_SIZE = 2;
 const CHINA_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
 const TRACKS = ['cet4', 'cet6'];
 const MEMBERSHIP_STAGES = ['trial_available', 'trial', 'free', 'premium'];
@@ -648,7 +649,13 @@ function normalizeSelectionContext(input) {
       throw unavailable('The canonical card source contains an invalid card.');
     }
 
-    return {cardId: card.card_id, index};
+    return {
+      cardId: card.card_id,
+      index,
+      subject: typeof card.space_metadata?.library === 'string'
+        ? card.space_metadata.library
+        : '',
+    };
   });
   const cardIdSet = new Set(cards.map(card => card.cardId));
 
@@ -909,7 +916,7 @@ function selectNextCard(context, randomBytes, reviewOnly = false) {
     } : {nextDueAt: future[0]?.dueAt ?? null, selection: null};
   }
 
-  for (const card of context.accessibleCards) {
+  for (const card of orderNewCardsBySubject(context.accessibleCards)) {
     if (
       context.sleepingCardIds.has(card.cardId) ||
       Object.hasOwn(context.learning.eventsByCardId, card.cardId)
@@ -936,6 +943,23 @@ function selectNextCard(context, randomBytes, reviewOnly = false) {
     nextDueAt: future[0]?.dueAt ?? null,
     selection: null,
   };
+}
+
+function orderNewCardsBySubject(cards) {
+  const subjects = new Map();
+  for (const card of cards) {
+    if (!subjects.has(card.subject)) subjects.set(card.subject, {cards: [], offset: 0});
+    subjects.get(card.subject).cards.push(card);
+  }
+  const ordered = [];
+  while (ordered.length < cards.length) {
+    for (const subject of subjects.values()) {
+      const end = Math.min(subject.offset + NEW_CARD_SUBJECT_BLOCK_SIZE, subject.cards.length);
+      ordered.push(...subject.cards.slice(subject.offset, end));
+      subject.offset = end;
+    }
+  }
+  return ordered;
 }
 
 function createSelection(
