@@ -317,6 +317,50 @@ function eventFor(source, index, overrides = {}) {
   };
 }
 
+for (const track of ['cet4', 'cet6']) {
+  test(`${track} new cards alternate short subject blocks while retaining authored order`, async () => {
+    const fixtures = require('./fixtures/interaction-cards')[track];
+    const subjects = [fixtures[0], fixtures[1]];
+    const records = subjects.flatMap(subject => Array.from({length: 3}, (_, index) => ({
+      ...structuredClone(subject),
+      card_id: `${subject.knowledge_ref}${String(index + 1).padStart(2, '0')}`,
+    })));
+    const developmentCardSource = requestedTrack => validateCardSourceForImport({
+      source: {id: 'subject-block-fixture', label: '调度行为夹具'},
+      track: requestedTrack,
+      card_records: requestedTrack === track ? records : require('./fixtures/interaction-cards')[requestedTrack],
+      release: null,
+    }, requestedTrack);
+    const store = createMemoryStore({developmentCardSource});
+    const {api} = createTestApi({store, developmentCardSource});
+    const session = await authenticatedSession(api);
+    const before = await store.getCardSource(track);
+    const expected = [records[0], records[1], records[3], records[4], records[2], records[5]];
+    for (let index = 0; index < expected.length; index += 1) {
+      const selected = await learningSession(api, session, {query: {track}});
+      assert.equal(selected.statusCode, 200, JSON.stringify(selected.body));
+      assert.equal(selected.body.data.selection.card_id, expected[index].card_id);
+      const source = await cardSource(api, session, track);
+      const recordIndex = source.card_records.findIndex(card => card.card_id === expected[index].card_id);
+      assert.notEqual(recordIndex, -1, 'selection must be present in the authenticated canonical source');
+      const event = eventFor(source, recordIndex, {
+        event_id: `subject_block_${track}_${index + 1}`,
+        selection_id: selected.body.data.selection.selection_id,
+        device_cursor: {device_id: `subject_block_${track}`, sequence: index + 1},
+      });
+      const accepted = await request(api, {
+        body: {schema_version: 'learning-events.v2', track, events: [event]},
+        headers: {authorization: `Bearer ${session.access_token}`},
+        method: 'POST', path: '/v2/learning/events',
+      });
+      assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+    }
+    const empty = await learningSession(api, session, {query: {track}});
+    assert.equal(empty.body.data.selection, null);
+    assert.deepEqual(await store.getCardSource(track), before, 'ordering must not mutate source records or content version');
+  });
+}
+
 test('learning session is authenticated, strict, starts trial, and persists one cursor', async () => {
   const store = createMemoryStore();
   const {api} = createTestApi({store});
@@ -784,7 +828,7 @@ test('server-sequence watermark rejects an equal-time split projection read', as
   assert.equal(selected.statusCode, 200, JSON.stringify(selected.body));
   assert.equal(
     selected.body.data.selection.card_id,
-    source.card_records[2].card_id,
+    (await baseStore.getCardSource('cet4')).card_records[3].card_id,
   );
   const sessionState = [...baseStore.snapshot().learningSessions.values()][0];
   assert.equal(sessionState.learning_acknowledged_at, START_TIME.toISOString());

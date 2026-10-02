@@ -300,8 +300,10 @@ test('track statistics count cards and attempts separately across tracks, days a
       authV2RefreshTokenTtlSeconds: 3 * 24 * 60 * 60});
     const session = await authenticatedSession(api);
     const source = await cardSource(api, session);
-    for (let index = 0; index < 5; index += 1) {
-      const event = eventFor(source, index);
+    for (const [ordinal, index] of [0, 1, 3, 2, 4].entries()) {
+      const event = eventFor(source, index, {
+        device_cursor: {device_id: 'device_installation_0001', sequence: ordinal + 1},
+      });
       const response = await submit(api, session, [event]);
       assert.equal(response.statusCode, 200, JSON.stringify(response.body));
     }
@@ -1237,7 +1239,7 @@ test('CloudBase duplicate races converge and later selected events keep monotoni
     event_id: 'event_concurrent_0002',
     device_cursor: {device_id: 'device_installation_0001', sequence: 2},
   });
-  const third = eventFor(source, 2, {
+  const third = eventFor(source, 3, {
     event_id: 'event_concurrent_0003',
     device_cursor: {device_id: 'device_installation_0002', sequence: 1},
   });

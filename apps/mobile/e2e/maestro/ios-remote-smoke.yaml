@@ -49,8 +49,6 @@ name: ios-remote-auth-learning-space-statistics-smoke
     optional: true
 - assertNotVisible:
     id: "standalone-auth-screen"
-- tapOn:
-    id: "route-tab-learning"
 - assertVisible:
     id: "learning-current-card"
 
@@ -156,6 +154,8 @@ name: ios-remote-auth-learning-space-statistics-smoke
 - assertVisible:
     id: "learning-complete-details"
 
+- tapOn:
+    id: "learning-pause-button"
 - tapOn:
     id: "route-tab-statistics"
 - assertVisible:

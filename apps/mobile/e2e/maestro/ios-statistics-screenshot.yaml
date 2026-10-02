@@ -34,8 +34,6 @@ name: ios-statistics-screenshot
     timeout: 30000
 - tapOn:
     id: first-learning-guide-start
-- tapOn:
-    id: "route-tab-learning"
 - assertVisible:
     id: "learning-current-card"
 - assertVisible:
@@ -62,6 +60,8 @@ name: ios-statistics-screenshot
     id: "learning-next-button"
 - tapOn:
     id: "learning-next-button"
+- tapOn:
+    id: "learning-pause-button"
 - tapOn:
     id: "route-tab-statistics"
 - assertVisible:

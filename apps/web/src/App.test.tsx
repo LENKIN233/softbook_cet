@@ -202,19 +202,22 @@ describe("local study user journey", () => {
   }, 20000); // The first render includes the lazy module's cold transform.
   it("keeps the canonical route order and focuses the first card", async () => {
     await enter();
+    expect(screen.queryByRole("navigation", {name: "主要导航"})).toBeNull();
+    fireEvent.click(screen.getByRole("button", {name: "先到这里"}));
     expect(
       within(screen.getByRole("navigation", { name: "主要导航" }))
         .getAllByRole("button")
         .map((button) => button.textContent)
     ).toEqual(["学习", "空间", "统计", "我的"]);
+    fireEvent.click(screen.getByRole("button", {name: "学习"}));
     expect(current().card_id).toBe("002001");
-    expect(screen.getByText("1 / 5")).toBeInTheDocument();
+    expect(screen.getByRole("list", {name: "本轮已确认 0/5"})).toBeInTheDocument();
   });
   it("opening the method records actual peek use without claiming objective correctness", async () => {
     await enter();
     fireEvent.click(screen.getByRole("button", {name: "看判断方法"}));
     answer();
-    fireEvent.click(screen.getByRole("button", { name: "统计" }));
+    openGlobalRoute('统计');
     expect(screen.getByText("今天练过").closest("div")).toHaveTextContent("1 张卡");
     expect(screen.queryByText("今日答对")).toBeNull();
     await saved();
@@ -229,7 +232,7 @@ describe("local study user journey", () => {
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
     fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
     answer();
-    fireEvent.click(screen.getByRole("button", { name: "统计" }));
+    openGlobalRoute('统计');
     await saved();
     expect(JSON.parse(localStorage.getItem("softbook-cet/study/v2/cet4")!).state.results[0]).toMatchObject({usedHint: true});
   });
@@ -272,7 +275,7 @@ describe("local study user journey", () => {
     fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
     answer(card);
     expect(screen.getByText("已解锁，稍后复习。")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "统计" }));
+    openGlobalRoute('统计');
     expect(screen.getByRole("button", {name: "开始复习"})).toBeEnabled();
   });
   it("filters favorites with the original box address and keeps the active learning card", async () => {
@@ -298,7 +301,7 @@ describe("local study user journey", () => {
     expect(screen.getByRole("button", {name: "恢复学习"})).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "返回学习" }));
     expect(current().card_id).toBe("002002");
-    expect(screen.getByText("2 / 5")).toBeInTheDocument();
+    expect(screen.getByRole("list", {name: "本轮已确认 0/5"})).toBeInTheDocument();
   });
   it("restores an unfinished answer after page reload and leaving local study", async () => {
     const first = await enter();
@@ -317,7 +320,7 @@ describe("local study user journey", () => {
       "aria-pressed",
       "true"
     );
-    fireEvent.click(screen.getByRole("button", { name: "我的" }));
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole("button", { name: "返回首页" }));
     const resume = await screen.findByRole("button", { name: "继续学习" });
     fireEvent.click(resume);
@@ -330,7 +333,7 @@ describe("local study user journey", () => {
     reach("multiple_choice");
     fireEvent.click(screen.getByRole("button", { name: /A.*urgent/ }));
     const original = current().card_id;
-    fireEvent.click(screen.getByRole("button", { name: "统计" }));
+    openGlobalRoute('统计');
     fireEvent.click(screen.getByRole("button", { name: "开始复习" }));
     answer(current(), true);
     advance();
@@ -340,7 +343,7 @@ describe("local study user journey", () => {
       "aria-pressed",
       "true"
     );
-    fireEvent.click(screen.getByRole("button", { name: "统计" }));
+    openGlobalRoute('统计');
     expect(screen.getByRole("button", {name: "开始复习"})).toBeEnabled();
   });
   it("preserves the completion receipt after pausing an old card", async () => {
@@ -359,7 +362,7 @@ describe("local study user journey", () => {
       screen.getByRole("heading", { name: "本组完成" })
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "继续下一组" }));
-    expect(screen.getByText("1 / 2")).toBeInTheDocument();
+    expect(screen.getByRole("list", {name: "本轮已确认 0/2"})).toBeInTheDocument();
   });
   it("supports every interaction and ends the available new-card sequence explicitly", async () => {
     await enter();
@@ -384,11 +387,11 @@ describe("local study user journey", () => {
     answer();
     advance();
     const original = current().card_id;
-    fireEvent.click(screen.getByRole("button", { name: "我的" }));
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole("button", { name: "英语六级" }));
     await screen.findByRole("article");
-    await waitFor(() => expect(screen.getByText("1 / 5")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "我的" }));
+    await waitFor(() => expect(screen.getByRole("list", {name: "本轮已确认 0/5"})).toBeInTheDocument());
+    openGlobalRoute('我的');
     fireEvent.click(screen.getByRole("button", { name: "英语四级" }));
     await screen.findByRole("article");
     expect(current().card_id).toBe(original);
@@ -404,7 +407,7 @@ describe("local study user journey", () => {
         if (key.startsWith("softbook-cet/study/")) throw new Error("Quota");
         return write.call(this, key, value);
       });
-    fireEvent.click(screen.getByRole("button", { name: "统计" }));
+    openGlobalRoute('统计');
     fireEvent.click(screen.getByRole("button", { name: "签到" }));
     await screen.findByRole("alert");
     failure.mockRestore();
@@ -471,3 +474,10 @@ describe("local study user journey", () => {
     ).toEqual([]);
   });
 });
+
+function openGlobalRoute(name: '统计' | '我的') {
+  if (!screen.queryByRole('navigation', {name: '主要导航'})) {
+    fireEvent.click(screen.getByRole('button', {name: '先到这里'}));
+  }
+  fireEvent.click(screen.getByRole('button', {name}));
+}

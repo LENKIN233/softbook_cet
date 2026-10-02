@@ -1,46 +1,55 @@
 import type {LearningTrack} from './model';
 
-const FIRST_PREDICTION_CARDS = ['000001', '000002', '000003', '000004', '000005'];
+export const LEARNING_SEGMENT_SIZE = 5;
+
+export type ConfirmedLearningSegmentCard = {
+  completionId: string;
+  cardId: string;
+  library: string;
+  group: string;
+  box: string;
+  boxRef: string;
+};
 
 export type LearningSegmentProgress = {
   scope: string;
   track: LearningTrack;
-  knownCardIds: string[];
-  sessionCardIds: string[];
-  summaryConsumed: boolean;
+  segmentIndex: number;
+  completedCards: ConfirmedLearningSegmentCard[];
+  seenCompletionIds: string[];
   summaryVisible: boolean;
 };
-
-function completedFirstSegment(track: LearningTrack, ids: readonly string[]) {
-  return track === 'cet4' && FIRST_PREDICTION_CARDS.every(id => ids.includes(id));
-}
 
 export function initializeLearningSegment(
   previous: LearningSegmentProgress | null,
   scope: string,
   track: LearningTrack,
-  baselineCardIds: readonly string[],
+  _baselineCardIds?: readonly string[],
 ): LearningSegmentProgress {
-  if (previous?.scope === scope && previous.track === track) {
-    const knownCardIds = [...new Set([...previous.knownCardIds, ...baselineCardIds])];
-    return {...previous, knownCardIds,
-      summaryConsumed: previous.summaryConsumed ||
-        (!previous.summaryVisible && completedFirstSegment(track, knownCardIds))};
-  }
-  return {scope, track, knownCardIds: [...new Set(baselineCardIds)], sessionCardIds: [],
-    summaryConsumed: completedFirstSegment(track, baselineCardIds), summaryVisible: false};
+  if (previous?.scope === scope && previous.track === track) return previous;
+  // This is login-scoped presentation, not a server cursor or persisted history.
+  // Bootstrap history never contributes to the current five acknowledged tasks.
+  return {scope, track, segmentIndex: 1, completedCards: [],
+    seenCompletionIds: [], summaryVisible: false};
 }
 
 // Call only for an accepted result from this session, never a flip or button click.
 export function confirmLearningSegmentCard(
   previous: LearningSegmentProgress,
-  cardId: string,
+  card: ConfirmedLearningSegmentCard,
 ): LearningSegmentProgress {
-  const knownCardIds = [...new Set([...previous.knownCardIds, cardId])];
-  const showSummary = !previous.summaryConsumed &&
-    completedFirstSegment(previous.track, knownCardIds);
-  return {...previous, knownCardIds,
-    sessionCardIds: [...new Set([...previous.sessionCardIds, cardId])],
-    summaryConsumed: previous.summaryConsumed || showSummary,
-    summaryVisible: previous.summaryVisible || showSummary};
+  if (!card.completionId.trim() || previous.summaryVisible ||
+      previous.seenCompletionIds.includes(card.completionId)) return previous;
+  const completedCards = [...previous.completedCards, {...card}];
+  return {...previous, completedCards,
+    seenCompletionIds: [...previous.seenCompletionIds, card.completionId],
+    summaryVisible: completedCards.length === LEARNING_SEGMENT_SIZE};
+}
+
+// Call after leaving a completed presentation segment. This never selects a card
+// or acknowledges a server-owned controlled-pilot continuation.
+export function continueLearningSegment(previous: LearningSegmentProgress): LearningSegmentProgress {
+  if (!previous.summaryVisible || previous.completedCards.length !== LEARNING_SEGMENT_SIZE) return previous;
+  return {...previous, segmentIndex: previous.segmentIndex + 1,
+    completedCards: [], summaryVisible: false};
 }

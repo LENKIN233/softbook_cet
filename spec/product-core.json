@@ -1,5 +1,5 @@
 {
-  "version": "vnext-8",
+  "version": "vnext-9",
   "product_promise": "帮助中国大学生以更轻松、更低负担、但仍然可信的方式通过 CET4/CET6。",
   "source_anchors": {
     "default_learning_path": "建议用户按照我们拟定的顺序学习，不建议用户按模块学习"
@@ -44,7 +44,9 @@
       "review_return": "restore_the_exact_learning_group_draft_and_feedback_after_review",
       "local_course_order": "alternate_short_subject_blocks_preserving_authored_order_within_each_subject",
       "local_review_schedule": "failed_or_uncertain_answers_are_reviewable_immediately_and_due_after_10_minutes; successful_attempts_use_1_3_7_14_30_60_day_intervals; this_is_a_basic_product_heuristic_not_a_validated_exam_outcome_claim",
-      "remote_boundary": "remote_sessions_continue_to_use_server_scheduling"
+      "remote_boundary": "remote_sessions_use_only_the_server_selected_card; five_confirmed_results_pause_presentation_with_continue_or_stop_without_local_reordering_or_invented_round_receipts",
+      "remote_presentation_size": 5,
+      "remote_course_order": "server_due_review_first_then_alternating_two_card_subject_blocks_preserving_authored_subject_order"
     },
     "first_run_guidance": {
       "first_open": "Require an explicit CET4 or CET6 choice before entering the normal product. No default selection or dismissal bypass.",
@@ -52,6 +54,13 @@
       "switching": "Show the My > Preparation subject switch location and preserve independent CET4 and CET6 progress.",
       "learning_introduction": "After the first authenticated learning entry, offer one concise popup explaining reading the task, requesting help, answering, reviewing the explanation and the Space entry.",
       "recovery": "Read, write and account-state failures remain visible and recoverable; retained account data and pending writes must not be cleared or bypassed."
+    },
+    "immersive_study_scene": {
+      "goal": "focused_reading_answering_and_feedback_in_one_complete_scene",
+      "progress": "visible_confirmed_round_progress_and_current_accessible_catalog_unique_card_coverage_with_matching_denominator_and_explicit_partial_scope",
+      "navigation": "explicit_exit_and_space_entry_during_study; restore_normal_four_routes_after_exit",
+      "continuity": "retain_current_question_draft_feedback_and_pending_write_authority",
+      "content_integrity": "long_material_large_text_and_short_viewports_remain_complete_and_reachable"
     },
     "single_card_flow": true,
     "default_learning_path": "system_sequenced_single_flow",

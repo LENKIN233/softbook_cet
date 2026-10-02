@@ -301,8 +301,16 @@ async function openRoute(
   root: ReactTestRenderer.ReactTestInstance,
   route: 'learning' | 'space' | 'statistics' | 'mine',
 ) {
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: `route-tab-${route}` }).props.onPress();
+  // StudyScene intentionally exposes Space and Exit, not the global four routes.
+  if (!root.findAllByProps({testID: `route-tab-${route}`}).length) {
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(root, 'learning-pause-button').props.onPress();
+      await flushAsyncEffects();
+    });
+  }
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, `route-tab-${route}`).props.onPress();
+    await flushAsyncEffects();
   });
 }
 
@@ -372,7 +380,9 @@ test('Android back unwinds detail and space navigation without advancing the car
     expect(onBack).toBeUndefined();
     const root = tree!.root;
     await loginIntoLearningFlow(root);
-    expect(await back()).toBe(false);
+    expect(await back()).toBe(true);
+    expect(root.findByProps({testID: 'route-tab-learning'})).toBeTruthy();
+    await openRoute(root, 'learning');
     await ReactTestRenderer.act(() => {
       findPressableByTestId(root, 'learning-flip-button').props.onPress();
     });
@@ -387,20 +397,21 @@ test('Android back unwinds detail and space navigation without advancing the car
     expect(root.findByProps({testID: 'learning-result-detail-screen'})).toBeTruthy();
     expect(await back()).toBe(true);
     expect(root.findAllByProps({testID: 'learning-result-detail-screen'})).toHaveLength(0);
-    expect(root.findByProps({testID: 'learning-progress-count'}).props.children).toBe('1/5');
+    expect(root.findByProps({testID: 'learning-segment-progress'}).props.children).toBe('第 1 轮 · 已完成 1/5');
     expect(root.findByProps({testID: 'learning-result-summary'})).toBeTruthy();
     await startTrialFromProtectedEntry(root, 'space');
     expect(root.findByProps({testID: 'space-browse-address-clue'})).toBeTruthy();
     expect(await back()).toBe(true);
     expect(root.findByProps({testID: 'space-open-card-list'})).toBeTruthy();
     expect(await back()).toBe(true);
-    expect(root.findByProps({testID: 'learning-progress-count'}).props.children).toBe('1/5');
+    expect(root.findByProps({testID: 'learning-segment-progress'}).props.children).toBe('第 1 轮 · 已完成 1/5');
     for (const route of ['statistics', 'mine'] as const) {
       await openRoute(root, route);
       expect(await back()).toBe(true);
       expect(root.findByProps({testID: 'learning-current-card'})).toBeTruthy();
     }
-    expect(await back()).toBe(false);
+    expect(await back()).toBe(true);
+    expect(root.findByProps({testID: 'route-tab-learning'})).toBeTruthy();
   } finally {
     await ReactTestRenderer.act(() => { tree?.unmount(); });
     subscription.mockRestore();
@@ -1071,6 +1082,9 @@ test('opens the product shell from the local entry without any SMS request', asy
   await authenticateIntoLearningBootstrap(tree.root);
   expect(mockFetch).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({testID: 'local-learning-entry'})).toHaveLength(0);
+  expect(tree.root.findByProps({testID: 'learning-study-scene'})).toBeTruthy();
+  expect(tree.root.findAllByProps({testID: 'route-tab-mine'})).toHaveLength(0);
+  await openRoute(tree.root, 'statistics');
   for (const route of ['learning', 'space', 'statistics', 'mine']) {
     expect(tree.root.findByProps({testID: `route-tab-${route}`})).toBeTruthy();
   }
@@ -2272,6 +2286,106 @@ test('continues an exact controlled-pilot round before requesting another server
   expect(mockLoadSession.mock.calls.length).toBeGreaterThanOrEqual(2);
 });
 
+test('keeps the completed pilot progress while its checkpoint read is pending or fails', async () => {
+  const originalAppInfo = NativeModules.SoftbookAppInfo;
+  NativeModules.SoftbookAppInfo = {platform: Platform.OS, version: '1.0.0'};
+  const base = createLocalLearningSession('cet4');
+  const flip = base.catalogCards.find(card => card.interaction_id === 'flip')!;
+  const cards: LearningCard[] = Array.from({length: 6}, (_, index) => ({...flip, card_id: `9900${String(index + 1).padStart(2, '0')}`, knowledge_ref: '9900', space_metadata: {...flip.space_metadata, box_ref: '9900'}}));
+  const catalog: LearningSession = {...base, cards: [cards[0]], catalogCards: cards, contentVersion: TEST_CONTENT_VERSION};
+  const checkpoint: LearningSession = {...catalog, schedulingMode: 'server', cards: [], serverSelection: null,
+    roundCompletion: {completedCount: 5, contentVersion: TEST_CONTENT_VERSION, pilotId: 'cet4-pilot-progress', receiptId: `prc_${'a'.repeat(43)}`, reviewCardIds: [], spaceCardId: cards[4].card_id}};
+  const accepted: MockLearningEvent[] = [];
+  const nextRead = createDeferred<LearningSession>();
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({baseUrl: 'https://api.softbook.example', featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'}});
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) {
+      const payload = createAccountBootstrapPayload(catalog, 'premium', accepted);
+      return createJsonResponse({...payload, data: {...payload.data, content: {
+        card_count: cards.length, expires_at: new Date(Date.now() + 86400000).toISOString(), gate_eligible: false,
+        minimum_client_versions: {android: '1.0.0', ios: '1.0.0'}, pilot_id: 'cet4-pilot-progress', release_class: 'controlled_pilot', release_id: 'pilot-progress-release', source: payload.data.content.source, version: TEST_CONTENT_VERSION,
+      }}});
+    }
+    if (input.endsWith('/v2/learning/events')) {
+      for (const event of readLearningEventsRequest(init).events) if (!accepted.some(prior => prior.event_id === event.event_id)) accepted.push(event);
+      return createLearningEventsAckResponse(init);
+    }
+    throw new Error(`Unexpected pilot-progress request: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  const press = async (id: string) => ReactTestRenderer.act(async () => {
+    findPressableByTestId(tree.root, id).props.onPress();
+    for (let i = 0; i < 8; i++) await flushAsyncEffects();
+  });
+  const progress = () => tree.root.findByProps({testID: 'learning-segment-progress'}).props.children;
+  try {
+    await loginIntoLearningFlow(tree.root, catalog);
+    mockLoadSession.mockImplementation(() => accepted.length < 5
+      ? Promise.resolve(resolveSessionForRuntime({...catalog, cards: [cards[accepted.length]]})) : nextRead.promise);
+    for (let index = 0; index < 5; index++) {
+      await press('learning-flip-button');
+      await press('learning-flip-confident-button');
+      expect(accepted).toHaveLength(index + 1);
+      if (index < 4) await press('learning-next-button');
+    }
+    expect(progress()).toBe('第 1 轮 · 已完成 5/5');
+    expect(tree.root.findByType(LearningSurface).props.currentResult.cardId).toBe(cards[4].card_id);
+    await ReactTestRenderer.act(async () => {nextRead.reject(new Error('Checkpoint unavailable')); for (let i = 0; i < 8; i++) await flushAsyncEffects();});
+    expect(progress()).toBe('第 1 轮 · 已完成 5/5');
+    expect(tree.root.findByType(LearningSurface).props.advanceState.needsRetry).toBe(true);
+    mockLoadSession.mockResolvedValue(checkpoint);
+    await press('learning-next-button');
+    expect(tree.root.findByProps({testID: 'learning-continue-round-button'})).toBeTruthy();
+    expect(progress()).toBe('第 1 轮 · 已完成 5/5');
+    mockLoadSession.mockResolvedValue(resolveSessionForRuntime({...catalog, cards: [cards[5]]}));
+    await press('learning-continue-round-button');
+    expect(mockContinueRound).toHaveBeenCalledTimes(1);
+    expect(progress()).toBe('第 2 轮 · 已完成 0/5');
+    expect(accepted).toHaveLength(5);
+  } finally {
+    await ReactTestRenderer.act(() => tree.unmount());
+    if (originalAppInfo === undefined) delete NativeModules.SoftbookAppInfo;
+    else NativeModules.SoftbookAppInfo = originalAppInfo;
+  }
+});
+
+test.each(['cet4', 'cet6'] as const)('shows %s progress for the accessible catalog when bootstrap also contains practiced locked cards', async track => {
+  const base = createLocalLearningSession(track);
+  const flip = base.catalogCards.find(card => card.interaction_id === 'flip')!;
+  const cards: LearningCard[] = Array.from({length: 8}, (_, index) => ({...flip,
+    card_id: `9900${String(index + 1).padStart(2, '0')}`, knowledge_ref: '9900',
+    space_metadata: {...flip.space_metadata, box_ref: '9900'},
+  }));
+  const full: LearningSession = {...base, cards: [cards[2]], catalogCards: cards, contentVersion: TEST_CONTENT_VERSION, membershipStage: 'free'};
+  const accessible: LearningSession = {...full, catalogCards: cards.slice(0, 4)};
+  const history: MockLearningEvent[] = [cards[0], cards[1], cards[6]].map((card, index) => ({
+    event_id: `event_prefix_history_${track}_${index}`, card_id: card.card_id,
+    selection_id: `sel_prefix_history_${track}_${index}_0001`, content_version: TEST_CONTENT_VERSION,
+    device_cursor: {device_id: 'device_prefix_history', sequence: index + 1},
+    interaction_id: 'flip', outcome: 'confident', phase: 'learning', answer_grade: 'passed',
+    client_occurred_at: new Date().toISOString(), used_hint: false, used_peek: false,
+  }));
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({baseUrl: 'https://api.softbook.example', learningTrack: track,
+    featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'}});
+  mockFetch.mockImplementation(async (input: string) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) return createJsonResponse(createAccountBootstrapPayload(full, 'free', history));
+    throw new Error(`Unexpected prefix-progress fetch: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  try {
+    await loginIntoLearningFlow(tree.root, accessible);
+    expect(tree.root.findByType(LearningSurface).props.currentCard.card_id).toBe(cards[2].card_id);
+    expect(tree.root.findByProps({testID: 'learning-catalog-progress'}).props.children).toBe('可学卡片已练 2/4 张');
+    expect(collectRenderedText(tree.toJSON()).join(' ')).not.toContain('已练过 2/8 张');
+  } finally { await ReactTestRenderer.act(() => tree.unmount()); }
+});
+
 test('blocks product state writes until canonical bootstrap succeeds on reconnect', async () => {
   const { emitNetInfoState } = jest.requireMock(
     '@react-native-community/netinfo',
@@ -3409,6 +3523,9 @@ test('keeps per-track Statistics distinct from account Progress even for cards o
 
   const root = tree!.root;
   await loginIntoLearningFlow(root, session);
+  expect(root.findByProps({testID: 'learning-catalog-progress'}).props.children).toBe(`已练过 0/${session.catalogCards.length} 张`);
+  expect(root.findAllByProps({testID: 'route-tab-mine'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'learning-pause-button'})).toBeTruthy();
   await openRoute(root, 'statistics');
 
   expect(readMetricValue(root, 'statistics-metric-completed')).toBe('1 张卡');
@@ -5492,8 +5609,8 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('位置已保持');
   expect(output).not.toContain('先读题干');
   expect(output).not.toContain('先判断，再确认解析');
-  expect(output).toContain('账号');
-  expect(output).toContain('已登录');
+  expect(root.findByProps({testID: 'learning-study-scene'})).toBeTruthy();
+  expect(root.findAllByProps({testID: 'shell-account-chip'})).toHaveLength(0);
   expect(output).not.toContain('已登录 138****8000');
   expect(output).toContain('however');
   expect(
@@ -5520,9 +5637,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('收起这点线索');
   expectNoUserVisibleMetadataLeakage(tree!);
 
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'shell-account-chip' }).props.onPress();
-  });
+  await openRoute(root, 'mine');
 
   const accountOutput = JSON.stringify(tree!.toJSON());
   expect(accountOutput).toContain('我的');
@@ -5945,9 +6060,7 @@ test('can start a review round from cards that need revisiting', async () => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
 
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
-  });
+  await openRoute(root, 'statistics');
 
   let output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('开始复习');
@@ -5989,9 +6102,7 @@ test('can start a review round from cards that need revisiting', async () => {
   expect(output).toContain('复习完成');
   expect(output).toContain('重新开始学习');
 
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
-  });
+  await openRoute(root, 'statistics');
 
   output = JSON.stringify(tree!.toJSON());
   expect(root.findByType(StatisticsSurface).props.reviewCompletedCount).toBe(1);
@@ -6021,9 +6132,7 @@ test('can check in from statistics after making learning progress', async () => 
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
 
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
-  });
+  await openRoute(root, 'statistics');
 
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
@@ -7254,17 +7363,13 @@ test('mine page stays focused on account and membership after login', async () =
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
 
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'route-tab-statistics' }).props.onPress();
-  });
+  await openRoute(root, 'statistics');
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'statistics-checkin-button' }).props.onPress();
   });
 
-  await ReactTestRenderer.act(() => {
-    root.findByProps({ testID: 'route-tab-mine' }).props.onPress();
-  });
+  await openRoute(root, 'mine');
 
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
@@ -7484,7 +7589,7 @@ test.each([false, true])('preserves the current attempt when another card sleeps
   await ReactTestRenderer.act(() => {root.findByProps({testID: 'space-return-learning'}).props.onPress();});
   expect(root.findAllByProps({testID: 'learning-flip-button'})).toHaveLength(0);
   expect(root.findByProps({testID: resolved ? 'learning-correct-answer' : 'learning-flip-confident-button'})).toBeTruthy();
-  expect(JSON.stringify(tree!.toJSON())).toContain('1/5');
+  expect(root.findByProps({testID: 'learning-segment-progress'}).props.children).toContain(`${resolved ? 1 : 0}/5`);
 });
 
 test('keeps completed progress after changing sleep state', async () => {
@@ -7650,7 +7755,7 @@ test('keeps the full five-card session after automatic trial entry', async () =>
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('4/5');
+  expect(root.findByProps({testID: 'learning-segment-progress'}).props.children).toContain('3/5');
   expect(output).not.toContain('完成了 3 张卡');
   expect(
     root.findAllByProps({ testID: 'learning-start-review-button' }),
@@ -7999,6 +8104,8 @@ test('continuing a paused lesson clears the notice on a later statistics visit',
   await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-pause-button'}).props.onPress();});
   expect(root.findAllByProps({testID: 'learning-pause-notice'}).length).toBeGreaterThan(0);
   await ReactTestRenderer.act(() => {root.findByProps({testID: 'statistics-go-learning-button'}).props.onPress();});
+  expect(root.findAllByProps({testID: 'learning-pause-notice'})).toHaveLength(0);
+  await openRoute(root, 'space');
   await openRoute(root, 'statistics');
   expect(root.findAllByProps({testID: 'learning-pause-notice'})).toHaveLength(0);
   await ReactTestRenderer.act(() => tree.unmount());
@@ -8252,4 +8359,90 @@ test('a locally confirmed review keeps its result during Space navigation and Ne
     await openRoute(root, 'statistics');
     expect(root.findByType(StatisticsSurface).props.reviewCompletedCount).toBe(beforeNext);
   } finally {await ReactTestRenderer.act(() => tree.unmount());}
+});
+
+test.each(['cet4', 'cet6'] as const)('ordinary %s server learning pauses after each five accepted results and continues the server selection', async track => {
+  const base = createLocalLearningSession(track);
+  const flip = base.catalogCards.find(card => card.interaction_id === 'flip')!;
+  const cards: LearningCard[] = Array.from({length: 11}, (_, index) => {
+    const boxRef = index < 5 ? '9900' : '9901';
+    return {...flip,
+      card_id: `${boxRef}${String(index < 5 ? index + 1 : index - 4).padStart(2, '0')}`,
+      knowledge_ref: boxRef,
+      space_metadata: {...flip.space_metadata, box_ref: boxRef,
+        box: index < 5 ? '根据语境判断范围' : '区分近义词含义'},
+    };
+  });
+  const catalog: LearningSession = {...base, track, cards: [cards[0]], catalogCards: cards, contentVersion: TEST_CONTENT_VERSION};
+  const accepted: MockLearningEvent[] = [];
+  const requests: MockLearningEventsRequest[] = [];
+  const fifthAck = createDeferred<void>();
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({baseUrl: 'https://api.softbook.example', learningTrack: track,
+    featureModes: {membership: 'local', progressSync: 'local', spaceState: 'local'}});
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) return createJsonResponse(createAccountBootstrapPayload(catalog, 'premium', accepted));
+    if (input.endsWith('/v2/learning/events')) {
+      const request = readLearningEventsRequest(init);
+      requests.push(request);
+      if (requests.length === 5) await fifthAck.promise;
+      for (const event of request.events) if (!accepted.some(previous => previous.event_id === event.event_id)) accepted.push(event);
+      return createLearningEventsAckResponse(init);
+    }
+    throw new Error(`Unexpected group-progress fetch: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  const root = tree.root;
+  const press = async (id: string) => ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, id).props.onPress();
+    for (let i = 0; i < 8; i++) await flushAsyncEffects();
+  });
+  const progressText = () => collectRenderedText(tree.toJSON()).join(' ');
+  try {
+    await loginIntoLearningFlow(root, catalog);
+    mockLoadSession.mockImplementation(async () => resolveSessionForRuntime({...catalog, cards: [cards[Math.min(accepted.length, cards.length - 1)]]}));
+    expect(progressText()).toContain('第 1 轮 · 已完成 0/5');
+    for (let index = 0; index < 10; index += 1) {
+      expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(cards[index].card_id);
+      expect(progressText()).toContain(cards[index].space_metadata.box);
+      await press('learning-flip-button');
+      await press('learning-flip-confident-button');
+      if (index === 4) {
+        expect(progressText()).toContain('第 1 轮 · 已完成 4/5');
+        expect(root.findAllByProps({testID: 'learning-segment-summary'})).toHaveLength(0);
+        await ReactTestRenderer.act(async () => {fifthAck.resolve(); for (let i = 0; i < 12; i++) await flushAsyncEffects();});
+      }
+      expect(accepted).toHaveLength(index + 1);
+      expect(root.findByType(LearningSurface).props.currentResult.cardId).toBe(cards[index].card_id);
+      expect(progressText()).toContain(`第 ${Math.floor(index / 5) + 1} 轮 · 已完成 ${(index % 5) + 1}/5`);
+      if (index === 1 || index === 4) {
+        await press('learning-pause-button');
+        await press('statistics-go-learning-button');
+        expect(progressText()).toContain(`第 1 轮 · 已完成 ${index + 1}/5`);
+      }
+      await press('learning-next-button');
+      if ((index + 1) % 5 === 0) {
+        expect(root.findByProps({testID: 'learning-segment-summary'})).toBeTruthy();
+        expect(progressText()).toContain(cards[index].space_metadata.box);
+        expect(progressText()).not.toContain('刚才练了：找比较对象、根据线索判断范围。');
+        const selectionReads = mockLoadSession.mock.calls.length;
+        if (index === 9) {
+          await press('learning-pause-button');
+          await press('statistics-go-learning-button');
+        } else await press('learning-segment-continue');
+        expect(root.findAllByProps({testID: 'learning-segment-summary'})).toHaveLength(0);
+        expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(cards[index + 1].card_id);
+        expect(progressText()).toContain(`第 ${Math.floor(index / 5) + 2} 轮 · 已完成 0/5`);
+        expect(mockLoadSession.mock.calls).toHaveLength(selectionReads);
+        expect(requests).toHaveLength(index + 1);
+      } else {
+        expect(root.findAllByProps({testID: 'learning-segment-summary'})).toHaveLength(0);
+      }
+    }
+  } finally {
+    fifthAck.resolve();
+    await ReactTestRenderer.act(() => tree.unmount());
+  }
 });

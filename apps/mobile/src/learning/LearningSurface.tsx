@@ -69,6 +69,7 @@ type LearningSurfaceProps = {
   resumeLocalLearning?: boolean;
   allowBundledAudio?: boolean;
   showCardProgress?: boolean;
+  immersive?: boolean;
   palette: LearningSurfacePalette;
   contentManifest?: VerifiedContentManifest | null;
   refreshAudioDownload?: RefreshLearningAudioDownload;
@@ -196,6 +197,7 @@ export function LearningSurface({
   resumeLocalLearning = false,
   allowBundledAudio = false,
   showCardProgress = true,
+  immersive = false,
   palette,
   contentManifest = null,
   refreshAudioDownload,
@@ -337,8 +339,15 @@ export function LearningSurface({
         )
       : null;
 
+    const CompletionViewport = needsPageScroll ? ScrollView : View;
+    const completionLayout = [styles.oneScreenPage, styles.completeScreen];
+    const completionViewportProps = needsPageScroll ? {
+      style: styles.viewportScroll,
+      contentContainerStyle: [...completionLayout, styles.completeScreenScrollable],
+      showsVerticalScrollIndicator: false,
+    } : {style: completionLayout};
     return (
-      <View style={[styles.oneScreenPage, styles.completeScreen]}>
+      <CompletionViewport {...completionViewportProps}>
         <View
           style={[
             styles.heroCard,
@@ -498,7 +507,7 @@ export function LearningSurface({
             </Text>
           </Pressable>
         </View>
-      </View>
+      </CompletionViewport>
     );
   }
 
@@ -545,7 +554,9 @@ export function LearningSurface({
   const passage = currentCard.interaction_id === 'elimination' ? eliminationPassage(currentCard) : null;
   const material = frontMaterial(currentCard, currentCardState).filter(text => !passage || text !== passage.source);
   const shouldShowContextCard = currentResult === null && !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped) && material.length > 0;
-  const shouldCenterShortFlip = false;
+  const shouldCenterShortFlip = immersive && !needsPageScroll && currentCard.interaction_id === 'flip' &&
+    !currentCardState.isFlipped && currentResult === null &&
+    currentCard.front.prompt.length + material.join('').length < 240;
   const minimumSheetHeight = 0;
 
   const page = (
@@ -553,6 +564,7 @@ export function LearningSurface({
       style={[
         styles.oneScreenPage,
         isCompactPhone ? styles.oneScreenPageCompact : null,
+        immersive ? styles.immersivePage : null,
         needsPageScroll ? styles.naturalHeight : null,
       ]}
       testID="learning-one-screen-flow"
@@ -563,6 +575,7 @@ export function LearningSurface({
           styles.studyCard,
           styles.studyCardOneScreen,
           isCompactPhone ? styles.studyCardOneScreenCompact : null,
+          immersive ? styles.immersiveCard : null,
           styles.glassCard,
           needsPageScroll ? styles.naturalHeight : null,
           {
@@ -578,11 +591,12 @@ export function LearningSurface({
           style={[
             styles.cardAddressShelf,
             isCompactPhone ? styles.cardAddressShelfCompact : null,
-            {backgroundColor: tone.accentSoft},
+            immersive ? styles.immersiveAddress : null,
+            {backgroundColor: immersive ? palette.panel : tone.accentSoft, borderBottomColor: palette.border},
           ]}
           testID="learning-card-address-shelf"
         >
-          <View pointerEvents="none" accessible={false} style={[styles.chapterOrbit, {borderColor: hexToRgba(palette.panel, 0.28)}]} />
+          {!immersive ? <View pointerEvents="none" accessible={false} style={[styles.chapterOrbit, {borderColor: hexToRgba(palette.panel, 0.28)}]} /> : null}
           <View style={styles.heroChipRow}>
             <View
               pointerEvents="none"
@@ -603,13 +617,14 @@ export function LearningSurface({
                 style={[styles.learningFrameMeta, { color: palette.textMuted }]}
                 testID="learning-progress-label"
               >
-                {`${courseName} · ${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
+                {`${immersive ? '' : `${courseName} · `}${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
               </Text>
               <Text
                 maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
                 style={[
                   styles.cardObjectLead,
                   isCompactPhone ? styles.cardObjectLeadCompact : null,
+                  immersive ? styles.immersiveKnowledgeTitle : null,
                   { color: palette.text },
                 ]}
               >
@@ -692,8 +707,8 @@ export function LearningSurface({
             </Pressable>
           </View>
         </View>
-        <View style={[styles.paperPanel, {backgroundColor: palette.panel},
-          needsPageScroll ? styles.naturalHeight : materialHeight > 0 ? {maxHeight: materialHeight + actionHeight + STUDIO.space.card * 2 + STUDIO.space.gap} : null]}>
+        <View style={[styles.paperPanel, immersive ? styles.immersiveMaterial : null, {backgroundColor: palette.panel},
+          needsPageScroll ? styles.naturalHeight : !immersive && materialHeight > 0 ? {maxHeight: materialHeight + actionHeight + STUDIO.space.card * 2 + STUDIO.space.gap} : null]}>
         <View style={[styles.cardStageBody, needsPageScroll ? styles.naturalHeight : null]}>
           <Animated.View
             style={[
@@ -1669,6 +1684,7 @@ function SwipeInteraction({
           style={[
             styles.swipeTopCard,
             compact ? styles.swipeTopCardCompact : null,
+            isAccessibilityText ? styles.swipeTopCardAccessible : null,
             {
               backgroundColor: palette.panel,
               borderColor: tone.accent,
@@ -1873,6 +1889,7 @@ export function LearningResultDetailSurface({
   phase,
   result,
   sessionCardCount,
+  immersive = false,
 }: {
   advanceState?: LearningAdvanceState;
   card: LearningCard;
@@ -1886,6 +1903,7 @@ export function LearningResultDetailSurface({
   result: LearningCardResult;
   sessionCardCount: number;
   sessionLabel: string;
+  immersive?: boolean;
 }) {
   const isReviewPhase = phase === 'review';
   const {
@@ -1969,6 +1987,7 @@ export function LearningResultDetailSurface({
           style={[
             styles.cardAddressShelf,
             isCompactPhone ? styles.cardAddressShelfCompact : null,
+            immersive ? styles.immersiveAddress : null,
           ]}
         >
           <View style={styles.heroChipRow}>
@@ -2010,7 +2029,7 @@ export function LearningResultDetailSurface({
               </Text>
             </View>
           </View>
-          {sessionCardCount > 1 ? <View
+          {!immersive && sessionCardCount > 1 ? <View
             style={[
               styles.cardProgressCluster,
               isCompactPhone ? styles.cardProgressClusterCompact : null,
@@ -2566,6 +2585,15 @@ const styles = StyleSheet.create({
   completeScreen: {
     justifyContent: 'center',
   },
+  completeScreenScrollable: {
+    flex: 0,
+    flexGrow: 1,
+  },
+  immersivePage: {paddingHorizontal: 14, paddingTop: 0, paddingBottom: 10},
+  immersiveCard: {gap: 0},
+  immersiveAddress: {borderRadius: 0, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 8, paddingTop: 16, paddingBottom: 14},
+  immersiveKnowledgeTitle: {fontSize: 17, lineHeight: 25, fontWeight: '500'},
+  immersiveMaterial: {borderRadius: 0, paddingHorizontal: 8, paddingTop: 24, paddingBottom: 0},
   glassCard: {
     shadowOffset: { width: 0, height: 18 },
     shadowOpacity: 0,
@@ -2983,7 +3011,7 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
   },
   cardTaskBandContentCentered: {
-    gap: 16, justifyContent: 'flex-start',
+    flexGrow: 1, gap: 16, justifyContent: 'center',
   },
   cardTaskBandWithHint: {
     paddingRight: 0,
@@ -3206,6 +3234,7 @@ const styles = StyleSheet.create({
   choicePill: {
     borderWidth: 1,
     borderRadius: STUDIO.radius.control,
+    justifyContent: 'center',
     paddingHorizontal: 12,
     paddingVertical: 11,
   },
@@ -3340,15 +3369,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 10,
     justifyContent: 'center',
+    maxWidth: '100%',
     minHeight: 48,
     minWidth: 48,
     paddingHorizontal: 6,
     paddingVertical: 5,
   },
   lockChoicePillCompact: {
-    flex: 1,
     minWidth: 48,
-    maxWidth: '100%',
     paddingHorizontal: 4,
     paddingVertical: 4,
   },
@@ -3356,6 +3384,7 @@ const styles = StyleSheet.create({
     opacity: 0.58,
   },
   lockChoiceLabel: {
+    alignSelf: 'stretch',
     fontSize: 11,
     textAlign: 'center',
   },
@@ -3364,7 +3393,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   lockChoiceWrapCompact: {
-    flex: 1,
+    flexShrink: 0,
   },
   inlineWrap: {
     flexDirection: 'row',
@@ -3465,6 +3494,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
+  swipeTopCardAccessible: {
+    width: '100%',
+  },
   swipePromptLabel: {
     fontSize: 12,
     fontWeight: '600',
@@ -3479,6 +3511,7 @@ const styles = StyleSheet.create({
   },
   swipeTrailCard: {
     flex: 1,
+    justifyContent: 'center',
     minHeight: 48,
     minWidth: 0,
     borderWidth: 1,
@@ -3495,6 +3528,7 @@ const styles = StyleSheet.create({
   swipeTrailHeading: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 6,
     justifyContent: 'space-between',
   },
@@ -3509,6 +3543,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.4,
     lineHeight: 17,
+    maxWidth: '100%',
   },
   swipeRow: {
     flexDirection: 'row',
@@ -3528,6 +3563,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 18,
+    maxWidth: '100%',
   },
   swipeText: {
     fontSize: 13,

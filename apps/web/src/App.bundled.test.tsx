@@ -25,7 +25,7 @@ it.each([['cet4', 1180], ['cet6', 1234]] as const)(
     // Cold CI transforms the full 2414-card module, rather than seven fixtures.
     const article = await screen.findByRole('article', {}, {timeout: 10000});
     for (const paragraph of catalog[0].front.prompt.split(/\n\s*\n/)) expect(article).toHaveTextContent(paragraph.replace(/\s+/g, ' '));
-    expect(screen.getByText('1 / 5')).toBeInTheDocument();
+    expect(screen.getByRole('list', {name: '本轮已确认 0/5'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '播放音频'})).toBeEnabled();
     expect(screen.queryByText(/短对话里听到 however/)).toBeNull();
     if (track === 'cet4') {
@@ -36,7 +36,7 @@ it.each([['cet4', 1180], ['cet6', 1234]] as const)(
       for (const paragraph of catalog[1].front.prompt.split(/\n\s*\n/)) expect(await screen.findByRole('article')).toHaveTextContent(paragraph.replace(/\s+/g, ' '));
       expect(screen.getByRole('button', {name: '翻面看答案'})).toBeEnabled();
       expect(screen.queryByRole('button', {name: '有把握'})).toBeNull();
-      expect(screen.getByText('2 / 5')).toBeInTheDocument();
+      expect(screen.getByRole('list', {name: '本轮已确认 0/5'})).toBeInTheDocument();
     }
   },
   // Includes the cold transform of the complete card corpus before the UI wait.

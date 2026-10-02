@@ -50,8 +50,6 @@ name: ios-auth-learning-space-statistics-smoke
     id: first-learning-guide-start
 - assertNotVisible:
     id: "standalone-auth-screen"
-- tapOn:
-    id: "route-tab-learning"
 - assertVisible:
     id: "learning-current-card"
 
@@ -157,6 +155,8 @@ name: ios-auth-learning-space-statistics-smoke
 - assertVisible:
     id: "learning-complete-details"
 
+- tapOn:
+    id: "learning-pause-button"
 - tapOn:
     id: "route-tab-statistics"
 - assertVisible:

@@ -11,7 +11,7 @@ import {STUDIO} from './src/visual/studio';
 import {StudioMark} from './src/visual/StudioMark';
 import {FirstRunGuidanceBoundary, FirstLearningGuide, type FirstRunGuidance} from './src/onboarding/FirstRunGuidance';
 import {guardFirstTrackSelection} from './src/onboarding/firstTrackSelectionGuard';
-import {initializeLearningSegment, confirmLearningSegmentCard, type LearningSegmentProgress} from './src/learning/learningSegment';
+import {LEARNING_SEGMENT_SIZE, initializeLearningSegment, confirmLearningSegmentCard, continueLearningSegment, type ConfirmedLearningSegmentCard, type LearningSegmentProgress} from './src/learning/learningSegment';
 import React, {
   startTransition,
   useCallback,
@@ -97,6 +97,7 @@ import {
   LearningResultDetailSurface,
   LearningSurface,
 } from './src/learning/LearningSurface';
+import {StudyScene, type StudySceneProgress} from './src/learning/StudyScene';
 import {
   LearningCard,
   LearningCardResult,
@@ -167,7 +168,7 @@ import {
   getChinaDayKey,
   getMillisecondsUntilNextChinaDay,
 } from './src/shared/chinaDay';
-import { formatLearningSessionDisplayLabel } from './src/shared/uiMetadata/displayMetadata';
+import { formatLearningSessionDisplayLabel, formatSpaceDisplayName } from './src/shared/uiMetadata/displayMetadata';
 import {
   createMutationQueueRepository,
   hasCausalSpaceBootstrapAdvance,
@@ -757,7 +758,9 @@ function AppShell({
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
   const [learningSegment, setLearningSegment] = useState<LearningSegmentProgress | null>(null);
   const [pauseNotice, setPauseNotice] = useState<string | null>(null);
+  const pauseLearningAction = useRef<(() => void) | null>(null);
   const sessionSubmittedEventIds = useRef(new Set<string>());
+  const sessionSubmittedCardMetadata = useRef(new Map<string, Omit<ConfirmedLearningSegmentCard, 'completionId'>>());
   const [learningScreen, setLearningScreen] =
     useState<LearningSurfaceScreen>('practice');
   const [spaceScreen, setSpaceScreen] =
@@ -980,6 +983,7 @@ function AppShell({
       setLearningSegment(null);
       setPauseNotice(null);
       sessionSubmittedEventIds.current.clear();
+      sessionSubmittedCardMetadata.current.clear();
       accountBootstrapRequestGate.invalidate();
       accountBootstrapRetryInFlight.current = null;
       lastMembershipRefreshKey.current = null;
@@ -1700,7 +1704,8 @@ function AppShell({
         setSpaceScreen('overview');
         return true;
       }
-      return false;
+      pauseLearningAction.current?.();
+      return true;
     });
     return () => subscription.remove();
   }, [accountDeletionState, activeRoute, isAuthenticated, learningScreen, cancelRouteMotion, spaceScreen]);
@@ -2124,9 +2129,8 @@ function AppShell({
       const segmentScope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
       if (hydration.accountBootstrap !== null && segmentScope !== null) {
         const bootstrap = hydration.accountBootstrap;
-        setLearningSegment(previous => initializeLearningSegment(previous,
-          `${segmentScope}:${bootstrap.track}`, bootstrap.track,
-          bootstrap.learning.cardStates.map(result => result.cardId)));
+        setLearningSegment(previous => bootstrap.content.releaseClass === 'controlled_pilot'
+          ? null : initializeLearningSegment(previous, `${segmentScope}:${bootstrap.track}`, bootstrap.track));
       }
       if (hydration.accountBootstrap === null) {
         accountBootstrapObservationRef.current = null;
@@ -2836,8 +2840,15 @@ function AppShell({
           learningEventReplayPaused.current = false;
           for (const entry of replay.acknowledgedEntries) {
             if (!sessionSubmittedEventIds.current.delete(entry.event.event_id)) continue;
+            const submittedCard = sessionSubmittedCardMetadata.current.get(entry.event.event_id);
+            sessionSubmittedCardMetadata.current.delete(entry.event.event_id);
+            if (!submittedCard || submittedCard.cardId !== entry.event.card_id) continue;
             setLearningSegment(previous => previous?.scope === `${replaySessionScopeKey}:${entry.track}`
-              ? confirmLearningSegmentCard(previous, entry.event.card_id) : previous);
+              ? confirmLearningSegmentCard(previous, {...submittedCard, completionId: entry.event.event_id}) : previous);
+          }
+          for (const rejected of replay.rejectedEntries) {
+            sessionSubmittedEventIds.current.delete(rejected.entry.event.event_id);
+            sessionSubmittedCardMetadata.current.delete(rejected.entry.event.event_id);
           }
           pendingLearningEventCountRef.current = replay.pendingCount;
           setPendingLearningEventCount(replay.pendingCount);
@@ -5518,6 +5529,16 @@ function AppShell({
           }
 
           sessionSubmittedEventIds.current.add(submittedEntry.event.event_id);
+          const submittedCard = learningSession.catalogCards.find(card => card.card_id === completedResult.cardId);
+          if (submittedCard) {
+            sessionSubmittedCardMetadata.current.set(submittedEntry.event.event_id, {
+              cardId: submittedCard.card_id,
+              library: submittedCard.space_metadata.library,
+              group: submittedCard.space_metadata.group,
+              box: submittedCard.space_metadata.box,
+              boxRef: submittedCard.space_metadata.box_ref,
+            });
+          }
           learningEventReplayPaused.current = false;
           pendingLearningEventCountRef.current += 1;
           setPendingLearningEventCount(pendingLearningEventCountRef.current);
@@ -5814,6 +5835,8 @@ function AppShell({
           ) {
             return;
           }
+          setLearningSegment(previous => previous?.scope === `${continuationScopeKey}:${learningSession.track}`
+            ? continueLearningSegment(previous) : previous);
           setLearningSession(null);
           setLearningCardState(null);
           setLearningBootstrapStatus('idle');
@@ -6410,6 +6433,7 @@ function AppShell({
     presentedLearningCardState !== null &&
     presentedLearningResult !== null ? (
     <LearningResultDetailSurface
+      immersive
       advanceState={learningAdvanceState}
       card={presentedLearningCard}
       cardState={presentedLearningCardState}
@@ -6426,11 +6450,12 @@ function AppShell({
     />
   ) : route.key === 'learning' ? (
     <LearningSurface
+      immersive
       advanceState={learningAdvanceState}
       deferAdvanceMotion={runtimeLearningEventsMode === 'remote'}
       interactionLocked={presentedResourcesLocked}
       audioAttemptId={outgoingResult?.attemptId ?? learningAudioAttemptId}
-      showCardProgress={(outgoingResult?.session ?? learningSession)?.schedulingMode !== 'server'}
+      showCardProgress={false}
       allowBundledAudio={learningSession?.schedulingMode === 'local' && learningSession.sourceId === 'bundled-card-make-v1'}
       completedResults={outgoingResult?.results ?? presentedResults}
       contentManifest={(outgoingResult?.session ?? learningSession)?.contentManifest ?? null}
@@ -6542,40 +6567,71 @@ function AppShell({
 
   const segmentScope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
   const visibleSegment = learningSegment?.scope === `${segmentScope}:${learningTrack}` ? learningSegment : null;
+  const segmentKnowledgePoints = visibleSegment ? [...new Map(visibleSegment.completedCards.map(card => [
+    JSON.stringify([card.library, card.group, card.boxRef]), formatSpaceDisplayName(card.box, '知识点'),
+  ])).values()] : [];
+  const segmentSummaryVisible = visibleSegment?.summaryVisible === true && outgoingResult === null && currentRoundCompletion === null;
   const pauseLearning = () => {
-    if (visibleSegment?.summaryVisible) {
-      setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous);
+    if (visibleSegment && segmentSummaryVisible) {
+      setLearningSegment(previous => previous?.scope === visibleSegment.scope ? continueLearningSegment(previous) : previous);
     }
-    setPauseNotice(visibleSegment?.summaryVisible
+    setPauseNotice(segmentSummaryVisible
       ? '进度已保存，下次接着学。'
       : '返回学习可接着这张卡。');
     handleSelectRoute('statistics');
   };
-  const contentWithSessionActions = route.key === 'learning' && (learningBootstrapStatus === 'ready' || outgoingResult !== null)
-    ? visibleSegment?.summaryVisible && outgoingResult === null ? (
+  pauseLearningAction.current = pauseLearning;
+  const currentBootstrap = accountBootstrapSnapshot?.track === learningTrack ? accountBootstrapSnapshot : null;
+  const pilotSequence = currentBootstrap?.content.releaseClass === 'controlled_pilot'
+    ? currentBootstrap.componentRevisions.learning.eventServerSequence : null;
+  const pilotBoundaryPending = pilotSequence !== null && pilotSequence > 0 && pilotSequence % LEARNING_SEGMENT_SIZE === 0 &&
+    (outgoingResult !== null || !learningSession?.serverSelection);
+  const sceneProgress: StudySceneProgress | null = pilotSequence !== null ? {
+    round: currentRoundCompletion ? Math.max(1, Math.ceil(currentRoundCompletion.completedCount / LEARNING_SEGMENT_SIZE)) : pilotBoundaryPending ? Math.ceil(pilotSequence / LEARNING_SEGMENT_SIZE) : Math.floor(pilotSequence / LEARNING_SEGMENT_SIZE) + 1,
+    completed: currentRoundCompletion || pilotBoundaryPending ? LEARNING_SEGMENT_SIZE : pilotSequence % LEARNING_SEGMENT_SIZE,
+    total: LEARNING_SEGMENT_SIZE,
+  } : visibleSegment ? {
+    round: visibleSegment.segmentIndex,
+    completed: visibleSegment.completedCards.length,
+    total: LEARNING_SEGMENT_SIZE,
+  } : isLocalLearning && localGroup.size > 0 ? {
+    round: Math.floor(localGroup.start / LEARNING_SEGMENT_SIZE) + 1,
+    completed: Math.min(localGroup.index + Number(learningCurrentResult !== null), localGroup.size),
+    total: localGroup.size,
+  } : null;
+  const hasCurrentCatalogProgress = learningSession !== null && learningSession.track === learningTrack && (
+    runtimeAccountBootstrapMode !== 'remote' || (
+      mappedAccountBootstrapSnapshot?.track === learningTrack &&
+      mappedAccountBootstrapSnapshot.content.version === learningSession.contentVersion &&
+      mappedAccountBootstrapSnapshot.content.source.id === learningSession.sourceId
+    )
+  );
+  const sceneLearnedCount = learningSession !== null && hasCurrentCatalogProgress ? catalogResults.length : null;
+  const sceneCatalogCount = learningSession !== null && hasCurrentCatalogProgress ? learningSession.catalogCards.length : null;
+  const sceneCatalogRestricted = sceneCatalogCount !== null && hasCurrentCatalogProgress &&
+    mappedAccountBootstrapSnapshot !== null && mappedAccountBootstrapSnapshot.content.cardCount > sceneCatalogCount;
+  const sceneBody = segmentSummaryVisible && visibleSegment ? (
       <ScrollView style={{flex: 1}} contentContainerStyle={styles.segmentSummary} testID="learning-segment-summary">
-        <Text accessibilityRole="header" style={[styles.segmentTitle, {color: palette.text}]}>这一小段练完了</Text>
-        <Text style={[styles.segmentDetail, {color: palette.textMuted}]}>刚才练了：找比较对象、根据线索判断范围。</Text>
-        <Pressable accessibilityRole="button" testID="learning-segment-continue" style={[styles.segmentPrimary, {backgroundColor: palette.primaryActionSurface}]} onPress={() => setLearningSegment(previous => previous ? {...previous, summaryVisible: false} : previous)}>
+        <Text accessibilityRole="header" style={[styles.segmentTitle, {color: palette.text}]}>{`第 ${visibleSegment.segmentIndex} 轮完成`}</Text>
+        <Text style={[styles.segmentDetail, {color: palette.textMuted}]}>{`完成 ${LEARNING_SEGMENT_SIZE} 次练习。`}</Text>
+        <Text style={[styles.segmentDetail, {color: palette.textMuted}]}>{`练过的内容：${segmentKnowledgePoints.join('、')}。`}</Text>
+        <Pressable accessibilityRole="button" testID="learning-segment-continue" style={[styles.segmentPrimary, {backgroundColor: palette.primaryActionSurface}]} onPress={() => setLearningSegment(previous => previous?.scope === visibleSegment.scope ? continueLearningSegment(previous) : previous)}>
           <Text style={{color: palette.primaryActionText}}>继续学习</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" testID="learning-pause-button" style={styles.segmentSecondary} onPress={pauseLearning}>
+        <Pressable accessibilityRole="button" testID="learning-segment-finish-button" style={styles.segmentSecondary} onPress={pauseLearning}>
           <Text style={{color: palette.textMuted}}>先到这里</Text>
         </Pressable>
       </ScrollView>
-    ) : (
-      <View style={styles.sessionContent}>
-        <View style={styles.sessionToolbar}>
-          <Text style={[styles.sessionCount, {color: palette.textMuted}]}>{visibleSegment && visibleSegment.sessionCardIds.length > 0 ? `本次已练 ${visibleSegment.sessionCardIds.length} 张卡` : ''}</Text>
-          <Pressable accessibilityRole="button" testID="learning-pause-button" style={styles.segmentSecondary} onPress={pauseLearning}>
-            <Text style={{color: palette.textMuted}}>先到这里</Text>
-          </Pressable>
-        </View>
-        {contentWithLearningNotice}
-      </View>
-    ) : route.key === 'statistics' && pauseNotice ? (
-      <View style={styles.sessionContent}><Text accessibilityLiveRegion="polite" testID="learning-pause-notice" style={[styles.segmentPauseNotice, {color: palette.textMuted}]}>{pauseNotice}</Text>{contentWithLearningNotice}</View>
     ) : contentWithLearningNotice;
+  const contentWithSessionActions = route.key === 'learning' ? (
+    <StudyScene track={learningTrack} progress={sceneProgress}
+      learnedCount={sceneLearnedCount} catalogCount={sceneCatalogCount} catalogRestricted={sceneCatalogRestricted}
+      onPause={pauseLearning} onOpenSpace={() => handleSelectRoute('space')} palette={palette}>
+      {sceneBody}
+    </StudyScene>
+  ) : route.key === 'statistics' && pauseNotice ? (
+    <View style={styles.sessionContent}><Text accessibilityLiveRegion="polite" testID="learning-pause-notice" style={[styles.segmentPauseNotice, {color: palette.textMuted}]}>{pauseNotice}</Text>{contentWithLearningNotice}</View>
+  ) : contentWithLearningNotice;
 
   return (
     <SafeAreaView
@@ -7414,6 +7470,8 @@ function PhoneShell({
     if (activeRoute === 'learning') readingScroll.current?.scrollTo({y: 0, animated: false});
   }, [activeRoute, readingResetKey]);
 
+  if (activeRoute === 'learning') return <View style={styles.shellRoot}>{content}</View>;
+
   return (
     <View style={styles.shellRoot}>
       <PhoneTopBar
@@ -7424,7 +7482,7 @@ function PhoneShell({
         route={route}
       />
       <View style={styles.shellContent}>
-        {usesAccessibilityLayout && activeRoute !== 'learning' ? (
+        {usesAccessibilityLayout ? (
           <ScrollView
             ref={readingScroll}
             contentContainerStyle={styles.shellAccessibleContent}
@@ -7578,6 +7636,8 @@ function TabletShell({
 }) {
   const { width } = useWindowDimensions();
   const isNarrowTablet = width < 820;
+
+  if (activeRoute === 'learning') return <View style={styles.shellRoot}>{content}</View>;
 
   return (
     <View
@@ -9863,8 +9923,6 @@ function getMembershipCardSummary(
 
 const styles = StyleSheet.create({
   sessionContent: {flex: 1},
-  sessionToolbar: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingHorizontal: 20},
-  sessionCount: {fontSize: 12, flexShrink: 1},
   segmentSecondary: {minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center', alignItems: 'center'},
   segmentSummary: {padding: 24, gap: 20, flexGrow: 1, justifyContent: 'center'},
   segmentTitle: {fontSize: 26, fontWeight: '600'},

@@ -109,6 +109,7 @@ async function press(
   root: ReactTestRenderer.ReactTestInstance,
   testID: string,
 ) {
+  if (testID.startsWith('route-tab-') && !root.findAllByProps({testID}).length) await press(root, 'learning-pause-button');
   await ReactTestRenderer.act(async () => {
     button(root, testID).props.onPress();
     await settle();
@@ -559,7 +560,7 @@ test.each([429, 'transport'] as const)(
     expect(JSON.stringify(tree.toJSON())).not.toContain('验证码不正确');
     await press(tree.root, 'auth-submit-button');
     expect(
-      tree.root.findByProps({ testID: 'route-tab-learning' }),
+      tree.root.findByProps({ testID: 'learning-study-scene' }),
     ).toBeTruthy();
   },
 );
@@ -1197,7 +1198,7 @@ test.each(['reject', 'false'] as const)(
     await press(tree.root, 'auth-submit-button');
     expect(verifiedChallenges).toEqual(['challenge_1', 'challenge_2']);
     expect(
-      tree.root.findByProps({ testID: 'route-tab-learning' }),
+      tree.root.findByProps({ testID: 'learning-study-scene' }),
     ).toBeTruthy();
   },
 );
