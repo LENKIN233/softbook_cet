@@ -221,6 +221,7 @@ export function assertContentManifestMatchesCards(
   cards: readonly LearningCard[],
   scope: {
     cardsAreAccessiblePrefix?: boolean;
+    metadataOnly?: boolean;
     totalCardCount?: number;
   } = {},
 ) {
@@ -261,8 +262,13 @@ export function assertContentManifestMatchesCards(
     );
   }
 
+  const unstartedMetadataPrefix = scope.metadataOnly === true && scope.cardsAreAccessiblePrefix === true &&
+    result.access.mode === 'trial_not_started';
+  if (unstartedMetadataPrefix && cards.length !== Math.ceil((totalCardCount ?? 0) * 0.5)) {
+    throw new Error('Unstarted trial metadata does not match the canonical half-prefix.');
+  }
   const expectedAccessibleCardCount =
-    scope.cardsAreAccessiblePrefix
+    unstartedMetadataPrefix ? 0 : scope.cardsAreAccessiblePrefix
       ? cards.length
       : result.access.mode === 'full'
       ? cards.length
@@ -279,7 +285,7 @@ export function assertContentManifestMatchesCards(
       cards
         .slice(
           0,
-          scope.cardsAreAccessiblePrefix
+          unstartedMetadataPrefix ? 0 : scope.cardsAreAccessiblePrefix
             ? cards.length
             : expectedAccessibleCardCount,
         )

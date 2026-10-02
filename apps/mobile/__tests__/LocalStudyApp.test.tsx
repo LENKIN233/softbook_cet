@@ -15,10 +15,10 @@ jest.mock('react-native-safe-area-context', () => {
 });
 jest.mock('../src/learning/learningRepository', () => ({
   createLearningSessionRepository: () => ({
-    loadSession: async (_context: unknown, track: 'cet4' | 'cet6') =>
-      require('./fixtures/interactionSession').createLocalLearningSession(
-        track,
-      ),
+    loadCatalog: async (_context: unknown, track: 'cet4' | 'cet6') => ({
+      ...require('./fixtures/interactionSession').createLocalLearningSession(track),
+      cards: [], serverSelection: null, roundCompletion: null, membershipStage: null,
+    }),
   }),
 }));
 const palette = {
@@ -61,6 +61,7 @@ async function render() {
   return tree;
 }
 async function press(tree: ReactTestRenderer.ReactTestRenderer, id: string) {
+  if (id.startsWith('route-tab-') && !tree.root.findAllByProps({testID: id}).length) await press(tree, 'learning-pause-button');
   await act(() => {
     tree.root
       .findAllByProps({ testID: id })
@@ -75,7 +76,17 @@ function surface(tree: ReactTestRenderer.ReactTestRenderer) {
 async function resolve(tree: ReactTestRenderer.ReactTestRenderer) {
   const props = surface(tree),
     card = props.currentCard;
-  await act(() => {
+  if (card.interaction_id === 'lock') {
+    for (const slot of card.lock_slots) {
+      await act(() => surface(tree).onSetLockSelection(slot.id, card.answer_key.lock_pattern[card.lock_slots.indexOf(slot)]));
+      await settle();
+    }
+  } else if (card.interaction_id === 'elimination') {
+    for (const id of card.answer_key.correct_items) {
+      await act(() => surface(tree).onToggleEliminationItem(id));
+      await settle();
+    }
+  } else await act(() => {
     if (card.interaction_id === 'flip') props.onSetFlipConfidence('confident');
     else if (card.interaction_id === 'swipe')
       props.onSelectSwipeState(card.answer_key.correct_state);
@@ -83,19 +94,64 @@ async function resolve(tree: ReactTestRenderer.ReactTestRenderer) {
       props.onSelectOption(card.answer_key.correct_option);
   });
   await settle();
-  if (card.interaction_id === 'multiple_choice') {
+  if (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') {
     await act(() => surface(tree).onSubmitCurrentCard());
     await settle();
   }
+  expect(surface(tree).currentResult).not.toBeNull();
   await act(() => surface(tree).onAdvanceCard());
   await settle();
 }
 
+test('local study starts from its home and preserves the task across pause and explicit Space return', async () => {
+  const tree = await render();
+  try {
+    await press(tree, 'local-start-learning-button');
+    expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(tree.root.findAllByType(LearningSurface)).toHaveLength(0);
+    expect(tree.root.findByProps({testID: 'learning-home-today-count'}).props.children).toBe('0 张');
+    await press(tree, 'learning-home-start-button');
+    const cardId = surface(tree).currentCard.card_id;
+    await act(() => surface(tree).onToggleHint()); await settle();
+    const draft = surface(tree).currentCardState;
+    await press(tree, 'learning-pause-button');
+    expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(tree.root.findByProps({testID: 'learning-home-round-progress'}).props.children).toContain('已完成 0/');
+    for (const route of ['learning', 'space', 'statistics', 'mine']) expect(tree.root.findByProps({testID: `route-tab-${route}`})).toBeTruthy();
+    await press(tree, 'learning-home-start-button');
+    expect(surface(tree).currentCard.card_id).toBe(cardId);
+    expect(surface(tree).currentCardState).toEqual(draft);
+    expect(tree.root.findAllByProps({testID: 'route-tab-mine'})).toHaveLength(0);
+    await press(tree, 'route-tab-space');
+    await press(tree, 'space-return-learning');
+    expect(tree.root.findByProps({testID: 'learning-study-scene'})).toBeTruthy();
+    expect(surface(tree).currentCardState).toEqual(draft);
+    await press(tree, 'learning-pause-button');
+    await press(tree, 'route-tab-space');
+    await press(tree, 'space-return-learning');
+    expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(tree.root.findAllByType(LearningSurface)).toHaveLength(0);
+    await press(tree, 'learning-home-start-button');
+    expect(surface(tree).currentCard.card_id).toBe(cardId);
+    expect(surface(tree).currentCardState).toEqual(draft);
+  } finally {await act(() => tree.unmount());}
+});
+
 test('leaving local study and restarting retains the selected answer, favorites and history', async () => {
   let tree = await render();
   await press(tree, 'local-start-learning-button');
-  while (surface(tree).currentCard.interaction_id !== 'multiple_choice')
+  expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await press(tree, 'learning-home-start-button');
+  let foundChoice = false;
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    if (tree.root.findAllByProps({testID: 'local-group-complete'}).length) {
+      await press(tree, 'learning-restart-button');
+      continue;
+    }
+    if (surface(tree).currentCard.interaction_id === 'multiple_choice') {foundChoice = true; break;}
     await resolve(tree);
+  }
+  expect(foundChoice).toBe(true);
   const original = surface(tree).currentCard;
   const option = original.options[0].id;
   await act(() => surface(tree).onSelectOption(option));
@@ -108,12 +164,15 @@ test('leaving local study and restarting retains the selected answer, favorites 
     await AsyncStorage.getItem('softbook-cet/study/v2/cet4'),
   ).not.toBeNull();
   await press(tree, 'local-start-learning-button');
+  await press(tree, 'learning-home-start-button');
   expect(surface(tree).currentCard.card_id).toBe(original.card_id);
   expect(surface(tree).currentCardState.selectedOptionId).toBe(option);
   expect(surface(tree).currentCardState.isFavorited).toBe(true);
   await act(() => tree.unmount());
   tree = await render();
   await press(tree, 'local-start-learning-button');
+  expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await press(tree, 'learning-home-start-button');
   expect(surface(tree).currentCard.card_id).toBe(original.card_id);
   expect(surface(tree).currentCardState.selectedOptionId).toBe(option);
   const saved = JSON.parse(
@@ -125,13 +184,17 @@ test('leaving local study and restarting retains the selected answer, favorites 
 test('switching track keeps independent records and returns to the original question', async () => {
   const tree = await render();
   await press(tree, 'local-start-learning-button');
+  await press(tree, 'learning-home-start-button');
   await resolve(tree);
   const original = surface(tree).currentCard.card_id;
   await press(tree, 'route-tab-mine');
   await press(tree, 'local-track-cet6');
+  expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await press(tree, 'learning-home-start-button');
   expect(surface(tree).currentCard.track).toBe('cet6');
   await press(tree, 'route-tab-mine');
   await press(tree, 'local-track-cet4');
+  await press(tree, 'learning-home-start-button');
   expect(surface(tree).currentCard.card_id).toBe(original);
   expect(
     await AsyncStorage.getItem('softbook-cet/study/v2/cet6'),

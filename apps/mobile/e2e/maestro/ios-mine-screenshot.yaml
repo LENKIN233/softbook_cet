@@ -28,6 +28,7 @@ name: ios-mine-screenshot
     id: "auth-submit-button"
 - tapOn:
     id: "auth-submit-button"
+- runFlow: study-home.yaml
 - extendedWaitUntil:
     visible:
       id: first-learning-guide-start

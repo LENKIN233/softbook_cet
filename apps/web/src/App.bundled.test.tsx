@@ -24,7 +24,15 @@ it.each([['cet4', 1180], ['cet6', 1234]] as const)(
     expect(catalog).toHaveLength(count);
     // Cold CI transforms the full 2414-card module, rather than seven fixtures.
     const article = await screen.findByRole('article', {}, {timeout: 10000});
-    for (const paragraph of catalog[0].front.prompt.split(/\n\s*\n/)) expect(article).toHaveTextContent(paragraph.replace(/\s+/g, ' '));
+    let frameIds: string[] = [];
+    await waitFor(() => {
+      const raw = window.localStorage.getItem(`softbook-cet/study/v2/${track}`);
+      expect(raw).not.toBeNull();
+      frameIds = JSON.parse(raw!).state.frame.ids;
+      expect(frameIds).toHaveLength(5);
+    });
+    const first = catalog.find(card => card.card_id === frameIds[0])!;
+    for (const paragraph of first.front.prompt.split(/\n\s*\n/)) expect(article).toHaveTextContent(paragraph.replace(/\s+/g, ' '));
     expect(screen.getByRole('list', {name: '本轮已确认 0/5'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '播放音频'})).toBeEnabled();
     expect(screen.queryByText(/短对话里听到 however/)).toBeNull();
@@ -33,7 +41,8 @@ it.each([['cet4', 1180], ['cet6', 1234]] as const)(
       fireEvent.click(screen.getByRole('button', {name: '空间'}));
       fireEvent.click(screen.getByRole('button', {name: '暂不学习这张卡'}));
       fireEvent.click(screen.getByRole('button', {name: '返回学习'}));
-      for (const paragraph of catalog[1].front.prompt.split(/\n\s*\n/)) expect(await screen.findByRole('article')).toHaveTextContent(paragraph.replace(/\s+/g, ' '));
+      const next = catalog.find(card => card.card_id === frameIds[1])!;
+      for (const paragraph of next.front.prompt.split(/\n\s*\n/)) expect(await screen.findByRole('article')).toHaveTextContent(paragraph.replace(/\s+/g, ' '));
       expect(screen.getByRole('button', {name: '翻面看答案'})).toBeEnabled();
       expect(screen.queryByRole('button', {name: '有把握'})).toBeNull();
       expect(screen.getByRole('list', {name: '本轮已确认 0/5'})).toBeInTheDocument();

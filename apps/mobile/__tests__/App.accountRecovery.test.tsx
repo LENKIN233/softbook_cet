@@ -28,6 +28,10 @@ jest.mock('../src/learning/learningRepository', () => ({
   createLearningSessionRepository: () => ({
     loadSession: async () =>
       require('./fixtures/interactionSession').createLocalLearningSession('cet4'),
+    loadCatalog: async (_context: unknown, track: 'cet4' | 'cet6') => ({
+      ...require('./fixtures/interactionSession').createLocalLearningSession(track),
+      cards: [], serverSelection: null, roundCompletion: null, membershipStage: null,
+    }),
   }),
 }));
 jest.mock('react-native-safe-area-context', () => {
@@ -560,7 +564,7 @@ test.each([429, 'transport'] as const)(
     expect(JSON.stringify(tree.toJSON())).not.toContain('验证码不正确');
     await press(tree.root, 'auth-submit-button');
     expect(
-      tree.root.findByProps({ testID: 'learning-study-scene' }),
+      tree.root.findByProps({ testID: 'learning-study-home' }),
     ).toBeTruthy();
   },
 );
@@ -1198,7 +1202,7 @@ test.each(['reject', 'false'] as const)(
     await press(tree.root, 'auth-submit-button');
     expect(verifiedChallenges).toEqual(['challenge_1', 'challenge_2']);
     expect(
-      tree.root.findByProps({ testID: 'learning-study-scene' }),
+      tree.root.findByProps({ testID: 'learning-study-home' }),
     ).toBeTruthy();
   },
 );

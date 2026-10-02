@@ -49,15 +49,33 @@ export function reconcileAccountBootstrap(
 export function resolveAccountBootstrapLearningState(
   bootstrap: AccountBootstrapSnapshot,
   learningSession: LearningSession,
+  options: {catalogOnly?: boolean} = {},
 ): Pick<AccountBootstrapHydration, 'learningResults' | 'reviewResults'> {
+  if (options.catalogOnly && (
+    learningSession.cards.length !== 0 || learningSession.serverSelection !== null ||
+    learningSession.roundCompletion !== null || learningSession.membershipStage !== null
+  )) {
+    throw new Error('A read-only catalog must not contain active learning authority.');
+  }
   const expectedCatalogCardCount =
     learningSession.schedulingMode === 'server' &&
-    learningSession.membershipStage !== null
+    (options.catalogOnly || learningSession.membershipStage !== null)
       ? resolveAccessibleLearningCardCount(
           bootstrap.content.cardCount,
           bootstrap.membership.state,
         )
       : bootstrap.content.cardCount;
+
+  if (options.catalogOnly && learningSession.schedulingMode === 'server' && learningSession.contentManifest) {
+    const expectedMode = bootstrap.membership.state.stage === 'trial_available' ? 'trial_not_started'
+      : bootstrap.membership.state.stage === 'free' ? 'free_subset' : 'full';
+    const access = learningSession.contentManifest.access;
+    const expectedGrantedCount = expectedMode === 'trial_not_started' ? 0 : expectedCatalogCardCount;
+    if (access.total_card_count !== bootstrap.content.cardCount || access.mode !== expectedMode ||
+      access.accessible_card_count !== expectedGrantedCount) {
+      throw new Error('Canonical membership does not match the read-only catalog manifest.');
+    }
+  }
 
   if (
     bootstrap.track !== learningSession.track ||

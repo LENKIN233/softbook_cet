@@ -24,6 +24,7 @@ name: ios-space-browse-screenshot
     id: "auth-gate-keyboard-dismiss-target"
 - tapOn:
     id: "auth-submit-button"
+- runFlow: study-home.yaml
 - extendedWaitUntil:
     visible:
       id: first-learning-guide-start

@@ -1,4 +1,5 @@
 import {LearningSceneNavigation} from './LearningSceneNavigation';
+import {LearningHome} from './LearningHome';
 import {SpaceSurface} from './SpaceSurface';
 import type {TrackStudyStatistics} from '../../mobile/src/statistics/trackStudyStatistics';
 import {LEARNING_SEGMENT_SIZE, initializeLearningSegment, confirmLearningSegmentCard, continueLearningSegment, type ConfirmedLearningSegmentCard, type LearningSegmentProgress} from '../../mobile/src/learning/learningSegment';
@@ -52,6 +53,7 @@ import {findClientUpdateRequiredError} from '../../mobile/src/runtime/clientVers
 import {formatSpaceDisplayName} from '../../mobile/src/shared/uiMetadata/displayMetadata';
 import {
   createWebRemoteRuntime,
+  canResumeLearningTask,
   WebRemotePostAuthError,
   type WebAccountDeletionOutcome,
   type WebAccountPresentationInvalidation,
@@ -159,6 +161,11 @@ function AccountApp({
   const [learningSegment, setLearningSegment] = useState<LearningSegmentProgress | null>(null);
   const pendingSegmentCompletion = useRef<{scope: string; card: ConfirmedLearningSegmentCard} | null>(null);
   const [pauseNotice, setPauseNotice] = useState<string | null>(null);
+  const [learningSceneActive, setLearningSceneActive] = useState(false);
+  const [learningScenePreparing, setLearningScenePreparing] = useState(false);
+  const [learningEntryIntent, setLearningEntryIntent] = useState<'learning' | 'review'>('learning');
+  const [homeSnapshot, setHomeSnapshot] = useState<WebRemoteSnapshot | null>(null);
+  const [spaceSceneReturn, setSpaceSceneReturn] = useState(false);
   const [session, setSession] = useState<LearningSession | null>(null);
   const [authStage, setAuthStage] = useState<AuthStage>('phone');
   const [phone, setPhone] = useState('');
@@ -170,7 +177,7 @@ function AccountApp({
   const [reviewCards, setReviewCards] = useState<LearningCard[]>([]);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [requestedReview, setRequestedReview] = useState(false);
-  const reviewResumeDraft = useRef<{epoch: number; phone: string; track: LearningTrack; version: string | null; cardId: string; state: LearningCardState; result?: LearningCardResult | null} | null>(null);
+  const reviewResumeDraft = useRef<{epoch: number; phone: string; track: LearningTrack; sourceId: string; version: string | null; cardId: string; state: LearningCardState; result?: LearningCardResult | null} | null>(null);
   const [cardState, setCardState] = useState<LearningCardState | null>(() =>
     null,
   );
@@ -215,8 +222,12 @@ function AccountApp({
       runtime.mode === 'remote' ? 'checking' : 'none',
     );
   const routeMotion = useRouteMotion(`${authStage}:${phone}:${accountDeletionStage}`);
-  const navigateRoute = (next: RouteKey) => {
+  const activeScene = route === 'learning' && learningSceneActive;
+  const navigateRoute = (next: RouteKey, resumeScene = false) => {
     if (next === 'learning') setPauseNotice(null);
+    if (next === 'space') setSpaceSceneReturn(activeScene);
+    if (next === 'learning') {setLearningSceneActive(resumeScene); if (!resumeScene) setSpaceSceneReturn(false);}
+    else if (next !== 'space') setLearningSceneActive(false);
     if (route === 'learning' && next !== 'learning') {
       audioRequestGeneration.current += 1;
       remoteController?.stopCardAudio?.();
@@ -291,7 +302,7 @@ function AccountApp({
     document.addEventListener('visibilitychange', onFocus);
     return () => {window.removeEventListener('focus', onFocus);document.removeEventListener('visibilitychange', onFocus);};
   }, [refreshDay]);
-  const reloadForNewDay = useEffectEvent(() => {setDayNeedsRefresh(true);void reloadRemoteState();});
+  const reloadForNewDay = useEffectEvent(() => {setDayNeedsRefresh(true);if (activeScene) void refreshStatistics(); else void reloadRemoteState();});
   useEffect(() => {
     if (previousChinaDay.current === liveChinaDay) return;
     previousChinaDay.current = liveChinaDay;
@@ -554,6 +565,7 @@ function AccountApp({
     setStatisticsLoading(false);
     setDayNeedsRefresh(false);
     setTrackStatistics(snapshot.bootstrap.statistics ?? null);
+    setHomeSnapshot(snapshot);
     setSceneCanonicalProgress({track: snapshot.bootstrap.track, contentVersion: snapshot.bootstrap.content.version,
       total: snapshot.bootstrap.content.cardCount,
       serverSequence: snapshot.bootstrap.componentRevisions.learning.eventServerSequence, readable: true});
@@ -563,13 +575,14 @@ function AccountApp({
     const nextCard = nextSession.cards[0] ?? null;
     const draft = reviewResumeDraft.current;
     const restoredDraft = draft && draft.epoch === accountAuthorityGeneration.current && draft.phone === phone &&
-      draft.track === nextSession.track && draft.version === nextSession.contentVersion &&
+      draft.track === nextSession.track && draft.sourceId === nextSession.sourceId && draft.version === nextSession.contentVersion &&
       draft.cardId === nextCard?.card_id && nextSession.serverSelection?.phase === 'learning' ? draft.state : null;
     const previousSelectionId = session?.serverSelection?.selectionId ?? null;
     const nextSelectionId = nextSession.serverSelection?.selectionId ?? null;
     const preservesCurrentCardDraft =
       previousSelectionId !== null &&
       previousSelectionId === nextSelectionId &&
+      session?.sourceId === nextSession.sourceId &&
       session?.contentVersion === nextSession.contentVersion &&
       session?.serverSelection?.phase === nextSession.serverSelection?.phase &&
       currentCard !== null &&
@@ -620,6 +633,43 @@ function AccountApp({
     if (!preservesCurrentCardDraft) {
       setAudioStatus('idle');
     }
+  }
+
+  function applyHomeSnapshot(snapshot: WebRemoteSnapshot) {
+    const catalog = {...snapshot.learningSession, cards: [], serverSelection: null, roundCompletion: null};
+    const retainsTask = canResumeLearningTask(session, catalog, snapshot.membership) && session !== null &&
+      (session.serverSelection !== null || session.roundCompletion !== null || requestedReview && sessionComplete);
+    const draft = reviewResumeDraft.current;
+    if (draft && (draft.track !== catalog.track || draft.sourceId !== catalog.sourceId || draft.version !== catalog.contentVersion ||
+      !catalog.catalogCards.some(card => card.card_id === draft.cardId))) reviewResumeDraft.current = null;
+    applyRemoteSnapshot({...snapshot, learningSession: retainsTask ? {...session, catalogCards: catalog.catalogCards} : catalog}, retainsTask && requestedReview);
+    if (!retainsTask) setSessionComplete(false);
+  }
+
+  async function enterLearningScene() {
+    if (remoteBusy || accountDeletionLocksAccount || runtime.mode !== 'remote' || remoteController === null) return;
+    if (homeSnapshot === null) {await reloadRemoteState(); return;}
+    setPauseNotice(null);
+    setLearningSceneActive(true);
+    if (learningEntryIntent === 'review' && !requestedReview) {await startReviewFromStatistics(); return;}
+    if (session?.serverSelection || session?.roundCompletion || learningEntryIntent === 'review' && requestedReview && sessionComplete) return;
+    const generation = accountAuthorityGeneration.current;
+    setLearningScenePreparing(true);
+    setRemoteBusy(true);
+    setRemoteError('');
+    try {
+      const snapshot = await remoteController.loadAuthenticatedState();
+      if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot);
+    } catch (error) {
+      if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '学习暂时无法开始，请重试。');
+    } finally {
+      if (accountAuthorityGeneration.current === generation) {setLearningScenePreparing(false); setRemoteBusy(false);}
+    }
+  }
+
+  function chooseReviewFromStatistics() {
+    setLearningEntryIntent('review');
+    navigateRoute('learning');
   }
 
   async function requestCode() {
@@ -683,7 +733,9 @@ function AccountApp({
         }
         setCode('');
         setAuthStage('authenticated');
-        applyRemoteSnapshot(snapshot);
+        setLearningSceneActive(false);
+        setLearningEntryIntent('learning');
+        applyHomeSnapshot(snapshot);
       } catch (error) {
         if (accountAuthorityGeneration.current !== generation) {
           return;
@@ -734,6 +786,8 @@ function AccountApp({
     if (remoteController === null || remoteBusy || accountDeletionLocksAccount || resolutionInFlight.current) return;
     const generation = ++accountAuthorityGeneration.current;
     setRemoteBusy(true);
+    setLearningSceneActive(false);
+    setLearningEntryIntent('learning');
     setRemoteError('');
     audioRequestGeneration.current += 1;
     remoteController.stopCardAudio?.();
@@ -743,7 +797,7 @@ function AccountApp({
         if (accountAuthorityGeneration.current !== generation) throw new Error('当前账号已变化，请重新选择科目。');
         onRememberGuidance({...firstRunRecord, selectedTrack: nextTrack});
       });
-      if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot);
+      if (accountAuthorityGeneration.current === generation) applyHomeSnapshot(snapshot);
     } catch (error) {
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '切换失败，已保留当前考试和学习记录，请重试。');
     } finally {
@@ -757,8 +811,10 @@ function AccountApp({
     setRemoteBusy(true);
     try {
       const reviewOnly = requestedReview && sessionComplete && !session?.roundCompletion && !continueNormalLearning;
-      const snapshot = reviewOnly ? await remoteController.requestReview() : await remoteController.loadAuthenticatedState();
-      if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot, reviewOnly);
+      const snapshot = activeScene ? reviewOnly ? await remoteController.requestReview() : await remoteController.loadAuthenticatedState() : await remoteController.loadLearningHome();
+      if (accountAuthorityGeneration.current === generation) {
+        if (activeScene) applyRemoteSnapshot(snapshot, reviewOnly); else applyHomeSnapshot(snapshot);
+      }
     } catch (error) {
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '学习进度加载失败，请重试。');
     } finally {
@@ -776,7 +832,7 @@ function AccountApp({
       if (remoteController === null) return;
       setRemoteBusy(true);
       try {
-        applyRemoteSnapshot(
+        applyHomeSnapshot(
           await remoteController.applySpaceState(
             cardId,
             'favorite',
@@ -801,6 +857,11 @@ function AccountApp({
   }
 
   function resetAccountState() {
+    setLearningSceneActive(false);
+    setLearningScenePreparing(false);
+    setLearningEntryIntent('learning');
+    setHomeSnapshot(null);
+    setSpaceSceneReturn(false);
     setRequestedReview(false);
     reviewResumeDraft.current = null;
     statisticsRequestGeneration.current += 1;
@@ -947,6 +1008,7 @@ function AccountApp({
   }
 
   async function resolveCurrentCard(stateOverride?: LearningCardState) {
+    if (!activeScene) return;
     const stateToResolve = stateOverride ?? cardState;
     if (isServerSelectionSleeping || !currentCard || !stateToResolve || resolved || queuedLearningResult || resolutionInFlight.current) return;
     const next = evaluateLearningCard(currentCard, stateToResolve);
@@ -999,6 +1061,7 @@ function AccountApp({
   }
 
   async function continueLearning() {
+    if (!activeScene) return;
     if (isServerSelectionSleeping) return;
     if (runtime.mode === 'remote') {
       await reloadRemoteState(true);
@@ -1023,7 +1086,7 @@ function AccountApp({
       if (!remoteController) return;
       const generation = accountAuthorityGeneration.current;
       if (currentCard && cardState && learningPhase === 'learning' && !resolved && session) {
-        reviewResumeDraft.current = {epoch: generation, phone, track: session.track, version: session.contentVersion, cardId: currentCard.card_id, state: cardState};
+        reviewResumeDraft.current = {epoch: generation, phone, track: session.track, sourceId: session.sourceId, version: session.contentVersion, cardId: currentCard.card_id, state: cardState};
       }
       setRemoteBusy(true);
       setRemoteError('');
@@ -1037,7 +1100,7 @@ function AccountApp({
         applyRemoteSnapshot(snapshot, true);
         setLearningSegment(previous => previous ? continueLearningSegment(previous) : previous);
         setPauseNotice(null);
-        navigateRoute('learning');
+        navigateRoute('learning', true);
       } catch (error) {
         if (accountAuthorityGeneration.current !== generation) return;
         if (error instanceof RemoteHttpError && error.code === 'review_access_unavailable') {
@@ -1057,11 +1120,11 @@ function AccountApp({
     if (learningPhase === 'learning') {
       setLocalResumeCardId(localLearningCards[currentIndex]?.card_id ?? null);
       if (session && currentCard && cardState) reviewResumeDraft.current = {epoch: accountAuthorityGeneration.current, phone,
-        track: session.track, version: session.contentVersion, cardId: currentCard.card_id, state: cardState, result: resolved};
+        track: session.track, sourceId: session.sourceId, version: session.contentVersion, cardId: currentCard.card_id, state: cardState, result: resolved};
     }
     setLearningPhase('review'); setReviewCards(candidates); setSessionComplete(false);
     setCurrentIndex(0); setResolved(null); setCardState(withFavoriteState(candidates[0], favorites));
-    navigateRoute('learning');
+    navigateRoute('learning', true);
   }
 
   function presentAcknowledgedLearningResult(result: LearningCardResult) {
@@ -1094,6 +1157,7 @@ function AccountApp({
       if (accountAuthorityGeneration.current !== generation || request !== statisticsRequestGeneration.current) return;
       setTrackStatistics(snapshot.bootstrap.statistics ?? null);
       if (snapshot.bootstrap.track === session.track && snapshot.bootstrap.content.version === session.contentVersion) setKnownResults(snapshot.bootstrap.learning.cardStates);
+      if (snapshot.bootstrap.track === session.track && snapshot.bootstrap.content.version === session.contentVersion) setHomeSnapshot(previous => previous ? {...previous, bootstrap: snapshot.bootstrap, checkInSync: snapshot.checkInSync} : previous);
       setSceneCanonicalProgress({track: snapshot.bootstrap.track, contentVersion: snapshot.bootstrap.content.version,
         total: snapshot.bootstrap.content.cardCount,
         serverSequence: snapshot.bootstrap.componentRevisions.learning.eventServerSequence, readable: true});
@@ -1110,11 +1174,14 @@ function AccountApp({
   }
 
   async function pauseLearning() {
-    const completedSegment = learningSegment?.summaryVisible === true && resolved === null && !session?.roundCompletion;
-    const saved = runtime.mode === 'remote' && (resolved !== null || completedSegment);
-    if (completedSegment) setLearningSegment(previous => previous ? continueLearningSegment(previous) : previous);
+    const saved = runtime.mode === 'remote' && (resolved !== null || learningSegment?.summaryVisible === true);
     setPauseNotice(saved ? '进度已保存，下次接着学。' : '返回学习可接着这张卡。');
-    navigateRoute('statistics');
+    audioRequestGeneration.current += 1;
+    remoteController?.stopCardAudio?.();
+    bundledAudio.current?.stop();
+    setAudioStatus('idle');
+    setLearningSceneActive(false);
+    setSpaceSceneReturn(false);
   }
 
   async function recoverRejectedCompletion(result: LearningCardResult) {
@@ -1136,6 +1203,7 @@ function AccountApp({
   }
 
   async function retryQueuedLearningResult() {
+    if (!activeScene) return;
     if (remoteController === null || queuedLearningResult === null) {
       return;
     }
@@ -1164,6 +1232,7 @@ function AccountApp({
   }
 
   async function playCurrentAudio() {
+    if (!activeScene) return;
     if (isServerSelectionSleeping || !currentCard) {
       return;
     }
@@ -1211,7 +1280,7 @@ function AccountApp({
     setRemoteError('');
     try {
       const snapshot = await remoteController.checkInToday();
-      applyRemoteSnapshot(snapshot);
+      applyHomeSnapshot(snapshot);
       setRemoteError(
         snapshot.checkInSync.status === 'queued'
           ? '签到已保存在本机，正在同步。'
@@ -1461,7 +1530,7 @@ function AccountApp({
     );
   }
 
-  const showLearningGuide = route === 'learning' && currentCard !== null && !firstRunRecord.learningGuideSeen;
+  const showLearningGuide = activeScene && currentCard !== null && !firstRunRecord.learningGuideSeen;
   const canonicalSceneMatches = Boolean(sceneCanonicalProgress && session && sceneCanonicalProgress.track === session.track && sceneCanonicalProgress.contentVersion === session.contentVersion);
   const serverSceneSequence = canonicalSceneMatches ? sceneCanonicalProgress!.serverSequence : 0;
   const serverSceneBoundaryPending = serverSceneSequence > 0 && serverSceneSequence % LEARNING_SEGMENT_SIZE === 0 &&
@@ -1471,14 +1540,19 @@ function AccountApp({
     : runtime.mode === 'remote' ? {roundIndex: serverSceneBoundaryPending ? Math.ceil(serverSceneSequence / LEARNING_SEGMENT_SIZE) : Math.floor(serverSceneSequence / LEARNING_SEGMENT_SIZE) + 1,
         completedCount: serverSceneBoundaryPending ? LEARNING_SEGMENT_SIZE : serverSceneSequence % LEARNING_SEGMENT_SIZE, total: LEARNING_SEGMENT_SIZE}
     : {roundIndex: Math.floor(currentIndex / LEARNING_SEGMENT_SIZE) + 1, completedCount: Math.min(batch.size, batch.index + (resolved ? 1 : 0)), total: Math.max(1, batch.size)};
+  const sceneOverall = {learned: canonicalSceneMatches && sceneCanonicalProgress!.readable ? catalogResults.length : null,
+    total: canonicalSceneMatches ? session!.catalogCards.length : null,
+    scope: canonicalSceneMatches && sceneCanonicalProgress!.total > session!.catalogCards.length ? 'accessible' as const : 'library' as const, loading: statisticsLoading};
+  const homeFactsReadable = canonicalSceneMatches && sceneCanonicalProgress!.readable && homeSnapshot?.bootstrap.track === session?.track &&
+    homeSnapshot?.bootstrap.content.version === session?.contentVersion && homeSnapshot?.bootstrap.dayKey === liveChinaDay && !dayNeedsRefresh && !statisticsLoading;
+  const hasHomeActivity = Boolean(session?.serverSelection || session?.roundCompletion ||
+    homeSnapshot && homeSnapshot.bootstrap.componentRevisions.learning.eventServerSequence > 0);
   return (
     <>
-    <div className={route === 'learning' ? 'app-shell learning-scene' : 'app-shell'} inert={showLearningGuide || undefined}>
-      {route === 'learning' ? <LearningSceneNavigation progress={sceneProgress}
-        overall={{learned: canonicalSceneMatches && sceneCanonicalProgress!.readable ? catalogResults.length : null,
-          total: canonicalSceneMatches ? session!.catalogCards.length : null,
-          scope: canonicalSceneMatches && sceneCanonicalProgress!.total > session!.catalogCards.length ? 'accessible' : 'library', loading: statisticsLoading}}
-        onExit={() => {if (session === null) navigateRoute('mine'); else void pauseLearning();}}
+    <div className={activeScene ? 'app-shell learning-scene' : 'app-shell'} inert={showLearningGuide || undefined}>
+      {activeScene ? <LearningSceneNavigation progress={sceneProgress}
+        overall={sceneOverall}
+        onExit={() => void pauseLearning()}
         onOpenSpace={() => navigateRoute('space')} spaceDisabled={session === null} /> : <>
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
@@ -1498,6 +1572,7 @@ function AccountApp({
                 item.id !== 'mine'
               }
               onClick={() => {
+                if (item.id === 'learning') setLearningEntryIntent('learning');
                 navigateRoute(item.id);
                 if (session !== null) {
                   setRemoteError('');
@@ -1521,7 +1596,14 @@ function AccountApp({
         <button onClick={() => {setLocalHydrated(false); void (localStore.current?.flush() ?? Promise.resolve()).then(() => setLocalLibraryAttempt(value => value + 1));}}>读取已保存进度</button>
       </section> : null}
       {route === 'learning' ? (
-        runtime.mode === 'remote' && learningSegment?.summaryVisible && resolved === null && !session?.roundCompletion ? (
+        !activeScene ? <LearningHome track={session?.track ?? firstRunRecord.selectedTrack}
+          today={homeFactsReadable && trackStatistics?.track === session?.track && trackStatistics?.dayKey === liveChinaDay ? trackStatistics.completedCardCount : null}
+          pendingReview={homeFactsReadable ? homeSnapshot!.bootstrap.progress.snapshot.pendingReviewCount : null}
+          overall={sceneOverall} continuing={hasHomeActivity} reviewIntent={learningEntryIntent === 'review'}
+          busy={remoteBusy} disabled={accountDeletionLocksAccount || remoteController === null}
+          startLabel={homeSnapshot === null ? '重新读取' : undefined} notice={[pauseNotice, ...remoteSyncFacts].filter(Boolean).join('；')} error={remoteError} onStart={() => void enterLearningScene()} />
+        : learningScenePreparing ? <main className="workbench"><p role="status">正在准备学习…</p></main>
+        : runtime.mode === 'remote' && learningSegment?.summaryVisible && resolved === null && !session?.roundCompletion ? (
           <main className="completion-workbench"><section className="completion-object" aria-labelledby="segment-summary-title">
             <h1 id="segment-summary-title">第 {learningSegment.segmentIndex} 轮完成</h1>
             <p>完成 {learningSegment.completedCards.length} 次练习，练过这些知识点：</p>
@@ -1536,7 +1618,7 @@ function AccountApp({
             <p className="notice">{localLibraryStatus === 'loading' ? '正在准备卡库…' : '卡库暂时无法读取。'}</p>
             {localLibraryStatus === 'error' ? <button onClick={() => setLocalLibraryAttempt(value => value + 1)}>重新加载卡库</button> : null}
           </section></main>
-        ) : runtime.mode === 'remote' && session === null ? (
+        ) : runtime.mode === 'remote' && (session === null || !session.serverSelection && !session.roundCompletion && !sessionComplete) ? (
           <main className="workbench">
             <section className="learning-card" aria-live="polite">
               <p className="eyebrow">已登录</p>
@@ -1610,7 +1692,7 @@ function AccountApp({
               const nextIndex = Math.max(0, resumeIndex);
               const draft = reviewResumeDraft.current;
               const restored = draft && draft.epoch === accountAuthorityGeneration.current && draft.phone === phone &&
-                draft.track === session?.track && draft.version === session?.contentVersion && draft.cardId === localLearningCards[nextIndex]?.card_id ? draft : null;
+                draft.track === session?.track && draft.sourceId === session?.sourceId && draft.version === session?.contentVersion && draft.cardId === localLearningCards[nextIndex]?.card_id ? draft : null;
               setLearningPhase('learning');
               setReviewCards([]);
               setSessionComplete(false);
@@ -1679,7 +1761,7 @@ function AccountApp({
               if (remoteController === null) return;
               setRemoteBusy(true);
               void remoteController.applySpaceState(id, 'sleep', !sleeping.includes(id))
-                .then(applyRemoteSnapshot)
+                .then(applyHomeSnapshot)
                 .catch(error => handleRemoteFailure(error, '休眠状态暂时没有更新。'))
                 .finally(() => setRemoteBusy(false));
               return;
@@ -1698,7 +1780,7 @@ function AccountApp({
               setCardState(nextCards[nextIndex] ? withFavoriteState(nextCards[nextIndex], favorites) : null);
             }
           }}
-          onReturn={() => navigateRoute('learning')}
+          onReturn={() => navigateRoute('learning', spaceSceneReturn)}
         />
       ) : null}
       {route === 'statistics' ? (
@@ -1715,8 +1797,8 @@ function AccountApp({
           syncStatus={genericSyncStatus}
           cumulativeLearnedCount={catalogResults.length}
           pendingReviewCount={pendingReviewIds.length}
-          onReview={() => void startReviewFromStatistics()}
-          onContinueLearning={() => {if (runtime.mode === 'remote' && requestedReview && sessionComplete) void reloadRemoteState(true); navigateRoute('learning');}}
+          onReview={chooseReviewFromStatistics}
+          onContinueLearning={() => {setLearningEntryIntent('learning'); navigateRoute('learning');}}
         />}</>
       ) : null}
       {route === 'mine' && membership === null ? (

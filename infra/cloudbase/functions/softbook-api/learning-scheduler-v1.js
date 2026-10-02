@@ -16,6 +16,7 @@ const SCHEDULER_LIBRARY = 'ts-fsrs';
 const SCHEDULER_LIBRARY_VERSION = '5.4.1';
 const SESSION_SELECTION_ATTEMPTS = 5;
 const NEW_CARD_SUBJECT_BLOCK_SIZE = 2;
+const RECENT_KNOWLEDGE_CONTEXT_MILLISECONDS = 5 * 60 * 1000;
 const CHINA_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
 const TRACKS = ['cet4', 'cet6'];
 const MEMBERSHIP_STAGES = ['trial_available', 'trial', 'free', 'premium'];
@@ -655,6 +656,9 @@ function normalizeSelectionContext(input) {
       subject: typeof card.space_metadata?.library === 'string'
         ? card.space_metadata.library
         : '',
+      knowledgePoint: typeof card.space_metadata?.box_ref === 'string'
+        ? card.space_metadata.box_ref
+        : typeof card.knowledge_ref === 'string' ? card.knowledge_ref : card.card_id,
     };
   });
   const cardIdSet = new Set(cards.map(card => card.cardId));
@@ -892,16 +896,32 @@ function selectNextCard(context, randomBytes, reviewOnly = false) {
   }
 
   due.sort(compareDueCandidate);
+  const recentKnowledgePoint = lastRecentKnowledgePoint(context);
+  const newCards = reviewOnly ? [] : orderNewCardsBySubject(context.accessibleCards).filter(card =>
+    !context.sleepingCardIds.has(card.cardId) &&
+    !Object.hasOwn(context.learning.eventsByCardId, card.cardId));
+  const variedDue = due.find(card => card.knowledgePoint !== recentKnowledgePoint);
+  const variedNew = newCards.find(card => card.knowledgePoint !== recentKnowledgePoint);
 
   if (due.length > 0) {
+    // Separate a continuing run of the same knowledge point. Due work keeps
+    // priority when another due point is available; otherwise one new point
+    // can provide spacing before returning to the still-due review queue.
+    if (!reviewOnly && !variedDue && variedNew) {
+      return {
+        nextDueAt: null,
+        selection: createSelection(context, variedNew.cardId, 'learning', 'catalog_new', null, randomBytes),
+      };
+    }
+    const selected = variedDue ?? due[0];
     return {
       nextDueAt: null,
       selection: createSelection(
         context,
-        due[0].cardId,
+        selected.cardId,
         'review',
         reviewOnly ? 'requested_review' : 'due_review',
-        due[0].dueAt,
+        selected.dueAt,
         randomBytes,
       ),
     };
@@ -910,20 +930,15 @@ function selectNextCard(context, randomBytes, reviewOnly = false) {
   if (reviewOnly) {
     needsPractice.sort(compareDueCandidate);
     future.sort(compareDueCandidate);
-    return needsPractice.length > 0 ? {
+    const selected = needsPractice.find(card => card.knowledgePoint !== recentKnowledgePoint) ?? needsPractice[0];
+    return selected ? {
       nextDueAt: null,
-      selection: createSelection(context, needsPractice[0].cardId, 'review', 'requested_review', needsPractice[0].dueAt, randomBytes),
+      selection: createSelection(context, selected.cardId, 'review', 'requested_review', selected.dueAt, randomBytes),
     } : {nextDueAt: future[0]?.dueAt ?? null, selection: null};
   }
 
-  for (const card of orderNewCardsBySubject(context.accessibleCards)) {
-    if (
-      context.sleepingCardIds.has(card.cardId) ||
-      Object.hasOwn(context.learning.eventsByCardId, card.cardId)
-    ) {
-      continue;
-    }
-
+  const card = variedNew ?? newCards[0];
+  if (card) {
     return {
       nextDueAt: null,
       selection: createSelection(
@@ -943,6 +958,16 @@ function selectNextCard(context, randomBytes, reviewOnly = false) {
     nextDueAt: future[0]?.dueAt ?? null,
     selection: null,
   };
+}
+
+function lastRecentKnowledgePoint(context) {
+  const acknowledgedAt = Date.parse(context.learning.projectionAcknowledgedAt);
+  const elapsed = context.generatedAt.getTime() - acknowledgedAt;
+  if (!Number.isFinite(elapsed) || elapsed < 0 || elapsed > RECENT_KNOWLEDGE_CONTEXT_MILLISECONDS) return null;
+  const event = Object.values(context.learning.eventsByCardId).find(value =>
+    value.server_sequence === context.learning.projectionServerSequence &&
+    value.server_sequence > 0 && value.content_version === context.contentVersion);
+  return event ? context.cards.find(card => card.cardId === event.card_id)?.knowledgePoint ?? null : null;
 }
 
 function orderNewCardsBySubject(cards) {

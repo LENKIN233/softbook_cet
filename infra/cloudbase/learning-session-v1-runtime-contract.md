@@ -17,7 +17,9 @@ Referenced active specs:
 - The primary learning path is one system-sequenced card flow.
 - The service or scheduler decides card order and remembers useful learning
   position; the client renders the selected card and interaction.
-- Due review work precedes new material.
+- Due review work normally precedes new material. Continuing practice separates
+  adjacent knowledge points; another eligible point may provide spacing before
+  returning to reviews concentrated in one point.
 - Sleeping state and membership access are server-authoritative.
 - The visible flip assessment remains two-state. Scheduling must not add a
   four-choice assessment surface.
@@ -64,7 +66,9 @@ still come from canonical server state. It returns the same session response.
 This requests one review card. An eligible existing review cursor resumes;
 otherwise due reviews are preferred, then an accessible, non-sleeping card
 whose latest accepted answer needs review may be practised before its due time.
-The server orders these candidates by due time and canonical source order.
+The server orders these candidates by due time and canonical source order,
+preferring a different recent knowledge point when one is available. Explicit
+review never inserts a new card for variety.
 The resulting phase is `review`, with reason `requested_review` and the real
 scheduled due time. Repeating the request resumes the same opaque cursor.
 Completing it creates one ordinary immutable review event; subsequent normal
@@ -163,12 +167,19 @@ The endpoint returns at most one card ID and never returns card body content.
    before response.
 2. Otherwise choose an accessible, non-sleeping due review. Sequence-zero
    legacy cards are due immediately. Other cards are due when their FSRS
-   `due` time is not later than server time. Sort by due time, canonical
-   card-source index, then card ID.
+   `due` time is not later than server time. Base priority is due time,
+   canonical card-source index, then card ID. When the last accepted current-
+   version result is within five server-clock minutes, prefer the first due
+   card from a different `space_metadata.box_ref`. If all due cards repeat
+   that point and an eligible unseen card has a different point, insert one
+   such new card in the normal flow. Reviews remain due with their original
+   FSRS time and receive priority after that spacing task; a same-point
+   fallback keeps the flow usable when no alternative is eligible.
 3. If no review is due, schedule accessible new cards in short subject blocks:
    visit each `space_metadata.library` in its first catalog appearance order,
-   taking two cards at a time and preserving authored order within that subject.
-   Choose the first unseen, non-sleeping card in this sequence. Build the
+   taking two cards at a time as base order. Prefer the first unseen,
+   non-sleeping card from a different recent knowledge point, retaining each
+   box's authored order. Build the
    sequence only from the canonical membership-accessible prefix; ordering
    does not change source records, content hashes, or the accessible set.
 4. If neither exists, return `selection: null` and the earliest eligible future
@@ -178,7 +189,13 @@ Canonical sleeping state removes a card from resume, due, new, and future-due
 selection without deleting its learning or FSRS history. Favorite state does
 not change order.
 
-The first authenticated learning-session entry starts an available trial
+Authenticated entry and ordinary Learning navigation first open a separate
+learning home. Clients use the card-source, signed manifest and bootstrap
+reads for that home, without requesting a selection or applying invented
+session membership. Start or Continue is the explicit session entry; Exit
+returns to the learning home while retaining the draft, result and round.
+
+The first explicit authenticated learning-session entry starts an available trial
 exactly once through the existing membership authority. Before activation,
 trial-available schedules only from the same stable release-scoped prefix
 already returned by card-source; it cannot select a suffix card the client has

@@ -98,6 +98,7 @@ import {
   LearningSurface,
 } from './src/learning/LearningSurface';
 import {StudyScene, type StudySceneProgress} from './src/learning/StudyScene';
+import {StudyHome} from './src/learning/StudyHome';
 import {
   LearningCard,
   LearningCardResult,
@@ -756,6 +757,11 @@ function AppShell({
     runtimeAccountBootstrapMode === 'local' && LOCAL_CARD_SOURCE_ID === 'bundled-card-make-v1'
       ? 'softbook-cet/user-state/bundled-card-make-v1' : undefined), [runtimeAccountBootstrapMode]);
   const [activeRoute, setActiveRoute] = useState<RouteKey>('learning');
+  const [learningView, setLearningView] = useState<'home' | 'study'>('home');
+  const [learningStartIntent, setLearningStartIntent] = useState<'learning' | 'review'>('learning');
+  const isStudyActive = activeRoute === 'learning' && learningView === 'study';
+  const studySpaceOrigin = useRef<{scope: string; track: LearningTrack; screen: LearningSurfaceScreen} | null>(null);
+  const returnFromSpaceAction = useRef<(() => void) | null>(null);
   const [learningSegment, setLearningSegment] = useState<LearningSegmentProgress | null>(null);
   const [pauseNotice, setPauseNotice] = useState<string | null>(null);
   const pauseLearningAction = useRef<(() => void) | null>(null);
@@ -812,6 +818,11 @@ function AppShell({
   ] = useState(runtimeAccountBootstrapMode !== 'remote');
   const [learningSession, setLearningSession] =
     useState<LearningSession | null>(null);
+  const [learningCatalog, setLearningCatalog] = useState<{key: string; scope: string; session: LearningSession} | null>(null);
+  const [learningCatalogStatus, setLearningCatalogStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [learningCatalogError, setLearningCatalogError] = useState<string | null>(null);
+  const [learningCatalogGeneration, setLearningCatalogGeneration] = useState(0);
+  const [mappedCatalogBootstrapSnapshot, setMappedCatalogBootstrapSnapshot] = useState<AccountBootstrapSnapshot | null>(null);
   const learningSessionScopeKeyRef = useRef<string | null>(null);
   const learningSessionIntentRef = useRef<'review' | null>(null);
   const [reviewOnlySession, setReviewOnlySession] = useState(false);
@@ -980,6 +991,13 @@ function AppShell({
   } | null>(null);
   const resetRuntimeAfterLogout = useCallback(
     (error: string | null = null) => {
+      setLearningView('home');
+      setLearningStartIntent('learning');
+      studySpaceOrigin.current = null;
+      setLearningCatalog(null);
+      setLearningCatalogStatus('idle');
+      setLearningCatalogError(null);
+      setMappedCatalogBootstrapSnapshot(null);
       setLearningSegment(null);
       setPauseNotice(null);
       sessionSubmittedEventIds.current.clear();
@@ -1651,6 +1669,11 @@ function AppShell({
     ? getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())
     : null;
   useEffect(() => {
+    setLearningView('home');
+    setLearningStartIntent('learning');
+    studySpaceOrigin.current = null;
+  }, [activeLearningNoticeScope]);
+  useEffect(() => {
     if (activeLearningNoticeScope === null || runtimeLearningEventsMode !== 'remote') {
       setRejectedLearningNotice(null);
       return;
@@ -1690,7 +1713,7 @@ function AppShell({
         cancelRouteMotion(); pendingRoute.current = null;
         return true;
       }
-      if (activeRoute === 'learning' && learningScreen === 'result_detail') {
+      if (isStudyActive && learningScreen === 'result_detail') {
         setLearningScreen('practice');
         return true;
       }
@@ -1699,16 +1722,26 @@ function AppShell({
         return true;
       }
       if (activeRoute !== 'learning') {
+        if (activeRoute === 'space') {
+          returnFromSpaceAction.current?.();
+          return true;
+        }
         setActiveRoute('learning');
+        setLearningView('home');
+        setLearningStartIntent('learning');
+        studySpaceOrigin.current = null;
         setLearningScreen('practice');
         setSpaceScreen('overview');
         return true;
       }
-      pauseLearningAction.current?.();
-      return true;
+      if (isStudyActive) {
+        pauseLearningAction.current?.();
+        return true;
+      }
+      return false;
     });
     return () => subscription.remove();
-  }, [accountDeletionState, activeRoute, isAuthenticated, learningScreen, cancelRouteMotion, spaceScreen]);
+  }, [accountDeletionState, activeRoute, isAuthenticated, isStudyActive, learningScreen, cancelRouteMotion, spaceScreen]);
   useEffect(() => {
     if (authState.stage === 'authenticated') {
       return;
@@ -1716,6 +1749,9 @@ function AppShell({
 
     startTransition(() => {
       setActiveRoute('learning');
+      setLearningView('home');
+      setLearningStartIntent('learning');
+      studySpaceOrigin.current = null;
       setLearningScreen('practice');
       setSpaceScreen('overview');
     });
@@ -1879,9 +1915,35 @@ function AppShell({
       }
     : palette;
   currentLearningCardIdRef.current = currentLearningCard?.card_id ?? null;
-  const catalogResultIds = new Set((learningSession?.catalogCards ?? []).map(card => card.card_id));
+  const currentCatalogSession = learningCatalog?.scope === activeLearningNoticeScope &&
+    learningCatalog.session.track === learningTrack && (
+      runtimeAccountBootstrapMode !== 'remote' || (
+        mappedCatalogBootstrapSnapshot === accountBootstrapSnapshot &&
+        accountBootstrapSnapshot?.content.version === learningCatalog.session.contentVersion &&
+        accountBootstrapSnapshot.content.source.id === learningCatalog.session.sourceId
+      )
+    ) ? learningCatalog.session : learningSessionScopeKeyRef.current === activeLearningNoticeScope &&
+      learningSession?.track === learningTrack && (runtimeAccountBootstrapMode !== 'remote' || (
+        mappedAccountBootstrapSnapshot?.track === learningTrack &&
+        mappedAccountBootstrapSnapshot.content.version === learningSession.contentVersion &&
+        mappedAccountBootstrapSnapshot.content.source.id === learningSession.sourceId
+      )) ? learningSession : null;
+  const hasCurrentReadOnlyCatalog = currentCatalogSession !== null && currentCatalogSession === learningCatalog?.session;
+  const hasCurrentSessionCatalogScope = hasCurrentReadOnlyCatalog && learningSessionScopeKeyRef.current === activeLearningNoticeScope &&
+    learningSession?.track === learningTrack && learningSession.sourceId === currentCatalogSession?.sourceId &&
+    learningSession.contentVersion === currentCatalogSession?.contentVersion;
+  const currentStudyCardEligible = hasCurrentSessionCatalogScope &&
+    (currentLearningCard === null || currentCatalogSession?.catalogCards.some(card => card.card_id === currentLearningCard.card_id));
+  const presentedResumeCardEligible = hasCurrentReadOnlyCatalog && presentedLearningSession?.track === learningTrack &&
+    presentedLearningSession?.sourceId === currentCatalogSession?.sourceId &&
+    presentedLearningSession?.contentVersion === currentCatalogSession?.contentVersion &&
+    currentCatalogSession?.catalogCards.some(card => card.card_id === presentedLearningCard?.card_id);
+  const catalogResultIds = new Set((currentCatalogSession?.catalogCards ?? []).map(card => card.card_id));
   const catalogResults = latestCardResults(runtimeAccountBootstrapMode === 'remote'
-    ? mappedAccountBootstrapSnapshot?.content.version === learningSession?.contentVersion ? mappedAccountBootstrapSnapshot?.learning.cardStates ?? [] : []
+    ? accountBootstrapSnapshot?.track === currentCatalogSession?.track &&
+      accountBootstrapSnapshot?.content.version === currentCatalogSession?.contentVersion &&
+      accountBootstrapSnapshot?.content.source.id === currentCatalogSession?.sourceId
+      ? accountBootstrapSnapshot?.learning.cardStates ?? [] : []
     : [...learningCompletedResults, ...reviewCompletedResults]).filter(result => catalogResultIds.has(result.cardId));
   const pendingSpaceReviewIds = reviewCardIds(catalogResults, Object.keys(spaceCardStateById).filter(id => spaceCardStateById[id].isSleeping));
   const reviewCandidateCards =
@@ -2207,7 +2269,7 @@ function AppShell({
     !learningSession?.catalogCards.some(card => card.card_id === outgoingResult.card.card_id)
   );
   const presentedResourceIdentity = JSON.stringify([
-    activeLearningNoticeScope, activeRoute, learningTrack,
+    activeLearningNoticeScope, activeRoute, isStudyActive, learningTrack,
     presentedLearningSession?.track, presentedLearningSession?.sourceId,
     presentedLearningSession?.contentVersion, presentedLearningAttemptId,
     presentedLearningCard?.card_id, presentedLearningCard?.audio,
@@ -2274,6 +2336,59 @@ function AppShell({
         : null,
     [authState.authToken, authState.phoneNumber, authState.stage],
   );
+  const learningCatalogRequestKey = JSON.stringify([
+    activeLearningNoticeScope, learningTrack, learningCatalogGeneration,
+    accountBootstrapSnapshot?.content.source.id, accountBootstrapSnapshot?.content.version,
+    membershipState.stage, membershipState.trialStartedAt, membershipState.trialExpiresAt,
+  ]);
+  useEffect(() => {
+    if (!isAuthenticated || authenticatedRuntimeContext === null || activeLearningNoticeScope === null ||
+      (runtimeLearningEventsMode === 'remote' && pendingLearningEventCount > 0) ||
+      (runtimeAccountBootstrapMode === 'remote' && accountBootstrapStatus !== 'ready') ||
+      learningCatalog?.key === learningCatalogRequestKey) return;
+    let cancelled = false;
+    const originScope = activeLearningNoticeScope;
+    const originTrack = learningTrack;
+    setLearningCatalogStatus('loading');
+    setLearningCatalogError(null);
+    learningSessionRepository.loadCatalog(authenticatedRuntimeContext, originTrack).then(catalog => {
+      if (cancelled || learningTrackRef.current !== originTrack ||
+        getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== originScope) return;
+      setLearningCatalog({key: learningCatalogRequestKey, scope: originScope, session: catalog});
+      setLearningCatalogStatus('ready');
+    }).catch(error => {
+      if (cancelled || learningTrackRef.current !== originTrack ||
+        getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== originScope ||
+        isRemoteRequestCancellationError(error)) return;
+      if (isRemoteAuthorizationError(error)) {
+        clearOriginSessionAfterAuthorizationError(error, originScope, authenticatedRuntimeContext.phoneNumber).catch(() => undefined);
+        return;
+      }
+      setLearningCatalogStatus('error');
+      setLearningCatalogError(getUserFacingErrorMessage(error, '学习记录暂时无法读取。'));
+    });
+    return () => {cancelled = true;};
+  }, [accountBootstrapStatus, activeLearningNoticeScope, authenticatedRuntimeContext, authSessionCoordinator,
+    clearOriginSessionAfterAuthorizationError, isAuthenticated, learningCatalog?.key, learningCatalogRequestKey,
+    learningSessionRepository, learningTrack, pendingLearningEventCount, runtimeAccountBootstrapMode, runtimeLearningEventsMode]);
+  useEffect(() => {
+    if (runtimeAccountBootstrapMode !== 'remote' || accountBootstrapStatus !== 'ready' ||
+      accountBootstrapSnapshot === null || learningCatalog?.scope !== activeLearningNoticeScope ||
+      learningCatalog.session.track !== learningTrack || mappedCatalogBootstrapSnapshot === accountBootstrapSnapshot) return;
+    try {
+      const canonical = resolveAccountBootstrapLearningState(accountBootstrapSnapshot, learningCatalog.session, {catalogOnly: true});
+      setMappedCatalogBootstrapSnapshot(accountBootstrapSnapshot);
+      if (learningSession === null) {
+        setLearningCompletedResults(canonical.learningResults);
+        setReviewCompletedResults(canonical.reviewResults);
+      }
+    } catch (error) {
+      setMappedCatalogBootstrapSnapshot(null);
+      setLearningCatalogStatus('error');
+      setLearningCatalogError(getUserFacingErrorMessage(error, '学习记录暂时无法读取。'));
+    }
+  }, [accountBootstrapSnapshot, accountBootstrapStatus, activeLearningNoticeScope, learningCatalog,
+    learningSession, learningTrack, mappedCatalogBootstrapSnapshot, runtimeAccountBootstrapMode]);
   const retryCanonicalAccountBootstrap = useCallback(
     async (
       options: {
@@ -3791,6 +3906,10 @@ function AppShell({
       lastMembershipRefreshKey.current = null;
       pendingMembershipRefreshKey.current = null;
       setLearningSession(null);
+      setLearningCatalog(null);
+      setLearningCatalogStatus('idle');
+      setLearningCatalogError(null);
+      setMappedCatalogBootstrapSnapshot(null);
       setLearningBootstrapStatus('idle');
       setLearningBootstrapError(null);
       setLearningRoundContinuePending(false);
@@ -3817,6 +3936,8 @@ function AppShell({
       return;
     }
 
+    if (!isStudyActive) return;
+
     if (!isAccountStateReconciled) {
       if (learningBootstrapStatus !== 'error') {
         // Keep the hidden attempt through a temporary authority read failure.
@@ -3838,6 +3959,7 @@ function AppShell({
   }, [
     isAccountStateReconciled,
     isAuthenticated,
+    isStudyActive,
     learningBootstrapStatus,
     persistenceHydrated,
   ]);
@@ -4145,6 +4267,7 @@ function AppShell({
   useEffect(() => {
     if (
       !isAuthenticated ||
+      !isStudyActive ||
       learningBootstrapStatus !== 'loading' ||
       (runtimeLearningEventsMode === 'remote' &&
         pendingLearningEventCount > 0)
@@ -4425,6 +4548,7 @@ function AppShell({
     authenticatedRuntimeContext,
     clearOriginSessionAfterAuthorizationError,
     isAuthenticated,
+    isStudyActive,
     learningBootstrapStatus,
     learningTrack,
     learningSession,
@@ -4544,7 +4668,7 @@ function AppShell({
 
   useEffect(() => {
     if (
-      !isAuthenticated || !isServerSelectionEmpty ||
+      !isAuthenticated || !isStudyActive || !isServerSelectionEmpty ||
       learningBootstrapStatus !== 'ready' ||
       pendingLearningEventCount > 0 ||
       !learningSession?.nextDueAt
@@ -4569,6 +4693,7 @@ function AppShell({
   }, [
     authSessionCoordinator,
     isAuthenticated,
+    isStudyActive,
     isServerSelectionEmpty,
     learningBootstrapStatus,
     learningSession,
@@ -4581,8 +4706,9 @@ function AppShell({
       runtimeAccountBootstrapMode !== 'remote' ||
       accountBootstrapStatus !== 'ready' ||
       accountBootstrapSnapshot === null ||
-      mappedAccountBootstrapSnapshot !== accountBootstrapSnapshot ||
-      learningBootstrapStatus !== 'ready' ||
+      !((mappedAccountBootstrapSnapshot === accountBootstrapSnapshot && learningBootstrapStatus === 'ready') ||
+        (learningCatalog?.scope === activeLearningNoticeScope && mappedCatalogBootstrapSnapshot === accountBootstrapSnapshot)) ||
+      pendingLearningEventCount > 0 ||
       accountBootstrapHydrationSettled
     ) {
       return;
@@ -4631,10 +4757,13 @@ function AppShell({
     accountBootstrapHydrationSettled,
     accountBootstrapSnapshot,
     accountBootstrapStatus,
+    activeLearningNoticeScope,
     dailyProgressSnapshot.checkedInToday,
     dailyProgressSnapshot.dayKey,
     dailyProgressSnapshot.totalCompletedCount,
     learningBootstrapStatus,
+    learningCatalog,
+    mappedCatalogBootstrapSnapshot,
     mappedAccountBootstrapSnapshot,
     pendingLearningEventCount,
     runtimeAccountBootstrapMode,
@@ -4695,6 +4824,8 @@ function AppShell({
     setMembershipGate(null);
 
     if (unlockedGate === 'review') {
+      setLearningView('home');
+      setLearningStartIntent('review');
       startTransition(() => {
         setActiveRoute('learning');
         setLearningScreen('practice');
@@ -4725,6 +4856,9 @@ function AppShell({
     }
     startTransition(() => {
       setActiveRoute('learning');
+      setLearningView('home');
+      setLearningStartIntent(nextGate === 'review' ? 'review' : 'learning');
+      studySpaceOrigin.current = null;
       setLearningScreen('practice');
       setSpaceScreen('overview');
     });
@@ -4732,8 +4866,15 @@ function AppShell({
     setLearningBootstrapError(null);
   };
 
-  const applySelectedRoute = (nextRoute: RouteKey) => {
+  const applySelectedRoute = (nextRoute: RouteKey, fromStudy = false) => {
     if (nextRoute === 'learning') setPauseNotice(null);
+    if (fromStudy && nextRoute === 'space' && activeLearningNoticeScope !== null) {
+      studySpaceOrigin.current = {scope: activeLearningNoticeScope, track: learningTrack, screen: learningScreen};
+    } else {
+      studySpaceOrigin.current = null;
+      setLearningView('home');
+      setLearningStartIntent('learning');
+    }
     if (
       nextRoute === 'space' &&
       isAuthenticated &&
@@ -4749,13 +4890,27 @@ function AppShell({
     });
   };
 
-  const handleSelectRoute = (nextRoute: RouteKey) => {
+  const handleSelectRoute = (nextRoute: RouteKey, fromStudy = false) => {
     if (trackSwitchInFlight.current) return;
     if (pendingRoute.current === nextRoute) return;
     routeMotion.cancel(); pendingRoute.current = nextRoute;
-    if (nextRoute === activeRoute) {pendingRoute.current = null; applySelectedRoute(nextRoute); return;}
-    routeMotion.perform(nextRoute === 'space' ? 'space' : 'focus', () => {pendingRoute.current = null; applySelectedRoute(nextRoute);});
+    if (nextRoute === activeRoute) {pendingRoute.current = null; applySelectedRoute(nextRoute, fromStudy); return;}
+    routeMotion.perform(nextRoute === 'space' ? 'space' : 'focus', () => {pendingRoute.current = null; applySelectedRoute(nextRoute, fromStudy);});
   };
+  const openSpaceFromStudy = () => handleSelectRoute('space', true);
+  const returnFromSpace = () => {
+    const origin = studySpaceOrigin.current;
+    if (origin?.scope === activeLearningNoticeScope && origin.track === learningTrack) {
+      studySpaceOrigin.current = null;
+      setLearningView('study');
+      setActiveRoute('learning');
+      setLearningScreen(origin.screen);
+      setSpaceScreen('overview');
+      return;
+    }
+    handleSelectRoute('learning');
+  };
+  returnFromSpaceAction.current = returnFromSpace;
 
   function submitAuthentication(localStart: boolean) {
     if (authenticationInFlight.current || (localStart && authRepositoryConfig.mode !== 'local')) return;
@@ -5601,19 +5756,21 @@ function AppShell({
   const startRemoteReview = () => {
     if (!membershipAccess.completeAlgorithm) {
       setMembershipGate('review');
+      setLearningView('home');
       setActiveRoute('mine');
       setLearningScreen('practice');
       return;
     }
     if (!canWriteAccountState || learningAdvancePending || learningEventEnqueueInFlight.current !== null ||
       pendingLearningEventCountRef.current > 0 || learningEventRecoveryPending ||
-      (learningBootstrapStatus !== 'ready' && learningBootstrapStatus !== 'error')) {
+      (learningBootstrapStatus !== 'ready' && learningBootstrapStatus !== 'error' &&
+        !(learningBootstrapStatus === 'idle' && currentCatalogSession !== null))) {
       setPauseNotice('还有记录等待同步，请同步后再开始复习。');
       return;
     }
     const scope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
     if (!scope) return;
-    if (learningPhase === 'learning' && currentLearningCard && learningCardState && !learningCurrentResult && !outgoingResult) {
+    if (learningPhase === 'learning' && currentStudyCardEligible && currentLearningCard && learningCardState && !learningCurrentResult && !outgoingResult) {
       preReviewDraftRef.current = {scope, track: learningTrack, contentVersion: learningSession?.contentVersion ?? null,
         cardId: currentLearningCard.card_id, state: learningCardState};
     }
@@ -5621,9 +5778,13 @@ function AppShell({
     learningSessionIntentRef.current = 'review';
     setReviewOnlySession(true);
     setPauseNotice(null);
+    setLearningView('study');
+    setLearningStartIntent('learning');
+    studySpaceOrigin.current = null;
     setActiveRoute('learning');
     setLearningScreen('practice');
     requestLearningSessionRefresh();
+    return true;
   };
 
   const learningHandlers = {
@@ -6076,6 +6237,9 @@ function AppShell({
   };
   const openLearningRoute = () => {
     setPauseNotice(null);
+    setLearningView('home');
+    setLearningStartIntent('learning');
+    studySpaceOrigin.current = null;
     startTransition(() => {
       setActiveRoute('learning');
       setLearningScreen('practice');
@@ -6083,17 +6247,8 @@ function AppShell({
     });
   };
   const startReviewFromStatistics = () => {
-    if (runtimeLearningEventsMode === 'remote') { startRemoteReview(); return; }
-    if (reviewCandidateCards.length === 0) {
-      openLearningRoute();
-      return;
-    }
-
-    const canStartReviewHere = membershipAccess.completeAlgorithm;
-    learningHandlers.onStartReview();
-    if (canStartReviewHere) {
-      openLearningRoute();
-    }
+    openLearningRoute();
+    setLearningStartIntent('review');
   };
   const retryLearningBootstrap = () => {
     if (
@@ -6155,7 +6310,7 @@ function AppShell({
         accountBootstrapSnapshotRef.current?.content.version === session?.contentVersion
       ));
     if (
-      !origin || !isCurrent() || activeRoute !== 'learning' ||
+      !origin || !isCurrent() || !isStudyActive ||
       !canWriteAccountState || presentedResourcesLocked ||
       (card && readSpaceCardState(card.card_id).isSleeping) ||
       !card?.audio || !session ||
@@ -6175,24 +6330,24 @@ function AppShell({
     if (!isCurrent()) throw new RemoteRequestLifecycleError('caller_cancelled');
     return download;
   }, [
-    activeRoute, presentedResourceIdentity, authSessionCoordinator, canWriteAccountState,
+    isStudyActive, presentedResourceIdentity, authSessionCoordinator, canWriteAccountState,
     presentedLearningCard, presentedResourcesLocked, presentedLearningAttemptId,
     presentedLearningSession, learningSessionRepository, readSpaceCardState, runtimeAccountBootstrapMode,
   ]);
 
-  const accessibleSpaceCards = learningSession
-    ? learningSession.schedulingMode === 'server'
-      ? learningSession.catalogCards
-      : learningSession.catalogCards.slice(
+  const accessibleSpaceCards = currentCatalogSession
+    ? currentCatalogSession.schedulingMode === 'server'
+      ? currentCatalogSession.catalogCards
+      : currentCatalogSession.catalogCards.slice(
           0,
           resolveAccessibleLearningCardCount(
-            learningSession.catalogCards.length,
+            currentCatalogSession.catalogCards.length,
             membershipState,
           ),
         )
     : [];
   const spaceSurfaceCards = membershipAccess.completePhysicalSpace
-    ? learningSession?.catalogCards ?? []
+    ? currentCatalogSession?.catalogCards ?? []
     : accessibleSpaceCards;
   const spaceGateRail =
     route.key === 'space' && !membershipAccess.completePhysicalSpace
@@ -6224,12 +6379,12 @@ function AppShell({
         }
       : null;
   const spaceStatusRail: SpaceStatusRail | null =
-    route.key === 'space' && learningBootstrapStatus !== 'ready'
+    route.key === 'space' && currentCatalogSession === null
       ? {
           actionSlot:
-            learningBootstrapStatus === 'error' ? (
+            learningCatalogStatus === 'error' ? (
               <Pressable
-                onPress={retryLearningBootstrap}
+                onPress={() => setLearningCatalogGeneration(previous => previous + 1)}
                 style={[
                   styles.primaryButton,
                   styles.compactButton,
@@ -6248,13 +6403,13 @@ function AppShell({
               </Pressable>
             ) : null,
           detail:
-            learningBootstrapStatus === 'error'
-              ? `${learningBootstrapError ?? '空间内容暂时不可用。'} 请重试。`
+            learningCatalogStatus === 'error'
+              ? `${learningCatalogError ?? '空间内容暂时不可用。'} 请重试。`
               : '正在加载卡片。',
-          label: learningBootstrapStatus === 'error' ? '可重试' : '加载中',
-          state: learningBootstrapStatus === 'error' ? 'error' : 'loading',
+          label: learningCatalogStatus === 'error' ? '可重试' : '加载中',
+          state: learningCatalogStatus === 'error' ? 'error' : 'loading',
           title:
-            learningBootstrapStatus === 'error'
+            learningCatalogStatus === 'error'
               ? '空间内容暂时不可用'
               : '正在加载空间',
         }
@@ -6324,37 +6479,46 @@ function AppShell({
       if (learningAdvancePending || learningRoundContinuePending || spaceActionPersistenceInFlight.current.size > 0 || pendingSpace.length > 0 || pendingLearningEventCountRef.current > 0 || learningEventRecoveryPending || await learningEventSyncRepository.getPendingCount(session.phoneNumber) > 0 || await mutationQueueRepository.hasPendingCheckIn(session.phoneNumber, todayKey)) {
         throw new Error('还有记录等待同步，请联网同步后再切换。');
       }
-      const nextSession = await learningSessionRepository.loadSession(authenticatedRuntimeContext, nextTrack);
+      const nextCatalog = await learningSessionRepository.loadCatalog(authenticatedRuntimeContext, nextTrack);
       const hydration = await loadAuthenticatedRuntimeHydration(session, {track: nextTrack, forceFresh: true});
       if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== scopeKey || accountDeletionOriginRef.current !== null || pendingAccountLogoutCleanupRef.current !== null) return;
       if (hydration.accountBootstrapStatus !== 'ready' || hydration.accountBootstrap === null) throw new Error('暂时无法加载，请稍后再切换。');
-      const canonical = resolveAccountBootstrapLearningState(hydration.accountBootstrap, nextSession);
-      if (nextSession.membershipStage !== null && nextSession.membershipStage !== hydration.membershipState.stage) throw new Error('账号权限尚未更新，请稍后再切换。');
+      const canonical = resolveAccountBootstrapLearningState(hydration.accountBootstrap, nextCatalog, {catalogOnly: true});
       await guidance.selectTrack(nextTrack);
       if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== scopeKey || accountDeletionOriginRef.current !== null || pendingAccountLogoutCleanupRef.current !== null) return;
       // Commit the new track only after both canonical reads have succeeded.
       learningTrackRef.current = nextTrack;
       setLearningTrack(nextTrack);
+      setLearningView('home');
+      setLearningStartIntent('learning');
+      studySpaceOrigin.current = null;
       setOutgoingLearningResult(null);
       learningSessionIntentRef.current = null;
       preReviewDraftRef.current = null;
       setReviewOnlySession(false);
       applyAuthenticatedRuntimeHydration(hydration, {forceFresh: true});
-      learningSessionScopeKeyRef.current = scopeKey;
-      learningAuthoritySnapshotRef.current = hydration.accountBootstrap;
-      setLearningSession(nextSession);
-      setMappedAccountBootstrapSnapshot(hydration.accountBootstrap);
+      learningSessionScopeKeyRef.current = null;
+      learningAuthoritySnapshotRef.current = null;
+      setLearningSession(null);
+      setMappedAccountBootstrapSnapshot(null);
+      setLearningCatalog({scope: scopeKey, session: nextCatalog, key: JSON.stringify([
+        scopeKey, nextTrack, learningCatalogGeneration, hydration.accountBootstrap.content.source.id,
+        hydration.accountBootstrap.content.version, hydration.membershipState.stage,
+        hydration.membershipState.trialStartedAt, hydration.membershipState.trialExpiresAt,
+      ])});
+      setLearningCatalogStatus('ready');
+      setLearningCatalogError(null);
+      setMappedCatalogBootstrapSnapshot(hydration.accountBootstrap);
       setLearningIndex(0);
       setLearningCurrentResult(null);
       setLearningCompletedResults(canonical.learningResults);
       setReviewCompletedResults(canonical.reviewResults);
-      const phase = nextSession.serverSelection?.phase ?? 'learning';
-      setLearningPhase(phase);
-      setReviewSessionCards(phase === 'review' ? nextSession.cards : []);
-      setLearningCardState(nextSession.cards[0] ? createTrackedLearningAttemptState(nextSession.cards[0]) : null);
+      setLearningPhase('learning');
+      setReviewSessionCards([]);
+      setLearningCardState(null);
       setLearningRoundContinueError(null);
       setLearningBootstrapError(null);
-      setLearningBootstrapStatus('ready');
+      setLearningBootstrapStatus('idle');
       setSpaceScreen('overview');
     } catch (error) {
       if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === scopeKey) {
@@ -6468,7 +6632,7 @@ function AppShell({
         pendingSleep: isServerSelectionSleeping,
         pendingSync: pendingLearningEventCount > 0 || learningEventRecoveryPending,
         onRefresh: retryEmptyLearningSession,
-        onOpenSpace: () => handleSelectRoute('space'),
+        onOpenSpace: openSpaceFromStudy,
       } : null}
       currentIndex={outgoingResult?.index ?? presentedIndex}
       currentResult={outgoingResult?.result ?? learningCurrentResult}
@@ -6514,7 +6678,7 @@ function AppShell({
       deviceClass={deviceClass}
       onBackToOverview={() => setSpaceScreen('overview')}
       onOpenCardList={() => setSpaceScreen('card_list')}
-      onReturnToLearning={() => handleSelectRoute('learning')}
+      onReturnToLearning={returnFromSpace}
       onToggleFavoriteTag={spaceHandlers.onToggleFavoriteTag}
       onToggleSleepState={spaceHandlers.onToggleSleepState}
       palette={palette}
@@ -6544,17 +6708,16 @@ function AppShell({
       syncStatusLabel={progressSyncState.label}
     />
   ) : null;
-  const contentWithLearningNotice = route.key === 'learning' &&
-    rejectedLearningNotice?.sessionScopeKey === activeLearningNoticeScope &&
-    rejectedLearningNotice.count > 0 ? (
+  const hasRejectedLearningNotice = rejectedLearningNotice?.sessionScopeKey === activeLearningNoticeScope &&
+    rejectedLearningNotice.count > 0;
+  const rejectedLearningNoticeCopy = (learningBootstrapStatus === 'ready' || currentCatalogSession !== null) && accountBootstrapHydrationSettled
+    ? '这次结果未计入，已更新学习安排。'
+    : learningBootstrapStatus === 'error' ? '这次结果未计入，请重试更新学习安排。' : '这次结果未计入，正在更新学习安排。';
+  const contentWithLearningNotice = route.key === 'learning' && hasRejectedLearningNotice ? (
       <>
         <Text accessibilityLiveRegion="polite" testID="learning-rejected-result-notice"
           style={[styles.learningRecoveryNotice, {color: palette.textMuted}]}>
-          {learningBootstrapStatus === 'ready' && accountBootstrapHydrationSettled
-            ? '这次结果未计入，已更新学习安排。'
-            : learningBootstrapStatus === 'error'
-            ? '这次结果未计入，请重试更新学习安排。'
-            : '这次结果未计入，正在更新学习安排。'}
+          {rejectedLearningNoticeCopy}
         </Text>
         {content}
       </>
@@ -6572,13 +6735,11 @@ function AppShell({
   ])).values()] : [];
   const segmentSummaryVisible = visibleSegment?.summaryVisible === true && outgoingResult === null && currentRoundCompletion === null;
   const pauseLearning = () => {
-    if (visibleSegment && segmentSummaryVisible) {
-      setLearningSegment(previous => previous?.scope === visibleSegment.scope ? continueLearningSegment(previous) : previous);
-    }
-    setPauseNotice(segmentSummaryVisible
-      ? '进度已保存，下次接着学。'
-      : '返回学习可接着这张卡。');
-    handleSelectRoute('statistics');
+    setPauseNotice('当前练习已保留，可以随时接着学。');
+    setLearningView('home');
+    setLearningStartIntent('learning');
+    studySpaceOrigin.current = null;
+    setActiveRoute('learning');
   };
   pauseLearningAction.current = pauseLearning;
   const currentBootstrap = accountBootstrapSnapshot?.track === learningTrack ? accountBootstrapSnapshot : null;
@@ -6606,7 +6767,11 @@ function AppShell({
       mappedAccountBootstrapSnapshot.content.source.id === learningSession.sourceId
     )
   );
-  const sceneLearnedCount = learningSession !== null && hasCurrentCatalogProgress ? catalogResults.length : null;
+  const sceneResultIds = new Set((learningSession?.catalogCards ?? []).map(card => card.card_id));
+  const sceneResults = latestCardResults(runtimeAccountBootstrapMode === 'remote'
+    ? hasCurrentCatalogProgress ? mappedAccountBootstrapSnapshot?.learning.cardStates ?? [] : []
+    : [...learningCompletedResults, ...reviewCompletedResults]).filter(result => sceneResultIds.has(result.cardId));
+  const sceneLearnedCount = learningSession !== null && hasCurrentCatalogProgress ? sceneResults.length : null;
   const sceneCatalogCount = learningSession !== null && hasCurrentCatalogProgress ? learningSession.catalogCards.length : null;
   const sceneCatalogRestricted = sceneCatalogCount !== null && hasCurrentCatalogProgress &&
     mappedAccountBootstrapSnapshot !== null && mappedAccountBootstrapSnapshot.content.cardCount > sceneCatalogCount;
@@ -6623,10 +6788,64 @@ function AppShell({
         </Pressable>
       </ScrollView>
     ) : contentWithLearningNotice;
-  const contentWithSessionActions = route.key === 'learning' ? (
+  const startStudy = () => {
+    if (trackSwitchInFlight.current) return;
+    if (learningStartIntent === 'review' && runtimeLearningEventsMode === 'remote') {
+      startRemoteReview();
+      return;
+    }
+    if (learningStartIntent === 'review' && reviewCandidateCards.length > 0) {
+      if (!membershipAccess.completeAlgorithm) {
+        setMembershipGate('review');
+        setActiveRoute('mine');
+        return;
+      }
+      learningHandlers.onStartReview();
+    }
+    if (learningSession?.schedulingMode === 'server' && !currentStudyCardEligible) {
+      if (pendingLearningEventCountRef.current === 0 && learningEventEnqueueInFlight.current === null &&
+        !presentedResumeCardEligible) {
+        setOutgoingLearningResult(null);
+        setLearningCurrentResult(null);
+      }
+      if (learningBootstrapStatus === 'error') retryLearningBootstrap();
+      else requestLearningSessionRefresh();
+    } else if (learningBootstrapStatus === 'error') retryLearningBootstrap();
+    setLearningView('study');
+    setLearningStartIntent('learning');
+    setPauseNotice(null);
+    studySpaceOrigin.current = null;
+  };
+  const homeCatalogCount = currentCatalogSession?.catalogCards.length ?? null;
+  const homeCatalogKnown = currentCatalogSession !== null && (runtimeAccountBootstrapMode !== 'remote' || (
+    accountBootstrapSnapshot?.track === currentCatalogSession.track &&
+    accountBootstrapSnapshot.content.version === currentCatalogSession.contentVersion &&
+    accountBootstrapSnapshot.content.source.id === currentCatalogSession.sourceId
+  ));
+  const homeTodayCount = runtimeAccountBootstrapMode === 'remote'
+    ? currentBootstrap?.dayKey === todayKey ? currentBootstrap.statistics?.completedCardCount ?? null : null
+    : learningSession !== null ? latestCardResults([...learningCompletedResults, ...reviewCompletedResults]).length
+    : persistedLocalProgress.current?.dayKey === todayKey && persistedLocalProgress.current.track === learningTrack
+    ? latestCardResults([...persistedLocalProgress.current.learningResults, ...persistedLocalProgress.current.reviewResults]).length : null;
+  const homeCanResume = presentedLearningCard !== null || currentRoundCompletion !== null ||
+    (sceneProgress?.completed ?? 0) > 0 || (currentBootstrap?.statistics?.cumulativeLearnedCardCount ?? 0) > 0;
+  const contentWithSessionActions = route.key === 'learning' && learningView === 'home' &&
+    authState.error === CLIENT_UPDATE_REQUIRED_COPY ? contentWithLearningNotice
+  : route.key === 'learning' && learningView === 'home' ? (
+    <StudyHome track={learningTrack} todayCount={homeTodayCount}
+      reviewCount={homeCatalogKnown ? pendingSpaceReviewIds.length : null}
+      progress={sceneProgress} learnedCount={homeCatalogKnown ? catalogResults.length : null}
+      catalogCount={homeCatalogKnown ? homeCatalogCount : null}
+      catalogRestricted={homeCatalogKnown && homeCatalogCount !== null && currentBootstrap !== null && currentBootstrap.content.cardCount > homeCatalogCount}
+      resumeKnowledgePoint={presentedResumeCardEligible && presentedLearningCard ? formatSpaceDisplayName(presentedLearningCard.space_metadata.box, '当前练习') : null}
+      canResume={homeCanResume} reviewIntent={learningStartIntent === 'review'}
+      notice={hasRejectedLearningNotice ? rejectedLearningNoticeCopy : pauseNotice ?? learningCatalogError}
+      noticeTestID={hasRejectedLearningNotice ? 'learning-rejected-result-notice' : 'learning-pause-notice'}
+      onStart={startStudy} palette={palette} />
+  ) : route.key === 'learning' ? (
     <StudyScene track={learningTrack} progress={sceneProgress}
       learnedCount={sceneLearnedCount} catalogCount={sceneCatalogCount} catalogRestricted={sceneCatalogRestricted}
-      onPause={pauseLearning} onOpenSpace={() => handleSelectRoute('space')} palette={palette}>
+      onPause={pauseLearning} onOpenSpace={openSpaceFromStudy} palette={palette}>
       {sceneBody}
     </StudyScene>
   ) : route.key === 'statistics' && pauseNotice ? (
@@ -6731,6 +6950,7 @@ function AppShell({
         ) : deviceClass === 'tablet' ? (
           <TabletShell
             activeRoute={activeRoute}
+            immersive={isStudyActive}
             authState={authState}
             content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithSessionActions}</Animated.View>}
             onSelectRoute={handleSelectRoute}
@@ -6740,6 +6960,7 @@ function AppShell({
         ) : (
           <PhoneShell
             activeRoute={activeRoute}
+            immersive={isStudyActive}
             track={learningTrack}
             readingResetKey={`${presentedLearningCard?.card_id ?? 'complete'}:${presentedLearningPhase}:${learningScreen}:${presentedLearningCard?.interaction_id === 'flip' ? 'flip' : Boolean(presentedLearningResult)}:${Boolean(presentedLearningCardState?.isFlipped)}`}
             authState={authState}
@@ -6757,7 +6978,7 @@ function AppShell({
         preparationFailed={accountDeletionPreparationFailed}
         state={accountDeletionSheetDismissed ? 'closed' : accountDeletionState}
       />
-      <FirstLearningGuide guidance={guidance} visible={isAuthenticated && activeRoute === 'learning' && learningBootstrapStatus === 'ready' && currentLearningCard !== null} />
+      <FirstLearningGuide guidance={guidance} visible={isAuthenticated && isStudyActive && learningBootstrapStatus === 'ready' && currentLearningCard !== null} />
     </SafeAreaView>
   );
 }
@@ -7446,6 +7667,7 @@ function AppCanvasBackdrop({palette}: {palette: Palette}) {
 
 function PhoneShell({
   activeRoute,
+  immersive,
   track,
   readingResetKey,
   authState,
@@ -7455,6 +7677,7 @@ function PhoneShell({
   route,
 }: {
   activeRoute: RouteKey;
+  immersive: boolean;
   track: LearningTrack;
   readingResetKey: string;
   authState: AuthState;
@@ -7470,7 +7693,7 @@ function PhoneShell({
     if (activeRoute === 'learning') readingScroll.current?.scrollTo({y: 0, animated: false});
   }, [activeRoute, readingResetKey]);
 
-  if (activeRoute === 'learning') return <View style={styles.shellRoot}>{content}</View>;
+  if (immersive) return <View style={styles.shellRoot}>{content}</View>;
 
   return (
     <View style={styles.shellRoot}>
@@ -7482,7 +7705,7 @@ function PhoneShell({
         route={route}
       />
       <View style={styles.shellContent}>
-        {usesAccessibilityLayout ? (
+        {usesAccessibilityLayout && activeRoute !== 'learning' ? (
           <ScrollView
             ref={readingScroll}
             contentContainerStyle={styles.shellAccessibleContent}
@@ -7621,6 +7844,7 @@ function PhoneTopBar({
 
 function TabletShell({
   activeRoute,
+  immersive,
   authState,
   content,
   onSelectRoute,
@@ -7628,6 +7852,7 @@ function TabletShell({
   route,
 }: {
   activeRoute: RouteKey;
+  immersive: boolean;
   authState: AuthState;
   content: React.ReactNode;
   onSelectRoute: (route: RouteKey) => void;
@@ -7637,7 +7862,7 @@ function TabletShell({
   const { width } = useWindowDimensions();
   const isNarrowTablet = width < 820;
 
-  if (activeRoute === 'learning') return <View style={styles.shellRoot}>{content}</View>;
+  if (immersive) return <View style={styles.shellRoot}>{content}</View>;
 
   return (
     <View

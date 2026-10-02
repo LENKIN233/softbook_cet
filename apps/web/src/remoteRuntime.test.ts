@@ -29,6 +29,30 @@ import {
 const PHONE = '13800138000';
 
 describe('authenticated Web remote orchestration', () => {
+  it('reads the course home without selecting a session or activating a trial before explicit entry', async () => {
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const loadCatalog = vi.fn(async (_context, track: 'cet4' | 'cet6') => createLearningCatalogFixture(track));
+    const loadSession = vi.fn(async () => createLearningSessionFixture(null));
+    const controller = createWebRemoteRuntimeController({
+      accountBootstrapRepository: {load: async () => createBootstrapFixture(createInitialMembershipState())},
+      authRepository, authSessionCoordinator, learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {loadCatalog, loadSession, continueRound: async () => undefined},
+      mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
+    });
+    await controller.requestSmsCode(PHONE);
+    const home = await controller.verifySmsCode(PHONE, '123456');
+    expect(loadSession).not.toHaveBeenCalled();
+    expect(loadCatalog).toHaveBeenCalledTimes(1);
+    expect(home.learningSession.serverSelection).toBeNull();
+    expect(home.learningSession.cards).toEqual([]);
+    expect(home.membership.stage).toBe('trial_available');
+    await controller.loadLearningHome();
+    expect(loadSession).not.toHaveBeenCalled();
+    await controller.loadAuthenticatedState();
+    expect(loadSession).toHaveBeenCalledTimes(1);
+  });
+
   it('replays pending events before requesting review and preserves an empty review response', async () => {
     const authRepository = createSimpleAuthRepository();
     const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
@@ -43,7 +67,7 @@ describe('authenticated Web remote orchestration', () => {
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {load: async () => createBootstrapFixture(createInitialMembershipState())},
       authRepository, authSessionCoordinator, learningEventSyncRepository: events,
-      learningSessionRepository: {continueRound: async () => undefined, loadSession},
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession},
       mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
     });
     await controller.requestSmsCode(PHONE);
@@ -76,7 +100,7 @@ describe('authenticated Web remote orchestration', () => {
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {load: bootstrapLoad}, authRepository, authSessionCoordinator,
       learningEventSyncRepository: events,
-      learningSessionRepository: {continueRound: async () => undefined, loadSession},
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession},
       mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
     });
     await controller.requestSmsCode(PHONE);
@@ -100,7 +124,7 @@ describe('authenticated Web remote orchestration', () => {
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {load}, authRepository, authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
       mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
     });
     await controller.requestSmsCode(PHONE);
@@ -126,11 +150,12 @@ describe('authenticated Web remote orchestration', () => {
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {load}, authRepository, authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {continueRound: async () => undefined, loadSession},
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession},
       mutationQueueRepository: mutations, playAudio: async () => 'ready', track: 'cet4',
     });
     await controller.requestSmsCode(PHONE);
-    const shown = await controller.verifySmsCode(PHONE, '123456');
+    await controller.verifySmsCode(PHONE, '123456');
+    const shown = await controller.loadAuthenticatedState();
     const newerContent = {...first, content: {...first.content, version: `sha256:${'34'.repeat(32)}`}};
     load.mockResolvedValueOnce(newerContent);
     const selectionsBefore = loadSession.mock.calls.length;
@@ -152,7 +177,7 @@ describe('authenticated Web remote orchestration', () => {
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {load: bootstrapLoad}, authRepository, authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {continueRound: async () => undefined, loadSession},
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession},
       mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', stopAudio, track: 'cet4',
     });
     await controller.requestSmsCode(PHONE);
@@ -179,7 +204,7 @@ describe('authenticated Web remote orchestration', () => {
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {load: async () => createBootstrapFixture(createInitialMembershipState())}, authRepository, authSessionCoordinator,
       learningEventSyncRepository: events,
-      learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
       mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
     });
     await controller.requestSmsCode(PHONE);
@@ -203,7 +228,7 @@ describe('authenticated Web remote orchestration', () => {
       accountBootstrapRepository: {load: async () => createBootstrapFixture(createInitialMembershipState())},
       authRepository, authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture(null)},
       mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4',
     });
     prepare.mockRejectedValueOnce(new Error('version fence write failed'));
@@ -329,7 +354,7 @@ describe('authenticated Web remote orchestration', () => {
         authRepository,
         authSessionCoordinator: createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore(), now: () => new Date('2026-08-29T12:00:00.000Z')}),
         learningEventSyncRepository: createLearningEventSyncRepository({eventsRepository, outbox: new LearningEventOutbox({storage, createDeviceId: () => 'webdevice_reject_test'})}),
-        learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => {const session = createLearningSessionFixture('premium'); return {...session, serverSelection: {...session.serverSelection!, selectionId}};}},
+        learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession: async () => {const session = createLearningSessionFixture('premium'); return {...session, serverSelection: {...session.serverSelection!, selectionId}};}},
         mutationQueueRepository: createMutationRepository([]),
         now: () => new Date('2026-08-29T12:00:00.000Z'), playAudio: async () => 'ready', track: 'cet4',
       });
@@ -337,6 +362,7 @@ describe('authenticated Web remote orchestration', () => {
     const controller = makeController();
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
+    await controller.loadAuthenticatedState();
     const rejected = await controller.completeCurrentCard(createLearningResult());
     expect(rejected).toMatchObject({pendingEventCount: 0, rejectedEventCount: 1, status: 'rejected', completionStatus: 'rejected'});
     expect(submittedIds).toHaveLength(1);
@@ -384,12 +410,13 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator: createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore(), now: () => new Date('2026-08-29T12:00:00.000Z')}),
       learningEventSyncRepository: createLearningEventSyncRepository({eventsRepository, outbox}),
-      learningSessionRepository: {continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture('premium')},
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),continueRound: async () => undefined, loadSession: async () => createLearningSessionFixture('premium')},
       mutationQueueRepository: createMutationRepository([]),
       now: () => new Date('2026-08-29T12:00:00.000Z'), playAudio: async () => 'ready', track: 'cet4',
     });
     await controller.requestSmsCode(PHONE);
-    await controller.verifySmsCode(PHONE,'123456');
+    await controller.verifySmsCode(PHONE, '123456');
+    await controller.loadAuthenticatedState();
     expect(await controller.completeCurrentCard(createLearningResult())).toMatchObject({completionStatus:'rejected'});
     const rejected = await outbox.getRejectedEntries(PHONE);
     expect(rejected).toHaveLength(1);
@@ -491,15 +518,14 @@ describe('authenticated Web remote orchestration', () => {
       authSessionStore: createMemoryOnlyAuthSessionStore(),
       now: () => new Date('2026-08-29T12:00:00.000Z'),
     });
-    let bootstrapLoads = 0;
+    let trialStarted = false;
     const learningSession = createLearningSessionFixture();
     const controller = createWebRemoteRuntimeController({
       accountBootstrapRepository: {
         async load() {
           operations.push('bootstrap');
-          bootstrapLoads += 1;
           return createBootstrapFixture(
-            bootstrapLoads === 1 ? membershipAvailable : membershipTrial,
+            trialStarted ? membershipTrial : membershipAvailable,
           );
         },
       },
@@ -545,10 +571,11 @@ describe('authenticated Web remote orchestration', () => {
           };
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           operations.push('learning-session');
+          trialStarted = true;
           return learningSession;
         },
       },
@@ -561,7 +588,9 @@ describe('authenticated Web remote orchestration', () => {
 
     controller.start();
     await controller.requestSmsCode(PHONE);
-    const snapshot = await controller.verifySmsCode(PHONE, '123456');
+    const home = await controller.verifySmsCode(PHONE, '123456');
+    expect(home.membership).toEqual(membershipAvailable);
+    expect(operations).not.toContain('learning-session');
 
     expect(operations.indexOf('events-replay')).toBeLessThan(
       operations.indexOf('bootstrap'),
@@ -574,9 +603,10 @@ describe('authenticated Web remote orchestration', () => {
       'bootstrap',
       'mutation-hydrate',
       'mutation-replay',
-      'learning-session',
-      'bootstrap',
     ]);
+    operations.length = 0;
+    const snapshot = await controller.loadAuthenticatedState();
+    expect(operations).toEqual(['events-replay', 'bootstrap', 'mutation-hydrate', 'mutation-replay', 'learning-session', 'bootstrap']);
     expect(snapshot.membership).toEqual(membershipTrial);
     expect(snapshot.membership.stage).toBe('trial');
     expect(snapshot.spaceSync).toEqual({
@@ -689,7 +719,7 @@ describe('authenticated Web remote orchestration', () => {
           };
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture('premium');
@@ -769,7 +799,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -811,7 +841,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository: firstAuthRepository,
       authSessionCoordinator: firstAuthCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -858,7 +888,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository: secondAuthRepository,
       authSessionCoordinator: secondAuthCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           throw new Error('local cleanup recovery must not load learning');
@@ -910,7 +940,7 @@ describe('authenticated Web remote orchestration', () => {
           cleanupOperations.push('events-clear');
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -972,7 +1002,7 @@ describe('authenticated Web remote orchestration', () => {
           cleanupOperations.push('events-clear');
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -1012,7 +1042,7 @@ describe('authenticated Web remote orchestration', () => {
         authSessionStore: createMemoryOnlyAuthSessionStore(),
       }),
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           throw new Error('post-crash cleanup must not load learning');
@@ -1081,7 +1111,7 @@ describe('authenticated Web remote orchestration', () => {
         authRepository,
         authSessionCoordinator,
         learningEventSyncRepository: createEmptyEventSyncRepository(),
-        learningSessionRepository: {
+        learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
           continueRound: async () => undefined,
           async loadSession() {
             return createLearningSessionFixture(null);
@@ -1159,7 +1189,7 @@ describe('authenticated Web remote orchestration', () => {
           };
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture('premium');
@@ -1174,6 +1204,7 @@ describe('authenticated Web remote orchestration', () => {
 
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
+    await controller.loadAuthenticatedState();
     networkAvailable = false;
     const result = createLearningResult();
     expect(await controller.completeCurrentCard(result)).toEqual({
@@ -1265,7 +1296,7 @@ describe('authenticated Web remote orchestration', () => {
             fetchImpl: submitLearningEvent,
           }),
         }),
-        learningSessionRepository: {
+        learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
           continueRound: async () => undefined,
           async loadSession() {
             return createLearningSessionFixture('trial');
@@ -1280,7 +1311,8 @@ describe('authenticated Web remote orchestration', () => {
 
       try {
         await controller.requestSmsCode(PHONE);
-        const initial = await controller.verifySmsCode(PHONE, '123456');
+        await controller.verifySmsCode(PHONE, '123456');
+        await controller.loadAuthenticatedState();
         const favoriteSnapshot = await controller.applySpaceState(
           '000001',
           'favorite',
@@ -1307,8 +1339,8 @@ describe('authenticated Web remote orchestration', () => {
           rejectionCodes: [],
           status: 'queued',
         });
-        expect(sleepingSnapshot.learningSession.serverSelection).toEqual(initial.learningSession.serverSelection);
-        expect(sleepingSnapshot.learningSession.cards[0].card_id).toBe('000001');
+        expect(sleepingSnapshot.learningSession.serverSelection).toBeNull();
+        expect(sleepingSnapshot.learningSession.catalogCards[0].card_id).toBe('000001');
         expect(await eventOutbox.getPendingCount(PHONE)).toBe(0);
         expect(submitLearningEvent).not.toHaveBeenCalled();
       } finally {
@@ -1372,7 +1404,7 @@ describe('authenticated Web remote orchestration', () => {
         authRepository,
         authSessionCoordinator,
         learningEventSyncRepository: createEmptyEventSyncRepository(),
-        learningSessionRepository: {
+        learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
           continueRound: async () => undefined,
           async loadSession() {
             return createLearningSessionFixture('trial');
@@ -1515,7 +1547,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture('trial');
@@ -1613,7 +1645,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -1718,7 +1750,7 @@ describe('authenticated Web remote orchestration', () => {
           operations.push(`events-clear:${phoneNumber}`);
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -1845,7 +1877,7 @@ describe('authenticated Web remote orchestration', () => {
           operations.push(`events-clear:${phoneNumber}`);
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           throw new Error('recovery must not load a learning session');
@@ -1964,7 +1996,7 @@ describe('authenticated Web remote orchestration', () => {
           operations.push(`events-clear:${phoneNumber}`);
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           throw new Error('recovery must not load a learning session');
@@ -2047,7 +2079,7 @@ describe('authenticated Web remote orchestration', () => {
         authSessionStore: createMemoryOnlyAuthSessionStore(),
       }),
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         loadSession: async () => createLearningSessionFixture(null),
       },
@@ -2125,7 +2157,7 @@ describe('authenticated Web remote orchestration', () => {
           cleanupOperations.push(`events-clear:${phoneNumber}`);
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         loadSession: async () => createLearningSessionFixture(null),
       },
@@ -2194,7 +2226,7 @@ describe('authenticated Web remote orchestration', () => {
           cleanupOperations.push(`events-clear:${phoneNumber}`);
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         loadSession: async () => createLearningSessionFixture(null),
       },
@@ -2258,7 +2290,7 @@ describe('authenticated Web remote orchestration', () => {
           cleanupOperations.push(`events-clear:${phoneNumber}`);
         },
       },
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -2330,7 +2362,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           throw new Error('stale verification must not load learning');
@@ -2388,7 +2420,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -2455,7 +2487,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -2501,7 +2533,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -2566,7 +2598,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -2640,7 +2672,7 @@ describe('authenticated Web remote orchestration', () => {
       authSessionCoordinator,
       isAccountWriteQuarantined: () => accountWriteQuarantined,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         loadSession: async () => createLearningSessionFixture(null),
       },
@@ -2708,7 +2740,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return learningSession;
@@ -2730,6 +2762,7 @@ describe('authenticated Web remote orchestration', () => {
     controller.start();
     await controller.requestSmsCode(PHONE);
     await controller.verifySmsCode(PHONE, '123456');
+    await controller.loadAuthenticatedState();
     stopAudio.mockClear();
     await expect(controller.playCardAudio(card)).resolves.toBe('ready');
     expect(playAudio).toHaveBeenCalledWith(
@@ -2797,7 +2830,7 @@ describe('authenticated Web remote orchestration', () => {
           authSessionStore: createMemoryOnlyAuthSessionStore(),
         }),
         learningEventSyncRepository: createEmptyEventSyncRepository(),
-        learningSessionRepository: {
+        learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
           continueRound: async () => undefined,
           async loadSession() {
             return createLearningSessionFixture(null);
@@ -2890,7 +2923,7 @@ describe('authenticated Web remote orchestration', () => {
       authRepository,
       authSessionCoordinator,
       learningEventSyncRepository: createEmptyEventSyncRepository(),
-      learningSessionRepository: {
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track),
         continueRound: async () => undefined,
         async loadSession() {
           return createLearningSessionFixture(null);
@@ -3029,6 +3062,11 @@ async function clearCurrentDeletionState(
   });
 }
 
+function createLearningCatalogFixture(track: 'cet4' | 'cet6' = 'cet4'): LearningSession {
+  const session = createLearningSessionFixture(null);
+  return {...session, track, cards: [], catalogCards: session.catalogCards.map(card => ({...card, track})), serverSelection: null, roundCompletion: null};
+}
+
 function createLearningSessionFixture(
   membershipStage: LearningSession['membershipStage'] = 'trial',
 ): LearningSession {
@@ -3105,6 +3143,7 @@ async function createAudioFactoryHarness() {
   };
   const repositorySpy = vi.spyOn(LearningRepositoryModule, 'createRemoteLearningSessionRepository').mockReturnValue({
     continueRound: async () => undefined,
+    loadCatalog: async () => ({...session, cards: [], serverSelection: null, roundCompletion: null, membershipStage: null}),
     loadSession: async () => ({...session, serverSelection: session.serverSelection ? {...session.serverSelection} : null}),
   });
   const bootstrapSpy = vi.spyOn(BootstrapRepositoryModule, 'createAccountBootstrapRepository').mockReturnValue({
@@ -3126,6 +3165,7 @@ async function createAudioFactoryHarness() {
   controller.start();
   await controller.requestSmsCode(PHONE);
   await controller.verifySmsCode(PHONE, '123456');
+  await controller.loadAuthenticatedState();
   return {controller, createSibling, session, audioCard, prepare, play, pause, stop, visibility, cleanup() {
     controller.dispose(); repositorySpy.mockRestore(); bootstrapSpy.mockRestore(); prepare.mockRestore(); visibility.mockRestore();
   }};

@@ -111,6 +111,57 @@ function createRemoteRepository(
   });
 }
 
+test('reading the remote catalog verifies content without selecting a task or starting a trial', async () => {
+  const fixture = createAudioRefreshFixture();
+  const catalog = await fixture.repository.loadCatalog(authenticatedContext, 'cet4');
+  expect(catalog.catalogCards).toHaveLength(localLearningCardRecords.length);
+  expect(catalog).toMatchObject({
+    cards: [], schedulingMode: 'server', serverSelection: null,
+    membershipStage: null, membershipTrialStartedAt: null,
+    roundCompletion: null, contentVersion: CONTENT_VERSION,
+  });
+  expect(catalog.contentManifest).not.toBeNull();
+  expect(fixture.verifySignature).toHaveBeenCalledTimes(1);
+  expect(fixture.fetchMock.mock.calls.map(([url]) => url)).toEqual([
+    'https://example.com/v1/learning/card-source?track=cet4',
+    `https://example.com/v2/content/manifest?track=cet4&content_version=${encodeURIComponent(CONTENT_VERSION)}`,
+  ]);
+});
+
+test('the read-only catalog rejects authorization drift before exposing progress', async () => {
+  const fixture = createAudioRefreshFixture();
+  fixture.manifest.data.access.accessible_card_count -= 1;
+  await expect(fixture.repository.loadCatalog(authenticatedContext, 'cet4')).rejects.toThrow();
+  expect(fixture.fetchMock.mock.calls.some(([url]) => url.includes('/session'))).toBe(false);
+});
+
+test('an unstarted trial reads its metadata prefix with a verified manifest and no audio grant', async () => {
+  const fixture = createAudioRefreshFixture();
+  const metadataCount = Math.ceil(fixture.source.data.card_records.length / 2);
+  fixture.source.data.card_records = fixture.source.data.card_records.slice(0, metadataCount);
+  fixture.manifest.data.access.mode = 'trial_not_started';
+  fixture.manifest.data.access.accessible_card_count = 0;
+  fixture.manifest.data.downloads = [];
+  const catalog = await fixture.repository.loadCatalog(authenticatedContext, 'cet4');
+  expect(catalog.catalogCards).toHaveLength(metadataCount);
+  expect(catalog.contentManifest?.access.mode).toBe('trial_not_started');
+  expect(catalog.contentManifest?.downloads).toEqual([]);
+  expect(catalog.cards).toEqual([]);
+  expect(catalog.membershipStage).toBeNull();
+  expect(fixture.verifySignature).toHaveBeenCalledTimes(1);
+  expect(fixture.fetchMock.mock.calls.some(([url]) => url.includes('/session'))).toBe(false);
+});
+
+test('the local catalog has no active task until a separate learning entry', async () => {
+  const repository = createLearningSessionRepository({mode: 'local'});
+  const catalog = await repository.loadCatalog(authenticatedContext, 'cet4');
+  expect(catalog.cards).toHaveLength(0);
+  expect(catalog.catalogCards.length).toBeGreaterThan(0);
+  const session = await repository.loadSession(authenticatedContext, 'cet4');
+  expect(session.cards.length).toBeGreaterThan(0);
+  expect(session.catalogCards).toEqual(catalog.catalogCards);
+});
+
 test('local learning session repository loads a usable session', async () => {
   const installedClientIdentityProvider = jest.fn(() => ({
     platform: 'ios' as const,

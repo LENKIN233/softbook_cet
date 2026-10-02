@@ -3,7 +3,7 @@ import {StudioPressable as Pressable} from '../learning/NativeMotion';
 import {StudioMark} from '../visual/StudioMark';
 import {StudioRouteIcon} from '../visual/StudioRouteIcon';
 import {STUDIO} from '../visual/studio';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   AppState,
@@ -31,6 +31,8 @@ import {
 import { SpaceSurface, type SpaceSurfaceScreen } from '../space/SpaceSurface';
 import { StatisticsSurface } from '../statistics/StatisticsSurface';
 import { createLearningSessionRepository } from '../learning/learningRepository';
+import {StudyHome} from '../learning/StudyHome';
+import {StudyScene} from '../learning/StudyScene';
 import {
   createLearningCardState,
   selectLockOption,
@@ -82,6 +84,10 @@ export function LocalStudyApp({
   const [libraryAttempt, setLibraryAttempt] = useState(0);
   const [entered, setEntered] = useState(false);
   const [route, setRoute] = useState<Route>('learning');
+  const [learningView, setLearningView] = useState<'home' | 'study'>('home');
+  const [reviewIntent, setReviewIntent] = useState(false);
+  const studySpaceOrigin = useRef<{track: LearningTrack; detailOpen: boolean} | null>(null);
+  const isStudyActive = entered && route === 'learning' && learningView === 'study';
   const [detail, setDetail] = useState(false);
   const [spaceScreen, setSpaceScreen] =
     useState<SpaceSurfaceScreen>('overview');
@@ -126,7 +132,7 @@ export function LocalStudyApp({
     setSession(null);
     setLibraryError('');
     createLearningSessionRepository({ mode: 'local' })
-      .loadSession({ phoneNumber: '00000000000' }, track)
+      .loadCatalog({ phoneNumber: '00000000000' }, track)
       .then(next => {
         if (active) setSession(next);
       })
@@ -191,7 +197,7 @@ export function LocalStudyApp({
       next.checkIns = [old.checked_in_day_key];
     const current =
       old.learning_cursor?.track === track
-        ? session.cards.find(
+        ? session.catalogCards.find(
             card =>
               card.card_id === old.learning_cursor.card_id &&
               !next.sleeping.includes(card.card_id),
@@ -207,7 +213,7 @@ export function LocalStudyApp({
     ]
       .slice(0, 5)
       .map(card => card.card_id);
-    const card = session.cards.find(item => item.card_id === ids[0]);
+    const card = session.catalogCards.find(item => item.card_id === ids[0]);
     next.frame = {
       ...next.frame,
       ids,
@@ -244,14 +250,32 @@ export function LocalStudyApp({
       setBusy(false);
     }
   };
-  const navigate = (next: Route) => {
+  const navigate = useCallback((next: Route) => {
+    setLearningView('home');
+    setReviewIntent(false);
+    studySpaceOrigin.current = null;
     setDetail(false);
     setSpaceScreen('overview');
     setRoute(next);
+  }, []);
+  const openSpaceFromStudy = () => {
+    studySpaceOrigin.current = {track, detailOpen: detail};
+    setRoute('space');
+    setSpaceScreen('overview');
   };
+  const returnFromSpace = useCallback(() => {
+    const origin = studySpaceOrigin.current;
+    if (origin?.track === track) {
+      studySpaceOrigin.current = null;
+      setRoute('learning');
+      setLearningView('study');
+      setDetail(origin.detailOpen);
+      setSpaceScreen('overview');
+    } else navigate('learning');
+  }, [navigate, track]);
   useEffect(() => {
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (detail) {
+      if (isStudyActive && detail) {
         setDetail(false);
         return true;
       }
@@ -260,13 +284,15 @@ export function LocalStudyApp({
         return true;
       }
       if (route !== 'learning') {
+        if (route === 'space') {returnFromSpace(); return true;}
         navigate('learning');
         return true;
       }
+      if (isStudyActive) {setLearningView('home'); return true;}
       return false;
     });
     return () => listener.remove();
-  }, [detail, route, spaceScreen]);
+  }, [detail, isStudyActive, navigate, returnFromSpace, route, spaceScreen]);
   const button = (
     label: string,
     action: () => void,
@@ -442,7 +468,7 @@ export function LocalStudyApp({
               { text: '取消', style: 'cancel' },
               {
                 text: '备份并开始',
-                onPress: () => void perform(study.reset),
+                onPress: () => void perform(async () => {await study.reset(); navigate('learning');}),
               },
             ],
           ),
@@ -555,18 +581,30 @@ export function LocalStudyApp({
     : [];
   const resumeLabel = state?.resume !== null;
   const examLabel = track === 'cet4' ? '英语四级' : '英语六级';
+  const statistics = state ? studyStatistics(state, track, now) : null;
+  const roundProgress = state && state.frame.ids.length > 0 ? {
+    round: Math.max(1, Math.floor((counts.learning + counts.review - state.frame.results.length) / 5) + 1),
+    completed: state.frame.results.length, total: state.frame.ids.length,
+  } : null;
+  const startStudy = () => {
+    if (!state || busy) return;
+    if (reviewIntent) study.dispatch({type: 'review'});
+    setReviewIntent(false);
+    setLearningView('study');
+    studySpaceOrigin.current = null;
+  };
   return (
     <SafeAreaView
       style={[styles.root, { backgroundColor: palette.background }]}
       testID="local-study-root"
     >
       <StatusBar barStyle="dark-content" backgroundColor={palette.background} />
-      <View style={styles.header}>
+      {!isStudyActive ? <View style={styles.header}>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}><StudioMark /><Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.brand, { color: palette.text }]}>软书</Text></View>
         <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={{ color: palette.textMuted }}>
           {examLabel}
         </Text>
-      </View>
+      </View> : null}
       {error || study.notice ? (
         <ScrollView style={styles.notices}>{notices}</ScrollView>
       ) : null}
@@ -575,9 +613,21 @@ export function LocalStudyApp({
           <Text style={{ color: palette.text }}>正在读取学习记录…</Text>
         ) : (
           <>
-            {route === 'learning' ? (
+            {route === 'learning' && learningView === 'home' ? (
+              <StudyHome track={track} todayCount={statistics?.completedCardCount ?? null}
+                reviewCount={pending.length} progress={roundProgress}
+                learnedCount={statistics?.cumulativeLearnedCardCount ?? null} catalogCount={cards.length}
+                resumeKnowledgePoint={hasStudyActivity(state) ? card?.space_metadata.box ?? null : null}
+                canResume={hasStudyActivity(state)} reviewIntent={reviewIntent} notice={null}
+                onStart={startStudy} palette={palette} />
+            ) : route === 'learning' ? (
+              <StudyScene track={track} progress={roundProgress} learnedCount={statistics?.cumulativeLearnedCardCount ?? null}
+                catalogCount={cards.length} onPause={() => setLearningView('home')}
+                onOpenSpace={openSpaceFromStudy} palette={palette}>
+              {
               detail && card && state.frame.draft && state.frame.resolved ? (
                 <LearningResultDetailSurface
+                  immersive
                   card={card}
                   cardState={state.frame.draft}
                   result={state.frame.resolved}
@@ -624,7 +674,7 @@ export function LocalStudyApp({
                       })}
                     </Text>
                   ) : null}
-                  {button('查看卡片', () => navigate('space'))}
+                  {button('查看卡片', openSpaceFromStudy)}
                   {!state.frame.ids.length
                     ? button('重新练习', () =>
                         study.dispatch({ type: 'practice' }),
@@ -633,6 +683,8 @@ export function LocalStudyApp({
                 </ScrollView>
               ) : (
                 <LearningSurface
+                  immersive
+                  showCardProgress={false}
                   palette={palette}
                   sessionCards={sessionCards}
                   sessionLabel="学习"
@@ -718,7 +770,8 @@ export function LocalStudyApp({
                   onAdvanceCard={() => study.dispatch({ type: 'advance' })}
                   onRestartDeck={() => study.dispatch({ type: 'continue' })}
                 />
-              )
+              )}
+              </StudyScene>
             ) : null}
             {route === 'space' ? (
               <SpaceSurface
@@ -732,7 +785,7 @@ export function LocalStudyApp({
                 screen={spaceScreen}
                 onOpenCardList={() => setSpaceScreen('card_list')}
                 onBackToOverview={() => setSpaceScreen('overview')}
-                onReturnToLearning={() => navigate('learning')}
+                onReturnToLearning={returnFromSpace}
                 onToggleFavoriteTag={id =>
                   study.dispatch({ type: 'favorite', id })
                 }
@@ -761,8 +814,8 @@ export function LocalStudyApp({
                 }}
                 onGoToLearning={() => navigate('learning')}
                 onStartReview={() => {
-                  study.dispatch({ type: 'review' });
                   navigate('learning');
+                  setReviewIntent(true);
                 }}
                 syncStatusDetail={study.error || ''}
                 syncStatusLabel={saveLabel}
@@ -798,7 +851,7 @@ export function LocalStudyApp({
           </>
         )}
       </View>
-      <View
+      {!isStudyActive ? <View
         style={[styles.tabs, { borderColor: palette.border }]}
         accessibilityRole="toolbar"
       >
@@ -827,8 +880,8 @@ export function LocalStudyApp({
             <StudioRouteIcon routeKey={value} active={route === value} color={route === value ? STUDIO.color.brandDeep : palette.textMuted} /><Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={{fontSize: 10, color: route === value ? STUDIO.color.brandDeep : palette.textMuted}}>{label}</Text>
           </Pressable>
         ))}
-      </View>
-      {guidance && <FirstLearningGuide guidance={guidance} visible={route === 'learning' && state !== null && session !== null} />}
+      </View> : null}
+      {guidance && <FirstLearningGuide guidance={guidance} visible={isStudyActive && state !== null && session !== null} />}
     </SafeAreaView>
   );
 }

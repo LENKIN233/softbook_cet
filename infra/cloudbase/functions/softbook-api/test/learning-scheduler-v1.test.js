@@ -318,7 +318,7 @@ function eventFor(source, index, overrides = {}) {
 }
 
 for (const track of ['cet4', 'cet6']) {
-  test(`${track} new cards alternate short subject blocks while retaining authored order`, async () => {
+  test(`${track} new cards alternate knowledge points while retaining authored order within each point`, async () => {
     const fixtures = require('./fixtures/interaction-cards')[track];
     const subjects = [fixtures[0], fixtures[1]];
     const records = subjects.flatMap(subject => Array.from({length: 3}, (_, index) => ({
@@ -335,7 +335,7 @@ for (const track of ['cet4', 'cet6']) {
     const {api} = createTestApi({store, developmentCardSource});
     const session = await authenticatedSession(api);
     const before = await store.getCardSource(track);
-    const expected = [records[0], records[1], records[3], records[4], records[2], records[5]];
+    const expected = [records[0], records[3], records[1], records[4], records[2], records[5]];
     for (let index = 0; index < expected.length; index += 1) {
       const selected = await learningSession(api, session, {query: {track}});
       assert.equal(selected.statusCode, 200, JSON.stringify(selected.body));
@@ -358,6 +358,104 @@ for (const track of ['cet4', 'cet6']) {
     const empty = await learningSession(api, session, {query: {track}});
     assert.equal(empty.body.data.selection, null);
     assert.deepEqual(await store.getCardSource(track), before, 'ordering must not mutate source records or content version');
+  });
+}
+
+for (const track of ['cet4', 'cet6']) {
+  function pointFixture() {
+    const library = require('../card-content/index.js')[track];
+    const cards = library.cards;
+    const first = cards[0];
+    const second = cards.find(card => card.space_metadata.library === first.space_metadata.library &&
+      card.space_metadata.box_ref !== first.space_metadata.box_ref);
+    const records = [first, second].flatMap(point => cards.filter(card =>
+      card.space_metadata.box_ref === point.space_metadata.box_ref).slice(0, 2));
+    const developmentCardSource = requestedTrack => validateCardSourceForImport({
+      source: {id: 'knowledge-order-fixture', label: '调度行为夹具'},
+      track: requestedTrack,
+      card_records: requestedTrack === track ? records : require('./fixtures/interaction-cards')[requestedTrack],
+      assets: requestedTrack === track ? library.assets.filter(asset => records.some(card => card.audio?.asset_id === asset.asset_id))
+        .map(({asset_path, ...asset}) => ({...asset, storage_file_id: `cloud://point-fixture.local/${asset.asset_id}.mp3`})) : [],
+      release: null,
+    }, requestedTrack);
+    const store = createMemoryStore({developmentCardSource});
+    const {api, clock} = createTestApi({store, developmentCardSource});
+    return {api, clock, records, store};
+  }
+  async function confirmPointSelection(api, session, selected, sequence, clock) {
+    const source = await cardSource(api, session, track);
+    const index = source.card_records.findIndex(card => card.card_id === selected.card_id);
+    const accepted = await request(api, {
+      headers: {authorization: `Bearer ${session.access_token}`},
+      method: 'POST', path: '/v2/learning/events',
+      body: {schema_version: 'learning-events.v2', track, events: [eventFor(source, index, {
+      event_id: `point_order_${track}_${sequence}`,
+      selection_id: selected.selection_id,
+      phase: selected.phase,
+      client_occurred_at: clock.now().toISOString(),
+      device_cursor: {device_id: `point_order_${track}`, sequence},
+      })]},
+    });
+    assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+  }
+
+  test(`${track} consecutive new cards use different knowledge points even within one subject`, async () => {
+    const {api, clock, records, store} = pointFixture();
+    const session = await authenticatedSession(api);
+    const before = await store.getCardSource(track);
+    for (const [sequence, card] of [records[0], records[2], records[1], records[3]].entries()) {
+      const response = await learningSession(api, session, {query: {track}});
+      assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+      assert.equal(response.body.data.selection.card_id, card.card_id);
+      await confirmPointSelection(api, session, response.body.data.selection, sequence + 1, clock);
+    }
+    assert.deepEqual(await store.getCardSource(track), before, 'presentation order must preserve the exported source');
+  });
+
+  test(`${track} due reviews separate recently repeated knowledge points without changing FSRS due times`, async () => {
+    const {api, clock, records, store} = pointFixture();
+    const session = await authenticatedSession(api);
+    for (let sequence = 1; sequence <= records.length; sequence++) {
+      const response = await learningSession(api, session, {query: {track}});
+      await confirmPointSelection(api, session, response.body.data.selection, sequence, clock);
+    }
+    clock.advanceMinutes(11);
+    const first = await learningSession(api, session, {query: {track}});
+    assert.equal(first.body.data.selection.card_id, records[0].card_id);
+    await confirmPointSelection(api, session, first.body.data.selection, 5, clock);
+    const next = await learningSession(api, session, {query: {track}});
+    assert.equal(next.body.data.selection.phase, 'review');
+    assert.equal(next.body.data.selection.card_id, records[2].card_id);
+    const projection = [...store.snapshot().learningStates.values()].find(value => value.track === track && value.projection_version === 'learning-events.v2');
+    assert.equal(next.body.data.selection.due_at, projection.scheduler_by_card_id[records[2].card_id].card.due);
+    const repeatedRead = await learningSession(api, session, {query: {track}});
+    assert.deepEqual(repeatedRead.body.data.selection, {...next.body.data.selection, reason: 'persisted_cursor'});
+  });
+
+  test(`${track} inserts an available new knowledge point between reviews concentrated in one point`, async () => {
+    const {api, clock, records} = pointFixture();
+    const session = await authenticatedSession(api);
+    const first = await learningSession(api, session, {query: {track}});
+    const source = await cardSource(api, session, track);
+    await submitSpaceActions(api, session, source, records.slice(2).map((card, index) => ({
+      action_id: `point_sleep_${track}_${index}`,
+      card_id: card.card_id, client_occurred_at: clock.now().toISOString(), dimension: 'sleep', value: true,
+    })), track);
+    await confirmPointSelection(api, session, first.body.data.selection, 1, clock);
+    const second = await learningSession(api, session, {query: {track}});
+    assert.equal(second.body.data.selection.card_id, records[1].card_id, 'same-point fallback remains operable when alternatives are asleep');
+    await confirmPointSelection(api, session, second.body.data.selection, 2, clock);
+    await submitSpaceActions(api, session, source, records.slice(2).map((card, index) => ({
+      action_id: `point_wake_${track}_${index}`,
+      card_id: card.card_id, client_occurred_at: clock.now().toISOString(), dimension: 'sleep', value: false,
+    })), track);
+    clock.advanceMinutes(11);
+    const review = await learningSession(api, session, {query: {track}});
+    assert.equal(review.body.data.selection.card_id, records[0].card_id, 'after a break the oldest due work retains priority');
+    await confirmPointSelection(api, session, review.body.data.selection, 3, clock);
+    const varied = await learningSession(api, session, {query: {track}});
+    assert.equal(varied.body.data.selection.card_id, records[2].card_id);
+    assert.equal(varied.body.data.selection.phase, 'learning');
   });
 }
 

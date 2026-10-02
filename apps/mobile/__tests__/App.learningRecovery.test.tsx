@@ -21,9 +21,10 @@ import type {LearningCard, LearningSession} from '../src/learning/model';
 
 const TEST_CONTENT_VERSION = `sha256:${'a'.repeat(64)}`;
 const mockLoadSession = jest.fn();
+const mockLoadCatalog = jest.fn();
 const mockRefreshAudioDownload = jest.fn();
 jest.mock('../src/learning/learningRepository', () => ({
-  createLearningSessionRepository: () => ({loadSession: mockLoadSession, refreshAudioDownload: mockRefreshAudioDownload, continueRound: jest.fn()}),
+  createLearningSessionRepository: () => ({loadSession: mockLoadSession, loadCatalog: mockLoadCatalog, refreshAudioDownload: mockRefreshAudioDownload, continueRound: jest.fn()}),
 }));
 jest.mock('react-native-safe-area-context', () => {
   const mockReact = require('react'); const {View} = require('react-native');
@@ -43,7 +44,15 @@ afterEach(() => {
   jest.restoreAllMocks();
   Object.defineProperty(AppState,'currentState',{value:originalAppState,writable:true,configurable:true});
 });
-beforeEach(() => {mockLoadSession.mockReset();mockRefreshAudioDownload.mockReset();Object.defineProperty(AppState,'currentState',{value:'active',writable:true,configurable:true});});
+beforeEach(() => {
+  mockLoadSession.mockReset();mockLoadCatalog.mockReset();mockRefreshAudioDownload.mockReset();
+  mockLoadCatalog.mockImplementation(async (context, track) => {
+    const session = await mockLoadSession.getMockImplementation()!(context, track);
+    return {...session, cards: [], serverSelection: null, roundCompletion: null, membershipStage: null,
+      membershipTrialStartedAt: null, membershipTrialExpiresAt: null, membershipTrialRemainingSeconds: 0};
+  });
+  Object.defineProperty(AppState,'currentState',{value:'active',writable:true,configurable:true});
+});
 
 async function settle() {
   for(let i=0;i<8;i++) await act(async()=>{await new Promise(resolve=>setTimeout(resolve,0));});
@@ -57,6 +66,10 @@ async function press(root:ReactTestRenderer.ReactTestInstance,id:string) {
     await act(async()=>{root.findByProps({testID:'learning-help-button'}).props.onPress();await Promise.resolve();});
   }
   await act(async()=>{root.findByProps({testID:id}).props.onPress();await Promise.resolve();});
+  if (id === 'route-tab-learning') {
+    await settle();
+    await press(root, 'learning-home-start-button');
+  }
 }
 async function login() {
   let tree!:ReactTestRenderer.ReactTestRenderer;
@@ -66,6 +79,8 @@ async function login() {
   await press(root,'auth-request-code-button'); await settle();
   await act(()=>root.findByProps({testID:'auth-code-input'}).props.onChangeText('2468'));
   await press(root,'auth-submit-button'); await settle();
+  expect(root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+  await press(root, 'learning-home-start-button'); await settle();
   return {tree,root};
 }
 async function inspectSpace(root:ReactTestRenderer.ReactTestInstance) {
@@ -475,7 +490,7 @@ test('renews audio only for the exact current attempt and passes a live scope gu
   expect(mockRefreshAudioDownload).toHaveBeenCalledTimes(1);
 });
 
-test('drops a pending audio renewal after leaving the learning attempt',async()=>{
+test.each(['route-tab-space', 'learning-pause-button'])('drops a pending audio renewal after leaving the learning attempt through %s',async exit=>{
   const runtime=createRuntime();runtime.addAudio();const {root}=await login();
   const selection=audioSelection(root);
   let resolveDownload!:(download:LearningAudioSelection['download'])=>void;
@@ -483,7 +498,7 @@ test('drops a pending audio renewal after leaving the learning attempt',async()=
   const refresh=root.findByType(LearningSurface).props.refreshAudioDownload as RefreshLearningAudioDownload;
   const pending=refresh(selection);
   const rejection=pending.catch(error=>error);
-  await press(root,'route-tab-space');
+  await press(root,exit);
   expect(mockRefreshAudioDownload.mock.calls[0][3].isCurrent()).toBe(false);
   resolveDownload({...selection.download,expires_at:'2099-09-12T00:00:00.000Z'});
   expect(await rejection).toMatchObject({reason:'caller_cancelled'});

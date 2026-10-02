@@ -20,6 +20,16 @@ name: prepare-reading-device
     id: local-start-learning-button
 - extendedWaitUntil:
     visible:
+      id: learning-home-start-button
+    timeout: 60000
+- assertVisible:
+    id: learning-study-home
+- assertNotVisible:
+    id: learning-current-card
+- tapOn:
+    id: learning-home-start-button
+- extendedWaitUntil:
+    visible:
       id: first-learning-guide-start
     timeout: 60000
 - tapOn:

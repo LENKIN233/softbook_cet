@@ -153,6 +153,15 @@ export type WebLearningCompletionSync = WebRemoteSnapshot['learningSync'] & {
   completionStatus?: 'confirmed' | 'queued' | 'rejected';
 };
 
+export function canResumeLearningTask(session: LearningSession | null, catalog: LearningSession, membership: WebRemoteSnapshot['membership']) {
+  if (session === null || session.track !== catalog.track || session.sourceId !== catalog.sourceId || session.contentVersion !== catalog.contentVersion) return false;
+  const availableIds = new Set(catalog.catalogCards.map(card => card.card_id));
+  if (session.serverSelection && (!availableIds.has(session.serverSelection.cardId) ||
+    session.serverSelection.phase === 'review' && !resolveMembershipAccess(membership).completeAlgorithm)) return false;
+  if (session.roundCompletion && ![session.roundCompletion.spaceCardId, ...session.roundCompletion.reviewCardIds].every(id => availableIds.has(id))) return false;
+  return true;
+}
+
 export type WebAccountPresentationInvalidation = {
   reason?: 'authorization_invalidated';
   source: 'external_epoch' | 'session_authority';
@@ -218,6 +227,7 @@ export type WebRemoteRuntimeController = {
   continueServerRound: () => Promise<WebRemoteSnapshot>;
   dispose: () => void;
   isAuthenticated: () => boolean;
+  loadLearningHome: () => Promise<WebRemoteSnapshot>;
   loadAuthenticatedState: () => Promise<WebRemoteSnapshot>;
   requestReview: () => Promise<WebRemoteSnapshot>;
   refreshStatistics: () => Promise<Pick<WebRemoteSnapshot, 'bootstrap' | 'checkInSync'>>;
@@ -1443,7 +1453,7 @@ export function createWebRemoteRuntimeController(
     return nextBootstrapGeneration;
   };
 
-  const loadAuthenticatedState = async (requestTrack = activeTrack, sessionOptions?: {intent: 'review'}, beforeTrackCommit?: (snapshot: WebRemoteSnapshot) => void): Promise<WebRemoteSnapshot> => {
+  const loadAuthenticatedState = async (requestTrack = activeTrack, sessionOptions?: {intent: 'review'}, beforeTrackCommit?: (snapshot: WebRemoteSnapshot) => void, homeOnly = false): Promise<WebRemoteSnapshot> => {
     const context = await requireAuthenticatedContext();
     const requestSessionScopeKey = getAuthSessionScopeKey(
       dependencies.authSessionCoordinator.getCurrentSession(),
@@ -1548,7 +1558,7 @@ export function createWebRemoteRuntimeController(
       }
     }
 
-    const learningSession = sessionOptions
+    const learningSession = homeOnly ? await dependencies.learningSessionRepository.loadCatalog(context, requestTrack) : sessionOptions
       ? await dependencies.learningSessionRepository.loadSession(context, requestTrack, sessionOptions)
       : await dependencies.learningSessionRepository.loadSession(context, requestTrack);
     if (
@@ -1567,6 +1577,7 @@ export function createWebRemoteRuntimeController(
     const hydrated = resolveAccountBootstrapLearningState(
       bootstrap,
       learningSession,
+      {catalogOnly: homeOnly},
     );
     const pendingSpaceActions =
       await dependencies.mutationQueueRepository.getPendingSpaceActions(
@@ -1601,7 +1612,6 @@ export function createWebRemoteRuntimeController(
       .filter(([, state]) => state.isSleeping)
       .map(([cardId]) => cardId);
 
-    const nextSelectionId = learningSession.serverSelection?.selectionId ?? null;
     const rejectedLearningEvents = await dependencies.learningEventSyncRepository.getRejectedEntries(context.phoneNumber);
     const nextSnapshot: WebRemoteSnapshot = {
       bootstrap,
@@ -1653,9 +1663,14 @@ export function createWebRemoteRuntimeController(
         // A device preference must be durable before changing the active
         // controller track. Failure keeps the current track and UI coherent.
         beforeTrackCommit?.(nextSnapshot);
+        // A home read updates the catalog and account without consuming the
+        // selected task or its durable completion receipt.
+        const retainsTask = homeOnly && presentedSessionScopeKey === requestSessionScopeKey &&
+          canResumeLearningTask(currentLearningSession, learningSession, bootstrap.membership.state);
+        const effectiveSession: LearningSession = retainsTask ? {...currentLearningSession!, catalogCards: learningSession.catalogCards} : learningSession;
         const previousCardId =
           currentLearningSession?.cards[0]?.card_id ?? null;
-        const nextCardId = learningSession.cards[0]?.card_id ?? null;
+        const nextCardId = effectiveSession.cards[0]?.card_id ?? null;
         const previousSelectionId =
           currentLearningSession?.serverSelection?.selectionId ?? null;
         const previousContentVersion =
@@ -1663,19 +1678,19 @@ export function createWebRemoteRuntimeController(
         if (
           previousCardId !== null &&
           (previousCardId !== nextCardId ||
-            previousSelectionId !== nextSelectionId ||
+            previousSelectionId !== effectiveSession.serverSelection?.selectionId ||
             previousContentVersion !== learningSession.contentVersion)
         ) {
           dependencies.stopAudio?.();
         }
         activeTrack = requestTrack;
         currentBootstrap = bootstrap;
-        currentLearningSession = learningSession;
+        currentLearningSession = effectiveSession;
         presentedSessionScopeKey = requestSessionScopeKey;
         reconciledLearningCompletionRevision = requestLearningCompletionRevision;
         if (
           persistedSelectionId !== null &&
-          (nextSelectionId !== persistedSelectionId ||
+          ((effectiveSession.serverSelection?.selectionId ?? null) !== persistedSelectionId ||
             rejectedLearningEvents.some(entry =>
               entry.entry.event.event_id === persistedLearningEventId,
             ))
@@ -1750,7 +1765,7 @@ export function createWebRemoteRuntimeController(
         },
         action.actionId,
       );
-      return loadAuthenticatedState();
+      return loadAuthenticatedState(activeTrack, undefined, undefined, true);
     },
 
     async cleanupInvalidatedSession() {
@@ -1783,7 +1798,7 @@ export function createWebRemoteRuntimeController(
     },
 
     async checkInToday() {
-      let snapshot = await loadAuthenticatedState();
+      let snapshot = await loadAuthenticatedState(activeTrack, undefined, undefined, true);
       const context = await requireAuthenticatedContext();
       if (snapshot.bootstrap.progress.snapshot.totalCompletedCount < 1) {
         throw new Error('完成至少一张学习卡后再记录今天。');
@@ -1804,7 +1819,7 @@ export function createWebRemoteRuntimeController(
           `check-in:${context.phoneNumber}:${dayKey}`,
         );
       }
-      snapshot = await loadAuthenticatedState();
+      snapshot = await loadAuthenticatedState(activeTrack, undefined, undefined, true);
       return snapshot;
     },
 
@@ -1941,6 +1956,7 @@ export function createWebRemoteRuntimeController(
     },
 
     loadAuthenticatedState: () => loadAuthenticatedState(),
+    loadLearningHome: () => loadAuthenticatedState(activeTrack, undefined, undefined, true),
     requestReview: () => loadAuthenticatedState(activeTrack, {intent: 'review'}),
 
     async switchTrack(track, beforeCommit) {
@@ -1949,13 +1965,13 @@ export function createWebRemoteRuntimeController(
       trackSwitchInFlight = true;
       try {
         // Reconcile the current track before changing which content owns the screen.
-        const current = await loadAuthenticatedState();
+        const current = await loadAuthenticatedState(activeTrack, undefined, undefined, true);
         if (current.learningSync.pendingEventCount > 0 || current.spaceSync.pendingActionCount > 0 || current.checkInSync.pending) {
           throw new Error('还有记录等待同步，请联网同步后再切换。');
         }
         if (track === activeTrack) {beforeCommit?.(current); return current;}
         dependencies.stopAudio?.();
-        return await loadAuthenticatedState(track, undefined, beforeCommit);
+        return await loadAuthenticatedState(track, undefined, beforeCommit, true);
       } finally {
         trackSwitchInFlight = false;
       }
@@ -2326,7 +2342,7 @@ export function createWebRemoteRuntimeController(
       challenge = null;
       challengeDeletionRevision = null;
       try {
-        return await loadAuthenticatedState();
+        return await loadAuthenticatedState(activeTrack, undefined, undefined, true);
       } catch (error) {
         let accountAuthorityChanged = error instanceof WebAccountEpochError;
         if (!accountAuthorityChanged) {

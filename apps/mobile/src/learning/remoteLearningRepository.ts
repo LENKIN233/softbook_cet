@@ -32,6 +32,41 @@ export function createRemoteLearningSessionRepository(
   }
 
   return {
+    loadCatalog: async (context, track) => {
+      if (!config.remoteConfig || !config.contentManifestConfig) {
+        throw new Error('Remote catalog requires card-source and content-manifest configs.');
+      }
+      const fetchImpl = config.fetchImpl ?? fetch;
+      const source = await loadRemoteLearningCardSource(context, track, config.remoteConfig, fetchImpl);
+      if (source.contentVersion === null) {
+        throw new Error('Remote catalog has no canonical content version.');
+      }
+      const contentManifest = await loadContentManifestForSession({
+        cards: source.cards,
+        config: config.contentManifestConfig,
+        contentVersion: source.contentVersion,
+        context,
+        fetchImpl,
+        track,
+      });
+      return {
+        cards: [],
+        catalogCards: source.cards,
+        contentManifest,
+        contentVersion: source.contentVersion,
+        membershipStage: null,
+        membershipTrialExpiresAt: null,
+        membershipTrialRemainingSeconds: 0,
+        membershipTrialStartedAt: null,
+        nextDueAt: null,
+        roundCompletion: null,
+        schedulingMode: 'server',
+        serverSelection: null,
+        sourceId: source.sourceId,
+        sourceLabel: source.sourceLabel,
+        track: source.track,
+      };
+    },
     refreshAudioDownload: async (context, session, assetId, options) => {
       const assertCurrent = () => {
         if (options?.isCurrent?.() === false) throw new RemoteRequestLifecycleError('session_superseded');
@@ -237,7 +272,7 @@ async function loadContentManifestForSession(options: {
   contentVersion: string;
   context: LearningSessionRepositoryContext;
   fetchImpl: FetchLike;
-  scheduled: Awaited<ReturnType<typeof loadRemoteLearningSession>>;
+  scheduled?: Awaited<ReturnType<typeof loadRemoteLearningSession>>;
   track: LearningTrack;
 }): Promise<VerifiedContentManifest | null> {
   if (options.config.mode === 'disabled') {
@@ -260,21 +295,22 @@ async function loadContentManifestForSession(options: {
     track: options.track,
     verifySignature: options.config.verifySignature,
   });
-  const expectedMode = options.scheduled.access.mode;
-  if (
-    manifest.access.mode !== expectedMode ||
-    manifest.access.accessible_card_count !==
-      options.scheduled.access.accessibleCardCount ||
-    manifest.access.total_card_count !==
-      options.scheduled.access.totalCardCount
-  ) {
+  const scheduledAccess = options.scheduled?.access;
+  const unstartedCatalog = !scheduledAccess && manifest.access.mode === 'trial_not_started';
+  const expectedSourceCount = unstartedCatalog ? Math.ceil(manifest.access.total_card_count * 0.5) : manifest.access.accessible_card_count;
+  if (expectedSourceCount !== options.cards.length || (scheduledAccess && (
+    manifest.access.mode !== scheduledAccess.mode ||
+    manifest.access.accessible_card_count !== scheduledAccess.accessibleCardCount ||
+    manifest.access.total_card_count !== scheduledAccess.totalCardCount
+  ))) {
     throw new Error(
       'Content manifest access does not match the canonical learning session.',
     );
   }
   assertContentManifestMatchesCards(manifest, options.cards, {
     cardsAreAccessiblePrefix: true,
-    totalCardCount: options.scheduled.access.totalCardCount,
+    metadataOnly: !scheduledAccess,
+    totalCardCount: scheduledAccess?.totalCardCount ?? manifest.access.total_card_count,
   });
 
   return manifest;
