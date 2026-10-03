@@ -2,6 +2,7 @@ import {ScaledText as Text} from '../visual/ScaledText';
 import React, {useState} from 'react';
 import {ScrollView, StyleSheet, View} from 'react-native';
 import {StudioPressable as Pressable} from '../learning/NativeMotion';
+import {StudioActionLabel} from '../visual/StudioActionLabel';
 import type {TrackStudyStatistics} from './trackStudyStatistics';
 
 type StatisticsPalette = {
@@ -62,19 +63,19 @@ export function StatisticsSurface({statistics, track, canCheckInToday,
     </View>}
     <Pressable accessibilityRole="button" testID="statistics-go-learning-button" onPress={onGoToLearning}
       style={[styles.primary, {backgroundColor: palette.primaryActionSurface}]}>
-      <Text style={[styles.buttonLabel, {color: palette.primaryActionText}]}>继续学习</Text>
+      <StudioActionLabel icon="play" color={palette.primaryActionText} size={22} textStyle={styles.buttonLabel}>继续学习</StudioActionLabel>
     </Pressable>
     <Pressable accessibilityRole="button" accessibilityState={{expanded: showExplanation}}
-      testID="statistics-explanation-toggle" onPress={() => setShowExplanation(value => !value)} style={styles.textButton}>
-      <Text style={[styles.detail, {color: palette.textMuted}]}>{showExplanation ? '收起统计说明' : '如何统计'}</Text>
+      testID="statistics-explanation-toggle" onPress={() => setShowExplanation(value => !value)} style={[styles.textButton, {backgroundColor: palette.panelStrong, borderColor: palette.border}]}>
+      <StudioActionLabel icon={showExplanation ? 'chevronUp' : 'info'} color={palette.text} textStyle={styles.buttonLabel}>{showExplanation ? '收起统计说明' : '如何统计'}</StudioActionLabel>
     </Pressable>
     {showExplanation ? <Text style={[styles.explanation, {color: palette.textMuted}]} testID="statistics-explanation">
       完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。
     </Text> : null}
     {pendingReviewCount > 0 && onStartReview ? <View style={styles.reviewEntry}>
       <Text style={[styles.detail, {color: palette.textMuted}]}>有 {pendingReviewCount} 张卡需要再练。</Text>
-      <Pressable accessibilityRole="button" testID="statistics-start-review-button" onPress={onStartReview} style={styles.textButton}>
-        <Text style={[styles.detail, {color: palette.accentStrong}]}>开始复习</Text>
+      <Pressable accessibilityRole="button" testID="statistics-start-review-button" onPress={onStartReview} style={[styles.textButton, {backgroundColor: palette.accentSoft, borderColor: palette.accent}]}>
+        <StudioActionLabel icon="refresh" color={palette.text} textStyle={styles.buttonLabel}>开始复习</StudioActionLabel>
       </Pressable>
     </View> : null}
     <View testID="statistics-checkin-card" style={[styles.checkIn, {borderColor: palette.border}]}>
@@ -85,8 +86,11 @@ export function StatisticsSurface({statistics, track, canCheckInToday,
         </Text>
       </View>
       <Pressable accessibilityRole="button" testID="statistics-checkin-button" disabled={!canCheckInToday || hasCheckedInToday}
-        onPress={onCheckIn} style={[styles.secondary, {borderColor: palette.border}]}>
-        <Text style={[styles.buttonLabel, {color: palette.textMuted}]} testID={hasCheckedInToday ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>{hasCheckedInToday ? '今日已签到' : '签到'}</Text>
+        accessibilityState={{disabled: !canCheckInToday || hasCheckedInToday}}
+        onPress={onCheckIn} style={[styles.secondary, {borderColor: canCheckInToday && !hasCheckedInToday ? palette.accent : palette.border,
+          backgroundColor: hasCheckedInToday ? palette.panelStrong : canCheckInToday ? palette.accentSoft : palette.panel}]}>
+        <StudioActionLabel icon={hasCheckedInToday ? 'checkCircle' : 'calendar'} color={hasCheckedInToday ? palette.success : canCheckInToday ? palette.text : palette.textMuted}
+          textStyle={styles.buttonLabel} textTestID={hasCheckedInToday ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>{hasCheckedInToday ? '今日已签到' : '签到'}</StudioActionLabel>
       </Pressable>
     </View>
     {hasSyncNotice ? <View testID="statistics-status-ledger">
@@ -112,9 +116,9 @@ const styles = StyleSheet.create({
   cumulativeValue: {fontSize: 21, lineHeight: 28, fontWeight: '500'},
   primary: {minHeight: 50, padding: 14, borderRadius: 16, alignItems: 'center', justifyContent: 'center'},
   buttonLabel: {fontSize: 15, fontWeight: '600', lineHeight: 22},
-  textButton: {minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start'},
+  textButton: {minHeight: 48, maxWidth: '100%', justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderRadius: 12},
   explanation: {fontSize: 13, lineHeight: 22},
-  checkIn: {flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 18},
-  checkInCopy: {flex: 1, gap: 6},
-  secondary: {minHeight: 44, padding: 12, borderWidth: 1, borderRadius: 12, justifyContent: 'center'},
+  checkIn: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 18},
+  checkInCopy: {flexGrow: 1, flexBasis: 180, gap: 6},
+  secondary: {minHeight: 48, maxWidth: '100%', padding: 12, borderWidth: 1, borderRadius: 12, justifyContent: 'center'},
 });

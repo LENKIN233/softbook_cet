@@ -2,6 +2,7 @@ import React from 'react';
 import {ScrollView, StyleSheet, View, useWindowDimensions} from 'react-native';
 import {ScaledText as Text} from '../visual/ScaledText';
 import {STUDIO} from '../visual/studio';
+import {StudioActionLabel} from '../visual/StudioActionLabel';
 import {StudioPressable as Pressable} from './NativeMotion';
 import type {LearningTrack} from './model';
 import type {LearningSurfacePalette} from './LearningSurface';
@@ -61,7 +62,7 @@ export function StudyHome({track, todayCount, reviewCount, progress, learnedCoun
       </View>
       {notice ? <Text accessibilityLiveRegion="polite" style={[styles.notice, {color: palette.textMuted}]} testID={noticeTestID}>{notice}</Text> : null}
       <Pressable accessibilityRole="button" onPress={onStart} style={[styles.start, {backgroundColor: STUDIO.color.brand}]} testID="learning-home-start-button">
-        <Text style={styles.startLabel}>{reviewIntent ? '开始复习' : canResume ? '继续学习' : '开始学习'}</Text>
+        <StudioActionLabel icon={reviewIntent ? 'refresh' : 'play'} color="#FFFFFF" size={22} textStyle={styles.startLabel}>{reviewIntent ? '开始复习' : canResume ? '继续学习' : '开始学习'}</StudioActionLabel>
       </Pressable>
       {todayCount === null || reviewCount === null ? <Text style={[styles.unavailable, {color: palette.textMuted}]}>部分学习记录暂未读取</Text> : null}
     </View>

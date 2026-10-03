@@ -16,7 +16,7 @@ const otherLibrary = card('010001', '仔细阅读', '定位词抓取', '题干�
 const props = (): SpaceSurfaceProps => ({busy: false, cards: [first, current, neighbor, otherLibrary], canMutate: true, currentCardId: current.card_id, pendingReviewIds: [neighbor.card_id], favorites: [otherLibrary.card_id], sleeping: [], membership: createInitialMembershipState(), onFavorite: vi.fn(), onSleep: vi.fn(), onReturn: vi.fn(), statusMessage: '', syncStatus: '已同步'});
 afterEach(cleanup);
 function tray() {return screen.getByRole('region', {name: /^当前卡盒/});}
-function browse() {fireEvent.click(screen.getByText('浏览全部卡盒', {selector: 'summary'}));}
+function browse() {fireEvent.click(screen.getByText('浏览全部卡盒').closest('summary')!);}
 
 describe('current task first Space', () => {
   it('starts on the actual current card within its box and leaves full navigation collapsed', () => {

@@ -3,6 +3,10 @@ import {StudioPressable as Pressable} from '../learning/NativeMotion';
 import {StudioMark} from '../visual/StudioMark';
 import {StudioRouteIcon} from '../visual/StudioRouteIcon';
 import {STUDIO} from '../visual/studio';
+import {StudioIcon} from '../visual/StudioIcon';
+import {StudioActionLabel} from '../visual/StudioActionLabel';
+import {ScaledText as Text} from '../visual/ScaledText';
+import {CoursePicker} from '../learning/CoursePicker';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -12,7 +16,6 @@ import {
   Share,
   StatusBar,
   StyleSheet,
-  Text,
   TextInput,
   useWindowDimensions,
   View,
@@ -84,6 +87,7 @@ export function LocalStudyApp({
   const [libraryAttempt, setLibraryAttempt] = useState(0);
   const [entered, setEntered] = useState(false);
   const [route, setRoute] = useState<Route>('learning');
+  const [coursePickerVisible, setCoursePickerVisible] = useState(false);
   const [learningView, setLearningView] = useState<'home' | 'study'>('home');
   const [reviewIntent, setReviewIntent] = useState(false);
   const studySpaceOrigin = useRef<{track: LearningTrack; detailOpen: boolean} | null>(null);
@@ -100,9 +104,11 @@ export function LocalStudyApp({
     | null
   >(null);
   const { width, height, fontScale } = useWindowDimensions();
+  const compactHeader = width < 360 || fontScale > 1.3;
   const deviceClass = Math.min(width, height) >= 600 ? 'tablet' : 'phone';
   const { now, day, refresh } = useChinaDay();
   const hasGuidance = guidance !== undefined;
+  useEffect(() => {setCoursePickerVisible(false);}, [track]);
   useEffect(() => {
     if (hasGuidance) {setTrackReady(true); return;}
     let active = true;
@@ -315,11 +321,12 @@ export function LocalStudyApp({
         },
       ]}
     >
-      <Text
-        style={{ color: primary ? palette.primaryActionText : palette.text }}
-      >
-        {label}
-      </Text>
+      <StudioActionLabel icon={label === '移除本机备份' ? 'trash' : label === '知道了' ? 'check'
+        : label === '返回首页' ? 'home' : label.startsWith('重试') || label.startsWith('重新加载') || label.startsWith('恢复') || label.startsWith('读取') ? 'refresh'
+        : id?.includes('logout') ? 'logout' : id?.includes('reset') ? 'refresh'
+        : id?.includes('backup') || label.includes('备份') ? 'folder'
+        : id?.includes('review') ? 'refresh' : primary ? 'play' : 'chevronRight'}
+        color={primary ? palette.primaryActionText : palette.text} textStyle={styles.buttonLabel}>{label}</StudioActionLabel>
     </Pressable>
   );
   const chooseTrack = (next: LearningTrack) => {
@@ -333,7 +340,7 @@ export function LocalStudyApp({
     });
   };
   const trackPicker = (
-    <View style={styles.row} accessibilityRole="toolbar">
+    <View style={[styles.trackSegments, {backgroundColor: palette.panelStrong, borderColor: palette.border}]} accessibilityRole="toolbar">
       {(['cet4', 'cet6'] as const).map(value => (
         <Pressable
           key={value}
@@ -345,16 +352,18 @@ export function LocalStudyApp({
           testID={`local-track-${value}`}
           style={[
             styles.button,
+            styles.trackOption,
             {
               backgroundColor:
-                track === value ? palette.accentSoft : palette.panel,
-              borderColor: palette.border,
+                track === value ? STUDIO.color.brand : palette.panel,
+              borderColor: track === value ? STUDIO.color.brand : palette.border,
             },
           ]}
         >
-          <Text style={{ color: palette.text }}>
+          <StudioActionLabel icon={track === value ? 'checkCircle' : 'book'} color={track === value ? '#FFFFFF' : palette.text}
+            textStyle={[styles.buttonLabel, track === value ? {fontWeight: '700'} : null]}>
             {value === 'cet4' ? '英语四级' : '英语六级'}
-          </Text>
+          </StudioActionLabel>
         </Pressable>
       ))}
     </View>
@@ -600,10 +609,20 @@ export function LocalStudyApp({
     >
       <StatusBar barStyle="dark-content" backgroundColor={palette.background} />
       {!isStudyActive ? <View style={styles.header}>
-        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}><StudioMark /><Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.brand, { color: palette.text }]}>软书</Text></View>
-        <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={{ color: palette.textMuted }}>
-          {examLabel}
-        </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: 10}}><StudioMark />{!compactHeader ? <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.brand, { color: palette.text }]}>软书</Text> : null}</View>
+        <View style={styles.headerControls}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`备考科目，${examLabel}，切换科目`}
+            accessibilityState={{expanded: coursePickerVisible}} onPress={() => setCoursePickerVisible(true)}
+            style={[styles.headerButton, {backgroundColor: palette.panelStrong, borderColor: palette.border}]} testID="shell-course-picker-button">
+            <StudioActionLabel icon="book" color={palette.text} textStyle={styles.headerLabel} maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}>{track === 'cet6' ? '六级' : '四级'}</StudioActionLabel>
+            <StudioIcon name="chevronDown" color={palette.textMuted} size={16} />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="我的，本地学习设置" onPress={() => navigate('mine')}
+            style={[styles.headerButton, {backgroundColor: palette.panelStrong, borderColor: palette.border}]} testID="shell-account-chip">
+            <StudioIcon name="user" color={palette.text} size={22} />
+            {!compactHeader ? <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.headerLabel, {color: palette.text}]}>我的</Text> : null}
+          </Pressable>
+        </View>
       </View> : null}
       {error || study.notice ? (
         <ScrollView style={styles.notices}>{notices}</ScrollView>
@@ -882,6 +901,9 @@ export function LocalStudyApp({
         ))}
       </View> : null}
       {guidance && <FirstLearningGuide guidance={guidance} visible={isStudyActive && state !== null && session !== null} />}
+      <CoursePicker visible={coursePickerVisible} track={track} busy={busy} disabled={busy}
+        error={actionError} palette={palette} onClose={() => setCoursePickerVisible(false)}
+        onChoose={next => {if (next === track) setCoursePickerVisible(false); else chooseTrack(next);}} />
     </SafeAreaView>
   );
 }
@@ -899,6 +921,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  trackSegments: {flexDirection: 'row', flexWrap: 'wrap', borderWidth: 1, borderRadius: 18, padding: 6, gap: 6},
+  trackOption: {flexGrow: 1, flexBasis: 120},
+  headerControls: {flexDirection: 'row', alignItems: 'center', gap: 8},
+  headerButton: {minHeight: 48, minWidth: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 10, borderWidth: 1, borderRadius: 14},
+  headerLabel: {fontSize: 13, lineHeight: 20, fontWeight: '600'},
+  buttonLabel: {fontSize: 14, lineHeight: 22, fontWeight: '600'},
   stack: { gap: 8 },
   button: {
     minHeight: 48,

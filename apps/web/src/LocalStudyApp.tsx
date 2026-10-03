@@ -1,6 +1,8 @@
 import {LearningSceneNavigation} from './LearningSceneNavigation';
 import {LearningHome} from './LearningHome';
 import {StudioMark} from './StudioMark';
+import {StudioIcon, IconLabel} from './StudioIcon';
+import {CourseSwitch} from './CourseSwitch';
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   LearningSession,
@@ -180,10 +182,10 @@ export function LocalStudyApp({
         disabled={busy || !session}
         onClick={() => void perform(backup)}
       >
-        导出学习备份
+        <IconLabel name="shield">导出学习备份</IconLabel>
       </button>
       <label className="text-button import-backup">
-        导入学习备份
+        <IconLabel name="folder">导入学习备份</IconLabel>
         <input
           type="file"
           aria-label="导入学习备份"
@@ -202,7 +204,7 @@ export function LocalStudyApp({
         disabled={busy || !session}
         onClick={() => void perform(inspectBackups)}
       >
-        查看已有备份
+        <IconLabel name="folder">查看已有备份</IconLabel>
       </button>
       {backupInfo ? (
         <ul aria-label="已有备份">
@@ -258,7 +260,7 @@ export function LocalStudyApp({
             void perform(profile.reset);
         }}
       >
-        备份后重新开始
+        <IconLabel name="refresh">备份后重新开始</IconLabel>
       </button>
     </div>
   );
@@ -273,7 +275,7 @@ export function LocalStudyApp({
           disabled={busy}
           onClick={() => chooseTrack(value)}
         >
-          {value === "cet4" ? "英语四级" : "英语六级"}
+          <IconLabel name="book">{value === "cet4" ? "英语四级" : "英语六级"}</IconLabel>{track === value ? <StudioIcon name="checkCircle" /> : null}
         </button>
       ))}
     </div>
@@ -357,7 +359,7 @@ export function LocalStudyApp({
         overall={{learned: profile.savedState ? studyStatistics(profile.savedState, track, now)?.cumulativeLearnedCardCount ?? null : null, total: cards.length || null, loading: profile.status === 'saving'}}
         onExit={() => {audio.current?.stop(); setEntered(false); setSpaceSceneReturn(false);}} onOpenSpace={() => {audio.current?.stop(); setSpaceSceneReturn(true); setRoute('space');}}
       /> : <>
-      <header className="mobile-header"><div className="brand-lockup"><span className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div><button className="course-switch" aria-label="选择备考科目" onClick={() => {setEntered(false);setRoute("mine");}}>CET {track === "cet6" ? "6" : "4"} ⌄</button></header>
+      <header className="mobile-header"><div className="brand-lockup"><span className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div><div className="header-controls"><CourseSwitch track={track} disabled={busy} onSelect={chooseTrack} /><button className="header-profile" aria-label="本地学习设置" onClick={() => {setEntered(false);setRoute("mine");}}><StudioIcon name="user" size={24} /></button></div></header>
       <nav className="route-rail" aria-label="主要导航">
         <div className="rail-brand wordmark">软书四六级</div>
         <div className="route-list">
@@ -382,7 +384,7 @@ export function LocalStudyApp({
                 window.scrollTo({ top: 0 });
               }}
             >
-              {label}
+              <span className="route-icon"><StudioIcon name={{learning:"book",space:"map",statistics:"chart",mine:"user"}[value] as "book"|"map"|"chart"|"user"} size={24} /></span>{label}
             </button>
           ))}
         </div>
@@ -449,7 +451,7 @@ export function LocalStudyApp({
                     className="text-button"
                     onClick={() => {setSpaceSceneReturn(true);setRoute("space");}}
                   >
-                    查看卡片
+                    <IconLabel name="map">查看卡片</IconLabel>
                   </button>
                   {!state.frame.ids.length ? (
                     <button
@@ -589,7 +591,7 @@ export function LocalStudyApp({
                     })
                   }
                 >
-                  返回首页
+                  <IconLabel name="home">返回首页</IconLabel>
                 </button>
               </section>
             </main>

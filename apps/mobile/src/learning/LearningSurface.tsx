@@ -5,6 +5,8 @@ import {EliminationPassageText} from './EliminationPassageText';
 import {displayCardText, answerComparison, eliminationPassage, frontMaterial, cardTextBlocks, lockAnswerText, lockTemplate, resultAnswerLabel} from './presentation';
 import {useCardMotion, useReducedMotion, MotionView, MotionPressable, StudioPressable as Pressable, LockMotionGlyph, StrikeText} from './NativeMotion';
 import {STUDIO} from '../visual/studio';
+import {StudioIcon} from '../visual/StudioIcon';
+import {StudioActionLabel} from '../visual/StudioActionLabel';
 import React from 'react';
 import type { DimensionValue } from 'react-native';
 import {
@@ -302,14 +304,14 @@ export function LearningSurface({
             <Pressable accessibilityRole="button" onPress={emptySession.onRefresh}
               style={[styles.primaryButton, {backgroundColor: action.surface}]}
               testID="learning-refresh-session-button">
-              <Text style={[styles.primaryButtonLabel, {color: action.text}]}>
+              <StudioActionLabel icon="refresh" color={action.text} textStyle={styles.primaryButtonLabel}>
                 {emptySession.pendingSleep || emptySession.pendingSync ? '重试同步' : emptySession.reviewOnly ? '继续学习' : '刷新学习进度'}
-              </Text>
+              </StudioActionLabel>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={emptySession.onOpenSpace}
               style={[styles.primaryButton, {backgroundColor: palette.panelStrong}]}
               testID="learning-empty-open-space-button">
-              <Text style={[styles.primaryButtonLabel, {color: palette.text}]}>查看空间</Text>
+              <StudioActionLabel icon="map" color={palette.text} textStyle={styles.primaryButtonLabel}>查看空间</StudioActionLabel>
             </Pressable>
           </View>
         </ScrollView>
@@ -682,28 +684,19 @@ export function LearningSurface({
                 {
                   backgroundColor: currentCardState.isFavorited
                     ? tone.accentSoft
-                    : 'transparent',
+                    : palette.panelStrong,
                   borderColor: currentCardState.isFavorited
                     ? tone.accent
-                    : 'transparent',
+                    : palette.border,
                 },
               ]}
               testID="learning-favorite-button"
             >
-              <Text
-                allowFontScaling={false}
-                style={[
-                  styles.cardIdentityToolLabel,
-                  styles.favoriteTagGlyph,
-                  {
-                    color: currentCardState.isFavorited
-                      ? tone.accent
-                      : palette.textMuted,
-                  },
-                ]}
-              >
-                {currentCardState.isFavorited ? '★' : '☆'}
-              </Text>
+              <StudioActionLabel icon={currentCardState.isFavorited ? 'checkCircle' : 'star'}
+                color={palette.text}
+                textStyle={styles.favoriteActionLabel} maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}>
+                {currentCardState.isFavorited ? '已收藏' : '收藏'}
+              </StudioActionLabel>
             </Pressable>
           </View>
         </View>
@@ -867,12 +860,7 @@ export function LearningSurface({
               ]}
               testID="learning-next-button"
             >
-              <Text
-                style={[
-                  styles.primaryButtonLabel,
-                  { color: primaryAction.text },
-                ]}
-              >
+              <StudioActionLabel icon={advanceState.needsRetry ? 'refresh' : 'arrowRight'} color={primaryAction.text} textStyle={styles.primaryButtonLabel}>
                 {advanceState.busy
                   ? '正在保存…'
                   : advanceState.needsRetry
@@ -880,7 +868,7 @@ export function LearningSurface({
                   : !emptySession && currentIndex === sessionCards.length - 1
                   ? '完成本组'
                   : '下一张'}
-              </Text>
+              </StudioActionLabel>
             </Pressable>
             {advanceState.detail ? (
               <Text
@@ -922,14 +910,9 @@ export function LearningSurface({
                 ]}
                 testID="learning-flip-button"
               >
-                <Text
-                  style={[
-                    styles.primaryButtonLabel,
-                    { color: primaryAction.text },
-                  ]}
-                >
+                <StudioActionLabel icon="eye" color={primaryAction.text} textStyle={styles.primaryButtonLabel}>
                   查看答案
-                </Text>
+                </StudioActionLabel>
               </Pressable>
             ) : (
               <View
@@ -961,14 +944,9 @@ export function LearningSurface({
                   ]}
                   testID="learning-flip-confident-button"
                 >
-                  <Text
-                    style={[
-                      styles.choiceLabel,
-                      { color: '#146047' },
-                    ]}
-                  >
+                  <StudioActionLabel icon="checkCircle" color="#146047" textStyle={styles.choiceLabel}>
                     有把握
-                  </Text>
+                  </StudioActionLabel>
                 </Pressable>
                 <Pressable
                   accessibilityLabel="自评需要复习"
@@ -992,14 +970,9 @@ export function LearningSurface({
                   ]}
                   testID="learning-flip-review-button"
                 >
-                  <Text
-                    style={[
-                      styles.choiceLabel,
-                      { color: '#72530D' },
-                    ]}
-                  >
+                  <StudioActionLabel icon="refresh" color="#72530D" textStyle={styles.choiceLabel}>
                     需要复习
-                  </Text>
+                  </StudioActionLabel>
                 </Pressable>
               </View>
             )}
@@ -1007,7 +980,7 @@ export function LearningSurface({
         ) : null}
 
         {!currentResult && (currentCard.interaction_id === 'multiple_choice' || currentCard.interaction_id === 'elimination') ? <View style={[styles.oneScreenDock,styles.simpleActionDock,{borderColor:palette.border}]} testID="learning-action-dock">
-          <Pressable accessibilityLabel="提交当前答案" accessibilityRole="button" accessibilityState={{disabled:!canSubmitCurrentCard}} disabled={!canSubmitCurrentCard} onPress={onSubmitCurrentCard} style={[styles.primaryButton,{backgroundColor:canSubmitCurrentCard?primaryAction.surface:palette.panelStrong}]} testID="learning-submit-button"><Text style={[styles.primaryButtonLabel,{color:canSubmitCurrentCard?primaryAction.text:palette.textMuted}]}>{submissionLabel}</Text></Pressable>
+          <Pressable accessibilityLabel="提交当前答案" accessibilityRole="button" accessibilityState={{disabled:!canSubmitCurrentCard}} disabled={!canSubmitCurrentCard} onPress={onSubmitCurrentCard} style={[styles.primaryButton,{backgroundColor:canSubmitCurrentCard?primaryAction.surface:palette.panelStrong}]} testID="learning-submit-button"><StudioActionLabel icon="check" color={canSubmitCurrentCard?primaryAction.text:palette.textMuted} textStyle={styles.primaryButtonLabel}>{submissionLabel}</StudioActionLabel></Pressable>
         </View> : null}
 
         </View>
@@ -1045,15 +1018,15 @@ function LearningHelp({card, state, palette, onToggleHint, onTogglePeek, onRevea
           onTogglePeek();
         }
         setOpen(value => !value);
-      }} style={styles.helpTextButton} testID="learning-help-button">
-      <Text style={[styles.helpTextLabel, {color: palette.textMuted}]}>{open ? '收起判断方法' : '看判断方法'}</Text>
+      }} style={[styles.helpTextButton, {backgroundColor: palette.panelStrong, borderColor: open ? palette.accent : palette.border}]} testID="learning-help-button">
+      <StudioActionLabel icon={open ? 'chevronUp' : 'lightbulb'} color={palette.text} textStyle={styles.helpTextLabel}>{open ? '收起判断方法' : '看判断方法'}</StudioActionLabel>
     </Pressable>
     {open ? <MotionView motionKey={`${state.isHintVisible}:${state.isPeeked}`} enter onLayout={onReveal} style={[styles.helpContents, {borderLeftColor: palette.border}]} testID="learning-help-content">
       <Text style={[styles.cardSupport, {color: palette.textMuted}]} testID="learning-method-text">{card.analysis.exam_tip}</Text>
       {card.hint_layer ? <View>
         <Pressable accessibilityRole="button" accessibilityState={{expanded: state.isHintVisible}}
-          onPress={onToggleHint} style={styles.helpTextButton} testID="learning-hint-button">
-          <Text style={[styles.helpTextLabel, {color: palette.text}]}>{state.isHintVisible ? '收起提示' : '再看一点提示'}</Text>
+          onPress={onToggleHint} style={[styles.helpTextButton, {backgroundColor: palette.panelStrong, borderColor: palette.border}]} testID="learning-hint-button">
+          <StudioActionLabel icon={state.isHintVisible ? 'chevronUp' : 'help'} color={palette.text} textStyle={styles.helpTextLabel}>{state.isHintVisible ? '收起提示' : '再看一点提示'}</StudioActionLabel>
         </Pressable>
         {state.isHintVisible ? <Text style={[styles.cardSupport, {color: palette.textMuted}]}>{card.hint_layer.content}</Text> : null}
       </View> : null}
@@ -1191,6 +1164,7 @@ function InteractionBody({
                         {option.label}
                       </Text>
                     </View>
+                    {isSelected || isCorrect ? <StudioIcon name={isIncorrectSelection ? 'close' : 'checkCircle'} color={optionStateColor} size={20} /> : null}
                   </View>
                   <Text style={[styles.optionText, stackOptions ? styles.optionTextAccessible : null, { color: palette.text }]}>
                     {option.text}
@@ -1329,15 +1303,15 @@ function InteractionBody({
                                 ? null
                                 : styles.lockChoicePillDisabled,
                               {
-                                backgroundColor: isSelected
-                                  ? hasWrongSelection
-                                    ? hexToRgba(palette.danger, 0.08)
-                                    : palette.panel
+                                  backgroundColor: isSelected
+                                    ? hasWrongSelection
+                                      ? hexToRgba(palette.danger, 0.08)
+                                      : palette.accentSoft
                                   : palette.panelStrong,
                                 borderColor: isSelected
                                   ? hasWrongSelection
                                     ? hexToRgba(palette.danger, 0.42)
-                                    : neutralAction.border
+                                    : palette.accent
                                   : palette.border,
                               },
                             ]}
@@ -1345,6 +1319,7 @@ function InteractionBody({
                               optionIndex + 1
                             }`}
                           >
+                            {isSelected ? <StudioIcon name={hasWrongSelection ? 'close' : 'check'} color={hasWrongSelection ? palette.danger : palette.text} size={18} /> : null}
                             <Text
                               style={[
                                 styles.choiceLabel,
@@ -1730,8 +1705,9 @@ function SwipeInteraction({
                 numberOfLines={isAccessibilityText ? undefined : 1}
                 style={[styles.swipeTrailHint, { color: tone.accent }]}
               >
-                {index === 0 ? '← 左划' : '右划 →'}
+                {index === 0 ? '左划' : '右划'}
               </Text>
+              <StudioIcon name={index === 0 ? 'arrowLeft' : 'arrowRight'} color={tone.accent} size={20} />
               <Text style={[styles.swipeLabel, { color: palette.text }]}>
                 {state.label}
               </Text>
@@ -2066,7 +2042,7 @@ export function LearningResultDetailSurface({
           onPress={onBackToPractice}
           style={styles.analysisLink}
           testID="learning-result-back-button"
-        ><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>返回卡面</Text></Pressable> : null}
+        ><StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.analysisLinkText}>返回卡面</StudioActionLabel></Pressable> : null}
 
         {!isCompactPhone ? (
           <View
@@ -2110,14 +2086,7 @@ export function LearningResultDetailSurface({
               ]}
               testID="learning-result-back-button"
             >
-              <Text
-                style={[
-                  styles.detailCollapseLabel,
-                  { color: palette.textMuted },
-                ]}
-              >
-                卡面
-              </Text>
+              <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.detailCollapseLabel}>返回卡面</StudioActionLabel>
             </Pressable>
           </View>
         ) : null}
@@ -2332,7 +2301,7 @@ function FlipBack({card, compact, palette, result, onOpenResultDetail}: {
     {result ? <Text accessibilityLiveRegion="polite" style={[styles.answerEyebrow, {color: palette.textMuted}]}>
       {result.outcome === 'confident' ? '本次自评：有把握' : '本次自评：需要复习'}
     </Text> : null}
-    {result && onOpenResultDetail ? <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>展开完整解析 →</Text></Pressable> : null}
+    {result && onOpenResultDetail ? <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><StudioActionLabel icon="expand" color={palette.text} textStyle={styles.analysisLinkText}>展开完整解析</StudioActionLabel></Pressable> : null}
   </View>;
 }
 
@@ -2358,7 +2327,7 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
     <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
     <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
     <AudioTranscript key={`transcript:${card.card_id}`} card={card} palette={palette} />
-    <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>展开完整解析 →</Text></Pressable>
+    <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><StudioActionLabel icon="expand" color={palette.text} textStyle={styles.analysisLinkText}>展开完整解析</StudioActionLabel></Pressable>
   </View>;
 }
 
@@ -2376,7 +2345,7 @@ function QuestionRecall({card, palette}: {card: LearningCard; palette: LearningS
     : [];
   return <View>
     <Pressable accessibilityRole="button" accessibilityState={{expanded: open}} onPress={() => setOpen(value => !value)} style={styles.analysisLink} testID="learning-question-toggle">
-      <Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>{open ? '收起原题' : '回看原题'}</Text>
+      <StudioActionLabel icon={open ? 'chevronUp' : 'book'} color={palette.text} textStyle={styles.analysisLinkText}>{open ? '收起原题' : '回看原题'}</StudioActionLabel>
     </Pressable>
     {open ? <View style={styles.recalledQuestion} testID="learning-question-content">
       {[...new Set([...question, ...options])].filter(Boolean).map((text, index) => <Text key={index} style={[styles.cardSupport, {color: palette.text}]}>{text}</Text>)}
@@ -2395,7 +2364,7 @@ function AudioTranscript({card, palette}: {card: LearningCard; palette: Learning
       onPress={() => setOpen(value => !value)}
       style={styles.analysisLink}
       testID="learning-transcript-toggle"
-    ><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>{open ? '收起听力原文' : '查看听力原文'}</Text></Pressable>
+    ><StudioActionLabel icon={open ? 'chevronUp' : 'list'} color={palette.text} textStyle={styles.analysisLinkText}>{open ? '收起听力原文' : '查看听力原文'}</StudioActionLabel></Pressable>
     {open ? <Text style={[styles.answerReason, {color: palette.text}]} testID="learning-transcript-text">{transcript}</Text> : null}
   </View>;
 }
@@ -2553,11 +2522,12 @@ const styles = StyleSheet.create({
   answerSelection: {fontSize: 16, lineHeight: 24, flexShrink: 1},
   answerQuestion: {fontSize: 15, lineHeight: 24, borderTopWidth: 1, paddingTop: 16, marginTop: 8},
   answerReason: {fontSize: 16, lineHeight: 27, fontWeight: '400'},
-  analysisLink: {minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', paddingVertical: 8},
-  analysisLinkText: {fontSize: 13, lineHeight: 21},
+  analysisLink: {minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start', maxWidth: '100%', paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: STUDIO.color.line, borderRadius: 12, backgroundColor: STUDIO.color.paperSoft},
+  analysisLinkText: {fontSize: 13, lineHeight: 21, fontWeight: '600'},
   learningHelpTools: {flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 20, marginTop: 8},
-  helpTextButton: {minHeight: 44, minWidth: 44, justifyContent: 'center', paddingVertical: 8},
-  helpTextLabel: {fontSize: 13, lineHeight: 20},
+  helpTextButton: {minHeight: 48, minWidth: 48, maxWidth: '100%', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1},
+  helpTextLabel: {fontSize: 13, lineHeight: 20, fontWeight: '600'},
+  favoriteActionLabel: {fontSize: 12, lineHeight: 18, fontWeight: '600'},
   formingSentence: {fontSize: 21, lineHeight: 32, borderBottomWidth: 1, paddingVertical: 12, marginBottom: 8},
   passageArea: {gap: 14},
   passageText: {fontSize: 19, lineHeight: 44, fontWeight: '400'},
@@ -2968,11 +2938,11 @@ const styles = StyleSheet.create({
   cardIdentityTool: {
     alignItems: 'center',
     borderRadius: 12,
-    borderWidth: 0,
+    borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 44,
-    minWidth: 38,
-    paddingHorizontal: 5,
+    minHeight: 48,
+    minWidth: 48,
+    paddingHorizontal: 9,
   },
   cardIdentityToolLabel: {
     fontSize: 11,
@@ -3232,6 +3202,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   choicePill: {
+    minHeight: 48,
     borderWidth: 1,
     borderRadius: STUDIO.radius.control,
     justifyContent: 'center',
@@ -3366,6 +3337,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   lockChoicePill: {
+    flexDirection: 'row',
+    gap: 6,
     alignItems: 'center',
     borderRadius: 10,
     justifyContent: 'center',
@@ -3384,8 +3357,9 @@ const styles = StyleSheet.create({
     opacity: 0.58,
   },
   lockChoiceLabel: {
-    alignSelf: 'stretch',
-    fontSize: 11,
+    flexShrink: 1,
+    minWidth: 0,
+    fontSize: 14,
     textAlign: 'center',
   },
   lockChoiceWrap: {
@@ -3648,6 +3622,7 @@ const styles = StyleSheet.create({
     fontSize: 14, fontWeight: '600', lineHeight: 24,
   },
   secondaryButton: {
+    minHeight: 48,
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,

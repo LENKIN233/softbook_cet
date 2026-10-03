@@ -16,7 +16,7 @@ export const STUDIO = {
     danger: '#A3364C',
     reviewInk: '#765719',
   },
-  icon: {stroke: 1.6, size: 23},
+  icon: {stroke: 1.8, size: 24},
   radius: {card: 24, section: 20, control: 14, small: 10, navigation: 22},
   space: {phone: 18, tablet: 28, card: 20, gap: 12, tight: 8},
   type: {title: 24, prompt: 20, body: 15, secondary: 13, caption: 11},

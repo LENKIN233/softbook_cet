@@ -209,8 +209,8 @@ test('keeps 44dp hierarchy targets reachable in a scroll viewport at 393x852', (
   expect(
     StyleSheet.flatten(
       root.findByProps({testID: 'space-follow-current-box'}).props.style,
-    ),
-  ).toMatchObject({minHeight: 44});
+    ).minHeight,
+  ).toBeGreaterThanOrEqual(44);
   expect(
     StyleSheet.flatten(
       root.findByProps({testID: 'space-return-learning'}).props.style,

@@ -1,5 +1,5 @@
 {
-  "version": "vnext-10",
+  "version": "vnext-11",
   "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
   "source_anchors": {
     "authentication": {
@@ -31,7 +31,9 @@
       "selected_artifact": "B 轻快；同会话三方案 HTML 比较后选择",
       "current_design_owner": "docs/design/decisions/light-studio-three-surfaces-v1.md",
       "copy_feedback": "为什么这上面会有一个黄色的，而且文案的 ai 味怎么这么重",
-      "quality_reference": "目标达到 Awwwards、Webby Awards、FWA 能获奖的品质，通过自我检查反复提升"
+      "quality_reference": "目标达到 Awwwards、Webby Awards、FWA 能获奖的品质，通过自我检查反复提升",
+      "control_feedback": "icon 几乎没有，都是通过不显眼的文字切换的，这种细节问题有很多，找出并解决",
+      "learning_return_feedback": "左上与右上的这两个还是纯文字，“先到这里”应该改成返回，只有学完一组卡片才能叫先到这里"
     },
     "first_run_guidance": {
       "user_request": "现在没有指引，应该加入适当弹窗指引！应该强制让用户首次打开时选择四级还是六级并告诉用户如何切换",
