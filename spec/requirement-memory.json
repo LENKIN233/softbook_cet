@@ -1,5 +1,5 @@
 {
-  "version": "vnext-11",
+  "version": "vnext-12",
   "purpose": "Persistent machine-readable memory of user-provided requirements from this conversation so they do not collapse during compaction or future rewrites.",
   "source_anchors": {
     "authentication": {
@@ -20,7 +20,10 @@
       "current_runtime_feedback": "当前卡片没有组别概念，用户似乎要无休止地学下去；按顺序一直下去导致某一个时间大量学习一种知识点；卡片知识地址是否随当前卡片改变",
       "immersion_feedback": "用户现在看不到学习进度，学习不够沉浸，学习界面裸露在界面外；可以学习不背单词的设计思路",
       "outer_entry_feedback": "学习做成内外都有一个页面，要从外面进入才能进入沉浸式学习；质量向不背单词靠拢",
-      "ordering_correction": "现在的排序仍然没有优化；用户确认问题为连续出现同一知识点"
+      "ordering_correction": "现在的排序仍然没有优化；用户确认问题为连续出现同一知识点",
+      "ordering_followup": "顺序优化了吗？为什么还是连续5张都是一样的？",
+      "ordering_location": "学习页连续出卡",
+      "ordering_point_correction": "知识点也没有分散！交互形式不用管！我说的就是知识点"
     },
     "deployment": {
       "local_backend": "以本地为后端，只是暂时解决方案，最终还是要上线的"

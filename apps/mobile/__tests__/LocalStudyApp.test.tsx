@@ -4,6 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LocalStudyApp } from '../src/local/LocalStudyApp';
 import { LearningSurface } from '../src/learning/LearningSurface';
 import { NativeMotionProvider } from '../src/learning/NativeMotion';
+import {USER_STATE_STORAGE_KEY} from '../src/persistence/userStateStore';
+import type {LearningCard} from '../src/learning/model';
 
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
@@ -199,6 +201,40 @@ test('switching track keeps independent records and returns to the original ques
   expect(
     await AsyncStorage.getItem('softbook-cet/study/v2/cet6'),
   ).not.toBeNull();
+});
+
+test.each([2, 0])('restores legacy native sleep records with %i available cards into a usable app', async remainingCount => {
+  const cards: LearningCard[] = require('./fixtures/interactionSession').createLocalLearningSession('cet4').catalogCards;
+  const remaining = remainingCount ? [cards[2], cards[5]] : [];
+  const current = remaining.at(-1);
+  const raw = JSON.stringify({owner_phone_number: '00000000000',
+    learning_cursor: current ? {track: 'cet4', card_id: current.card_id} : null,
+    space_card_state_by_id: Object.fromEntries(cards.map((card: {card_id: string}) => [card.card_id, {
+      is_favorited: card.card_id === (current?.card_id ?? cards[0].card_id),
+      is_sleeping: !remaining.some(item => item.card_id === card.card_id),
+    }]))});
+  await AsyncStorage.setItem(USER_STATE_STORAGE_KEY, raw);
+  const tree = await render();
+  try {
+    const start = tree.root.findAllByProps({testID: 'local-start-learning-button'}).find(node => typeof node.props.onPress === 'function')!;
+    expect(start.props.disabled).toBe(false);
+    expect(await AsyncStorage.getItem('softbook-cet/study/v2/cet4/archive/legacy-native')).toBe(raw);
+    expect(await AsyncStorage.getItem(USER_STATE_STORAGE_KEY)).toBe(raw);
+    await press(tree, 'local-start-learning-button');
+    await press(tree, 'learning-home-start-button');
+    if (current) {
+      expect(surface(tree).currentCard.card_id).toBe(current.card_id);
+      expect(surface(tree).currentCardState.isFavorited).toBe(true);
+      await resolve(tree);
+    } else {
+      expect(tree.root.findByProps({testID: 'local-group-complete'})).toBeTruthy();
+      expect(tree.root.findAllByType(LearningSurface)).toHaveLength(0);
+    }
+    const saved = JSON.parse((await AsyncStorage.getItem('softbook-cet/study/v2/cet4'))!);
+    expect(saved.state.sleeping).toEqual(cards.filter((card: {card_id: string}) => !remaining.some(item => item.card_id === card.card_id)).map((card: {card_id: string}) => card.card_id));
+    expect(saved.state.favorites).toContain(current?.card_id ?? cards[0].card_id);
+    expect(saved.state.results).toHaveLength(current ? 1 : 0);
+  } finally {await act(() => tree.unmount());}
 });
 
 test('a damaged profile is retained and exposes recovery actions before learning', async () => {

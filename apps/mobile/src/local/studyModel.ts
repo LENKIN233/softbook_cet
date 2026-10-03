@@ -10,10 +10,13 @@ import {
 } from '../learning/sessionCore';
 import { getChinaDayKey } from '../shared/chinaDay';
 import type {TrackStudyStatistics} from '../statistics/trackStudyStatistics';
-import {knowledgePointOf, orderLearningCards, separateKnowledgePoints} from '../learning/learningSequence';
+import {advanceKnowledgeWindow, baseLearningCardOrder, KNOWLEDGE_POINT_WINDOW_SIZE, knowledgePointOf, nextKnowledgeCandidateIndex, orderLearningCards, separateKnowledgePoints} from '../learning/learningSequence';
 
 export type StudyFrame = {
   phase: 'learning' | 'review';
+  // Present only on normal course rounds, which may space reviews with new cards.
+  // Explicit review rounds keep their review-only batch semantics.
+  taskPhases?: StudyFrame['phase'][];
   ids: string[];
   index: number;
   complete: boolean;
@@ -60,11 +63,18 @@ export function planLocalCards(cards: readonly LearningCard[]): LearningCard[] {
   return orderLearningCards(cards);
 }
 
-function latestStudyPoint(state: StudyState, cards: readonly LearningCard[]): string | null {
-  const latest = state.results.reduce<LearningCardResult | null>((result, candidate) =>
-    result === null || Date.parse(candidate.completedAt) >= Date.parse(result.completedAt) ? candidate : result, null);
-  const card = latest ? cards.find(candidate => candidate.card_id === latest.cardId) : null;
-  return card ? knowledgePointOf(card) : null;
+function recentStudyResults(state: StudyState, cards: readonly LearningCard[]): LearningCardResult[] {
+  const known = new Map(cards.map(card => [card.card_id, card])), latestByPoint = new Map<string, LearningCardResult>();
+  for (const result of state.results.filter(value => known.has(value.cardId))
+    .sort((left, right) => Date.parse(left.completedAt) - Date.parse(right.completedAt))) {
+    const point = knowledgePointOf(known.get(result.cardId)!);
+    latestByPoint.delete(point);latestByPoint.set(point, result);
+  }
+  return [...latestByPoint.values()].slice(-KNOWLEDGE_POINT_WINDOW_SIZE);
+}
+function recentStudyPoints(state: StudyState, cards: readonly LearningCard[]): string[] {
+  const byId = new Map(cards.map(card => [card.card_id, card]));
+  return recentStudyResults(state, cards).map(result => knowledgePointOf(byId.get(result.cardId)!));
 }
 export function activeStudyCard(
   state: StudyState,
@@ -80,10 +90,13 @@ export function pendingStudyIds(
   cards: readonly LearningCard[],
   now = new Date(),
 ) {
+  return separateKnowledgePoints(reviewCandidates(state, cards, now), recentStudyPoints(state, cards)).map(card => card.card_id);
+}
+function reviewCandidates(state: StudyState, cards: readonly LearningCard[], now: Date) {
   const resultById = new Map(
     state.results.map(result => [result.cardId, result]),
   );
-  const candidates = cards
+  return cards
     .filter(
       card =>
         !state.sleeping.includes(card.card_id) &&
@@ -98,7 +111,81 @@ export function pendingStudyIds(
         Date.parse(state.schedule[a.card_id]?.dueAt ?? now.toISOString()) -
         Date.parse(state.schedule[b.card_id]?.dueAt ?? now.toISOString()),
     );
-  return separateKnowledgePoints(candidates, latestStudyPoint(state, cards)).map(card => card.card_id);
+}
+
+type StudyTask = {card: LearningCard; phase: StudyFrame['phase']};
+function normalTasks(state: StudyState, cards: readonly LearningCard[], now: Date,
+  window = recentStudyPoints(state, cards), limit = GROUP_SIZE, excluded = new Set<string>(), previousPhase = state.frame.phase): StudyTask[] {
+  const due = reviewCandidates(state, cards, now).filter(card =>
+    !excluded.has(card.card_id) && Date.parse(state.schedule[card.card_id]?.dueAt ?? '') <= now.getTime());
+  const learned = new Set(state.results.map(result => result.cardId));
+  const dueIds = new Set(due.map(card => card.card_id));
+  const fresh = baseLearningCardOrder(cards).filter(card => !learned.has(card.card_id) &&
+    !dueIds.has(card.card_id) && !state.sleeping.includes(card.card_id) && !excluded.has(card.card_id));
+  const tasks: StudyTask[] = [];
+  while (tasks.length < limit && (due.length || fresh.length)) {
+    const variedDue = nextKnowledgeCandidateIndex(due, window);
+    const variedNew = nextKnowledgeCandidateIndex(fresh, window);
+    const previousPoint = window.at(-1);
+    const needsWindowSpacing = previousPhase === 'review' && variedNew >= 0 &&
+      !window.includes(knowledgePointOf(fresh[variedNew])) &&
+      due.every(card => window.includes(knowledgePointOf(card)));
+    const useReview = due.length > 0 && !needsWindowSpacing && (knowledgePointOf(due[variedDue]) !== previousPoint ||
+      variedNew < 0 || knowledgePointOf(fresh[variedNew]) === previousPoint);
+    const queue = useReview ? due : fresh;
+    const preferred = useReview ? variedDue : variedNew;
+    const [card] = queue.splice(preferred < 0 ? 0 : preferred, 1);
+    tasks.push({card, phase: useReview ? 'review' : 'learning'});
+    previousPhase = useReview ? 'review' : 'learning';
+    window = advanceKnowledgeWindow(window, knowledgePointOf(card));
+  }
+  return tasks;
+}
+function normalFrame(state: StudyState, cards: readonly LearningCard[], now: Date): StudyFrame {
+  const tasks = normalTasks(state, cards, now);
+  return {...makeFrame(tasks.map(task => task.card.card_id), tasks[0]?.phase ?? 'learning', state, cards),
+    taskPhases: tasks.map(task => task.phase)};
+}
+function isNormalFrame(frame: StudyFrame): boolean {
+  return frame.taskPhases !== undefined || frame.phase === 'learning';
+}
+
+/** Keep everything already presented; only unfinished, unseen slots adopt the current order. */
+export function refreshStudyOrder(state: StudyState, cards: readonly LearningCard[], now = new Date()): StudyState {
+  const byId = new Map(cards.map(card => [card.card_id, card]));
+  const refreshFrame = (frame: StudyFrame): StudyFrame => {
+    if (frame.complete) return frame;
+    const prefix = frame.ids.slice(0, frame.index + 1), current = byId.get(prefix.at(-1)!);
+    if (!current) return frame;
+    const moveCurrent = state.sleeping.includes(current.card_id);
+    if (!moveCurrent && frame.index >= frame.ids.length - 1) return frame;
+    const recent = recentStudyResults(state, cards), latest = recent.at(-1);
+    let window = recent.map(result => knowledgePointOf(byId.get(result.cardId)!));
+    const alreadyConfirmed = frame.resolved !== null && latest?.cardId === current.card_id &&
+      latest.completedAt === frame.resolved.completedAt;
+    if (!alreadyConfirmed) window = advanceKnowledgeWindow(window, knowledgePointOf(current));
+    const excluded = new Set([...prefix, ...frame.results.map(result => result.cardId)]);
+    const slots = frame.ids.length - prefix.length;
+    let ids: string[], taskPhases = frame.taskPhases;
+    if (isNormalFrame(frame)) {
+      const tasks = normalTasks(state, cards, now, window, slots, excluded, frame.phase);
+      ids = [...prefix, ...tasks.map(task => task.card.card_id)];
+      taskPhases = [...(frame.taskPhases?.slice(0, prefix.length) ?? prefix.map(() => frame.phase)), ...tasks.map(task => task.phase)];
+    } else {
+      const queued = frame.ids.slice(prefix.length).map(id => byId.get(id)).filter((card): card is LearningCard =>
+        card !== undefined && !state.sleeping.includes(card.card_id) && !excluded.has(card.card_id));
+      const candidates = [...queued, ...reviewCandidates(state, cards, now).filter(card => !excluded.has(card.card_id))];
+      const unique = [...new Map(candidates.map(card => [card.card_id, card])).values()];
+      const tail = separateKnowledgePoints(unique, window).slice(0, slots);
+      ids = [...prefix, ...tail.map(card => card.card_id)];
+    }
+    const index = moveCurrent ? prefix.length : frame.index, nextCard = byId.get(ids[index]);
+    return {...frame, ids, index, ...(taskPhases ? {taskPhases} : {}),
+      phase: taskPhases?.[index] ?? frame.phase, complete: !nextCard,
+      draft: moveCurrent ? nextCard ? {...createLearningCardState(nextCard), isFavorited: state.favorites.includes(nextCard.card_id)} : null : frame.draft,
+      resolved: moveCurrent ? null : frame.resolved};
+  };
+  return {...state, frame: refreshFrame(state.frame), resume: state.resume ? refreshFrame(state.resume) : null};
 }
 function makeFrame(
   ids: string[],
@@ -122,16 +209,6 @@ function makeFrame(
       : null,
   };
 }
-function newIds(state: StudyState, cards: readonly LearningCard[]) {
-  const learned = new Set(state.results.map(result => result.cardId));
-  const candidates = planLocalCards(cards).filter(
-      card =>
-        !learned.has(card.card_id) && !state.sleeping.includes(card.card_id),
-    );
-  return separateKnowledgePoints(candidates, latestStudyPoint(state, cards))
-    .slice(0, GROUP_SIZE)
-    .map(card => card.card_id);
-}
 export function createStudyState(cards: readonly LearningCard[]): StudyState {
   const state: StudyState = {
     frame: {
@@ -152,7 +229,7 @@ export function createStudyState(cards: readonly LearningCard[]): StudyState {
     days: {},
     checkIns: [],
   };
-  state.frame = makeFrame(newIds(state, cards), 'learning', state, cards);
+  state.frame = normalFrame(state, cards, new Date());
   return state;
 }
 function reconcileFrame(
@@ -175,6 +252,7 @@ function reconcileFrame(
   return {
     ...frame,
     index,
+    phase: frame.taskPhases?.[index] ?? frame.phase,
     draft:
       index === frame.index && frame.draft
         ? {
@@ -285,11 +363,12 @@ export function reduceStudy(
         ? state[key].filter(id => id !== action.id)
         : [...state[key], action.id],
     };
-    return {
+    const reconciled = {
       ...next,
-      frame: reconcileFrame(frame, next, cards),
-      resume: next.resume ? reconcileFrame(next.resume, next, cards) : null,
+      frame: action.type === 'sleep' ? frame : reconcileFrame(frame, next, cards),
+      resume: next.resume && action.type !== 'sleep' ? reconcileFrame(next.resume, next, cards) : next.resume,
     };
+    return action.type === 'sleep' ? refreshStudyOrder(reconciled, cards, now) : reconciled;
   }
   if (action.type === 'checkin') {
     const day = getChinaDayKey(now),
@@ -306,33 +385,22 @@ export function reduceStudy(
       ? state
       : {
           ...state,
-          resume: frame.phase === 'learning' ? frame : state.resume,
+          resume: isNormalFrame(frame) ? frame : state.resume,
           frame: makeFrame(ids, 'review', state, cards),
         };
   }
   if (action.type === 'continue') {
     if (!frame.complete) return state;
-    if (frame.phase === 'review' && state.resume && !state.resume.complete)
+    if (!isNormalFrame(frame) && state.resume && !state.resume.complete)
       return {
         ...state,
         frame: reconcileFrame(state.resume, state, cards),
         resume: null,
       };
-    const due = pendingStudyIds(state, cards, now)
-      .filter(
-        id => Date.parse(state.schedule[id]?.dueAt ?? '') <= now.getTime(),
-      )
-      .slice(0, GROUP_SIZE);
-    const ids = newIds(state, cards);
     return {
       ...state,
       resume: null,
-      frame: makeFrame(
-        due.length ? due : ids,
-        due.length ? 'review' : 'learning',
-        state,
-        cards,
-      ),
+      frame: normalFrame(state, cards, now),
     };
   }
   if (action.type === 'practice')
@@ -455,6 +523,7 @@ export function validateStudyState(
         'draft',
         'resolved',
         'results',
+        ...(Object.hasOwn(f, 'taskPhases') ? ['taskPhases'] : []),
       ]) ||
       !['learning', 'review'].includes(f.phase) ||
       !ids(f.ids) ||
@@ -468,6 +537,9 @@ export function validateStudyState(
       new Set(f.results.map(r => r.cardId)).size !== f.results.length
     )
       fail();
+    if (f.taskPhases !== undefined && (!Array.isArray(f.taskPhases) || f.taskPhases.length !== f.ids.length ||
+      f.taskPhases.some(phase => phase !== 'learning' && phase !== 'review') ||
+      !f.complete && f.taskPhases[f.index] !== f.phase)) fail();
     if (f.complete && (f.draft !== null || f.resolved !== null)) fail();
     if (!f.complete && f.index >= f.ids.length) fail();
     if (

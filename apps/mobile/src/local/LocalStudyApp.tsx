@@ -223,6 +223,7 @@ export function LocalStudyApp({
     next.frame = {
       ...next.frame,
       ids,
+      taskPhases: ids.map(() => 'learning' as const),
       complete: !card,
       draft: card
         ? {

@@ -362,14 +362,14 @@ for (const track of ['cet4', 'cet6']) {
 }
 
 for (const track of ['cet4', 'cet6']) {
-  function pointFixture() {
+  function pointFixture(pointCardCount = 2) {
     const library = require('../card-content/index.js')[track];
     const cards = library.cards;
     const first = cards[0];
     const second = cards.find(card => card.space_metadata.library === first.space_metadata.library &&
       card.space_metadata.box_ref !== first.space_metadata.box_ref);
     const records = [first, second].flatMap(point => cards.filter(card =>
-      card.space_metadata.box_ref === point.space_metadata.box_ref).slice(0, 2));
+      card.space_metadata.box_ref === point.space_metadata.box_ref).slice(0, pointCardCount));
     const developmentCardSource = requestedTrack => validateCardSourceForImport({
       source: {id: 'knowledge-order-fixture', label: '调度行为夹具'},
       track: requestedTrack,
@@ -382,22 +382,102 @@ for (const track of ['cet4', 'cet6']) {
     const {api, clock} = createTestApi({store, developmentCardSource});
     return {api, clock, records, store};
   }
-  async function confirmPointSelection(api, session, selected, sequence, clock) {
-    const source = await cardSource(api, session, track);
+  function fullLibraryFixture() {
+    const libraries = require('../card-content/index.js');
+    const developmentCardSource = requestedTrack => validateCardSourceForImport({
+      source: {id: 'full-knowledge-order-fixture', label: '完整卡库调度行为夹具'}, track: requestedTrack,
+      card_records: libraries[requestedTrack].cards,
+      assets: libraries[requestedTrack].assets.map(({asset_path, ...asset}) =>
+        ({...asset, storage_file_id: `cloud://point-fixture.local/${asset.asset_id}.mp3`})), release: null,
+    }, requestedTrack);
+    const store = createMemoryStore({developmentCardSource});
+    return {libraries, store, ...createTestApi({store, developmentCardSource})};
+  }
+  async function confirmPointSelection(api, session, selected, sequence, clock, requestedTrack = track) {
+    const source = await cardSource(api, session, requestedTrack);
     const index = source.card_records.findIndex(card => card.card_id === selected.card_id);
     const accepted = await request(api, {
       headers: {authorization: `Bearer ${session.access_token}`},
       method: 'POST', path: '/v2/learning/events',
-      body: {schema_version: 'learning-events.v2', track, events: [eventFor(source, index, {
-      event_id: `point_order_${track}_${sequence}`,
+      body: {schema_version: 'learning-events.v2', track: requestedTrack, events: [eventFor(source, index, {
+      event_id: `point_order_${requestedTrack}_${sequence}`,
       selection_id: selected.selection_id,
       phase: selected.phase,
       client_occurred_at: clock.now().toISOString(),
-      device_cursor: {device_id: `point_order_${track}`, sequence},
+      device_cursor: {device_id: `point_order_${requestedTrack}`, sequence},
       })]},
     });
     assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+    assert.equal(accepted.body.data.results[0].status, 'accepted', JSON.stringify(accepted.body));
   }
+
+  test(`${track} a five-card course group spreads across five available knowledge points`, async () => {
+    const {api, clock, libraries} = fullLibraryFixture();
+    const library = libraries[track];
+    const session = await authenticatedSession(api);
+    const selectedPoints = [];
+    const confirmed = new Set();
+    for (let sequence = 1; sequence <= 5; sequence++) {
+      const response = await learningSession(api, session, {query: {track}});
+      assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+      const selected = response.body.data.selection;
+      const card = library.cards.find(value => value.card_id === selected.card_id);
+      selectedPoints.push(card.space_metadata.box_ref);
+      const authoredNext = library.cards.find(value => value.space_metadata.box_ref === card.space_metadata.box_ref && !confirmed.has(value.card_id));
+      assert.equal(card.card_id, authoredNext.card_id, 'knowledge variety must preserve authored order inside each box');
+      await confirmPointSelection(api, session, selected, sequence, clock);
+      confirmed.add(card.card_id);
+    }
+    assert.equal(new Set(selectedPoints).size, 5, `Available course points must not reduce to an A/B loop: ${selectedPoints.join(',')}`);
+  });
+
+  test(`${track} knowledge-point context survives confirmations on the other course`, async () => {
+    const {api, clock, libraries} = fullLibraryFixture();
+    const session = await authenticatedSession(api);
+    const points = [];
+    let sequence = 0;
+    const selectAndConfirm = async requestedTrack => {
+      const response = await learningSession(api, session, {query: {track: requestedTrack}});
+      assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+      const selected = response.body.data.selection;
+      const card = libraries[requestedTrack].cards.find(value => value.card_id === selected.card_id);
+      await confirmPointSelection(api, session, selected, ++sequence, clock, requestedTrack);
+      return card.space_metadata.box_ref;
+    };
+    points.push(await selectAndConfirm(track), await selectAndConfirm(track));
+    const otherTrack = track === 'cet4' ? 'cet6' : 'cet4';
+    for (let index = 0; index < 5; index++) await selectAndConfirm(otherTrack);
+    points.push(await selectAndConfirm(track), await selectAndConfirm(track));
+    assert.equal(new Set(points).size, 4, 'Account-wide sequence gaps must not erase current-course knowledge points');
+  });
+
+  test(`${track} four concentrated review points get one new spacing point before returning to due work`, async () => {
+    const {api, clock, libraries, store} = fullLibraryFixture();
+    const session = await authenticatedSession(api);
+    const source = await cardSource(api, session, track);
+    const refs = [...new Set(libraries[track].cards.map(card => card.space_metadata.box_ref))].slice(0, 4);
+    const legacyCards = refs.flatMap(ref => libraries[track].cards.filter(card => card.space_metadata.box_ref === ref).slice(0, 2));
+    await store.seedLegacyLearningStateForMigrationTest(PHONE, {
+      day_key: DAY_KEY, source_id: source.source.id, source_label: source.source.label, track,
+      events: legacyCards.map(card => ({card_id: card.card_id, completed_at: START_TIME.toISOString(),
+        interaction_id: card.interaction_id, is_favorited: false, outcome: 'confident',
+        phase: 'learning', used_hint: false, used_peek: false})),
+    }, START_TIME.toISOString());
+    const confirmedPoints = [];
+    for (let sequence = 1; sequence <= 5; sequence++) {
+      const response = await learningSession(api, session, {query: {track}});
+      assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+      const selected = response.body.data.selection;
+      const card = libraries[track].cards.find(value => value.card_id === selected.card_id);
+      confirmedPoints.push(card.space_metadata.box_ref);
+      assert.equal(selected.phase, sequence === 5 ? 'learning' : 'review');
+      await confirmPointSelection(api, session, selected, sequence, clock);
+    }
+    assert.equal(new Set(confirmedPoints).size, 5, 'A full recent review window must not immediately cycle back to its first point');
+    const due = await learningSession(api, session, {query: {track}});
+    assert.equal(due.body.data.selection.phase, 'review', 'One new spacing task must return to due work');
+    assert.equal(due.body.data.selection.card_id, legacyCards[1].card_id);
+  });
 
   test(`${track} consecutive new cards use different knowledge points even within one subject`, async () => {
     const {api, clock, records, store} = pointFixture();
@@ -410,6 +490,31 @@ for (const track of ['cet4', 'cet6']) {
       await confirmPointSelection(api, session, response.body.data.selection, sequence + 1, clock);
     }
     assert.deepEqual(await store.getCardSource(track), before, 'presentation order must preserve the exported source');
+  });
+
+  test(`${track} five selections keep separating knowledge points after long reading pauses`, async () => {
+    const {api, clock, records, store} = pointFixture(6);
+    let session = await authenticatedSession(api);
+    const before = await store.getCardSource(track);
+    let previousPoint = null;
+    for (let sequence = 1; sequence <= 5; sequence++) {
+      if (sequence === 3) {
+        const refreshed = await request(api, {
+          body: {refresh_token: session.refresh_token}, method: 'POST', path: '/v2/auth/refresh',
+        });
+        assert.equal(refreshed.statusCode, 200, JSON.stringify(refreshed.body));
+        session = refreshed.body.data;
+      }
+      const response = await learningSession(api, session, {query: {track}});
+      assert.equal(response.statusCode, 200, JSON.stringify(response.body));
+      const selected = response.body.data.selection;
+      const point = records.find(card => card.card_id === selected.card_id).space_metadata.box_ref;
+      assert.notEqual(point, previousPoint, 'reading for over five minutes must not erase the previous confirmed knowledge point');
+      await confirmPointSelection(api, session, selected, sequence, clock);
+      previousPoint = point;
+      clock.advanceMinutes(6);
+    }
+    assert.deepEqual(await store.getCardSource(track), before, 'spacing must not change content or accessible catalog order');
   });
 
   test(`${track} due reviews separate recently repeated knowledge points without changing FSRS due times`, async () => {
@@ -450,12 +555,13 @@ for (const track of ['cet4', 'cet6']) {
       card_id: card.card_id, client_occurred_at: clock.now().toISOString(), dimension: 'sleep', value: false,
     })), track);
     clock.advanceMinutes(11);
-    const review = await learningSession(api, session, {query: {track}});
-    assert.equal(review.body.data.selection.card_id, records[0].card_id, 'after a break the oldest due work retains priority');
-    await confirmPointSelection(api, session, review.body.data.selection, 3, clock);
     const varied = await learningSession(api, session, {query: {track}});
     assert.equal(varied.body.data.selection.card_id, records[2].card_id);
     assert.equal(varied.body.data.selection.phase, 'learning');
+    await confirmPointSelection(api, session, varied.body.data.selection, 3, clock);
+    const review = await learningSession(api, session, {query: {track}});
+    assert.equal(review.body.data.selection.card_id, records[0].card_id, 'oldest due work retains priority after one different knowledge point');
+    assert.equal(review.body.data.selection.phase, 'review');
   });
 }
 
@@ -588,7 +694,7 @@ test('membership revision drift after cursor persistence retries before session 
   });
 });
 
-test('accepted events advance FSRS atomically, clear matching cursor, and due review outranks new cards', async () => {
+test('accepted events advance FSRS atomically and preserve due priority after one spacing task', async () => {
   const store = createMemoryStore();
   const {api, clock} = createTestApi({store});
   const session = await authenticatedSession(api, '127.0.0.2');
@@ -622,6 +728,17 @@ test('accepted events advance FSRS atomically, clear matching cursor, and due re
   assert.equal(bootstrap.body.data.learning.cursor, null);
 
   clock.advanceMinutes(11);
+  const spacing = await learningSession(api, session);
+  assert.equal(spacing.statusCode, 200);
+  assert.equal(spacing.body.data.selection.phase, 'learning');
+  const spacedSource = await cardSource(api, session);
+  const spacingIndex = spacedSource.card_records.findIndex(card => card.card_id === spacing.body.data.selection.card_id);
+  assert.notEqual(spacedSource.card_records[spacingIndex].space_metadata.box_ref, source.card_records[0].space_metadata.box_ref);
+  const spacingAck = await submit(api, session, spacedSource, [eventFor(spacedSource, spacingIndex, {
+    event_id: 'scheduler_spacing_confirmed', selection_id: spacing.body.data.selection.selection_id,
+    client_occurred_at: clock.now().toISOString(), device_cursor: {device_id: 'scheduler_device_0001', sequence: 2},
+  })]);
+  assert.equal(spacingAck.statusCode, 200, JSON.stringify(spacingAck.body));
   const due = await learningSession(api, session);
   assert.equal(due.statusCode, 200);
   assert.equal(due.body.data.selection.card_id, event.card_id);
