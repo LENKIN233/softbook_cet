@@ -10,6 +10,7 @@ import {
   createStudyState,
   learnedStudyCardIds,
   planLocalCards,
+  refreshStudyOrder,
   validateStudyState,
   type StudyFrame,
   type StudyProfileInput,
@@ -90,10 +91,12 @@ function migrateState(
     const currentCompatible = retained === frame.ids[frame.index];
     const card = cards.find(c => c.card_id === retained);
     const complete = frame.complete || !card;
+    const taskPhases = frame.taskPhases?.filter((_, oldIndex) => compatible.has(frame.ids[oldIndex]));
     return {
       ...frame,
       ids,
       index,
+      ...(taskPhases ? {taskPhases, phase: taskPhases[index] ?? frame.phase} : {}),
       complete,
       results: frame.results.filter(r => ids.includes(r.cardId)),
       draft: complete
@@ -122,7 +125,7 @@ function migrateState(
     checkIns: old.checkIns,
   };
   validateStudyState(next, cards);
-  return next;
+  return refreshStudyOrder(next, cards);
 }
 function legacyState(
   data: Record<string, unknown>,
@@ -284,7 +287,7 @@ export function createStudyStore(options: StoreOptions) {
         throw new Error();
       if (data.schemaVersion === 1 && data.contentVersion === contentVersion)
         return {
-          state: legacyState(data, cards),
+          state: refreshStudyOrder(legacyState(data, cards), cards),
           notice: '已保留之前的进度，并更新学习安排。',
         };
       if (
@@ -317,7 +320,7 @@ export function createStudyStore(options: StoreOptions) {
           )
         )
           throw new Error();
-        return { state: data.state, notice: null };
+        return { state: refreshStudyOrder(data.state, cards), notice: null };
       }
       const compatible = new Set(
         Object.entries(fingerprints)
@@ -391,7 +394,7 @@ export function createStudyStore(options: StoreOptions) {
       if (legacy) {
         validateStudyState(legacy, cards);
         return {
-          state: legacy,
+          state: refreshStudyOrder(legacy, cards),
           notice: '已恢复本机原有的收藏、暂停卡片和学习位置。',
         };
       }

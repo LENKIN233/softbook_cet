@@ -67,8 +67,14 @@ This requests one review card. An eligible existing review cursor resumes;
 otherwise due reviews are preferred, then an accessible, non-sleeping card
 whose latest accepted answer needs review may be practised before its due time.
 The server orders these candidates by due time and canonical source order,
-preferring a different recent knowledge point when one is available. Explicit
-review never inserts a new card for variety.
+preferring points outside the four most recently acknowledged distinct knowledge
+points, then the least recent point within that window. The window comes from the
+current track and content version: aggregate the canonical latest-card results by
+knowledge point using each point's highest positive server sequence. Sequence
+allocation is account-wide, so gaps caused by another course never expire a point.
+An eligible different point takes precedence over repeating the last one,
+including after a reading pause or restart.
+Explicit review never inserts a new card for variety.
 The resulting phase is `review`, with reason `requested_review` and the real
 scheduled due time. Repeating the request resumes the same opaque cursor.
 Completing it creates one ordinary immutable review event; subsequent normal
@@ -168,18 +174,24 @@ The endpoint returns at most one card ID and never returns card body content.
 2. Otherwise choose an accessible, non-sleeping due review. Sequence-zero
    legacy cards are due immediately. Other cards are due when their FSRS
    `due` time is not later than server time. Base priority is due time,
-   canonical card-source index, then card ID. When the last accepted current-
-   version result is within five server-clock minutes, prefer the first due
-   card from a different `space_metadata.box_ref`. If all due cards repeat
-   that point and an eligible unseen card has a different point, insert one
-   such new card in the normal flow. Reviews remain due with their original
-   FSRS time and receive priority after that spacing task; a same-point
+   canonical card-source index, then card ID. Prefer a `space_metadata.box_ref`
+   outside the four most recently confirmed distinct points in this track and
+   content version; otherwise prefer the point whose latest result is least
+   recent within that window. Equal point recency retains the base priority.
+   Reading time and restarts do
+   not expire this context. If all due cards repeat
+   the last acknowledged point and an eligible unseen card has a different
+   point, insert one such new card in the normal flow. A just-confirmed review
+   also allows one unseen point outside the window when every due point is
+   already in that window. A learning confirmation returns priority to due
+   work, preventing a chain of new-card insertions. Reviews remain due with
+   their original FSRS time and receive priority after that spacing task; a same-point
    fallback keeps the flow usable when no alternative is eligible.
 3. If no review is due, schedule accessible new cards in short subject blocks:
    visit each `space_metadata.library` in its first catalog appearance order,
-   taking two cards at a time as base order. Prefer the first unseen,
-   non-sleeping card from a different recent knowledge point, retaining each
-   box's authored order. Build the
+   taking two cards at a time as base order. Apply the same four-point
+   recency window to eligible unseen, non-sleeping cards. Equal point
+   recency keeps the base order and each box's authored order. Build the
    sequence only from the canonical membership-accessible prefix; ordering
    does not change source records, content hashes, or the accessible set.
 4. If neither exists, return `selection: null` and the earliest eligible future

@@ -894,7 +894,8 @@ test('latest accepted event owns per-card review state without changing completi
     device_cursor: {device_id: 'device_installation_0001', sequence: 2},
   });
 
-  await submit(api, session, [review]);
+  const reviewAccepted = await submit(api, session, [review]);
+  assert.equal(reviewAccepted.body.data.results[0].status, 'accepted');
   const pending = await request(api, {
     headers: {authorization: `Bearer ${session.access_token}`},
     method: 'GET',
@@ -904,7 +905,15 @@ test('latest accepted event owns per-card review state without changing completi
   assert.equal(pending.body.data.progress.pending_review_count, 1);
 
   clock.advanceDays(1);
-  await submit(api, session, [passed]);
+  const requestedReview = await request(api, {
+    body: {track: 'cet4'}, headers: {authorization: `Bearer ${session.access_token}`},
+    method: 'POST', path: '/v2/learning/review',
+  });
+  assert.equal(requestedReview.statusCode, 200, JSON.stringify(requestedReview.body));
+  assert.equal(requestedReview.body.data.selection.card_id, card.card_id);
+  passed.selection_id = requestedReview.body.data.selection.selection_id;
+  const passAccepted = await submit(api, session, [passed]);
+  assert.equal(passAccepted.body.data.results[0].status, 'accepted');
   const reconciled = await request(api, {
     headers: {authorization: `Bearer ${session.access_token}`},
     method: 'GET',

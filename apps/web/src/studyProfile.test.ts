@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type {
   LearningCard,
   LearningCardState,
@@ -20,6 +20,10 @@ import {
   type StudyStorage,
 } from "../../mobile/src/local/studyStore";
 import { localStudyLock } from "../../mobile/src/local/useStudyProfile";
+import {normalizeLearningCardRecords, type LearningCardRecord} from '../../mobile/src/learning/sourceContract';
+import {knowledgePointOf} from '../../mobile/src/learning/learningSequence';
+import cet4Records from '../../../infra/cloudbase/functions/softbook-api/card-content/cet4-0.json';
+import cet6Records from '../../../infra/cloudbase/functions/softbook-api/card-content/cet6-0.json';
 
 function makeCards(): LearningCard[] {
   return Array.from({ length: 14 }, (_, index) => ({
@@ -101,6 +105,111 @@ function fixture() {
         withLock: localStudyLock,
       }),
   };
+}
+
+for (const track of ['cet4', 'cet6'] as const) {
+  const source = normalizeLearningCardRecords((track === 'cet4' ? cet4Records : cet6Records) as LearningCardRecord[]);
+  const points = [...new Set(source.filter(card => card.space_metadata.library === source[0].space_metadata.library).map(knowledgePointOf))].slice(0, 3);
+  const catalog = points.flatMap(point => source.filter(card => knowledgePointOf(card) === point).slice(0, 5));
+  const samePoint = catalog.slice(0, 5), date = new Date('2026-10-03T08:00:00Z');
+  const answerCurrent = (state: StudyState, outcome: 'confident' | 'review' = 'confident') => reduceStudy(state,
+    {type: 'answer', draft: {...state.frame.draft!, isFlipped: true, flipConfidence: outcome, hasUsedHint: true}}, catalog, date);
+  const oldFrame = () => {
+    let state = createStudyState(catalog);
+    state.frame = {...state.frame, phase: 'learning', ids: samePoint.map(card => card.card_id), index: 0,
+      draft: createLearningCardState(samePoint[0]), resolved: null, results: []};
+    Reflect.deleteProperty(state.frame, 'taskPhases');
+    state = answerCurrent(state, 'review');
+    state = reduceStudy(state, {type: 'advance'}, catalog, date);
+    return answerCurrent(state);
+  };
+  it(`${track} upgrades a same-content old tail while retaining current feedback, confirmed prefix and saved history`, async () => {
+    const f = fixture(), store = f.store('same-content', catalog, track);
+    await store.load();const old = oldFrame();await store.save(old);
+    const raw = f.values.get(store.key), restored = (await f.store('same-content', catalog, track).load()).state;
+    expect(restored.frame.ids.slice(0, 2)).toEqual(old.frame.ids.slice(0, 2));
+    expect(restored.frame.index).toBe(old.frame.index);
+    expect(restored.frame.draft).toEqual(old.frame.draft);expect(restored.frame.resolved).toEqual(old.frame.resolved);
+    expect(restored.frame.results).toEqual(old.frame.results);
+    expect(restored.frame.ids).toHaveLength(5);
+    for (let index = restored.frame.index + 1; index < restored.frame.ids.length; index++) {
+      expect(knowledgePointOf(catalog.find(card => card.card_id === restored.frame.ids[index])!))
+        .not.toBe(knowledgePointOf(catalog.find(card => card.card_id === restored.frame.ids[index - 1])!));
+    }
+    expect({...restored, frame: old.frame}).toEqual(old);
+    expect(f.values.get(store.key)).toBe(raw);
+    expect((await f.store('same-content', catalog, track).load()).state).toEqual(restored);
+  });
+  it(`${track} upgrades the suspended normal tail and returns to its exact active feedback after explicit review`, async () => {
+    const f = fixture(), store = f.store('same-content', catalog, track);
+    await store.load();const old = oldFrame(), reviewing = reduceStudy(old, {type: 'review'}, catalog, date);
+    await store.save(reviewing);let restored = (await f.store('same-content', catalog, track).load()).state;
+    expect(restored.frame.phase).toBe('review');expect(restored.frame.ids).toEqual([samePoint[0].card_id]);
+    expect(restored.resume?.draft).toEqual(old.frame.draft);expect(restored.resume?.resolved).toEqual(old.frame.resolved);
+    expect(restored.resume?.ids.slice(0, 2)).toEqual(old.frame.ids.slice(0, 2));
+    expect(knowledgePointOf(catalog.find(card => card.card_id === restored.resume!.ids[2])!)).not.toBe(points[0]);
+    restored = answerCurrent(restored);
+    restored = reduceStudy(restored, {type: 'advance'}, catalog, date);
+    const resume = structuredClone(restored.resume);
+    restored = reduceStudy(restored, {type: 'continue'}, catalog, date);
+    expect(restored.frame).toEqual(resume);expect(restored.resume).toBeNull();
+    expect(restored.frame.draft).toEqual(old.frame.draft);expect(restored.frame.resolved).toEqual(old.frame.resolved);
+  });
+  it(`${track} leaves a completed old round receipt intact when upgrading the ordering policy`, async () => {
+    const f = fixture(), store = f.store('same-content', catalog, track);await store.load();let old = oldFrame();
+    while (!old.frame.complete) {old = answerCurrent(old);old = reduceStudy(old, {type: 'advance'}, catalog, date);}
+    await store.save(old);const restored = (await f.store('same-content', catalog, track).load()).state;
+    expect(restored.frame).toEqual(old.frame);expect(restored.results).toEqual(old.results);expect(restored.days).toEqual(old.days);
+  });
+  it(`${track} keeps task phases aligned when a content change removes a card before the active position`, async () => {
+    vi.useFakeTimers({toFake: ['Date']});vi.setSystemTime(date);
+    try {
+    const f = fixture(), store = f.store('v1-real', catalog, track);await store.load();
+    const state = createStudyState(catalog), ids = [samePoint[0].card_id, catalog[5].card_id, samePoint[1].card_id, catalog[6].card_id, samePoint[2].card_id];
+    state.results = samePoint.map(card => ({cardId: card.card_id, interactionId: card.interaction_id,
+      outcome: 'confident', completedAt: date.toISOString(), usedHint: false, usedPeek: false, isFavorited: false}));
+    state.schedule = Object.fromEntries(samePoint.map(card => [card.card_id, {dueAt: new Date(date.getTime() - 60000).toISOString(), days: 1, successes: 1}]));
+    state.frame = {phase: 'learning', taskPhases: ['review', 'learning', 'review', 'learning', 'review'],
+      ids, index: 1, complete: false, draft: createLearningCardState(catalog[5]), resolved: null, results: [state.results[0]]};
+    await store.save(state);const nextCatalog = catalog.filter(card => card.card_id !== ids[0]);
+    const restored = (await f.store('v2-real', nextCatalog, track).load()).state;
+    expect(restored.frame.index).toBe(0);expect(restored.frame.ids[0]).toBe(ids[1]);
+    expect(restored.frame.draft).toEqual(state.frame.draft);expect(restored.frame.phase).toBe('learning');
+    expect(restored.frame.taskPhases).toHaveLength(restored.frame.ids.length);
+    expect(restored.frame.taskPhases).toContain('review');expect(restored.frame.taskPhases).toContain('learning');
+    restored.frame.ids.forEach((id, index) => expect(restored.frame.taskPhases![index])
+      .toBe(samePoint.some(card => card.card_id === id) ? 'review' : 'learning'));
+    expect(() => validateStudyState(restored, nextCatalog)).not.toThrow();
+    for (const taskPhases of [restored.frame.taskPhases!.slice(1), ['review', ...restored.frame.taskPhases!.slice(1)]]) {
+      expect(() => validateStudyState({...restored, frame: {...restored.frame, taskPhases}}, nextCatalog)).toThrow();
+    }
+    } finally {vi.useRealTimers();}
+  });
+  it(`${track} restores confirmed third-card feedback without duplicating that point in the diversity window`, async () => {
+    vi.useFakeTimers({toFake: ['Date']});vi.setSystemTime(date);
+    try {
+      const five = [...new Set(source.map(knowledgePointOf))].slice(0, 5).map(point => source.find(card => knowledgePointOf(card) === point)!);
+      const ids = [five[0].card_id, five[1].card_id, five[2].card_id,
+        source.filter(card => knowledgePointOf(card) === knowledgePointOf(five[1]))[1].card_id,
+        source.filter(card => knowledgePointOf(card) === knowledgePointOf(five[2]))[1].card_id];
+      let old = createStudyState(source);
+      old.frame = {...old.frame, ids, taskPhases: ids.map(() => 'learning')};
+      for (let index = 0; index < 3; index++) {
+        const card = activeStudyCard(old, source)!, draft = createLearningCardState(card);
+        old = reduceStudy(old, {type: 'answer', draft: card.interaction_id === 'flip'
+          ? {...draft, isFlipped: true, flipConfidence: 'confident', hasUsedHint: true}
+          : {...draft, selectedOptionId: card.interaction_id === 'multiple_choice' ? card.answer_key.correct_option : null}}, source, date);
+        expect(old.frame.resolved).not.toBeNull();
+        if (index < 2) old = reduceStudy(old, {type: 'advance'}, source, date);
+      }
+      const f = fixture(), store = f.store('same-content', source, track);await store.load();await store.save(old);
+      const restored = (await f.store('same-content', source, track).load()).state;
+      expect(restored.frame.ids.slice(0, 3)).toEqual(old.frame.ids.slice(0, 3));
+      expect(restored.frame.draft).toEqual(old.frame.draft);expect(restored.frame.resolved).toEqual(old.frame.resolved);
+      expect(restored.frame.results).toEqual(old.frame.results);expect(restored.results).toEqual(old.results);
+      expect(new Set(restored.frame.ids.map(id => knowledgePointOf(source.find(card => card.card_id === id)!))).size).toBe(5);
+    } finally {vi.useRealTimers();}
+  });
 }
 
 describe("shared local study workflow", () => {
