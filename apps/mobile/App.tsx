@@ -9,6 +9,9 @@ import {endsLocalBatch, localBatch, localResumeIndex} from './src/learning/local
 import {NativeMotionProvider, useCardMotion, StudioPressable as Pressable} from './src/learning/NativeMotion';
 import {STUDIO} from './src/visual/studio';
 import {StudioMark} from './src/visual/StudioMark';
+import {StudioIcon} from './src/visual/StudioIcon';
+import {StudioActionLabel} from './src/visual/StudioActionLabel';
+import {CoursePicker} from './src/learning/CoursePicker';
 import {FirstRunGuidanceBoundary, FirstLearningGuide, type FirstRunGuidance} from './src/onboarding/FirstRunGuidance';
 import {guardFirstTrackSelection} from './src/onboarding/firstTrackSelectionGuard';
 import {LEARNING_SEGMENT_SIZE, initializeLearningSegment, confirmLearningSegmentCard, continueLearningSegment, type ConfirmedLearningSegmentCard, type LearningSegmentProgress} from './src/learning/learningSegment';
@@ -505,6 +508,7 @@ function AppShell({
 }) {
   const palette = LIGHT_PALETTE;
   const [learningTrack, setLearningTrack] = useState(guidance.record.selectedTrack);
+  const [coursePickerVisible, setCoursePickerVisible] = useState(false);
   const [trackSwitchPending, setTrackSwitchPending] = useState(false);
   const trackSwitchInFlight = useRef(false);
   const [trackSwitchError, setTrackSwitchError] = useState<string | null>(null);
@@ -991,6 +995,7 @@ function AppShell({
   } | null>(null);
   const resetRuntimeAfterLogout = useCallback(
     (error: string | null = null) => {
+      setCoursePickerVisible(false);
       setLearningView('home');
       setLearningStartIntent('learning');
       studySpaceOrigin.current = null;
@@ -6781,10 +6786,10 @@ function AppShell({
         <Text style={[styles.segmentDetail, {color: palette.textMuted}]}>{`完成 ${LEARNING_SEGMENT_SIZE} 次练习。`}</Text>
         <Text style={[styles.segmentDetail, {color: palette.textMuted}]}>{`练过的内容：${segmentKnowledgePoints.join('、')}。`}</Text>
         <Pressable accessibilityRole="button" testID="learning-segment-continue" style={[styles.segmentPrimary, {backgroundColor: palette.primaryActionSurface}]} onPress={() => setLearningSegment(previous => previous?.scope === visibleSegment.scope ? continueLearningSegment(previous) : previous)}>
-          <Text style={{color: palette.primaryActionText}}>继续学习</Text>
+          <StudioActionLabel icon="play" color={palette.primaryActionText} textStyle={{fontWeight: '600'}}>继续学习</StudioActionLabel>
         </Pressable>
         <Pressable accessibilityRole="button" testID="learning-segment-finish-button" style={styles.segmentSecondary} onPress={pauseLearning}>
-          <Text style={{color: palette.textMuted}}>先到这里</Text>
+          <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={{fontWeight: '500'}}>先到这里</StudioActionLabel>
         </Pressable>
       </ScrollView>
     ) : contentWithLearningNotice;
@@ -6951,9 +6956,12 @@ function AppShell({
           <TabletShell
             activeRoute={activeRoute}
             immersive={isStudyActive}
+            track={learningTrack}
             authState={authState}
             content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithSessionActions}</Animated.View>}
             onSelectRoute={handleSelectRoute}
+            onOpenCourse={authRepositoryConfig.mode === 'remote' && runtimeAccountBootstrapMode === 'remote' ? () => setCoursePickerVisible(true) : undefined}
+            coursePickerExpanded={coursePickerVisible}
             palette={palette}
             route={route}
           />
@@ -6966,6 +6974,8 @@ function AppShell({
             authState={authState}
             content={<Animated.View style={[{flex: 1}, routeMotion.cardStyle]}>{contentWithSessionActions}</Animated.View>}
             onSelectRoute={handleSelectRoute}
+            onOpenCourse={authRepositoryConfig.mode === 'remote' && runtimeAccountBootstrapMode === 'remote' ? () => setCoursePickerVisible(true) : undefined}
+            coursePickerExpanded={coursePickerVisible}
             palette={palette}
             route={route}
           />
@@ -6978,6 +6988,16 @@ function AppShell({
         preparationFailed={accountDeletionPreparationFailed}
         state={accountDeletionSheetDismissed ? 'closed' : accountDeletionState}
       />
+      <CoursePicker visible={isAuthenticated && coursePickerVisible}
+        track={learningTrack} busy={trackSwitchPending}
+        disabled={!canWriteAccountState || learningAdvancePending || learningRoundContinuePending}
+        error={trackSwitchError} palette={palette} onClose={() => setCoursePickerVisible(false)}
+        onChoose={nextTrack => {
+          if (nextTrack === learningTrack) {setCoursePickerVisible(false); return;}
+          void switchLearningTrack(nextTrack).then(() => {
+            if (learningTrackRef.current === nextTrack) setCoursePickerVisible(false);
+          });
+        }} />
       <FirstLearningGuide guidance={guidance} visible={isAuthenticated && isStudyActive && learningBootstrapStatus === 'ready' && currentLearningCard !== null} />
     </SafeAreaView>
   );
@@ -7058,14 +7078,9 @@ function LearningBootstrapSurface({
             : 'learning-bootstrap-retry-button'
         }
       >
-        <Text
-          style={[
-            styles.primaryButtonLabel,
-            { color: palette.primaryActionText },
-          ]}
-        >
+        <StudioActionLabel icon="refresh" color={palette.primaryActionText} textStyle={styles.primaryButtonLabel}>
           {isClientUpdateRequired ? '获取更新' : '重新加载'}
-        </Text>
+        </StudioActionLabel>
       </Pressable>
     </View>
   );
@@ -7623,6 +7638,7 @@ function AccountDeletionSheet({
                 ]}
                 testID="account-deletion-cancel-button"
               >
+                <StudioIcon name="close" color={palette.text} size={20} />
                 <Text
                   style={[
                     styles.accountDeletionSecondaryButtonLabel,
@@ -7643,6 +7659,7 @@ function AccountDeletionSheet({
                 ]}
                 testID="account-deletion-submit-button"
               >
+                <StudioIcon name="trash" color={palette.panel} size={20} />
                 <Text
                   style={[
                     styles.accountDeletionDangerButtonLabel,
@@ -7673,6 +7690,8 @@ function PhoneShell({
   authState,
   content,
   onSelectRoute,
+  onOpenCourse,
+  coursePickerExpanded,
   palette,
   route,
 }: {
@@ -7683,6 +7702,8 @@ function PhoneShell({
   authState: AuthState;
   content: React.ReactNode;
   onSelectRoute: (route: RouteKey) => void;
+  onOpenCourse?: () => void;
+  coursePickerExpanded: boolean;
   palette: Palette;
   route: ShellRoute;
 }) {
@@ -7701,6 +7722,8 @@ function PhoneShell({
         track={track}
         authState={authState}
         onOpenAccount={() => onSelectRoute('mine')}
+        onOpenCourse={onOpenCourse}
+        coursePickerExpanded={coursePickerExpanded}
         palette={palette}
         route={route}
       />
@@ -7786,17 +7809,23 @@ function PhoneTopBar({
   authState,
   track,
   onOpenAccount,
+  onOpenCourse,
+  coursePickerExpanded,
   palette,
   route,
 }: {
   authState: AuthState;
   track: LearningTrack;
   onOpenAccount: () => void;
+  onOpenCourse?: () => void;
+  coursePickerExpanded: boolean;
   palette: Palette;
   route: ShellRoute;
 }) {
   const accountChipCopy = getShellAccountChipCopy(authState);
-  const courseLabel = track === 'cet6' ? 'CET 6' : 'CET 4';
+  const courseLabel = track === 'cet6' ? '六级' : '四级';
+  const {width, fontScale} = useWindowDimensions();
+  const compact = width < 360 || fontScale > 1.3;
 
   return (
     <View
@@ -7808,7 +7837,7 @@ function PhoneTopBar({
     >
       <View style={styles.phoneBrandLockup}>
         <StudioMark />
-        <View style={styles.phoneTopCopy}>
+        {!compact ? <View style={styles.phoneTopCopy}>
           <Text
             maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
             style={[
@@ -7819,8 +7848,19 @@ function PhoneTopBar({
           >
             软书
           </Text>
-        </View>
+        </View> : null}
       </View>
+      <View style={styles.phoneHeaderControls}>
+      {onOpenCourse ? <Pressable accessibilityRole="button" accessibilityLabel={`备考科目，英语${courseLabel}，切换科目`}
+        accessibilityState={{expanded: coursePickerExpanded}} onPress={onOpenCourse} testID="shell-course-picker-button"
+        style={[styles.phoneCourseChip, {backgroundColor: palette.panelStrong, borderColor: palette.border}]}>
+        <StudioIcon name="book" color={palette.text} size={20} />
+        <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.phoneCourseLabel, {color: palette.text}]}>{courseLabel}</Text>
+        <StudioIcon name="chevronDown" color={palette.textMuted} size={16} />
+      </Pressable> : <View style={styles.phoneCourseChip}>
+        <StudioIcon name="book" color={palette.textMuted} size={20} />
+        <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.phoneCourseLabel, {color: palette.textMuted}]}>{courseLabel}</Text>
+      </View>}
       <Pressable
         accessibilityLabel={`${accountChipCopy.label}，${accountChipCopy.value}`}
         accessibilityRole="button"
@@ -7829,6 +7869,7 @@ function PhoneTopBar({
         }}
         style={[
           styles.phoneAccountChip,
+          compact ? styles.phoneAccountChipIconOnly : null,
           {
             backgroundColor: palette.panelStrong,
             borderColor: palette.border,
@@ -7836,8 +7877,10 @@ function PhoneTopBar({
         ]}
         testID="shell-account-chip"
       >
-        <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.phoneTopMeta,{color:palette.textMuted}]}>{courseLabel}</Text>
+        <StudioIcon name="user" color={palette.text} size={22} />
+        {!compact ? <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.phoneCourseLabel,{color:palette.text}]}>我的</Text> : null}
       </Pressable>
+      </View>
     </View>
   );
 }
@@ -7845,17 +7888,23 @@ function PhoneTopBar({
 function TabletShell({
   activeRoute,
   immersive,
+  track,
   authState,
   content,
   onSelectRoute,
+  onOpenCourse,
+  coursePickerExpanded,
   palette,
   route,
 }: {
   activeRoute: RouteKey;
   immersive: boolean;
+  track: LearningTrack;
   authState: AuthState;
   content: React.ReactNode;
   onSelectRoute: (route: RouteKey) => void;
+  onOpenCourse?: () => void;
+  coursePickerExpanded: boolean;
   palette: Palette;
   route: ShellRoute;
 }) {
@@ -7938,6 +7987,9 @@ function TabletShell({
       <View style={styles.tabletContent}>
         <ShellHeader
           authState={authState}
+          track={track}
+          onOpenCourse={onOpenCourse}
+          coursePickerExpanded={coursePickerExpanded}
           onOpenAccount={() => onSelectRoute('mine')}
           palette={palette}
           route={route}
@@ -7950,16 +8002,23 @@ function TabletShell({
 
 function ShellHeader({
   authState,
+  track,
+  onOpenCourse,
+  coursePickerExpanded,
   onOpenAccount,
   palette,
   route,
 }: {
   authState: AuthState;
+  track: LearningTrack;
+  onOpenCourse?: () => void;
+  coursePickerExpanded: boolean;
   onOpenAccount: () => void;
   palette: Palette;
   route: ShellRoute;
 }) {
   const accountChipCopy = getShellAccountChipCopy(authState);
+  const currentCourseLabel = track === 'cet6' ? '英语六级' : '英语四级';
 
   return (
     <View
@@ -7989,6 +8048,12 @@ function ShellHeader({
         </Text>
       </View>
       <View style={styles.headerMeta}>
+        {onOpenCourse ? <Pressable accessibilityRole="button" accessibilityLabel={`备考科目，${currentCourseLabel}，切换科目`}
+          accessibilityState={{expanded: coursePickerExpanded}} onPress={onOpenCourse} testID="shell-course-picker-button"
+          style={[styles.phoneCourseChip, {backgroundColor: palette.panelStrong, borderColor: palette.border}]}>
+          <StudioActionLabel icon="book" color={palette.text} textStyle={styles.phoneCourseLabel}>{currentCourseLabel}</StudioActionLabel>
+          <StudioIcon name="chevronDown" color={palette.textMuted} size={16} />
+        </Pressable> : null}
         <Pressable
           accessibilityLabel={`${accountChipCopy.label}，${accountChipCopy.value}`}
           accessibilityRole="button"
@@ -8617,7 +8682,7 @@ function MineSurface({
         </View>
         {onSwitchTrack ? <View style={{paddingVertical: 16, gap: 12}}>
           <Text accessibilityRole="header" style={{color: palette.text, fontSize: 18, fontWeight: '600'}}>备考科目</Text>
-          <View style={{flexDirection: 'row', gap: 12}}>
+          <View style={[styles.mineCourseSegments, {backgroundColor: palette.panelStrong, borderColor: palette.border}]}>
             {([
               {value: 'cet4', label: '英语四级'},
               {value: 'cet6', label: '英语六级'},
@@ -8630,11 +8695,11 @@ function MineSurface({
                 accessibilityState={{selected: learningTrack === value, disabled: trackSwitchPending}}
                 disabled={trackSwitchPending}
                 onPress={() => onSwitchTrack(value)}
-                style={{flex: 1, padding: 14, borderRadius: 12, borderWidth: 1,
-                  borderColor: palette.border,
-                  backgroundColor: learningTrack === value ? palette.accentSoft : palette.panel}}
+                style={[styles.mineCourseOption, {borderColor: learningTrack === value ? STUDIO.color.brand : palette.border,
+                  backgroundColor: learningTrack === value ? STUDIO.color.brand : palette.panel}]}
               >
-                <Text style={{color: palette.text, textAlign: 'center', fontWeight: '600'}}>{label}</Text>
+                <StudioActionLabel icon={learningTrack === value ? 'checkCircle' : 'book'} color={learningTrack === value ? '#FFFFFF' : palette.text}
+                  textStyle={{fontSize: 14, lineHeight: 22, fontWeight: learningTrack === value ? '700' : '500'}}>{label}</StudioActionLabel>
               </Pressable>
             ))}
           </View>
@@ -8700,6 +8765,7 @@ function MineSurface({
               ]}
               testID="mine-account-logout-button"
             >
+              <StudioIcon name="logout" color={palette.text} size={20} />
               <Text style={[styles.secondaryButtonLabel, {color: palette.text}]}>
                 退出登录
               </Text>
@@ -8751,6 +8817,7 @@ function MineSurface({
                 ]}
                 testID="mine-account-delete-button"
               >
+                <StudioIcon name="trash" color={palette.danger} size={20} />
                 <Text
                   style={[
                     styles.mineAccountDeleteButtonLabel,
@@ -8971,7 +9038,7 @@ function MembershipHostCard({
             </Text>
           </View>
           <View style={styles.membershipAccessCompactActions}>
-            <Pressable
+            <Pressable accessibilityRole="button"
               disabled={membershipPendingAction !== null}
               onPress={handlers.onStartTrial}
               style={[
@@ -8980,8 +9047,8 @@ function MembershipHostCard({
               ]}
               testID="membership-start-trial-button"
             >
+              <StudioIcon name="play" color={palette.primaryActionText} size={20} />
               <Text
-                numberOfLines={1}
                 style={[
                   styles.membershipCompactTrialLabel,
                   { color: palette.primaryActionText },
@@ -8993,7 +9060,7 @@ function MembershipHostCard({
               </Text>
             </Pressable>
             {purchaseAvailable ? (
-              <Pressable
+              <Pressable accessibilityRole="button"
               disabled={membershipPendingAction !== null}
               onPress={handlers.onPurchase}
               style={[
@@ -9005,8 +9072,8 @@ function MembershipHostCard({
               ]}
               testID="membership-purchase-button"
             >
+              <StudioIcon name="unlock" color={palette.text} size={20} />
               <Text
-                numberOfLines={1}
                 style={[
                   styles.membershipCompactPurchaseLabel,
                   { color: palette.accentStrong },
@@ -9198,7 +9265,7 @@ function MembershipActionGroup({
 
   return membershipState.stage === 'trial_available' ? (
     <View style={styles.membershipTrialActionRow}>
-      <Pressable
+      <Pressable accessibilityRole="button"
         disabled={isPending}
         onPress={handlers.onStartTrial}
         style={[
@@ -9209,6 +9276,7 @@ function MembershipActionGroup({
         ]}
         testID="membership-start-trial-button"
       >
+        <StudioIcon name="play" color={actionText} size={20} />
         <Text
           style={[styles.primaryButtonLabel, { color: actionText }]}
         >
@@ -9218,7 +9286,7 @@ function MembershipActionGroup({
         </Text>
       </Pressable>
       {purchaseAvailable ? (
-        <Pressable
+        <Pressable accessibilityRole="button"
         disabled={isPending}
         onPress={handlers.onPurchase}
         style={[
@@ -9227,6 +9295,7 @@ function MembershipActionGroup({
         ]}
         testID="membership-purchase-button"
       >
+        <StudioIcon name="unlock" color={palette.text} size={20} />
         <Text
           style={[styles.membershipSecondaryLinkLabel, { color: palette.text }]}
         >
@@ -9238,7 +9307,7 @@ function MembershipActionGroup({
   ) : membershipState.stage === 'trial' ? (
     <View style={styles.authActions}>
       {purchaseAvailable ? (
-        <Pressable
+        <Pressable accessibilityRole="button"
         disabled={isPending}
         onPress={handlers.onPurchase}
         style={[
@@ -9249,6 +9318,7 @@ function MembershipActionGroup({
         ]}
         testID="membership-purchase-button"
       >
+        <StudioIcon name="unlock" color={actionText} size={20} />
         <Text
           style={[styles.primaryButtonLabel, { color: actionText }]}
         >
@@ -9259,7 +9329,7 @@ function MembershipActionGroup({
       </Pressable>
       ) : operatorEntitlementCopy}
       {showLocalDebugActions ? (
-        <Pressable
+        <Pressable accessibilityRole="button"
           disabled={isPending}
           onPress={handlers.onExpireTrial}
           style={[
@@ -9271,6 +9341,7 @@ function MembershipActionGroup({
           ]}
           testID="membership-expire-trial-button"
         >
+          <StudioIcon name="pause" color={palette.text} size={20} />
           <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
             结束试用体验
           </Text>
@@ -9283,7 +9354,7 @@ function MembershipActionGroup({
         会员已开通。
       </Text>
       {showLocalDebugActions ? (
-        <Pressable
+        <Pressable accessibilityRole="button"
           disabled={isPending}
           onPress={handlers.onExpirePremium}
           style={[
@@ -9295,6 +9366,7 @@ function MembershipActionGroup({
           ]}
           testID="membership-expire-premium-button"
         >
+          <StudioIcon name="pause" color={palette.text} size={20} />
           <Text style={[styles.secondaryButtonLabel, { color: palette.text }]}>
             结束会员体验
           </Text>
@@ -9304,7 +9376,7 @@ function MembershipActionGroup({
   ) : (
     <View style={styles.authActions}>
       {purchaseAvailable ? (
-        <Pressable
+        <Pressable accessibilityRole="button"
         disabled={isPending}
         onPress={handlers.onPurchase}
         style={[
@@ -9315,6 +9387,7 @@ function MembershipActionGroup({
         ]}
         testID="membership-purchase-button"
       >
+        <StudioIcon name="unlock" color={actionText} size={20} />
         <Text
           style={[styles.primaryButtonLabel, { color: actionText }]}
         >
@@ -9580,7 +9653,7 @@ function PhoneSmsPanel({
                 {`登录手机号：${maskPhoneNumber(authState.phoneNumber)}`}
               </Text>
             </View>
-            <Pressable
+            <Pressable accessibilityRole="button"
               disabled={!canRequestCode}
               onPress={handlers.onRequestCode}
               style={[
@@ -9592,8 +9665,8 @@ function PhoneSmsPanel({
               ]}
               testID="auth-request-code-button"
             >
+              <StudioIcon name="phone" color={palette.text} size={20} />
               <Text
-                numberOfLines={1}
                 style={[styles.authCodeResendLabel, { color: palette.text }]}
               >
                 {authState.pendingAction === 'request_code'
@@ -9606,7 +9679,7 @@ function PhoneSmsPanel({
           </View>
           {!isAuthenticated ? (
             <View style={styles.authCodeSecondaryActions}>
-              <Pressable
+              <Pressable accessibilityRole="button"
                 disabled={isPending}
                 onPress={handlers.onResetPhone}
                 style={[
@@ -9615,6 +9688,7 @@ function PhoneSmsPanel({
                 ]}
                 testID="auth-change-phone-button"
               >
+                <StudioIcon name="phone" color={palette.text} size={20} />
                 <Text style={[styles.authCodeResendLabel, {color: palette.text}]}>
                   更换手机号
                 </Text>
@@ -9630,6 +9704,7 @@ function PhoneSmsPanel({
                   ]}
                   testID="auth-code-dismiss-keyboard-button"
                 >
+                  <StudioIcon name="keyboard" color={palette.text} size={20} />
                   <Text style={[styles.authCodeResendLabel, {color: palette.text}]}>
                     收起键盘
                   </Text>
@@ -9747,7 +9822,7 @@ function PhoneSmsPanel({
               />
             </View>
             {!isAuthenticated ? (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 disabled={!canSubmitCode}
                 onPress={handlers.onSubmitCode}
                 style={[
@@ -9760,8 +9835,8 @@ function PhoneSmsPanel({
                 ]}
                 testID="auth-submit-button"
               >
+                <StudioIcon name="arrowRight" color={submitCodeLabelColor} size={20} />
                 <Text
-                  numberOfLines={1}
                   style={[
                     styles.authCodeSubmitLabel,
                     { color: submitCodeLabelColor },
@@ -9908,7 +9983,7 @@ function PhoneSmsPanel({
                 value={authState.phoneNumber}
               />
             </View>
-            <Pressable
+            <Pressable accessibilityRole="button"
               disabled={!canRequestCode}
               onPress={handlers.onRequestCode}
               style={[
@@ -9925,8 +10000,8 @@ function PhoneSmsPanel({
               ]}
               testID="auth-request-code-button"
             >
+              <StudioIcon name="phone" color={requestCodeLabelColor} size={20} />
               <Text
-                numberOfLines={1}
                 style={[
                   styles.authRequestButtonLabel,
                   { color: requestCodeLabelColor },
@@ -9955,7 +10030,7 @@ function PhoneSmsPanel({
               },
             ]}
           >
-            <Pressable
+            <Pressable accessibilityRole="button"
               onPress={Keyboard.dismiss}
               style={[
                 styles.keyboardAccessoryButton,
@@ -9963,6 +10038,7 @@ function PhoneSmsPanel({
               ]}
               testID="auth-dismiss-keyboard-button"
             >
+              <StudioIcon name="keyboard" color={palette.primaryActionText} size={20} />
               <Text
                 style={[
                   styles.keyboardAccessoryLabel,
@@ -9981,7 +10057,7 @@ function PhoneSmsPanel({
           <Text style={[styles.authSuccess, { color: palette.success }]}>
             {successMessage}
           </Text>
-          <Pressable
+          <Pressable accessibilityRole="button"
             disabled={isPending}
             onPress={handlers.onLogout}
             style={[
@@ -9993,6 +10069,7 @@ function PhoneSmsPanel({
             ]}
             testID="auth-logout-button"
           >
+            <StudioIcon name="logout" color={palette.text} size={20} />
             <Text
               style={[styles.secondaryButtonLabel, { color: palette.text }]}
             >
@@ -10148,7 +10225,7 @@ function getMembershipCardSummary(
 
 const styles = StyleSheet.create({
   sessionContent: {flex: 1},
-  segmentSecondary: {minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center', alignItems: 'center'},
+  segmentSecondary: {minHeight: 48, paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: STUDIO.color.line, borderRadius: 14, backgroundColor: STUDIO.color.paperSoft},
   segmentSummary: {padding: 24, gap: 20, flexGrow: 1, justifyContent: 'center'},
   segmentTitle: {fontSize: 26, fontWeight: '600'},
   segmentDetail: {fontSize: 16, lineHeight: 26},
@@ -10246,8 +10323,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   phoneAccountChip: {
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 22, minWidth: 70, minHeight: 44, paddingHorizontal: 13,
+    flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 14, minWidth: 70, minHeight: 48, paddingHorizontal: 13,
   },
+  phoneHeaderControls: {flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0},
+  phoneCourseChip: {minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: 'transparent'},
+  phoneCourseLabel: {fontSize: 13, lineHeight: 20, fontWeight: '600'},
+  phoneAccountChipIconOnly: {minWidth: 48, paddingHorizontal: 10},
   phoneAccountChipDot: {
     borderRadius: 999,
     height: 6,
@@ -10771,6 +10852,7 @@ const styles = StyleSheet.create({
     lineHeight: 15,
   },
   authRequestButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     borderRadius: STUDIO.radius.control,
     borderWidth: 0,
@@ -10787,6 +10869,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   authRequestButtonLabel: {
+    flexShrink: 1, textAlign: 'center',
     fontSize: 14,
     fontWeight: '600',
     lineHeight: 19,
@@ -10811,6 +10894,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   authCodeSentHeader: {
+    flexWrap: 'wrap',
     alignItems: 'center',
     flexDirection: 'row',
     gap: 9,
@@ -10821,7 +10905,7 @@ const styles = StyleSheet.create({
     width: 10,
   },
   authCodeSentCopy: {
-    flex: 1,
+    flexGrow: 1, flexBasis: 150, minWidth: 0,
     gap: 1,
   },
   authCodeSentTitle: {
@@ -10907,6 +10991,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   authCodeSubmitButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     alignSelf: 'stretch',
     borderRadius: STUDIO.radius.control,
@@ -10925,37 +11010,42 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   authCodeSubmitLabel: {
-    fontSize: 12,
+    flexShrink: 1, textAlign: 'center',
+    fontSize: 14,
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: 22,
   },
   authCodeResendButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 0,
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: 10,
     paddingVertical: 7,
   },
   authCodeResendLabel: {
-    fontSize: 12,
+    flexShrink: 1, textAlign: 'center',
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: 22,
   },
   authCodeSecondaryActions: {
+    flexWrap: 'wrap',
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,
   },
   authChangePhoneButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     alignSelf: 'flex-start',
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: 12,
   },
   fieldGroup: {
@@ -11025,11 +11115,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   keyboardAccessoryButton: {
+    minHeight: 48,
+    flexDirection: 'row', gap: 8,
     borderRadius: 8,
     paddingHorizontal: 18,
     paddingVertical: 9,
   },
   keyboardAccessoryLabel: {
+    flexShrink: 1, textAlign: 'center',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -11091,6 +11184,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   primaryButton: {
+    flexDirection: 'row', gap: 8,
     borderRadius: STUDIO.radius.control,
     alignItems: 'center',
     justifyContent: 'center',
@@ -11108,10 +11202,13 @@ const styles = StyleSheet.create({
     minWidth: 128,
   },
   primaryButtonLabel: {
+    flexShrink: 1, textAlign: 'center',
     fontSize: 14,
     fontWeight: '600',
   },
   secondaryButton: {
+    flexDirection: 'row', gap: 8,
+    minHeight: 48,
     borderWidth: 1,
     borderRadius: 18,
     alignItems: 'center',
@@ -11120,6 +11217,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   secondaryButtonLabel: {
+    flexShrink: 1, textAlign: 'center',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -11331,6 +11429,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   accountDeletionSecondaryButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     borderRadius: 18,
     borderWidth: 1,
@@ -11341,10 +11440,12 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   accountDeletionSecondaryButtonLabel: {
-    fontSize: 13,
+    flexShrink: 1, textAlign: 'center',
+    fontSize: 14,
     fontWeight: '600',
   },
   accountDeletionDangerButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     borderRadius: 18,
     flex: 1,
@@ -11354,7 +11455,8 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   accountDeletionDangerButtonLabel: {
-    fontSize: 13,
+    flexShrink: 1, textAlign: 'center',
+    fontSize: 14,
     fontWeight: '600',
   },
   mineScreen: {
@@ -11514,14 +11616,17 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   mineAccountDeleteButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     borderRadius: 14,
     borderWidth: 0,
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
     minWidth: 92,
     paddingHorizontal: 12,
   },
+  mineCourseSegments: {flexDirection: 'row', flexWrap: 'wrap', borderWidth: 1, borderRadius: 18, padding: 6, gap: 6},
+  mineCourseOption: {flexGrow: 1, flexBasis: 120, minHeight: 52, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12, borderWidth: 1, justifyContent: 'center'},
   mineAccountLogoutButton: {
     minHeight: 44,
     minWidth: 92,
@@ -11529,6 +11634,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   mineAccountDeleteButtonLabel: {
+    flexShrink: 1, textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -11689,31 +11795,35 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
   membershipCompactTrialButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     borderRadius: 999,
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
     minWidth: 80,
     paddingHorizontal: 9,
   },
   membershipCompactTrialLabel: {
-    fontSize: 11,
+    flexShrink: 1, textAlign: 'center',
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: 22,
   },
   membershipCompactPurchaseButton: {
+    flexDirection: 'row', gap: 8,
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 0,
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
     minWidth: 82,
     paddingHorizontal: 10,
   },
   membershipCompactPurchaseLabel: {
-    fontSize: 11,
+    flexShrink: 1, textAlign: 'center',
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 16,
+    lineHeight: 22,
   },
   membershipAccessStep: {
     borderRadius: 12,
@@ -11769,6 +11879,8 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   membershipSecondaryLink: {
+    flexDirection: 'row', gap: 8,
+    minHeight: 48,
     alignItems: 'center',
     borderRadius: 18,
     justifyContent: 'center',
@@ -11777,7 +11889,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   membershipSecondaryLinkLabel: {
-    fontSize: 12,
+    flexShrink: 1, textAlign: 'center',
+    fontSize: 13,
     fontWeight: '600',
   },
   phoneTabBarWrap: {

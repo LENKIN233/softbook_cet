@@ -134,7 +134,7 @@ def collect_supported_test_ids() -> tuple[set[str], list[re.Pattern[str]]]:
 
         lines = text.splitlines()
         for index, line in enumerate(lines):
-            if "testID={" not in line and "labelTestID={" not in line:
+            if not any(prop in line for prop in ("testID={", "labelTestID={", "textTestID={")):
                 continue
 
             window = "\n".join(lines[index : index + 8])

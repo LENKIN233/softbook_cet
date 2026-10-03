@@ -1,4 +1,6 @@
 import {LearningSceneNavigation} from './LearningSceneNavigation';
+import {StudioIcon, IconLabel, DisclosureLabel} from './StudioIcon';
+import {CourseSwitch} from './CourseSwitch';
 import {LearningHome} from './LearningHome';
 import {SpaceSurface} from './SpaceSurface';
 import type {TrackStudyStatistics} from '../../mobile/src/statistics/trackStudyStatistics';
@@ -88,16 +90,7 @@ const ROUTES: {id: RouteKey; label: string}[] = [
 ];
 
 function RouteIcon({route}: {route: RouteKey}) {
-  if (route === 'learning') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3" width="17" height="18" rx="5"/><path d="M8 5v14M12 10h5M12 15h3"/></svg>;
-  }
-  if (route === 'space') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 11 5-3m-5 7 6 2"/><circle cx="5.5" cy="13" r="3.2"/><circle cx="15" cy="6.5" r="3.2"/><circle cx="17" cy="18" r="3.2"/></svg>;
-  }
-  if (route === 'statistics') {
-    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21v-9m6 9V7m6 14V3"/></svg>;
-  }
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>;
+  return <StudioIcon name={{learning:'book',space:'map',statistics:'chart',mine:'user'}[route] as 'book'|'map'|'chart'|'user'} size={24} />;
 }
 
 function libraryStyle(library?: string): React.CSSProperties {
@@ -1471,7 +1464,7 @@ function AccountApp({
         setMembership(previous => ({...(previous ?? createInitialMembershipState()), stage: 'trial'}));
         setAuthStage('authenticated');
       }}>{localLibraryStatus === 'loading' ? '正在准备…' : localSavedFingerprint ? '继续学习' : '开始学习'}</button>
-      {localLibraryStatus === 'error' ? <button className="text-button" onClick={() => setLocalLibraryAttempt(value => value + 1)}>重新读取</button> : null}
+      {localLibraryStatus === 'error' ? <button className="text-button" onClick={() => setLocalLibraryAttempt(value => value + 1)}><IconLabel name="refresh">重新读取</IconLabel></button> : null}
     </section></main>;
   }
 
@@ -1517,12 +1510,12 @@ function AccountApp({
           </div>
           {authError ? <p className="notice error" role="alert">{authError}</p> : null}
           <button className="primary wide" disabled={remoteBusy} onClick={authStage === 'phone' ? requestCode : verifyCode}>
-            {remoteBusy ? authStage === 'phone' ? '正在发送…' : '正在登录…'
-              : authStage === 'phone' ? '获取验证码' : '登录'}
+            <IconLabel name={remoteBusy ? 'refresh' : authStage === 'phone' ? 'phone' : 'user'}>{remoteBusy ? authStage === 'phone' ? '正在发送…' : '正在登录…'
+              : authStage === 'phone' ? '获取验证码' : '登录'}</IconLabel>
           </button>
           {authStage === 'code' ? (
             <button className="text-button" disabled={remoteBusy} onClick={() => {setAuthStage('phone'); setCode('');}}>
-              更换手机号 / 重新获取验证码
+              <IconLabel name="phone">更换手机号 / 重新获取验证码</IconLabel>
             </button>
           ) : null}
         </section>
@@ -1556,7 +1549,7 @@ function AccountApp({
         onOpenSpace={() => navigateRoute('space')} spaceDisabled={session === null} /> : <>
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
-        <button className="course-switch" aria-label="选择备考科目" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}>{(session?.track ?? runtime.track) === 'cet6' ? 'CET 6' : 'CET 4'} <span aria-hidden="true">⌄</span></button>
+        <div className="header-controls"><CourseSwitch track={session?.track ?? runtime.track} disabled={remoteBusy || accountDeletionLocksAccount} onSelect={value => void switchRemoteTrack(value)} /><button className="header-profile" aria-label="我的账户" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}><StudioIcon name="user" size={24} /></button></div>
       </header>
       <nav className="route-rail" aria-label="主要导航">
         <div className="brand-lockup rail-brand"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
@@ -1592,7 +1585,7 @@ function AccountApp({
       </>}
 
       {runtime.mode === 'development' && localSaveError ? <section className="notice error" role="alert">
-        <p>{localSaveError}</p><button disabled={!localHydrated} onClick={() => setLocalSaveAttempt(value => value + 1)}>重试保存</button>
+        <p>{localSaveError}</p><button disabled={!localHydrated} onClick={() => setLocalSaveAttempt(value => value + 1)}><IconLabel name="refresh">重试保存</IconLabel></button>
         <button onClick={() => {setLocalHydrated(false); void (localStore.current?.flush() ?? Promise.resolve()).then(() => setLocalLibraryAttempt(value => value + 1));}}>读取已保存进度</button>
       </section> : null}
       {route === 'learning' ? (
@@ -1610,13 +1603,13 @@ function AccountApp({
             <ul aria-label="本轮练过的知识点">{learningSegment.completedCards.filter((card, index, cards) => cards.findIndex(other => other.boxRef === card.boxRef && other.library === card.library && other.group === card.group) === index).map(card => <li key={`${card.library}:${card.group}:${card.boxRef}`}>{formatSpaceDisplayName(card.library, '当前书架')} · {formatSpaceDisplayName(card.box, '当前卡盒')}</li>)}</ul>
             <button className="primary" disabled={productBusy} onClick={() => {
               setLearningSegment(previous => previous ? continueLearningSegment(previous) : previous);
-            }}>继续下一轮</button>
-            <button className="secondary" disabled={productBusy} onClick={() => void pauseLearning()}>结束学习</button>
+            }}><IconLabel name="arrowRight">继续下一轮</IconLabel></button>
+            <button className="secondary" disabled={productBusy} onClick={() => void pauseLearning()}><IconLabel name="home">先到这里</IconLabel></button>
           </section></main>
         ) : runtime.mode === 'development' && localLibraryStatus !== 'ready' ? (
           <main className="workbench"><section className="learning-card" aria-live="polite">
             <p className="notice">{localLibraryStatus === 'loading' ? '正在准备卡库…' : '卡库暂时无法读取。'}</p>
-            {localLibraryStatus === 'error' ? <button onClick={() => setLocalLibraryAttempt(value => value + 1)}>重新加载卡库</button> : null}
+            {localLibraryStatus === 'error' ? <button onClick={() => setLocalLibraryAttempt(value => value + 1)}><IconLabel name="refresh">重新加载卡库</IconLabel></button> : null}
           </section></main>
         ) : runtime.mode === 'remote' && (session === null || !session.serverSelection && !session.roundCompletion && !sessionComplete) ? (
           <main className="workbench">
@@ -1624,7 +1617,7 @@ function AccountApp({
               <p className="eyebrow">已登录</p>
               <h1>暂时无法加载学习进度</h1>
               <p className="notice error" role="alert">{remoteError || '请重试加载学习进度。'}</p>
-              <button className="primary" disabled={remoteBusy} onClick={() => void reloadRemoteState()}>重新读取</button>
+              <button className="primary" disabled={remoteBusy} onClick={() => void reloadRemoteState()}><IconLabel name="refresh">重新读取</IconLabel></button>
             </section>
           </main>
         ) : isServerSelectionSleeping ? (
@@ -1636,8 +1629,8 @@ function AccountApp({
                 ? '休眠操作等待同步，确认后再读取下一张。也可以到空间唤醒这张卡。'
                 : '刷新学习进度后即可继续，也可以到空间唤醒这张卡。'}</p>
               {remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}
-              <button className="primary" disabled={remoteBusy || remoteCleanupPending || accountDeletionLocksAccount} onClick={() => void reloadRemoteState()}>刷新学习进度</button>
-              <button className="secondary" onClick={() => navigateRoute('space')}>前往空间</button>
+              <button className="primary" disabled={remoteBusy || remoteCleanupPending || accountDeletionLocksAccount} onClick={() => void reloadRemoteState()}><IconLabel name="refresh">刷新学习进度</IconLabel></button>
+              <button className="secondary" onClick={() => navigateRoute('space')}><IconLabel name="map">前往空间</IconLabel></button>
               <p className="notice" role="status">学习记录 · {genericSyncStatus}</p>
             </section>
           </main>
@@ -1646,7 +1639,7 @@ function AccountApp({
             <h1 id="empty-review-title">暂时没有需要复习的卡片</h1>
             <p>可以继续学习新内容，之后按学习安排复习。</p>
             {remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}
-            <button className="primary" disabled={productBusy} onClick={() => void reloadRemoteState(true)}>继续学习</button>
+            <button className="primary" disabled={productBusy} onClick={() => void reloadRemoteState(true)}><IconLabel name="arrowRight">继续学习</IconLabel></button>
           </section></main>
         ) : sessionComplete ? (
           <SessionCompleteSurface
@@ -1784,7 +1777,7 @@ function AccountApp({
         />
       ) : null}
       {route === 'statistics' ? (
-        <>{pauseNotice ? <p className="learning-pause-notice" role="status">{pauseNotice}</p> : null}{remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}{dayNeedsRefresh ? <main className="ledger-workbench"><section className="ledger"><h1>学习统计</h1><p role="status">{statisticsLoading ? '正在读取今天的记录…' : '今天的记录还未更新，请重新读取。'}</p><button className="primary" disabled={statisticsLoading} onClick={() => void refreshStatistics()}>重新读取</button></section></main> : <StatisticsSurface
+        <>{pauseNotice ? <p className="learning-pause-notice" role="status">{pauseNotice}</p> : null}{remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}{dayNeedsRefresh ? <main className="ledger-workbench"><section className="ledger"><h1>学习统计</h1><p role="status">{statisticsLoading ? '正在读取今天的记录…' : '今天的记录还未更新，请重新读取。'}</p><button className="primary" disabled={statisticsLoading} onClick={() => void refreshStatistics()}><IconLabel name="refresh">重新读取</IconLabel></button></section></main> : <StatisticsSurface
           statisticsLoading={statisticsLoading}
           statistics={trackStatistics?.track === session?.track && trackStatistics?.dayKey === liveChinaDay ? trackStatistics : null}
           track={session?.track ?? runtime.track}
@@ -1821,7 +1814,7 @@ function AccountApp({
               disabled={remoteBusy || accountDeletionLocksAccount}
               onClick={() => void signOut()}
             >
-              退出登录
+              <IconLabel name="logout">退出登录</IconLabel>
             </button>
           </section>
         </main>
@@ -1949,8 +1942,8 @@ function LearningSurface(props: LearningSurfaceProps) {
     {props.serverSequenced && resolved && motionBusy ? <p className="sr-only" role="status">正在准备下一张…</p> : null}
     <article ref={cardRef} aria-busy={props.serverSequenced && Boolean(resolved) && motionBusy} style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} className={`learning-card interaction-${card.interaction_id}${resolved ? ' has-result' : ''}`}>
       <header className="learning-paper-address">
-        <button className="paper-address-button" onClick={props.onOpenSpace} aria-label={`查看卡盒 ${box}`}><span className="paper-location"><span className="library-dot" />{courseName} · {library} / {group}</span><strong className="paper-knowledge" id="learning-title">{box} <span aria-hidden="true">↗</span></strong></button>
-        <button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button>
+        <button className="paper-address-button" onClick={props.onOpenSpace} aria-label={`查看卡盒 ${box}`}><span className="paper-location"><span className="library-dot" />{courseName} · {library} / {group}</span><strong className="paper-knowledge" id="learning-title"><StudioIcon name="folder" /><span>{box}</span><StudioIcon name="chevronRight" /></strong></button>
+        <button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}><StudioIcon name="star" size={24} /><span>{cardState.isFavorited ? '已收藏' : '收藏'}</span></button>
       </header>
       <span className="sr-only">{props.phase === 'review' ? '复习' : INTERACTION_LABELS[card.interaction_id]}</span>
       <div className="paper-body">
@@ -1959,19 +1952,19 @@ function LearningSurface(props: LearningSurfaceProps) {
           <p className="flip-back-label">核对答案</p>
           <h2 className={isLongQuestion(comparison.correct) ? 'long-question' : undefined}>{comparison.correct}</h2>
           <p className="answer-reason">{card.analysis.summary}</p>
-          <details className="full-analysis"><summary>回看题目</summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
+          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
           {audioControl}
-          {resolved && card.audio?.transcript?.trim() ? <details className="full-analysis"><summary>听力原文</summary><p className="front-material">{card.audio.transcript}</p></details> : null}
+          {resolved && card.audio?.transcript?.trim() ? <details className="full-analysis"><summary><DisclosureLabel name="volume">听力原文</DisclosureLabel></summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           {resolved ? <p className="self-assess-receipt" role="status">已记录：<span>{resolved.outcome === 'confident' ? '有把握' : '需要复习'}</span></p> : null}
           {resolved ? <ResultExplanation card={card} /> : <LearningHelp key={`help:${props.motionIdentity}`} card={card} state={cardState} patch={patchState} />}
         </section> : resolved ? <section className={`result-slip ${resultTone(resolved)}${card.interaction_id === 'elimination' ? ' elimination-result' : ''}`} aria-label="答案对照" aria-live="polite">
           <p className="result-label">{resultAnswerLabel(card)}</p>
           <h2 ref={answerRef} tabIndex={-1} className={`answer-first${card.interaction_id === 'lock' || card.interaction_id === 'elimination' ? ' contextual-answer' : ''}${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{comparison.correct}</h2>
           {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</span> {comparison.selected}</p> : null}
-          <details className="full-analysis"><summary>回看题目</summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
+          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
           <p className="answer-reason">{card.analysis.summary}</p>
           {card.interaction_id === 'lock' && resolved.outcome === 'incorrect' ? <p className="answer-reason">已解锁，稍后复习。</p> : null}
-          {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary>听力原文</summary><p className="front-material">{card.audio.transcript}</p></details> : null}
+          {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary><DisclosureLabel name="volume">听力原文</DisclosureLabel></summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           <ResultExplanation card={card} />
         </section> : <>
           {card.interaction_id !== 'swipe' ? <CardPrompt text={displayCardText(card, card.front.prompt, cardState)} /> : null}
@@ -1981,11 +1974,11 @@ function LearningSurface(props: LearningSurfaceProps) {
           <LearningHelp key={`help:${props.motionIdentity}`} card={card} state={cardState} patch={patchState} />
         </>}
 
-        {props.queuedResult ? <section className="notice" aria-live="polite"><h3>{props.rejectedCompletion ? '这次结果未计入' : '学习结果等待同步'}</h3><p>{props.rejectedCompletion ? '这张卡的学习安排已经变化，重新读取后可继续。' : '答案已保存，确认后即可继续。'}</p>{!props.rejectedCompletion ? <button className="secondary" disabled={props.retryBusy} onClick={props.onRetryQueued}>重试同步</button> : null}<button className="text-button" disabled={props.retryBusy} onClick={props.onReloadQueued}>刷新学习进度</button></section> : null}
+        {props.queuedResult ? <section className="notice" aria-live="polite"><h3>{props.rejectedCompletion ? '这次结果未计入' : '学习结果等待同步'}</h3><p>{props.rejectedCompletion ? '这张卡的学习安排已经变化，重新读取后可继续。' : '答案已保存，确认后即可继续。'}</p>{!props.rejectedCompletion ? <button className="secondary" disabled={props.retryBusy} onClick={props.onRetryQueued}><IconLabel name="refresh">重试同步</IconLabel></button> : null}<button className="text-button" disabled={props.retryBusy} onClick={props.onReloadQueued}><IconLabel name="refresh">刷新学习进度</IconLabel></button></section> : null}
         {props.statusMessage ? <p className="notice error" role="alert">{props.statusMessage}</p> : null}
         {!['已保存在本机', '已同步', ''].includes(props.syncStatus) ? <p className="notice" role="status">学习记录 · {props.syncStatus}</p> : null}
       </div>
-      {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>{props.serverSequenced && motionBusy ? '正在准备下一张…' : continueLabel}</button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}>提交答案</button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
+      {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}><IconLabel name="arrowRight">{props.serverSequenced && motionBusy ? '正在准备下一张…' : continueLabel}</IconLabel></button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}><IconLabel name="checkCircle">提交答案</IconLabel></button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
     </article>
     {resolved || !backVisible ? <p className="shortcut-note">{resolved ? `键盘：Enter ${continueLabel}` : shortcutLabel(card)}</p> : null}
   </main>;
@@ -2005,9 +1998,9 @@ function LearningHelp({card, state, patch}: {card: LearningCard; state: Learning
     if (open) (state.isHintVisible ? hintRef.current : methodRef.current)?.scrollIntoView?.({block: 'nearest', inline: 'nearest'});
   }, [open, state.isHintVisible]);
   return <div className="learning-help">
-    <button className="text-button" aria-expanded={open} onClick={() => patch({hasUsedPeek: true, isPeeked: !open})}>{open ? '收起判断方法' : '看判断方法'}</button>
+    <button className="text-button" aria-expanded={open} onClick={() => patch({hasUsedPeek: true, isPeeked: !open})}><IconLabel name="help">{open ? '收起判断方法' : '看判断方法'}</IconLabel><StudioIcon name={open ? 'chevronUp' : 'chevronDown'} /></button>
     {open ? <div><p ref={methodRef} className="attached-note">{card.analysis.exam_tip}</p>
-      {card.hint_layer ? <><button className="text-button" aria-expanded={state.isHintVisible} onClick={() => patch({hasUsedHint: true, isHintVisible: !state.isHintVisible})}>{state.isHintVisible ? '收起提示' : '再看一个提示'}</button>{state.isHintVisible ? <p ref={hintRef} className="attached-note">{card.hint_layer.content}</p> : null}</> : null}
+      {card.hint_layer ? <><button className="text-button" aria-expanded={state.isHintVisible} onClick={() => patch({hasUsedHint: true, isHintVisible: !state.isHintVisible})}><IconLabel name="lightbulb">{state.isHintVisible ? '收起提示' : '再看一个提示'}</IconLabel><StudioIcon name={state.isHintVisible ? 'chevronUp' : 'chevronDown'} /></button>{state.isHintVisible ? <p ref={hintRef} className="attached-note">{card.hint_layer.content}</p> : null}</> : null}
     </div> : null}
   </div>;
 }
@@ -2030,7 +2023,7 @@ function ChoiceOptions({card, state, disabled, patch}: {card: Extract<LearningCa
 
 function ResultExplanation({card}: {card: LearningCard}) {
   const [open, setOpen] = useState(false);
-  return <details className="full-analysis" onToggle={event => setOpen(event.currentTarget.open)}><summary>{open ? '收起完整解析' : '展开完整解析'}</summary><h3>{card.analysis.title}</h3><p>{card.analysis.exam_tip}</p></details>;
+  return <details className="full-analysis" onToggle={event => setOpen(event.currentTarget.open)}><summary><DisclosureLabel name="list">{open ? '收起完整解析' : '展开完整解析'}</DisclosureLabel></summary><h3>{card.analysis.title}</h3><p>{card.analysis.exam_tip}</p></details>;
 }
 
 function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveLock, onResolveFlip, onResolveSwipe}: {onResolveLock: (slotId: string, value: string) => void; resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
@@ -2039,7 +2032,7 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
       return (
         <div className="interaction flip-panel">
           {!state.isFlipped ? (
-            <button className="reveal" disabled={disabled} onClick={onFlip}>翻面看答案</button>
+            <button className="reveal" disabled={disabled} onClick={onFlip}><IconLabel name="refresh">翻面看答案</IconLabel></button>
           ) : (
             <>
               <div className="confidence" role="group" aria-label="自我评估">
@@ -2235,7 +2228,7 @@ function SwipeInteraction({
             disabled={disabled || motionBusy}
             onClick={() => perform(index === 0 ? 'left' : 'right', () => onCommit(item.id))}
           >
-            <span aria-hidden="true">{index === 0 ? '←' : '→'}</span>
+            <StudioIcon name={index === 0 ? 'arrowLeft' : 'arrowRight'} size={24} />
             <span>
               <strong>{item.label}</strong>
               {item.description.trim() !== item.label.trim() ? <small>{item.description}</small> : null}
@@ -2275,14 +2268,14 @@ function StatisticsSurface({statistics, statisticsLoading = false, track, localO
         </div>
         <p className="study-statistics-cumulative"><span>累计学过</span><strong>{statistics.cumulativeLearnedCardCount} 张</strong></p>
       </> : <p role="status">当前科目的统计暂时无法读取。你可以继续学习，记录恢复后会在这里显示。</p>}
-      <button className="primary wide" disabled={disabled} onClick={onContinueLearning}>继续学习</button>
-      {onReview && pendingReviewCount > 0 ? <div className="account-policy"><p className="muted">有 {pendingReviewCount} 张卡需要再练</p><button className="secondary" disabled={disabled} onClick={onReview}>开始复习</button></div> : null}
-      <details className="full-analysis"><summary>如何统计</summary><p>完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。</p></details>
+      <button className="primary wide" disabled={disabled} onClick={onContinueLearning}><IconLabel name="arrowRight">继续学习</IconLabel></button>
+      {onReview && pendingReviewCount > 0 ? <div className="account-policy"><p className="muted">有 {pendingReviewCount} 张卡需要再练</p><button className="secondary" disabled={disabled} onClick={onReview}><IconLabel name="refresh">开始复习</IconLabel></button></div> : null}
+      <details className="full-analysis"><summary><DisclosureLabel name="info">如何统计</DisclosureLabel></summary><p>完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。</p></details>
       <section className="account-policy" aria-live="polite">
         <p>{checkInSync?.status === 'queued' ? localOnly ? '签到正在保存到本机。' : '签到已保存在本机，联网后会同步。'
           : checkInSync?.status === 'confirmed' ? '今天已签到。' : checkInSync?.status === 'unavailable'
           ? '完成一张卡后可以签到，四六级共用签到记录。' : '今天的学习已记录，可以签到。'}</p>
-        <button className="secondary" disabled={busy || disabled || checkInSync === null || checkInSync.status === 'unavailable' || checkInSync.status === 'confirmed'} onClick={onCheckIn}>{checkInLabel}</button>
+        <button className="secondary" disabled={busy || disabled || checkInSync === null || checkInSync.status === 'unavailable' || checkInSync.status === 'confirmed'} onClick={onCheckIn}><IconLabel name={checkInSync?.status === 'confirmed' ? 'checkCircle' : 'calendar'}>{checkInLabel}</IconLabel></button>
       </section>
     </section>
   </main>;
@@ -2331,14 +2324,14 @@ function MineSurface({
     <div className="account-row"><span>学习记录</span><strong>{syncStatus}</strong></div>
     {onSwitchTrack ? <fieldset className="account-track-selector" disabled={busy || accountLocked}>
       <legend>备考科目</legend>
-      {(['cet4', 'cet6'] as const).map(value => <button key={value} className={track === value ? 'primary' : 'secondary'} aria-pressed={track === value} onClick={() => onSwitchTrack(value)}>{value === 'cet4' ? '英语四级' : '英语六级'}</button>)}
+      {(['cet4', 'cet6'] as const).map(value => <button key={value} className={track === value ? 'primary' : 'secondary'} aria-pressed={track === value} onClick={() => onSwitchTrack(value)}><IconLabel name={track === value ? 'checkCircle' : 'book'}>{value === 'cet4' ? '英语四级' : '英语六级'}</IconLabel></button>)}
       <p className="muted">四六级的学习进度分别保存，切换后可以接着学。</p>
     </fieldset> : null}
     {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
     {membership.stage === 'premium' ? <p className="notice">已解锁全部卡片、复习和知识空间。</p> : null}
     {!localOnly ? <p className="muted">内测资格需邀请开通</p> : null}
     <p className="muted">{localOnly ? '学习记录保存在当前浏览器中，刷新后可继续。清除浏览器数据会删除这些记录。' : '获得邀请后，登录对应账号即可使用。'}</p>
-    <button className="tool" aria-expanded={showPrivacy} onClick={() => setShowPrivacy(value => !value)}>账号与隐私</button>
+    <button className="tool" aria-expanded={showPrivacy} onClick={() => setShowPrivacy(value => !value)}><IconLabel name="shield">账号与隐私</IconLabel><StudioIcon name={showPrivacy ? 'chevronUp' : 'chevronDown'} /></button>
     {showPrivacy ? <section className="account-policy" aria-label="账号与隐私说明"><h2>账号与隐私</h2><p>{localOnly ? '本地体验不会发送短信，也不会创建在线账号。' : '手机号用于登录和同步学习记录。'}</p></section> : null}
     {accountDeletionStage === 'confirming' ? (
       <section
@@ -2353,10 +2346,10 @@ function MineSurface({
           注销无法撤销，删除的记录无法恢复。数据清理需要一些时间。
         </p>
         <button className="secondary" disabled={busy} onClick={onCancelDelete}>
-          暂不注销
+          <IconLabel name="close">暂不注销</IconLabel>
         </button>
         <button className="tool danger" disabled={busy} onClick={onConfirmDelete}>
-          确认注销账号
+          <IconLabel name="trash">确认注销账号</IconLabel>
         </button>
       </section>
     ) : accountDeletionStage === 'submitting' ? (
@@ -2374,7 +2367,7 @@ function MineSurface({
           还没收到注销结果，请重试查询。
         </p>
         <button className="tool danger" disabled={busy} onClick={onRetryDelete}>
-          {busy ? '正在重试' : '重新查询'}
+          <IconLabel name="refresh">{busy ? '正在重试' : '重新查询'}</IconLabel>
         </button>
       </section>
     ) : (
@@ -2383,10 +2376,10 @@ function MineSurface({
         disabled={busy || !canDeleteAccount}
         onClick={onRequestDelete}
       >
-        {canDeleteAccount ? '注销账号' : localOnly ? '本地体验无需注销账号' : '暂时无法注销账号'}
+        <IconLabel name="trash">{canDeleteAccount ? '注销账号' : localOnly ? '本地体验无需注销账号' : '暂时无法注销账号'}</IconLabel>
       </button>
     )}
-    <button className="text-button account-logout" disabled={busy || accountLocked} onClick={onLogout}>{localOnly ? '返回首页' : '退出登录'}</button>
+    <button className="text-button account-logout" disabled={busy || accountLocked} onClick={onLogout}><IconLabel name={localOnly ? 'home' : 'logout'}>{localOnly ? '返回首页' : '退出登录'}</IconLabel></button>
   </section></main>;
 }
 
@@ -2464,7 +2457,7 @@ function AccountDeletionStatusSurface({
         ) : null}
         {stage === 'accepted' || stage === 'registration_ready' ? (
           <button className="primary wide" onClick={onReturn}>
-            返回登录
+            <IconLabel name="chevronLeft">返回登录</IconLabel>
           </button>
         ) : stage === 'checking' ? (
           <button className="primary wide" disabled>正在确认</button>
@@ -2556,7 +2549,7 @@ function AccountDeletionRecoverySurface({
             disabled={busy}
             onClick={onRequestCode}
           >
-            重新获取验证码
+            <IconLabel name="refresh">重新获取验证码</IconLabel>
           </button>
         ) : null}
         <p className="privacy-copy">
@@ -2575,9 +2568,9 @@ function SessionCompleteSurface({continueLabel, busy, phase, results, total, onO
     {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
     {!['已保存在本机', '已同步', ''].includes(syncStatus) ? <p className="muted" role="status">学习记录 · {syncStatus}</p> : null}
     <div className="completion-summary" aria-label="本轮摘要"><span>完成 <strong>{summary.completed}</strong></span><span>待复习 <strong>{reviewCount}</strong></span></div>
-    {phase === 'learning' && reviewCount > 0 ? <button className="primary" disabled={busy} onClick={onStartReview}>开始复习 {reviewCount} 张</button> : null}
-    <button className="secondary" disabled={busy} onClick={onOpenSpace}>查看卡片</button>
-    <button className="tool" disabled={busy} onClick={onRestart}>{serverSequenced ? '刷新学习进度' : continueLabel ?? '再学一遍'}</button>
+    {phase === 'learning' && reviewCount > 0 ? <button className="primary" disabled={busy} onClick={onStartReview}><IconLabel name="refresh">开始复习 {reviewCount} 张</IconLabel></button> : null}
+    <button className="secondary" disabled={busy} onClick={onOpenSpace}><IconLabel name="map">查看卡片</IconLabel></button>
+    <button className="tool" disabled={busy} onClick={onRestart}><IconLabel name="refresh">{serverSequenced ? '刷新学习进度' : continueLabel ?? '再学一遍'}</IconLabel></button>
   </section></main>;
 }
 

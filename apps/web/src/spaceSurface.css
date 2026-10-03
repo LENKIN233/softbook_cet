@@ -34,3 +34,21 @@
   .space-current-first .space-box-rest .contained-cards {grid-template-columns:1fr;}
   .space-browser .sibling-boxes {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 }
+
+.space-current-first .object-actions {display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.space-current-first .object-actions .text-button {min-width:44px;min-height:48px;padding:10px 12px;border:1px solid var(--line);background:var(--surface-soft);color:var(--ink-2);font-size:14px;line-height:1.5;}
+.space-current-first .object-actions .text-button[aria-pressed=true] {border-color:var(--hall);background:var(--hall-soft);color:var(--hall-deep);}
+.space-current-first summary {display:flex;align-items:center;justify-content:space-between;gap:12px;list-style:none;padding:10px 12px;border-radius:12px;color:var(--ink-2);}
+.space-browser > summary {border:1px solid var(--line);background:var(--surface-soft);}
+.space-filters .text-button {min-height:48px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-size:14px;line-height:1.5;}
+.space-filters .text-button[aria-pressed=true] {border-color:var(--brand);background:var(--brand-soft);color:var(--brand-deep);font-weight:600;}
+.space-group-tabs {gap:10px;border:0;}
+.space-group-tabs button {display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:14px;}
+.space-group-tabs button[aria-pressed=true] {border:1px solid var(--hall);background:var(--hall-soft);color:var(--hall-deep);}
+.library-tab {display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border:1px solid transparent;}
+.library-tab.selected {border-color:var(--hall);background:var(--hall-soft);}
+.shelf-box-title {display:flex;align-items:flex-start;gap:8px;min-width:0;}
+.shelf-box-title strong {min-width:0;overflow-wrap:anywhere;}
+.shelf-box-selected {display:block;margin-top:12px;color:var(--hall-deep);font-size:12px;}
+.space-filter-summary {flex-wrap:wrap;}
+@media(max-width:360px) {.space-browser .sibling-boxes{grid-template-columns:1fr}.space-current-first .object-actions .text-button{max-width:100%}}

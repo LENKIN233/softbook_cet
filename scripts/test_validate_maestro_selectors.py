@@ -102,6 +102,20 @@ class MaestroSelectorTests(unittest.TestCase):
         self.assertEqual(status, 1, output)
         self.assertIn("forbidden in one-screen smoke flows", output)
 
+    def test_forwarded_action_label_id_is_supported_and_removal_is_detected(self):
+        source = self.write("apps/mobile/src/statistics/StatisticsSurface.tsx", '''
+<StudioActionLabel textTestID={checked ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>签到</StudioActionLabel>
+''')
+        self.write("apps/mobile/src/visual/StudioActionLabel.tsx", '<Text testID={textTestID}>{children}</Text>\n')
+        self.write("apps/mobile/e2e/maestro/statistics.yaml", '- assertVisible: {id: statistics-checkin-complete-label}\n')
+        status, output = self.run_checker()
+        self.assertEqual(status, 0, output)
+        source.write_text('<StudioActionLabel>签到</StudioActionLabel>\n', encoding="utf-8")
+        status, output = self.run_checker()
+        self.assertEqual(status, 1, output)
+        self.assertIn("statistics-checkin-complete-label", output)
+        self.assertIn("not backed by", output)
+
     def test_parameter_does_not_allow_an_unknown_selector_family(self):
         flow = self.write("apps/mobile/e2e/experience/reading.yaml", '''
 - tapOn:

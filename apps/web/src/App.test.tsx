@@ -206,7 +206,7 @@ describe("local study user journey", () => {
   it("keeps the canonical route order and focuses the first card", async () => {
     await enter();
     expect(screen.queryByRole("navigation", {name: "主要导航"})).toBeNull();
-    fireEvent.click(screen.getByRole("button", {name: "先到这里"}));
+    fireEvent.click(screen.getByRole("button", {name: "返回"}));
     expect(
       within(screen.getByRole("navigation", { name: "主要导航" }))
         .getAllByRole("button")
@@ -287,7 +287,7 @@ describe("local study user journey", () => {
     await enter();
     fireEvent.click(screen.getByRole("button", { name: "收藏" }));
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
-    fireEvent.click(screen.getByText("浏览全部卡盒", {selector: "summary"}));
+    fireEvent.click(screen.getByText("浏览全部卡盒").closest('summary')!);
     fireEvent.click(screen.getByRole("button", { name: "只看收藏" }));
     const found = screen.getByRole("region", { name: "筛选结果" });
     expect(found).toHaveTextContent("听力 / 逻辑关系 / 转折关系");
@@ -304,7 +304,7 @@ describe("local study user journey", () => {
     const frameIds = JSON.parse(localStorage.getItem("softbook-cet/study/v2/cet4")!).state.frame.ids;
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
     fireEvent.click(screen.getByRole("button", { name: "暂不学习这张卡" }));
-    fireEvent.click(screen.getByText("浏览全部卡盒", {selector:"summary"}));
+    fireEvent.click(screen.getByText("浏览全部卡盒").closest('summary')!);
     fireEvent.click(screen.getByRole("button", {name: paused.space_metadata.library}));
     fireEvent.click(screen.getByRole("button", {name: paused.space_metadata.group}));
     const boxCount = cards.filter(card => card.space_metadata.box_ref === paused.space_metadata.box_ref).length;
@@ -499,7 +499,7 @@ describe("local study user journey", () => {
 
 function openGlobalRoute(name: '统计' | '我的') {
   if (!screen.queryByRole('navigation', {name: '主要导航'})) {
-    fireEvent.click(screen.getByRole('button', {name: '先到这里'}));
+    fireEvent.click(screen.getByRole('button', {name: '返回'}));
   }
   fireEvent.click(screen.getByRole('button', {name}));
 }

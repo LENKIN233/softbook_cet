@@ -1134,6 +1134,24 @@ test('remote authentication opens the study home without selecting a card or sta
     for (const route of ['learning', 'space', 'statistics', 'mine']) {
       expect(tree.root.findByProps({testID: `route-tab-${route}`})).toBeTruthy();
     }
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(tree.root, 'shell-course-picker-button').props.onPress();
+      await flushAsyncEffects();
+    });
+    expect(tree.root.findByProps({testID: 'course-picker-cet4'}).props.accessibilityState.checked).toBe(true);
+    expect(tree.root.findByProps({testID: 'course-picker-cet6'}).props.accessibilityState.checked).toBe(false);
+    expect(mockLoadSession).not.toHaveBeenCalled();
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(tree.root, 'course-picker-close').props.onPress();
+      await flushAsyncEffects();
+    });
+    expect(tree.root.findByProps({testID: 'learning-study-home'})).toBeTruthy();
+    expect(mockLoadSession).not.toHaveBeenCalled();
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(tree.root, 'shell-account-chip').props.onPress();
+      await flushAsyncEffects();
+    });
+    expect(tree.root.findByProps({testID: 'mine-surface'})).toBeTruthy();
     await openRoute(tree.root, 'mine');
     await openRoute(tree.root, 'learning', false);
     expect(mockLoadSession).not.toHaveBeenCalled();
@@ -7831,7 +7849,7 @@ test('can favorite a card from space and reflect it in learning flow', async () 
   expect(
     root.findByProps({testID: 'learning-favorite-button'}).findByType(Text)
       .props.children,
-  ).toBe('★');
+  ).toBe('已收藏');
 });
 
 test('starts the local trial after the authenticated learner starts studying', async () => {

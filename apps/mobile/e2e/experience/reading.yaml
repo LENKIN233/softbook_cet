@@ -62,8 +62,11 @@ name: read-material-and-correction
     id: learning-option-${WRONG_OPTION_INDEX}
 - tapOn:
     id: learning-submit-button
-- assertVisible:
-    id: learning-correct-answer
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: learning-correct-answer
+    timeout: 10000
 - takeScreenshot: answer-first-layer
 # Read to the bottom inside the paper before targeting its last control.
 # iOS exposes off-clip descendants in the screen-level accessibility tree.
@@ -158,8 +161,11 @@ name: read-material-and-correction
     id: learning-elimination-1
 - tapOn:
     id: learning-submit-button
-- assertVisible:
-    id: learning-correct-answer
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: learning-correct-answer
+    timeout: 10000
 - takeScreenshot: elimination-answer
 # Read to the bottom inside the paper before targeting its last control.
 # iOS exposes off-clip descendants in the screen-level accessibility tree.

@@ -4,6 +4,8 @@ import { spaceCardPreview } from '../learning/presentation';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {StudioPressable as Pressable, MotionView} from '../learning/NativeMotion';
 import {STUDIO} from '../visual/studio';
+import {StudioIcon} from '../visual/StudioIcon';
+import {StudioActionLabel} from '../visual/StudioActionLabel';
 import {
   ScrollView,
   StyleProp,
@@ -704,7 +706,7 @@ export function SpaceSurface({
         {filter !== 'all' ? <View style={styles.filterResults} testID="space-filter-results">
           <View style={styles.filterSummary}>
             <Text style={[styles.spaceMeta, {color: palette.text}]}>{filter === 'favorites' ? '只看收藏' : '只看待复习'} · 当前科目全部卡盒</Text>
-            <ActionChip label="清除筛选" onPress={() => setFilter('all')} palette={palette} testID="space-clear-filter" />
+            <ActionChip icon="close" label="清除筛选" onPress={() => setFilter('all')} palette={palette} testID="space-clear-filter" />
           </View>
           <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。' : '目前没有待复习的卡片。'}</Text>
           {matches.slice(0, filterLimit).map((item, index) => {
@@ -772,11 +774,7 @@ export function SpaceSurface({
                   style={styles.quietAction}
                   testID="space-open-card-list"
                 >
-                  <Text
-                    style={[styles.quietActionText, { color: palette.text }]}
-                  >
-                    查看卡片 →
-                  </Text>
+                  <StudioActionLabel icon="list" color={palette.text} textStyle={styles.quietActionText}>查看卡片</StudioActionLabel>
                 </Pressable>
               </View>
               <View
@@ -857,11 +855,7 @@ export function SpaceSurface({
                     style={styles.quietAction}
                     testID="space-open-sleep"
                   >
-                    <Text
-                      style={[styles.quietActionText, { color: palette.text }]}
-                    >
-                      查看 →
-                    </Text>
+                    <StudioActionLabel icon="moon" color={palette.text} textStyle={styles.quietActionText}>查看</StudioActionLabel>
                   </Pressable>
                 ) : null}
               </View>
@@ -951,20 +945,14 @@ export function SpaceSurface({
                           setSelectionMode('manual');
                           onToggleFavoriteTag(selectedCard.cardId);
                         }}
-                        style={styles.quietAction}
+                        style={[styles.quietAction, {backgroundColor: isFavorited ? selectedTone.accentSoft : palette.panelStrong,
+                          borderColor: isFavorited ? selectedTone.accent : palette.border}]}
                         testID={`space-favorite-${cardDisplayIndex}`}
                       >
-                        <Text
-                          style={[
-                            styles.quietActionText,
-                            { color: palette.text },
-                          ]}
-                          testID={`space-favorite-${
-                            isFavorited ? 'active' : 'inactive'
-                          }-${cardDisplayIndex}`}
-                        >
-                          {isFavorited ? '★ 取消收藏' : '☆ 收藏'}
-                        </Text>
+                        <StudioActionLabel icon={isFavorited ? 'checkCircle' : 'star'} color={palette.text}
+                          textStyle={styles.quietActionText} textTestID={`space-favorite-${isFavorited ? 'active' : 'inactive'}-${cardDisplayIndex}`}>
+                          {isFavorited ? '已收藏' : '收藏'}
+                        </StudioActionLabel>
                       </Pressable>
                       <Pressable
                         accessibilityRole="switch"
@@ -978,24 +966,14 @@ export function SpaceSurface({
                           setSelectionMode('manual');
                           onToggleSleepState(selectedCard.cardId);
                         }}
-                        style={styles.quietAction}
+                        style={[styles.quietAction, {backgroundColor: isSleeping ? palette.accentSoft : palette.panelStrong,
+                          borderColor: isSleeping ? palette.accent : palette.border}]}
                         testID={`space-sleep-${cardDisplayIndex}`}
                       >
-                        <Text
-                          style={[
-                            styles.quietActionText,
-                            {
-                              color: isSleeping
-                                ? palette.warning
-                                : palette.text,
-                            },
-                          ]}
-                          testID={`space-sleep-${
-                            isSleeping ? 'active' : 'inactive'
-                          }-${cardDisplayIndex}`}
-                        >
+                        <StudioActionLabel icon={isSleeping ? 'sun' : 'moon'} color={palette.text} textStyle={styles.quietActionText}
+                          textTestID={`space-sleep-${isSleeping ? 'active' : 'inactive'}-${cardDisplayIndex}`}>
                           {isSleeping ? '恢复学习' : '暂不学习这张卡'}
-                        </Text>
+                        </StudioActionLabel>
                       </Pressable>
                     </>
                   ) : null}
@@ -1007,6 +985,7 @@ export function SpaceSurface({
               >
                 <ActionChip
                   disabled={safeSelectedCardIndex === 0}
+                  icon="chevronLeft"
                   label="上一张"
                   onPress={() => {
                     setSelectionMode('manual');
@@ -1026,6 +1005,7 @@ export function SpaceSurface({
                   disabled={
                     safeSelectedCardIndex >= selectedBoxCards.length - 1
                   }
+                  icon="chevronRight"
                   label="下一张"
                   onPress={() => {
                     setSelectionMode('manual');
@@ -1045,7 +1025,7 @@ export function SpaceSurface({
         )}
         {!selectedBoxIsCurrent && focusedSelection ? (
           <Pressable accessibilityRole="button" onPress={followCurrentBox} style={styles.followCurrentLink} testID="space-follow-current-box">
-            <Text style={[styles.followCurrentLinkText, {color: palette.accentStrong}]}>回到当前卡盒</Text>
+            <StudioActionLabel icon="folder" color={palette.text} textStyle={styles.followCurrentLinkText}>回到当前卡盒</StudioActionLabel>
           </Pressable>
         ) : null}
         <View style={styles.spaceFooter} testID="space-browse-card-continuity">
@@ -1056,11 +1036,7 @@ export function SpaceSurface({
               style={styles.quietAction}
               testID="space-card-list-back"
             >
-              <Text
-                style={[styles.quietActionText, { color: palette.textMuted }]}
-              >
-                ← 回卡盒
-              </Text>
+              <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.quietActionText}>回卡盒</StudioActionLabel>
             </Pressable>
           ) : null}
           <Pressable
@@ -1073,11 +1049,7 @@ export function SpaceSurface({
             ]}
             testID="space-return-learning"
           >
-            <Text
-              style={[styles.returnActionText, { color: primaryActionText }]}
-            >
-              返回学习
-            </Text>
+            <StudioActionLabel icon="book" color={primaryActionText} textStyle={styles.returnActionText}>返回学习</StudioActionLabel>
           </Pressable>
         </View>
         {screen === 'overview' && filter === 'all' && selectedGroup.boxes.length > 1 ? (
@@ -1101,16 +1073,18 @@ export function SpaceSurface({
         {screen === 'overview' ? (
           <View style={[styles.browserSection, {borderTopColor: palette.border}]}>
             <Pressable accessibilityRole="button" accessibilityLabel={isBrowsing ? '收起卡盒目录' : '浏览全部卡盒'} accessibilityState={{expanded: isBrowsing}} onPress={() => setIsBrowsing(value => !value)} style={styles.browserToggle} testID="space-browse-toggle">
-              <Text style={[styles.quietActionText, {color: palette.text}]}>{isBrowsing ? '收起卡盒目录' : '浏览全部卡盒'}</Text>
-              <Text style={[styles.spaceMeta, {color: palette.textMuted}]}>{isBrowsing ? '−' : '+'}</Text>
+              <StudioActionLabel icon="grid" color={palette.text} textStyle={styles.quietActionText} align="start">{isBrowsing ? '收起卡盒目录' : '浏览全部卡盒'}</StudioActionLabel>
+              <StudioIcon name={isBrowsing ? 'chevronUp' : 'chevronDown'} color={palette.textMuted} size={20} />
             </Pressable>
             {isBrowsing ? <>
               <Text style={[styles.spaceMeta, {color: palette.textMuted}]}>筛选当前科目全部卡盒，卡片保留原来的位置。</Text>
         <View style={styles.filterBar} accessibilityRole="toolbar" testID="space-filter-bar">
           {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习']] as const).map(([value, label, name]) => <Pressable key={value}
             accessibilityRole="button" accessibilityLabel={name} accessibilityState={{selected: filter === value}}
-            onPress={() => {setFilter(value); setFilterLimit(40);}} style={[styles.filterButton, {borderBottomColor: filter === value ? palette.accent : 'transparent'}]} testID={`space-filter-${value}`}>
-            <Text style={{color: filter === value ? palette.text : palette.textMuted}}>{label}</Text>
+            onPress={() => {setFilter(value); setFilterLimit(40);}} style={[styles.filterButton, {backgroundColor: filter === value ? palette.accentSoft : palette.panel,
+              borderColor: filter === value ? palette.accent : palette.border}]} testID={`space-filter-${value}`}>
+            <StudioActionLabel icon={value === 'favorites' ? 'star' : value === 'review' ? 'refresh' : 'grid'} color={palette.text}
+              textStyle={[styles.quietActionText, filter === value ? {fontWeight: '700'} : null]}>{label}</StudioActionLabel>
           </Pressable>)}
         </View>
 
@@ -1140,8 +1114,9 @@ export function SpaceSurface({
                         {
                           backgroundColor:
                             index === selectedLibraryIndex
-                              ? solidPanelStrong
+                              ? resolveLibraryTone(library.libraryName).accentSoft
                               : 'transparent',
+                          borderColor: index === selectedLibraryIndex ? resolveLibraryTone(library.libraryName).accent : palette.border,
                         },
                       ]}
                       testID={`space-library-choice-${index + 1}`}
@@ -1156,6 +1131,7 @@ export function SpaceSurface({
                           },
                         ]}
                       />
+                      {index === selectedLibraryIndex ? <StudioIcon name="check" color={palette.text} size={18} /> : null}
                       <Text
                         style={[
                           styles.shelfLibraryLabel,
@@ -1164,6 +1140,7 @@ export function SpaceSurface({
                               index === selectedLibraryIndex
                                 ? palette.text
                                 : palette.textMuted,
+                            fontWeight: index === selectedLibraryIndex ? '700' : '500',
                           },
                         ]}
                       >
@@ -1200,10 +1177,13 @@ export function SpaceSurface({
                             index === selectedGroupIndex
                               ? selectedTone.accent
                               : 'transparent',
+                          borderColor: index === selectedGroupIndex ? selectedTone.accent : palette.border,
+                          backgroundColor: index === selectedGroupIndex ? selectedTone.accentSoft : palette.panel,
                         },
                       ]}
                       testID={`space-group-choice-${index + 1}`}
                     >
+                      {index === selectedGroupIndex ? <StudioIcon name="check" color={palette.text} size={18} /> : null}
                       <Text
                         style={[
                           styles.shelfGroupLabel,
@@ -1212,6 +1192,7 @@ export function SpaceSurface({
                               index === selectedGroupIndex
                                 ? palette.text
                                 : palette.textMuted,
+                            fontWeight: index === selectedGroupIndex ? '700' : '500',
                           },
                         ]}
                       >
@@ -1347,6 +1328,7 @@ function SpaceViewport({
 }
 
 function ActionChip({
+  icon = 'chevronRight',
   disabled = false,
   label,
   labelTestID,
@@ -1354,6 +1336,7 @@ function ActionChip({
   palette,
   testID,
 }: {
+  icon?: React.ComponentProps<typeof StudioIcon>['name'];
   disabled?: boolean;
   label: string;
   labelTestID?: string;
@@ -1377,16 +1360,8 @@ function ActionChip({
       ]}
       testID={testID}
     >
-      <Text
-        numberOfLines={1}
-        style={[
-          styles.actionChipLabel,
-          { color: disabled ? palette.textMuted : palette.accentStrong },
-        ]}
-        testID={labelTestID}
-      >
-        {label}
-      </Text>
+      <StudioActionLabel icon={icon} color={disabled ? palette.textMuted : palette.text}
+        textStyle={styles.actionChipLabel} textTestID={labelTestID}>{label}</StudioActionLabel>
     </Pressable>
   );
 }
@@ -1698,9 +1673,9 @@ const styles = StyleSheet.create({
   neighborSection: {gap: 6},
   neighborRow: {gap: 8},
   browserSection: {borderTopWidth: 1, gap: 12},
-  browserToggle: {minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12},
-  filterBar: {flexDirection: 'row', flexWrap: 'wrap', gap: 16},
-  filterButton: {minHeight: 44, justifyContent: 'center', paddingHorizontal: 4, paddingVertical: 10, borderBottomWidth: 2},
+  browserToggle: {minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: STUDIO.color.line, backgroundColor: STUDIO.color.paperSoft, borderRadius: 14, padding: 12},
+  filterBar: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
+  filterButton: {minHeight: 48, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderRadius: 12},
   filterResults: {gap: 12},
   filteredCard: {minHeight: 64, paddingVertical: 16, borderBottomWidth: 1, gap: 8},
   spaceComposition: { gap: 18 },
@@ -1712,10 +1687,16 @@ const styles = StyleSheet.create({
   trayHeadingAccessible: { flexDirection: 'column', alignItems: 'stretch' },
   trayTitleCopy: { flex: 1, gap: 4 },
   quietAction: {
-    minHeight: 44,
-    minWidth: 44,
+    minHeight: 48,
+    minWidth: 48,
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    maxWidth: '100%',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: STUDIO.color.line,
+    borderRadius: 12,
+    backgroundColor: STUDIO.color.paperSoft,
   },
   quietActionText: { fontSize: 13, lineHeight: 21, fontWeight: '500' },
   previewRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -1782,7 +1763,8 @@ const styles = StyleSheet.create({
   shelfNavigator: { gap: 10, flexShrink: 0 },
   shelfLibraryRow: { gap: 6, alignItems: 'center', paddingBottom: 6 },
   shelfLibraryTab: {
-    minHeight: 44,
+    minHeight: 48,
+    borderWidth: 1,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1791,13 +1773,20 @@ const styles = StyleSheet.create({
   },
   shelfLibraryDot: { width: 6, height: 6, borderRadius: 3 },
   shelfLibraryLabel: { fontSize: 12, fontWeight: '500' },
-  shelfGroupTabs: { gap: 16 },
+  shelfGroupTabs: { gap: 8 },
   shelfGroupTab: {
-    minHeight: 44,
+    minHeight: 48,
+    maxWidth: 260,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderRadius: 12,
     justifyContent: 'center',
-    borderBottomWidth: 2,
   },
-  shelfGroupLabel: { fontSize: 12, fontWeight: '400' },
+  shelfGroupLabel: { fontSize: 13, lineHeight: 21, fontWeight: '500', flexShrink: 1 },
   shelfBoard: { borderBottomWidth: 0, paddingBottom: 14, paddingTop: 12 },
   siblingBoxRow: { gap: 12, alignItems: 'stretch' },
   siblingBox: {
@@ -1814,9 +1803,16 @@ const styles = StyleSheet.create({
   siblingBoxName: { fontSize: 15, fontWeight: '600', lineHeight: 22 },
   siblingBoxCount: { fontSize: 11, lineHeight: 18 },
   followCurrentLink: {
-    minHeight: 44,
+    minHeight: 48,
     justifyContent: 'center',
     alignSelf: 'flex-start',
+    maxWidth: '100%',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: STUDIO.color.line,
+    borderRadius: 12,
+    backgroundColor: STUDIO.color.paperSoft,
   },
   followCurrentLinkText: { fontSize: 12, lineHeight: 20 },
 
@@ -2017,15 +2013,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    borderWidth: 0,
-    minHeight: 44,
+    borderWidth: 1,
+    minHeight: 48,
     minWidth: 58,
     paddingHorizontal: 11,
     paddingVertical: 8,
+    maxWidth: 260,
   },
   actionChipLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
+    lineHeight: 21,
   },
   stateRail: {
     borderStyle: 'solid',

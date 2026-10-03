@@ -1,5 +1,5 @@
 {
-  "version": "vnext-5",
+  "version": "vnext-6",
   "layer": "implementation_hypothesis_with_minimal_product_truth",
   "purpose": "Provide a coherent, revisable visual baseline for clear learning tasks and recognizable knowledge space. Product concepts stay in their owners; execution and review policy stay in spec/machine-acceptance.json. Design references help implementation, and do not prescribe an artifact-first workflow or prove product quality.",
   "authority_note": "Nothing here can override spec/product-core.json, spec/interactions.json, spec/knowledge-map.json, spec/card-system.json, spec/action-surface.json, or spec/membership.json. When this file disagrees with an owner listed in spec/authority-map.json, the owner wins and this file is edited to match.",
@@ -234,7 +234,8 @@
       "Use one reading paper for the current task; identity is a quiet address and a small current-library accent.",
       "Use a focused learning scene with quiet Exit and Space actions; restore the normal four-route shell outside study. Keep navigation separate from answering and preserve accessible touch areas.",
       "Show a compact confirmed-round count with a thin step line and a quiet current-catalog coverage count. Distinguish confirmed practice attempts from unique cards; progress must not become a dominant object.",
-      "Use spacing and a small number of dividers to distinguish material, action, help and result; do not wrap each paragraph."
+      "Use spacing and a small number of dividers to distinguish material, action, help and result; do not wrap each paragraph.",
+      "Make navigation, course switching, disclosures and card-management actions recognizable controls with a coherent icon language and readable labels. Show selection and expansion with a visible shape or state marker as well as color; keep course selection distinct from account navigation, and preserve complete labels at accessibility text sizes."
     ],
     "taste_axes": {
       "_note": "Directions for review, not pass claims. Actual reading, action meaning and spatial comprehension decide the quality of a design.",

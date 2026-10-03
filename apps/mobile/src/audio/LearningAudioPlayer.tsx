@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import {StudioPressable as Pressable, MotionWaveform} from '../learning/NativeMotion';
 import {STUDIO} from '../visual/studio';
+import {StudioIcon} from '../visual/StudioIcon';
 
 import { reactNativeContentAssetCache } from './reactNativeContentAssetCache';
 import {
@@ -154,38 +155,8 @@ function AudioGlyph({
   color: string;
   mode: LearningAudioPlaybackState['status'];
 }) {
-  if (mode === 'loading') {
-    return (
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={[styles.loadingRing, { borderColor: color }]}
-      />
-    );
-  }
-
-  if (mode === 'playing') {
-    return (
-      <View
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={styles.pauseGlyph}
-      >
-        <View style={[styles.pauseBar, { backgroundColor: color }]} />
-        <View style={[styles.pauseBar, { backgroundColor: color }]} />
-      </View>
-    );
-  }
-
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={styles.playGlyph}
-    >
-      <View style={[styles.playTriangle, { borderLeftColor: color }]} />
-    </View>
-  );
+  return <StudioIcon name={mode === 'playing' ? 'pause' : mode === 'loading' ? 'clock'
+    : mode === 'error' ? 'refresh' : 'play'} color={color} size={22} />;
 }
 
 const styles = StyleSheet.create({

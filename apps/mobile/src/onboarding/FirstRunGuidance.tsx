@@ -9,6 +9,7 @@ import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StudioPressable as Pressable } from '../learning/NativeMotion';
 import { ScaledText as Text } from '../visual/ScaledText';
+import {StudioIcon} from '../visual/StudioIcon';
 import type { LearningTrack } from '../learning/model';
 import {
   createFirstRunGuidanceStore,
@@ -157,6 +158,7 @@ export function FirstRunGuidanceBoundary({
             onPress={() => setChoice(subject)}
             style={[styles.choice, choice === subject && styles.selected]}
           >
+            <StudioIcon name={choice === subject ? 'checkCircle' : 'book'} color={choice === subject ? '#4144AF' : '#626477'} size={22} />
             <Text style={styles.choiceText}>
               {subject === 'cet4' ? '英语四级' : '英语六级'}
             </Text>
@@ -164,7 +166,7 @@ export function FirstRunGuidanceBoundary({
         ))}
       </View>
       <Text style={styles.body}>
-        以后到“我的 → 备考科目”就能切换，四、六级进度分别保留。
+        学习首页右上角可直接切换科目，也可以到“我的 → 备考科目”。四、六级进度分别保留。
       </Text>
       {error !== null && (
         <Text
@@ -254,6 +256,7 @@ export function FirstLearningGuide({
         先读题，再按卡片要求作答。需要提示时点“看判断方法”；答题后看解释，再继续下一张。
       </Text>
       <Text style={styles.body}>在“空间”里查找卡片、收藏或休眠。</Text>
+      <Text style={styles.body}>学习首页右上角可切换科目，“我的 → 备考科目”也保留。</Text>
       {error !== null && (
         <Text accessibilityLiveRegion="polite" style={styles.error}>
           {error}
@@ -290,6 +293,9 @@ const styles = StyleSheet.create({
   body: { fontSize: 16, lineHeight: 26, color: '#626477' },
   choices: { gap: 12 },
   choice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     minHeight: 62,
     justifyContent: 'center',
     borderRadius: 16,
@@ -298,7 +304,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   selected: { borderColor: '#5658D6', backgroundColor: '#E7E8FF' },
-  choiceText: { fontSize: 18, fontWeight: '600', color: '#20232B' },
+  choiceText: { fontSize: 18, fontWeight: '600', color: '#20232B', flexShrink: 1 },
   primary: {
     minHeight: 52,
     justifyContent: 'center',
