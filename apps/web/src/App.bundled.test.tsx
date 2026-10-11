@@ -8,7 +8,7 @@ afterEach(async () => {cleanup(); await act(async () => {await new Promise(resol
 
 afterEach(() => {cleanup(); window.history.replaceState(null, '', '/');});
 
-it.each([['cet4', 1180, /电动公交、柴油车队/], ['cet6', 1234, /延长图书馆开放/]] as const)(
+it.each([['cet4', 1180, /electric buses \/ diesel vehicles/], ['cet6', 1234, /library \/ shuttle routes \/ exam week/]] as const)(
   'opens the full real %s library in five-card groups without SMS', async (track, count, firstPrompt) => {
     window.history.replaceState(null, '', `/?track=${track}`);
     expect(resolveWebRuntime()).toMatchObject({mode: 'development', track});
@@ -29,7 +29,7 @@ it.each([['cet4', 1180, /电动公交、柴油车队/], ['cet6', 1234, /延长�
       fireEvent.click(screen.getByRole('button', {name: '空间'}));
       fireEvent.click(screen.getByRole('button', {name: '暂不学习这张卡'}));
       fireEvent.click(screen.getByRole('button', {name: '继续学习'}));
-      expect(await screen.findByRole('heading', {name: /咨询预约、考试压力/})).toBeInTheDocument();
+      expect(await screen.findByRole('heading', {name: /counselling service/})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: '翻面看答案'})).toBeEnabled();
       expect(screen.queryByRole('button', {name: '有把握'})).toBeNull();
       expect(screen.getByText('2 / 5')).toBeInTheDocument();

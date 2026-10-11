@@ -6,14 +6,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "延长图书馆开放时间；增加夜间校车；调整校园餐饮；改建学生宿舍。\n\n这些选项可能围绕什么话题？想好后再听。",
-      "support": "延长图书馆开放时间；增加夜间校车；调整校园餐饮；改建学生宿舍。\n\n这些选项可能围绕什么话题？想好后再听。",
-      "context": "延长图书馆开放时间；增加夜间校车；调整校园餐饮；改建学生宿舍。\n\n这些选项可能围绕什么话题？想好后再听。"
+      "prompt": "library / shuttle routes / exam week\n这几个词可能出现在什么通知中？听录音，核对你的判断。",
+      "support": "library / shuttle routes / exam week\n这几个词可能出现在什么通知中？听录音，核对你的判断。",
+      "context": "library / shuttle routes / exam week\n这几个词可能出现在什么通知中？听录音，核对你的判断。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项只能帮助确定校园服务这个范围，不能预先断定实施哪项措施；录音中的 library 和 shuttle routes 才支持具体结论。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "library 和 shuttle routes 都是校园服务。录音宣布考试周延长图书馆开放时间，并增加夜间校车，目的是方便校外学生安全地学习和往返。",
+      "exam_tip": "听两项安排：图书馆开到几点，校车增加什么班次。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -36,14 +36,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "展出修复后的地图；提供历史照片；开放口述历史；建设数字档案。\n\n这些选项让你想到哪类文化活动？想好后再听。",
-      "support": "展出修复后的地图；提供历史照片；开放口述历史；建设数字档案。\n\n这些选项让你想到哪类文化活动？想好后再听。",
-      "context": "展出修复后的地图；提供历史照片；开放口述历史；建设数字档案。\n\n这些选项让你想到哪类文化活动？想好后再听。"
+      "prompt": "photographs / oral histories / maps\n这些资料可能在哪里展示？听录音，看看观众如何查阅它们。",
+      "support": "photographs / oral histories / maps\n这些资料可能在哪里展示？听录音，看看观众如何查阅它们。",
+      "context": "photographs / oral histories / maps\n这些资料可能在哪里展示？听录音，看看观众如何查阅它们。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "先把选项共同指向的博物馆资料服务作为候选话题，播放后再核对是收藏、修复、展出还是数字开放。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "city museum 点明地点；digital archive 是数字档案。观众通过 interactive touch screens 查阅照片、口述历史和地图。",
+      "exam_tip": "听 digital archive 后怎样说明查阅方式。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -66,14 +66,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "补贴房屋保温；更换旧窗；降低冬季取暖费用；设置改造截止日期。\n\n这些选项都在谈什么问题？想好后再听。",
-      "support": "补贴房屋保温；更换旧窗；降低冬季取暖费用；设置改造截止日期。\n\n这些选项都在谈什么问题？想好后再听。",
-      "context": "补贴房屋保温；更换旧窗；降低冬季取暖费用；设置改造截止日期。\n\n这些选项都在谈什么问题？想好后再听。"
+      "prompt": "insulation / windows / heating costs\n这些词共同指向哪类住房问题？听录音，确认市政府准备做什么。",
+      "support": "insulation / windows / heating costs\n这些词共同指向哪类住房问题？听录音，确认市政府准备做什么。",
+      "context": "insulation / windows / heating costs\n这些词共同指向哪类住房问题？听录音，确认市政府准备做什么。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "预判依据是 insulation、windows 和 heating costs 这一组意义关联；补贴对象和截止时间仍需通过录音确认。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "insulation 是保温，windows 是窗户，heating costs 是取暖费。市政府用 small grants 补贴房主改善保温、更换旧窗，以降低冬季取暖费。",
+      "exam_tip": "把三词连起来：改善房屋保温，减少取暖开支。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -102,8 +102,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "这组活动能帮助预测环境调查，但不能单凭选项推出研究结果；录音只描述研究过程，没有给出哪个地点更严重的结论。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "collecting samples、tracking 和 comparing 分别是采样、追踪和比较。它们描述海洋塑料污染调查的过程；录音没有给出近岸与远海哪个污染更严重。",
+      "exam_tip": "听三个动作后各接什么调查对象。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -126,14 +126,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "提醒服药；检测跌倒；通知家属；向社区护士发送健康数据。\n\n录音可能在介绍哪类产品？想好后再听。",
-      "support": "提醒服药；检测跌倒；通知家属；向社区护士发送健康数据。\n\n录音可能在介绍哪类产品？想好后再听。",
-      "context": "提醒服药；检测跌倒；通知家属；向社区护士发送健康数据。\n\n录音可能在介绍哪类产品？想好后再听。"
+      "prompt": "medicine / a fall / health data\n这些词可能用于介绍什么设备？听录音，确认使用者和设备形态。",
+      "support": "medicine / a fall / health data\n这些词可能用于介绍什么设备？听录音，确认使用者和设备形态。",
+      "context": "medicine / a fall / health data\n这些词可能用于介绍什么设备？听录音，确认使用者和设备形态。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项共同涉及健康监测和照护，可以先关注健康科技；设备形态和服务对象仍须由录音确认，不能根据常识补成医疗诊断工具。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "older patients 是老年患者，lightweight wristband 是轻便腕带。它能提醒服药、检测跌倒后通知家属，并把基本健康数据发给社区护士。",
+      "exam_tip": "留意 developed 后介绍的产品名称和使用者。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -162,8 +162,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项的交通与排放词汇提供话题范围；录音中的 still need to find out 表明效果尚未确认。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "晚间公交让居民可以少开车。Passenger numbers have risen 只说明乘客增加；still needs to find out 表明市政机构还要调查大家是少开车了，还是多出门了。",
+      "exam_tip": "听最后一句的两种可能：替代驾车，还是增加出行。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -192,8 +192,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "收入与工作选项支持劳动或社会不平等这个范围，不能只凭选项就认定某个因素是已经证实的原因。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "研究先比较每周工作时长相似、收入不同的人，再调查 unpaid caring responsibilities，即无偿照护责任。研究者想知道照护责任是否限制了人们能接受的工作。",
+      "exam_tip": "听 similar weekly hours 与 different earnings 的对照。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -222,8 +222,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "共同话题可从份量和剩饭看出；是否减少浪费要听调查结果，不能把正在测试的方案当成已成功的措施。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "two portion sizes 表示两种餐食份量。工作人员记录每盘剩饭，再比较几周的数据，决定是否保留小份餐；目前还没有报告浪费减少的结果。",
+      "exam_tip": "听 hope 与 will compare，区分愿望和待做的评估。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -252,8 +252,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "历史照片、口述史和展览共同指向地方历史；录音才说明材料来源和参与方式，不需要提前掌握某位历史人物的背景才能理解。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "项目征集居民的 old photographs and stories，再把采访和部分材料放到公共图书馆展示。目的在于让年轻居民了解社区过去的变化。",
+      "exam_tip": "听材料从谁那里来，最后在哪里展示。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -282,8 +282,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "这些选项支持家庭照护服务这个话题。录音说 considering 和 survey，不能把拟议调整写成已经开始实施。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "considering 表示正在考虑，尚未确定延时。原因是部分家长下班晚；中心将先 survey families，调查有多少家庭会使用延长的服务。",
+      "exam_tip": "把安排记成“考虑延时 → 先调查需求”。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -306,14 +306,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "观察夜空；减少灯光干扰；记录可见星体；组织公众天文活动。\n\n可能是什么活动？要在什么条件下进行？想好后再听。",
-      "support": "观察夜空；减少灯光干扰；记录可见星体；组织公众天文活动。\n\n可能是什么活动？要在什么条件下进行？想好后再听。",
-      "context": "观察夜空；减少灯光干扰；记录可见星体；组织公众天文活动。\n\n可能是什么活动？要在什么条件下进行？想好后再听。"
+      "prompt": "night sky / street lighting / observation evening\n这些词提示什么活动？听录音，确认活动为什么换地点、什么情况下会延期。",
+      "support": "night sky / street lighting / observation evening\n这些词提示什么活动？听录音，确认活动为什么换地点、什么情况下会延期。",
+      "context": "night sky / street lighting / observation evening\n这些词提示什么活动？听录音，确认活动为什么换地点、什么情况下会延期。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "相关选项说明观察天空的共同场景；具体为何换地点要由录音中的原因支持，不能只凭活动名称推测天气变好。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "活动移到镇外的田野，因为街灯少，更容易看见暗淡的天体。若 thick cloud 遮住天空，活动会延期；换地点的原因和延期的条件是两件事。",
+      "exam_tip": "分别记“换地点：灯光”和“延期：厚云”。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -342,8 +342,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "话题预测来自权限和数据用途的交集；录音没有要求拒绝所有权限，而是强调按用途分别判断。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "permissions 是应用请求的权限。录音区分 necessary information（提供服务必需的信息）和 optional data sharing（可选择的数据共享），建议安装前逐项查看用途。",
+      "exam_tip": "听 Some information 与 other data sharing 的区别。"
     },
     "space_metadata": {
       "box_ref": "1000",
@@ -366,14 +366,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "选择较大的会议室；选择较小的会议室；增加场地预算；推迟开始时间。\n\n听的时候，要留意哪方面的取舍？想好后再听。",
-      "support": "选择较大的会议室；选择较小的会议室；增加场地预算；推迟开始时间。\n\n听的时候，要留意哪方面的取舍？想好后再听。",
-      "context": "选择较大的会议室；选择较小的会议室；增加场地预算；推迟开始时间。\n\n听的时候，要留意哪方面的取舍？想好后再听。"
+      "prompt": "较大的会议室；较小的会议室；增加预算；推迟开始。\n这些选择有哪些取舍？听录音，比较费用、时间和客户要求。",
+      "support": "较大的会议室；较小的会议室；增加预算；推迟开始。\n这些选择有哪些取舍？听录音，比较费用、时间和客户要求。",
+      "context": "较大的会议室；较小的会议室；增加预算；推迟开始。\n这些选择有哪些取舍？听录音，比较费用、时间和客户要求。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项围绕方案选择，听时要比较预算、可用时间和客户要求；录音没有明确说已经完成预订，不能把倾向当成已执行。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "较大会议室 would exceed the budget，会超预算。较小会议室整个下午可用，而客户最在意按时开始。录音给出了选择小会议室的理由，但未说已预订。",
+      "exam_tip": "分别记两个房间的限制，再听客户最在意什么。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -396,14 +396,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "因航班取消；因会场关闭；因设备故障；因报名人数不足。\n\n听的时候，要核对哪类信息？想好后再听。",
-      "support": "因航班取消；因会场关闭；因设备故障；因报名人数不足。\n\n听的时候，要核对哪类信息？想好后再听。",
-      "context": "因航班取消；因会场关闭；因设备故障；因报名人数不足。\n\n听的时候，要核对哪类信息？想好后再听。"
+      "prompt": "航班取消；会场关闭；设备故障；报名不足。\n这些选项都在解释改期原因。听录音，找出实际原因。",
+      "support": "航班取消；会场关闭；设备故障；报名不足。\n这些选项都在解释改期原因。听录音，找出实际原因。",
+      "context": "航班取消；会场关闭；设备故障；报名不足。\n这些选项都在解释改期原因。听录音，找出实际原因。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项都表示原因，所以应特别注意 because 引出的信息；Thursday 和 Friday 是时间信息，不是问题要区分的原因。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "because 后说明讲者的航班因风暴取消，所以研讨会改期。even though 补充说会场仍然可用，因此会场关闭不是原因。",
+      "exam_tip": "听 because 后的事，再核对会场是否可用。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -426,14 +426,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "支持报告结论；质疑样本代表性；要求增加工作时长；建议取消调查。\n\n评价者是什么态度？依据是什么？想好后再听。",
-      "support": "支持报告结论；质疑样本代表性；要求增加工作时长；建议取消调查。\n\n评价者是什么态度？依据是什么？想好后再听。",
-      "context": "支持报告结论；质疑样本代表性；要求增加工作时长；建议取消调查。\n\n评价者是什么态度？依据是什么？想好后再听。"
+      "prompt": "支持报告；质疑样本；要求加班；取消调查。\n听录音，判断评审者如何评价报告，并找出理由。",
+      "support": "支持报告；质疑样本；要求加班；取消调查。\n听录音，判断评审者如何评价报告，并找出理由。",
+      "context": "支持报告；质疑样本；要求加班；取消调查。\n听录音，判断评审者如何评价报告，并找出理由。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项在评价方向上不同，应结合批评内容和理由判断，不能只凭语调推断态度，也不能把样本有限理解为远程工作一定无效。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "only eighteen employees were surveyed 说明样本只有 18 人。评审者因此认为结论 may not apply to the whole company，未必适用于整个公司。",
+      "exam_tip": "把 only eighteen 与 may not apply 连起来听。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -462,8 +462,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项的时间差异提示关注截止安排，并留意审批这个前置条件；不能只抓住 internship 一个名词。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "send your materials this week 是直接要求：本周提交材料。because 后解释原因——系主任需要几天审批校外实习，必须给审批留出时间。",
+      "exam_tip": "听 this week 后说明的审批时间。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -486,14 +486,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "降低排放并方便到达；单纯降低票价；因为车站关闭；因为必须运送货物。\n\n这是一个原因，还是几个原因？想好后再听。",
-      "support": "降低排放并方便到达；单纯降低票价；因为车站关闭；因为必须运送货物。\n\n这是一个原因，还是几个原因？想好后再听。",
-      "context": "降低排放并方便到达；单纯降低票价；因为车站关闭；因为必须运送货物。\n\n这是一个原因，还是几个原因？想好后再听。"
+      "prompt": "低碳出行；票价；车站位置；运输货物。\n听录音：公司改坐火车有几个理由，分别是什么？",
+      "support": "低碳出行；票价；车站位置；运输货物。\n听录音：公司改坐火车有几个理由，分别是什么？",
+      "context": "低碳出行；票价；车站位置；运输货物。\n听录音：公司改坐火车有几个理由，分别是什么？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "partly...and partly...并列两个原因，不能听到第一个就停止核对，也没有证据支持票价更低这一补充。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "partly...and partly...列出两个理由：减少碳排放，以及车站更接近客户市中心办公室。录音未比较火车票和机票价格。",
+      "exam_tip": "听完两处 partly，不要只记第一项。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -516,14 +516,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "普通票八英镑；学生票五英镑；所有票免费；团体票三英镑。\n\n每个数字指的是什么？想好后再听。",
-      "support": "普通票八英镑；学生票五英镑；所有票免费；团体票三英镑。\n\n每个数字指的是什么？想好后再听。",
-      "context": "普通票八英镑；学生票五英镑；所有票免费；团体票三英镑。\n\n每个数字指的是什么？想好后再听。"
+      "prompt": "成人票；学生票；团体票。\n听录音，把各类门票的价格和优惠条件记在一起。",
+      "support": "成人票；学生票；团体票。\n听录音，把各类门票的价格和优惠条件记在一起。",
+      "context": "成人票；学生票；团体票。\n听录音，把各类门票的价格和优惠条件记在一起。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "预判考点是收费差异；听到数字后应同时记录它属于哪类人，不能选择最后出现的数字就认为一定正确。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "eight pounds 对应 adults；five pounds 对应 students，条件是出示有效学生证。no additional reduction for groups 表示团体不再额外优惠。",
+      "exam_tip": "可记成“成人 8；学生 5＋证件；团体无额外折扣”。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -537,7 +537,7 @@
       "sha256": "sha256:25a5a1f14f29d74435dbcee4a2e27a945d04dcac04d3ee782382c4e1f8169d88",
       "transcript": "Admission to the exhibition costs eight pounds for adults. Students pay five pounds if they show a valid student card. The price includes the printed guide, and there is no additional reduction for groups. Visitors should buy tickets before entering the main hall."
     },
-    "back_text": "区分票种与价格。普通票八英镑，学生凭有效证件五英镑，团体没有额外优惠。"
+    "back_text": "成人票 8 英镑；学生凭有效学生证付 5 英镑；团体没有额外折扣。"
   },
   {
     "card_id": "100107",
@@ -546,14 +546,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "在图书馆正门；在车站出口；在实验楼接待处；在校园北门。\n\n听的时候，要关注什么变化？想好后再听。",
-      "support": "在图书馆正门；在车站出口；在实验楼接待处；在校园北门。\n\n听的时候，要关注什么变化？想好后再听。",
-      "context": "在图书馆正门；在车站出口；在实验楼接待处；在校园北门。\n\n听的时候，要关注什么变化？想好后再听。"
+      "prompt": "图书馆门外；实验楼接待处；校园北门；车站出口。\n听录音，区分原来的集合地点和现在的地点。",
+      "support": "图书馆门外；实验楼接待处；校园北门；车站出口。\n听录音，区分原来的集合地点和现在的地点。",
+      "context": "图书馆门外；实验楼接待处；校园北门；车站出口。\n听录音，区分原来的集合地点和现在的地点。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "几个选项都是地点，听时尤其要区分原地点与最终安排；不要因为第一个地点熟悉就立即作答。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "originally told 引出旧安排，should now gather 引出新安排。图书馆入口施工堵住了，所以集合点改到 science building 的 reception desk。",
+      "exam_tip": "用“原来 → 现在”记地点变化。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -567,7 +567,7 @@
       "sha256": "sha256:4234307293120cf64717472904f5aebd720359693252c2d5fbf5c883eff46e6d",
       "transcript": "The group was originally told to meet outside the library. Because building work has blocked that entrance, everyone should now gather at the reception desk in the science building. The departure time has not changed, and a guide will meet the group there."
     },
-    "back_text": "需要关注集合地点是否改变。集合点已从图书馆正门改到实验楼接待处。"
+    "back_text": "原定图书馆门外，现改为 science building 的接待处。出发时间不变。"
   },
   {
     "card_id": "100108",
@@ -582,8 +582,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "称呼、服务内容与双方任务可以支持关系判断；不能只因一方提问、一方回答，就固定判断为师生。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "your order、replacement 和 refund 都与订单售后有关。说话人代表商家处理错发商品，听话人是购买商品的客户。",
+      "exam_tip": "听谁可以安排换货，谁可以选择退款。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -612,8 +612,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "顺序题要记录 first、then 或 before 所连接的动作；不能把必要步骤当成可随意交换的清单。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "Before collecting a camera 后列出领取前的要求：完成网上预约表并带学生证。Staff will then check 表示随后由工作人员核对预约，再发设备。",
+      "exam_tip": "记“预约＋带证 → 核对 → 领设备”。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -636,14 +636,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "十五名；十八名；二十名；二十五名。\n\n只记数字够吗？还需要记什么？想好后再听。",
-      "support": "十五名；十八名；二十名；二十五名。\n\n只记数字够吗？还需要记什么？想好后再听。",
-      "context": "十五名；十八名；二十名；二十五名。\n\n只记数字够吗？还需要记什么？想好后再听。"
+      "prompt": "十五名；十八名；二十名；二十五名。\n听录音，分别记录报名、到场和完成全部活动的人数。",
+      "support": "十五名；十八名；二十名；二十五名。\n听录音，分别记录报名、到场和完成全部活动的人数。",
+      "context": "十五名；十八名；二十名；二十五名。\n听录音，分别记录报名、到场和完成全部活动的人数。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项全是人数，预判时应准备把每个数字与事件阶段绑定；录音出现几个数字并不自动说明哪一个是答案，仍需结合具体提问。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "Twenty registered 是 20 人报名；eighteen arrived 是 18 人到场。其中 3 人提前离开，所以 fifteen completed every activity，是 15 人完成全部活动。",
+      "exam_tip": "每个数字旁写一个动作：报名、到场、完成。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -657,7 +657,7 @@
       "sha256": "sha256:13b6d0de6b50bee942fd71ce67ac08b9f111cfc466bd51babd4725c2461e822b",
       "transcript": "Twenty people registered for the workshop, and eighteen arrived on the first day. Three of those participants had to leave before the final session. As a result, fifteen completed every activity. The organisers will ask those who left early whether the timetable could be improved."
     },
-    "back_text": "不够，要确定问的是报名、实际到场还是完成的人。二十人报名，十八人参加，十五人完成全部活动。"
+    "back_text": "20 人报名，18 人到场，15 人完成全部活动。记人数时要把数字与对应阶段放在一起。"
   },
   {
     "card_id": "100111",
@@ -666,14 +666,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "完全支持；谨慎支持；明确反对；无法判断。\n\n判断态度，只听声音高低够吗？想好后再听。",
-      "support": "完全支持；谨慎支持；明确反对；无法判断。\n\n判断态度，只听声音高低够吗？想好后再听。",
-      "context": "完全支持；谨慎支持；明确反对；无法判断。\n\n判断态度，只听声音高低够吗？想好后再听。"
+      "prompt": "完全支持；谨慎支持；明确反对；无法判断。\n听录音，说话人支持采用新系统到什么程度？",
+      "support": "完全支持；谨慎支持；明确反对；无法判断。\n听录音，说话人支持采用新系统到什么程度？",
+      "context": "完全支持；谨慎支持；明确反对；无法判断。\n听录音，说话人支持采用新系统到什么程度？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "态度应结合肯定、限制和建议；语调只作辅助，不能绕过话语内容来判断立场。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "I would welcome that improvement 肯定节省时间的好处；但决定前还要估算年成本。说话人支持先在一个部门试行，所以是有保留、谨慎的支持。",
+      "exam_tip": "听支持的范围：先试一个部门，还是立即全部采用。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -687,7 +687,7 @@
       "sha256": "sha256:947afeda379fe4439257f9d3213e7b09e212db0f3ddad730da1fb2dc524a2987",
       "transcript": "The new booking system should save staff time, and I would welcome that improvement. However, we need a clear estimate of the yearly cost before making a decision. I support trying it in one department first, rather than introducing it everywhere immediately."
     },
-    "back_text": "不能。说话人认可新系统节省时间，但提出费用限制，所以是有保留的支持。"
+    "back_text": "谨慎、有保留地支持先在一个部门试行；作决定前还要明确每年的费用。"
   },
   {
     "card_id": "100112",
@@ -702,8 +702,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "推断必须由录音支持，不能机械排除直接陈述，也不能把一个楼层的状态扩大成整栋楼。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "ground floor 的维修已完成，周一起可用；upstairs 仍施工，还要关闭两周。因此只是一部分房间恢复使用，并非整栋楼全部修好。",
+      "exam_tip": "分别记录楼下和楼上的状态。"
     },
     "space_metadata": {
       "box_ref": "1001",
@@ -726,14 +726,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "价格低且好安装；无法快速处理大图；需要更换设备；已经决定购买。\n\n这些信息可能是什么逻辑关系？想好后再听。",
-      "support": "价格低且好安装；无法快速处理大图；需要更换设备；已经决定购买。\n\n这些信息可能是什么逻辑关系？想好后再听。",
-      "context": "价格低且好安装；无法快速处理大图；需要更换设备；已经决定购买。\n\n这些信息可能是什么逻辑关系？想好后再听。"
+      "prompt": "价格和安装；大图处理速度。\n听录音，这两方面的评价是互相补充，还是有优点也有不足？",
+      "support": "价格和安装；大图处理速度。\n听录音，这两方面的评价是互相补充，还是有优点也有不足？",
+      "context": "价格和安装；大图处理速度。\n听录音，这两方面的评价是互相补充，还是有优点也有不足？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "选项同时有正面与负面评价，提示可能出现转折；但不能在播放前断定一定使用 however，也不能仅因有优点就推断已经购买。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "inexpensive and easy to install 是两项优点。However 后指出大图处理不够快，达不到设计团队的需要；两部分构成转折。",
+      "exam_tip": "把评价记成“便宜、好装；但大图处理慢”。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -762,8 +762,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "unless 表达条件限制；减少服务不等于全天停运，应把条件和对应后果一并记录。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "unless...by noon 表示如果中午前收不到零件。对应的结果是线路恢复开放，但下午列车更少、等候更久。录音并未说全天停运。",
+      "exam_tip": "听条件中的截止时间，再听列车和等待时间怎样变化。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -792,8 +792,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "as a result 把后续变化作为结果；不能自行补出新增任务量，因为录音没有报告该变化。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "前一句说上月升级冷却系统。As a result 引出两项结果：服务器运行更安静，夜间分析耗电更少。",
+      "exam_tip": "听 quietly 和 electricity 对应的两个变化。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -822,8 +822,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "预判时关注范围差异，听时以明确更正为依据；不能把局部改动扩大为全部翻新。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "Many people assume 是原先的印象：公寓去年翻新过。In fact 后纠正它：只重新设计了大厅，供暖系统大部分仍用了几十年。",
+      "exam_tip": "重点核对 only 限定了哪一部分。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -846,14 +846,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "减少食材浪费；提高菜单数量；扩大午餐时段；延长营业时间。\n\n这些信息之间可能是什么关系？想好后再听。",
-      "support": "减少食材浪费；提高菜单数量；扩大午餐时段；延长营业时间。\n\n这些信息之间可能是什么关系？想好后再听。",
-      "context": "减少食材浪费；提高菜单数量；扩大午餐时段；延长营业时间。\n\n这些信息之间可能是什么关系？想好后再听。"
+      "prompt": "减少食材浪费；增加菜品；延长午餐时间；延长营业。\n听录音，餐厅调整菜单的原因是什么？",
+      "support": "减少食材浪费；增加菜品；延长午餐时间；延长营业。\n听录音，餐厅调整菜单的原因是什么？",
+      "context": "减少食材浪费；增加菜品；延长午餐时间；延长营业。\n听录音，餐厅调整菜单的原因是什么？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "because 明确说明原因；录音说缩短菜单，不能与增加菜品或延长营业时间混淆。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "shortened its menu 指减少菜品种类。because 后说许多食材在工作日午餐用掉之前就被浪费了，这解释了缩减菜单的原因。",
+      "exam_tip": "听 shortened its menu 后的 because 从句。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -867,7 +867,7 @@
       "sha256": "sha256:96c8cc70bb99cc01967917c166f4e7bca76ec9cbd113195cf7ecd7653dee8207",
       "transcript": "The restaurant shortened its menu this season because too many ingredients were being wasted before they could be used in the weekday lunch service."
     },
-    "back_text": "要核对调整菜单的原因：工作日午餐中太多食材未用完就浪费了。"
+    "back_text": "减少食材浪费。餐厅缩减了菜单上的菜品。"
   },
   {
     "card_id": "100206",
@@ -876,14 +876,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "新系统更快；培训成本较高；所有员工已熟悉；无需继续试用。\n\n听的时候，要区分哪两方面的评价？想好后再听。",
-      "support": "新系统更快；培训成本较高；所有员工已熟悉；无需继续试用。\n\n听的时候，要区分哪两方面的评价？想好后再听。",
-      "context": "新系统更快；培训成本较高；所有员工已熟悉；无需继续试用。\n\n听的时候，要区分哪两方面的评价？想好后再听。"
+      "prompt": "处理预订的速度；员工使用系统的熟练程度。\n听录音，这两方面的情况如何？经理因此准备怎么做？",
+      "support": "处理预订的速度；员工使用系统的熟练程度。\n听录音，这两方面的情况如何？经理因此准备怎么做？",
+      "context": "处理预订的速度；员工使用系统的熟练程度。\n听录音，这两方面的情况如何？经理因此准备怎么做？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "转折线索有助于发现限制，但转折前的信息并未失效；应保留“更快”和“仍需培训”两层事实。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "新系统处理预订更快，但部分员工还不会熟练使用，需要额外培训。经理决定延长试用，让大家练熟以后再评估收益。",
+      "exam_tip": "记“速度更快；仍需培训；延长试用”。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -912,8 +912,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "as a result 说明改道与积水的关系；不应把录音明确排除的学校关闭补成另一个结果。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "Heavy rain 造成道路积水，As a result 引出结果：公交临时经西区绕行。学校仍开放，但路程可能更久，家长要多留出行时间。",
+      "exam_tip": "顺着“大雨 → 积水 → 改道”听。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -936,14 +936,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "总体建议；具体做法示例；实施结果；尚未解决的问题。\n\n听到举例的词，接下来该注意什么？想好后再听。",
-      "support": "总体建议；具体做法示例；实施结果；尚未解决的问题。\n\n听到举例的词，接下来该注意什么？想好后再听。",
-      "context": "总体建议；具体做法示例；实施结果；尚未解决的问题。\n\n听到举例的词，接下来该注意什么？想好后再听。"
+      "prompt": "听录音，for example 后举了什么例子？它怎样支持开头的观点？",
+      "support": "听录音，for example 后举了什么例子？它怎样支持开头的观点？",
+      "context": "听录音，for example 后举了什么例子？它怎样支持开头的观点？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "for example 标明举例功能，不代表例子永远不会被问到，也不代表其中没有新信息；是否成为答案取决于具体题目。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "开头的观点是 Small changes in routine can help students meet deadlines。提前两天设提醒是例子；后面列出下一步的小清单也是具体做法。",
+      "exam_tip": "先听一般观点，再听提醒为什么要提前两天。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -957,7 +957,7 @@
       "sha256": "sha256:a96089b8a70ac5cf91b2f86592295573ebcd264f6d186fa40c21584fb5e46f77",
       "transcript": "Small changes in routine can help students meet deadlines more reliably. For example, setting a reminder two days before an assignment is due gives time to find missing materials. Preparing a short list of the next steps can also make it easier to begin a task."
     },
-    "back_text": "判断例子支持哪个一般观点，同时保留例子中的细节。本段用提醒和提前准备说明简单习惯可帮助按时完成任务。"
+    "back_text": "截止日前两天设提醒，可以留出时间补齐材料，说明小习惯有助于按时完成任务。"
   },
   {
     "card_id": "100209",
@@ -972,8 +972,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "in contrast 引出对照，应分别记录每个方案的价格和时长，不能把一方的优点移到另一方。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "第一种服务费用较低，但通常要两周。In contrast 引出快递服务：三天内送达，不过费用高得多。选择取决于需要多快收到物品。",
+      "exam_tip": "画两列记：普通服务便宜／两周，快递贵／三天内。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -996,14 +996,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "图书馆延时；增加打印设备；取消夜间服务；减少工作人员。\n\n接下来的内容是补充，还是转折？想好后再听。",
-      "support": "图书馆延时；增加打印设备；取消夜间服务；减少工作人员。\n\n接下来的内容是补充，还是转折？想好后再听。",
-      "context": "图书馆延时；增加打印设备；取消夜间服务；减少工作人员。\n\n接下来的内容是补充，还是转折？想好后再听。"
+      "prompt": "听录音，in addition 后补充了什么安排？它与图书馆延长开放有何关系？",
+      "support": "听录音，in addition 后补充了什么安排？它与图书馆延长开放有何关系？",
+      "context": "听录音，in addition 后补充了什么安排？它与图书馆延长开放有何关系？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in addition 引出补充，但是否同向、具体增加什么仍要核对后面的内容；不能仅听到信号词就代替理解整句。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "第一项安排是每晚延长开放两小时。In addition 引出打印机和现场协助，补充考试期间的服务安排。",
+      "exam_tip": "听 more printers 后还有谁提供帮助。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -1017,7 +1017,7 @@
       "sha256": "sha256:a2135154f6972828fa27816f9fafe18f624db1cccf4ed34f8abd5db1bcd685fb",
       "transcript": "During the examination period, the library will stay open for two extra hours each evening. In addition, more printers will be available on the ground floor, with staff nearby to help. These changes are intended to reduce waiting and give students more time to finish their work."
     },
-    "back_text": "应准备核对多个安排。图书馆延长开放；此外，增设打印设备和工作人员。"
+    "back_text": "增设一楼打印机，并安排工作人员在附近协助；这些措施旨在减少等待、方便学生完成学习任务。"
   },
   {
     "card_id": "100211",
@@ -1026,14 +1026,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 听前预测",
-      "prompt": "换一种方式解释；提出相反意见；宣布项目结束；增加新截止时间。\n\n后面的说法和前面是什么关系？想好后再听。",
-      "support": "换一种方式解释；提出相反意见；宣布项目结束；增加新截止时间。\n\n后面的说法和前面是什么关系？想好后再听。",
-      "context": "换一种方式解释；提出相反意见；宣布项目结束；增加新截止时间。\n\n后面的说法和前面是什么关系？想好后再听。"
+      "prompt": "听录音，in other words 后怎样解释“分阶段实施”？",
+      "support": "听录音，in other words 后怎样解释“分阶段实施”？",
+      "context": "听录音，in other words 后怎样解释“分阶段实施”？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in other words 引出解释或改述，应比较两种说法是否对应；不能事先认定后一句一定更简单或一定就是考题答案。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "introduced in stages 是分阶段实施。后一句具体解释为：先在一个社区测试，再决定是否扩展到全市。这样居民能及时报告问题，调整也更容易。",
+      "exam_tip": "抓住 one neighbourhood 和 across the city 两个范围。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -1062,8 +1062,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "provided that 引出使用资格的条件；and 连接两个都要满足的要求，不能只记住其中一项。",
-      "exam_tip": "预判帮助分配注意力，具体答案仍以录音和实际问题为准。"
+      "summary": "provided that 表示借用的前提。and 连接两项必需条件：完成安全培训，并提前预约；领设备时工作人员会检查两项。",
+      "exam_tip": "用“培训＋预约”记住两个都要满足。"
     },
     "space_metadata": {
       "box_ref": "1002",
@@ -1086,14 +1086,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述关闭设备和交接物品的两段短语。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述关闭设备和交接物品的两段短语。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述关闭设备和交接物品的两段短语。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“关掉”和“交给”的英文短语。",
+      "support": "听录音，复述“关掉”和“交给”的英文短语。",
+      "context": "听录音，复述“关掉”和“交给”的英文短语。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "这两段短语的词界都有辅音接元音，可连续衔接。连贯听感并不改变词数；还要保留交给保安这一对象信息。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "turn it off 是关掉设备，hand it over 是交出设备。turn it、it off、hand it 等相邻词可以连着读；后面的 to the security guard 说明交给保安。",
+      "exam_tip": "连着听 turn it off 和 hand it over，不必逐词停顿。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1116,14 +1116,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述“取走包裹”的动作短语。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述“取走包裹”的动作短语。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述“取走包裹”的动作短语。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“取走包裹”的英文短语。",
+      "support": "听录音，复述“取走包裹”的英文短语。",
+      "context": "听录音，复述“取走包裹”的英文短语。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "pick it up 是完整的连续动作短语；downstairs 和 before lunch 分别涉及地点与时间，不能用它们替代动作本身。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "pick it up 表示取走包裹。pick 后的 /k/ 与 it 的元音、it 后的 /t/ 与 up 的元音可以衔接，因此三个词听起来很连贯。",
+      "exam_tip": "先整体听 pick it up，再核对其中的 it。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1146,14 +1146,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述设置展品和联系工作人员的两段短语。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述设置展品和联系工作人员的两段短语。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述设置展品和联系工作人员的两段短语。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“安装好它”和“六点以后打给我们”。",
+      "support": "听录音，复述“安装好它”和“六点以后打给我们”。",
+      "context": "听录音，复述“安装好它”和“六点以后打给我们”。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "辅音与后续元音在词界处可以连续衔接。联系时间是六点以后，不能只还原单词而漏掉 after 的关系。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "set it up 表示安装好，call us after six 表示六点以后打给我们。set it、it up、call us 中都有辅音接元音的词界，可以连着读。",
+      "exam_tip": "连着复述短语，同时保留 after six 的时间关系。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1176,14 +1176,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出现在放在哪里，以及什么条件下才改放前台。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出现在放在哪里，以及什么条件下才改放前台。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出现在放在哪里，以及什么条件下才改放前台。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，现在应把物品放在哪里？什么情况下才放前台？",
+      "support": "听录音，现在应把物品放在哪里？什么情况下才放前台？",
+      "context": "听录音，现在应把物品放在哪里？什么情况下才放前台？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "put it on 与 leave it at 是两段连续短语；only if 限制第二个动作，不能把两个地点当成可随意选择。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "put it on the back shelf 是先放后面的架子上。only if 限定第二种安排：五点时维修人员仍未到，才 leave it at the front desk，放到前台。",
+      "exam_tip": "把 put it on、leave it at 连着听，再核对 only if。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1206,14 +1206,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述“发过来”的动作短语，并说出时间要求。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述“发过来”的动作短语，并说出时间要求。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述“发过来”的动作短语，并说出时间要求。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“发过来”，并说出最晚何时要发。",
+      "support": "听录音，复述“发过来”，并说出最晚何时要发。",
+      "context": "听录音，复述“发过来”，并说出最晚何时要发。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "send it over 跨词边界的连续发音不改变三个词的功能。before 引出的截止条件也必须保留。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "send it over 是把修改后的图表发来。send it 和 it over 可以连着读；before the directors arrive 说明要在董事们到达前发出。",
+      "exam_tip": "听 send it over 后的 before 从句。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1236,14 +1236,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述移动设备的两段动作短语。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述移动设备的两段动作短语。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述移动设备的两段动作短语。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“关掉它”和“搬上楼”。",
+      "support": "听录音，复述“关掉它”和“搬上楼”。",
+      "context": "听录音，复述“关掉它”和“搬上楼”。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "turn it off 和 carry it upstairs 都需要跨词识别。把动作短语还原后，再按 first、then 核对顺序。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "turn it off 是关设备，carry it upstairs 是搬上楼。先关机并拔掉线，之后再搬；first 和 then 帮助确定顺序。",
+      "exam_tip": "把 it 留在两段短语中一起复述。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1266,14 +1266,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出放地图的位置和附近物品。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出放地图的位置和附近物品。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出放地图的位置和附近物品。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，地图在哪里？参观者还能拿走什么？",
+      "support": "听录音，地图在哪里？参观者还能拿走什么？",
+      "context": "听录音，地图在哪里？参观者还能拿走什么？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "there is 与 here are 等短语的词界可能连贯，具体 /r/ 是否出现还受口音影响。不能把一种口音的读法说成所有人的必然规则。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "There is a map 指墙上的地图，Here are some copies 指可以带走的副本。两处短语要连贯地识别；录音没有提到存放副本的架子。",
+      "exam_tip": "听清 a map 和 some copies，区分地图与副本。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1287,7 +1287,7 @@
       "sha256": "sha256:dd45398f9a85ad15abd52a265e9165a44ae716096dc738d503ecd07ca8dd5c64",
       "transcript": "There is a map on the wall near the entrance. Here are some copies you can take with you. The smaller paths are easier to see on the printed version, so it may help during your visit."
     },
-    "back_text": "地图在墙上；附近有一架可取副本的架子。"
+    "back_text": "地图在入口附近的墙上；参观者可以带走地图副本。"
   },
   {
     "card_id": "101008",
@@ -1296,14 +1296,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出会议开始前需要做的两件事。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出会议开始前需要做的两件事。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出会议开始前需要做的两件事。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“座位数量”的英文词组，留意 number 与后面短词的衔接。",
+      "support": "听录音，复述“座位数量”的英文词组，留意 number 与后面短词的衔接。",
+      "context": "听录音，复述“座位数量”的英文词组，留意 number 与后面短词的衔接。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "相邻词尾与词首辅音可以紧密衔接，识别时仍要区分 check、send 两个动作及其对象。不要仅凭听起来连续就把两个词写成一个。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "number of seats 是“座位数量”。在一些不单独读词尾 r 的口音中，number 后接元音开头的 of 时可通过 /r/ 衔接，这叫 linking r。材料说明要先确认来宾，以便准备合适数量的座位。",
+      "exam_tip": "把 number of seats 当作完整词组来听，注意 number 与 of 的词界。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1317,7 +1317,7 @@
       "sha256": "sha256:caa1e12452162493aaf026f4c0725dd71b879a6f39bd60df75a1abeee5e5844f",
       "transcript": "Please check the timetable and send the final list before the meeting begins. We need to know which guests are attending so that the right number of seats and printed guides can be prepared."
     },
-    "back_text": "check the timetable；send the final list。"
+    "back_text": "number of seats，座位数量。"
   },
   {
     "card_id": "101009",
@@ -1326,14 +1326,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述继续讲解和提出问题的两段表达。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述继续讲解和提出问题的两段表达。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述继续讲解和提出问题的两段表达。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“继续讲解”和“询问费用”的关键短语。",
+      "support": "听录音，复述“继续讲解”和“询问费用”的关键短语。",
+      "context": "听录音，复述“继续讲解”和“询问费用”的关键短语。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "go on 的元音边界和 ask about 的辅音接元音边界可各自形成连贯听感；不要用自行创造的拼写替代标准词组。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "go on 表示继续，ask about the costs 表示询问费用。go on 的两个元音、ask about 的辅音与元音可以衔接；费用问题等讲解结束后再讨论。",
+      "exam_tip": "先听 go on，再听 ask about 后的询问对象。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1356,14 +1356,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述把物品取出的短语，并说明何时操作。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述把物品取出的短语，并说明何时操作。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述把物品取出的短语，并说明何时操作。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“把它取出来”，并说明取出前要做什么。",
+      "support": "听录音，复述“把它取出来”，并说明取出前要做什么。",
+      "context": "听录音，复述“把它取出来”，并说明取出前要做什么。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "get it out 含连续词界，不同口音可能以不同方式实现其中的辅音。重点是还原 get、it、out，并保留操作前的条件。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "get it out 是把物品取出来。三个词在语流中紧密衔接；Check the label before... 要求取出盒子前先检查标签。",
+      "exam_tip": "把 get、it、out 三个词连着复述，再核对 before 的前后顺序。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1386,14 +1386,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出活动前应该带的食品，并复述其中的冠词与名词。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出活动前应该带的食品，并复述其中的冠词与名词。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出活动前应该带的食品，并复述其中的冠词与名词。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述 an 后的食品，并说出还要带什么。",
+      "support": "听录音，复述 an 后的食品，并说出还要带什么。",
+      "context": "听录音，复述 an 后的食品，并说出还要带什么。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "an 与 apple 的词界可以连续衔接，但冠词仍是独立语法成分；不能听成一个新单词而丢掉名词。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "an apple 中 /n/ 可接上 apple 的首元音。or another small snack 表示苹果也可以换成其他小零食；as well as a bottle of water 表示还要带水。",
+      "exam_tip": "听清 or 和 as well as：一个给替代项，一个加必需物品。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1407,7 +1407,7 @@
       "sha256": "sha256:191d785049299a9130149b8e70a3c3c5c200728a68083589e9e73a3d326a9124",
       "transcript": "Bring an apple or another small snack, as well as a bottle of water. The walk takes about two hours, and there is no shop along the route. We will stop briefly at the viewpoint before returning."
     },
-    "back_text": "an apple，以及一瓶水。"
+    "back_text": "an apple 或其他小零食，还要带一瓶水。"
   },
   {
     "card_id": "101012",
@@ -1416,14 +1416,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述“取走”和“带回”的动作短语，并说明各自涉及什么。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述“取走”和“带回”的动作短语，并说明各自涉及什么。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述“取走”和“带回”的动作短语，并说明各自涉及什么。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，怎样表达“取设备”和“带回旧电源线”？复述两个动作短语。",
+      "support": "听录音，怎样表达“取设备”和“带回旧电源线”？复述两个动作短语。",
+      "context": "听录音，怎样表达“取设备”和“带回旧电源线”？复述两个动作短语。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "连续语流中的 it、up、back 都会影响意思。不能只猜一个元音或抓住同一个动词，就忽略两个动作的方向和对象。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "pick it up 的 it 指明天可领取的设备。bring...back 的宾语是 the old power cable，要求来领设备时带回旧线；录音并未说 bring it back。",
+      "exam_tip": "听第二个动词 bring 后的完整宾语。"
     },
     "space_metadata": {
       "box_ref": "1010",
@@ -1437,7 +1437,7 @@
       "sha256": "sha256:131e058419ce34ac9bee487f5f79ee7bda526937db9fa0f66eba13ec566af682",
       "transcript": "You can pick it up from the workshop tomorrow. Please bring the old power cable back when you come, because the replacement unit uses a different connection. There is no extra charge for the cable."
     },
-    "back_text": "pick it up 指取修好的设备；bring it back 指归还旧的电源线。"
+    "back_text": "pick it up；bring the old power cable back。"
   },
   {
     "card_id": "101101",
@@ -1446,14 +1446,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述 can 后允许做的事，以及 send 后接收方。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述 can 后允许做的事，以及 send 后接收方。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述 can 后允许做的事，以及 send 后接收方。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，可以把文件交给谁？之后由谁发给编辑？",
+      "support": "听录音，可以把文件交给谁？之后由谁发给编辑？",
+      "context": "听录音，可以把文件交给谁？之后由谁发给编辑？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "can、to 等功能词常比主要动作词轻，但分别表达允许与动作关系。不能只凭重读名词推断是谁把文件发给谁。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "You can leave the files with me 表示把文件留给说话人。I’ll try to send them to the editor 表示说话人会尝试发给编辑；try to 并不保证已经发出。",
+      "exam_tip": "听 can leave 与 try to send，分别确认主语。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1467,7 +1467,7 @@
       "sha256": "sha256:7b263e7507e2f4cd24c33d92fd3bd2572b709642d1889a4335e3201651a59fc2",
       "transcript": "You can leave the files with me, and I'll try to send them to the editor before the evening meeting starts."
     },
-    "back_text": "可以把文件留给说话人；文件将发给编辑。"
+    "back_text": "听话人可以把文件留给说话人；说话人会尽量在晚间会议前发给编辑。"
   },
   {
     "card_id": "101102",
@@ -1476,14 +1476,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出两个表示“多数”和“少数”的短语。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出两个表示“多数”和“少数”的短语。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出两个表示“多数”和“少数”的短语。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述表示“多数客人”和“少数高级经理”的短语。",
+      "support": "听录音，复述表示“多数客人”和“少数高级经理”的短语。",
+      "context": "听录音，复述表示“多数客人”和“少数高级经理”的短语。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "of 和 the 可能读得较轻，仍连接数量表达与相应人群；多数客人已离开，少数高级经理仍在等候。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "most of the guests 是多数客人，a few of the senior managers 是少数高级经理。of the 常读得较轻，仍要与前面的数量词和后面的人群连在一起听。",
+      "exam_tip": "对照 most of the 与 a few of the，再核对人群。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1506,14 +1506,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出 for 和 to 各连接什么内容。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出 for 和 to 各连接什么内容。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出 for 和 to 各连接什么内容。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“寻找更便宜的供应商”和“处理包装”。",
+      "support": "听录音，复述“寻找更便宜的供应商”和“处理包装”。",
+      "context": "听录音，复述“寻找更便宜的供应商”和“处理包装”。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "for 指向寻找的对象，to 连接处理包装这一目的或任务。弱读不等于可以省略这些关系。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "looking for a cheaper supplier 说明寻找对象，to handle the packaging 说明供应商要承担的工作。for 和 to 可能读得较轻，但把它们保留，才能听清词组关系。",
+      "exam_tip": "把 looking for、to handle 当作小段来听。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1536,14 +1536,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。说出录音提供的两种到达车站的方式。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。说出录音提供的两种到达车站的方式。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。说出录音提供的两种到达车站的方式。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，说话人提供哪两种出行选择？",
+      "support": "听录音，说话人提供哪两种出行选择？",
+      "context": "听录音，说话人提供哪两种出行选择？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "can、for、to 等较轻的功能词仍参与组成完整安排。or 提供选择，不能只听内容词而把两种方式合成同一个必做步骤。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "You can wait for the bus outside 是在外面等公交，or you can walk to the station 是步行去车站。or 表示任选一种，either way 说明两种方式都来得及。",
+      "exam_tip": "听 or 两侧的动词：wait 和 walk。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1566,14 +1566,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。区分大多数实习生与 Clara 的安排。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。区分大多数实习生与 Clara 的安排。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。区分大多数实习生与 Clara 的安排。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，大多数实习生和 Clara 的安排有什么不同？",
+      "support": "听录音，大多数实习生和 Clara 的安排有什么不同？",
+      "context": "听录音，大多数实习生和 Clara 的安排有什么不同？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "can 和 cannot 的区分应结合完整声音、对比关系和后续事实，不能把轻重当作唯一线索，也不能认定每个 can 都必须弱读。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "多数实习生 can’t stay after six，六点后不能留下。Clara can finish the report tonight，今晚能完成报告，因为明早没课。对照 can’t 与 can 后的动作和时间。",
+      "exam_tip": "先听否定，再用 but 后的对比核对。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1596,14 +1596,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出两个 can 所连接的动作。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出两个 can 所连接的动作。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出两个 can 所连接的动作。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述两个 can 后的动作，并指出各由谁做。",
+      "support": "听录音，复述两个 can 后的动作，并指出各由谁做。",
+      "context": "听录音，复述两个 can 后的动作，并指出各由谁做。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "功能词常有较轻的读法，但也可因强调或对比而使用强式。把 can 与后面的动词一并识别，不把弱读当成无条件规则。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "听话人可以把文件留在前台，项目负责人可以午饭后领取。两个 can 都要和后面的动词连着听；them 指前面提到的 documents。",
+      "exam_tip": "按“谁＋can＋动作”复述两段。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1617,7 +1617,7 @@
       "sha256": "sha256:dbc567cace3cafb1d5b9e2e3264a3a54f5609a52f2cc965400a37e754821b09a",
       "transcript": "You can leave the documents at reception, and the project leader can collect them after lunch. Please put your name on the envelope so that it does not get mixed up with material for the other teams."
     },
-    "back_text": "can leave the documents；can collect them。"
+    "back_text": "You can leave the documents；the project leader can collect them。"
   },
   {
     "card_id": "101107",
@@ -1626,14 +1626,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述“已经核对”和“尚未确认”两段完成时表达。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述“已经核对”和“尚未确认”两段完成时表达。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述“已经核对”和“尚未确认”两段完成时表达。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，哪些事已经完成，哪些还没完成？复述含 have 的短语。",
+      "support": "听录音，哪些事已经完成，哪些还没完成？复述含 have 的短语。",
+      "context": "听录音，哪些事已经完成，哪些还没完成？复述含 have 的短语。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "have 作为助动词可与主语形成缩略或较轻的读法；not 仍改变完成状态。不能只听到 checked、confirmed 就说两件事都已完成。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "have checked the names 表示已核对名单；have not confirmed... 表示还没确认所有人的出行安排。助动词 have 可能较轻，但第二句的 not 决定是否完成。",
+      "exam_tip": "对照 have checked 和 have not confirmed。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1656,14 +1656,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出 send 后代词指向的人，以及寄送的东西。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出 send 后代词指向的人，以及寄送的东西。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出 send 后代词指向的人，以及寄送的东西。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，send them 中的 them 指谁？要寄给他们什么？",
+      "support": "听录音，send them 中的 them 指谁？要寄给他们什么？",
+      "context": "听录音，send them 中的 them 指谁？要寄给他们什么？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "them 在自然语流中可能较轻，但仍是接收方。结合前句的 new volunteers 还原代词所指，不凭声音短就把它省略。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "them 指上一句的 new volunteers，即新志愿者。send them a copy of the timetable 是给他们发一份时间表，其中 them 是接收人，a copy 是寄送物。",
+      "exam_tip": "从前句找 them 对应的人群。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1686,14 +1686,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出 going to 后的计划，以及什么尚未决定。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出 going to 后的计划，以及什么尚未决定。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出 going to 后的计划，以及什么尚未决定。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，going to 后是什么计划？还有什么没有决定？",
+      "support": "听录音，going to 后是什么计划？还有什么没有决定？",
+      "context": "听录音，going to 后是什么计划？还有什么没有决定？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "going to 表示计划，非正式语流中可能出现紧缩读法，但不是每次都必须如此。不能把紧缩拼写当成正式写作的通用替代。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "are going to extend 表示计划延长周末开放时间。but 后说 exact times have not been decided，具体时间未定，要先与常来访的人讨论。",
+      "exam_tip": "把 going to extend 连着听，再听 but 后的限制。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1716,14 +1716,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。区分今天能发送与周一前不能发送的内容。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。区分今天能发送与周一前不能发送的内容。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。区分今天能发送与周一前不能发送的内容。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，图表和完整报告分别何时能发送？",
+      "support": "听录音，图表和完整报告分别何时能发送？",
+      "context": "听录音，图表和完整报告分别何时能发送？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "can 和 cannot 必须结合声音与两项对象来判断。重音可提供帮助，却不是唯一证据；也不能把同一个时间条件套给图表和报告。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "I can send the chart today：图表今天可发。I cannot send the full report until Monday：完整报告要到周一才能发，因为说明文字还需负责人检查。",
+      "exam_tip": "把 can/cannot 与 chart/report 成对记录。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1746,14 +1746,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出可接受的两个数量，以及说话人偏好的范围。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出可接受的两个数量，以及说话人偏好的范围。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出可接受的两个数量，以及说话人偏好的范围。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，会议需要几份材料？为什么不需要整包？",
+      "support": "听录音，会议需要几份材料？为什么不需要整包？",
+      "context": "听录音，会议需要几份材料？为什么不需要整包？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "or 连接两种可接受数量，可能在语流中较轻。不能因为只听清 two 和 three 就把它们相加成五份。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "Two or three copies 表示两份或三份都够，or 连接两个可选数量。most people will read...on their laptops 解释为什么不用打印整包。",
+      "exam_tip": "连着听 two or three，再核对 because 后的理由。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1767,7 +1767,7 @@
       "sha256": "sha256:965c9c52c923775e85145d6617e1aa5b05e97fbf338f37dccd6ef52abf47ec58",
       "transcript": "Two or three copies will be enough for the meeting. We do not need a whole pack because most people will read the document on their laptops. Please keep one printed copy at the front desk for reference."
     },
-    "back_text": "两份或三份均可；无需整包。"
+    "back_text": "两三份即可，因为大多数人会用笔记本电脑阅读。"
   },
   {
     "card_id": "101112",
@@ -1776,14 +1776,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述说话人要求交出的材料，注意 of、the 等短词。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述说话人要求交出的材料，注意 of、the 等短词。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述说话人要求交出的材料，注意 of、the 等短词。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述说话人索要的完整材料名称，注意 of 和 the。",
+      "support": "听录音，复述说话人索要的完整材料名称，注意 of 和 the。",
+      "context": "听录音，复述说话人索要的完整材料名称，注意 of 和 the。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "较轻的功能词与内容词共同组成短语。可以用句法帮助核对，但不能靠语法预期捏造录音里没有的词；不确定时应复听。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "a copy of the final plan 是最终方案的一份副本。of the 可能读得较轻；not the earlier draft 强调不要旧草稿，因为日期已经变了。",
+      "exam_tip": "重点对照 final plan 与 earlier draft。"
     },
     "space_metadata": {
       "box_ref": "1011",
@@ -1806,14 +1806,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述“第二天”和“很大变化”，说出变化涉及什么。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述“第二天”和“很大变化”，说出变化涉及什么。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述“第二天”和“很大变化”，说出变化涉及什么。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“第二天”和“很大变化”，并说明什么发生了变化。",
+      "support": "听录音，复述“第二天”和“很大变化”，并说明什么发生了变化。",
+      "context": "听录音，复述“第二天”和“很大变化”，并说明什么发生了变化。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "相邻辅音可能让 next day、big change 的词界不显著。没有独立爆破声不等于词尾必定被删除。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "the next day 和 a big change 的词界有相邻辅音，前一个辅音的爆破可能不明显。变化涉及 battery performance，即电池表现。",
+      "exam_tip": "把 next day、big change 各作为一段来听。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -1836,14 +1836,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出要打印和要留下的两份材料。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出要打印和要留下的两份材料。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出要打印和要留下的两份材料。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，要打印什么、把什么留在前台？用英文名称回答。",
+      "support": "听录音，要打印什么、把什么留在前台？用英文名称回答。",
+      "context": "听录音，要打印什么、把什么留在前台？用英文名称回答。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "这些短语含相邻辅音，词尾可能不像单独读词时明显。按完整词组识别材料，再核对前台这一放置位置。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "fact sheet 是资料单，signed draft contract 是签过字的合同草稿。词内和词界的辅音较密集，要连同 print、leave 两个动作来辨认材料。",
+      "exam_tip": "分别听 print 和 leave 后的完整名词短语。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -1857,7 +1857,7 @@
       "sha256": "sha256:1b99e43463bfcae558153b6b1f95bcc38757960b0fd75b5fc68732656944d06b",
       "transcript": "Please print the fact sheet for the client and leave the signed draft contract on the front desk before you head out."
     },
-    "back_text": "fact sheet；signed draft contract。"
+    "back_text": "打印 fact sheet；把 signed draft contract 留在前台。"
   },
   {
     "card_id": "101203",
@@ -1866,14 +1866,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出延迟的是什么活动，以及原因。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出延迟的是什么活动，以及原因。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出延迟的是什么活动，以及原因。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，什么活动延期了？为什么？",
+      "support": "听录音，什么活动延期了？为什么？",
+      "context": "听录音，什么活动延期了？为什么？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "product launch、last quarter 含连续辅音边界，不能漏掉修饰范围。因果由 because 后的信息说明，不由发音现象本身决定。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "product launch 是产品发布，last quarter’s packaging test 是上季度的包装测试。because 后说该测试 failed the stress checks，未通过压力检查，因此发布延期。",
+      "exam_tip": "把 product launch 和 last quarter’s 连着听。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -1896,14 +1896,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出工作人员为什么安静，以及另一组人在做什么。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出工作人员为什么安静，以及另一组人在做什么。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出工作人员为什么安静，以及另一组人在做什么。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，工作人员为什么保持安静？后台的另一组人在做什么？",
+      "support": "听录音，工作人员为什么保持安静？后台的另一组人在做什么？",
+      "context": "听录音，工作人员为什么保持安静？后台的另一组人在做什么？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "kept quiet 与 packed boxes 在词界处有相邻辅音。先还原完整词组，再区分保持安静的工作人员与装箱人员。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "kept quiet 是保持安静，packed boxes 是装箱；两处相邻辅音可能紧密衔接。安静的原因是主持人正在隔壁录节目的最后一段。",
+      "exam_tip": "先识别 kept quiet、packed boxes，再听 because 后的原因。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -1926,14 +1926,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出错过火车后的替代安排。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出错过火车后的替代安排。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出错过火车后的替代安排。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，如果赶不上晚班火车，要怎么办？",
+      "support": "听录音，如果赶不上晚班火车，要怎么办？",
+      "context": "听录音，如果赶不上晚班火车，要怎么办？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "late train、night bus 中的连续辅音可能使边界较紧。if 表示假设条件，不能把错过火车和等车当作已经发生的事实。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "If we miss the late train 是假设条件。后面说要在站外等 night bus，直到接近午夜；late train 和 night bus 的词界辅音可能衔接得很紧。",
+      "exam_tip": "把 late train 与 night bus 成对听，核对替代交通。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -1956,14 +1956,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出“最初的草稿”和“完整的报告”各需怎样处理。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出“最初的草稿”和“完整的报告”各需怎样处理。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出“最初的草稿”和“完整的报告”各需怎样处理。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，first draft 和 complete report 分别怎样处理？",
+      "support": "听录音，first draft 和 complete report 分别怎样处理？",
+      "context": "听录音，first draft 和 complete report 分别怎样处理？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "first draft、complete report 的词界有相邻辅音。即使某个词尾没有独立的爆破声，也应结合整个短语和安排还原。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "first draft 留作自己的记录，complete report 要到下周才提交。first draft、complete report 词界处的辅音可能没有明显的单独爆破，可结合两个动词 keep、submit 辨认。",
+      "exam_tip": "记“草稿保留；完整报告下周交”。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -1986,14 +1986,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出下一天的安排，并复述相关时间短语。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出下一天的安排，并复述相关时间短语。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出下一天的安排，并复述相关时间短语。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“第二天”，并说出那天团队要做什么。",
+      "support": "听录音，复述“第二天”，并说出那天团队要做什么。",
+      "context": "听录音，复述“第二天”，并说出那天团队要做什么。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "next day 的连续辅音可能让边界不清楚。未释放与省音不是同一个概念，单凭粗略拼写或旁白不能确定实际过程。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "The next day 指周一测试之后的周二。团队会去另一家实验室比较结果，查明差别来自设备还是样本准备方式。next day 要作为连续短语来识别。",
+      "exam_tip": "先听 Monday，再用 next day 确定下一天。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -2016,14 +2016,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出说话人评价的决定，以及它解决了什么问题。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出说话人评价的决定，以及它解决了什么问题。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出说话人评价的决定，以及它解决了什么问题。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“一个好决定”，并说明这个决定好在哪里。",
+      "support": "听录音，复述“一个好决定”，并说明这个决定好在哪里。",
+      "context": "听录音，复述“一个好决定”，并说明这个决定好在哪里。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "good decision 中相邻的辅音可以紧密衔接。重点是保留形容词和名词，不能把没有两次明显释放声误读为少了一个词。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "a good decision 评价的是等待信息齐全这个决定。good 与 decision 的相邻辅音可以衔接；后句说明等候让各组有机会在投票前查看相同证据。",
+      "exam_tip": "听 It gave...，找决定带来的好处。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -2037,7 +2037,7 @@
       "sha256": "sha256:b312c2e1395e9026c1d684f309b8c3f5f4773af2c1f7ca674d94283d68f4328f",
       "transcript": "Waiting until all the information was available was a good decision. It gave every group a chance to examine the same evidence before voting, and several concerns were resolved without needing another formal meeting."
     },
-    "back_text": "a good decision；让各组在投票前查看相同信息。"
+    "back_text": "a good decision；等资料齐全后再投票，让各组都能查看相同证据。"
   },
   {
     "card_id": "101209",
@@ -2046,14 +2046,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述“保留草稿”和“检查日期”两段表达。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述“保留草稿”和“检查日期”两段表达。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述“保留草稿”和“检查日期”两段表达。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“保留草稿”和“检查日期”。",
+      "support": "听录音，复述“保留草稿”和“检查日期”。",
+      "context": "听录音，复述“保留草稿”和“检查日期”。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "这些短语的词界可能缺少单独、清晰的爆破声。不要把这种听感与元音间辅音的其他变化混为一谈，先核对词形和动作对象。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "keep the draft 和 check the dates 中，动词词尾的爆破可能不明显。它们分别要求保留草稿、核对日期；因为时间表还可能变，最好等明天最终确认。",
+      "exam_tip": "先连着听动作与宾语，再检查 draft 和 dates 是否分清。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -2076,14 +2076,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出三条简短指令，并说明最后要等谁。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出三条简短指令，并说明最后要等谁。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出三条简短指令，并说明最后要等谁。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，按顺序说出三条指令，最后要等谁示意？",
+      "support": "听录音，按顺序说出三条指令，最后要等谁示意？",
+      "context": "听录音，按顺序说出三条指令，最后要等谁示意？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "stop、step、wait 等词的词尾释放程度会随语境与说话方式变化，不是句末辅音一律不释放。听到的词还需结合后续指令核对。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "Stop here、step back、wait until... 依次是停下、退后和等待。另一组人正在离开，所以要让门口保持畅通；最后等的是 guide，即导游。",
+      "exam_tip": "按 stop → step back → wait 记动作顺序。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -2097,7 +2097,7 @@
       "sha256": "sha256:0578cd1094bb33f6ac7ff3f2931441eaccf25ea5ff2da6ca967daf6a2742b6b8",
       "transcript": "Stop here for a moment, then step back from the entrance. Please wait until the guide signals that it is safe to move forward. Another group is leaving the room, and the doorway needs to remain clear."
     },
-    "back_text": "先停下、再退一步、等负责人示意。"
+    "back_text": "先停下片刻，再从入口退后，等导游示意安全后再前进。"
   },
   {
     "card_id": "101211",
@@ -2106,14 +2106,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。听出需要完成哪些检查，以及哪些结果必须报告。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。听出需要完成哪些检查，以及哪些结果必须报告。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。听出需要完成哪些检查，以及哪些结果必须报告。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，三次测试之后还要做什么？哪些情况需要报告？",
+      "support": "听录音，三次测试之后还要做什么？哪些情况需要报告？",
+      "context": "听录音，三次测试之后还要做什么？哪些情况需要报告？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "tests、lists 等辅音较多的词可能较难分辨，但不能把一种近似拼写当作固定读法。尤其要注意单复数与具体对象。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "three tests 是三次测试，three lists 是三份结果清单。要比较全部清单并报告 any differences，即任何差异；词尾的复数 -s 也要留意。",
+      "exam_tip": "对照 tests 和 lists，再听 any differences。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -2136,14 +2136,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 语音现象",
-      "prompt": "播放录音，可重复听。复述“检查最后草稿”，并说明核对失败后怎么办。\n翻卡后核对你听到的完整词组和信息。",
-      "support": "播放录音，可重复听。复述“检查最后草稿”，并说明核对失败后怎么办。\n翻卡后核对你听到的完整词组和信息。",
-      "context": "播放录音，可重复听。复述“检查最后草稿”，并说明核对失败后怎么办。\n翻卡后核对你听到的完整词组和信息。"
+      "prompt": "听录音，复述“检查最后一份草稿”，并说出数字不一致时怎么办。",
+      "support": "听录音，复述“检查最后一份草稿”，并说出数字不一致时怎么办。",
+      "context": "听录音，复述“检查最后一份草稿”，并说出数字不一致时怎么办。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "check、last、draft 等词包含连续辅音，识别时不必强求每个音都独立突出。可重复播放核对短语，不能凭模糊听感自行补写数字或词尾。",
-      "exam_tip": "以实际语流和上下文核对，不把一种口音或一种读法当作唯一规则。"
+      "summary": "check the last draft 要连着听，其中 last draft 的辅音较密集。against the figures in the original notes 指对照原始笔记中的数字；不一致就立即告知办公室。",
+      "exam_tip": "听清 against 后的核对依据，再听 if 后的处理方法。"
     },
     "space_metadata": {
       "box_ref": "1012",
@@ -2172,8 +2172,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "not...until 限定增加座位的时间前提，不能概括成永久不增加；study lounge 也不必然等于图书馆。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "promised to redesign 是承诺改造。not to add more seats until... 表示消防检查完成之前不加座位，检查是增加座位的时间前提。",
+      "exam_tip": "分别听 redesign 的承诺和 add seats 的条件。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2187,7 +2187,7 @@
       "sha256": "sha256:d0995ba479c1ec709826f65429d064073f94c2d5e1babd0bee1e1ddd9e604daf",
       "transcript": "The university promised to redesign the study lounge, but it has decided not to add more seats until the fire-safety inspection is completed next term."
     },
-    "back_text": "大学承诺改造自习休息区，但要等下学期完成消防检查后才考虑增加座位。"
+    "back_text": "已承诺改造自习休息区；增加座位要等下学期完成消防检查后。"
   },
   {
     "card_id": "102002",
@@ -2202,8 +2202,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "considered moving 只说明曾考虑搬迁；however 后说明最终保留原址的理由。录音没有说已经搬到校园或通勤客减少。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "considered moving 表示曾考虑搬近大学。However 后说车站附近租金更低，so 引出决定：留在原址，也方便早间通勤者。",
+      "exam_tip": "区分 considered moving 和 will stay。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2251,14 +2251,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 逻辑关系",
-      "prompt": "播放录音后，线上课程的优点与实验课的要求是否矛盾？",
-      "support": "播放录音后，线上课程的优点与实验课的要求是否矛盾？",
-      "context": "播放录音后，线上课程的优点与实验课的要求是否矛盾？"
+      "prompt": "听录音，线上课程有什么优点？一年级化学实验仍有什么要求？",
+      "support": "听录音，线上课程有什么优点？一年级化学实验仍有什么要求？",
+      "context": "听录音，线上课程有什么优点？一年级化学实验仍有什么要求？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "but 补充适用范围的限制，并没有否定线上课程的全部优点。不能把实验课的要求推广到所有课程。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "more flexible 肯定线上课程对通勤学生更灵活。but 后补充限制：一年级化学实验仍须每周到校完成，线上学习不能取代这部分要求。",
+      "exam_tip": "听 but 后具体是哪一类课程、哪些学生。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2287,8 +2287,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "yet 对比不同地区的情况，more than a week 是偏远地区的等待时间，不能移给大城市。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "cut shipping times 表示缩短配送时间，适用于多数大城市。yet 后转向偏远地区，那里购买基本替换零件仍要等 more than a week，一周以上。",
+      "exam_tip": "把两地区和各自的配送时间成对记。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2317,8 +2317,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "well intentioned 表示用意良好，不等于完整认可方案或断定值得试行。反对的是执行时间表，不是回收目标。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "well intentioned 是出发点好。but 后的 unrealistic 指两个月内每个社区都建分拣中心这个安排不现实，因此 B 质疑实施时间表最贴切。",
+      "exam_tip": "听 unrealistic 评价的具体要求。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2372,8 +2372,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "seemed 表示表面印象，nevertheless 后报告后来的阻碍；不能因前半句顺利就判断最终按时完成。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "seemed to be on track 是看起来按计划推进。nevertheless 表示转折：意外技术故障让项目到第三季度时已完全停滞，standstill 就是停滞。",
+      "exam_tip": "对照 on track 与 complete standstill。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2387,7 +2387,7 @@
       "sha256": "sha256:fae8f109d6b8af21bd78386259206991a944b4342d8b9b355c6f74623acda327",
       "transcript": "The project seemed to be on track; nevertheless, a series of unforeseen technical failures brought it to a complete standstill by the third quarter."
     },
-    "back_text": "原先看起来按计划推进，但意外技术故障使其在第三季度停滞。"
+    "back_text": "原先看起来按计划推进；但由于意外技术故障，到第三季度时已完全停滞。"
   },
   {
     "card_id": "102007",
@@ -2402,8 +2402,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "however 引出重新评价的理由。录音不是否定所有研究方法，也没有说最初结果从未出现。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "开头的 encouraging results 是令人鼓舞的结果。However 后说进一步检查发现方法存在 significant flaws，严重缺陷，从而削弱研究结果的有效性。",
+      "exam_tip": "听 revealed 后发现的是什么问题。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2432,8 +2432,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "despite 引出让步背景，still does not address 才限定当前政策的不足；不能把付出多年努力直接当成目标已经实现。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "Despite years of lobbying 表示尽管环保团体游说多年。still does not address 说明新政策依然没有处理核心问题——重工业的碳排放。",
+      "exam_tip": "把 despite 后的努力与 still 后的不足对照。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2462,8 +2462,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "yet 对照宣传与使用体验。too complex...without expert assistance 说明易用性限制，不支持超出预期或替代所有专家。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "promised efficiency gains 是软件承诺提高效率。yet in practice 转向实际使用：系统太复杂，多数用户没有专家帮助就难以操作，因此选 B。",
+      "exam_tip": "听 in practice 后的用户反馈。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2517,8 +2517,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "nonetheless 引出另一方的警告。两种评价来自不同群体，不能把股东的反应写成所有人的一致意见。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "shareholders 是股东，他们积极回应演讲。Nonetheless 后的 analysts 是分析师，他们警告长期战略缺少维持增长的财务基础；两方评价不同。",
+      "exam_tip": "用“股东肯定；分析师警告”区分主体。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2547,8 +2547,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "on the surface 标出最初印象，but 后给出重新评价的条件与结论；不能只保留“战略佳作”的表面判断。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "on the surface 表示表面上看，合并似乎是高明的一步。考虑 integration costs（整合成本）和 cultural clashes（文化冲突）后，评价变为 far from ideal，远不理想。",
+      "exam_tip": "听 were factored in 前列出的两项因素。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2577,8 +2577,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "while 引出让步，后文用 in fact 和 rather than 更正解释。不能声称录音用了 but，也不能把校准误差当成有效结果。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "While 在这里表示“虽然”，引出最初乐观的印象。后续测试发现结果 attributable to a calibration error，即由校准误差造成；rather than 排除真实效果。",
+      "exam_tip": "对照 calibration error 与 genuine effect。"
     },
     "space_metadata": {
       "box_ref": "1020",
@@ -2607,8 +2607,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "because 引出道路受损这个原因；not...until late Friday evening 说明补给到达的时间，而不是在那时才开始下雨。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "Because 后说暴雨毁坏进山谷的唯一道路，这是补给延迟的原因。did not receive...until late Friday evening 表示直到周五晚些时候才收到医疗物资。",
+      "exam_tip": "听清原因中的 road 和到货时间 late Friday evening。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2637,8 +2637,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "not because...but because...先排除一种解释，再说明另一种；不能只抓住 unfinished 就选择幻灯片选项。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "not because...but because... 先否定一种原因，再给出真实原因。会议推迟并非幻灯片没做完，而是海外销售数据尚未核验；D 对应 had not verified。",
+      "exam_tip": "听完 but because 后的原因再选。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2692,8 +2692,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "as a result 引出数据丢失；设备故障、过热和数据丢失是不同环节，不应交换先后或省去中间环节。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "cooling unit failed 是冷却设备故障，随后 servers overheated，服务器过热。as a result 引出数据丢失，串成“冷却故障 → 过热 → 数据丢失”。",
+      "exam_tip": "按三个环节复述，不要把故障和结果颠倒。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2722,8 +2722,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "because 给出客流下降的原因，therefore 接着引出商店的反应；不能把商店营业时间缩短反过来当成最初原因。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "because 解释客流下降：express buses were withdrawn，快线公交被撤销。therefore 引出后续结果：车站内几家小店缩短营业时间。",
+      "exam_tip": "记“撤销公交 → 客流下降 → 商店缩时”。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2752,8 +2752,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "since 引出资金来源变化，has had to reduce 报告被迫缩减；录音没有说学生必须立即付费，也没有新增赞助方。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "pulled out 指赞助方退出。两家主要赞助方退出后，委员会 has had to reduce 能资助的实习名额，所以 A 的 fewer internships 正确。",
+      "exam_tip": "把 pulled out 与 reduce 连起来听。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2807,8 +2807,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "be attributed to 引出说话人给出的原因。这里练习听懂材料中的归因，不把这个模拟陈述当成对现实经济的独立研究结论。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "be attributed to 表示归因于。说话人把消费债务上升归因于 easy-credit schemes 的增多；后面的 which 从句解释这些方案降低了借款门槛。",
+      "exam_tip": "听 attributed to 后的原因，再听 which 怎样补充。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2837,8 +2837,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "triggered by 指出最初触发因素，ultimately 标出后续结果；不能只连首尾而把信心变化这一环节漏掉。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "triggered by...accounting scandals 说明会计丑闻引发信心崩溃。信心崩溃又 set off a chain reaction，触发连锁反应，最终使地区金融体系不稳定。",
+      "exam_tip": "按“丑闻 → 信心崩溃 → 连锁反应 → 金融不稳”复述。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2867,8 +2867,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "as a direct consequence of 建立前两项的关系，forcing 引出后续反应。百分之四十是下降幅度，不是剩余产量。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "as a direct consequence of 表示后果直接来自长期干旱。plummeted by forty percent 是产量下降 40%；forcing 后说明政府因此宣布农业紧急状态。",
+      "exam_tip": "by 40% 记作下降幅度，不要当成剩余比例。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2897,8 +2897,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "correlated with 不等于直接因果，因此不能选“屏幕时间直接造成学业失败”。B 对应材料陈述，但材料本身不等于已经提供严格因果证明。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "前半句用 correlated with 表达屏幕时间与睡眠减少相关；后半句用 leads to 明说睡眠减少导致学业表现下降和压力增加。B 复述后半句，A 把关系扩大成屏幕时间直接造成学业失败。",
+      "exam_tip": "分别听 correlated with 和 leads to 连接哪两个现象。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2952,8 +2952,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "not from...but from...排除缺少意愿，强调制度障碍。without prior legislative approval 表明限制条件。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "stemmed not from...but from... 表示原因不在前者而在后者。双方并非没有意愿，而是受制度限制：没有事先立法批准，就无法作出有约束力的承诺。",
+      "exam_tip": "听 but from 后的制度障碍和 without 后的前提。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -2982,8 +2982,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "largely due to 表示主要归因而非唯一原因；particularly 进一步限定重点人群，不能扩大成只针对这一群体。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "largely due to 表示主要由于持续宣传。宣传要接触 first-time voters，首次投票者；particularly 进一步强调农村及代表性不足社区中的这类选民。",
+      "exam_tip": "先记宣传对象，再记 particularly 指出的重点社区。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -3012,8 +3012,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "because 给出起点，leading to 引出后续影响；留存率下降不等于客户人数立即归零，也不能自行补出具体幅度。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "failed to invest in continuous staff training 是没有持续投入员工培训。because 解释服务质量逐渐下降的原因，leading to 再引出客户留存率明显下降。",
+      "exam_tip": "记“培训不足 → 服务变差 → 留存率下降”。"
     },
     "space_metadata": {
       "box_ref": "1021",
@@ -3042,8 +3042,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "not only...but also...连接两项改善；没有单独证据说明后一项一定比前一项更重要。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "not only...but also... 表示“不仅……而且……”，连接两项改善：帮助台响应更快，各地区服务中心的客户满意度评分更高。",
+      "exam_tip": "把 shortened response times 和 improved scores 分别记下。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3072,8 +3072,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "tuition fees 是学费，不是招聘。in addition 补充导师安排，不代表导师见面取代学费资助，也不是所有申请人均入选。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "cover tuition fees 是支付学费。In addition 补充另一项支持：每位参与者配一名行业导师，每月见面一次，所以 B 的 regular mentoring support 正确。",
+      "exam_tip": "听 in addition 后增加的服务及其频率。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3127,8 +3127,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "这里有 more importantly 这一明确评价词，才支持重要性比较，不能把所有 and 或 in addition 都这样理解。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "录音先说系统为护士交接班节省时间，再用 more importantly 强调减少患者转科时的用药错误。明确的“更重要”评价指向第二项。",
+      "exam_tip": "听 more importantly 紧接着说的收益。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3157,8 +3157,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "besides that 连接另一条支持理由；它补充噪声方面的好处，没有给出两项理由的重要性排序。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "lower operating costs 是较低运营费用。Besides that 引出补充理由：发动机更安静，夜间公交对沿线居民干扰更少。",
+      "exam_tip": "记两项好处：费用低、噪声小。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3187,8 +3187,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "first、then、eventually 标出发展顺序。材料说节省工时与加快服务，没有报告具体成本下降金额。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "first、then、eventually 标出三个阶段：发票自动化减少文书工作；省下工时缩短配送周期；更快的服务最终形成竞争优势。因此选 C。",
+      "exam_tip": "按三个时间词串起“自动化 → 配送更快 → 竞争优势”。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3242,8 +3242,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "not only...but also...补充两类收益，不自动规定后一类更重要。百分之二十只修饰成本下降，不能套给所有指标。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "not only 后说运营成本下降 20%；but also 后补充员工士气和工作效率提高。20% 只对应成本，另两项只有 significantly 这个程度描述。",
+      "exam_tip": "给 20% 标注“运营成本”，另两项不填数字。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3272,8 +3272,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "三个动词并列，to ensure reliability 表示目的。采取核对措施并不等于消除了所有误差，也没有说明独立研究来自同一团队。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "compiled、analyzed、cross-validated 是三个动作：汇集数据，用统计模型分析变量，再与三项独立研究核对结果。最后的 to ensure reliability 说明核对的目的。",
+      "exam_tip": "分别记三个动词及其对象。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3302,8 +3302,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "recommended 后是并列建议。建议提出并不等于已经全部执行，也不能把增加资金误读为撤销监督。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "recommended 后有三个并列动作：updating 更新监管框架，establishing 建立独立监督机制，allocating 增加执法经费。它们都是委员会提出的建议。",
+      "exam_tip": "把三个 -ing 动词各对应一项建议。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3332,8 +3332,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "both 把两者并列，neither alone 否定单独充分性；它没有否定两者的重要性，也没有给两者排高低。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "Both...are necessary 说明经济增长和社会公平都需要。neither alone is sufficient 表示只靠其中任何一项都不够，因此 B 的 needed together 符合原意。",
+      "exam_tip": "听 both 与 neither alone，分别确认“都需要”和“单独不够”。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3387,8 +3387,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "not merely...but...更正技能的定位。复述时应保留这是说话人的主张，不添加原文没有列出的具体职业资格。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "not merely...but... 表示“不仅仅是……，而是……”。说话人把三种能力从 supplementary skills（补充技能）提升为 core competencies（核心能力）。",
+      "exam_tip": "对照 supplementary 与 core 两个定位。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3417,8 +3417,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "三项活动并列描述工作范围。across three continents 是地域范围，不能误写成只在三个社区开展。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "partnering、training、establishing 列出三项工作：与当地 NGO 合作、培训社区卫生工作者、建设可再生能源微电网。across three continents 说明工作已扩展到三个大洲。",
+      "exam_tip": "用三个 -ing 动词找三项工作。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3447,8 +3447,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "threefold 提示有三项并列内容，不表示第三项最重要。复述三项主张即可，不需要自行增加成本或公平方面的结论。",
-      "exam_tip": "把每条判断对应到录音中的具体信息，不额外扩大范围。"
+      "summary": "threefold 表示有三个方面。冒号后依次列出：决策贴近社区、回应当地需求更快、中央机构行政负担更轻。",
+      "exam_tip": "听三次 it 后各接什么好处。"
     },
     "space_metadata": {
       "box_ref": "1022",
@@ -3477,8 +3477,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "lighter与heavier对照重量，twice as long对照时间。Neither better in every situation排除全面优劣结论，最终选择取决于使用需求。",
-      "exam_tip": "比较结论应保留评价维度与具体使用条件。"
+      "summary": "第一种电池 lighter，更轻；第二种 heavier，但续航 almost twice as long，接近两倍。选哪种取决于更在意便携性，还是更久不用充电。",
+      "exam_tip": "分别比较重量和续航，别用一个“更好”替代两项差别。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3507,8 +3507,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "same条件帮助定位被比较因素。more accurate不能扩成各方面都更好，也不能归因为多给了时间。",
-      "exam_tip": "先确认共同条件，再辨认真正变化的因素。"
+      "summary": "两组书面说明和可用时间相同，区别是其中一组还看了演示。演示组结果 more accurate，更准确；did not work faster 表明速度没有提高。",
+      "exam_tip": "记共同条件，再记演示带来的准确率变化。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3537,8 +3537,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "less noise是相对减少，不是零。whereas对照嘈杂与安静环境，提醒比较应与实际使用场景一致。",
-      "exam_tip": "less 或 more 不应直接改写成完全没有或必然足够。"
+      "summary": "less noise 表示噪声比旧型号小，并不是无声。在嘈杂车间可能不易察觉，在安静房间仍能听见，所以要在类似实际工作的环境中比较。",
+      "exam_tip": "对照 busy workshop 与 quiet room。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3567,8 +3567,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "immediate与later划分阶段，expected保留预测性质。不能把后续可能节省改成起初就更便宜，或保证最终总成本一定最低。",
-      "exam_tip": "成本比较要区分时段和已知与预计的部分。"
+      "summary": "安装新系统比修旧系统贵，这是当前费用。is expected to 表示预计：以后换件和维护会少一些，因此可能节省后续开支，尚不是已发生的节省。",
+      "exam_tip": "分别记“现在安装更贵”和“以后可能省维护费”。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3597,8 +3597,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Unlike对照资源和任务，instead说明分馆重点。不是说社区馆完全没有书，而是空间与服务目标不同。",
-      "exam_tip": "对照句常说明分工差异，不一定在评判谁整体更好。"
+      "summary": "社区分馆空间少，重点是日常借阅、儿童活动和本地信息服务。稀有研究资料主要去中心馆找；两者在资源和服务上有分工。",
+      "exam_tip": "用“日常服务／专业资料”区分两馆。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3627,8 +3627,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "距离与耗时不同，may与during rush hour限制速度优势。不能把某时段较快改成全天都更短、更快。",
-      "exam_tip": "不同指标及其适用时段可能给出不同排序。"
+      "summary": "市中心路线距离短，但高峰期红绿灯和拥堵可能让它更慢。外环路长几公里，却可能更早到；非高峰时，这个时间优势可能消失。",
+      "exam_tip": "分开记距离和高峰耗时。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3657,8 +3657,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "compared with three days last year给出自身历史基准。没有竞争者数据，不能推出它现在比所有同行都快。",
-      "exam_tip": "比较基准可能是自身过去，而非其他对象。"
+      "summary": "compared with three days last year 把现在和去年比较：过去大多需三天，现在多数咨询一天内回复。比较对象是同一家公司不同时期的表现。",
+      "exam_tip": "听 compared with 后给出的时间基准。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3687,8 +3687,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Both给出共同结果，different reasons区分机制。不能仅因都迟交就一律增加设备或一律调整分工。",
-      "exam_tip": "相同结果不代表相同原因。"
+      "summary": "两组都迟交，但第一组在等设备，第二组没有商定谁写最后一部分。原因不同，一个要解决设备使用问题，另一个要明确分工。",
+      "exam_tip": "给两组分别记原因，不只记共同结果“迟交”。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3717,8 +3717,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "as effective as由in helping...限定，advanced与months later都未测试。不能把相近的短期结果扩大成两种培训所有效果完全等同。",
-      "exam_tip": "等效判断也需要明确指标和观察范围。"
+      "summary": "as effective as 表示效果相当，但这里仅指帮助参与者完成眼前的基础任务。高级应用和几个月后的表现没有测试，因此不能据此判断长期效果也相同。",
+      "exam_tip": "听 in helping 后限定了哪一项效果。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3747,8 +3747,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "on the other hand提出另一适用情形，rather than否定普遍最优。more flexible的受益者是白天工作的人，不能取消这个限定。",
-      "exam_tip": "比较建议应保留适用对象。"
+      "summary": "夜课更适合白天工作的人；早课可能适合早晨注意力更好的人。建议先看自己的安排和课程时间表，再作选择。",
+      "exam_tip": "分别记晚课和早课适合谁。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3777,8 +3777,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "通过率与人数使用不同基准。despite把比例较低与人数较多连接起来，不构成矛盾，因为两组总人数不同。",
-      "exam_tip": "比较百分比时同时检查样本规模。"
+      "summary": "A 组共 20 人，通过率 90%，通过 18 人；B 组共 50 人，通过率 80%，通过 40 人。B 虽比例较低，通过人数却更多，因为总人数更大。",
+      "exam_tip": "用“总人数 × 通过率”算通过人数。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3807,8 +3807,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "while标记对照，不自动说明因果。other changes与does not establish共同限制解释，不能把比较关系擅自变成原因。",
-      "exam_tip": "对照词说明关系方向，并不单独证明原因。"
+      "summary": "数字目录使用量增加，帮助台咨询量下降。报告只说两种趋势相反，没有证实因果；同时开放时间和排班也变了，可能影响结果。",
+      "exam_tip": "听 does not establish 后排除了哪种结论。"
     },
     "space_metadata": {
       "box_ref": "1023",
@@ -3837,8 +3837,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "provided that与must also给出两项要求。可进入建筑与可带走材料是不同权限，不能互相替代。",
-      "exam_tip": "许可与其他相关权限不能混为一谈。"
+      "summary": "provided that 后要求目标实验室有获批的存储设施；must also 再加一项：离开前登记转移。两项都满足，才可把样本带离现场。",
+      "exam_tip": "记“合格存储设施＋离开前登记”。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -3861,14 +3861,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 逻辑关系",
-      "prompt": "听录音：什么情况会使本周的活动延期？",
-      "support": "听录音：什么情况会使本周的活动延期？",
-      "context": "听录音：什么情况会使本周的活动延期？"
+      "prompt": "听录音，什么天气条件会使户外活动无法照常举行？",
+      "support": "听录音，什么天气条件会使户外活动无法照常举行？",
+      "context": "听录音，什么天气条件会使户外活动无法照常举行？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "unless引出阻止照常举行的条件，rain alone被明确排除为自动取消条件。最终还需当天核查，不能根据一个天气词直接决定结果。",
-      "exam_tip": "注意哪些条件足以改变安排，哪些被明确排除。"
+      "summary": "unless the wind reaches an unsafe level 是照常举行的例外条件。雨天还有遮蔽区域可用，最终决定会在活动当天早上公布。",
+      "exam_tip": "区分不安全的大风与单纯下雨。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -3882,7 +3882,7 @@
       "sha256": "sha256:d6f302086691325f8df395b55c365aaef5f8e45836b94082e039b2797cca3aa7",
       "transcript": "The outdoor activity will go ahead unless the wind reaches an unsafe level. Rain alone will not automatically lead to cancellation, as covered areas are available. The final decision will be announced on the morning of the event after staff review the local conditions."
     },
-    "back_text": "如果风力达到不安全程度，活动可能不按原计划进行。"
+    "back_text": "风力达到不安全程度；仅下雨不会自动取消活动。"
   },
   {
     "card_id": "102403",
@@ -3897,8 +3897,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Only与does not guarantee构成必要但不充分的关系。最后一句再次区分资格要求和录用承诺。",
-      "exam_tip": "具备一个必要条件不等于已经满足全部条件。"
+      "summary": "Only applicants who complete... 表示完成培训才有资格被考虑。does not guarantee an offer 说明这还不保证录用，因为评审还要看相关经验和空缺数量。",
+      "exam_tip": "记“培训完成 → 可被考虑”，不是“必获录用”。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -3927,8 +3927,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "and表示共同要求，not sufficient明确排除只付款即成功。退款或改期属于名额不足时的处理，不是自动确认。",
-      "exam_tip": "多个条件连接时，要听清是共同满足还是任选其一。"
+      "summary": "预约要同时满足收到付款和确认有名额。and 连接两项要求；若已满员，会退款，或经申请人同意转到其他日期。",
+      "exam_tip": "付款和确认名额，各记一项。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -3957,8 +3957,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "as long as强调持续条件，until限定恢复操作的前提。大楼开放不等于设备使用条件始终满足。",
-      "exam_tip": "持续许可需要持续满足相应条件。"
+      "summary": "as long as 要求使用期间有受训监督人员在场。监督人员离开就要停下实践操作，until another qualified person arrives 表示等另一位合格人员到来后才能恢复。",
+      "exam_tip": "把“有人监督”当作整个使用期间都要满足的条件。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -3987,8 +3987,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "at least表示最低提前量，received决定计时点。个人作出决定的时间不等于办公室收到通知的时间。",
-      "exam_tip": "退款条件中的时间长度与起算事件同样重要。"
+      "summary": "at least forty-eight hours 表示至少提前 48 小时。计时依据是办公室 receives the request，即收到取消请求；参与者自己决定不来的时间不算。",
+      "exam_tip": "先确认收到请求的时点，再与活动开始时间比较。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -4017,8 +4017,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "If给出未来条件，still under way表明尚未满足，not listed排除已可选课。可能性不能直接改写成现成安排。",
-      "exam_tip": "有条件的未来计划与已经开放的服务要区分。"
+      "summary": "If the new room is ready by September 是增加夜间课的前提。现在仍在施工，额外课程未列入时间表，所以还要等待正式确认。",
+      "exam_tip": "听条件是否已满足，再看课程是否已列入课表。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -4047,8 +4047,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Even if表示单项条件成立仍不足，until指出另一前提。资金与技术条件并列，不能将其中一个视为自动覆盖另一个。",
-      "exam_tip": "即使满足一个条件，也可能仍有独立前提。"
+      "summary": "Even if 表示“即使”：即使预算获批，也要等设备通过检查。财务批准和设备准备是两个独立要求，缺一项都不能开始试验。",
+      "exam_tip": "记“预算获批＋设备检查通过”。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -4077,8 +4077,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Once引出链接发送的前提，application form只是第一步。没有确认时会再次联系，而不是直接相信初次填写值。",
-      "exam_tip": "流程中的前置步骤完成不等于所有验证已经结束。"
+      "summary": "Once participants have confirmed... 表示确认邮箱之后才发链接。填申请表只是第一步；如果没有收到确认，工作人员还会联系参与者核对。",
+      "exam_tip": "区分填表与确认邮箱两个步骤。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -4101,14 +4101,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 逻辑关系",
-      "prompt": "听录音：申请者需要同时提供学生证和导师信吗？",
-      "support": "听录音：申请者需要同时提供学生证和导师信吗？",
-      "context": "听录音：申请者需要同时提供学生证和导师信吗？"
+      "prompt": "听录音，学生证和学校证明信需要同时提供吗？还有什么所有人都要做？",
+      "support": "听录音，学生证和学校证明信需要同时提供吗？还有什么所有人都要做？",
+      "context": "听录音，学生证和学校证明信需要同时提供吗？还有什么所有人都要做？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "either...or...提供替代证明，must complete另设共同要求。不能把二选一误成两者都要，也不能因此漏掉登记表。",
-      "exam_tip": "先识别替代条件，再核对所有人共同承担的要求。"
+      "summary": "either...or... 表示学生证与学校证明信二选一。However 后另列共同要求：无论选哪种证明，都要 complete the registration form。",
+      "exam_tip": "分开记“身份二选一”和“登记人人填”。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -4122,7 +4122,7 @@
       "sha256": "sha256:4993919884f800485223df457af01a80d5c6354bcef8ce067e016bc687426f78",
       "transcript": "Applicants can establish their student status either by showing a current student card or by providing a letter from their university. They do not need both documents. However, everyone must complete the registration form, whichever form of proof they choose."
     },
-    "back_text": "身份材料二选一即可，但所有人都要填写登记表。"
+    "back_text": "学生证或学校证明信提供一种即可；所有人都要填登记表。"
   },
   {
     "card_id": "102411",
@@ -4137,8 +4137,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "provided that限定展板使用，exception区分大屏幕。概括性布置任务不能取消明确的对象限制。",
-      "exam_tip": "条件规则的适用对象和例外都属于必要信息。"
+      "summary": "便携展板可以移动，provided that 要求用完归还存储区。大屏幕是 exception，例外，只能由技术人员移动。",
+      "exam_tip": "先听设备名称，再对应搬动者和归还要求。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -4167,8 +4167,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "until说明当前阻碍，not permanent rejection排除永久结论，subject to引出后续仍存在的条件。补材料也不自动保证获得名额。",
-      "exam_tip": "解除一个阻碍不等于后续所有条件都会自动满足。"
+      "summary": "当前缺少同意书，所以暂不能批准。补交并核验后可重新考虑；subject to whether places are still available 说明届时还要有名额，并非补齐就必获批准。",
+      "exam_tip": "按“补材料 → 核验 → 视名额再考虑”记流程。"
     },
     "space_metadata": {
       "box_ref": "1024",
@@ -4191,14 +4191,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "听录音：是谁最终决定暂停实地调查？",
-      "support": "听录音：是谁最终决定暂停实地调查？",
-      "context": "听录音：是谁最终决定暂停实地调查？"
+      "prompt": "听录音，谁最终决定推迟实地考察？",
+      "support": "听录音，谁最终决定推迟实地考察？",
+      "context": "听录音，谁最终决定推迟实地考察？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "Amelia 提出风险并负责通知，Nolan 处理设备，Professor Wu 才作出暂停决定。多个动作连续出现时，需要把 decided 与人物准确对应，而不是选择最先发言的人。",
-      "exam_tip": "按提出问题、作出决定与执行通知分别记录人物职责。"
+      "summary": "Professor Wu decided... 明确说明吴教授决定推迟。Amelia 提出天气风险并通知参与者，Nolan 处理设备，两人承担的是其他工作。",
+      "exam_tip": "找到 decided，再听它的主语是谁。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4257,8 +4257,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "interns 对应版式与页码，editor 对应 verified the sources，manager 对应预算。最后说三项检查全部完成，不能因此将所有职责归到批准印刷的人。",
-      "exam_tip": "具体核查对象比泛泛的负责或管理头衔更有区分力。"
+      "summary": "The editor then verified the sources 直接说明编辑核实引用来源。实习生查版式和页码，项目经理查预算；三种核查分别对应三类人。",
+      "exam_tip": "把 verified the sources 与 editor 连在一起听。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4287,8 +4287,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "tutor 整理学生问题，coordinator 询问设备需求，technical team 在收到答复后测试。once 说明后续测试的条件，不表示技术团队负责第一步联络。",
-      "exam_tip": "在连续流程中区分沟通者与技术执行者。"
+      "summary": "programme coordinator 将联系来访讲者，询问麦克风和投影设备需求。导师整理学生问题，技术团队收到协调员答复后才测试设备。",
+      "exam_tip": "留意 contact the visiting speaker 前是谁。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4341,14 +4341,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "听录音：谁认为图表的比较范围需要解释？",
-      "support": "听录音：谁认为图表的比较范围需要解释？",
-      "context": "听录音：谁认为图表的比较范围需要解释？"
+      "prompt": "听录音，最初是谁提出图表比较需要进一步解释？",
+      "support": "听录音，最初是谁提出图表比较需要进一步解释？",
+      "context": "听录音，最初是谁提出图表比较需要进一步解释？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "Lena 是转述并修订图注的人，supervisor 表示同意，original concern 明确定位外部审阅者。不能把传话者当作意见最初来源。",
-      "exam_tip": "区分谁提出观点、谁同意观点以及谁负责修改。"
+      "summary": "the original concern came from the reviewer 明确说明最初意见来自外部审阅者。Lena 转述意见并改图注，导师同意需要解释样本量；他们不是最初提出问题的人。",
+      "exam_tip": "听 original concern came from 后的人物。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4377,8 +4377,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "technician 更换零件，engineer 承担最后检查与放行，head 仅批准预算。问可以重新使用的确认者，关键在 signed the clearance form。",
-      "exam_tip": "维修、预算与安全放行是不同责任，不能混选。"
+      "summary": "安全工程师 inspected the machine and signed the clearance form，检查机器并签署放行表。技术员负责换零件，系主任批准维修预算；确认可恢复使用的是安全工程师。",
+      "exam_tip": "把签署放行表的人与修机器的人区分开。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4431,14 +4431,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "听录音：谁将负责修改最终提案？",
-      "support": "听录音：谁将负责修改最终提案？",
-      "context": "听录音：谁将负责修改最终提案？"
+      "prompt": "听录音，谁将修改提案中的成本说明？",
+      "support": "听录音，谁将修改提案中的成本说明？",
+      "context": "听录音，谁将修改提案中的成本说明？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "He 对应 Mr Lewis，She 回指 Sofia；最后一句明确导师核对数值而不重写。对提案提出要求的人不一定是承担写作的人。",
-      "exam_tip": "代词链与明确否定可以共同确定最终分工。"
+      "summary": "She will revise that section 中的 She 指 Sofia，that section 指成本说明。Mr Lewis 认可总体方案并要求修改，之后只再核对数字，不亲自重写文字。",
+      "exam_tip": "沿着 Sofia → She 找执行修改的人。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4467,8 +4467,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "volunteers 记录分数，organiser 核对并发布，judges 才负责评估。更正抄录错误与修改专业评分不是同一种权限。",
-      "exam_tip": "结果发布者不一定是评价决定的作出者。"
+      "summary": "judges assess the presentations 表示评委评估并评分。志愿者记录分数，组织者核对总分后公布；记录与公布不是作出评分。",
+      "exam_tip": "听 assess 的主语，再区分 record 和 announce。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4497,8 +4497,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "were sorted...by 明确执行者。居民捐赠，委员会发起征集，图书管理员核查目录；这些前后环节不能替代分类动作的施事者。",
-      "exam_tip": "被动句的人物信息通常出现在 by 引出的部分。"
+      "summary": "They were sorted by subject by university volunteers：书由大学志愿者按主题分类。前一个 by subject 说明分类方式，后一个 by university volunteers 才说明谁执行。",
+      "exam_tip": "这句有两个 by：第一个接分类标准，第二个接人。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4527,8 +4527,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "officer 联系主任并转达决定，Ben 是提交和接收通知的人，Mina 准备材料。authorised 对应实际授权，communicated 只表示转达。",
-      "exam_tip": "流程叙述中，授权与转达是不同动作。"
+      "summary": "The director authorised a two-day extension 说明项目主任批准延长两天。赞助方工作人员联系主任、再把决定转告 Ben；转达者不是批准者。",
+      "exam_tip": "听 authorised 后的动作，再确认主语 director。"
     },
     "space_metadata": {
       "box_ref": "1030",
@@ -4677,8 +4677,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "各数字分别对应本科生、研究生和短期课程学生。remaining twenty 可以用于核对总数，但不能把它当成研究生人数。",
-      "exam_tip": "多个群体出现时，将数字与群体名称成对记忆。"
+      "summary": "sixty were postgraduates 直接给出研究生 60 人。120 人对应本科生，剩余 20 人对应短期职业课程学生；三组共 200 人。",
+      "exam_tip": "把 sixty 与 postgraduates 一起记。"
     },
     "space_metadata": {
       "box_ref": "1031",
@@ -4707,8 +4707,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "90分钟包括报告、提问、登记和休息。speaker give a forty-minute presentation 直接对应授课，不能把整场活动时长当成讲授时长。",
-      "exam_tip": "先确认所问环节，再选它对应的时长。"
+      "summary": "forty-minute presentation 直接说明讲授持续 40 分钟。整场 90 分钟还包括 30 分钟提问、20 分钟登记和休息，不能全部算作讲授时间。",
+      "exam_tip": "问题问 presentation，就取它对应的 40 分钟。"
     },
     "space_metadata": {
       "box_ref": "1031",
@@ -4797,8 +4797,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "每组两套与六组对应12套。备用三套不在正常领取数量内，unless something fails 说明只有故障时才启用。",
-      "exam_tip": "正常分配与备用库存不能混为一谈。"
+      "summary": "每组 two kits，共 six groups，所以正常领取 2 × 6＝12 套。另有 3 套备用，只有设备故障时才取，不在正常发放数量内。",
+      "exam_tip": "先算每组数量乘组数，再排除备用库存。"
     },
     "space_metadata": {
       "box_ref": "1031",
@@ -4827,8 +4827,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "8000是申请额，另2000仍待决定。amount already authorised 限定只能计算已批准部分，不能把期望资金算成现有预算。",
-      "exam_tip": "区分申请、批准和待定三种金额状态。"
+      "summary": "approved only six thousand 表示目前只获批 6000 英镑。8000 是最初申请额，另一笔 2000 的资助仍在考虑，尚不能用于采购。",
+      "exam_tip": "听 approved 的金额，区分 requested 与 under consideration。"
     },
     "space_metadata": {
       "box_ref": "1031",
@@ -4857,8 +4857,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "70加60为130。早餐已经包含，不另计；其他餐费虽可能发生，但此时不要求预付，所以不能凭空加入预算。",
-      "exam_tip": "按题目指定的支付阶段计算，而非把所有可能开销相加。"
+      "summary": "预付的是 registration 和 accommodation：报名费 70 英镑，住宿费 60 英镑，共 130。早餐已含在住宿费中，其他餐费在活动期间另付。",
+      "exam_tip": "只加录音明确要求 in advance 支付的两项。"
     },
     "space_metadata": {
       "box_ref": "1031",
@@ -4917,8 +4917,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "ten fifteen 是旧预约，eleven 是新预约，ten minutes early 是到达要求，half an hour 是时长。问题问预约时间，不能用登记时间10:50替代。",
-      "exam_tip": "区分预约时点、提前到达要求和持续时间。"
+      "summary": "originally at ten fifteen 是旧预约，new slot is eleven 是改后的面谈时间。提前 10 分钟到是登记要求，因此应 10:50 到，面谈仍在 11 点开始。",
+      "exam_tip": "分别记“登记到达 10:50”和“面谈 11:00”。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -4947,8 +4947,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Wednesday对应提纲，Monday对应草稿，Friday noon对应最终稿。that same week 回指周一所在的一周，不能把周三后的第一个周五自动当成最终期限。",
-      "exam_tip": "多阶段截止日期需要与材料版本逐一对应。"
+      "summary": "提纲周三交，草稿在 following Monday，即接下来的周一交。最终报告期限是 Friday of that same week，指这个周一所在周的周五中午。",
+      "exam_tip": "用“周三提纲 → 下周一草稿 → 同周五终稿”串联。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5007,8 +5007,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Monday是安装结束，Tuesday是安全检查，Wednesday才是条件满足后的使用时间。旧公告不能替代安全放行，也不能把预计开放写成无条件保证。",
-      "exam_tip": "工程结束与获准使用是不同节点。"
+      "summary": "周一预计完成安装，周二下午安全检查。只有检查未发现问题，学生才可在周三上午开始使用；安装完成不等于已经允许进入。",
+      "exam_tip": "按“周一安装 → 周二检查 → 通过后周三使用”记。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5037,8 +5037,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "five对应航班，three对应到机场的建议时间，one thirty对应校车出发。不要因问题涉及机场就直接选择航班时间。",
-      "exam_tip": "按交通环节匹配时点，并区分集合与出发。"
+      "summary": "shuttle will leave campus at one thirty 是接驳车下午 1:30 出发。要求提前 15 分钟到集合点，所以集合是 1:15；航班则下午 5 点起飞。",
+      "exam_tip": "先找 leave campus，再计算提前到集合点的时间。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5061,14 +5061,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "听录音：获得延期的学生需要何时告知老师？",
-      "support": "听录音：获得延期的学生需要何时告知老师？",
-      "context": "听录音：获得延期的学生需要何时告知老师？"
+      "prompt": "听录音，因网络故障需要延期的学生，最晚何时要给老师发邮件？",
+      "support": "听录音，因网络故障需要延期的学生，最晚何时要给老师发邮件？",
+      "context": "听录音，因网络故障需要延期的学生，最晚何时要给老师发邮件？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "Monday是获准后的提交时间，不是提出申请的期限。must email before Friday 保留前置通知要求，网络故障本身不自动授权延期。",
-      "exam_tip": "延期后的完成时间与申请延期的时间往往不同。"
+      "summary": "受网络故障影响的学生可周一交，但 must email...before Friday’s original deadline 要求在原定周五截止前说明情况。周一是延期后的交作业时间，不是通知时间。",
+      "exam_tip": "分开记“周五前邮件说明”和“周一提交”。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5097,8 +5097,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "整体时段中嵌入午休例外，不能只记最早和最晚时点。提前联系是不能按时领取时的处理办法，并不表示办公室全天有人值守。",
-      "exam_tip": "时间段题要保留中间暂停服务的例外。"
+      "summary": "领取从上午九点到下午四点，但十二点到一点午休，不办理领取。把开放时间分成上午、下午两段，就不会误以为中午也能来。",
+      "exam_tip": "听到 closes for lunch，在总时间段中扣掉午休。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5112,7 +5112,7 @@
       "sha256": "sha256:12f004d5b679745cbabdcd70a7a1242fd8a00d21c24fd02f3e2d93552042101d",
       "transcript": "Equipment collection begins at nine on Thursday and ends at four that afternoon. The office closes for lunch between twelve and one, so no collections will be handled then. If you cannot come during the available hours, contact staff in advance rather than leave the booking unused."
     },
-    "back_text": "周四9点至16点，但12点至13点不办理。"
+    "back_text": "周四 9:00—12:00、13:00—16:00。"
   },
   {
     "card_id": "103208",
@@ -5127,8 +5127,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "still begin 和 What has changed 明确区分不变与变化。one fifteen是开放入场时点，不能据此推断讲者也提前。",
-      "exam_tip": "一个环节提前不代表整场安排都向前移动。"
+      "summary": "still begin at two 说明讲座仍是两点开始。变化的是开门时间：从一点半提前到一点十五，让大家有更多时间找座位。",
+      "exam_tip": "把 begin 对应讲座，open 对应入场。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5187,8 +5187,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Friday是通知时间，not until the first of next month是生效时间。已有借阅仍按旧期限处理，因此通知收到并不意味着所有记录立即更新。",
-      "exam_tip": "发布时间、生效时间与旧安排的处理规则要分开。"
+      "summary": "周五只是发邮件通知。not take effect until the first of next month 表示下月 1 日才生效；此前借出的物品仍按旧规则的归还期限处理。",
+      "exam_tip": "分别记“通知：周五；生效：下月1日”。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5217,8 +5217,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "same time沿用四点，Thursday替换日期。Friday morning是另一可能安排，不能把未确认的备选当成最终决定。",
-      "exam_tip": "同一时刻可沿用到新日期，备选安排仍需保留不确定性。"
+      "summary": "same time 沿用原定的四点，Thursday instead 把星期三改成星期四。周五上午是周四不方便时的备选，两种安排都还需对方确认。",
+      "exam_tip": "先沿用四点，再替换日期；不要把备选当成已确认。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5247,8 +5247,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "building opens只表示大楼开放，exhibition area仍受限制。expect是预计，only after给出实际放行条件；咖啡厅开放不代表展厅也开放。",
-      "exam_tip": "区分建筑开放与指定区域获准进入。"
+      "summary": "大楼八点开门，但展厅仍在检查。工作人员预计九点半检查结束；only after 要求安全隔离设施撤掉后，游客才能进入展厅。",
+      "exam_tip": "把预计检查结束时间与实际放行条件分开记。"
     },
     "space_metadata": {
       "box_ref": "1032",
@@ -5277,8 +5277,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "library是集合点，where从句明确community centre是访谈地点，small conference room进一步定位。只记最先出现的地点会选错。",
-      "exam_tip": "把集合点、途中安排和实际目的地分别记录。"
+      "summary": "图书馆门外只是集合点。where the interviews will be conducted 回指 community centre，说明访谈在社区中心进行，具体是 small conference room，小会议室。",
+      "exam_tip": "分开记“图书馆集合”和“社区中心访谈”。"
     },
     "space_metadata": {
       "box_ref": "1033",
@@ -5427,8 +5427,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "实验室是项目制作地点，museum gallery是公众展示地点。service entrance只规定设备搬入路线，不改变展览所在区域。",
-      "exam_tip": "制作、展示和运输入口属于不同位置层级。"
+      "summary": "final exhibition will be in... 明确最终展览在市博物馆的 education gallery，教育展厅。实验室是制作地点，service entrance 是设备运入入口。",
+      "exam_tip": "问题问 exhibition，就找举办展览的区域。"
     },
     "space_metadata": {
       "box_ref": "1033",
@@ -5487,8 +5487,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Room Eight与interviews绑定，Room Three用于笔试，reception是共同前置点。不能把等待地点误作面试地点。",
-      "exam_tip": "共同集合点之后，按活动类型理解分流位置。"
+      "summary": "interviews 对应 Room Eight，面试去 8 号房。written assessments 对应 Room Three，笔试去 3 号房；所有人先在接待台签到，再等志愿者带领。",
+      "exam_tip": "先签到，再按“面试8、笔试3”区分房间。"
     },
     "space_metadata": {
       "box_ref": "1033",
@@ -5541,14 +5541,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "听录音：维修期间，谁可以在哪里使用电脑？",
-      "support": "听录音：维修期间，谁可以在哪里使用电脑？",
-      "context": "听录音：维修期间，谁可以在哪里使用电脑？"
+      "prompt": "听录音，计算机中心维修期间，学生可以在哪里用电脑？",
+      "support": "听录音，计算机中心维修期间，学生可以在哪里用电脑？",
+      "context": "听录音，计算机中心维修期间，学生可以在哪里用电脑？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "media room是面向学生的替代点。specialist workstation针对需专用软件的教职工，lecture theatre则被明确排除。",
-      "exam_tip": "临时服务范围要同时匹配地点、人员与用途。"
+      "summary": "students can use...the library’s media room 直接说明学生可以去图书馆媒体室。需要专用软件的教职工另联系技术办公室；报告厅电脑不在临时安排内。",
+      "exam_tip": "锁定 students，再听他们可以去的房间。"
     },
     "space_metadata": {
       "box_ref": "1033",
@@ -5577,8 +5577,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "北出口、售票处和购物中心帮助区分同名咖啡馆。not the café inside...排除另一处，rather than walking...又排除了直接前往大学。",
-      "exam_tip": "多个参照点是为了锁定同一地点，不是提供多个可选会面点。"
+      "summary": "会面处是车站北出口对面的咖啡馆外，也在售票处马路对面。购物中心内的是另一家咖啡馆；若早到，就在约定咖啡馆等。",
+      "exam_tip": "把 northern exit 和 across the road 两个位置线索合起来。"
     },
     "space_metadata": {
       "box_ref": "1033",
@@ -5637,8 +5637,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "September是高需求开始的背景，spring term的搬迁才是下降前的变化。timetable had not changed排除了班次调整这一原因，未来评估不等于已经减班。",
-      "exam_tip": "时间点帮助定位变化，但仍要核对被明确说明的原因。"
+      "summary": "春季多数学生搬到了步行可到学校的住处，随后校车客流大幅下降。even though the timetable had not changed 表明班次没变；客流减少对应住宿地点变化。",
+      "exam_tip": "找 spring term 后发生的搬家，再听客流怎样变化。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5691,14 +5691,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "听录音：新预约系统何时开始影响等候时间？",
-      "support": "听录音：新预约系统何时开始影响等候时间？",
-      "context": "听录音：新预约系统何时开始影响等候时间？"
+      "prompt": "听录音，等候时间从几月开始下降？当时处理了什么问题？",
+      "support": "听录音，等候时间从几月开始下降？当时处理了什么问题？",
+      "context": "听录音，等候时间从几月开始下降？当时处理了什么问题？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "introduced in January与did not begin...until February区分推出和效果出现。培训期没有立即改善，不等于系统永远无效；when后给出实际处理变化。",
-      "exam_tip": "区分措施推出、人员适应和结果出现的不同阶段。"
+      "summary": "did not begin to fall until February 表示到二月才开始下降。when 后解释当时发现并删除了重复预约；一月只是推出系统并培训员工。",
+      "exam_tip": "记“一月启用培训；二月清理重复预约后下降”。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5727,8 +5727,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "after只说明先后，almost the same time引出另一个潜在原因。研究者并未否认宣传可能有效，而是拒绝仅凭时间顺序分配全部效果。",
-      "exam_tip": "同时发生的其他变化可能限制因果归因。"
+      "summary": "宣传活动后申请增加，但奖学金也几乎同时公布。两项变化都可能影响申请者，因此仅凭发生先后，无法分清各自带来多少增长。",
+      "exam_tip": "留意 almost the same time 后的另一项变化。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5787,8 +5787,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "Monday是换件，Wednesday是测试，Thursday才开放。not because排除再次故障，避免把所有停顿都误认成设备又坏了。",
-      "exam_tip": "维修完成、验证完成和恢复使用可能是三个独立节点。"
+      "summary": "周一更换损坏零件，周三下午才做安全测试，周四重新开放。中间等待是为完成安全验证，录音明确说并非又发生故障。",
+      "exam_tip": "按“换件 → 测试 → 开放”对应三个日期。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5811,14 +5811,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟的交通史介绍。播放录音后，线路开通与电气化分别发生在哪一年？",
-      "support": "这是一段模拟的交通史介绍。播放录音后，线路开通与电气化分别发生在哪一年？",
-      "context": "这是一段模拟的交通史介绍。播放录音后，线路开通与电气化分别发生在哪一年？"
+      "prompt": "听录音，Harbour Line 在哪一年开通，又在哪一年改用电力列车？",
+      "support": "听录音，Harbour Line 在哪一年开通，又在哪一年改用电力列车？",
+      "context": "听录音，Harbour Line 在哪一年开通，又在哪一年改用电力列车？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "两个年份对应不同阶段，不能把电气化当成开通，也不能由换动力系统推断线路形状改变。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "eighteen ninety-six 是 1896 年，对应 opened。nineteen thirty-five 是 1935 年，对应 Electric trains replaced...，即电力列车替代缆索牵引；原环线仍保留。",
+      "exam_tip": "每个年份旁记一个动作：开通、改用电力。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5841,14 +5841,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟的交通史介绍。播放录音后，客流为什么恢复，后来达到什么规模？",
-      "support": "这是一段模拟的交通史介绍。播放录音后，客流为什么恢复，后来达到什么规模？",
-      "context": "这是一段模拟的交通史介绍。播放录音后，客流为什么恢复，后来达到什么规模？"
+      "prompt": "听录音，Harbour Line 的客流为什么恢复？到 2005 年达到什么规模？",
+      "support": "听录音，Harbour Line 的客流为什么恢复？到 2005 年达到什么规模？",
+      "context": "听录音，Harbour Line 的客流为什么恢复？到 2005 年达到什么规模？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "journeys 是乘车次数，不是不同乘客人数。材料没有说这是全国纪录，也没有给出回升之前的具体客流。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "新大学校区在附近开放后，客流开始恢复。By 2005 表示到 2005 年，年乘车超过 twelve million journeys，即 1200 万人次；journeys 计乘车次数。",
+      "exam_tip": "听 campus opened 的变化，再区分人次与人数。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5871,14 +5871,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟的交通史介绍。播放录音后，为什么有居民反对直线方案，最后保留了什么？",
-      "support": "这是一段模拟的交通史介绍。播放录音后，为什么有居民反对直线方案，最后保留了什么？",
-      "context": "这是一段模拟的交通史介绍。播放录音后，为什么有居民反对直线方案，最后保留了什么？"
+      "prompt": "听录音，居民为什么反对把环线改成直线？最终方案是什么？",
+      "support": "听录音，居民为什么反对把环线改成直线？最终方案是什么？",
+      "context": "听录音，居民为什么反对把环线改成直线？最终方案是什么？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "反对理由是站点覆盖，不能自行补成单纯怀旧或预算不够。proposed 与 final plan 要区分。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "because 后说明反对理由：若改成直线，几个社区会失去车站。final plan 最后保留环线，并改善现有站点。",
+      "exam_tip": "分开听 proposed 的提议与 final plan 的决定。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5901,14 +5901,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟的交通史介绍。播放录音后，早期财务困难来自哪两方面？",
-      "support": "这是一段模拟的交通史介绍。播放录音后，早期财务困难来自哪两方面？",
-      "context": "这是一段模拟的交通史介绍。播放录音后，早期财务困难来自哪两方面？"
+      "prompt": "听录音，这条线路最初十年为什么陷入财务困难？说出两项原因。",
+      "support": "听录音，这条线路最初十年为什么陷入财务困难？说出两项原因。",
+      "context": "听录音，这条线路最初十年为什么陷入财务困难？说出两项原因。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "while 在这里并列两方面的不利条件；后来增加客流的连接线不应反过来当成最初困难的原因。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "建设成本 higher than expected，比预期高；乘客 fewer than...forecast，比预测少。成本高而客流低共同造成财务困难，后来连接主铁路才带来更多乘客。",
+      "exam_tip": "记“成本超预期；客流低于预期”。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5931,14 +5931,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟的交通史介绍。播放录音后，批评者认可了什么，又指出什么不足？",
-      "support": "这是一段模拟的交通史介绍。播放录音后，批评者认可了什么，又指出什么不足？",
-      "context": "这是一段模拟的交通史介绍。播放录音后，批评者认可了什么，又指出什么不足？"
+      "prompt": "听录音，批评者认可哪些改进，又指出什么不足？",
+      "support": "听录音，批评者认可哪些改进，又指出什么不足？",
+      "context": "听录音，批评者认可哪些改进，又指出什么不足？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "换车辆、改入口和扩大线路是不同措施。批评保留了对部分改进的认可，不能概括成完全否定。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "批评者 welcomed the more reliable service，认可服务更可靠。but 后指出外区居民仍难使用，因为改造只换车、改善入口，没有新增线路。",
+      "exam_tip": "把 welcomed 的肯定和 but 后的不足分别记下。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5961,14 +5961,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟的交通史介绍。播放录音后，试运行是否等于已经完全无人值守？",
-      "support": "这是一段模拟的交通史介绍。播放录音后，试运行是否等于已经完全无人值守？",
-      "context": "这是一段模拟的交通史介绍。播放录音后，试运行是否等于已经完全无人值守？"
+      "prompt": "听录音，自动控制系统的试运行是否已经完全无人值守？",
+      "support": "听录音，自动控制系统的试运行是否已经完全无人值守？",
+      "context": "听录音，自动控制系统的试运行是否已经完全无人值守？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "testing 与正式采用不同，only after 引出前置条件。不能把正在试验的系统写成已实现的全面自动运行。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "试运行期间 staff remained on every train，每列车仍有工作人员。完全无人值守要等安全评估和公众咨询完成后才决定，当前只是测试自动控制系统。",
+      "exam_tip": "听 during the trial 谁仍在车上，再听 only after 的条件。"
     },
     "space_metadata": {
       "box_ref": "1034",
@@ -5997,8 +5997,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "实际指标是修订频次，不是最终成绩。supports further investigation与does not yet show共同限制结论，不能把试点结果升级为普遍保证。",
-      "exam_tip": "研究结论需保留被测指标与样本范围。"
+      "summary": "每周得到评语的学生更常修改草稿，这是观察到的变化。样本只来自一门课，因此还不知道这种方法在其他学科是否同样有效。",
+      "exam_tip": "记住测到的是“修改次数”，再听样本来自哪里。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -6027,8 +6027,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "more accurately与not significantly faster分别属于准确和速度。研究者明确反对将单项改善概括为所有表现都提高。",
-      "exam_tip": "把每个指标与其具体变化逐项配对。"
+      "summary": "看到示范例题的学生完成任务更准确，但没有明显更快。研究者只报告准确性改善，并计划扩大研究，比较其他任务类型。",
+      "exam_tip": "分别记录 accuracy 和 speed 的变化。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -6051,14 +6051,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "听录音：调查对练习时间与表现的关系得出什么有限结论？",
-      "support": "听录音：调查对练习时间与表现的关系得出什么有限结论？",
-      "context": "听录音：调查对练习时间与表现的关系得出什么有限结论？"
+      "prompt": "听录音，练习时间越长，表现就会一直越好吗？",
+      "support": "听录音，练习时间越长，表现就会一直越好吗？",
+      "context": "听录音，练习时间越长，表现就会一直越好吗？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "up to a point与beyond that level显示关系并非无限线性增长。没有给出适用于所有人的理想时长，也没有由相关关系证明每个人多练必然更好。",
-      "exam_tip": "听清研究中的范围限制和停止外推的位置。"
+      "summary": "up to a certain point 表示在一定范围内，练习更久与表现更好相关。超过这个范围，增加时间的收益很小，尤其学生疲劳时；研究没给出人人适用的理想时长。",
+      "exam_tip": "听 up to 与 beyond，把两个时间范围分开。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -6087,8 +6087,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "did not differ significantly报告统计结果，limits ability说明证据能力。最后一句明确否认完全相同与无需再研究这两种过度结论。",
-      "exam_tip": "没有检出差异，不自动等于证明完全相同。"
+      "summary": "两组最终测试没有显著差异，但完成研究的人很少。研究者解释，小样本可能发现不了较小的效果，因此不能据此断定两种方法完全相同。",
+      "exam_tip": "听 only a small number 后解释它带来的限制。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -6117,8 +6117,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "测量对象是这项查错活动，不是长期记忆或所有任务能力。restrict their conclusion强调结论边界，不能补出未测量的结果。",
-      "exam_tip": "先确定研究测量了什么，再理解结论能覆盖什么。"
+      "summary": "对照示范例子逐步检查的人，发现了更多书面说明中的错误。这个结果只涉及本次查错活动；研究没有测试长期记忆或其他无关任务。",
+      "exam_tip": "先听 identified more errors，再听 did not measure。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -6147,8 +6147,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "similar pattern增加一致性支持，closely related tasks限制了适用范围。最后一句关注迁移，而不是否定已有观察。",
-      "exam_tip": "重复发现与跨情境迁移是不同层面的证据。"
+      "summary": "另一班的研究也发现：用检查清单的学生漏掉的步骤更少。重复结果增加了可信度，但两个任务很相近，还不知道学生换到陌生情境能否自己选对步骤。",
+      "exam_tip": "对照 similar pattern 和 unfamiliar situations。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -6171,14 +6171,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟研究报告。播放录音后，实验直接观察到了什么，范围有什么限制？",
-      "support": "这是一段模拟研究报告。播放录音后，实验直接观察到了什么，范围有什么限制？",
-      "context": "这是一段模拟研究报告。播放录音后，实验直接观察到了什么，范围有什么限制？"
+      "prompt": "听录音，有无地标的两组老鼠，一周后的表现有什么差别？研究还没测试什么？",
+      "support": "听录音，有无地标的两组老鼠，一周后的表现有什么差别？研究还没测试什么？",
+      "context": "听录音，有无地标的两组老鼠，一周后的表现有什么差别？研究还没测试什么？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "应保留比较对象、时间与环境限制，不能扩大成地标必然改善所有动物在任何环境中的能力。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "有地标组一周后 fewer wrong turns，走错的次数更少。研究只在实验室进行，未测试实验室以外的表现。",
+      "exam_tip": "记比较结果，同时保留一周后、实验室内这两个条件。"
     },
     "space_metadata": {
       "box_ref": "1035",
@@ -6201,14 +6201,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 细节捕捉",
-      "prompt": "这是一段模拟研究报告。播放录音后，移除地标后的结果怎样影响解释？",
-      "support": "这是一段模拟研究报告。播放录音后，移除地标后的结果怎样影响解释？",
-      "context": "这是一段模拟研究报告。播放录音后，移除地标后的结果怎样影响解释？"
+      "prompt": "听录音，移除地标后，两组差距如何变化？研究者怎样解释？",
+      "support": "听录音，移除地标后，两组差距如何变化？研究者怎样解释？",
+      "context": "听录音，移除地标后，两组差距如何变化？研究者怎样解释？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "suggested 表示研究者提出的解释，partly 限定依赖程度；不能写成地标是唯一因素。",
-      "exam_tip": "复述材料实际支持的信息，同时保留时间、条件和判断范围。"
+      "summary": "移除熟悉地标后，两组差距变小。研究者据此 suggested，提出一种解释：老鼠 partly relied on landmarks，部分依靠地标辨路。",
+      "exam_tip": "听 much smaller 的差距，再听 partly 限定依赖程度。"
     },
     "space_metadata": {
       "box_ref": "1035",

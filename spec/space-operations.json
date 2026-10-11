@@ -5,7 +5,10 @@
     "user_must_be_able_to": [
       "see_current_card_physical_position",
       "browse_library_group_box_card_hierarchy",
-      "inspect_box_contents"
+      "inspect_box_contents",
+      "search_accessible_front_material_and_locate_original_box",
+      "filter_favorite_review_and_sleep_states_without_creating_boxes",
+      "see_learned_status_and_read_authorized_learned_card_answers_and_audio"
     ]
   },
   "position_control_model": {

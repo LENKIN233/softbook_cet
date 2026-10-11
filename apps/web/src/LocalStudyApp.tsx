@@ -52,6 +52,7 @@ export function LocalStudyApp({
   const [libraryError, setLibraryError] = useState("");
   const [libraryAttempt, setLibraryAttempt] = useState(0);
   const [entered, setEntered] = useState(false);
+  const spaceBrowse = useRef(new Map<string, NonNullable<Parameters<LocalWebSurfaces['Space']>[0]['browseState']>>());
   const [route, setRoute] = useState<Route>("learning");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -466,6 +467,9 @@ export function LocalStudyApp({
                 onContinue={() => profile.dispatch({ type: "advance" })}
                 onOpenSpace={() => setRoute("space")}
                 onFavorite={(id) => profile.dispatch({ type: "favorite", id })}
+                onReadAudioPosition={() => audio.current?.readPosition() ?? Promise.resolve(null)}
+                onSeekAudio={milliseconds => {void audio.current?.seek(milliseconds);}}
+                onRestartAudio={() => {void audio.current?.restart();}}
                 onPlayAudio={
                   card?.audio
                     ? () => {
@@ -502,7 +506,10 @@ export function LocalStudyApp({
           ) : null}
           {route === "space" ? (
             <Space
+              browseState={spaceBrowse.current.get(track)}
+              onBrowseStateChange={value => spaceBrowse.current.set(track, value)}
               cards={cards}
+              learnedIds={state.results.map(result => result.cardId)}
               busy={busy}
               canMutate
               currentCardId={card?.card_id ?? null}

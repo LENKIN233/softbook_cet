@@ -127,10 +127,8 @@ export function selectLockOption(
 ): LearningCardState {
   if (card.interaction_id !== 'lock') return state;
   const slotIndex = card.lock_slots.findIndex(slot => slot.id === slotId);
-  const currentIndex = card.lock_slots.findIndex(
-    (slot, index) => state.lockSelections[slot.id] !== card.answer_key.lock_pattern[index],
-  );
-  if (slotIndex < 0 || slotIndex !== currentIndex || !card.lock_slots[slotIndex].options.includes(value)) {
+  if (slotIndex < 0 || !card.lock_slots[slotIndex].options.includes(value) ||
+      state.lockSelections[slotId] === card.answer_key.lock_pattern[slotIndex]) {
     return state;
   }
   return {

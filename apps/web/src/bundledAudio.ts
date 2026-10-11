@@ -41,6 +41,8 @@ export function createBundledAudioController() {
           });
         }
       },
+      getPosition: async playbackToken => playbackToken === token && player ? player.currentTime * 1000 : 0,
+      seek: async (playbackToken, milliseconds) => {if (playbackToken === token && player) player.currentTime = milliseconds / 1000;},
       play: async playbackToken => { if (playbackToken === token && player) await player.play(); },
       pause: async playbackToken => { if (playbackToken === token) player?.pause(); },
       stop: async () => { player?.pause(); player = null; token = null; },
@@ -55,6 +57,9 @@ export function createBundledAudioController() {
       await controller.press();
       return controller.getState();
     },
+    readPosition: () => controller.getPosition(),
+    seek: (milliseconds: number) => controller.seekTo(milliseconds),
+    restart: () => controller.restart(),
     stop: () => controller.select(null),
     subscribe: controller.subscribe.bind(controller),
     dispose: () => {

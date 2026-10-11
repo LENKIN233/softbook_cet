@@ -10,6 +10,6 @@ export function StudioMark() {
 const styles = StyleSheet.create({
   mark: {width: 28, height: 28, borderRadius: 8, backgroundColor: STUDIO.color.ink, alignItems: 'center', justifyContent: 'center', flexDirection: 'row'},
   page: {width: 8, height: 13, borderWidth: 1.2, borderColor: STUDIO.color.paper, borderRadius: 1.5},
-  left: {transform: [{skewY: '8deg'}]},
-  right: {transform: [{skewY: '-8deg'}], marginLeft: -1},
+  left: {},
+  right: {marginLeft: -1},
 });

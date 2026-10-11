@@ -35,6 +35,45 @@ describe('PC Web remote UI authority', () => {
     delete window.__SOFTBOOK_WEB_RUNTIME__;
   });
 
+  it('sends only the final editable self-assessment when advancing', async () => {
+    const snapshot = createSnapshot('premium');
+    const controller = createController(snapshot);
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', {name: '需要复习'}));
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', {name: '下一张'}));
+    await act(async () => undefined);
+    expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+    expect(controller.completeCurrentCard).toHaveBeenCalledWith(expect.objectContaining({outcome: 'review'}));
+  });
+
+  it('ignores modifier keys and predominantly vertical pointer movement on a judgment card', async () => {
+    vi.stubGlobal('PointerEvent', MouseEvent);
+    try {
+      const snapshot = createSnapshot('premium');
+      const card = {...snapshot.learningSession.cards[0], interaction_id: 'swipe' as const, auto_scoring: true as const, answer_key: {correct_state: 'right'}, swipe_states: [{id: 'left', label: 'False', description: 'False'}, {id: 'right', label: 'True', description: 'True'}]};
+      snapshot.learningSession.cards = [card];
+      snapshot.learningSession.catalogCards = [card];
+      const controller = createController(snapshot);
+      const view = await authenticateRemote(controller);
+      fireEvent.keyDown(document.body, {key: 'ArrowLeft', altKey: true});
+      fireEvent.keyDown(document.body, {key: 'ArrowRight', shiftKey: true});
+      const surface = document.querySelector('.swipe-top-card')!;
+      fireEvent.pointerDown(surface, {clientX: 100, clientY: 100});
+      fireEvent.pointerUp(surface, {clientX: 200, clientY: 370});
+      expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+      fireEvent.pointerDown(surface, {clientX: 100, clientY: 100});
+      fireEvent.pointerUp(surface, {clientX: 200, clientY: 120});
+      await screen.findByRole('region', {name: '答案对照'});
+      expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
+      expect(controller.completeCurrentCard).toHaveBeenCalledWith(expect.objectContaining({outcome: 'correct'}));
+      void view;
+    } finally {vi.unstubAllGlobals();}
+  });
+
   it('recovers a stale registration challenge with a fresh code for the same phone', async () => {
     const snapshot = createSnapshot('premium');
     const controller = createController(snapshot, {
@@ -104,6 +143,8 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(await screen.findByRole('button', {name: '下一张'}));
+    await act(async () => undefined);
     await screen.findByRole('heading', {name: 'Card 2 prompt'});
     expect(screen.queryByRole('region', {name: '答案对照'})).toBeNull();
     expect(screen.getByRole('button', {name: '翻面看答案'})).toBeEnabled();
@@ -120,6 +161,8 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(createController(snapshot, {completeCurrentCard: complete, loadAuthenticatedState: load}));
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(await screen.findByRole('button', {name: '下一张'}));
+    await act(async () => undefined);
     await screen.findByRole('heading', {name: '这次结果未计入'});
     expect(screen.queryByRole('button', {name: '重试同步'})).toBeNull();
     fireEvent.click(screen.getByRole('button', {name: '刷新学习进度'}));
@@ -137,6 +180,8 @@ describe('PC Web remote UI authority', () => {
     }));
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(await screen.findByRole('button', {name: '下一张'}));
+    await act(async () => undefined);
     await screen.findByRole('region', {name: '答案对照'});
     expect(screen.getByText('有把握')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: '下一张'})).toBeEnabled();
@@ -264,6 +309,8 @@ describe('PC Web remote UI authority', () => {
     fireEvent.click(screen.getByRole('button',{name:'学习'}));
     fireEvent.click(screen.getByRole('button',{name:'有把握'}));
     await screen.findByRole('region',{name:'答案对照'});
+    fireEvent.click(screen.getByRole('button', {name: '下一张'}));
+    await act(async () => undefined);
     expect(controller.completeCurrentCard).toHaveBeenCalledWith(expect.objectContaining({usedHint:true,usedPeek:true}));
   });
 
@@ -292,12 +339,14 @@ describe('PC Web remote UI authority', () => {
     await authenticateRemote(controller);
     fireEvent.click(screen.getByRole('button',{name:'翻面看答案'}));
     fireEvent.click(screen.getByRole('button',{name:'有把握'}));
+    fireEvent.click(await screen.findByRole('button', {name: '下一张'}));
+    await act(async () => undefined);
     await screen.findByRole('button',{name:'下一张'});
     fireEvent.click(screen.getByRole('button',{name:'收藏'}));
     await screen.findByRole('heading',{name:'这张卡已暂停学习'});
     fireEvent.keyDown(document.body,{key:'Enter'});
     expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
-    expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
+    expect(controller.loadAuthenticatedState).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button',{name:'下一张'})).toBeNull();
   });
 
@@ -544,6 +593,8 @@ describe('PC Web remote UI authority', () => {
 
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(await screen.findByRole('button', {name: '下一张'}));
+    await act(async () => undefined);
     expect(
       await screen.findByText(/1 项学习结果等待同步/),
     ).toBeInTheDocument();
@@ -570,6 +621,8 @@ describe('PC Web remote UI authority', () => {
 
     fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(await screen.findByRole('button', {name: '下一张'}));
+    await act(async () => undefined);
     await screen.findByText('学习结果等待同步');
     expect(screen.getByRole('button', {name: '有把握'})).toBeDisabled();
     expect(screen.getByRole('button', {name: '需要复习'})).toBeDisabled();

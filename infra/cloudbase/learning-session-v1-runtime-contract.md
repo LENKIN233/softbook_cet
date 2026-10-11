@@ -354,3 +354,7 @@ This contract does not prove:
 - complete approved card content, signed packs, or audio QC;
 - formal launch evidence from repository-local or simulated tests;
 - launch readiness.
+
+### 新卡短组节奏
+
+到期复习仍优先。没有到期复习时，服务端按书架轮换五张新卡的小组：优先已完成五张组数较少且仍有可用未见卡的书架，同书架保留导入顺序，休眠与会员可访问范围仍先约束候选。当前 selection 的恢复与事件绑定规则不变。客户端显示本组位置，最后一张反馈后的继续动作提示小组结束，不宣称完成等于掌握。

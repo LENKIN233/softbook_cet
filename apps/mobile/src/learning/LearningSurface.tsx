@@ -1,7 +1,7 @@
 import {isLongQuestion, stackChoiceOptions} from './readability';
 import {resultFeedback} from './resultFeedback';
 import {EliminationPassageText} from './EliminationPassageText';
-import {displayCardText, answerComparison, eliminationPassage, frontMaterial, spaceCardPreview} from './presentation';
+import {displayCardText, answerComparison, eliminationPassage, frontMaterial, spaceCardPreview, lockPassage, answerHeading, stateDescription, cardTextParts, lockPassageSource, attemptLabel} from './presentation';
 import {useCardMotion, useReducedMotion, MotionView, MotionPressable, StudioPressable as Pressable, LockMotionGlyph, StrikeText} from './NativeMotion';
 import {STUDIO} from '../visual/studio';
 import React from 'react';
@@ -66,7 +66,10 @@ type LearningSurfaceProps = {
   onContinueLocalBatch?: () => void;
   resumeLocalLearning?: boolean;
   allowBundledAudio?: boolean;
+  allowSelfAssessmentAmend?: boolean;
   showCardProgress?: boolean;
+  newCardStep?: number;
+  newCardGroupSize?: number;
   palette: LearningSurfacePalette;
   contentManifest?: VerifiedContentManifest | null;
   refreshAudioDownload?: RefreshLearningAudioDownload;
@@ -177,7 +180,10 @@ export function LearningSurface({
   audioAttemptId,
   onContinueLocalBatch,
   resumeLocalLearning = false,
+  allowSelfAssessmentAmend = true,
   allowBundledAudio = false,
+  newCardStep,
+  newCardGroupSize,
   showCardProgress = true,
   palette,
   contentManifest = null,
@@ -489,7 +495,7 @@ export function LearningSurface({
     accentSoft: libraryTone.accentSoft,
   };
   const progressPercent = `${Math.max(
-    Math.round(((currentIndex + 1) / Math.max(sessionCards.length, 1)) * 100),
+    Math.round(((newCardStep ?? currentIndex + 1) / Math.max(newCardGroupSize ?? sessionCards.length, 1)) * 100),
     10,
   )}%` as DimensionValue;
   const progressCount = `${Math.min(
@@ -523,7 +529,7 @@ export function LearningSurface({
     }
   })();
   const passage = currentCard.interaction_id === 'elimination' ? eliminationPassage(currentCard) : null;
-  const material = frontMaterial(currentCard).filter(text => !passage || text !== passage.source);
+  const material = frontMaterial(currentCard).filter(text => (!passage || text !== passage.source) && text !== displayCardText(currentCard, lockPassageSource(currentCard) ?? ''));
   const shouldShowContextCard = currentResult === null && material.length > 0;
   const shouldCenterShortFlip = false;
   const minimumSheetHeight = 0;
@@ -612,7 +618,7 @@ export function LearningSurface({
               style={[styles.cardProgressCount, { color: palette.text }]}
               testID="learning-progress-count"
             >
-              {progressCount}
+              {newCardStep ? `本组 ${newCardStep} / ${newCardGroupSize ?? 5}` : progressCount}
             </Text>
             <View
               style={[
@@ -708,7 +714,7 @@ export function LearningSurface({
               ]}
               testID="learning-card-task-band"
             >
-              {currentResult === null && currentCard.interaction_id !== 'swipe' && !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped) && !(passage && passage.source === currentCard.front.prompt) ? (
+              {currentResult === null && currentCard.interaction_id !== 'swipe' && !(currentCard.interaction_id === 'flip' && currentCardState.isFlipped) && !(passage && passage.source === currentCard.front.prompt) && lockPassageSource(currentCard) !== currentCard.front.prompt ? (
               <View
                 style={[
                   styles.studyCardTop,
@@ -729,7 +735,7 @@ export function LearningSurface({
                       { color: palette.text },
                     ]}
                   >
-                    {displayCardText(currentCard, currentCard.front.prompt)}
+                    {richCardText(currentCard, currentCard.front.prompt, currentCard.front.prompt.includes('划线'))}
                   </Text>
                 </View>
               </View>
@@ -760,6 +766,8 @@ export function LearningSurface({
                     palette={palette}
                     result={currentResult}
                     onOpenResultDetail={onOpenResultDetail}
+                    groupEnd={newCardStep !== undefined && newCardStep === (newCardGroupSize ?? 5)}
+                    onChangeConfidence={!allowSelfAssessmentAmend || advanceState.busy || advanceState.needsRetry ? undefined : onSetFlipConfidence}
                   /></MotionView>
                 ) : (
                   <ResultPanel
@@ -1013,7 +1021,7 @@ function LearningHelp({card, state, palette, onToggleHint, onTogglePeek, onRevea
           onPress={onTogglePeek} style={styles.helpTextButton} testID="learning-peek-button">
           <Text style={[styles.helpTextLabel, {color: palette.text}]}>{state.isPeeked ? '收起思路' : '解题思路'}</Text>
         </Pressable>
-        {state.isPeeked ? <Text style={[styles.cardSupport, {color: palette.textMuted}]}>{card.analysis.exam_tip}</Text> : null}
+        {state.isPeeked ? <Text style={[styles.cardSupport, {color: palette.textMuted}]}>{richCardText(card, card.analysis.exam_tip)}</Text> : null}
       </View>
     </MotionView> : null}
   </View>;
@@ -1193,7 +1201,7 @@ function InteractionBody({
         </View>
       );
     case 'lock':
-      const formingSentence = card.lock_slots.map((slot,index) => cardState.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? cardState.lockSelections[slot.id] : '____').join(' ');
+      const formingSentence = lockPassage(card, card.lock_slots.map((slot,index) => cardState.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? cardState.lockSelections[slot.id] : null));
       return (
         <View
           style={[
@@ -1210,15 +1218,8 @@ function InteractionBody({
               const expectedValue = card.answer_key.lock_pattern[index];
               const isUnlocked = selectedValue === expectedValue;
               const hasWrongSelection = selectedValue !== null && !isUnlocked;
-              const firstLockedIndex = card.lock_slots.findIndex(
-                (candidateSlot, candidateIndex) =>
-                  cardState.lockSelections[candidateSlot.id] !==
-                  card.answer_key.lock_pattern[candidateIndex],
-              );
-              const isCurrentRow = firstLockedIndex === index;
-              const canChoose = currentResult === null && isCurrentRow;
-              const isWaitingForPrevious =
-                firstLockedIndex >= 0 && index > firstLockedIndex;
+              const isCurrentRow = !isUnlocked;
+              const canChoose = currentResult === null && !isUnlocked;
 
               return (
                 <View
@@ -1239,7 +1240,7 @@ function InteractionBody({
                   <View
                     accessible
                     accessibilityRole="image"
-                    accessibilityLabel={`${slot.label}，${isUnlocked ? '已开锁' : isCurrentRow ? '当前锁位' : '等待上一行'}`}
+                    accessibilityLabel={`${slot.label}，${isUnlocked ? '已开锁' : isCurrentRow ? '当前锁位' : '待选择'}`}
                     style={[
                       styles.lockGlyph,
                       compact ? styles.lockGlyphCompact : null,
@@ -1281,8 +1282,6 @@ function InteractionBody({
                             ? '已开锁'
                             : hasWrongSelection
                             ? '再试一次'
-                            : isWaitingForPrevious
-                            ? '按顺序解锁'
                             : '待选择'}
                         </Text>
                       ) : null}
@@ -1868,7 +1867,7 @@ function getResolvedAnswerRows(
         {
           label: '你的方向',
           displayText: selectedState
-            ? `${selectedState.label} · ${selectedState.description}`
+            ? stateDescription(selectedState)
             : '未选择',
           testID: 'learning-detail-selected-answer',
           tone: selectedState?.id === correctState?.id ? 'success' : 'warning',
@@ -1876,7 +1875,7 @@ function getResolvedAnswerRows(
         {
           label: '正确判断',
           displayText: correctState
-            ? `${correctState.label} · ${correctState.description}`
+            ? stateDescription(correctState)
             : '待确认',
           testID: 'learning-detail-correct-answer',
           tone: 'success',
@@ -2059,7 +2058,7 @@ export function LearningResultDetailSurface({
           </View> : null}
         </View>
 
-        {!isCompactPhone ? (
+        {isCompactPhone ? <Pressable accessibilityRole="button" onPress={onBackToPractice} testID="learning-result-back-button" style={styles.analysisLink}><Text style={[styles.analysisLinkText, {color: palette.text}]}>← 返回卡面</Text></Pressable> : (
           <View
             style={[
               styles.cardLocationStrip,
@@ -2111,7 +2110,7 @@ export function LearningResultDetailSurface({
               </Text>
             </Pressable>
           </View>
-        ) : null}
+        )}
 
         <View
           style={[
@@ -2262,7 +2261,7 @@ export function LearningResultDetailSurface({
               ]}
               testID="learning-detail-analysis-body"
             >
-              {card.analysis.summary}
+              {richCardText(card, card.analysis.summary)}
             </Text>
             <Text
               style={[
@@ -2272,7 +2271,7 @@ export function LearningResultDetailSurface({
               ]}
               testID="learning-detail-analysis-tip"
             >
-              考试提示：{card.analysis.exam_tip}
+              考试提示：{richCardText(card, card.analysis.exam_tip)}
             </Text>
             <AudioTranscript key={card.card_id} card={card} palette={palette} />
           </View>
@@ -2324,28 +2323,39 @@ export function LearningResultDetailSurface({
   );
 }
 
-function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetail}: {
+function richCardText(card: LearningCard, text: string, underline = false) {
+  const parts = cardTextParts(card, text);
+  if (!parts.some(part => part.emphasized)) return parts.map(part => part.text).join('');
+  return parts.map((part, index) => part.emphasized ? <Text key={index} style={{fontWeight: '600', textDecorationLine: underline ? 'underline' : 'none'}}>{part.text}</Text> : part.text);
+}
+
+function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetail, onChangeConfidence, groupEnd}: {
   card: LearningCard; cardState: LearningCardState; compact: boolean;
-  palette: LearningSurfacePalette; result: LearningCardResult; onOpenResultDetail: () => void;
+  palette: LearningSurfacePalette; result: LearningCardResult; onOpenResultDetail: () => void; groupEnd?: boolean; onChangeConfidence?: (value: 'confident' | 'review') => void;
 }) {
   const comparison = answerComparison(card, cardState);
-  const answerLabel = card.interaction_id === 'flip' ? '核对答案' : '正确答案';
+  const canChangeConfidence = card.interaction_id === 'flip' && onChangeConfidence !== undefined;
+  const answerLabel = answerHeading(card);
   const questionContext = spaceCardPreview(card);
   return <View style={styles.answerSummary} testID="learning-result-summary">
-    <Text style={[styles.answerEyebrow, {color: palette.success}]}>{answerLabel}</Text>
-    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
+    <Text style={[styles.answerEyebrow, {color: result.outcome === 'incorrect' || result.outcome === 'review' ? (palette.background === '#0B0B12' ? palette.warning : STUDIO.color.reviewInk) : palette.success}]}>{attemptLabel(result)}</Text>
+    {canChangeConfidence ? <View><Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>下一张时保存自评，可先更改</Text><View style={{flexDirection: 'row', gap: 12}}>{(['confident', 'review'] as const).map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{selected: result.outcome === value}} onPress={() => onChangeConfidence?.(value)} style={styles.analysisLink} testID={`learning-amend-${value}`}><Text style={[styles.analysisLinkText, {color: value === 'review' ? STUDIO.color.reviewInk : palette.success}]}>{value === 'confident' ? '有把握' : '需要复习'}</Text></Pressable>)}</View></View> : null}
+    <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{answerLabel}</Text>
+    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, {color: palette.text}]} testID="learning-correct-answer">{richCardText(card, comparison.correct)}</Text>
     {comparison.selected && comparison.selected !== comparison.correct ? <View style={styles.answerSelectionRow}>
       <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>你的选择</Text>
       <Text style={[styles.answerSelection, {color: palette.danger}]}>{comparison.selected}</Text>
     </View> : null}
-    {result.outcome === 'confident' || result.outcome === 'review' ? <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{result.outcome === 'confident' ? '有把握' : '需要复习'}</Text> : null}
+
     {card.interaction_id === 'lock' && result.outcome === 'incorrect' ? (
       <Text style={[styles.answerEyebrow, {color: STUDIO.color.reviewInk}]}>
         已解锁，稍后复习
       </Text>
     ) : null}
     <Text style={[styles.answerQuestion, {color: palette.textMuted, borderColor: palette.border}]}>{[questionContext.title, ...questionContext.detail].join('\n\n')}</Text>
-    <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
+    <Text style={[styles.answerReason, {color: palette.text}]}>{richCardText(card, card.analysis.summary)}</Text>
+
+    {groupEnd ? <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>这一组已作答，继续进入下一组</Text> : null}
     <AudioTranscript key={card.card_id} card={card} palette={palette} />
     <Pressable accessibilityRole="button" onPress={onOpenResultDetail} style={styles.analysisLink} testID="learning-open-result-detail-button"><Text style={[styles.analysisLinkText, {color: palette.textMuted}]}>展开完整解析 →</Text></Pressable>
   </View>;
@@ -2407,10 +2417,10 @@ function ResultPanel({
       <Text
         style={[styles.resultExplanationBody, { color: palette.textMuted }]}
       >
-        {card.analysis.summary}
+        {richCardText(card, card.analysis.summary)}
       </Text>
       <Text style={[styles.resultTip, { color: palette.textMuted }]}>
-        考试提示：{card.analysis.exam_tip}
+        考试提示：{richCardText(card, card.analysis.exam_tip)}
       </Text>
       <AudioTranscript key={card.card_id} card={card} palette={palette} />
       <View
@@ -3375,17 +3385,18 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   lockChoicePillCompact: {
-    flex: 1,
-    minWidth: 48,
+    flexGrow: 0,
+    flexShrink: 0,
+    minWidth: 92,
     maxWidth: '100%',
-    paddingHorizontal: 4,
+    paddingHorizontal: 10,
     paddingVertical: 4,
   },
   lockChoicePillDisabled: {
     opacity: 0.58,
   },
   lockChoiceLabel: {
-    fontSize: 11,
+    fontSize: 14,
     textAlign: 'center',
   },
   lockChoiceWrap: {

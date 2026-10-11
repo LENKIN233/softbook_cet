@@ -1105,3 +1105,29 @@ test('learning-session projection sequence watermark drift fails closed', async 
   assert.equal(store.snapshot().learningEvents.size, 1);
   assert.equal(membership.stage, 'trial');
 });
+
+test('new cards rotate after five within-library cards, keeping source order and sleep eligibility', async () => {
+  const template = require('./fixtures/interaction-cards').cet4.find(card => card.interaction_id === 'flip');
+  const records = Array.from({length: 7}, (_, index) => ({
+    ...template, card_id: index === 6 ? '010001' : `00000${index + 1}`,
+    knowledge_ref: index === 6 ? '0100' : '0000',
+    space_metadata: {...template.space_metadata, box_ref: index === 6 ? '0100' : '0000', library: index === 6 ? '仔细阅读' : '听力'},
+  }));
+  const customSource = track => validateCardSourceForImport({source: {id: 'library-blocks', label: 'Library blocks'}, track, card_records: records, release: null}, track);
+  const store = createMemoryStore({developmentCardSource: customSource});
+  const {api} = createTestApi({store});
+  const session = await authenticatedSession(api);
+  await learningSession(api, session);
+  const source = await cardSource(api, session);
+  for (let index = 0; index < 5; index += 1) {
+    const selected = await learningSession(api, session);
+    assert.equal(selected.body.data.selection.card_id, records[index].card_id);
+    const accepted = await submit(api, session, source, [eventFor(source, index)]);
+    assert.equal(accepted.statusCode, 200, JSON.stringify(accepted.body));
+  }
+  const rotated = await learningSession(api, session);
+  assert.equal(rotated.body.data.selection.card_id, '010001');
+  await submitSpaceActions(api, session, source, [{action_id: 'sleep_library_block_0001', card_id: '010001', client_occurred_at: START_TIME.toISOString(), dimension: 'sleep', value: true}]);
+  const remaining = await learningSession(api, session);
+  assert.equal(remaining.body.data.selection.card_id, '000006');
+});

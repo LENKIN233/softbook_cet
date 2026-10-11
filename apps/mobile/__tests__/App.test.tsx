@@ -5489,7 +5489,7 @@ test('can unlock the learning flow after fake sms verification', async () => {
   expect(output).not.toContain('先读题干');
   expect(output).not.toContain('先判断，再确认解析');
   expect(output).toContain('账号');
-  expect(output).toContain('已登录');
+  expect(output).toContain('备考科目与账号设置');
   expect(output).not.toContain('已登录 138****8000');
   expect(output).toContain('however');
   expect(
@@ -5567,7 +5567,7 @@ test('keeps learning bounded and long secondary surfaces scroll-reachable', asyn
   });
 
   const root = tree!.root;
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findAllByType(ScrollView)).toHaveLength(1);
 
   await loginIntoLearningFlow(root);
   expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal && node.props.scrollEnabled !== false)).toHaveLength(1);
@@ -7288,9 +7288,7 @@ test('mine page stays focused on account and membership after login', async () =
   const output = JSON.stringify(tree!.toJSON());
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   const mineProfileStyle = StyleSheet.flatten(mineProfileCard.props.style);
-  expect(output).toContain('我的会员');
-  expect(output).toContain('会员与试用');
-  expect(output).toContain('查看会员状态，管理登录账号');
+  expect(output).toContain('我的账户');
   expect(output).toContain('本地学习');
   expect(output).toContain('记录已保存');
   expect(output).toContain('系统推荐');
@@ -7314,7 +7312,8 @@ test('mine page stays focused on account and membership after login', async () =
   expect(root.findByProps({ testID: 'membership-host-card' })).toBeTruthy();
   expect(
     root.findAllByProps({ testID: 'membership-access-step' }).length,
-  ).toBeGreaterThan(0);
+  ).toBe(0);
+  expect(output).toContain('完整卡库可用');
   expect(output).toContain('试用中');
   expect(output).toContain('试用中');
   expect(output).toContain('已开始 5 天试用');

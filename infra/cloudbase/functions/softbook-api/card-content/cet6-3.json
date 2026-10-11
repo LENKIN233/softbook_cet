@@ -6,14 +6,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 空格语法预判",
-      "prompt": "语境：The older building remains _____ vulnerable to flooding.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "support": "语境：The older building remains _____ vulnerable to flooding.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "context": "语境：The older building remains _____ vulnerable to flooding.\n\n问题：先判断空格在句中的作用，再选出合适形式。"
+      "prompt": "The older building remains _____ vulnerable to flooding.\n\n选词补全句子。",
+      "support": "The older building remains _____ vulnerable to flooding.\n\n选词补全句子。",
+      "context": "The older building remains _____ vulnerable to flooding.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "空格修饰形容词 vulnerable，需用程度副词 particularly；remains 的表语仍是整个形容词短语。",
-      "exam_tip": "助动词、主语和修饰对象需要一起检查。"
+      "summary": "particularly vulnerable to flooding 是“尤其容易受洪水影响”。vulnerable 已描述建筑的状态，particularly 只加强程度。particular 是形容词，particulars 指细节，particularity 是名词，都不能这样修饰 vulnerable。",
+      "exam_tip": "remains 后已有 vulnerable；空格要修饰这个形容词。"
     },
     "space_metadata": {
       "box_ref": "1213",
@@ -55,14 +55,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 空格语法预判",
-      "prompt": "语境：_____, the two surveys used different questions, so their results should not be compared directly.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "support": "语境：_____, the two surveys used different questions, so their results should not be compared directly.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "context": "语境：_____, the two surveys used different questions, so their results should not be compared directly.\n\n问题：先判断空格在句中的作用，再选出合适形式。"
+      "prompt": "_____, the two surveys used different questions, so their results should not be compared directly.\n\n选词补全句子。",
+      "support": "_____, the two surveys used different questions, so their results should not be compared directly.\n\n选词补全句子。",
+      "context": "_____, the two surveys used different questions, so their results should not be compared directly.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "句首 Unfortunately 是对整句情况的评注，后面仍有完整主谓；不能把形容词 Unfortunate 独立放在这里。",
-      "exam_tip": "助动词、主语和修饰对象需要一起检查。"
+      "summary": "Unfortunately 在句首表示“遗憾的是”，评价后面两个调查无法直接比较的情况。后面已有完整句子，不能只放形容词 Unfortunate；Misfortune 是不幸的事，Unfortunates 指不幸的人，都不作这种句首评语。",
+      "exam_tip": "逗号后已经有完整句子；空格要对整件事作评价。"
     },
     "space_metadata": {
       "box_ref": "1213",
@@ -104,14 +104,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 空格语法预判",
-      "prompt": "语境：Staff now review the timetable more _____ after several recent delays.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "support": "语境：Staff now review the timetable more _____ after several recent delays.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "context": "语境：Staff now review the timetable more _____ after several recent delays.\n\n问题：先判断空格在句中的作用，再选出合适形式。"
+      "prompt": "Staff now review the timetable more _____ after several recent delays.\n\n选词补全句子。",
+      "support": "Staff now review the timetable more _____ after several recent delays.\n\n选词补全句子。",
+      "context": "Staff now review the timetable more _____ after several recent delays.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "more frequently 修饰 review 的频率，more 不意味着后面一定是形容词。",
-      "exam_tip": "助动词、主语和修饰对象需要一起检查。"
+      "summary": "review the timetable more frequently 是“更频繁地检查时刻表”。more frequently 描述检查的频率。frequent 描述频繁发生的事，frequency、frequencies 是频率的名词，不能放在这里直接修饰 review。",
+      "exam_tip": "more 后不一定是形容词；先看空格描述 review 的频率还是 timetable 的性质。"
     },
     "space_metadata": {
       "box_ref": "1213",
@@ -153,14 +153,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 空格语法预判",
-      "prompt": "语境：The team responded _____ to the warning and moved the event indoors.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "support": "语境：The team responded _____ to the warning and moved the event indoors.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "context": "语境：The team responded _____ to the warning and moved the event indoors.\n\n问题：先判断空格在句中的作用，再选出合适形式。"
+      "prompt": "The team responded _____ to the warning and moved the event indoors.\n\n选词补全句子。",
+      "support": "The team responded _____ to the warning and moved the event indoors.\n\n选词补全句子。",
+      "context": "The team responded _____ to the warning and moved the event indoors.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "responded 已是谓语，promptly 说明反应及时；后半句交代随后采取的行动。",
-      "exam_tip": "助动词、主语和修饰对象需要一起检查。"
+      "summary": "responded promptly 是“及时作出回应”，随后把活动移到室内。promptly 修饰 responded；prompt 可说 a prompt response，promptness 是及时性，prompted 是动词形式，均不适合此处。",
+      "exam_tip": "收到警告后很快搬到室内；空格说明反应有多及时。"
     },
     "space_metadata": {
       "box_ref": "1213",
@@ -202,14 +202,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 空格语法预判",
-      "prompt": "语境：The results were _____ interpreted by teams using different definitions.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "support": "语境：The results were _____ interpreted by teams using different definitions.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "context": "语境：The results were _____ interpreted by teams using different definitions.\n\n问题：先判断空格在句中的作用，再选出合适形式。"
+      "prompt": "The results were _____ interpreted by teams using different definitions.\n\n选词补全句子。",
+      "support": "The results were _____ interpreted by teams using different definitions.\n\n选词补全句子。",
+      "context": "The results were _____ interpreted by teams using different definitions.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "were interpreted 是被动谓语，differently 修饰解读方式；different definitions 为不同解读提供语境。",
-      "exam_tip": "助动词、主语和修饰对象需要一起检查。"
+      "summary": "were differently interpreted 是“被作出不同解读”。不同团队采用不同定义，解读方式因而不同。were interpreted 已是被动表达，空格用 differently 修饰它；different 描述名词，difference、differences 是差异的名词。",
+      "exam_tip": "先找完整的 were interpreted，再看 different definitions 如何影响解读。"
     },
     "space_metadata": {
       "box_ref": "1213",
@@ -251,14 +251,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 空格语法预判",
-      "prompt": "语境：The team estimated the likely costs too _____ and later ran out of money.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "support": "语境：The team estimated the likely costs too _____ and later ran out of money.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "context": "语境：The team estimated the likely costs too _____ and later ran out of money.\n\n问题：先判断空格在句中的作用，再选出合适形式。"
+      "prompt": "The team estimated the likely costs too _____ and later ran out of money.\n\n选词补全句子。",
+      "support": "The team estimated the likely costs too _____ and later ran out of money.\n\n选词补全句子。",
+      "context": "The team estimated the likely costs too _____ and later ran out of money.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "optimistically 修饰 estimated 的方式，too 表示过于乐观；后文资金耗尽说明低估支出的后果。",
-      "exam_tip": "助动词、主语和修饰对象需要一起检查。"
+      "summary": "estimated the costs too optimistically 是“对成本估计得过于乐观”，后面钱不够用说明预算估低了。optimistically 描述 estimated 的方式；optimistic 描述人或估计，optimism 是乐观，optimist 是乐观的人。",
+      "exam_tip": "钱后来用完了；too 后的词要说明估算时采取了什么态度。"
     },
     "space_metadata": {
       "box_ref": "1213",
@@ -300,14 +300,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 空格语法预判",
-      "prompt": "语境：After the first failure, the group proceeded _____ and checked each stage before moving on.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "support": "语境：After the first failure, the group proceeded _____ and checked each stage before moving on.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "context": "语境：After the first failure, the group proceeded _____ and checked each stage before moving on.\n\n问题：先判断空格在句中的作用，再选出合适形式。"
+      "prompt": "After the first failure, the group proceeded _____ and checked each stage before moving on.\n\n选词补全句子。",
+      "support": "After the first failure, the group proceeded _____ and checked each stage before moving on.\n\n选词补全句子。",
+      "context": "After the first failure, the group proceeded _____ and checked each stage before moving on.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "cautiously 修饰 proceeded，逐步检查说明小心推进；caution 是名词或动词，不能直接作这里的方式副词。",
-      "exam_tip": "助动词、主语和修饰对象需要一起检查。"
+      "summary": "proceeded cautiously 是“小心地继续推进”。每一步都检查后再继续，正是谨慎的表现。cautious 描述人或做法，caution 是小心或警告，cautioning 是警告的动作，不能直接修饰 proceeded。",
+      "exam_tip": "checked each stage before moving on 是判断推进方式的证据。"
     },
     "space_metadata": {
       "box_ref": "1213",
@@ -349,14 +349,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 空格语法预判",
-      "prompt": "语境：The new process reduced waiting times _____, from an hour to about ten minutes.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "support": "语境：The new process reduced waiting times _____, from an hour to about ten minutes.\n\n问题：先判断空格在句中的作用，再选出合适形式。",
-      "context": "语境：The new process reduced waiting times _____, from an hour to about ten minutes.\n\n问题：先判断空格在句中的作用，再选出合适形式。"
+      "prompt": "The new process reduced waiting times _____, from an hour to about ten minutes.\n\n选词补全句子。",
+      "support": "The new process reduced waiting times _____, from an hour to about ten minutes.\n\n选词补全句子。",
+      "context": "The new process reduced waiting times _____, from an hour to about ten minutes.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "substantially 修饰 reduced 的程度；从六十分钟到约十分钟支持显著减少的意思。",
-      "exam_tip": "助动词、主语和修饰对象需要一起检查。"
+      "summary": "等候从一小时缩短到十分钟左右，是 reduced substantially（大幅减少）。substantially 修饰 reduced 的幅度。substantial 可说 a substantial reduction；substance、substances 表示物质等含义，不能表达这里的程度。",
+      "exam_tip": "比较 an hour 和 ten minutes，再判断减少的幅度。"
     },
     "space_metadata": {
       "box_ref": "1213",
@@ -398,14 +398,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Reliable public transport can result _____ shorter journeys for residents.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Reliable public transport can result _____ shorter journeys for residents.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Reliable public transport can result _____ shorter journeys for residents.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Reliable public transport can result _____ shorter journeys for residents.\n\n选词补全句子。",
+      "support": "Reliable public transport can result _____ shorter journeys for residents.\n\n选词补全句子。",
+      "context": "Reliable public transport can result _____ shorter journeys for residents.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "result in 引出结果，这里是行程时间缩短；result from 则引出原因，方向不同。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "result in shorter journeys 是“使行程变短”：公共交通可靠是原因，行程缩短是结果。result from 的方向相反，后面接原因；of、at 都不合此处搭配。先分清原因和结果，再选介词。",
+      "exam_tip": "shorter journeys 是交通改善带来的结果，还是交通改善的原因？"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -447,14 +447,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The delay stemmed _____ a fault in the signalling system.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The delay stemmed _____ a fault in the signalling system.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The delay stemmed _____ a fault in the signalling system.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The delay stemmed _____ a fault in the signalling system.\n\n选词补全句子。",
+      "support": "The delay stemmed _____ a fault in the signalling system.\n\n选词补全句子。",
+      "context": "The delay stemmed _____ a fault in the signalling system.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "stem from 表示源于，后面给出延误的原因；不是表示导致后果的结构。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "stemmed from a fault 是“源于一次故障”。句子先说延误，再交代信号系统故障这个原因，所以用 from。stem to、stem in、stem with 都不表示这里的“由……引起”。",
+      "exam_tip": "先有信号故障，才发生延误；空格后交代的是起因。"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -496,14 +496,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：All visitors must comply _____ the museum rules.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：All visitors must comply _____ the museum rules.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：All visitors must comply _____ the museum rules.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "All visitors must comply _____ the museum rules.\n\n选词补全句子。",
+      "support": "All visitors must comply _____ the museum rules.\n\n选词补全句子。",
+      "context": "All visitors must comply _____ the museum rules.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "comply with rules 表示遵守规则，with 是此处动词搭配的一部分。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "comply with the museum rules 是“遵守博物馆规定”，with 是这个动词搭配的一部分。to、at、of 都不能替代这里的 with。可与 follow the rules 对照：follow 直接接 rules，comply 需要 with。",
+      "exam_tip": "比较 comply _____ the rules 与 follow the rules，别把两个动词的接法混用。"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -545,14 +545,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The council plans to phase _____ the oldest buses over the next five years.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The council plans to phase _____ the oldest buses over the next five years.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The council plans to phase _____ the oldest buses over the next five years.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The council plans to phase _____ the oldest buses over the next five years.\n\n选词补全句子。",
+      "support": "The council plans to phase _____ the oldest buses over the next five years.\n\n选词补全句子。",
+      "context": "The council plans to phase _____ the oldest buses over the next five years.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "phase out 表示逐步停止使用，与 over the next five years 的渐进过程一致。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "phase out the oldest buses 是“逐步淘汰最旧的公交车”。over the next five years 表明过程分几年进行，不是一次全换掉。phase over、off、away 不能表达这里的逐步停止使用。",
+      "exam_tip": "five years 说明变化分阶段发生；老公交是被投入使用还是被淘汰？"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -594,14 +594,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The volunteers will carry _____ a survey of local travel needs.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The volunteers will carry _____ a survey of local travel needs.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The volunteers will carry _____ a survey of local travel needs.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The volunteers will carry _____ a survey of local travel needs.\n\n选词补全句子。",
+      "support": "The volunteers will carry _____ a survey of local travel needs.\n\n选词补全句子。",
+      "context": "The volunteers will carry _____ a survey of local travel needs.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "carry out a survey 表示开展调查；carry off、carry over、carry away 各有别的意思，不能替代这里的开展。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "carry out a survey 是“开展、实施调查”。carry off 可表示赢得或成功完成难事，carry over 是延续到以后，carry away 是带走；这里要说执行调查，选 out。",
+      "exam_tip": "survey 是计划要实施的工作，不是要搬走的物品。"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -643,14 +643,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The calculation should take maintenance costs _____ account.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The calculation should take maintenance costs _____ account.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The calculation should take maintenance costs _____ account.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The calculation should take maintenance costs _____ account.\n\n选词补全句子。",
+      "support": "The calculation should take maintenance costs _____ account.\n\n选词补全句子。",
+      "context": "The calculation should take maintenance costs _____ account.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "take something into account 表示把某因素考虑在内；宾语 maintenance costs 放在 take 与 into account 之间。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "take maintenance costs into account 是“把维护费用考虑进去”。maintenance costs 放在 take 和 into account 中间。onto 表示到某表面上，from 表示来自，with 表示伴随，都不构成这个考虑因素的搭配。",
+      "exam_tip": "先把中间的 maintenance costs 暂时遮住，读 take _____ account。"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -692,14 +692,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Equipment faults account _____ most of the delays recorded this month.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Equipment faults account _____ most of the delays recorded this month.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Equipment faults account _____ most of the delays recorded this month.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Equipment faults account _____ most of the delays recorded this month.\n\n选词补全句子。",
+      "support": "Equipment faults account _____ most of the delays recorded this month.\n\n选词补全句子。",
+      "context": "Equipment faults account _____ most of the delays recorded this month.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "account for 在这里说明延误的主要原因或所占部分；不能误写成新平台主动承担延误。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "equipment faults account for most delays 是“多数延误由设备故障造成”。account for 在这里解释延误的原因，不是说故障主动承担责任；to、with、by 都不合 account for 这一用法。",
+      "exam_tip": "本句在回答“大多数延误由什么造成”，不是问谁负责处理延误。"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -741,14 +741,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：A lack of clear signs can lead _____ confusion at a busy station.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：A lack of clear signs can lead _____ confusion at a busy station.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：A lack of clear signs can lead _____ confusion at a busy station.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "A lack of clear signs can lead _____ confusion at a busy station.\n\n选词补全句子。",
+      "support": "A lack of clear signs can lead _____ confusion at a busy station.\n\n选词补全句子。",
+      "context": "A lack of clear signs can lead _____ confusion at a busy station.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "lead to 引出结果，缺少标识是原因，confusion 是结果；to 在此为介词。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "lead to confusion 是“导致混乱”。缺少标识是原因，confusion 是结果；to 把结果接出来。from 会把方向弄反，of、with 也不合这个搭配。这里 to 后接名词，并不要求动词原形。",
+      "exam_tip": "标识不足和混乱，哪一个在前、哪一个是后果？"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -790,14 +790,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The organisers decided to step _____ their publicity before the event.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The organisers decided to step _____ their publicity before the event.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The organisers decided to step _____ their publicity before the event.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The organisers decided to step _____ their publicity before the event.\n\n选词补全句子。",
+      "support": "The organisers decided to step _____ their publicity before the event.\n\n选词补全句子。",
+      "context": "The organisers decided to step _____ their publicity before the event.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "step up 表示加强，后面 publicity 是要加大的宣传工作。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "step up publicity 是“加大宣传力度”。这里的 step up 不是往上迈一步，而是加强某项工作。step away 是离开，step over 是跨过，step through 是逐步执行，均不表达加强宣传。",
+      "exam_tip": "publicity 是活动前要加强的工作；把 step 当短语理解，不要逐字译成迈步。"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -839,14 +839,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The committee will look _____ the complaints before making a decision.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The committee will look _____ the complaints before making a decision.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The committee will look _____ the complaints before making a decision.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The committee will look _____ the complaints before making a decision.\n\n选词补全句子。",
+      "support": "The committee will look _____ the complaints before making a decision.\n\n选词补全句子。",
+      "context": "The committee will look _____ the complaints before making a decision.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "look into 表示调查，complaints 是调查对象；look after 表示照顾，不能表达这层意思。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "look into the complaints 是“调查这些投诉”，调查后再作决定。look after 是照顾，look out 是当心，look up to 是敬重；它们都不能表达委员会核查投诉的动作。",
+      "exam_tip": "before making a decision 说明委员会要先查清投诉的情况。"
     },
     "space_metadata": {
       "box_ref": "1220",
@@ -888,14 +888,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The path was closed after _____ rain flooded several low sections.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The path was closed after _____ rain flooded several low sections.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The path was closed after _____ rain flooded several low sections.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The path was closed after _____ rain flooded several low sections.\n\n选词补全句子。",
+      "support": "The path was closed after _____ rain flooded several low sections.\n\n选词补全句子。",
+      "context": "The path was closed after _____ rain flooded several low sections.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "heavy rain 是大雨的常见搭配；后文低洼处被淹也支持雨量较大的意思。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "heavy rain 是“大雨”的常见说法，后面低洼处被淹进一步说明雨量很大。fragile 是脆弱的，narrow 是狭窄的，shallow 是浅的，都不与 rain 搭配表达雨势大。",
+      "exam_tip": "flooded several low sections 说明雨造成什么后果？"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -937,14 +937,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The claim remains uncertain because the report provides only _____ evidence.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The claim remains uncertain because the report provides only _____ evidence.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The claim remains uncertain because the report provides only _____ evidence.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The claim remains uncertain because the report provides only _____ evidence.\n\n选词补全句子。",
+      "support": "The claim remains uncertain because the report provides only _____ evidence.\n\n选词补全句子。",
+      "context": "The claim remains uncertain because the report provides only _____ evidence.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "limited evidence 表示证据有限，与仍不确定相符；其余词都强化证据的充分或决定性，会与前半句冲突。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "limited evidence 是“证据有限”，所以结论仍不确定。conclusive 表示足以定论，decisive 表示决定性的，overwhelming 表示压倒性的；三者都把证据说得很强，与 remains uncertain 冲突。",
+      "exam_tip": "先看 remains uncertain；空格要解释为什么还不能下定论。"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -986,14 +986,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Please begin with a _____ introduction of no more than two sentences.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Please begin with a _____ introduction of no more than two sentences.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Please begin with a _____ introduction of no more than two sentences.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Please begin with a _____ introduction of no more than two sentences.\n\n选词补全句子。",
+      "support": "Please begin with a _____ introduction of no more than two sentences.\n\n选词补全句子。",
+      "context": "Please begin with a _____ introduction of no more than two sentences.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "brief introduction 表示简短介绍，不超过两句进一步限定长度；不能只凭正式程度选择 comprehensive。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "no more than two sentences 要求不超过两句，最贴切的是 brief introduction（简短介绍）。lengthy、extended 都强调长；comprehensive 强调全面，不直接回应这里的篇幅限制。",
+      "exam_tip": "题目限制的是长度，不是要求覆盖所有细节；先读 two sentences。"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -1035,14 +1035,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The only bridge was closed, creating a _____ obstacle to travel across the river.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The only bridge was closed, creating a _____ obstacle to travel across the river.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The only bridge was closed, creating a _____ obstacle to travel across the river.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The only bridge was closed, creating a _____ obstacle to travel across the river.\n\n选词补全句子。",
+      "support": "The only bridge was closed, creating a _____ obstacle to travel across the river.\n\n选词补全句子。",
+      "context": "The only bridge was closed, creating a _____ obstacle to travel across the river.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "major obstacle 表示重大障碍；唯一的桥关闭，支持影响很大的判断，而非轻微或可忽略。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "唯一的桥关闭，过河出行受到很大阻碍，所以是 a major obstacle。minor 表示较小的，trivial 表示琐碎的，negligible 表示可以忽略的；它们都会低估 only bridge 关闭的影响。",
+      "exam_tip": "only bridge 是判断障碍大小的关键，不要只看有桥关闭。"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -1084,14 +1084,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：A productive discussion requires _____ respect: both sides must listen to each other.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：A productive discussion requires _____ respect: both sides must listen to each other.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：A productive discussion requires _____ respect: both sides must listen to each other.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "A productive discussion requires _____ respect: both sides must listen to each other.\n\n选词补全句子。",
+      "support": "A productive discussion requires _____ respect: both sides must listen to each other.\n\n选词补全句子。",
+      "context": "A productive discussion requires _____ respect: both sides must listen to each other.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "mutual respect 表示相互尊重，both sides 和 each other 明确给出双向关系。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "mutual respect 是“相互尊重”。both sides 和 each other 明确要求双方都倾听。one-sided 是单方面的，正好相反；accidental 是偶然的，temporary 是暂时的，都不能概括这里的双向关系。",
+      "exam_tip": "冒号后的 both sides 和 each other 直接说明尊重应来自哪几方。"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -1133,14 +1133,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The project uses solar power as a source of _____ energy.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The project uses solar power as a source of _____ energy.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The project uses solar power as a source of _____ energy.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The project uses solar power as a source of _____ energy.\n\n选词补全句子。",
+      "support": "The project uses solar power as a source of _____ energy.\n\n选词补全句子。",
+      "context": "The project uses solar power as a source of _____ energy.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "renewable energy 指可再生能源，太阳能属于这一类别；其他选项不能表达该分类。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "renewable energy 是“可再生能源”，太阳能来自持续补充的太阳辐射。exhausted 表示已耗尽的，borrowed 是借来的，declining 是减少的，均不是对太阳能这一能源类别的正确概括。",
+      "exam_tip": "先判断 solar power 属于什么能源类别，别把 energy 当作人的精力。"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -1182,14 +1182,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The handbook gives _____ advice that students can apply immediately, such as keeping copies of receipts.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The handbook gives _____ advice that students can apply immediately, such as keeping copies of receipts.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The handbook gives _____ advice that students can apply immediately, such as keeping copies of receipts.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The handbook gives _____ advice that students can apply immediately, such as keeping copies of receipts.\n\n选词补全句子。",
+      "support": "The handbook gives _____ advice that students can apply immediately, such as keeping copies of receipts.\n\n选词补全句子。",
+      "context": "The handbook gives _____ advice that students can apply immediately, such as keeping copies of receipts.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "practical advice 强調建议可付诸行动，immediately apply 和保留收据的例子支持这一意义。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "practical advice 是“能实际用上的建议”，保留收据副本就是可以马上照做的行动。irrelevant 是不相关的，contradictory 是自相矛盾的，misleading 是误导性的，都不符合这条具体建议的用途。",
+      "exam_tip": "keeping copies of receipts 是一项马上能做的事；它说明建议的什么特点？"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -1231,14 +1231,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Students without a library card have _____ access: they may enter the building but cannot borrow books.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Students without a library card have _____ access: they may enter the building but cannot borrow books.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Students without a library card have _____ access: they may enter the building but cannot borrow books.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Students without a library card have _____ access: they may enter the building but cannot borrow books.\n\n选词补全句子。",
+      "support": "Students without a library card have _____ access: they may enter the building but cannot borrow books.\n\n选词补全句子。",
+      "context": "Students without a library card have _____ access: they may enter the building but cannot borrow books.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "restricted access 表示权限有限，后面的可以进入但不能借书说明限制具体在哪里。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "能进馆但不能借书，说明权限受限，用 restricted access。unrestricted、unlimited 都表示没有限制，unconditional 表示无条件；它们与 cannot borrow books 的明确限制冲突。",
+      "exam_tip": "把 may enter 和 cannot borrow 对照：是完全开放还是只开放一部分？"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -1280,14 +1280,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The service failure caused _____ concern, with complaints arriving from every district.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The service failure caused _____ concern, with complaints arriving from every district.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The service failure caused _____ concern, with complaints arriving from every district.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The service failure caused _____ concern, with complaints arriving from every district.\n\n选词补全句子。",
+      "support": "The service failure caused _____ concern, with complaints arriving from every district.\n\n选词补全句子。",
+      "context": "The service failure caused _____ concern, with complaints arriving from every district.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "widespread concern 表示广泛关注或担忧；every district 说明范围不限于某个地区。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "每个区都有人投诉，说明担忧 widespread（范围广）。isolated 是零星孤立的，localised 是局限于某地的，private 是私人的；都不能概括 from every district 所表达的广泛范围。",
+      "exam_tip": "every district 说明影响范围；空格不是评价投诉语气。"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -1329,14 +1329,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Buses and underground trains are forms of _____ transport.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Buses and underground trains are forms of _____ transport.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Buses and underground trains are forms of _____ transport.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Buses and underground trains are forms of _____ transport.\n\n选词补全句子。",
+      "support": "Buses and underground trains are forms of _____ transport.\n\n选词补全句子。",
+      "context": "Buses and underground trains are forms of _____ transport.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "public transport 是公共交通的常用组合，与公交和地铁这两个例子相对应。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "public transport 指面向公众的交通服务，公交和地铁是典型例子。private、personal、individual 都偏向私人或个人使用，不能概括句中这两类交通服务。",
+      "exam_tip": "把 buses 与 underground trains 看成一类服务，寻找它们共同的使用对象。"
     },
     "space_metadata": {
       "box_ref": "1221",
@@ -1378,14 +1378,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The changes had a noticeable impact _____ travel times.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The changes had a noticeable impact _____ travel times.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The changes had a noticeable impact _____ travel times.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The changes had a noticeable impact _____ travel times.\n\n选词补全句子。",
+      "support": "The changes had a noticeable impact _____ travel times.\n\n选词补全句子。",
+      "context": "The changes had a noticeable impact _____ travel times.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "impact on 表示对某事的影响，travel times 是受到影响的对象。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "have an impact on travel times 是“对出行时间产生影响”，on 后接受影响的对象。to、for、by 不能替代名词 impact 后的这个介词；不要因为中文说“对于”就直接选 to。",
+      "exam_tip": "travel times 是改变影响到的对象，不是执行改变的人。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1427,14 +1427,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：There is growing demand _____ affordable student accommodation.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：There is growing demand _____ affordable student accommodation.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：There is growing demand _____ affordable student accommodation.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "There is growing demand _____ affordable student accommodation.\n\n选词补全句子。",
+      "support": "There is growing demand _____ affordable student accommodation.\n\n选词补全句子。",
+      "context": "There is growing demand _____ affordable student accommodation.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "demand for 表示对某物的需求，这里所需的是可负担的学生住宿。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "demand for affordable accommodation 是“对可负担住宿的需求”。for 后是人们需要的东西；demand to 后可接动作，如 a demand to see someone，但不能直接接这里的住宿名词。with、of 也不合本句。",
+      "exam_tip": "accommodation 是需求的内容；别把它当作提出需求的人。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1476,14 +1476,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Residents expressed concern _____ the noise from late-night deliveries.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Residents expressed concern _____ the noise from late-night deliveries.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Residents expressed concern _____ the noise from late-night deliveries.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Residents expressed concern _____ the noise from late-night deliveries.\n\n选词补全句子。",
+      "support": "Residents expressed concern _____ the noise from late-night deliveries.\n\n选词补全句子。",
+      "context": "Residents expressed concern _____ the noise from late-night deliveries.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "concern about 引出担忧的内容；这里说的是夜间送货噪声。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "concern about the noise 是“对噪声的担忧”，about 引出担忧的内容。by、into、through 不能这样把 concern 与所担忧的噪声连起来。from late-night deliveries 则单独说明噪声从哪里来。",
+      "exam_tip": "空格连接的是担忧和噪声；后面的 from 已经另说噪声来源。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1495,7 +1495,7 @@
       {
         "id": "A",
         "label": "A",
-        "text": "at"
+        "text": "by"
       },
       {
         "id": "B",
@@ -1525,14 +1525,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The study explored the relationship _____ sleep duration and concentration.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The study explored the relationship _____ sleep duration and concentration.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The study explored the relationship _____ sleep duration and concentration.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The study explored the relationship _____ sleep duration and concentration.\n\n选词补全句子。",
+      "support": "The study explored the relationship _____ sleep duration and concentration.\n\n选词补全句子。",
+      "context": "The study explored the relationship _____ sleep duration and concentration.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "relationship between A and B 用来说明两者关系；这里明确列出睡眠时长与专注力两个因素。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "the relationship between sleep duration and concentration 是“睡眠时长与专注力之间的关系”。between A and B 对应明确列出的两项；among 常说群体之中的关系，from、along 不适合这个结构。",
+      "exam_tip": "sleep duration 与 concentration 用 and 连起来，是本题比较的两项。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1574,14 +1574,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：There is clear evidence _____ damage to the roof after the storm.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：There is clear evidence _____ damage to the roof after the storm.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：There is clear evidence _____ damage to the roof after the storm.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "There is clear evidence _____ damage to the roof after the storm.\n\n选词补全句子。",
+      "support": "There is clear evidence _____ damage to the roof after the storm.\n\n选词补全句子。",
+      "context": "There is clear evidence _____ damage to the roof after the storm.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "evidence of 后接名词，说明有证据表明哪种情况存在，这里是屋顶损坏。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "evidence of damage 是“损坏的证据”，of 后给出证据表明存在的情况。to、by、into 都不能这样连接 evidence 和 damage；damage to the roof 中的 to 则是另一个搭配，表示哪里受损。",
+      "exam_tip": "分开看 evidence _____ damage 和 damage to the roof，不要把后一个 to 搬到前面。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1623,14 +1623,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The new entrance improves access _____ the building for wheelchair users.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The new entrance improves access _____ the building for wheelchair users.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The new entrance improves access _____ the building for wheelchair users.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The new entrance improves access _____ the building for wheelchair users.\n\n选词补全句子。",
+      "support": "The new entrance improves access _____ the building for wheelchair users.\n\n选词补全句子。",
+      "context": "The new entrance improves access _____ the building for wheelchair users.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "access to 表示进入或使用的途径；the building 是要进入的对象。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "improves access to the building 是“让人更方便进入建筑”。access 是进入的机会或途径，to 接要进入的地方；for wheelchair users 另说明受益人。on、of、with 都不合这里的 access to。",
+      "exam_tip": "building 是进入的地方，wheelchair users 是使用者；两处介词分工不同。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1672,14 +1672,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The notice was issued in response _____ repeated requests from students.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The notice was issued in response _____ repeated requests from students.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The notice was issued in response _____ repeated requests from students.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The notice was issued in response _____ repeated requests from students.\n\n选词补全句子。",
+      "support": "The notice was issued in response _____ repeated requests from students.\n\n选词补全句子。",
+      "context": "The notice was issued in response _____ repeated requests from students.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in response to 表示作为对某事的回应，requests 是引发公告的请求。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "in response to repeated requests 是“回应多次提出的请求”。to 后是引发公告的事。不要把 response 与 request for 混在一起：for 可连接 request 的内容，但本句空格属于 in response to。",
+      "exam_tip": "公告是对学生请求作出的反应；先认清空格前的完整短语 in response。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1721,14 +1721,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The team investigated the cause _____ the repeated power failures.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The team investigated the cause _____ the repeated power failures.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The team investigated the cause _____ the repeated power failures.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The team investigated the cause _____ the repeated power failures.\n\n选词补全句子。",
+      "support": "The team investigated the cause _____ the repeated power failures.\n\n选词补全句子。",
+      "context": "The team investigated the cause _____ the repeated power failures.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "cause of 引出发生问题的事件；这里要查明反复停电的原因。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "the cause of the power failures 是“停电的原因”。of 后接要查明原因的事件。on、to、at 都不构成这里的 cause of；不要与 have an effect on 的 on 混用，前者查原因，后者说影响。",
+      "exam_tip": "团队在查“停电为什么发生”，不是说停电影响到哪里。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1770,14 +1770,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Greater dependence _____ one supplier made deliveries vulnerable to disruption.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Greater dependence _____ one supplier made deliveries vulnerable to disruption.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Greater dependence _____ one supplier made deliveries vulnerable to disruption.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Greater dependence _____ one supplier made deliveries vulnerable to disruption.\n\n选词补全句子。",
+      "support": "Greater dependence _____ one supplier made deliveries vulnerable to disruption.\n\n选词补全句子。",
+      "context": "Greater dependence _____ one supplier made deliveries vulnerable to disruption.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "dependence on 表示对某人或某物的依赖；one supplier 是依赖对象。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "dependence on one supplier 是“依赖一个供应商”。on 接所依靠的对象；供货一旦受阻，缺少其他来源就容易被影响。dependence 与动词 depend 都用 on，不能换成 to、for、with。",
+      "exam_tip": "one supplier 是依赖对象；它也解释了为什么供货容易中断。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1819,14 +1819,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The manager offered a clear explanation _____ the delay.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The manager offered a clear explanation _____ the delay.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The manager offered a clear explanation _____ the delay.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The manager offered a clear explanation _____ the delay.\n\n选词补全句子。",
+      "support": "The manager offered a clear explanation _____ the delay.\n\n选词补全句子。",
+      "context": "The manager offered a clear explanation _____ the delay.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "explanation for 在这里解释某事为何发生，delay 是需要说明原因的事件；给某人解释则可用 explanation to someone。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "an explanation for the delay 是“对为何延误的解释”。for 后接需要说明原因的事；explanation to somebody 才是给某人解释。本句 delay 不是听解释的人，at、into 也不合适。",
+      "exam_tip": "delay 是被解释的事情，不是接收解释的人。"
     },
     "space_metadata": {
       "box_ref": "1222",
@@ -1868,14 +1868,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The equipment is exposed _____ rain unless it is covered.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The equipment is exposed _____ rain unless it is covered.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The equipment is exposed _____ rain unless it is covered.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The equipment is exposed _____ rain unless it is covered.\n\n选词补全句子。",
+      "support": "The equipment is exposed _____ rain unless it is covered.\n\n选词补全句子。",
+      "context": "The equipment is exposed _____ rain unless it is covered.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be exposed to 表示暴露于，rain 是接触到的外部环境因素。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "be exposed to rain 是“暴露在雨中”。to 后接直接接触的外界因素；unless it is covered 表明遮盖才能避免接触。with、for、at 不能替代 exposed 后的这个搭配。",
+      "exam_tip": "covered 和 exposed 是相反状态；没遮住时设备会接触到什么？"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -1917,14 +1917,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Small coastal towns are particularly vulnerable _____ severe storms.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Small coastal towns are particularly vulnerable _____ severe storms.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Small coastal towns are particularly vulnerable _____ severe storms.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Small coastal towns are particularly vulnerable _____ severe storms.\n\n选词补全句子。",
+      "support": "Small coastal towns are particularly vulnerable _____ severe storms.\n\n选词补全句子。",
+      "context": "Small coastal towns are particularly vulnerable _____ severe storms.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be vulnerable to 表示容易受到某种不利影响；severe storms 是风险来源。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "vulnerable to severe storms 是“容易受到强风暴的伤害”。to 接可能造成损害的因素；from 常与 damage from 等表达相连，但不能直接替换 vulnerable 后的 to。with、of 也不合本句。",
+      "exam_tip": "severe storms 是造成不利影响的因素；完整搭配从 vulnerable 开始看。"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -1966,14 +1966,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The second set of results is consistent _____ the first.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The second set of results is consistent _____ the first.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The second set of results is consistent _____ the first.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The second set of results is consistent _____ the first.\n\n选词补全句子。",
+      "support": "The second set of results is consistent _____ the first.\n\n选词补全句子。",
+      "context": "The second set of results is consistent _____ the first.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be consistent with 表示与另一结果一致，with 后给出对照对象。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "consistent with the first set 表示“与第一组结果一致”。with 后接比较对象；to、for、at 都不是这个表示相符的搭配。the first 在这里省略了前面已经出现的 set of results。",
+      "exam_tip": "the first 指第一组结果；这句话在比较两组结果是否相符。"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -2015,14 +2015,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The centre is dependent _____ volunteers for its weekend opening hours.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The centre is dependent _____ volunteers for its weekend opening hours.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The centre is dependent _____ volunteers for its weekend opening hours.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The centre is dependent _____ volunteers for its weekend opening hours.\n\n选词补全句子。",
+      "support": "The centre is dependent _____ volunteers for its weekend opening hours.\n\n选词补全句子。",
+      "context": "The centre is dependent _____ volunteers for its weekend opening hours.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be dependent on 表示依靠，volunteers 是所依靠的人；for 后补充依靠他们做的事情。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "dependent on volunteers for weekend opening 是“周末开放要靠志愿者”。on 接依靠的人，for 接依靠他们维持的事情。to、of、at 不能替换 on；不要把句中已有的 for 也用来连接 volunteers。",
+      "exam_tip": "问两件事：依靠谁，依靠他们做什么？分别对应 volunteers 和 weekend opening。"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -2064,14 +2064,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The revised timetable is aligned _____ the new bus service.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The revised timetable is aligned _____ the new bus service.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The revised timetable is aligned _____ the new bus service.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The revised timetable is aligned _____ the new bus service.\n\n选词补全句子。",
+      "support": "The revised timetable is aligned _____ the new bus service.\n\n选词补全句子。",
+      "context": "The revised timetable is aligned _____ the new bus service.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be aligned with 表示与另一安排协调或相匹配，不能将这里的 with 换成来源介词 from。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "aligned with the new bus service 是“与新的公交服务安排相配合”，例如时间能衔接。with 接要匹配的安排；from 表示来源，at、of 也不能表达这里的协调关系。",
+      "exam_tip": "不是说时刻表来自公交服务，而是两套安排彼此配合。"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -2113,14 +2113,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：All applications are subject _____ the same eligibility checks.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：All applications are subject _____ the same eligibility checks.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：All applications are subject _____ the same eligibility checks.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "All applications are subject _____ the same eligibility checks.\n\n选词补全句子。",
+      "support": "All applications are subject _____ the same eligibility checks.\n\n选词补全句子。",
+      "context": "All applications are subject _____ the same eligibility checks.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be subject to 表示需接受或受制于，后面是申请要经过的资格检查。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "be subject to eligibility checks 是“需要接受资格检查”。subject 在这里不是科目，也不是句子主语，而是“受……约束的”；to 引出必须经过的检查。with、of、by 不适合这个搭配。",
+      "exam_tip": "检查是每份申请必须经过的要求；这里 subject 不是名词“科目”。"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -2162,14 +2162,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The room is suitable _____ small group discussions but not large lectures.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The room is suitable _____ small group discussions but not large lectures.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The room is suitable _____ small group discussions but not large lectures.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The room is suitable _____ small group discussions but not large lectures.\n\n选词补全句子。",
+      "support": "The room is suitable _____ small group discussions but not large lectures.\n\n选词补全句子。",
+      "context": "The room is suitable _____ small group discussions but not large lectures.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be suitable for 后接用途，small group discussions 与 large lectures 的对比说明适用范围。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "suitable for small group discussions 是“适合小组讨论”。for 后接适用的活动；but not large lectures 划出了不适用的范围。from、of、at 都不能在这里说明房间的用途。",
+      "exam_tip": "对比 small group discussions 与 large lectures：这句话限制的是用途。"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -2181,7 +2181,7 @@
       {
         "id": "A",
         "label": "A",
-        "text": "to"
+        "text": "from"
       },
       {
         "id": "B",
@@ -2211,14 +2211,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Several participants were dissatisfied _____ the lack of clear instructions.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Several participants were dissatisfied _____ the lack of clear instructions.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Several participants were dissatisfied _____ the lack of clear instructions.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Several participants were dissatisfied _____ the lack of clear instructions.\n\n选词补全句子。",
+      "support": "Several participants were dissatisfied _____ the lack of clear instructions.\n\n选词补全句子。",
+      "context": "Several participants were dissatisfied _____ the lack of clear instructions.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be dissatisfied with 在这里引出不满的对象，即缺乏清楚的说明。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "dissatisfied with the lack of clear instructions 是“对缺少清楚说明感到不满”。with 引出不满的事情；from、through 表示来源或途径，to 也不能直接接这里的名词短语。",
+      "exam_tip": "不满针对的是 lack of instructions，不是某个带路或接待的人。"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -2260,14 +2260,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The new software is compatible _____ the computers already in use.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The new software is compatible _____ the computers already in use.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The new software is compatible _____ the computers already in use.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The new software is compatible _____ the computers already in use.\n\n选词补全句子。",
+      "support": "The new software is compatible _____ the computers already in use.\n\n选词补全句子。",
+      "context": "The new software is compatible _____ the computers already in use.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be compatible with 表示与另一设备或系统兼容，后面给出要兼容的电脑。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "compatible with the computers 是“能与这些电脑配合使用、相互兼容”。with 接要匹配的设备。to、for、of 都不合此处搭配；“为这些电脑设计”可说 designed for，但不是 compatible for。",
+      "exam_tip": "句子判断软件与现有电脑能不能一起用，关注两者之间的关系。"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -2309,14 +2309,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The team is committed _____ improving access for disabled visitors.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The team is committed _____ improving access for disabled visitors.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The team is committed _____ improving access for disabled visitors.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The team is committed _____ improving access for disabled visitors.\n\n选词补全句子。",
+      "support": "The team is committed _____ improving access for disabled visitors.\n\n选词补全句子。",
+      "context": "The team is committed _____ improving access for disabled visitors.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "be committed to 中的 to 为介词，所以后面可以接 improving 这样的动名词，不是 to + 动词原形的不定式。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "be committed to improving access 是“致力于改善通行条件”。这里 to 是介词，后接 improving；若把它当不定式写成 committed to improve，就混淆了结构。for、with、at 也不合这个固定说法。",
+      "exam_tip": "可以说 committed to this work；把 this work 换成动作时，词形怎样变？"
     },
     "space_metadata": {
       "box_ref": "1223",
@@ -2358,14 +2358,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：_____ terms of travel time, the new route is more efficient.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：_____ terms of travel time, the new route is more efficient.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：_____ terms of travel time, the new route is more efficient.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "_____ terms of travel time, the new route is more efficient.\n\n选词补全句子。",
+      "support": "_____ terms of travel time, the new route is more efficient.\n\n选词补全句子。",
+      "context": "_____ terms of travel time, the new route is more efficient.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in terms of 引出评价角度，这里限定比较的是出行时间，而不是所有方面。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "In terms of travel time 是“就出行时间而言”，把更高效的判断限制在用时上，不代表票价等方面也更好。At、On、By 不能替换 in terms of 中的 In。",
+      "exam_tip": "travel time 指本次比较的一个角度；别把后面的 more efficient 读成全面更优。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2407,14 +2407,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The main road was closed; _____ a result, buses followed a different route.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The main road was closed; _____ a result, buses followed a different route.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The main road was closed; _____ a result, buses followed a different route.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The main road was closed; _____ a result, buses followed a different route.\n\n选词补全句子。",
+      "support": "The main road was closed; _____ a result, buses followed a different route.\n\n选词补全句子。",
+      "context": "The main road was closed; _____ a result, buses followed a different route.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "as a result 连接原因与结果，封路在前，改道是随后发生的结果。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "主路关闭，公交因此改道，用 as a result（结果是、因此）。封路是原因，改道是结果；at、by、on 都不能放进 _____ a result 组成这个连接表达。",
+      "exam_tip": "前后两件事不是并列发生，而是封路导致了改道。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2456,14 +2456,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The new system is faster. _____ the other hand, it costs more to maintain.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The new system is faster. _____ the other hand, it costs more to maintain.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The new system is faster. _____ the other hand, it costs more to maintain.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The new system is faster. _____ the other hand, it costs more to maintain.\n\n选词补全句子。",
+      "support": "The new system is faster. _____ the other hand, it costs more to maintain.\n\n选词补全句子。",
+      "context": "The new system is faster. _____ the other hand, it costs more to maintain.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "on the other hand 引入另一面，后句补充维护费用较高这一代价。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "On the other hand 是“另一方面”：前面说速度快，后面补充维护成本高。它把优点和代价放在一起比较，不是说更快导致更贵。In、At、By 不属于这个固定表达。",
+      "exam_tip": "faster 和 costs more 是评价系统的两个方面，后句补充的是代价。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2505,14 +2505,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：Although the repair costs more now, it should save money in the _____ run.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：Although the repair costs more now, it should save money in the _____ run.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：Although the repair costs more now, it should save money in the _____ run.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "Although the repair costs more now, it should save money in the _____ run.\n\n选词补全句子。",
+      "support": "Although the repair costs more now, it should save money in the _____ run.\n\n选词补全句子。",
+      "context": "Although the repair costs more now, it should save money in the _____ run.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in the long run 表示从长远看，与现在的较高费用形成时间上的对照。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "in the long run 表示“从长远看”。现在维修花费多，但以后能省钱，形成眼前与长期的对照。wide、deep、large 都不能替换这个时间表达里的 long。",
+      "exam_tip": "now 和后面的 should save money 在比较眼前费用与以后收益。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2554,14 +2554,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：_____ regard to opening hours, the library will publish a separate notice.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：_____ regard to opening hours, the library will publish a separate notice.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：_____ regard to opening hours, the library will publish a separate notice.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "_____ regard to opening hours, the library will publish a separate notice.\n\n选词补全句子。",
+      "support": "_____ regard to opening hours, the library will publish a separate notice.\n\n选词补全句子。",
+      "context": "_____ regard to opening hours, the library will publish a separate notice.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "with regard to 是关于某个话题的表达，这里把讨论范围限定在开放时间。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "With regard to opening hours 是“关于开放时间”。整段先限定通知讨论的话题；At、From、For 都不能直接放进 _____ regard to。也可另说 regarding opening hours，但那时不再用 regard to。",
+      "exam_tip": "后面要发一份单独通知，开头先交代通知谈哪件事。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2603,14 +2603,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The first route is direct. _____ contrast, the second involves two changes of bus.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The first route is direct. _____ contrast, the second involves two changes of bus.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The first route is direct. _____ contrast, the second involves two changes of bus.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The first route is direct. _____ contrast, the second involves two changes of bus.\n\n选词补全句子。",
+      "support": "The first route is direct. _____ contrast, the second involves two changes of bus.\n\n选词补全句子。",
+      "context": "The first route is direct. _____ contrast, the second involves two changes of bus.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "by contrast 引出对照，直接到达与换乘两次是所比较的差异。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "By contrast 表示“相比之下”。第一条线直达，第二条要换两次车，后句突出这种差别。At、On、To 不合这个独立连接语；in contrast 也是正确说法，但本题没有 In 选项。",
+      "exam_tip": "direct 与 two changes of bus 是要比较的差别，不是前因后果。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2652,14 +2652,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：_____ spite of the rain, the volunteers completed the outdoor work.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：_____ spite of the rain, the volunteers completed the outdoor work.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：_____ spite of the rain, the volunteers completed the outdoor work.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "_____ spite of the rain, the volunteers completed the outdoor work.\n\n选词补全句子。",
+      "support": "_____ spite of the rain, the volunteers completed the outdoor work.\n\n选词补全句子。",
+      "context": "_____ spite of the rain, the volunteers completed the outdoor work.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in spite of 引出让步，天气不利但工作仍完成；它后面接名词或动名词。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "In spite of the rain 是“尽管下雨”。下雨本来妨碍室外工作，但志愿者还是完成了，所以用让步表达 in spite of。后面直接接 rain 这个名词；At、By、For 不合该短语。",
+      "exam_tip": "下雨与完成室外工作构成“本来受阻，却仍完成”的关系。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2701,14 +2701,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The organisers acted in _____ to repeated complaints about the noise.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The organisers acted in _____ to repeated complaints about the noise.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The organisers acted in _____ to repeated complaints about the noise.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The organisers acted in _____ to repeated complaints about the noise.\n\n选词补全句子。",
+      "support": "The organisers acted in _____ to repeated complaints about the noise.\n\n选词补全句子。",
+      "context": "The organisers acted in _____ to repeated complaints about the noise.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in response to 是回应某事的词组，response 在此为名词，不能替换为动词或形容词。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "in response to complaints 是“回应投诉”。in 与 to 之间用名词 response；respond 是“回应”的动作，responsive 是“反应积极的”，responsively 是副词，均不能替代短语里的 response。",
+      "exam_tip": "这里要认出完整的 in _____ to；空格不是句子的第二个谓语。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2750,14 +2750,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：In the short _____, the repairs may cause disruption, but access should improve later.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：In the short _____, the repairs may cause disruption, but access should improve later.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：In the short _____, the repairs may cause disruption, but access should improve later.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "In the short _____, the repairs may cause disruption, but access should improve later.\n\n选词补全句子。",
+      "support": "In the short _____, the repairs may cause disruption, but access should improve later.\n\n选词补全句子。",
+      "context": "In the short _____, the repairs may cause disruption, but access should improve later.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in the short term 是从短期看，与后面的 later 所指后续改善形成对照。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "In the short term 是“短期内”。维修眼下可能带来不便，later 则会改善通行，前后对照的是两个时间阶段。short time 常说一小段时间，但 in the short time 不能像本句这样直接作“短期来看”。",
+      "exam_tip": "把开头与 later 对照，找表示短期影响的固定说法。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -2799,14 +2799,14 @@
     "interaction_id": "multiple_choice",
     "front": {
       "eyebrow": "这张练习 | 固定搭配",
-      "prompt": "语境：The museum offers free entry. In _____, it provides a free audio guide.\n\n问题：选出符合本句搭配和意思的一项。",
-      "support": "语境：The museum offers free entry. In _____, it provides a free audio guide.\n\n问题：选出符合本句搭配和意思的一项。",
-      "context": "语境：The museum offers free entry. In _____, it provides a free audio guide.\n\n问题：选出符合本句搭配和意思的一项。"
+      "prompt": "The museum offers free entry. In _____, it provides a free audio guide.\n\n选词补全句子。",
+      "support": "The museum offers free entry. In _____, it provides a free audio guide.\n\n选词补全句子。",
+      "context": "The museum offers free entry. In _____, it provides a free audio guide.\n\n选词补全句子。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "in addition 表示在前一项之外再补充一项信息；addition 是介词 in 后的名词。",
-      "exam_tip": "连同后面的宾语和整句意思一起核对搭配。"
+      "summary": "In addition 表示“此外”。前一句提供免费入场，后一句再增加免费语音导览这项服务。addition 是该短语中的名词；additional 表示额外的，add、adding 是动作形式，均不能单独组成这里的连接语。",
+      "exam_tip": "后一句是在免费入场之外再加一项服务，不是在解释原因。"
     },
     "space_metadata": {
       "box_ref": "1224",
@@ -3022,7 +3022,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "感谢落到查图和发现单位错误，后句说明提交前纠正这一实际作用。无需夸称对方拯救整个项目；具体行为与结果已经能表达诚意。",
+      "summary": "checking the charts 和 spotting the two incorrect unit labels 说明感谢的具体帮助。第二句写这项帮助怎样让报告更清楚。题目没有给检查发生在提交前还是提交后，不额外加入 before submission。",
       "exam_tip": "感谢信以具体帮助及其影响替代夸张赞美。"
     },
     "space_metadata": {
@@ -3031,7 +3031,7 @@
       "group": "判断作文体裁",
       "box": "应用文"
     },
-    "back_text": "Thank you for checking the charts in my report and spotting the two incorrect unit labels. Your comments helped me correct them before submission and made the results easier to interpret."
+    "back_text": "Thank you for checking the charts in my report and spotting the two incorrect unit labels. Your comments helped me correct the labels and make the results easier to interpret."
   },
   {
     "card_id": "130009",
@@ -3046,7 +3046,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "经验、时间和需要指导的部分都直接影响招聘决定。although 从句承认限制，主句给出可执行的学习方式；不能把 willingness 写成已经具备实验设计能力。诚实的边界比无依据的全能承诺更有说服力。",
+      "summary": "familiar with data cleaning 保留题目“熟悉数据清洗”的能力范围，不把它改成做过特定调查项目。three days a week 交代可工作时间；最后承认没有独立设计实验的经验，并提出在指导下学习，而不是把愿意学当成已经会。",
       "exam_tip": "申请材料中的能力主张应能对应具体经历。"
     },
     "space_metadata": {
@@ -3055,7 +3055,7 @@
       "group": "判断作文体裁",
       "box": "应用文"
     },
-    "back_text": "I am writing to apply for the summer research assistant position. I have experience cleaning survey data and can work three days a week. Although I have not independently designed an experiment, I am willing to learn under supervision."
+    "back_text": "I am writing to apply for the summer research assistant position. I am familiar with data cleaning and can work three days a week. Although I have not independently designed an experiment, I am willing to learn under supervision."
   },
   {
     "card_id": "130010",
@@ -3070,7 +3070,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "数据到达时间解释了原期限为何不可行，周三是明确的新期限；周一交提纲则降低对方等待的成本。not ... until 表示周二之前无法取得，不是从周二开始无法取得。",
+      "summary": "Would it be possible ... 请求改到周三提交；not ... until Tuesday 说明为什么周一不能完成。第二句用 I will send 明确承诺周一先交提纲；I can send 只说明能做，承诺程度不如题目要求明确。",
       "exam_tip": "延期请求应同时说明原因、新期限和能提前完成的部分。"
     },
     "space_metadata": {
@@ -3079,7 +3079,7 @@
       "group": "判断作文体裁",
       "box": "应用文"
     },
-    "back_text": "Would it be possible to submit the report on Wednesday, as the authorised dataset will not be available until Tuesday? I can send the analysis outline on Monday so that you can review the proposed approach in advance."
+    "back_text": "Would it be possible to submit the report on Wednesday, as the authorised dataset will not be available until Tuesday? I will send the analysis outline on Monday so that you can review the proposed approach in advance."
   },
   {
     "card_id": "130011",
@@ -3094,7 +3094,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "颜色、时间、楼层帮助检索，内页姓名用于核对归属。if found 保留尚未找到的状态；不能写 When I collect it tomorrow，把未知结果写成确定安排。",
+      "summary": "颜色、星期一下午、二楼帮助查找，内页姓名帮助核对归属。题目只说姓名写在里面，不应自行具体成 inside cover。whether 与 if found 保留是否找到的不确定性，再询问领取方式。",
       "exam_tip": "询问类邮件提供识别信息，并让后续动作与实际结果相符。"
     },
     "space_metadata": {
@@ -3103,7 +3103,7 @@
       "group": "判断作文体裁",
       "box": "应用文"
     },
-    "back_text": "I lost a blue notebook on the second floor of the library on Monday afternoon. My name is written on the inside cover. Could you please let me know whether it has been handed in and how I can collect it if found?"
+    "back_text": "I lost a blue notebook on the second floor of the library on Monday afternoon. My name is written inside the notebook. Could you please let me know whether it has been handed in and how I can collect it if found?"
   },
   {
     "card_id": "130012",
@@ -3166,8 +3166,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "理由把教学内容与行为连接起来：比较借款成本、制定预算，进而减少无法承担的支出。只写 It benefits students 重复了支持态度，没有解释作用过程。helping 表示可能的帮助，不保证每个学生都避免债务。",
-      "exam_tip": "论证理由要写出措施改变行为的中间步骤。"
+      "summary": "compare borrowing costs 和 set a monthly budget 是课程可教会的具体做法，avoiding unaffordable commitments 是这些做法可能带来的帮助。can 限定课程的可能作用；helping 在这里连接前面的行为与后面的结果，本身不是表示不确定性的词。",
+      "exam_tip": "把课程内容、学生学会的动作和可能减少的支出风险连起来。"
     },
     "space_metadata": {
       "box_ref": "1301",
@@ -3214,8 +3214,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "例子展示了反馈如何暴露具体缺口，以及修改怎样改善文章，而不是泛说同学彼此帮助。may 把它标为说明机制的可能情境，不冒充调查结论。例子之后应接回表达清晰这一论点。",
-      "exam_tip": "举例后说明它支持的是哪一步推理。"
+      "summary": "第一句用 explained、realised 转述给定的个案：向不同专业的同学解释后，发现开头缺定义。第二句用 could 表示补充定义可能带来的改进；不要把已知发生的事全改成 may discover，也不要把尚未给出的修改效果写成已证实。",
+      "exam_tip": "先准确转述题目给的经历，再单独说明修改可能有什么帮助。"
     },
     "space_metadata": {
       "box_ref": "1301",
@@ -3223,7 +3223,7 @@
       "group": "判断作文体裁",
       "box": "议论文"
     },
-    "back_text": "For example, a student may discover that a key term needs defining when a classmate from another discipline cannot follow the introduction. Revising that definition can then make the argument accessible to a wider audience."
+    "back_text": "For example, a student explained a technical term to a classmate from another discipline and realised that the introduction needed a definition. Adding that definition could make the argument easier to follow."
   },
   {
     "card_id": "130105",
@@ -3262,8 +3262,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "necessary 表示缺少它可能无法开始，sufficient 表示具备它就足以保证结果。第二句列出的计划、技能和协作说明资金之外还有条件，不能由必要性直接推出充分性。",
-      "exam_tip": "支持一项条件时，不把它写成成功的唯一保证。"
+      "summary": "按题目给的前提，经费是项目启动所必需的，因此用 necessary。sufficient 则是“足以保证”：有钱并不能替代计划、技能和协作。不能把“没有钱办不成”直接倒过来说成“有钱就一定办成”。",
+      "exam_tip": "分别检查“缺少它不行”和“有了它就够”，这两个判断是否相同。"
     },
     "space_metadata": {
       "box_ref": "1301",
@@ -3271,7 +3271,7 @@
       "group": "判断作文体裁",
       "box": "议论文"
     },
-    "back_text": "Adequate funding may be necessary to launch a project, but it is not sufficient to ensure success. The outcome also depends on a workable plan, relevant skills and effective coordination."
+    "back_text": "Funding is necessary to launch the project, but it is not sufficient to ensure success. The outcome also depends on a workable plan, relevant skills and effective coordination."
   },
   {
     "card_id": "130107",
@@ -3478,8 +3478,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "定义先说明过程、执行者和评估对象，再明确能力边界。before publication 描述常见投稿场景；第二句防止把评审误解成绝对正确认证。单说 experts check a paper 缺少具体评估内容。",
-      "exam_tip": "定义句说明对象属于什么，以及它凭什么区别于相近概念。"
+      "summary": "researchers in the same field 说明由谁评，methods and arguments 说明评什么。第二句区分改进研究质量与保证结论正确。题目不要求把所有同行评审限定在发表前，所以定义中不添加这个时间限制。",
+      "exam_tip": "定义先交代谁评估什么，再说明这种检查不能保证什么。"
     },
     "space_metadata": {
       "box_ref": "1302",
@@ -3487,7 +3487,7 @@
       "group": "判断作文体裁",
       "box": "说明文"
     },
-    "back_text": "Peer review is a process in which researchers in the same field evaluate a study's methods and arguments before publication. It can improve quality, but it does not guarantee that every conclusion is correct."
+    "back_text": "Peer review is a process in which researchers in the same field evaluate a study’s methods and arguments. It can improve quality, but it does not guarantee that every conclusion is correct."
   },
   {
     "card_id": "130204",
@@ -3496,14 +3496,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 判断作文体裁",
-      "prompt": "某校晚间阅览室变拥挤：直接原因是考试周延长了自习需求，背景是附近自习室正在维修。请写两句英文，保留两层关系。",
-      "support": "某校晚间阅览室变拥挤：直接原因是考试周延长了自习需求，背景是附近自习室正在维修。请写两句英文，保留两层关系。",
-      "context": "某校晚间阅览室变拥挤：直接原因是考试周延长了自习需求，背景是附近自习室正在维修。请写两句英文，保留两层关系。"
+      "prompt": "某校晚间阅览室变拥挤。材料给出两点：考试周学生的晚间自习需求增加；附近自习室因维修暂停开放。请写两句英文说明这两点如何造成拥挤。",
+      "support": "某校晚间阅览室变拥挤。材料给出两点：考试周学生的晚间自习需求增加；附近自习室因维修暂停开放。请写两句英文说明这两点如何造成拥挤。",
+      "context": "某校晚间阅览室变拥挤。材料给出两点：考试周学生的晚间自习需求增加；附近自习室因维修暂停开放。请写两句英文说明这两点如何造成拥挤。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "第一句解释需求上升，第二句解释可用地点减少后人流为什么集中。further 表示追加作用，不把维修误写成考试周出现的原因。两个因素共同说明拥挤，比罗列两个无连接的事实更清楚。",
-      "exam_tip": "说明复杂原因时，区分需求变化与资源变化。"
+      "summary": "第一句说明需求增加，第二句说明可用自习室减少，学生因而集中到剩余空间。further 表示维修停用在原有需求压力上又加了一层影响，不是把维修说成考试周的起因。",
+      "exam_tip": "一方面是需要座位的人变多，另一方面是能用的空间变少。"
     },
     "space_metadata": {
       "box_ref": "1302",
@@ -3550,8 +3550,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "先有预习时间，再能形成具体问题，最后课堂讨论更聚焦。then 把步骤串起，避免只列出 advance reading 和 better discussion 两个没有解释的好处。",
-      "exam_tip": "过程解释应补足输入如何转成结果的中间环节。"
+      "summary": "course readings 指实际阅读材料；提前提供后，学生能先读不熟悉的内容，再带着具体问题来上课。then 连接预习与形成问题这两步。reading list 通常只是书目，不能无条件当成已经提供了所有材料。",
+      "exam_tip": "先写学生拿到材料后做什么，再写这怎样改变课堂上提出的问题。"
     },
     "space_metadata": {
       "box_ref": "1302",
@@ -3559,7 +3559,7 @@
       "group": "判断作文体裁",
       "box": "说明文"
     },
-    "back_text": "Publishing the reading list in advance gives students time to work through unfamiliar material. They can then arrive with specific questions, allowing the discussion to focus on difficulties rather than basic orientation."
+    "back_text": "Providing the course readings in advance gives students time to work through unfamiliar material. They can then arrive with specific questions, allowing the discussion to focus on difficulties rather than basic orientation."
   },
   {
     "card_id": "130207",
@@ -3646,8 +3646,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "by saving changes 解释降低损失的机制，at regular intervals 也说明仍可能失去最近一段未保存内容。删除或文件损坏是另一类风险，因此需要独立备份，不能从自动保存推出所有数据风险均被消除。",
-      "exam_tip": "机制说明要把能解决的故障与仍存在的风险分开。"
+      "summary": "By saving changes automatically 解释为什么意外关机后可能少丢内容；can 没有承诺所有修改都已保存。文件被删或损坏属于另一种问题，独立备份能保留另一份副本。本题没有给自动保存间隔，不把所有实现都写成定时保存。",
+      "exam_tip": "分别想意外关机、误删文件两种情况，说明自动保存解决了哪一部分。"
     },
     "space_metadata": {
       "box_ref": "1302",
@@ -3655,7 +3655,7 @@
       "group": "判断作文体裁",
       "box": "说明文"
     },
-    "back_text": "Autosave reduces the amount of recent work lost after an unexpected shutdown by saving changes at regular intervals. However, an independent backup is still needed in case the file is deleted or damaged."
+    "back_text": "By saving changes automatically, autosave can reduce the amount of work lost after an unexpected shutdown. However, an independent backup is still needed in case the file is deleted or damaged."
   },
   {
     "card_id": "130211",
@@ -3694,7 +3694,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "三句与用户完成预约所需的动作对应。最后一句区分提交请求和确认成功，避免把尚未完成的预约说成已经生效。内部数据库怎样保存记录不影响这项操作选择。",
+      "summary": "三句依次写登录、选择并提交、收到确认。提交请求不等于预约已经成功，所以最后用 when you receive a confirmation。题目没有指定登录账户类型，不自行添加 university account。",
       "exam_tip": "说明详略取决于读者完成任务需要知道什么。"
     },
     "space_metadata": {
@@ -3703,7 +3703,7 @@
       "group": "判断作文体裁",
       "box": "说明文"
     },
-    "back_text": "Log in with your university account. Select an available time slot and submit the booking request. Your reservation is complete when you receive a confirmation."
+    "back_text": "Log in to the booking system. Select an available time slot and submit the booking request. Your reservation is complete when you receive a confirmation."
   },
   {
     "card_id": "130301",
@@ -3814,7 +3814,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "before falling 保留转折点，despite 区分最后一段下降与全期净增长。不能简单写 membership decreased，因为这会把局部走势误作全期变化。终点110仍比起点80多30人。",
+      "summary": "题目给的是报名人数，students signing up 比 membership（会员规模）更准确。before falling 标出2021年后的下降；despite 说明虽然后段下降，110仍比起初80多30，不能把局部下降说成全期净减少。",
       "exam_tip": "分段趋势和全期变化需要分别判断。"
     },
     "space_metadata": {
@@ -3823,7 +3823,7 @@
       "group": "判断作文体裁",
       "box": "图表作文"
     },
-    "back_text": "Membership rose from 80 in 2019 to 140 in 2021, before falling to 110 in 2023. Despite the decline after 2021, the final figure remained above its initial level."
+    "back_text": "The number of students signing up for the club rose from 80 in 2019 to 140 in 2021, before falling to 110 in 2023. Despite the decline after 2021, the final figure remained above its initial level."
   },
   {
     "card_id": "130306",
@@ -3910,8 +3910,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "第一句只陈述图表可见信息，one possible explanation 明确后句是推测。不能写 The chart proves that students prefer convenience，因为图中没有测量动机。限定语不会削弱描述，反而让结论与证据一致。",
-      "exam_tip": "原因来自推测时，显式区分图表事实和解释假设。"
+      "summary": "第一句只报告选择线上辅导的比例上升，不擅加图表来自几次调查。one possible explanation 标明时间安排更灵活只是一种解释；选择人数变化也不直接等于已经测量出学生偏好或动机变化。",
+      "exam_tip": "先保留图里真正记录的选择比例，再把原因用possible单独提出。"
     },
     "space_metadata": {
       "box_ref": "1303",
@@ -3919,7 +3919,7 @@
       "group": "判断作文体裁",
       "box": "图表作文"
     },
-    "back_text": "A larger proportion of students chose online tutoring in the later survey. One possible explanation is the flexibility of scheduling, although the chart itself does not establish why preferences changed."
+    "back_text": "The proportion of students choosing online tutoring increased. One possible explanation is more flexible scheduling, although the chart itself does not establish the reasons for the increase."
   },
   {
     "card_id": "130310",
@@ -3928,14 +3928,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 判断作文体裁",
-      "prompt": "调查A访问200人，其中60%支持延长开放时间；调查B访问500人，其中50%支持。请说明支持率和支持人数如何变化。",
-      "support": "调查A访问200人，其中60%支持延长开放时间；调查B访问500人，其中50%支持。请说明支持率和支持人数如何变化。",
-      "context": "调查A访问200人，其中60%支持延长开放时间；调查B访问500人，其中50%支持。请说明支持率和支持人数如何变化。"
+      "prompt": "调查A访问200人，其中60%支持延长开放时间；调查B访问500人，其中50%支持。请比较两项调查的支持率和样本内支持人数。",
+      "support": "调查A访问200人，其中60%支持延长开放时间；调查B访问500人，其中50%支持。请比较两项调查的支持率和样本内支持人数。",
+      "context": "调查A访问200人，其中60%支持延长开放时间；调查B访问500人，其中50%支持。请比较两项调查的支持率和样本内支持人数。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "先分别计算200×60%=120和500×50%=250。分母改变时，占比下降不等于人数下降。结论只适用于两个样本，不能直接推断全校支持者的总人数。",
-      "exam_tip": "跨样本比较时，同时检查分母和指标单位。"
+      "summary": "A中支持者是200×60%＝120人，B中是500×50%＝250人。因此B的比例较低，样本内支持人数却较多。材料只标A、B，没有说明调查先后，宜用higher/lower作比较，不自行写成同一群体随时间上升或下降。",
+      "exam_tip": "先分别算两个样本的人数，再确认有没有给出时间先后。"
     },
     "space_metadata": {
       "box_ref": "1303",
@@ -3943,7 +3943,7 @@
       "group": "判断作文体裁",
       "box": "图表作文"
     },
-    "back_text": "The share supporting longer opening hours fell from 60% to 50%. However, the number of supporters in the samples rose from 120 to 250 because the second survey included more respondents."
+    "back_text": "The share supporting longer opening hours was lower in Survey B than in Survey A: 50% compared with 60%. However, Survey B included more supporters, 250 rather than 120, because it had a larger sample."
   },
   {
     "card_id": "130311",
@@ -3958,7 +3958,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "five of six 和 remaining department 准确保留例外。overall pattern 可作概括，但必须与 not uniform 配合，避免平均趋势掩盖个别下降。",
+      "summary": "five of the six programmes 保留五个专业上升、一个专业下降。programmes 对应学习专业，不必替换成行政部门 departments。broadly positive 概括大部分专业的方向，not uniform 让读者看到例外；没有人数权重时也不计算总体平均增幅。",
       "exam_tip": "总体概括不能吞掉题图中有意义的例外。"
     },
     "space_metadata": {
@@ -3967,7 +3967,7 @@
       "group": "判断作文体裁",
       "box": "图表作文"
     },
-    "back_text": "Satisfaction increased in five of the six departments. The remaining department showed a slight decline, so the overall pattern was positive but not uniform."
+    "back_text": "Satisfaction increased in five of the six programmes. The remaining programme showed a slight decline, so the pattern was broadly positive but not uniform."
   },
   {
     "card_id": "130312",
@@ -3982,7 +3982,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "observed 与 projected 区分已测量和模型预测。把未来值直接写成 grew 会把推测变成已经发生的事件，时态和证据性质都改变了。",
+      "summary": "recorded observations 是实际观测，is projected 是预测。材料只说后半段预计增长，没有说前半段也一直增长，因此不加 continue。即使预测很明确，也不能把预测值直接写成已经观测到的 grew。",
       "exam_tip": "图表含预测时，用 project、forecast 或 expect 标记未发生部分。"
     },
     "space_metadata": {
@@ -3991,7 +3991,7 @@
       "group": "判断作文体裁",
       "box": "图表作文"
     },
-    "back_text": "The observed figures cover the period from 2020 to 2024. Growth is projected to continue from 2025 to 2028, but those values are forecasts rather than recorded outcomes."
+    "back_text": "The figures from 2020 to 2024 are recorded observations. An increase is projected for 2025 to 2028, so those later values are forecasts rather than observed results."
   },
   {
     "card_id": "131001",
@@ -4006,8 +4006,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "第一句直接定位必修范围这一争议，第二句给出有条件支持。provided that 引入课程适配条件，避免把对技术重要性的泛泛赞同误当作论点。开头不需要堆砌时代背景。",
-      "exam_tip": "引入观点时，先写清题目中真正有争议的决策。"
+      "summary": "第一句点明争议是是否人人必修；第二句直接表明有条件支持，而不是只说课程有价值。provided that 后要求课程内容适合不同专业与已有基础，这给正文留下需要说明的具体条件。",
+      "exam_tip": "先回答是否支持必修，再说支持成立需要什么条件。"
     },
     "space_metadata": {
       "box_ref": "1310",
@@ -4015,7 +4015,7 @@
       "group": "模版句式",
       "box": "引入观点"
     },
-    "back_text": "Whether programming should be compulsory for all undergraduates remains open to debate. A basic course can be valuable, provided that its content is adapted to students' disciplines and prior experience."
+    "back_text": "Whether programming should be compulsory for all undergraduates remains open to debate. I would support a compulsory introductory course, provided that its content is adapted to students’ disciplines and prior experience."
   },
   {
     "card_id": "131002",
@@ -4054,7 +4054,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "原句没有限定交流发生在哪种任务里，也没有指出问题。修订将讨论落到责任不清，并提出明确任务和期限的办法，使正文可以展开机制和例子。不能只把 important 换成 essential 就认为完成了改进。",
+      "summary": "第一句把问题缩到小组里职责不清，而不是泛说社会发展。第二句对应地提出先约定任务与期限。can 说可能的困难和帮助；题目没有调查，不能擅自把小组作业写成 often fail 这样的频率结论。",
       "exam_tip": "背景句应为当前题目提供具体问题，而非适用于所有作文。"
     },
     "space_metadata": {
@@ -4063,7 +4063,7 @@
       "group": "模版句式",
       "box": "引入观点"
     },
-    "back_text": "Group assignments often fail when responsibilities are left unclear. Agreeing on specific tasks and deadlines at the outset can help students coordinate their work."
+    "back_text": "Unclear responsibilities can make group assignments difficult to complete. Agreeing on specific tasks and deadlines at the outset can help students coordinate their work."
   },
   {
     "card_id": "131004",
@@ -4150,8 +4150,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "开头通过可解释的任务差异引出教学主张，无需编造大多数学生等统计数据。后句列出来源核对与证据比较两种可展开能力。",
-      "exam_tip": "缺少调查时，可以从具体任务与机制引题，不编造数字。"
+      "summary": "第一句指出拿到许多结果不等于知道哪些可信；第二句提出两项对应训练：查来源、比较证据。这样写明具体困难与教学内容，不需要编造学生能力的调查比例，也不把所有检索都说成轻而易举。",
+      "exam_tip": "把“能搜到”与“值得相信”分开，再提出能补足后一项能力的教学。"
     },
     "space_metadata": {
       "box_ref": "1310",
@@ -4159,7 +4159,7 @@
       "group": "模版句式",
       "box": "引入观点"
     },
-    "back_text": "Finding information online is easy; judging its reliability is often more demanding. Universities should teach students how to check sources and compare evidence before using material in academic work."
+    "back_text": "Online searches can produce plenty of material, but the results do not all deserve equal trust. Universities should teach students how to check sources and compare evidence before using material in academic work."
   },
   {
     "card_id": "131008",
@@ -4222,8 +4222,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "because 后有两个平行理由：组织思想与获得指导机会，分别对应后续两段。不能为了显得全面再加提升就业率等未准备论证的承诺。中心句的作用是让读者知道文章将如何支持立场。",
-      "exam_tip": "中心论点中的理由应与正文实际展开的内容一致。"
+      "summary": "organise their ideas clearly 对应表达清楚，access to guided practice 对应获得训练机会。两项理由能引导正文继续说明；它们可以分段，也可以按内容合并，不因有两个理由就必须规定后续两段。",
+      "exam_tip": "检查because后的两个理由是否就是正文打算展开的那两项。"
     },
     "space_metadata": {
       "box_ref": "1310",
@@ -4312,14 +4312,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 模版句式",
-      "prompt": "论点：公开评分标准能改善同伴反馈。请写三句：解释机制，给一个具体例子，再回扣论点。",
-      "support": "论点：公开评分标准能改善同伴反馈。请写三句：解释机制，给一个具体例子，再回扣论点。",
-      "context": "论点：公开评分标准能改善同伴反馈。请写三句：解释机制，给一个具体例子，再回扣论点。"
+      "prompt": "观点：公开评分标准能改善同伴反馈。请写三句：说明标准给同学什么依据，举一个具体例子，再说明评论可能怎样改善。",
+      "support": "观点：公开评分标准能改善同伴反馈。请写三句：说明标准给同学什么依据，举一个具体例子，再说明评论可能怎样改善。",
+      "context": "观点：公开评分标准能改善同伴反馈。请写三句：说明标准给同学什么依据，举一个具体例子，再说明评论可能怎样改善。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "机制是共同标准，例子是检查主张有没有证据，回扣是反馈更具体、可执行。三句各自增加信息，没有靠重复 improve feedback 填充篇幅。therefore 指向前面已经展示的联系。",
-      "exam_tip": "展开段让机制、例子和回扣分别承担不同的信息任务。"
+      "summary": "共同标准让大家知道该检查什么。示例中的 requiring evidence for each claim 指定检查每个观点有没有依据，因此评论能指出具体缺口，作者也更知道怎么改。therefore 连接这一步结果，不是用连接词代替解释。",
+      "exam_tip": "先说评分标准要求检查什么，再写这个要求怎样改变同学的评论。"
     },
     "space_metadata": {
       "box_ref": "1311",
@@ -4342,8 +4342,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "两个事例对比了与论点相关的任务分配和重复劳动。in one project 限定证据范围，不能由此写分工必然保证所有项目成功。例子能说明一种机制，但不能代替大范围因果研究。",
-      "exam_tip": "例子要与论点中的机制相连，并保留它的适用范围。"
+      "summary": "A组重复整理资料，B组先分工再按时汇总，两句比较的是同一类工作。By contrast 突出做法和结果不同。这个个案能说明分工如何减少重复，却不能保证所有项目只要分工就必然成功。",
+      "exam_tip": "分别写清A组重复了什么、B组怎样安排，保持比较对象一致。"
     },
     "space_metadata": {
       "box_ref": "1311",
@@ -4351,7 +4351,7 @@
       "group": "模版句式",
       "box": "展开论证"
     },
-    "back_text": "In one project, two members duplicated the same research because responsibilities had not been assigned. By contrast, a group that allocated tasks at the start was able to compile its findings on time."
+    "back_text": "In Group A, two members organised the same materials because no one had assigned that task. By contrast, Group B allocated the work in advance and compiled the material on schedule."
   },
   {
     "card_id": "131104",
@@ -4414,7 +4414,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "参与人数多与练习时间不足构成总体评价中的转折。however 合适，therefore 会误造因果。连接副词连接独立句时，分号或句号比单独逗号更稳妥。",
+      "summary": "人数多是一方面，练习时间不足是另一项不足，用 however 表示评价上的转折，不能改 therefore 制造因果。两边都是完整句子，标准书面语不能只用逗号加however连接。本题要合成一句，所以用分号；若允许写两句，也可以用句号。",
       "exam_tip": "先判断两句关系，再选择连接词和标点。"
     },
     "space_metadata": {
@@ -4438,8 +4438,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "found 可报告观察结果，suggests 表示一种解释；动词强度取决于证据，而不是调查时长。原设计没有排除自我选择等因素，不能只换成 demonstrated 就把相关关系升级为因果证明。",
-      "exam_tip": "研究引用动词应与研究设计和证据强度匹配，没有通用的机械排名。"
+      "summary": "found 报告调查观察到的平均成绩差异，does not establish ... caused 明确说这还不是因果证明。没有随机分组，参加辅导者可能本就更积极或基础不同；这些是尚未排除的可能解释，不是本题已经测得的事实。",
+      "exam_tip": "先报告谁的平均成绩更高，再说明研究设计还没排除什么解释。"
     },
     "space_metadata": {
       "box_ref": "1311",
@@ -4534,8 +4534,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "两种制度都接受公平与利用率评价，才能形成可比结论。flexibility 与 predictability 是可能的取舍，需要数据而非预设胜负。若只谈A便宜、B安静，比较标准会不一致。",
-      "exam_tip": "比较方案时保持评价维度一致，再讨论各项权衡。"
+      "summary": "预约成功与失败的记录帮助比较能否公平获得空间，空置时长帮助比较利用率。两种制度都看这两项，才是在用同一把尺子。不能第二句又换成只谈一方灵活、另一方稳定，而不再回答公平和使用情况。",
+      "exam_tip": "给两种制度列同样两列：预约机会是否公平、房间有没有闲置。"
     },
     "space_metadata": {
       "box_ref": "1311",
@@ -4543,7 +4543,7 @@
       "group": "模版句式",
       "box": "展开论证"
     },
-    "back_text": "Both systems should be judged by how fairly they distribute access and how fully the rooms are used. Usage records and reports of unsuccessful bookings would help reveal the trade-offs between flexibility and predictability."
+    "back_text": "Both systems should be judged by how fairly they distribute access and how fully the rooms are used. Records of successful and unsuccessful bookings, together with the hours rooms remain unused, would help compare the two systems on these measures."
   },
   {
     "card_id": "131112",
@@ -4582,8 +4582,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "more accessible 概括及时获得帮助，less intimidating 概括求助压力降低；结尾整合已有理由，没有原样复述每段主题句。can 保留效果取决于实施质量的边界。",
-      "exam_tip": "结论可以用上位概念整合正文已经证明的理由。"
+      "summary": "prompt explanations 直接概括及时获得解释，less intimidating 则概括求助压力减小。把两点合在一句即可，不必逐句重复正文；can 保留这是同伴辅导可能带来的帮助。",
+      "exam_tip": "把及时获得解释和更敢求助这两点一起收进结尾。"
     },
     "space_metadata": {
       "box_ref": "1312",
@@ -4591,7 +4591,7 @@
       "group": "模版句式",
       "box": "结论总结"
     },
-    "back_text": "Overall, peer tutoring can make academic support both more accessible and less intimidating for new students."
+    "back_text": "Overall, peer tutoring can give new students prompt explanations and make asking for help less intimidating."
   },
   {
     "card_id": "131202",
@@ -4606,7 +4606,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "建议给出执行主体、措施与反馈指标，避免空泛呼吁 everyone should take action。use return rates 让后续调整有依据，但不能承诺一项措施消除所有垃圾。结尾的新细节应落实正文方向，而非转换主题。",
+      "summary": "第一句重申减少一次性包装，第二句给出食堂试行可归还餐盒的行动。returnable 指容器能归还；refundable 通常说费用或押金可退，不宜在没有押金信息时直接写 refundable containers。归还次数可以帮助观察试行情况。",
       "exam_tip": "建议型结尾指出谁先做什么，以及如何观察效果。"
     },
     "space_metadata": {
@@ -4615,7 +4615,7 @@
       "group": "模版句式",
       "box": "结论总结"
     },
-    "back_text": "Reducing disposable packaging should remain a practical campus priority. Dining halls could begin with a refundable container scheme and use return rates to decide how to improve it."
+    "back_text": "Universities should reduce the use of disposable food packaging. Dining halls could start by offering returnable containers and track how often they are brought back."
   },
   {
     "card_id": "131203",
@@ -4630,7 +4630,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "国际排名并未在正文建立证据链，放到结尾会使结论超出论证。修订只整合复习和补课两项已讨论的价值，并保持 supplement 的定位。结尾不是追加更大承诺的位置。",
+      "summary": "supports revision 概括复习，catch up after missing a class 概括补课，均来自给定正文。国际排名是未讨论的新理由，不放到结尾。题目也没有区分缺课原因，所以不额外限定只有 unavoidable absences 才能获得补课帮助。",
       "exam_tip": "结论的每个主要判断都应能回溯到正文。"
     },
     "space_metadata": {
@@ -4639,7 +4639,7 @@
       "group": "模版句式",
       "box": "结论总结"
     },
-    "back_text": "Lecture recordings are therefore worth providing as a supplement that supports revision and helps students catch up after unavoidable absences."
+    "back_text": "Lecture recordings are therefore worth providing as a supplement that supports revision and helps students catch up after missing a class."
   },
   {
     "card_id": "131204",
@@ -4774,7 +4774,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "第一句把扩大参与和指导不足联系起来，第二句给出审核安排这一行动。结论不是把优缺点机械相加，而是说明在哪些条件下收益更可能实现。不能把 remote 本身当作质量保证。",
+      "summary": "regular supervision 回应现场指导不足，clear tasks 让学生知道要完成什么。provided that 把扩大参与的好处与实施条件放在一起，再提出推荐前核对这些安排。正文没有比较各种安排的优劣，不需要写 work best 这样的最高程度判断。",
       "exam_tip": "利弊型文章的结论可用实施条件形成清楚的最终判断。"
     },
     "space_metadata": {
@@ -4783,7 +4783,7 @@
       "group": "模版句式",
       "box": "结论总结"
     },
-    "back_text": "Remote internships can widen access, but they work best when organisations provide regular supervision and clear tasks. Universities should assess these arrangements before recommending a placement to students."
+    "back_text": "Remote internships can widen access, provided that organisations set clear tasks and maintain regular supervision. Universities should check these arrangements before recommending a placement to students."
   },
   {
     "card_id": "131210",
@@ -4798,8 +4798,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "on this campus 和 pilot 保留地点与项目范围，longer evaluation 回应观察期有限。便利性数据不能单独推出碳排放变化，更不能证明所有大学都适合复制。",
-      "exam_tip": "小范围试点结论应保留地点、时间和指标的边界。"
+      "summary": "one-term pilot 保留观察时长，short campus trips 保留地点和出行范围，time spent walking 直接对应测量指标。步行时间少了，不自动证明总出行时间、便利性或碳排放都改善；扩展到其他学校前仍需更多信息。",
+      "exam_tip": "先把一学期、校内短途、步行时间这三项保留在结论里。"
     },
     "space_metadata": {
       "box_ref": "1312",
@@ -4807,7 +4807,7 @@
       "group": "模版句式",
       "box": "结论总结"
     },
-    "back_text": "The pilot suggests that shared bicycles can make short trips more convenient on this campus, but a longer evaluation is needed before broader expansion."
+    "back_text": "During the one-term pilot, time spent walking on short campus trips fell; further evaluation is needed before the scheme is expanded."
   },
   {
     "card_id": "131211",
@@ -4864,13 +4864,13 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 模版句式",
-      "prompt": "你第一次给课程老师发邮件，想预约讨论期末论文提纲。请写称呼和一句明确的开头。",
-      "support": "你第一次给课程老师发邮件，想预约讨论期末论文提纲。请写称呼和一句明确的开头。",
-      "context": "你第一次给课程老师发邮件，想预约讨论期末论文提纲。请写称呼和一句明确的开头。"
+      "prompt": "你第一次给 Chen 教授发邮件，想预约讨论期末论文提纲。请写称呼和一句明确的开头。",
+      "support": "你第一次给 Chen 教授发邮件，想预约讨论期末论文提纲。请写称呼和一句明确的开头。",
+      "context": "你第一次给 Chen 教授发邮件，想预约讨论期末论文提纲。请写称呼和一句明确的开头。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "称呼与正式师生关系一致，首句直接给出预约和讨论对象。无需先写一大段个人背景。whether I could 表达礼貌请求，但不会让来意变得含糊。",
+      "summary": "题目已给姓氏 Chen 和教授职称，称呼可写 Dear Professor Chen。ask whether I could meet with you 提出预约，to discuss the outline of my final paper 说明要讨论什么；称呼不能靠猜，正文也不必先绕一大段背景。",
       "exam_tip": "首次事务邮件应在开头尽快说明具体目的。"
     },
     "space_metadata": {
@@ -4918,7 +4918,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "不认识具体收件人时可用其岗位称呼。application deadline 和 programme 让问题明确，stuff 过于模糊；改写提升正式程度的同时保留询问目的，不需堆叠夸张敬语。",
+      "summary": "没有具体姓名，可以按办理岗位称呼 Internship Coordinator。application deadline 准确替换 when ... send my stuff 中模糊的说法。题目没有说明暑期实习，因此不自行加 summer；礼貌的重点是让对方清楚你问哪个截止时间。",
       "exam_tip": "正式邮件用准确名词替换含糊口语，而不是只增加客套话。"
     },
     "space_metadata": {
@@ -4927,7 +4927,7 @@
       "group": "模版句式",
       "box": "书信开头"
     },
-    "back_text": "Dear Internship Coordinator,\nI am writing to enquire about the application deadline for your summer internship programme."
+    "back_text": "Dear Internship Coordinator,\nI am writing to enquire about the application deadline for your internship programme."
   },
   {
     "card_id": "131304",
@@ -4942,7 +4942,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "on behalf of 说明代表身份，invite ... to judge 明确邀请对方承担的角色。第二句提供相关理由，不虚构对方的专业头衔。活动时间应在邀请前部出现，便于收件人判断能否参加。",
+      "summary": "On behalf of 说明代表英语辩论社，to judge 说明邀请担任评委，on 18 May 给出日期。第二句询问能否参加。题目没有提供校友的演讲经验，因此不编写 Your experience in public speaking 作为邀请理由。",
       "exam_tip": "邀请开头交代代表谁、邀请做什么以及何时进行。"
     },
     "space_metadata": {
@@ -4951,7 +4951,7 @@
       "group": "模版句式",
       "box": "书信开头"
     },
-    "back_text": "On behalf of the English Debate Society, I would like to invite you to judge our competition on 18 May. Your experience in public speaking would be especially valuable to the participants."
+    "back_text": "On behalf of the English Debate Society, I would like to invite you to judge our competition on 18 May. Please let us know whether you would be available on that date."
   },
   {
     "card_id": "131305",
@@ -4966,7 +4966,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "道歉明确对应缺席与分工延迟，第二句承认本可提前通知。I am sorry if you were upset 会把责任转成对方感受不当。影响、责任写清后，正文才能自然提出补救。",
+      "summary": "第一句承认周二缺席，第二句承认它妨碍确认分工，并直接承担责任。题目没有说你提前知道无法参加，所以不擅自补 I should have informed you in advance。只说 sorry if you were upset 也没有回应已经发生的分工延迟。",
       "exam_tip": "道歉先承认自己的具体行为及其造成的影响。"
     },
     "space_metadata": {
@@ -4975,7 +4975,7 @@
       "group": "模版句式",
       "box": "书信开头"
     },
-    "back_text": "I apologise for missing Tuesday's group discussion and delaying the allocation of tasks. I should have informed you in advance that I would be unable to attend."
+    "back_text": "I apologise for missing Tuesday’s group discussion. My absence prevented the group from confirming the allocation of tasks, and I take responsibility for the delay."
   },
   {
     "card_id": "131306",
@@ -5038,7 +5038,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "by Thursday 与 by Friday 分别是请求办理时间和外部截止时间。if possible 保留对方实际办理能力，说明理由比使用 You must send it immediately 更合适。",
+      "summary": "the certificate I requested 保留“已申请的证明”，不猜成在读证明。by Thursday 表示希望最迟周四拿到，before Friday 保留周五以前提交的要求。If possible 礼貌询问对方能否安排，不把办理速度当作已经承诺。",
       "exam_tip": "请求加急时写清外部期限，并给出可理解的时间安排。"
     },
     "space_metadata": {
@@ -5047,7 +5047,7 @@
       "group": "模版句式",
       "box": "书信开头"
     },
-    "back_text": "I am writing to request a copy of my enrolment certificate. If possible, could it be issued by Thursday, as the receiving university requires it by Friday?"
+    "back_text": "I am writing to ask about the certificate I requested. If possible, could it be issued by Thursday, as I need to submit it to the receiving university before Friday?"
   },
   {
     "card_id": "131309",
@@ -5062,7 +5062,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "背景解释为什么需要英文成绩单，electronic copy 明确形式。向档案室写信应申请官方文件，不能把自行翻译的成绩单当成官方版本。开头要让收件人能确定相应办理流程。",
+      "summary": "in English 与 electronic copy 说明文件语言和形式，for an exchange programme in September 交代用途。题目没有给项目起始日或申请进度，不需要写成 begins in September 或 I am applying；先把办理所需的信息说准确。",
       "exam_tip": "请求办理事项时，提供决定流程所需的背景和文件形式。"
     },
     "space_metadata": {
@@ -5071,7 +5071,7 @@
       "group": "模版句式",
       "box": "书信开头"
     },
-    "back_text": "I am applying for an exchange programme that begins in September and need an official transcript in English. Could you please advise me on how to obtain an electronic copy?"
+    "back_text": "I need an official transcript in English for an exchange programme in September. Could you please advise me on how to obtain an electronic copy?"
   },
   {
     "card_id": "131310",
@@ -5110,7 +5110,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "讲座主题与时间帮助对方回忆联系背景，问题限定为实习所需技能，便于回复。无需虚构双方熟悉程度，也不要把开放提问误写成对方已经答应推荐职位。",
+      "summary": "第一句用题目给出的讲座后答疑承诺说明联系来源，第二句把实习问题缩到需要哪些技能。材料没有讲座主题和日期，所以不添加 sustainable transport 或 last week，也不把愿意答疑理解成已答应推荐岗位。",
       "exam_tip": "首次联系时交代真实联系来源，并把问题缩到可回答的范围。"
     },
     "space_metadata": {
@@ -5119,7 +5119,7 @@
       "group": "模版句式",
       "box": "书信开头"
     },
-    "back_text": "Thank you for your talk on sustainable transport last week and for offering to answer students' questions. I am writing to ask what skills would be most useful when applying for an internship in this field."
+    "back_text": "Thank you for offering to answer students’ questions after your lecture. I am writing to ask which skills would be most useful for an internship in your field."
   },
   {
     "card_id": "131312",
@@ -5206,7 +5206,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "roughly 保留近似性质，one third 与33%的精度相称。写成 precisely 33.000% 会添加图中不存在的精度。accounted for 后接份额，不能省掉 of the total budget 使基准不明。",
+      "summary": "roughly 保留近似性质，one third 与33%的精度相称。写成 precisely 33.000% 会添加图中不存在的精度。作为单独的图表描述，写出 of the total budget 能让比较基准更清楚；若前文已明确总预算这一基准，也可以省略。",
       "exam_tip": "语言精度应与原始图表的测量精度一致。"
     },
     "space_metadata": {
@@ -5296,9 +5296,9 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 模版句式",
-      "prompt": "样本中参加社团的比例为51%，参加志愿服务为49%。请分别用 just over 和 just under 写一句比较。",
-      "support": "样本中参加社团的比例为51%，参加志愿服务为49%。请分别用 just over 和 just under 写一句比较。",
-      "context": "样本中参加社团的比例为51%，参加志愿服务为49%。请分别用 just over 和 just under 写一句比较。"
+      "prompt": "样本中参加社团的比例为51%，参加志愿服务的比例为49%。请用 just over 和 just under，把两项比例合在一句英文中比较。",
+      "support": "样本中参加社团的比例为51%，参加志愿服务的比例为49%。请用 just over 和 just under，把两项比例合在一句英文中比较。",
+      "context": "样本中参加社团的比例为51%，参加志愿服务的比例为49%。请用 just over 和 just under，把两项比例合在一句英文中比较。"
     },
     "analysis": {
       "title": "解析",
@@ -5398,7 +5398,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "区间频数不能直接当作精确平均数。取中点25分钟可能用于某些估计，但必须额外假设区间内分布，不能在描述题中伪装成原图给出的数值。",
+      "summary": "25分钟只是这个区间的中点。材料既没给区间内各人的具体时长，也没给其余人的时长分布，所以不能把25写成总体平均数。图表没有说明是问卷自报，也不应自行加 respondents reported 这一收集方式。",
       "exam_tip": "区间、均值和中位数是不同统计信息，不能互相代替。"
     },
     "space_metadata": {
@@ -5407,7 +5407,7 @@
       "group": "模版句式",
       "box": "数据描述"
     },
-    "back_text": "Most respondents reported commuting times between 20 and 30 minutes. The chart does not provide enough information to determine the exact mean."
+    "back_text": "The chart shows that most people took between 20 and 30 minutes to commute. It does not provide enough information to determine the exact mean."
   },
   {
     "card_id": "131412",
@@ -5638,8 +5638,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "while 对照两项同时发生的趋势；consistent with 只表示符合一种解释，弱于 proves。预算削减或人员变化也可能影响差旅支出，不能从同向时间关系直接确认因果。",
-      "exam_tip": "同步变化可以提示解释，但不能单独证明解释。"
+      "summary": "while 把远程会议增多与差旅支出下降放在一起比较。consistent with substitution 指这种变化符合“部分出差被远程会议替代”的解释，但不证明解释成立。预算削减、人员变化也可能影响支出；两项是同时变化，不是同向增减。",
+      "exam_tip": "先说清哪项增加、哪项减少，再区分可能替代关系和已证明因果。"
     },
     "space_metadata": {
       "box_ref": "1315",
@@ -5671,7 +5671,7 @@
       "group": "模版句式",
       "box": "趋势分析"
     },
-    "back_text": "Department A added more people in absolute terms, gaining 20 employees compared with 10 in Department B. However, B grew faster proportionally, increasing by 50% while A rose by 20%."
+    "back_text": "Department A added more people in absolute terms, gaining 20 people compared with 10 in Department B. However, B grew faster proportionally, increasing by 50% while A rose by 20%."
   },
   {
     "card_id": "131511",
@@ -5710,7 +5710,7 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "总量增长可以由一个分组推动，不代表每组都增长。mainly 保留主要而非唯一来源，broadly stable 容许本科人数轻微变化。",
+      "summary": "signing up 对应报名人数，避免把它误读成已录取或正式在籍人数。most of the growth 表示增长主要来自研究生，不是全部；broadly stable 保留本科人数可能有小幅变化，不能因为总量增加就写两组都增长。",
       "exam_tip": "解释总量趋势时检查各组成部分是否同向变化。"
     },
     "space_metadata": {
@@ -5719,7 +5719,7 @@
       "group": "模版句式",
       "box": "趋势分析"
     },
-    "back_text": "Total enrolment increased, driven mainly by growth among postgraduate students. Undergraduate enrolment remained broadly stable."
+    "back_text": "The total number of students signing up increased, with most of the growth coming from postgraduates. The number of undergraduates signing up remained broadly stable."
   },
   {
     "card_id": "140001",
@@ -5728,14 +5728,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：北斗系统实现了全球覆盖和高精度定位，使中国成为少数独立拥有全球卫星导航系统的国家之一。\n\n任务：先汉译英，再检查并列结构是否完整传达“覆盖+定位+结果”。",
-      "support": "原句：北斗系统实现了全球覆盖和高精度定位，使中国成为少数独立拥有全球卫星导航系统的国家之一。\n\n任务：先汉译英，再检查并列结构是否完整传达“覆盖+定位+结果”。",
-      "context": "原句：北斗系统实现了全球覆盖和高精度定位，使中国成为少数独立拥有全球卫星导航系统的国家之一。\n\n任务：先汉译英，再检查并列结构是否完整传达“覆盖+定位+结果”。"
+      "prompt": "原句：北斗系统实现了全球覆盖和高精度定位，使中国成为少数独立拥有全球卫星导航系统的国家之一。\n\n译成英文，保留两项功能与中国拥有自主导航系统这一结果。",
+      "support": "原句：北斗系统实现了全球覆盖和高精度定位，使中国成为少数独立拥有全球卫星导航系统的国家之一。\n\n译成英文，保留两项功能与中国拥有自主导航系统这一结果。",
+      "context": "原句：北斗系统实现了全球覆盖和高精度定位，使中国成为少数独立拥有全球卫星导航系统的国家之一。\n\n译成英文，保留两项功能与中国拥有自主导航系统这一结果。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "并列保留全球覆盖与高精度定位，再说明由此获得的地位。不要把 independently possessing 写成生硬的所有权描写。",
-      "exam_tip": "coverage 和 positioning 是两个并列能力，enabling 后再写结果。"
+      "summary": "global coverage 和 high-precision positioning 分别对应覆盖与定位。making China ... 补充这带来的结果，one of the few countries to have its own ... 保留少数国家之一和自主拥有，不扩大成世界唯一。own这里比independently possessing简洁自然。",
+      "exam_tip": "核对两项功能、少数之一、自主拥有三个层次，不把之一漏掉。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5743,7 +5743,7 @@
       "group": "高级句子",
       "box": "并列句"
     },
-    "back_text": "The BeiDou system provides global coverage and high-precision positioning, making China one of the few countries with an independently operated global satellite navigation system."
+    "back_text": "The BeiDou system provides global coverage and high-precision positioning, making China one of the few countries to have its own global satellite navigation system."
   },
   {
     "card_id": "140002",
@@ -5752,14 +5752,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：天宫空间站可驻留三名宇航员，并在距地表400-450公里轨道运行。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：天宫空间站可驻留三名宇航员，并在距地表400-450公里轨道运行。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：天宫空间站可驻留三名宇航员，并在距地表400-450公里轨道运行。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：天宫空间站额定乘员为3人，设计运行轨道高度为距地表340—450公里。\n\n译成英文，区分额定乘员、设计高度范围和某一天的实际状态。",
+      "support": "原句：天宫空间站额定乘员为3人，设计运行轨道高度为距地表340—450公里。\n\n译成英文，区分额定乘员、设计高度范围和某一天的实际状态。",
+      "context": "原句：天宫空间站额定乘员为3人，设计运行轨道高度为距地表340—450公里。\n\n译成英文，区分额定乘员、设计高度范围和某一天的实际状态。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "can accommodate 表示容纳能力，operates 表示运行情况，二者共享空间站这个主语。400—450公里是离地表的高度范围，above 比只写 from 更能明确空间关系；不能把范围译成精确400公里。",
-      "exam_tip": "can accommodate 表示容纳能力，operates 表示运行情况，二者共享空间站这个主语。"
+      "summary": "standard crew of three 表示额定乘员，不是说任何时刻都恰好三人在站。is designed to operate 标明设计范围；340–450公里也不是某一天的实测高度。above the Earth’s surface 保留从地表向上的高度关系。",
+      "exam_tip": "先看数字描述的是额定值、设计范围，还是某一时刻观测值。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5767,7 +5767,7 @@
       "group": "高级句子",
       "box": "并列句"
     },
-    "back_text": "The Tiangong Space Station can accommodate three astronauts and operates in an orbit 400-450 kilometers above the Earth's surface."
+    "back_text": "The Tiangong space station has a standard crew of three and is designed to operate at an altitude of 340–450 kilometres above the Earth’s surface."
   },
   {
     "card_id": "140003",
@@ -5776,14 +5776,14 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：尊老深植于思想和行为中，并被普遍遵守为社会准则。\n\n先汉译英，再补全骨架：\nRespect for the elderly is deeply rooted in people's thoughts and behaviors and is widely observed {{blank}} a social norm.",
-      "support": "原句：尊老深植于思想和行为中，并被普遍遵守为社会准则。\n\n先汉译英，再补全骨架：\nRespect for the elderly is deeply rooted in people's thoughts and behaviors and is widely observed {{blank}} a social norm.",
-      "context": "原句：尊老深植于思想和行为中，并被普遍遵守为社会准则。\n\n先汉译英，再补全骨架：\nRespect for the elderly is deeply rooted in people's thoughts and behaviors and is widely observed {{blank}} a social norm."
+      "prompt": "原句：尊老深植于思想和行为中，并被普遍遵守为社会准则。\n\n补全译文，说明尊老被当作什么来遵守。\n\nRespect for the elderly is deeply rooted in people's thoughts and behaviour and is widely observed {{blank}} a social norm.",
+      "support": "原句：尊老深植于思想和行为中，并被普遍遵守为社会准则。\n\n补全译文，说明尊老被当作什么来遵守。\n\nRespect for the elderly is deeply rooted in people's thoughts and behaviour and is widely observed {{blank}} a social norm.",
+      "context": "原句：尊老深植于思想和行为中，并被普遍遵守为社会准则。\n\n补全译文，说明尊老被当作什么来遵守。\n\nRespect for the elderly is deeply rooted in people's thoughts and behaviour and is widely observed {{blank}} a social norm."
     },
     "analysis": {
       "title": "解析",
-      "summary": "rooted in 与 observed as 各自保留搭配。as a social norm 说明被遵守时的规范身份，不是表示原因的 because，也不是把规范当作行为发生的地点。",
-      "exam_tip": "rooted in 与 observed as 各自保留搭配。"
+      "summary": "as a social norm 表示“作为社会准则”，不是表示目的的for。observed在这里是遵守，不是观察到；rooted in说明深植于哪里。widely保留普遍，不应改成所有人无例外都做到。",
+      "exam_tip": "先判断observe在这里是观察还是遵守，再看社会准则是身份还是目的。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5817,14 +5817,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：政府出台了一系列政策，并为老年人权益提供了有力保障。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：政府出台了一系列政策，并为老年人权益提供了有力保障。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：政府出台了一系列政策，并为老年人权益提供了有力保障。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：政府出台了一系列政策，并为老年人权益提供了有力保障。\n\n译成英文，写全政策出台与老年人权益保障。",
+      "support": "原句：政府出台了一系列政策，并为老年人权益提供了有力保障。\n\n译成英文，写全政策出台与老年人权益保障。",
+      "context": "原句：政府出台了一系列政策，并为老年人权益提供了有力保障。\n\n译成英文，写全政策出台与老年人权益保障。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "has 可以由 introduced 与 provided 两个过去分词共享。policies 是措施，protection 是结果，两者不能交换宾语；也不能在并列后把 provided 改成 provides 而不调整结构。",
-      "exam_tip": "has 可以由 introduced 与 provided 两个过去分词共享。"
+      "summary": "has introduced a series of policies 与 provided strong protection 共享has，分别说出台政策和提供保障。for the rights and interests of the elderly 指保障老年人的权益；introduced和provided后不能随意交换宾语，也不能只给第二个动词加-s。",
+      "exam_tip": "先列政策与保障两项，再检查两个过去分词是否共用has。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5841,14 +5841,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：空间站研究成果在我国广泛应用，并产生了显著经济效益。\n\n任务：先汉译英，再检查是否完整保留“应用+效益”双信息。",
-      "support": "原句：空间站研究成果在我国广泛应用，并产生了显著经济效益。\n\n任务：先汉译英，再检查是否完整保留“应用+效益”双信息。",
-      "context": "原句：空间站研究成果在我国广泛应用，并产生了显著经济效益。\n\n任务：先汉译英，再检查是否完整保留“应用+效益”双信息。"
+      "prompt": "原句：空间站研究成果在我国广泛应用，并产生了显著经济效益。\n\n译成英文，保留成果被应用与成果产生效益的不同关系。",
+      "support": "原句：空间站研究成果在我国广泛应用，并产生了显著经济效益。\n\n译成英文，保留成果被应用与成果产生效益的不同关系。",
+      "context": "原句：空间站研究成果在我国广泛应用，并产生了显著经济效益。\n\n译成英文，保留成果被应用与成果产生效益的不同关系。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "have been applied 是应用这一被动状态，have generated 是产生效益的主动结构。主语虽相同，两个谓语的语态不必相同；不能为了形式对称而误写 have been generated benefits。",
-      "exam_tip": "have been applied 是应用这一被动状态，have generated 是产生效益的主动结构。"
+      "summary": "成果是被应用的，写have been widely applied；成果产生效益是主动表达，写have generated benefits。虽然两项共用research outcomes，语态不必相同。have been generated benefits会把主动产生和被动结构混在一起，in China也别漏掉。",
+      "exam_tip": "分别问成果是被应用，还是被别人产生经济效益，选择对应语态。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5865,14 +5865,14 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：北斗系统已在国际上广泛认可，并开始为更多国家和地区提供服务。\n\n先汉译英，再补全骨架：\nThe Beidou System has gained wide international recognition and has begun to provide services {{blank}} more countries and regions.",
-      "support": "原句：北斗系统已在国际上广泛认可，并开始为更多国家和地区提供服务。\n\n先汉译英，再补全骨架：\nThe Beidou System has gained wide international recognition and has begun to provide services {{blank}} more countries and regions.",
-      "context": "原句：北斗系统已在国际上广泛认可，并开始为更多国家和地区提供服务。\n\n先汉译英，再补全骨架：\nThe Beidou System has gained wide international recognition and has begun to provide services {{blank}} more countries and regions."
+      "prompt": "原句：北斗系统已在国际上得到广泛认可，并开始为更多国家和地区提供服务。\n\n补全译文，说明服务的接受者。\n\nThe BeiDou system has gained wide international recognition and has begun to provide services {{blank}} more countries and regions.",
+      "support": "原句：北斗系统已在国际上得到广泛认可，并开始为更多国家和地区提供服务。\n\n补全译文，说明服务的接受者。\n\nThe BeiDou system has gained wide international recognition and has begun to provide services {{blank}} more countries and regions.",
+      "context": "原句：北斗系统已在国际上得到广泛认可，并开始为更多国家和地区提供服务。\n\n补全译文，说明服务的接受者。\n\nThe BeiDou system has gained wide international recognition and has begun to provide services {{blank}} more countries and regions."
     },
     "analysis": {
       "title": "解析",
-      "summary": "在本题给定的候选中，to 可引出服务接受者。完整翻译还有其他可行表达，例如 provide services for；不能因此断言 for 在所有语境中都不合语法。",
-      "exam_tip": "provide services to countries 中，services 是所提供的内容，to 引出接收者。"
+      "summary": "to more countries and regions 引出服务接受者。from会写成服务的来源，with通常接提供的东西，at偏向地点；都不对应本句。完整翻译也可说provide services for，但for不在本题词库中，不能据此说它在英语里错误。",
+      "exam_tip": "国家和地区在这里接收服务，不是提供服务的来源。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5906,14 +5906,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：空间站平台扩大了科学实验范围，并提升了相关技术成果转化效率。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：空间站平台扩大了科学实验范围，并提升了相关技术成果转化效率。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：空间站平台扩大了科学实验范围，并提升了相关技术成果转化效率。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：空间站平台扩大了科学实验范围，并提升了相关技术成果转化效率。\n\n译成英文，保留实验范围和技术应用效率两项改进。",
+      "support": "原句：空间站平台扩大了科学实验范围，并提升了相关技术成果转化效率。\n\n译成英文，保留实验范围和技术应用效率两项改进。",
+      "context": "原句：空间站平台扩大了科学实验范围，并提升了相关技术成果转化效率。\n\n译成英文，保留实验范围和技术应用效率两项改进。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "成果转化是把相关技术用于实践，不是把“技术成就”当成物体直接变形。两项作用都由空间站承接。",
-      "exam_tip": "并列结果句优先做“动词对齐”检查。"
+      "summary": "broadened the scope of scientific experiments 是扩大实验范围，made it more efficient to put advances into practical use 是让技术成果更高效地用于实践。这里成果转化不是把物体变形；it为后面的to put ...这一动作留位置。",
+      "exam_tip": "分别问能做更多什么实验，以及已有技术怎样被用于实践。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5930,14 +5930,14 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：北斗系统提高了定位精度，也增强了复杂环境下的服务稳定性。\n\n先做汉译英，再补全并列骨架：\nThe Beidou System has improved positioning accuracy and {{blank}} service stability in complex environments.",
-      "support": "原句：北斗系统提高了定位精度，也增强了复杂环境下的服务稳定性。\n\n先做汉译英，再补全并列骨架：\nThe Beidou System has improved positioning accuracy and {{blank}} service stability in complex environments.",
-      "context": "原句：北斗系统提高了定位精度，也增强了复杂环境下的服务稳定性。\n\n先做汉译英，再补全并列骨架：\nThe Beidou System has improved positioning accuracy and {{blank}} service stability in complex environments."
+      "prompt": "原句：北斗系统提高了定位精度，也增强了复杂环境下的服务稳定性。\n\n补全译文，保留定位精度与服务稳定性两项变化。\n\nThe BeiDou system has improved positioning accuracy and {{blank}} service stability in complex environments.",
+      "support": "原句：北斗系统提高了定位精度，也增强了复杂环境下的服务稳定性。\n\n补全译文，保留定位精度与服务稳定性两项变化。\n\nThe BeiDou system has improved positioning accuracy and {{blank}} service stability in complex environments.",
+      "context": "原句：北斗系统提高了定位精度，也增强了复杂环境下的服务稳定性。\n\n补全译文，保留定位精度与服务稳定性两项变化。\n\nThe BeiDou system has improved positioning accuracy and {{blank}} service stability in complex environments."
     },
     "analysis": {
       "title": "解析",
-      "summary": "并列动作需使用同层动词，enhanced 与 improved 在语义和语法上对应。",
-      "exam_tip": "并列动词常按语义强弱搭配（improve + enhance）。"
+      "summary": "has 同时接improved和enhanced，都是过去分词。enhance原形、enhancing和enhancement名词都不能在这里与improved这样并列。in complex environments说明是在复杂环境下更稳定，不能只译精度而漏掉这一项。",
+      "exam_tip": "and前的improved已经由has引出，检查后面需要配合哪种形式。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5971,14 +5971,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：我国制造业加快数字化转型，同时也推动了供应链协同效率的整体提升。\n\n任务：先汉译英，再检查是否用并列结构准确承接“转型推进 + 效率提升”。",
-      "support": "原句：我国制造业加快数字化转型，同时也推动了供应链协同效率的整体提升。\n\n任务：先汉译英，再检查是否用并列结构准确承接“转型推进 + 效率提升”。",
-      "context": "原句：我国制造业加快数字化转型，同时也推动了供应链协同效率的整体提升。\n\n任务：先汉译英，再检查是否用并列结构准确承接“转型推进 + 效率提升”。"
+      "prompt": "原句：我国制造业加快数字化转型，同时也推动了供应链协同效率的整体提升。\n\n译成英文，保留制造业转型与供应链协同整体效率的变化。",
+      "support": "原句：我国制造业加快数字化转型，同时也推动了供应链协同效率的整体提升。\n\n译成英文，保留制造业转型与供应链协同整体效率的变化。",
+      "context": "原句：我国制造业加快数字化转型，同时也推动了供应链协同效率的整体提升。\n\n译成英文，保留制造业转型与供应链协同整体效率的变化。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "同时推进转型并提升协同效率。可以使用两个并列谓语或 while 等合理结构，不需要堆叠多层抽象名词。",
-      "exam_tip": "并列句优先保证信息同层级。"
+      "summary": "is accelerating说数字化转型正在加快；while making ...同时补充供应链协同更高效。overall保留整体，不要缩成某一个环节改善。两个动作的主体都是制造业，也可用and连接两个完整谓语来表达。",
+      "exam_tip": "检查两项动作是不是都由制造业承担，以及整体范围有没有遗漏。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -5986,7 +5986,7 @@
       "group": "高级句子",
       "box": "并列句"
     },
-    "back_text": "China’s manufacturing sector is accelerating its digital transformation while making supply-chain coordination more efficient."
+    "back_text": "China’s manufacturing sector is accelerating its digital transformation while making supply-chain coordination more efficient overall."
   },
   {
     "card_id": "140010",
@@ -5995,14 +5995,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：该改革既优化了资源配置，也增强了市场主体的预期稳定性。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：该改革既优化了资源配置，也增强了市场主体的预期稳定性。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：该改革既优化了资源配置，也增强了市场主体的预期稳定性。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：该改革既优化了资源配置，也增强了市场主体的预期稳定性。\n\n译成英文，保留资源配置与市场预期两项作用。",
+      "support": "原句：该改革既优化了资源配置，也增强了市场主体的预期稳定性。\n\n译成英文，保留资源配置与市场预期两项作用。",
+      "context": "原句：该改革既优化了资源配置，也增强了市场主体的预期稳定性。\n\n译成英文，保留资源配置与市场预期两项作用。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "既……也……在正式语体中可稳定使用 both ... and ...。",
-      "exam_tip": "both ... and ... 的两端尽量保持同词性。"
+      "summary": "both ... and ...连接两项作用：improved说明资源配置改善，made ... more stable说明预期更稳定。两个部分可以采用不同的动词搭配，不必为了字面整齐都写成“增强……的……性”。more stable也不等于预期从此完全不变。",
+      "exam_tip": "先给两项作用选自然的动词，再用both和and连接。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -6010,7 +6010,7 @@
       "group": "高级句子",
       "box": "并列句"
     },
-    "back_text": "The reform has both optimized resource allocation and enhanced the stability of market entities' expectations."
+    "back_text": "The reform has both improved the allocation of resources and made expectations among market participants more stable."
   },
   {
     "card_id": "140011",
@@ -6019,14 +6019,14 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：跨境电商快速发展，既拓展了企业国际市场空间，也提高了外贸韧性。\n\n先做汉译英，再补全骨架：\nCross-border e-commerce has developed rapidly, {{blank}} expanding international market space for enterprises {{blank}} improving foreign-trade resilience.",
-      "support": "原句：跨境电商快速发展，既拓展了企业国际市场空间，也提高了外贸韧性。\n\n先做汉译英，再补全骨架：\nCross-border e-commerce has developed rapidly, {{blank}} expanding international market space for enterprises {{blank}} improving foreign-trade resilience.",
-      "context": "原句：跨境电商快速发展，既拓展了企业国际市场空间，也提高了外贸韧性。\n\n先做汉译英，再补全骨架：\nCross-border e-commerce has developed rapidly, {{blank}} expanding international market space for enterprises {{blank}} improving foreign-trade resilience."
+      "prompt": "原句：跨境电商快速发展，既拓展了企业国际市场空间，也提高了外贸韧性。\n\n结构练习：用表示“不仅……而且……”的成对连词连接两项作用。\n\nCross-border e-commerce has grown rapidly, {{blank}} expanding opportunities for businesses in international markets {{blank}} making foreign trade more resilient.",
+      "support": "原句：跨境电商快速发展，既拓展了企业国际市场空间，也提高了外贸韧性。\n\n结构练习：用表示“不仅……而且……”的成对连词连接两项作用。\n\nCross-border e-commerce has grown rapidly, {{blank}} expanding opportunities for businesses in international markets {{blank}} making foreign trade more resilient.",
+      "context": "原句：跨境电商快速发展，既拓展了企业国际市场空间，也提高了外贸韧性。\n\n结构练习：用表示“不仅……而且……”的成对连词连接两项作用。\n\nCross-border e-commerce has grown rapidly, {{blank}} expanding opportunities for businesses in international markets {{blank}} making foreign trade more resilient."
     },
     "analysis": {
       "title": "解析",
-      "summary": "主句后并列结果可用 not only doing ... but also doing ... 进行压缩。",
-      "exam_tip": "并列结果压缩时，两个 doing 应语法对称。"
+      "summary": "not only后写国际市场机会扩大，but also后写外贸更能承受变化与冲击。expanding和making形式一致。while ... and ...本也能表达同时发生的两项作用，因此本题明确只练成对连词，而不把其他合法译法当作普遍错误。",
+      "exam_tip": "按“不仅第一项，而且第二项”的次序连接，核对机会与韧性两项都在。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -6040,9 +6040,7 @@
         "label": "空 1",
         "options": [
           "not only",
-          "but also",
-          "while",
-          "and"
+          "but also"
         ]
       },
       {
@@ -6050,9 +6048,7 @@
         "label": "空 2",
         "options": [
           "not only",
-          "but also",
-          "while",
-          "and"
+          "but also"
         ]
       }
     ],
@@ -6071,14 +6067,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：科技创新增强了产业竞争力，也提升了我国在全球价值链中的地位。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：科技创新增强了产业竞争力，也提升了我国在全球价值链中的地位。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：科技创新增强了产业竞争力，也提升了我国在全球价值链中的地位。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：科技创新增强了产业竞争力，也提升了我国在全球价值链中的地位。\n\n译成英文，写全产业竞争力和全球价值链地位。",
+      "support": "原句：科技创新增强了产业竞争力，也提升了我国在全球价值链中的地位。\n\n译成英文，写全产业竞争力和全球价值链地位。",
+      "context": "原句：科技创新增强了产业竞争力，也提升了我国在全球价值链中的地位。\n\n译成英文，写全产业竞争力和全球价值链地位。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "strengthened ... and elevated ... 形成同层级并列谓语。",
-      "exam_tip": "并列句优先确保谓语平行。"
+      "summary": "strengthened industrial competitiveness 是增强产业竞争力，elevated China’s position 是提升中国所处地位。in the global value chain保留地位的比较范围，不是说所有国际事务地位都提高。两个过去分词共用has。",
+      "exam_tip": "先分清被增强的是竞争力，被提升的是在哪个体系中的地位。"
     },
     "space_metadata": {
       "box_ref": "1400",
@@ -6095,14 +6091,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：北斗系统是中国自主建设并独立运行的全球卫星导航系统。\n\n任务：先汉译英，再检查是否用定语从句准确压缩“自主建设并独立运行”。",
-      "support": "原句：北斗系统是中国自主建设并独立运行的全球卫星导航系统。\n\n任务：先汉译英，再检查是否用定语从句准确压缩“自主建设并独立运行”。",
-      "context": "原句：北斗系统是中国自主建设并独立运行的全球卫星导航系统。\n\n任务：先汉译英，再检查是否用定语从句准确压缩“自主建设并独立运行”。"
+      "prompt": "原句：北斗系统是中国自主建设并独立运行的全球卫星导航系统。\n\n译成英文，说明系统由谁建设和运行。",
+      "support": "原句：北斗系统是中国自主建设并独立运行的全球卫星导航系统。\n\n译成英文，说明系统由谁建设和运行。",
+      "context": "原句：北斗系统是中国自主建设并独立运行的全球卫星导航系统。\n\n译成英文，说明系统由谁建设和运行。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "定语从句修饰 system，China 在从句中作主语，built 与 operated 共用宾语关系。independently 表达独立建设和运行，不能把从句误读成系统自行建造了中国。",
-      "exam_tip": "定语从句修饰 system，China 在从句中作主语，built 与 operated 共用宾语关系。"
+      "summary": "that回指system，后面的China才是建设、运行的执行者。built和operated共用has，也共用system这个对象。independently说明自主，不要倒写成系统自己建造了什么；global还需保留全球范围。",
+      "exam_tip": "把从句还原成China has built and operated the system，核对谁做了什么。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6110,7 +6106,7 @@
       "group": "高级句子",
       "box": "定语从句"
     },
-    "back_text": "The Beidou System is a global satellite navigation system that China has independently built and operated."
+    "back_text": "The BeiDou system is a global satellite navigation system that China has independently built and operated."
   },
   {
     "card_id": "140102",
@@ -6119,14 +6115,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：天宫空间站是我国首个拥有长期在轨驻留能力的太空实验室。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：天宫空间站是我国首个拥有长期在轨驻留能力的太空实验室。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：天宫空间站是我国首个拥有长期在轨驻留能力的太空实验室。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：天宫空间站是我国首个拥有长期在轨驻留能力的太空实验室。\n\n用从句说明太空实验室的长期驻留能力，保留中国首个的范围。",
+      "support": "原句：天宫空间站是我国首个拥有长期在轨驻留能力的太空实验室。\n\n用从句说明太空实验室的长期驻留能力，保留中国首个的范围。",
+      "context": "原句：天宫空间站是我国首个拥有长期在轨驻留能力的太空实验室。\n\n用从句说明太空实验室的长期驻留能力，保留中国首个的范围。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "that is capable of... 修饰 space laboratory，说明长期驻留能力。capable of 后接名词性成分，不能直接接 bare verb；China's first 的范围也应保留，不能扩大为全球首个。",
-      "exam_tip": "that is capable of... 修饰 space laboratory，说明长期驻留能力。"
+      "summary": "that can accommodate ...说明实验室能支持航天员长期在轨居住，不是只说实验室本身待在轨道上很久。China’s first限定中国首个，不能去掉China’s变成全球首个。for long-term stays保留驻留持续时间。",
+      "exam_tip": "先说谁长期驻留，再检查首个的比较范围。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6134,7 +6130,7 @@
       "group": "高级句子",
       "box": "定语从句"
     },
-    "back_text": "The Tiangong Space Station is China's first space laboratory that is capable of long-term in-orbit habitation."
+    "back_text": "The Tiangong space station is China’s first space laboratory that can accommodate astronauts for long-term stays in orbit."
   },
   {
     "card_id": "140103",
@@ -6143,14 +6139,14 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：尊老是中华民族普遍遵守的行为规范。\n\n先汉译英，再补全骨架：\nRespect for the elderly is a code of conduct {{blank}} is widely observed in Chinese society.",
-      "support": "原句：尊老是中华民族普遍遵守的行为规范。\n\n先汉译英，再补全骨架：\nRespect for the elderly is a code of conduct {{blank}} is widely observed in Chinese society.",
-      "context": "原句：尊老是中华民族普遍遵守的行为规范。\n\n先汉译英，再补全骨架：\nRespect for the elderly is a code of conduct {{blank}} is widely observed in Chinese society."
+      "prompt": "原句：尊老是中华民族普遍遵守的行为规范。\n\n补全译文，连接行为规范与它被普遍遵守的说明。\n\nRespect for the elderly is a code of conduct {{blank}} is widely observed in Chinese society.",
+      "support": "原句：尊老是中华民族普遍遵守的行为规范。\n\n补全译文，连接行为规范与它被普遍遵守的说明。\n\nRespect for the elderly is a code of conduct {{blank}} is widely observed in Chinese society.",
+      "context": "原句：尊老是中华民族普遍遵守的行为规范。\n\n补全译文，连接行为规范与它被普遍遵守的说明。\n\nRespect for the elderly is a code of conduct {{blank}} is widely observed in Chinese society."
     },
     "analysis": {
       "title": "解析",
-      "summary": "a code of conduct 是先行词，that 在定语从句中作主语，后面接 is widely observed。因为关系词承担主语，不能在此直接省略；widely 也不应强化为每个人无例外。",
-      "exam_tip": "a code of conduct 是先行词，that 在定语从句中作主语，后面接 is widely observed。"
+      "summary": "that代替a code of conduct，在后半句中作is widely observed的主语，不能直接省略。where、when不能作这个主语；what通常不再接前面已经写出的先行名词。observed在这里是遵守，widely不是每个人无例外。",
+      "exam_tip": "is widely observed前需要谁作主语？先把行为规范代回去。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6184,14 +6180,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：这是一项为全球太空研究和应用作出重大贡献的成就。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：这是一项为全球太空研究和应用作出重大贡献的成就。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：这是一项为全球太空研究和应用作出重大贡献的成就。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：这是一项为全球太空研究和应用作出重大贡献的成就。\n\n译成英文，说明这项成就贡献于哪些太空活动。",
+      "support": "原句：这是一项为全球太空研究和应用作出重大贡献的成就。\n\n译成英文，说明这项成就贡献于哪些太空活动。",
+      "context": "原句：这是一项为全球太空研究和应用作出重大贡献的成就。\n\n译成英文，说明这项成就贡献于哪些太空活动。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "achievement 是被描述对象，that 后展开它作出的贡献。has made contributions to 保留动作与对象，不应把研究应用本身误作成就的实施者。",
-      "exam_tip": "achievement 是被描述对象，that 后展开它作出的贡献。"
+      "summary": "achievement是被进一步说明的成就，that has made ...接着说它作出的贡献。contributions to后同时接space research和applications，不能只译研究而漏应用。substantial表示重大贡献，并不要求另加没有给出的金额或排名。",
+      "exam_tip": "先看to后贡献所指的两方面是否都在。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6208,14 +6204,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：社区设立了长者食堂，这是一项受到老年群体欢迎的便民举措。\n\n任务：先汉译英，再检查定语从句是否准确修饰“举措”。",
-      "support": "原句：社区设立了长者食堂，这是一项受到老年群体欢迎的便民举措。\n\n任务：先汉译英，再检查定语从句是否准确修饰“举措”。",
-      "context": "原句：社区设立了长者食堂，这是一项受到老年群体欢迎的便民举措。\n\n任务：先汉译英，再检查定语从句是否准确修饰“举措”。"
+      "prompt": "原句：社区设立了长者食堂，这是一项受到老年群体欢迎的便民举措。\n\n译成英文，用从句说明开设长者食堂这项举措受到谁欢迎。",
+      "support": "原句：社区设立了长者食堂，这是一项受到老年群体欢迎的便民举措。\n\n译成英文，用从句说明开设长者食堂这项举措受到谁欢迎。",
+      "context": "原句：社区设立了长者食堂，这是一项受到老年群体欢迎的便民举措。\n\n译成英文，用从句说明开设长者食堂这项举措受到谁欢迎。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "a measure 指前面开设食堂这件事，that 从句进一步说明该举措受到谁欢迎。明确先行词能避免把复数 canteens 与单数评价结构机械绑定。原文受益与评价人群均为老年人，不宜扩成所有居民。",
-      "exam_tip": "a measure 指前面开设食堂这件事，that 从句进一步说明该举措受到谁欢迎。"
+      "summary": "a measure指前面开设食堂这件事，不是说一项措施等于某一家食堂。that older residents have welcomed说明老年居民欢迎它；把从句还原为older residents have welcomed the measure，就能看清关系。不要扩大成所有居民都欢迎。",
+      "exam_tip": "先问受到欢迎的是开设食堂这项举措，还是在描述食堂的外形。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6232,14 +6228,14 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：北斗系统已广泛应用于交通、救灾、气象等诸多领域，这些领域都高度依赖精准定位。\n\n先汉译英，再补全骨架：\nThe BeiDou system is widely used in fields such as transportation, disaster relief and meteorology {{blank}} depend heavily on accurate positioning.",
-      "support": "原句：北斗系统已广泛应用于交通、救灾、气象等诸多领域，这些领域都高度依赖精准定位。\n\n先汉译英，再补全骨架：\nThe BeiDou system is widely used in fields such as transportation, disaster relief and meteorology {{blank}} depend heavily on accurate positioning.",
-      "context": "原句：北斗系统已广泛应用于交通、救灾、气象等诸多领域，这些领域都高度依赖精准定位。\n\n先汉译英，再补全骨架：\nThe BeiDou system is widely used in fields such as transportation, disaster relief and meteorology {{blank}} depend heavily on accurate positioning."
+      "prompt": "原句：北斗系统已广泛应用于交通、救灾、气象等诸多领域，这些领域都高度依赖精准定位。\n\n补全译文，说明所列领域依赖什么。\n\nThe BeiDou system is widely used in fields {{blank}} depend heavily on accurate positioning, such as transportation, disaster relief and meteorology.",
+      "support": "原句：北斗系统已广泛应用于交通、救灾、气象等诸多领域，这些领域都高度依赖精准定位。\n\n补全译文，说明所列领域依赖什么。\n\nThe BeiDou system is widely used in fields {{blank}} depend heavily on accurate positioning, such as transportation, disaster relief and meteorology.",
+      "context": "原句：北斗系统已广泛应用于交通、救灾、气象等诸多领域，这些领域都高度依赖精准定位。\n\n补全译文，说明所列领域依赖什么。\n\nThe BeiDou system is widely used in fields {{blank}} depend heavily on accurate positioning, such as transportation, disaster relief and meteorology."
     },
     "analysis": {
       "title": "解析",
-      "summary": "先行词是复数 fields，后面列举交通、救灾和气象。定语从句说明这些领域对精准定位的依赖；译文不能把中文列出的三个领域全部省掉。",
-      "exam_tip": "fields 是先行词，that 在从句中作主语，因此后面用复数谓语 require。"
+      "summary": "that紧接fields，代替这些领域作depend的主语；where只表示地点，后面还需要完整主语，whose则需要再接所属名词。交通、救灾、气象是such as列出的例子，不能因为调整从句顺序就把它们删掉。",
+      "exam_tip": "先看depend前缺的是领域这个主语，还是一个地点关系。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6273,14 +6269,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：北斗系统覆盖的多个应用场景，都对定位精度和稳定性提出了更高要求。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：北斗系统覆盖的多个应用场景，都对定位精度和稳定性提出了更高要求。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：北斗系统覆盖的多个应用场景，都对定位精度和稳定性提出了更高要求。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：北斗系统覆盖的多个应用场景，都对定位精度和稳定性提出了更高要求。\n\n译成英文，先限定北斗被使用的场景，再说明精度和稳定性要求。",
+      "support": "原句：北斗系统覆盖的多个应用场景，都对定位精度和稳定性提出了更高要求。\n\n译成英文，先限定北斗被使用的场景，再说明精度和稳定性要求。",
+      "context": "原句：北斗系统覆盖的多个应用场景，都对定位精度和稳定性提出了更高要求。\n\n译成英文，先限定北斗被使用的场景，再说明精度和稳定性要求。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "that are covered by ... 用于限定 scenarios，主句再表达“提出更高要求”的结果。",
-      "exam_tip": "长修饰信息优先后置到定语从句中，减少主句拥挤。"
+      "summary": "settings in which ... is used说明北斗在哪些场景中使用，in which相当于“在这些场景里”。主句require再说这些应用对定位精度与稳定性有更高要求，不是系统向场景提出行政要求。greater同时涵盖所需性能。",
+      "exam_tip": "先还原the system is used in these settings，再接主句的要求。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6288,7 +6284,7 @@
       "group": "高级句子",
       "box": "定语从句"
     },
-    "back_text": "Multiple application scenarios that are covered by the Beidou System have placed higher demands on positioning accuracy and stability."
+    "back_text": "The various settings in which the BeiDou system is used require greater positioning accuracy and stability."
   },
   {
     "card_id": "140108",
@@ -6297,14 +6293,14 @@
     "interaction_id": "lock",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：这是一项推动产业升级的技术成果。\n\n先做汉译英，再补全骨架：\nThis is a technological achievement {{blank}} drives industrial upgrading.",
-      "support": "原句：这是一项推动产业升级的技术成果。\n\n先做汉译英，再补全骨架：\nThis is a technological achievement {{blank}} drives industrial upgrading.",
-      "context": "原句：这是一项推动产业升级的技术成果。\n\n先做汉译英，再补全骨架：\nThis is a technological achievement {{blank}} drives industrial upgrading."
+      "prompt": "原句：这是一项推动产业升级的技术成果。\n\n补全译文，说明技术成果发挥的作用。\n\nThis is a technological achievement {{blank}} drives industrial upgrading.",
+      "support": "原句：这是一项推动产业升级的技术成果。\n\n补全译文，说明技术成果发挥的作用。\n\nThis is a technological achievement {{blank}} drives industrial upgrading.",
+      "context": "原句：这是一项推动产业升级的技术成果。\n\n补全译文，说明技术成果发挥的作用。\n\nThis is a technological achievement {{blank}} drives industrial upgrading."
     },
     "analysis": {
       "title": "解析",
-      "summary": "限制性定语从句常用 that 指代前面的 achievement，并限定其功能属性。",
-      "exam_tip": "限制性定语从句优先考虑 that/who/which 与先行词关系。"
+      "summary": "that指前面的technological achievement，作为drives的主语，说明这项成果推动产业升级。what不能与已出现的achievement重复组成这个从句，where表示地点，whose后要再接名词。",
+      "exam_tip": "drives前缺的是推动升级的成果本身，不是它的位置或所属部分。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6338,14 +6334,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：那些参与国际联合研究的平台，为青年科研人员提供了更广阔的成长空间。\n\n任务：先汉译英，再检查定语信息是否准确落在“平台”上。",
-      "support": "原句：那些参与国际联合研究的平台，为青年科研人员提供了更广阔的成长空间。\n\n任务：先汉译英，再检查定语信息是否准确落在“平台”上。",
-      "context": "原句：那些参与国际联合研究的平台，为青年科研人员提供了更广阔的成长空间。\n\n任务：先汉译英，再检查定语信息是否准确落在“平台”上。"
+      "prompt": "原句：那些参与国际联合研究的平台，为青年科研人员提供了更广阔的成长空间。\n\n译成英文，限定参与联合研究的平台，并说明青年科研人员得到的机会。",
+      "support": "原句：那些参与国际联合研究的平台，为青年科研人员提供了更广阔的成长空间。\n\n译成英文，限定参与联合研究的平台，并说明青年科研人员得到的机会。",
+      "context": "原句：那些参与国际联合研究的平台，为青年科研人员提供了更广阔的成长空间。\n\n译成英文，限定参与联合研究的平台，并说明青年科研人员得到的机会。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "成长空间可自然表达为发展技能与职业的机会；关系修饰仍指平台，不能误放到年轻研究人员上。",
-      "exam_tip": "限制性从句优先保证修饰目标清晰。"
+      "summary": "involved in international research partnerships紧跟platforms，说明哪些平台参与合作。more opportunities to develop their skills and careers把成长空间说成能力和职业发展的机会；不是增加物理房间。young researchers是得到机会的人。",
+      "exam_tip": "先把参与国际合作的修饰放在平台后面，再写机会给谁。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6362,14 +6358,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 高级句子",
-      "prompt": "原句：企业建立的长期培训机制，能够持续提升员工的技术适配能力。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "support": "原句：企业建立的长期培训机制，能够持续提升员工的技术适配能力。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。",
-      "context": "原句：企业建立的长期培训机制，能够持续提升员工的技术适配能力。\n\n任务：先尝试译成英文，再翻卡对照。检查原意是否完整、句子关系是否清楚；参考表达不只一种。"
+      "prompt": "原句：企业建立的长期培训机制，能够持续提升员工的技术适配能力。\n\n译成英文，说明培训安排由谁建立，以及能够帮助员工做什么。",
+      "support": "原句：企业建立的长期培训机制，能够持续提升员工的技术适配能力。\n\n译成英文，说明培训安排由谁建立，以及能够帮助员工做什么。",
+      "context": "原句：企业建立的长期培训机制，能够持续提升员工的技术适配能力。\n\n译成英文，说明培训安排由谁建立，以及能够帮助员工做什么。"
     },
     "analysis": {
       "title": "解析",
-      "summary": "持续培训提升的是适应技术变化的能力。systems/training programmes 都可能适用，不把某个抽象名词当成唯一译法。",
-      "exam_tip": "过去分词短语常用于压缩政策类被动定语。"
+      "summary": "established by companies说明培训体系由企业建立，员工是受益者。can help保留“能够”，continually adapt to ...说持续适应技术变化。系统、培训计划等自然表达都可采用，不必逐字译成training mechanism才能算对。",
+      "exam_tip": "分别检查建立者、受益者、持续适应的对象与can。"
     },
     "space_metadata": {
       "box_ref": "1401",
@@ -6377,6 +6373,6 @@
       "group": "高级句子",
       "box": "定语从句"
     },
-    "back_text": "The long-term training systems established by companies help employees continually adapt to changing technologies."
+    "back_text": "The long-term training systems established by companies can help employees continually adapt to changing technologies."
   }
 ]

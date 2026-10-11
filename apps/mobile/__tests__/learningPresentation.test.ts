@@ -8,6 +8,9 @@ import {
   frontMaterial,
   displayCardText,
   spaceCardPreview,
+  lockPassage,
+  newCardGroup,
+  cardTextParts,
 } from '../src/learning/presentation';
 import { localLearningCardRecords } from './fixtures/interactionCards';
 import { createLearningCardState } from '../src/learning/sessionCore';
@@ -158,7 +161,7 @@ it('removes an inline verbatim task repeat without dropping a different instruct
   if (record?.interaction_id !== 'elimination') throw new Error('Missing real elimination card 061203');
   const card = normalizeLearningCardRecord(record) as EliminationCard;
   expect(frontMaterial(card)).toEqual([
-    '句子：Because the sample size was limited, the conclusion should be interpreted with caution.',
+    'Because the sample size was limited, the conclusion should be interpreted with caution.',
   ]);
   expect(eliminationPassage(card)?.source).toBe(frontMaterial(card)[0]);
 });
@@ -166,8 +169,8 @@ it('removes an inline verbatim task repeat without dropping a different instruct
 it.each([
   ['012103', '模拟句子：Most customers choose private cars.'],
   ['012003', '阅读片段：The greatest challenge for me was continuing to believe in myself.'],
-  ['061203', '句子：Because the sample size was limited.'],
-  ['061205', '句子：While the dataset appears comprehensive.'],
+  ['061203', 'Because the sample size was limited.'],
+  ['061205', 'While the dataset appears comprehensive.'],
 ])('deleting the actual correct spans leaves the intact source core in %s', (id, expected) => {
   const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === id);
   if (record?.interaction_id !== 'elimination') throw new Error(`Missing real elimination card ${id}`);
@@ -191,4 +194,16 @@ it('renders imported lock placeholders as blanks without changing source content
   expect(frontMaterial(card).join(' ')).not.toContain('{{blank}}');
   expect(JSON.stringify(card)).toBe(before);
   expect(displayCardText(elimination, 'Keep {{blank}} literally.')).toBe('Keep {{blank}} literally.');
+});
+
+it('fills lock blanks in their original paragraph and keeps a short final group honest', () => {
+  const record = bundledCardLibrary.cet4.cards.find(card => card.card_id === '031106')!;
+  const card = normalizeLearningCardRecord(record);
+  if (card.interaction_id !== 'lock') throw new Error('Expected lock');
+  const complete = lockPassage(card, card.answer_key.lock_pattern);
+  expect(complete).toContain('Group projects can improve communication skills.');
+  expect(complete).toContain('For example');
+  expect(complete).not.toContain('{{blank}}');
+  expect(cardTextParts(card, '**word** *incorrect example')).toEqual([{text: 'word', emphasized: true}, {text: ' *incorrect example', emphasized: false}]);
+  expect(newCardGroup(card, [card], [], [])).toEqual({step: 1, size: 1});
 });

@@ -11,6 +11,8 @@ import type {
 
 type NativeLearningAudioPlayerModule = {
   addListener: (eventName: string) => void;
+  getPosition: (playbackToken: string) => Promise<number>;
+  seek: (playbackToken: string, milliseconds: number) => Promise<void>;
   pause: (playbackToken: string) => Promise<void>;
   play: (playbackToken: string) => Promise<void>;
   prepare: (filePath: string, playbackToken: string) => Promise<void>;
@@ -34,6 +36,8 @@ function requireNativeModule() {
 }
 
 export const nativeLearningAudioEngine: LearningAudioEngine = {
+  getPosition: async token => requireNativeModule().getPosition(token),
+  seek: async (token, milliseconds) => requireNativeModule().seek(token, milliseconds),
   pause: async playbackToken => requireNativeModule().pause(playbackToken),
   play: async playbackToken => requireNativeModule().play(playbackToken),
   prepare: async (filePath, playbackToken) =>

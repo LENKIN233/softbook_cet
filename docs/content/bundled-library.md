@@ -7,7 +7,7 @@ Web 本地入口为 `http://127.0.0.1:4173/`（四级）与
 `http://127.0.0.1:4173/?track=cet6`（六级）。该参数仅用于开发入口，不能覆盖
 远端配置的轨道。Mobile 沿用 `SOFTBOOK_APP_RUNTIME_CONFIG.learningTrack` 选择轨道。
 
-当前固定内容为 CET4 1180 卡 / 108 盒 / 301 音频，CET6 1234 卡 / 110 盒 /
+当前固定内容为 CET4 1180 卡 / 108 盒 / 297 音频，CET6 1234 卡 / 110 盒 /
 328 音频。源仓库 commit、导出 payload SHA-256 和 content version 记录在
 `infra/cloudbase/functions/softbook-api/card-content/provenance.json`。源工作区的内容
 审查状态保持原样；本地接入和技术检查不构成正式内容授权或学习效果证明。
@@ -30,3 +30,5 @@ Web 学习会话目前仍在当前页面内，不宣称刷新恢复或跨设备�
 
 后端不再自动植入示例：缺少导入内容时返回 `card_source_missing`。测试用例必须显式
 注入自己的交互 fixture。生产和云端内容仍通过原有发布/导入合同接入。
+
+2026-10 交接使用 card-make `ed3b403ed3006e857a8ac8ff138ddf7a8a4040a9` 的两轨 `20261001-*-plain-language-full-authorization` 与 `runtime-fixed` manifest。安装前核对授权中的 manifest 字节 SHA、三个 shard SHA、完整卡ID集合与297／328个引用音频的字节。四级新版已解除四个历史音频引用，历史文件仍保留；CET4 / CET6卡数与归属不变。当前内容版本详见 provenance。授权范围是文本内容，不代表感知音频、云部署或发布状态。

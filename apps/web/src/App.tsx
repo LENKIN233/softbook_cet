@@ -8,7 +8,7 @@ import {createLocalLearningStore, LocalLearningStorageError, type LocalLearningS
 import {getChinaDayKey as chinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {authFailure} from '../../mobile/src/auth/authErrorCopy';
 import {endsLocalBatch, localBatch, localResumeIndex} from '../../mobile/src/learning/localBatch';
-import {displayCardText, frontMaterial, eliminationPassage, answerComparison, spaceCardPreview} from '../../mobile/src/learning/presentation';
+import {displayCardText, frontMaterial, eliminationPassage, answerComparison, spaceCardPreview, lockPassage, answerHeading, stateDescription, cardTextParts, newCardGroup, lockPassageSource, attemptLabel} from '../../mobile/src/learning/presentation';
 import {resolveLibraryTone} from '../../mobile/src/visual/tokens';
 import {useObjectMotion, useRouteMotion, transitionObjectName} from './motion';
 import {
@@ -144,6 +144,9 @@ function AccountApp({
     null,
   );
   const [results, setResults] = useState<LearningCardResult[]>([]);
+  const [dailyProgress, setDailyProgress] = useState<WebRemoteSnapshot['bootstrap']['progress']['snapshot'] | null>(null);
+  const draftCache = useRef(new Map<string, {selection: string | undefined; version: string | null; state: LearningCardState; result: LearningCardResult | null}>());
+  const spaceBrowseCache = useRef(new Map<string, {box: string; card: string; filter: SpaceCardFilter; query: string}>());
   const [knownResults, setKnownResults] = useState<(LearningCardResult & {serverSequence?: number})[]>([]);
   const [resolved, setResolved] = useState<LearningCardResult | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -152,6 +155,7 @@ function AccountApp({
     runtime.mode === 'development' ? createInitialMembershipState() : null,
   );
   const [remoteBusy, setRemoteBusy] = useState(false);
+  const [remoteNotice, setRemoteNotice] = useState('');
   const [remoteError, setRemoteError] = useState('');
   const [audioStatus, setAudioStatus] = useState<
     'idle' | 'loading' | 'paused' | 'playing' | 'ready' | 'error'
@@ -185,7 +189,7 @@ function AccountApp({
     );
   const routeMotion = useRouteMotion(`${authStage}:${phone}:${accountDeletionStage}`);
   const navigateRoute = (next: RouteKey) => {
-    if (route === 'learning' && next !== 'learning') {
+    if ((route === 'learning' || route === 'space') && next !== route) {
       audioRequestGeneration.current += 1;
       remoteController?.stopCardAudio?.();
       bundledAudio.current?.stop();
@@ -193,7 +197,24 @@ function AccountApp({
     }
     routeMotion(() => setRoute(next));
   };
+  const deferredFlipResult = useRef<LearningCardResult | null>(null);
   const resolutionInFlight = useRef(false);
+  const learningChannel = useRef<BroadcastChannel | null>(null);
+  const [externalLearningRevision, setExternalLearningRevision] = useState(0);
+  const consumedLearningRevision = useRef(0);
+  useEffect(() => {
+    if (runtime.mode !== 'remote' || typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('softbook-learning-changes-v1');
+    learningChannel.current = channel;
+    channel.onmessage = event => {if (event.data?.type === 'learning_changed') setExternalLearningRevision(value => value + 1);};
+    return () => {channel.close(); learningChannel.current = null;};
+  }, [runtime.mode]);
+  const refreshExternalLearning = useEffectEvent(() => {void reloadRemoteState(true);});
+  useEffect(() => {
+    if (externalLearningRevision <= consumedLearningRevision.current || authStage !== 'authenticated' || remoteBusy || (resolved && deferredFlipResult.current === null) || resolutionInFlight.current) return;
+    consumedLearningRevision.current = externalLearningRevision;
+    refreshExternalLearning();
+  }, [externalLearningRevision, authStage, remoteBusy, resolved]);
   const audioRequestGeneration = useRef(0);
   const bundledAudio = useRef<ReturnType<typeof import('./bundledAudio').createBundledAudioController> | null>(null);
   const accountAuthorityGeneration = useRef(0);
@@ -310,8 +331,8 @@ function AccountApp({
   const spaceCards = membershipAccess?.completePhysicalSpace
     ? session?.catalogCards ?? []
     : accessibleSpaceCards;
-  const knownCardIds = new Set((session?.catalogCards ?? []).map(card => card.card_id));
-  const catalogResults = latestCardResults(runtime.mode === 'development' ? results : knownResults).filter(result => knownCardIds.has(result.cardId));
+  const catalogResults = latestCardResults(runtime.mode === 'development' ? results : knownResults);
+  const remoteNewCardGroup = runtime.mode === 'remote' && learningPhase === 'learning' ? newCardGroup(currentCard, session?.catalogCards ?? [], catalogResults, sleeping) : undefined;
   const pendingReviewIds = reviewCardIds(catalogResults, sleeping);
   const remoteSyncFacts = [
     checkInSync?.status === 'queued' ? '今日签到等待同步' : null,
@@ -512,24 +533,27 @@ function AccountApp({
     window.scrollTo({behavior: 'auto', top: 0});
   }, [currentIndex, currentCard?.card_id, session?.serverSelection?.selectionId, learningPhase, route]);
 
-  function applyRemoteSnapshot(snapshot: WebRemoteSnapshot) {
+  function applyRemoteSnapshot(snapshot: WebRemoteSnapshot, retainResult = false) {
+    retainResult = retainResult && resolved !== null && currentCard !== null && snapshot.learningSession.track === session?.track && snapshot.learningSession.contentVersion === session?.contentVersion && snapshot.learningSession.catalogCards.some(card => card.card_id === currentCard.card_id && card.interaction_id === currentCard.interaction_id);
     setDayNeedsRefresh(false);
     const nextSession = snapshot.learningSession;
     const nextCard = nextSession.cards[0] ?? null;
     const previousSelectionId = session?.serverSelection?.selectionId ?? null;
     const nextSelectionId = nextSession.serverSelection?.selectionId ?? null;
-    const preservesCurrentCardDraft =
+    const preservesCurrentCardDraft = retainResult ||
       previousSelectionId !== null &&
       previousSelectionId === nextSelectionId &&
       session?.contentVersion === nextSession.contentVersion &&
       session?.serverSelection?.phase === nextSession.serverSelection?.phase &&
       currentCard !== null &&
       nextCard?.card_id === currentCard.card_id;
-    setSession(nextSession);
-    setCurrentIndex(0);
-    setLearningPhase(nextSession.serverSelection?.phase ?? 'learning');
-    setReviewCards([]);
-    setSessionComplete(nextSession.cards.length === 0);
+    if (!retainResult) {
+      setSession(nextSession);
+      setCurrentIndex(0);
+      setLearningPhase(nextSession.serverSelection?.phase ?? 'learning');
+      setReviewCards([]);
+      setSessionComplete(nextSession.cards.length === 0);
+    }
     setResults([...snapshot.learningResults, ...snapshot.reviewResults]);
     setKnownResults(snapshot.bootstrap.learning.cardStates);
     if (nextCard !== null && snapshot.sleeping.includes(nextCard.card_id)) {
@@ -540,6 +564,7 @@ function AccountApp({
     if (!preservesCurrentCardDraft) {
       audioRequestGeneration.current += 1;
       setResolved(null);
+      deferredFlipResult.current = null;
     }
     setFavorites(snapshot.favorites);
     setSleeping(snapshot.sleeping);
@@ -555,11 +580,12 @@ function AccountApp({
       if (preservesCurrentCardDraft && previous !== null && nextCard !== null) {
         return {
           ...previous,
-          isFavorited: snapshot.favorites.includes(nextCard.card_id),
+          isFavorited: snapshot.favorites.includes(retainResult && currentCard ? currentCard.card_id : nextCard.card_id),
         };
       }
       return nextCard ? withFavoriteState(nextCard, snapshot.favorites) : null;
     });
+    setDailyProgress(snapshot.bootstrap.progress.snapshot);
     setRemoteError(
       snapshot.spaceSync.rejectedActionCount > 0
         ? '设置未能保存。请刷新后重新操作。'
@@ -680,6 +706,7 @@ function AccountApp({
 
   async function switchRemoteTrack(nextTrack: LearningTrack) {
     if (remoteController === null || remoteBusy || accountDeletionLocksAccount || resolutionInFlight.current) return;
+    if (currentCard && cardState && (!resolved || deferredFlipResult.current)) draftCache.current.set(`${phone}:${session?.track}`, {selection: session?.serverSelection?.selectionId, version: session?.contentVersion ?? null, state: cardState, result: deferredFlipResult.current});
     const generation = ++accountAuthorityGeneration.current;
     setRemoteBusy(true);
     setRemoteError('');
@@ -688,7 +715,14 @@ function AccountApp({
     setAudioStatus('idle');
     try {
       const snapshot = await remoteController.switchTrack(nextTrack);
-      if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot);
+      if (accountAuthorityGeneration.current === generation) {
+        applyRemoteSnapshot(snapshot);
+        const retained = draftCache.current.get(`${phone}:${nextTrack}`);
+        if (retained && retained.selection === snapshot.learningSession.serverSelection?.selectionId && retained.version === snapshot.learningSession.contentVersion) {
+          setCardState({...retained.state, isFavorited: snapshot.favorites.includes(snapshot.learningSession.cards[0]?.card_id ?? '')});
+          deferredFlipResult.current = retained.result; setResolved(retained.result);
+        }
+      }
     } catch (error) {
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '切换失败，已保留当前考试和学习记录，请重试。');
     } finally {
@@ -696,13 +730,17 @@ function AccountApp({
     }
   }
 
-  async function reloadRemoteState() {
+  async function reloadRemoteState(externalChange = false) {
     if (remoteController === null) return;
     const generation = accountAuthorityGeneration.current;
     setRemoteBusy(true);
     try {
       const snapshot = await remoteController.loadAuthenticatedState();
-      if (accountAuthorityGeneration.current === generation) applyRemoteSnapshot(snapshot);
+      if (accountAuthorityGeneration.current === generation) {
+        const changed = snapshot.learningSession.serverSelection?.selectionId !== session?.serverSelection?.selectionId;
+        applyRemoteSnapshot(snapshot);
+        if (externalChange && changed) setRemoteNotice('学习安排已在另一个页面更新，已切换到当前卡片。');
+      }
     } catch (error) {
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '学习进度加载失败，请重试。');
     } finally {
@@ -726,6 +764,7 @@ function AccountApp({
             'favorite',
             nextActive,
           ),
+          resolved !== null,
         );
       } catch (error) {
         await handleRemoteFailure(error, '收藏状态暂时没有更新。');
@@ -746,6 +785,11 @@ function AccountApp({
 
   function resetAccountState() {
     setDayNeedsRefresh(false);
+    setDailyProgress(null);
+    deferredFlipResult.current = null;
+    setRemoteNotice('');
+    draftCache.current.clear();
+    spaceBrowseCache.current.clear();
     audioRequestGeneration.current += 1;
     setAuthStage('phone');
     setPhone('');
@@ -828,18 +872,22 @@ function AccountApp({
       return;
     }
     if (runtime.mode === 'remote' && remoteController !== null) {
+      const generation = accountAuthorityGeneration.current;
       setRemoteBusy(true);
       try {
         const outcome = await remoteController.logout();
+        if (accountAuthorityGeneration.current !== generation) return;
         if (outcome !== null && outcome.status !== 'none') {
           applyAccountDeletionOutcome(outcome);
           return;
         }
         resetAccountState();
       } catch {
+        if (accountAuthorityGeneration.current !== generation) return;
         try {
           const deletionOutcome =
             await remoteController.resumeAccountDeletion();
+          if (accountAuthorityGeneration.current !== generation) return;
           if (
             deletionOutcome.status === 'none' &&
             !remoteController.isAuthenticated()
@@ -856,7 +904,7 @@ function AccountApp({
         }
         setRemoteError('退出未完成，请重试。');
       } finally {
-        setRemoteBusy(false);
+        if (accountAuthorityGeneration.current === generation) setRemoteBusy(false);
       }
       return;
     }
@@ -881,13 +929,15 @@ function AccountApp({
     setRemoteError(getUserFacingErrorMessage(error, fallback));
   }
 
-  async function resolveCurrentCard(stateOverride?: LearningCardState) {
+  async function resolveCurrentCard(stateOverride?: LearningCardState, commitSelfAssessment = false) {
+    setRemoteNotice('');
     const stateToResolve = stateOverride ?? cardState;
-    if (isServerSelectionSleeping || !currentCard || !stateToResolve || resolved || queuedLearningResult || resolutionInFlight.current) return;
-    const next = evaluateLearningCard(currentCard, stateToResolve);
+    if (isServerSelectionSleeping || !currentCard || !stateToResolve || (resolved && deferredFlipResult.current === null) || queuedLearningResult || resolutionInFlight.current) return;
+    const next = commitSelfAssessment ? deferredFlipResult.current : evaluateLearningCard(currentCard, stateToResolve);
     if (!next) return;
     setCardState(stateToResolve);
 
+    if (runtime.mode === 'remote' && currentCard.interaction_id === 'flip' && !commitSelfAssessment) {deferredFlipResult.current = next; setResolved(next); return;}
     if (runtime.mode === 'remote') {
       if (remoteController === null) return;
       const generation = accountAuthorityGeneration.current;
@@ -910,6 +960,7 @@ function AccountApp({
           return;
         }
         presentAcknowledgedLearningResult(next);
+        return true;
       } catch (error) {
         if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '当前学习结果暂时没有同步。');
       } finally {
@@ -931,6 +982,10 @@ function AccountApp({
   async function continueLearning() {
     if (isServerSelectionSleeping) return;
     if (runtime.mode === 'remote') {
+      if (deferredFlipResult.current) {
+        const confirmed = await resolveCurrentCard(undefined, true);
+        if (!confirmed) return;
+      }
       await reloadRemoteState();
       return;
     }
@@ -943,8 +998,12 @@ function AccountApp({
   }
 
   function presentAcknowledgedLearningResult(result: LearningCardResult) {
+    deferredFlipResult.current = null;
     setKnownResults(previous => [...previous.filter(item => item.cardId !== result.cardId), result]);
+    learningChannel.current?.postMessage({type: 'learning_changed'});
     setResolved(result);
+    setCheckInSync(previous => previous && previous.status === 'unavailable' ? {...previous, status: 'ready'} : previous);
+    setDailyProgress(previous => previous ? {...previous, learningCompletedCount: previous.learningCompletedCount + (learningPhase === 'learning' ? 1 : 0), reviewCompletedCount: previous.reviewCompletedCount + (learningPhase === 'review' ? 1 : 0), totalCompletedCount: previous.totalCompletedCount + 1} : previous);
     setResults(previous => [
       ...previous.filter(item => item.cardId !== result.cardId),
       result,
@@ -1028,7 +1087,9 @@ function AccountApp({
     setRemoteError('');
     setAudioStatus('loading');
     try {
-      const status = await remoteController.playCardAudio(currentCard);
+      const status = resolved !== null && deferredFlipResult.current === null && remoteController.playSpaceCardAudio
+        ? await remoteController.playSpaceCardAudio(currentCard.card_id)
+        : await remoteController.playCardAudio(currentCard);
       if (audioRequestGeneration.current === requestGeneration) {
         setAudioStatus(status);
       }
@@ -1048,7 +1109,7 @@ function AccountApp({
     setRemoteError('');
     try {
       const snapshot = await remoteController.checkInToday();
-      applyRemoteSnapshot(snapshot);
+      applyRemoteSnapshot(snapshot, resolved !== null && deferredFlipResult.current === null);
       setRemoteError(
         snapshot.checkInSync.status === 'queued'
           ? '签到已保存在本机，正在同步。'
@@ -1257,7 +1318,8 @@ function AccountApp({
               inputMode="tel"
               autoComplete="tel"
               value={phone}
-              onChange={event => setPhone(event.target.value.replace(/\D/g, '').slice(0, 11))}
+              onChange={event => {setPhone(event.target.value.replace(/\D/g, '').slice(0, 11)); setAuthError('');}}
+              onKeyDown={event => {if (event.key === 'Enter' && !remoteBusy && !event.nativeEvent.isComposing) {event.preventDefault(); void requestCode();}}}
               disabled={authStage === 'code'}
               placeholder="11 位手机号"
             />
@@ -1270,6 +1332,7 @@ function AccountApp({
                   autoComplete="one-time-code"
                   value={code}
                   onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onKeyDown={event => {if (event.key === 'Enter' && !remoteBusy && !event.nativeEvent.isComposing) {event.preventDefault(); void verifyCode();}}}
                   placeholder="6 位验证码"
                   autoFocus
                 />
@@ -1282,7 +1345,7 @@ function AccountApp({
               : authStage === 'phone' ? '获取验证码' : '登录'}
           </button>
           {authStage === 'code' ? (
-            <button className="text-button" disabled={remoteBusy} onClick={() => {setAuthStage('phone'); setCode('');}}>
+            <button className="text-button" disabled={remoteBusy} onClick={() => {setAuthStage('phone'); setCode(''); setAuthError('');}}>
               更换手机号 / 重新获取验证码
             </button>
           ) : null}
@@ -1295,7 +1358,7 @@ function AccountApp({
     <div className="app-shell">
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
-        <button className="course-switch" aria-label="选择备考科目" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}>{(session?.track ?? runtime.track) === 'cet6' ? 'CET 6' : 'CET 4'} <span aria-hidden="true">⌄</span></button>
+        <button className="course-switch" aria-label="备考科目与账号设置" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}>{(session?.track ?? runtime.track) === 'cet6' ? 'CET 6' : 'CET 4'} <span aria-hidden="true">设置</span></button>
       </header>
       <nav className="route-rail" aria-label="主要导航">
         <div className="brand-lockup rail-brand"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
@@ -1373,12 +1436,12 @@ function AccountApp({
             reviewCountOverride={runtime.mode === 'remote'
               ? session?.roundCompletion?.reviewCardIds.length
               : undefined}
-            serverSequenced={runtime.mode === 'remote'}
+          serverSequenced={runtime.mode === 'remote'}
             continueLabel={runtime.mode === 'development' ? batch.hasMore ? '继续下一组' : learningPhase === 'review' && resumeLearningIndex < localLearningCards.length ? '继续学习' : undefined : undefined}
             busy={productBusy}
             statusMessage={remoteError}
             syncStatus={genericSyncStatus}
-            onOpenSpace={() => navigateRoute('space')}
+            onOpenSpace={() => {spaceBrowseCache.current.delete(`${phone}:${session?.track}`); navigateRoute('space');}}
             onRestart={() => {
               if (runtime.mode === 'remote') {
                 if (remoteController === null) return;
@@ -1440,17 +1503,24 @@ function AccountApp({
           phase={learningPhase}
           total={runtime.mode === 'development' ? batch.size : activeCards.length}
           resolved={resolved}
+          canAmendSelfAssessment={deferredFlipResult.current !== null}
           queuedResult={queuedLearningResult}
           rejectedCompletion={rejectedCompletion}
           busy={productBusy}
           audioStatus={audioStatus}
           canMutateSpace={membershipAccess?.completePhysicalSpace === true}
+          newCardStep={remoteNewCardGroup?.step}
+          newCardGroupSize={remoteNewCardGroup?.size}
           serverSequenced={runtime.mode === 'remote'}
-          statusMessage={remoteError}
+          statusMessage={remoteError || remoteNotice}
+          statusTone={remoteError ? 'error' : 'info'}
           syncStatus={genericSyncStatus}
           onState={setCardState}
           onResolve={stateOverride => void resolveCurrentCard(stateOverride)}
           onContinue={continueLearning}
+          onReadAudioPosition={runtime.mode === 'remote' ? remoteController?.readAudioPosition : () => bundledAudio.current?.readPosition() ?? Promise.resolve(null)}
+          onSeekAudio={milliseconds => {if (runtime.mode === 'remote') remoteController?.seekCardAudio?.(milliseconds); else void bundledAudio.current?.seek(milliseconds);}}
+          onRestartAudio={() => {if (runtime.mode === 'remote') {remoteController?.seekCardAudio?.(0); if (audioStatus !== 'playing') void playCurrentAudio();} else void bundledAudio.current?.restart();}}
           onPlayAudio={() => void playCurrentAudio()}
           onReloadQueued={() => {
             if (rejectedCompletion && queuedLearningResult) {
@@ -1462,7 +1532,7 @@ function AccountApp({
             } else void reloadRemoteState();
           }}
           onRetryQueued={() => void retryQueuedLearningResult()}
-          onOpenSpace={() => navigateRoute('space')}
+          onOpenSpace={() => {spaceBrowseCache.current.delete(`${phone}:${session?.track}`); navigateRoute('space');}}
           onFavorite={cardId => void toggleFavorite(cardId)}
           retryBusy={remoteBusy}
         />
@@ -1470,7 +1540,15 @@ function AccountApp({
       {route === 'space' && membership !== null ? (
         <SpaceSurface
           busy={productBusy}
+          audioStatus={audioStatus}
+          readAudioPosition={remoteController?.readAudioPosition}
+          onSeekAudio={remoteController?.seekCardAudio}
+          onStopAudio={remoteController?.stopCardAudio}
+          onPlayCardAudio={remoteController?.playSpaceCardAudio ? id => {void remoteController.playSpaceCardAudio?.(id).then(setAudioStatus).catch(error => {void handleRemoteFailure(error, '音频暂时无法播放，请重试。');});} : undefined}
           cards={spaceCards}
+          learnedIds={latestCardResults(results).map(result => result.cardId)}
+          browseState={spaceBrowseCache.current.get(`${phone}:${session?.track}`)}
+          onBrowseStateChange={value => spaceBrowseCache.current.set(`${phone}:${session?.track}`, value)}
           canMutate={membershipAccess?.completePhysicalSpace === true}
           currentCardId={currentCard?.card_id ?? null}
           pendingReviewIds={pendingReviewIds}
@@ -1518,8 +1596,10 @@ function AccountApp({
           checkInSync={runtime.mode === 'development' ? {checkedInToday: localSavedCheckInDay === chinaDayKey(), pending: localCheckedInDay === chinaDayKey() && localSavedCheckInDay !== chinaDayKey(), status: localSavedCheckInDay === chinaDayKey() ? 'confirmed' : localCheckedInDay === chinaDayKey() ? 'queued' : results.some(result => chinaDayKey(new Date(result.completedAt)) === chinaDayKey()) ? 'ready' : 'unavailable'} : checkInSync}
           disabled={productBusy}
           onCheckIn={() => void submitCheckIn()}
-          results={runtime.mode === 'development' ? results.filter(result => chinaDayKey(new Date(result.completedAt)) === chinaDayKey()) : results}
+          results={(runtime.mode === 'development' ? results : catalogResults).filter(result => chinaDayKey(new Date(result.completedAt)) === chinaDayKey())}
           syncStatus={genericSyncStatus}
+          statusMessage={remoteError}
+          dailyCounts={runtime.mode === 'remote' && dailyProgress ? {learning: dailyProgress.learningCompletedCount, review: dailyProgress.reviewCompletedCount, correct: catalogResults.filter(result => chinaDayKey(new Date(result.completedAt)) === chinaDayKey() && result.outcome === 'correct').length, hints: catalogResults.filter(result => chinaDayKey(new Date(result.completedAt)) === chinaDayKey() && result.usedHint).length} : undefined}
           cumulativeLearnedCount={catalogResults.length}
           pendingReviewCount={pendingReviewIds.length}
           onContinueLearning={() => navigateRoute('learning')}
@@ -1595,19 +1675,32 @@ type LearningSurfaceProps = {
   onContinue: () => void | Promise<void>;
   onOpenSpace: () => void;
   onFavorite: (cardId: string) => void;
+  onReadAudioPosition?: () => number | null | Promise<number | null>;
+  onSeekAudio?: (milliseconds: number) => void;
+  onRestartAudio?: () => void;
   onPlayAudio: (() => void) | null;
   onReloadQueued: () => void;
   onRetryQueued: () => void;
   queuedResult: LearningCardResult | null;
+  canAmendSelfAssessment?: boolean;
   rejectedCompletion: boolean;
   retryBusy: boolean;
+  newCardStep?: number;
+  newCardGroupSize?: number;
   serverSequenced: boolean;
+  statusTone?: 'error' | 'info';
   statusMessage: string;
   syncStatus: string;
 };
 
+function richCardText(card: LearningCard, text: string, underline = false) {
+  return cardTextParts(card, text).map((part, index) => part.emphasized ? <strong key={index} style={underline ? {textDecoration: 'underline'} : undefined}>{part.text}</strong> : part.text);
+}
+
 function LearningSurface(props: LearningSurfaceProps) {
   const {card, cardState, resolved, onResolve, onState} = props;
+  const draftRef = useRef(cardState);
+  useLayoutEffect(() => {draftRef.current = cardState;}, [cardState, props.motionIdentity]);
   const cardRef = useRef<HTMLElement | null>(null);
   const answerRef = useRef<HTMLHeadingElement | null>(null);
   const {perform, busy: motionBusy} = useObjectMotion(props.motionIdentity, cardRef);
@@ -1619,6 +1712,10 @@ function LearningSurface(props: LearningSurfaceProps) {
     const body = cardRef.current?.querySelector('.paper-body');
     if (body) body.scrollTop = 0;
   }, [resolved]);
+  useLayoutEffect(() => {
+    const body = cardRef.current?.querySelector('.paper-body');
+    if (body) body.scrollTop = 0;
+  }, [card?.card_id, cardState?.isFlipped]);
   useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null;
@@ -1636,23 +1733,24 @@ function LearningSurface(props: LearningSurfaceProps) {
     return () => window.removeEventListener('keydown', keyboard);
   }, [card, cardState, motionBusy, onContinue, onFlip, onState, props.busy, resolved]);
   if (!card || !cardState) return <main className="workbench"><p className="notice">当前没有可用学习卡。</p></main>;
-  const patchState = (patch: Partial<LearningCardState>) => onState(previous => previous ? {...previous, ...patch} : previous);
+  const patchState = (patch: Partial<LearningCardState>) => {const next = {...(draftRef.current ?? cardState), ...patch}; draftRef.current = next; onState(next);};
   const courseName = card.track === 'cet6' ? '英语六级' : '英语四级';
   const library = formatSpaceDisplayName(card.space_metadata.library, '当前书架');
   const group = formatSpaceDisplayName(card.space_metadata.group, '当前分区');
   const box = formatSpaceDisplayName(card.space_metadata.box, '当前卡盒');
   const passage = card.interaction_id === 'elimination' ? eliminationPassage(card) : null;
-  const material = frontMaterial(card).filter(text => !passage || text !== passage.source);
+  const material = frontMaterial(card).filter(text => (!passage || text !== passage.source) && text !== displayCardText(card, lockPassageSource(card) ?? ''));
   const comparison = answerComparison(card, cardState);
-  const continueLabel = props.serverSequenced || props.currentIndex < props.total - 1 ? '下一张' : '完成本组';
+  const continueLabel = props.newCardStep !== undefined && props.newCardStep === (props.newCardGroupSize ?? 5) ? '本组完成 · 继续下一组' : props.serverSequenced || props.currentIndex < props.total - 1 ? '下一张' : '完成本组';
   const questionContext = spaceCardPreview(card);
   const backVisible = card.interaction_id === 'flip' && cardState.isFlipped;
   const resolveLock = (slotId: string, value: string) => {
-    const next = selectLockOption(card, cardState, slotId, value);
+    const next = selectLockOption(card, draftRef.current ?? cardState, slotId, value);
+    draftRef.current = next;
     if (canSubmitLearningCard(card, next)) onResolve(next);
     else patchState(next);
   };
-  const audioControl = card.audio ? <StudioAudio status={props.audioStatus} durationMs={card.audio.duration_ms} disabled={props.busy} onPlay={props.onPlayAudio} /> : null;
+  const audioControl = card.audio ? <StudioAudio status={props.audioStatus} durationMs={card.audio.duration_ms} disabled={props.busy} onPlay={props.onPlayAudio} readPosition={props.onReadAudioPosition} onSeek={props.onSeekAudio} onRestart={props.onRestartAudio} /> : null;
   const interaction = <Interaction key={props.motionIdentity} card={card} state={cardState} onFlip={onFlip} resolved={false} patch={patchState} disabled={props.busy || motionBusy || Boolean(props.queuedResult)}
             onResolveLock={resolveLock}
             onResolveFlip={value => onResolve({...cardState, isFlipped: true, flipConfidence: value})}
@@ -1660,7 +1758,7 @@ function LearningSurface(props: LearningSurfaceProps) {
   return <main className="workbench learning-workbench" style={libraryStyle(library)} aria-labelledby="learning-title">
     <div className="learning-address">
       <button className="address-button" onClick={props.onOpenSpace}><small><span className="library-dot" />{courseName} · {library} / {group}</small><strong id="learning-title">{box}</strong></button>
-      <div className="studio-address-tools"><span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '复习' : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span><button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button></div>
+      <div className="studio-address-tools"><span className="counter">{props.serverSequenced ? (props.phase === 'review' ? '复习' : props.newCardStep ? `本组 ${props.newCardStep} / ${props.newCardGroupSize ?? 5}` : '学习') : `${props.currentIndex + 1} / ${props.total}`}</span><button className="card-favorite" aria-label={cardState.isFavorited ? '已收藏' : '收藏'} aria-pressed={cardState.isFavorited} disabled={props.busy || !props.canMutateSpace} onClick={() => props.onFavorite(card.card_id)}>{cardState.isFavorited ? '★' : '☆'}</button></div>
     </div>
     {props.serverSequenced && resolved && motionBusy ? <p className="notice next-card-status" role="status">正在准备下一张…</p> : null}
     <div className="studio-learning-layout">
@@ -1669,17 +1767,18 @@ function LearningSurface(props: LearningSurfaceProps) {
       <div className="paper-body">
         {resolved ? audioControl : null}
         {resolved ? <section className={`result-slip ${resultTone(resolved)}`} aria-label="答案对照" aria-live="polite">
-          <p className="result-label">{card.interaction_id === 'flip' ? resultLabel(resolved) : '正确答案'}</p>
-          <h2 ref={answerRef} tabIndex={-1} className={`answer-first${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{comparison.correct}</h2>
+          <p className="result-label">{resultLabel(resolved)}</p>
+          <p className="answer-caption">{answerHeading(card)}</p><h2 ref={answerRef} tabIndex={-1} className={`answer-first${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{richCardText(card, comparison.correct)}</h2>
           {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>你的选择</span> {comparison.selected}</p> : null}
           <p className="question-context">{questionContext.title}</p>
           {questionContext.detail.map(text => <p className="question-context" key={text}>{text}</p>)}
-          <p className="answer-reason">{card.analysis.summary}</p>
+          <p className="answer-reason">{richCardText(card, card.analysis.summary)}</p>
           {card.interaction_id === 'lock' && resolved.outcome === 'incorrect' ? <p className="answer-reason">已解锁，稍后复习。</p> : null}
           {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary>听力原文</summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           <ResultExplanation card={card} />
+          {props.canAmendSelfAssessment && card.interaction_id === 'flip' ? <div><p className="muted">下一张时保存自评，可先更改</p>{(['confident', 'review'] as const).map(value => <button key={value} className="text-button" aria-pressed={resolved.outcome === value} disabled={props.busy || Boolean(props.queuedResult)} onClick={() => onResolve({...cardState, flipConfidence: value})}>{value === 'confident' ? '有把握' : '需要复习'}</button>)}</div> : null}
         </section> : <>
-          {card.interaction_id !== 'swipe' ? <h2 className={isLongQuestion(backVisible ? comparison.correct : card.front.prompt) ? 'long-question' : undefined}>{backVisible ? comparison.correct : displayCardText(card, card.front.prompt)}</h2> : null}
+          {card.interaction_id !== 'swipe' && !(passage && passage.source === card.front.prompt) && lockPassageSource(card) !== card.front.prompt ? <h2 className={isLongQuestion(backVisible ? comparison.correct : card.front.prompt) ? 'long-question' : undefined}>{richCardText(card, backVisible ? comparison.correct : card.front.prompt, !backVisible && card.front.prompt.includes('划线'))}</h2> : null}
           {backVisible ? <p className="question-context">{displayCardText(card, card.front.prompt)}</p> : null}
           {!backVisible ? material.map(text => <p className="front-material" key={text}>{text}</p>) : null}
           {audioControl}
@@ -1688,7 +1787,7 @@ function LearningSurface(props: LearningSurfaceProps) {
         </>}
 
         {props.queuedResult ? <section className="notice" aria-live="polite"><h3>{props.rejectedCompletion ? '这次结果未计入' : '学习结果等待同步'}</h3><p>{props.rejectedCompletion ? '这张卡的学习安排已经变化，重新读取后可继续。' : '答案已保存，确认后即可继续。'}</p>{!props.rejectedCompletion ? <button className="secondary" disabled={props.retryBusy} onClick={props.onRetryQueued}>重试同步</button> : null}<button className="text-button" disabled={props.retryBusy} onClick={props.onReloadQueued}>刷新学习进度</button></section> : null}
-        {props.statusMessage ? <p className="notice error" role="alert">{props.statusMessage}</p> : null}
+        {props.statusMessage ? <p className={props.statusTone === 'info' ? 'notice' : 'notice error'} role={props.statusTone === 'info' ? 'status' : 'alert'}>{props.statusMessage}</p> : null}
         {!['已保存在本机', '已同步', ''].includes(props.syncStatus) ? <p className="notice" role="status">学习记录 · {props.syncStatus}</p> : null}
       </div>
       {resolved ? <div className="learning-dock"><button className="primary" disabled={props.busy || motionBusy} onClick={onContinue}>{continueLabel}</button></div> : !props.queuedResult && (card.interaction_id === 'multiple_choice' || card.interaction_id === 'elimination') ? <div className="learning-dock"><button className="primary" disabled={props.busy || !canSubmitVisibleLearningCard(card, cardState)} onClick={() => onResolve()}>提交答案</button></div> : card.interaction_id === 'flip' ? <div className="learning-dock">{interaction}</div> : null}
@@ -1713,7 +1812,7 @@ function LearningHelp({card, state, patch}: {card: LearningCard; state: Learning
     </div> : null}
     <div>
       <button className="text-button" aria-expanded={state.isPeeked} onClick={() => patch({hasUsedPeek: true, isPeeked: !state.isPeeked})}>{state.isPeeked ? '收起思路' : '解题思路'}</button>
-      {state.isPeeked ? <p className="attached-note">{card.analysis.exam_tip}</p> : null}
+      {state.isPeeked ? <p className="attached-note">{richCardText(card, card.analysis.exam_tip)}</p> : null}
     </div>
   </details>;
 }
@@ -1736,7 +1835,7 @@ function ChoiceOptions({card, state, disabled, patch}: {card: Extract<LearningCa
 
 function ResultExplanation({card}: {card: LearningCard}) {
   const [open, setOpen] = useState(false);
-  return <details className="full-analysis" onToggle={event => setOpen(event.currentTarget.open)}><summary>{open ? '收起完整解析' : '展开完整解析'}</summary><h3>{card.analysis.title}</h3><p>{card.analysis.exam_tip}</p></details>;
+  return <details className="full-analysis" onToggle={event => setOpen(event.currentTarget.open)}><summary>{open ? '收起完整解析' : '展开完整解析'}</summary><h3>{card.analysis.title}</h3><p>{richCardText(card, card.analysis.exam_tip)}</p></details>;
 }
 
 function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveLock, onResolveFlip, onResolveSwipe}: {onResolveLock: (slotId: string, value: string) => void; resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
@@ -1761,17 +1860,12 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
     case 'lock':
       return (
         <div className="interaction lock-list" role="group" aria-label="开锁槽位">
-          <p className="forming-sentence" aria-label="已填写的内容">{card.lock_slots.map((slot, index) => state.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? state.lockSelections[slot.id] : '____').join(' ')}</p>
+          <p className="forming-sentence" aria-label="已填写的内容">{lockPassage(card, card.lock_slots.map((slot, index) => state.lockSelections[slot.id] === card.answer_key.lock_pattern[index] ? state.lockSelections[slot.id] : null))}</p>
           {card.lock_slots.map((slot, slotIndex) => {
             const selectedValue = state.lockSelections[slot.id];
             const expectedValue = card.answer_key.lock_pattern[slotIndex];
             const isUnlocked = selectedValue === expectedValue;
-            const currentSlotIndex = card.lock_slots.findIndex(
-              (candidate, candidateIndex) =>
-                state.lockSelections[candidate.id] !==
-                card.answer_key.lock_pattern[candidateIndex],
-            );
-            const isAvailable = currentSlotIndex === slotIndex;
+            const isAvailable = !isUnlocked;
             const statusLabel = isUnlocked
               ? '已开锁'
               : selectedValue !== null && isAvailable
@@ -1812,7 +1906,7 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
                     </div>
                   ) : (
                     <span className={isUnlocked ? 'lock-answer' : 'lock-placeholder'}>
-                      {isUnlocked ? selectedValue : '完成上一行后继续'}
+                      {isUnlocked ? selectedValue : '待选择'}
                     </span>
                   )}
                 </div>
@@ -1868,14 +1962,15 @@ function SwipeInteraction({
   const swipeRef = useRef<HTMLDivElement | null>(null);
   const {perform, busy: motionBusy} = useObjectMotion(card.card_id, swipeRef);
   const [dragX, setDragX] = useState(0);
-  const pointerStart = useRef<number | null>(null);
+  const pointerStart = useRef<{x: number; y: number} | null>(null);
   const selectedState = card.swipe_states.find(
     item => item.id === state.swipeSelection,
   );
 
   useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (disabled || motionBusy || (event.target as HTMLElement | null)?.closest('button, input, textarea, select')) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || event.repeat || event.isComposing) return;
+      if (disabled || motionBusy || (event.target as HTMLElement | null)?.closest('button, input, textarea, select, summary, a, [contenteditable]:not([contenteditable="false"])')) return;
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
       const direction = event.key === 'ArrowLeft' ? 'left' : 'right';
       const option = card.swipe_states[direction === 'left' ? 0 : 1];
@@ -1889,9 +1984,10 @@ function SwipeInteraction({
 
   function settleFromPointer(event: React.PointerEvent<HTMLDivElement>) {
     if (pointerStart.current === null) return;
-    const distance = event.clientX - pointerStart.current;
+    const distance = event.clientX - pointerStart.current.x;
+    const vertical = event.clientY - pointerStart.current.y;
     pointerStart.current = null;
-    if (disabled || Math.abs(distance) < 72) {setDragX(0); return;}
+    if (disabled || Math.abs(distance) < 72 || Math.abs(distance) <= Math.abs(vertical)) {setDragX(0); return;}
     const nextState = card.swipe_states[distance < 0 ? 0 : 1];
     if (nextState) perform(distance < 0 ? 'left' : 'right', () => {setDragX(0); onCommit(nextState.id);});
   }
@@ -1912,13 +2008,13 @@ function SwipeInteraction({
           }}
           onPointerDown={event => {
             if (disabled || motionBusy) return;
-            pointerStart.current = event.clientX;
+            pointerStart.current = {x: event.clientX, y: event.clientY};
             event.currentTarget.setPointerCapture?.(event.pointerId);
           }}
           onPointerMove={event => {
             if (pointerStart.current === null || disabled) return;
-            const distance = event.clientX - pointerStart.current;
-            setDragX(Math.max(-140, Math.min(140, distance)));
+            const distance = event.clientX - pointerStart.current.x;
+            setDragX(Math.abs(distance) > Math.abs(event.clientY - pointerStart.current.y) ? Math.max(-140, Math.min(140, distance)) : 0);
           }}
           onPointerUp={settleFromPointer}
           onPointerCancel={() => {
@@ -1928,7 +2024,7 @@ function SwipeInteraction({
         >
 
           <strong>{resolved ? '已完成本次判断' : card.front.prompt}</strong>
-          {resolved ? <div className="swipe-comparison"><p>你的选择：{selectedState?.label} · {selectedState?.description}</p><p>正确判断：{card.swipe_states.find(item => item.id === card.answer_key.correct_state)?.description}</p></div> : <p>向左或向右拖动，也可点下方选项。</p>}
+          {resolved ? <div className="swipe-comparison"><p>你的选择：{stateDescription(selectedState)}</p><p>正确判断：{card.swipe_states.find(item => item.id === card.answer_key.correct_state)?.description}</p></div> : <p>向左或向右拖动，也可点下方选项。</p>}
         </div>
       </div>
       <div className="swipe-trails">
@@ -1961,22 +2057,27 @@ type SpaceBox = {
   library: string;
 };
 
-function SpaceSurface({busy, cards, canMutate, currentCardId, pendingReviewIds, favorites, sleeping, membership, onFavorite, onSleep, onReturn, statusMessage, syncStatus}: {busy: boolean; cards: LearningCard[]; canMutate: boolean; currentCardId: string | null; pendingReviewIds: string[]; favorites: string[]; sleeping: string[]; membership: MembershipState; onFavorite: (id: string) => void; onSleep: (id: string) => void; onReturn: () => void; statusMessage: string; syncStatus: string}) {
-  const [filter, setFilter] = useState<SpaceCardFilter>('all');
+function SpaceSurface({busy, cards, canMutate, currentCardId, pendingReviewIds, favorites, sleeping, membership, onFavorite, onSleep, onReturn, statusMessage, syncStatus, learnedIds = [], browseState, onBrowseStateChange, audioStatus = 'idle', onPlayCardAudio, readAudioPosition, onSeekAudio, onStopAudio}: {audioStatus?: 'idle' | 'loading' | 'paused' | 'playing' | 'ready' | 'error'; onPlayCardAudio?: (id: string) => void; readAudioPosition?: () => number | null | Promise<number | null>; onSeekAudio?: (milliseconds: number) => void; onStopAudio?: () => void; learnedIds?: string[]; browseState?: {box: string; card: string; filter: SpaceCardFilter; query: string}; onBrowseStateChange?: (value: {box: string; card: string; filter: SpaceCardFilter; query: string}) => void; busy: boolean; cards: LearningCard[]; canMutate: boolean; currentCardId: string | null; pendingReviewIds: string[]; favorites: string[]; sleeping: string[]; membership: MembershipState; onFavorite: (id: string) => void; onSleep: (id: string) => void; onReturn: () => void; statusMessage: string; syncStatus: string}) {
+  const [filter, setFilter] = useState<SpaceCardFilter>(browseState?.filter ?? 'all');
+  const [query, setQuery] = useState(browseState?.query ?? '');
+  const [answerCardId, setAnswerCardId] = useState<string | null>(null);
   const [filterLimit, setFilterLimit] = useState(40);
   const boxTray = useRef<HTMLElement>(null);
-  const matches = filterSpaceCards(cards, filter, favorites, pendingReviewIds);
+  const matches = filterSpaceCards(cards, filter, favorites, pendingReviewIds, sleeping, query);
   const openFilteredCard = (card: LearningCard) => {
     setSelectedBoxRef(card.space_metadata.box_ref);
     setSelectedId(card.card_id);
     setFilter('all');
+    setQuery('');
     requestAnimationFrame(() => {boxTray.current?.scrollIntoView?.({block: 'start'}); boxTray.current?.focus({preventScroll: true});});
   };
   const boxes = useMemo(() => buildSpaceBoxes(cards), [cards]);
   const currentBoxRef = cards.find(card => card.card_id === currentCardId)?.space_metadata.box_ref;
-  const [selectedBoxRef, setSelectedBoxRef] = useState(currentBoxRef ?? boxes[0]?.boxRef ?? '');
+  const [selectedBoxRef, setSelectedBoxRef] = useState(browseState?.box ?? currentBoxRef ?? boxes[0]?.boxRef ?? '');
   const selectedBox = boxes.find(box => box.boxRef === selectedBoxRef) ?? boxes[0];
-  const [selectedId, setSelectedId] = useState(currentCardId ?? selectedBox?.cards[0]?.card_id ?? '');
+  const [selectedId, setSelectedId] = useState(browseState?.card ?? currentCardId ?? selectedBox?.cards[0]?.card_id ?? '');
+  useEffect(() => {onBrowseStateChange?.({box: selectedBoxRef, card: selectedId, filter, query});}, [selectedBoxRef, selectedId, filter, query, onBrowseStateChange]);
+  useEffect(() => () => onStopAudio?.(), [selectedId, onStopAudio]);
   const selected = selectedBox?.cards.find(card => card.card_id === selectedId) ?? selectedBox?.cards[0];
   const libraries = unique(boxes.map(box => box.library));
   const groups = unique(boxes.filter(box => box.library === selectedBox?.library).map(box => box.group));
@@ -1993,18 +2094,20 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, pendingReviewIds, 
         style={{'--learning-object': transitionObjectName(card.card_id)} as React.CSSProperties} onClick={() => setSelectedId(card.card_id)}>
         <span className="contained-card-kind">{INTERACTION_LABELS[card.interaction_id]}</span><strong>{preview.title}</strong>
         {isSelected ? preview.detail.map(text => <span className="card-preview-material" key={text}>{text}</span>) : null}
-        <span className="contained-card-tags">{favorites.includes(card.card_id) ? <small className="favorite-tag">收藏</small> : null}<small>{isSleeping ? '休眠中' : isCurrent ? '当前学习' : isSelected ? '正在浏览' : '同盒卡'}</small></span>
+        <span className="contained-card-tags">{favorites.includes(card.card_id) ? <small className="favorite-tag">收藏</small> : null}<small>{learnedIds.includes(card.card_id) ? '已学过' : '未学习'}</small><small>{isSleeping ? '休眠中' : isCurrent ? '当前学习' : isSelected ? '正在浏览' : '同盒卡'}</small></span>
       </button>
+      {isSelected && learnedIds.includes(card.card_id) ? <div className="learned-card-preview"><button className="text-button" aria-expanded={answerCardId === card.card_id} onClick={() => {if (answerCardId === card.card_id) onStopAudio?.(); setAnswerCardId(value => value === card.card_id ? null : card.card_id);}}>{answerCardId === card.card_id ? '收起答案与解析' : '回看答案与解析'}</button>{answerCardId === card.card_id ? <div className="full-analysis"><h3>{answerHeading(card)}</h3>{card.audio && onPlayCardAudio ? <StudioAudio status={audioStatus} durationMs={card.audio.duration_ms} disabled={busy} onPlay={() => onPlayCardAudio(card.card_id)} readPosition={readAudioPosition} onSeek={onSeekAudio} onRestart={() => {onSeekAudio?.(0); if (audioStatus !== 'playing') onPlayCardAudio(card.card_id);}} /> : null}<p>{displayCardText(card, answerComparison(card, createLearningCardState(card)).correct)}</p><p>{richCardText(card, card.analysis.summary)}</p><p>{displayCardText(card, card.analysis.exam_tip)}</p></div> : null}</div> : null}
       {isSelected ? <div className="object-actions" aria-label="所选卡片操作"><button className="text-button" disabled={busy || !canMutate} onClick={() => onFavorite(card.card_id)}>{favorites.includes(card.card_id) ? '取消收藏' : '收藏'}</button><button className="text-button" disabled={busy || !canMutate} onClick={() => onSleep(card.card_id)}>{isSleeping ? '恢复学习' : '暂不学习这张卡'}</button></div> : null}
     </div>;
   };
   return <main className="space-workbench" style={libraryStyle(selectedBox?.library)} aria-labelledby="space-title">
-    <div className="space-topline"><span className="space-title">知识空间</span><button className="text-button" onClick={onReturn}>继续学习</button></div>
+    <div className="space-topline"><h1 id="space-title" className="space-title">知识空间</h1><button className="text-button" onClick={onReturn}>继续学习</button></div>
     <div className="space-filters" role="group" aria-label="卡片筛选">
-      {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习']] as const).map(([value, label, name]) => <button key={value} className="text-button" aria-label={name} aria-pressed={filter === value} onClick={() => {setFilter(value); setFilterLimit(40);}}>{label}</button>)}
+      {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习'], ['sleeping', '已暂停', '只看已暂停']] as const).map(([value, label, name]) => <button key={value} className="text-button" aria-label={name} aria-pressed={filter === value} onClick={() => {setFilter(value); setFilterLimit(40);}}>{label}</button>)}
     </div>
-    {filter !== 'all' ? <section className="filtered-cards" aria-label="筛选结果">
-      <p className="muted" role="status">{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。' : '目前没有待复习的卡片。'}</p>
+    <label className="space-search">查找卡片<input aria-label="查找卡片" placeholder="题目关键词或卡盒名称" value={query} onChange={event => {setQuery(event.target.value); setFilterLimit(40);}} /></label>
+    {filter !== 'all' || query.trim() ? <section className="filtered-cards" aria-label="筛选结果">
+      <div className={matches.length ? undefined : 'space-empty-state'}>{!matches.length ? <span className="empty-star" aria-hidden="true">{filter === 'favorites' ? '☆' : '○'}</span> : null}<p className="muted" role="status">{matches.length ? `${matches.length} 张卡片` : query.trim() ? '没有找到匹配的卡片，试试其他关键词。' : filter === 'favorites' ? '还没有收藏的卡片。学习时点卡片右上角的 ☆，就能在这里找到它。' : filter === 'sleeping' ? '目前没有暂停的卡片。暂停后仍保留在原来的卡盒中，可以随时恢复。' : '目前没有待复习的卡片。'}</p>{!matches.length ? <button className="primary" onClick={query.trim() ? () => setQuery('') : onReturn}>{query.trim() ? '清除搜索' : '去学习'}</button> : null}</div>
       {matches.slice(0, filterLimit).map(card => <button className="filtered-card" key={card.card_id} onClick={() => openFilteredCard(card)}>
         <span className="muted">{[card.space_metadata.library, card.space_metadata.group, card.space_metadata.box].map(name => formatSpaceDisplayName(name, '')).join(' / ')}</span>
         <strong>{spaceCardPreview(card).title}</strong>
@@ -2015,10 +2118,10 @@ function SpaceSurface({busy, cards, canMutate, currentCardId, pendingReviewIds, 
     <section className="shelf-map" aria-label="知识空间层级">
       <div className="library-tabs" aria-label="书架">{libraries.map(library => <button key={library} className={selectedBox?.library === library ? 'library-tab selected' : 'library-tab'} aria-pressed={selectedBox?.library === library} onClick={() => {const first = boxes.find(box => box.library === library); if (first) selectBox(first);}}><span style={{backgroundColor: resolveLibraryTone(library).accent}} />{library}</button>)}</div>
       <div className="space-group-tabs" aria-label="书架分区">{groups.map(group => <button key={group} aria-pressed={selectedBox?.group === group} onClick={() => {const first = boxes.find(box => box.library === selectedBox?.library && box.group === group); if (first) selectBox(first);}}>{group}</button>)}</div>
-      <div className="shelf-groups">{groups.filter(group => group === selectedBox?.group).map(group => <section className="shelf-group" key={group} aria-label={group}><h2>{group}</h2><div className="sibling-boxes">{boxes.filter(box => box.library === selectedBox?.library && box.group === group).map(box => <button key={box.boxRef} className={box.boxRef === selectedBox?.boxRef ? 'shelf-box selected' : 'shelf-box'} aria-label={`${box.box} ${box.cards.length} 张`} aria-current={box.boxRef === selectedBox?.boxRef ? 'location' : undefined} onClick={() => selectBox(box)}><strong>{box.box}</strong><small>{box.cards.length} 张</small></button>)}</div></section>)}</div>
+      <div className="shelf-groups">{groups.filter(group => group === selectedBox?.group).map(group => <section className="shelf-group" key={group} aria-label={group}><div className="sibling-boxes">{boxes.filter(box => box.library === selectedBox?.library && box.group === group).map(box => <button key={box.boxRef} className={box.boxRef === selectedBox?.boxRef ? 'shelf-box selected' : 'shelf-box'} aria-label={`${box.box} ${box.cards.length} 张`} aria-current={box.boxRef === selectedBox?.boxRef ? 'location' : undefined} onClick={() => selectBox(box)}><strong>{box.box}</strong><small>已学 {box.cards.filter(card => learnedIds.includes(card.card_id)).length} / {box.cards.length}</small></button>)}</div></section>)}</div>
     </section>
     <section ref={boxTray} tabIndex={-1} className="box-tray" aria-label={`当前卡盒 ${selectedBox?.box ?? '暂无'}`}>
-      <div className="workbench-heading"><div aria-label="当前卡片位置"><p className="eyebrow"><span>{selectedBox?.library}</span> / <span>{selectedBox?.group}</span></p><h1 id="space-title">{selectedBox?.box ?? '当前没有卡盒'}</h1></div><span className="counter">{selectedBox?.cards.length ?? 0} 张</span></div>
+      <div className="workbench-heading"><div aria-label="当前卡片位置"><p className="eyebrow"><span>{selectedBox?.library}</span> / <span>{selectedBox?.group}</span></p><h2>{selectedBox?.box ?? '当前没有卡盒'}</h2></div><span className="counter">{selectedBox?.cards.length ?? 0} 张</span></div>
       <div className="box-contents" aria-label="盒内卡片"><div className="contained-cards">{activeCards.map(renderCard)}</div>
         <section className="sleep-region" aria-label="盒内休眠区"><div className="sleep-heading"><span>休眠区</span><small>{sleepingCards.length ? `${sleepingCards.length} 张卡暂时离开学习流，保留在这个盒中` : '暂时离开学习流，保留在这个盒中'}</small></div>{sleepingCards.length ? <div className="contained-cards">{sleepingCards.map(renderCard)}</div> : <p className="sleep-empty">暂无休眠卡片</p>}</section>
       </div>
@@ -2042,6 +2145,7 @@ function StatisticsSurface({
   pendingReviewCount,
   onContinueLearning,
   dailyCounts,
+  statusMessage,
   onReview,
 }: {
   localOnly: boolean;
@@ -2053,6 +2157,7 @@ function StatisticsSurface({
   syncStatus: string;
   onReview?: () => void;
   dailyCounts?: {learning:number;review:number;correct:number;hints:number};
+  statusMessage?: string;
   cumulativeLearnedCount: number;
   pendingReviewCount: number;
   onContinueLearning: () => void;
@@ -2062,8 +2167,11 @@ function StatisticsSurface({
     ['今日完成', `${dailyCounts ? dailyCounts.learning + dailyCounts.review : summary.completed} 张`],
     ['待复习', `${pendingReviewCount} 张`],
     ['累计学过', `${cumulativeLearnedCount} 张`],
-    ['今日答对', String(dailyCounts?.correct ?? summary.autoCorrectCount)],
-    ['使用提示', String(dailyCounts?.hints ?? summary.hintUseCount)],
+    ['自动答对', String(summary.autoCorrectCount)],
+    ['自动答错', String(summary.autoIncorrectCount)],
+    ['自评有把握', String(summary.confidentFlipCount)],
+    ['自评需复习', String(summary.reviewFlipCount)],
+    ['用过提示', String(summary.hintUseCount)],
   ];
   const checkInLabel = busy
     ? '正在提交'
@@ -2078,6 +2186,7 @@ function StatisticsSurface({
     <main className="ledger-workbench">
       <section className="ledger" aria-labelledby="statistics-title">
         <h1 id="statistics-title">学习统计</h1>
+        {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
         {!['已保存在本机', '已同步', ''].includes(syncStatus) ? <p className="muted" role="status">学习记录 · {syncStatus}</p> : null}
         <dl>
           {rows.map(([label, value]) => (
@@ -2087,6 +2196,7 @@ function StatisticsSurface({
             </div>
           ))}
         </dl>
+        <p className="muted">完成数包含学习和复习；表现按每张卡今天的最近一次结果统计。</p>
         <button className="primary wide" disabled={disabled} onClick={pendingReviewCount > 0 && onReview ? onReview : onContinueLearning}>{pendingReviewCount > 0 && onReview ? '开始复习' : '继续学习'}</button>
         <section className="account-policy" aria-live="polite">
           <p>
@@ -2157,6 +2267,7 @@ function MineSurface({
   return <main className="account-workbench"><section className="account-object" aria-labelledby="mine-title">
     <p className="eyebrow">我的账户</p><h1 id="mine-title">{maskPhone(phone)}</h1>
     <div className="account-row"><span>{localOnly ? '使用方式' : '会员状态'}</span><strong>{localOnly ? '本地体验' : stageLabel}</strong></div>
+    {membership.stage === 'trial' && membership.trialExpiresAt ? <p className="muted">试用至 {new Date(membership.trialExpiresAt).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}</p> : null}
     <div className="account-row"><span>学习记录</span><strong>{syncStatus}</strong></div>
     {onSwitchTrack ? <fieldset className="account-track-selector" disabled={busy || accountLocked}>
       <legend>备考科目</legend>
@@ -2456,10 +2567,7 @@ function currentCompletionStatus(sync: WebLearningCompletionSync) {
   return sync.completionStatus ?? (sync.status === 'confirmed' ? 'confirmed' : sync.pendingEventCount > 0 ? 'queued' : 'rejected');
 }
 
-function resultLabel(result: LearningCardResult) {
-  const labels: Record<LearningCardResult['outcome'], string> = {correct: '判断正确', incorrect: '这张需要复习', confident: '有把握', review: '已加入复习'};
-  return labels[result.outcome];
-}
+function resultLabel(result: LearningCardResult) {return attemptLabel(result);}
 
 function shortcutLabel(card: LearningCard) {
   switch (card.interaction_id) {

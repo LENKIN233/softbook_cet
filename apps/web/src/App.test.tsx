@@ -181,7 +181,7 @@ describe("local study user journey", () => {
     fireEvent.click(screen.getByText("需要帮助", { selector: "summary" }));
     answer();
     fireEvent.click(screen.getByRole("button", { name: "统计" }));
-    expect(screen.getByText("使用提示").closest("div")).toHaveTextContent("0");
+    expect(screen.getByText("用过提示").closest("div")).toHaveTextContent("0");
     expect(screen.getByText("今日完成").closest("div")).toHaveTextContent(
       "1 张"
     );
@@ -198,7 +198,7 @@ describe("local study user journey", () => {
     fireEvent.click(screen.getByRole("button", { name: "继续学习" }));
     answer();
     fireEvent.click(screen.getByRole("button", { name: "统计" }));
-    expect(screen.getByText("使用提示").closest("div")).toHaveTextContent("1");
+    expect(screen.getByText("用过提示").closest("div")).toHaveTextContent("1");
   });
   it("requires reveal and exactly two light self-assessment choices", async () => {
     await enter();

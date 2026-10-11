@@ -71,6 +71,14 @@ export function LearningAudioPlayer({
 
   useEffect(() => () => controller.dispose(), [controller]);
 
+  const [position, setPosition] = useState<number | null>(null);
+  useEffect(() => {
+    let current = true;
+    const read = () => {void controller.getPosition().then(value => {if (current) setPosition(value);}).catch(() => {if (current) setPosition(null);});};
+    read(); const timer = ['playing', 'paused'].includes(state.status) ? setInterval(read, 500) : undefined;
+    return () => {current = false; clearInterval(timer);};
+  }, [controller, selection, state.status]);
+  const clock = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
   const presentation = getAudioPresentation(state);
   const isLoading = state.status === 'loading';
   const isPlaying = state.status === 'playing';
@@ -79,9 +87,11 @@ export function LearningAudioPlayer({
   const foreground = isError ? STUDIO.color.reviewInk : palette.accentStrong;
 
   return (
+    <View style={{alignSelf: 'stretch'}}>
     <Pressable
       accessibilityHint={presentation.hint}
       accessibilityLabel={presentation.label}
+      accessibilityValue={position === null ? undefined : {text: `${clock(position)} / ${clock(selection.asset.duration_ms)}`}}
       accessibilityRole="button"
       accessibilityState={{
         busy: isLoading,
@@ -112,10 +122,12 @@ export function LearningAudioPlayer({
       >
         {presentation.label}
       </Text>
-      <Text style={[styles.duration, {color: palette.textMuted}]}>{Math.max(1, Math.round(selection.asset.duration_ms / 1000))} 秒录音</Text>
+      <Text style={[styles.duration, {color: palette.textMuted}]}>{position === null ? `${Math.max(1, Math.round(selection.asset.duration_ms / 1000))} 秒录音` : `${clock(position)} / ${clock(selection.asset.duration_ms)}`}</Text>
       </View>
       <View style={styles.wave}><MotionWaveform color={palette.accent} playing={isPlaying} /></View>
     </Pressable>
+    <View style={{flexDirection: 'row', gap: 14}}><Pressable accessibilityRole="button" accessibilityLabel="从头重听" disabled={isLoading} onPress={() => controller.restart().catch(() => undefined)} style={{minHeight: 44, justifyContent: 'center'}} testID="learning-audio-restart"><Text style={{color: palette.textMuted}}>从头重听</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="后退五秒" disabled={isLoading || position === null || position <= 0} onPress={() => controller.seekTo(Math.max(0, (position ?? 0) - 5000)).catch(() => undefined)} style={{minHeight: 44, justifyContent: 'center'}} testID="learning-audio-rewind"><Text style={{color: palette.textMuted}}>后退 5 秒</Text></Pressable></View>
+    </View>
   );
 }
 

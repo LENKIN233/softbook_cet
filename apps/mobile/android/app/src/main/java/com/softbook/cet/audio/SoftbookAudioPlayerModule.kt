@@ -131,6 +131,29 @@ class SoftbookAudioPlayerModule(
   }
 
   @ReactMethod
+  fun getPosition(token: String, promise: Promise) {
+    reactContext.runOnUiQueueThread {
+      val current = player
+      if (current == null || playbackToken != token) {
+        promise.reject("audio_not_ready", "Audio is not ready."); return@runOnUiQueueThread
+      }
+      promise.resolve(current.currentPosition.toDouble())
+    }
+  }
+
+  @ReactMethod
+  fun seek(token: String, milliseconds: Double, promise: Promise) {
+    reactContext.runOnUiQueueThread {
+      val current = player
+      if (current == null || playbackToken != token || !milliseconds.isFinite()) {
+        promise.reject("audio_not_ready", "Audio is not ready."); return@runOnUiQueueThread
+      }
+      current.seekTo(milliseconds.coerceIn(0.0, current.duration.toDouble().coerceAtLeast(0.0)).toLong())
+      promise.resolve(null)
+    }
+  }
+
+  @ReactMethod
   fun stop(promise: Promise) {
     reactContext.runOnUiQueueThread {
       releasePlayer("audio_stopped", "Audio preparation was stopped.")

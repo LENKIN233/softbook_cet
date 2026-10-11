@@ -138,3 +138,10 @@ Q4: No forbidden patterns are introduced; this is a prose spatial artifact.
 Q5: Not applicable; this artifact contains no rendered phone frame.
 
 Q6: Not a stats/flip surface. It preserves Learning as system-sequenced and does not expose module selection as primary path.
+
+## 查找与回看修订
+
+浏览位置随离开页面保留，按账号和考试隔离。关键词只查询有访问权限的正面材料、选项与所属位置；筛选收藏、待复习与已暂停时保留原位置，选择结果定位原卡盒。暂停是状态，不产生新盒子。
+已学记录与掌握程度分开：卡片显示“已学过／未学习”，只有有权限且存在完成记录的卡片能回看答案与解析。回看不产生学习事件，不改变系统学习次序；累计已学数量保留历史，权限收缩不开放原答案。
+
+有权限的已学卡片回看时可主动播放其音频。回听绑定当前账号、内容版本和卡片资源；不会自动播放，也不写完成记录、改变当前服务端 selection 或新卡顺序。离开空间、关闭答案或换卡停止原播放；过期链接按同一资源重新授权。

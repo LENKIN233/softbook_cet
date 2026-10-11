@@ -1,3 +1,3 @@
 export function StudioMark() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5c3-1 6-.5 9 1.2 3-1.7 6-2.2 9-1.2v14c-3-1-6-.5-9 1.2-3-1.7-6-2.2-9-1.2zM12 7v13" /></svg>;
+  return <svg viewBox="0 0 28 28" aria-hidden="true"><g fill="none" stroke="currentColor" strokeWidth="1.2"><rect x="6.5" y="7.5" width="8" height="13" rx="1.5"/><rect x="13.5" y="7.5" width="8" height="13" rx="1.5"/></g></svg>;
 }

@@ -12,8 +12,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "were to withdraw 与 next month 构成较有距离感的未来假设，would need 推演应对需要。假设本身不是事件已确定发生的公告，不能将其改写为 supplier will definitely withdraw。",
-      "exam_tip": "预案讨论中的事件可能只是条件设想。"
+      "summary": "were to withdraw...next month 表示“假如供应商下月退出”，用于讨论尚未发生的情形。would need 说明这种情况下要找其他原料来源，句子没有宣布供应商已决定退出。",
+      "exam_tip": "把 were to 当作假设，随后找 would 引出的应对。"
     },
     "space_metadata": {
       "box_ref": "1621",
@@ -108,8 +108,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "had booked 表示过去未实现的条件，could have spent 对应过去可能的节省。不能改成现在或将来的 will spend；也不要补造具体节省金额。",
-      "exam_tip": "could have 表示过去可能性，不等于对结果的无条件保证。"
+      "summary": "had booked 表示设想过去提前订票，could have spent less money 表示当时本可能少花钱。could 保留“能做到”的可能性，不能改为预测将来的 will spend。",
+      "exam_tip": "把“本来可以”对应到 could have＋过去分词。"
     },
     "space_metadata": {
       "box_ref": "1622",
@@ -132,8 +132,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "题目指定原形虚拟形式，因此从句用 check，而不随主句 suggested 变为 checked。英式表达中也常见 should check，但这里练习的是省去 should 的形式；建议不表示动作已经完成。",
-      "exam_tip": "形式选择应回应明确任务，而非把一种变体说成唯一英语用法。"
+      "summary": "suggested 表示导师提出建议，后面的动作不必跟着变过去式。题目指定原形形式，所以用 that we check；也可在其他表达中写 should check。",
+      "exam_tip": "主句是 suggested，从句仍按本题要求用 check。"
     },
     "space_metadata": {
       "box_ref": "1622",
@@ -204,8 +204,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "were to 表示较有距离感的未来设想，next week 给出时间。would have to 中的 have to 是不得不，不是 would have done 的完成结构，不能混淆两个 have。",
-      "exam_tip": "区分 have to 表义结构与完成时助动词。"
+      "summary": "were to withdraw 配 next week，设想下周退出。would have to revise 中 have to 表示“不得不”，后接原形 revise；它不是 would have revised 那样的过去结果结构。",
+      "exam_tip": "对照 would have to revise 与 would have revised。"
     },
     "space_metadata": {
       "box_ref": "1622",
@@ -252,8 +252,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "条件 stayed open 与结果 could have 表达一种建议情境，受益者限定为白天有安排的人。这里的 have 是拥有时间，不是完成时；句子没有保证每个学生都一定使用图书馆。",
-      "exam_tip": "用假设论证时说明受益对象和可能机制。"
+      "summary": "stayed open 设想图书馆延长开放，could have more time 表示学生可能获得更多学习时间。have 在这里是“有时间”，不是完成时助动词；受益者限定为白天已有安排的学生。",
+      "exam_tip": "检查 could 后的 have 是实义动词“拥有”，还是完成时结构。"
     },
     "space_metadata": {
       "box_ref": "1623",
@@ -276,8 +276,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "假设把改善放在解释步骤，might need 表示可能减少提醒需求。它没有说邮件完全无用，也没有在缺少数据时声称一定减少到零。",
-      "exam_tip": "假设句可以比较做法，但语气应与依据相称。"
+      "summary": "received a clear explanation 设想员工先得到每步的清楚说明。might need fewer reminder emails 表示这样可能少需要提醒，用 might 保留不确定性，用 fewer 表示减少而非完全不需要。",
+      "exam_tip": "把具体改进写进 if 条件，再用 might 说明可能效果。"
     },
     "space_metadata": {
       "box_ref": "1623",
@@ -300,8 +300,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "had checked 指未做的事前检查，might have avoided 表示可能避免的结果。用过去假设总结经验，不等于已经证明所有突发问题都由这一点导致。",
-      "exam_tip": "总结教训时保留可能性和具体事件范围。"
+      "summary": "had checked the room’s capacity 指过去本应提前核对容量。might have avoided 设想那样可能避免临时换场，两处都指过去；might 不保证所有突发情况都可避免。",
+      "exam_tip": "用 had checked 对应过去条件，用 might have avoided 对应过去结果。"
     },
     "space_metadata": {
       "box_ref": "1623",
@@ -324,8 +324,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "include 使用动词原形虚拟形式，every event notice 是从句主语。recommend 的宾语是完整建议内容，不应写成 recommend every notice to include... 来机械照搬其他动词结构。",
-      "exam_tip": "熟悉一个动词时，也要核对它实际允许的补语结构。"
+      "summary": "recommend that 后的 include 用动词原形，虽然主语 every event notice 是单数，也不加 -s。整句建议每份通知包含无障碍信息，不是在报告通知已经包含。",
+      "exam_tip": "特别检查单数主语后仍是 include。"
     },
     "space_metadata": {
       "box_ref": "1623",
@@ -372,8 +372,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "might have reduced the risk 比 would certainly have solved every problem 更符合仅知道一个相关因素的情况。反思应指出可改进的行为，不借一个假设断言所有其他因素都不存在。",
-      "exam_tip": "反事实推理也要与已知原因范围保持一致。"
+      "summary": "条件写具体可改进的行为：had communicated...more clearly。结果用 might have reduced the risk 表达本可能降低误期风险，符合题目只知道部分原因的情况。",
+      "exam_tip": "写“可能降低风险”，不写“肯定解决所有问题”。"
     },
     "space_metadata": {
       "box_ref": "1623",
@@ -396,8 +396,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "条件限定登记期间故障，结果给出具体替代动作。were to 并没有宣布系统将故障，纸质备份也不是已经启用；这是预案与实际状态的区别。",
-      "exam_tip": "风险预案要写明触发条件和对应行动。"
+      "summary": "were to fail 假设登记期间系统故障，would use 给出这种情况下的纸质备份安排。两部分都在谈预案，尚未说故障发生或备份已启用。",
+      "exam_tip": "让 if 后的故障与主句的替代动作一一对应。"
     },
     "space_metadata": {
       "box_ref": "1623",
@@ -444,8 +444,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "两个被动结构将报告和错误的处理过程放在前面，没有补造执行者。主动语态也可在知道主体且需要强调它时使用；被动并不天然更客观或更高级。",
-      "exam_tip": "语态选择取决于信息重点和已知主体。"
+      "summary": "report 是修改对象，error 是发现对象，所以分别用 was revised 和 was found。after 表示先发现错误，再修改报告；原文未给执行者，译文也不必补人名。",
+      "exam_tip": "先排列“发现错误 → 修改报告”，再检查两个被动。"
     },
     "space_metadata": {
       "box_ref": "1630",
@@ -468,8 +468,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "主动主语保留责任主体，checked 与 contacted 并列。没有必要为了正式而改成多层被动；had not submitted 说明联系这些人的原因已经存在。",
-      "exam_tip": "当主体及其责任重要时，主动表达通常更直接。"
+      "summary": "以 The administrator 作主语，checked 与 contacted 并列说明管理员做了两件事。those who had not submitted... 指此前没交附件的人，过去完成时交代联系前的状态。",
+      "exam_tip": "用同一主语连接 checked 和 contacted 两个动作。"
     },
     "space_metadata": {
       "box_ref": "1630",
@@ -516,8 +516,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "was identified 保留问题作为叙述重点，in time 表示及时，during 表示复核期间。on time通常指按预定时刻，不宜机械替换此处及时发现的含义。",
-      "exam_tip": "语态与时间介词都可能影响译文的信息重点。"
+      "summary": "was identified 说明问题被发现；in time 是“及时”，during the review 是复核期间。on time 通常说按预定时间准时，不等于这里尚来得及处理的“及时”。",
+      "exam_tip": "把“及时”和“在复核期间”分成 in time、during the review。"
     },
     "space_metadata": {
       "box_ref": "1630",
@@ -540,8 +540,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "happen 在这里是不及物动词，表示事件发生，不接受把事件作为受事的被动结构。去掉 was 后，happened 自己承担过去时谓语；不是所有中文含“被”或结果意味的句子都需要英文被动。",
-      "exam_tip": "先核对动词是否及物，再决定能否使用被动。"
+      "summary": "happen 是不及物动词，表示事情发生，不用 was happened 被动形式。删去 was，happened 已是一般过去时谓语，句子就完整了。",
+      "exam_tip": "想成“事故发生了”，不要加被动助动词 was。"
     },
     "space_metadata": {
       "box_ref": "1630",
@@ -564,8 +564,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "被动可以省略不重要的施事者，但此处人物对比就是信息重点。保留 by 短语才能维持原意，不能把简洁当作删除责任信息的理由。",
-      "exam_tip": "省略施事者前先判断身份是否正是题目重点。"
+      "summary": "原句的重点是区分做标记的人。改成被动可以把 samples 放前面，但仍要保留两个 by 短语，才能表达同样的人物对比。",
+      "exam_tip": "保留 by the laboratory assistant 与 not by the visiting students。"
     },
     "space_metadata": {
       "box_ref": "1630",
@@ -573,7 +573,7 @@
       "group": "主/被动语态",
       "box": "翻译"
     },
-    "back_text": "丢掉了实际负责标记的是实验助理、而非访学生这一关键对照。可写：The samples were labelled by the laboratory assistant, not by the visiting students."
+    "back_text": "丢掉了“由实验助理标记，而非来访学生”这一对比。可写 The samples were labelled by the laboratory assistant, not by the visiting students."
   },
   {
     "card_id": "163007",
@@ -588,8 +588,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "had been cleaned 是过去完成时被动，先于过去参照点 arrived。been 是被动完成结构的一部分，不能省成 had cleaned，否则房间会被误写成动作执行者。",
-      "exam_tip": "时态先后与主被动关系需要同时检查。"
+      "summary": "had been cleaned 是过去完成时被动：had 表示早于 arrived，been cleaned 表示房间被打扫。动作顺序是先打扫、后到达，所以不是房间主动 cleaned 别的东西。",
+      "exam_tip": "检查 had＋been＋cleaned 三部分都在。"
     },
     "space_metadata": {
       "box_ref": "1630",
@@ -606,14 +606,14 @@
     "interaction_id": "flip",
     "front": {
       "eyebrow": "这张练习 | 主/被动语态",
-      "prompt": "比较：We tested three settings. Three settings were tested. 两句主要改变了什么，而不是谁更高级？",
-      "support": "比较：We tested three settings. Three settings were tested. 两句主要改变了什么，而不是谁更高级？",
-      "context": "比较：We tested three settings. Three settings were tested. 两句主要改变了什么，而不是谁更高级？"
+      "prompt": "A. We tested three settings.\nB. Three settings were tested.\n\n两句分别以什么作主语？B 省略了什么信息？",
+      "support": "A. We tested three settings.\nB. Three settings were tested.\n\n两句分别以什么作主语？B 省略了什么信息？",
+      "context": "A. We tested three settings.\nB. Three settings were tested.\n\n两句分别以什么作主语？B 省略了什么信息？"
     },
     "analysis": {
       "title": "解析",
-      "summary": "两句都可在合适语境中使用。被动可能适合执行者无关的段落，主动可能更清楚地说明研究者行动；不能仅凭语态给出高低等级或固定分数。",
-      "exam_tip": "按语篇需要选择语态，不把一种形式当成普遍优胜答案。"
+      "summary": "两句主动、被动各有用途。若上下文已经知道执行者或无需说明，B 可以省略；若要交代谁负责测试，A 的 We 更明确。",
+      "exam_tip": "比较 We 与 Three settings 两个主语。"
     },
     "space_metadata": {
       "box_ref": "1630",
@@ -621,7 +621,7 @@
       "group": "主/被动语态",
       "box": "翻译"
     },
-    "back_text": "主要改变信息焦点：第一句突出我们实施测试，第二句突出三个设置接受测试。"
+    "back_text": "A 以我们为主语，说明我们做了测试；B 以三个设置为主语，没有说明执行测试的人。"
   },
   {
     "card_id": "163101",
@@ -684,8 +684,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "must be checked 是情态被动，表达必须做的动作。若要陈述已完成，需有 have been checked 等适当语境与信息，不能把义务直接当成事实。",
-      "exam_tip": "情态意义与完成状态是两个不同维度。"
+      "summary": "must be checked 表示出版前必须检查，是一项要求。它没有说检查已经完成；如果要报告完成，可用 have been checked 并结合相应上下文。",
+      "exam_tip": "区分 must be checked 的要求与 have been checked 的完成。"
     },
     "space_metadata": {
       "box_ref": "1631",
@@ -708,8 +708,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "proposal 承受两种评价，两个 by 短语标明各自施事者。but 对照态度，不能因为主语是提案就把提案误读为批评居民的人。",
-      "exam_tip": "先确定受事，再把各个 by 短语与对应动作配对。"
+      "summary": "was criticised by residents 表示居民批评提案；supported 后省略重复的 was，by the planning committee 表示委员会支持。两组 by 短语分别指出评价者。",
+      "exam_tip": "按“criticised—residents；supported—committee”配对。"
     },
     "space_metadata": {
       "box_ref": "1631",
@@ -780,8 +780,8 @@
     },
     "analysis": {
       "title": "解析",
-      "summary": "had been revised 是相对送审这一过去事件更早的动作，was sent 是后续动作。两者都为被动，不能把 had 当成稿件拥有某物的实义动词。",
-      "exam_tip": "时态和 before 共同说明事件先后。"
+      "summary": "had been revised 表示在送外审之前已修改，was sent 表示后来的送审。before 和过去完成时共同说明顺序，两处都是稿件承受动作的被动结构。",
+      "exam_tip": "先用 before 确定修改在前，再核对 had been revised。"
     },
     "space_metadata": {
       "box_ref": "1631",

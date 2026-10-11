@@ -1,13 +1,18 @@
 import {filterSpaceCards, type SpaceCardFilter} from './cardFilters';
-import { spaceCardPreview } from '../learning/presentation';
+import {spaceCardPreview, answerComparison, answerHeading, displayCardText} from '../learning/presentation';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {StudioPressable as Pressable, MotionView} from '../learning/NativeMotion';
+import {bundledAudioSelection} from '../audio/bundledAudio';
+import {LearningAudioPlayer} from '../audio/LearningAudioPlayer';
+import {resolveCardAudioDownload, type VerifiedContentManifest} from '../audio/contentManifestRepository';
+import type {RefreshLearningAudioDownload} from '../audio/learningAudioController';
 import {STUDIO} from '../visual/studio';
 import {
   ScrollView,
   StyleProp,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
   ViewStyle,
@@ -18,6 +23,7 @@ import {
   LearningCard,
   LearningTrack,
 } from '../learning/model';
+import {createLearningCardState} from '../learning/sessionCore';
 import {
   formatSpaceDisplayName,
   formatSpacePathByNames,
@@ -82,6 +88,8 @@ type SpaceSeed = {
   libraryCount: number;
 };
 
+export type SpaceBrowseState = {filter: SpaceCardFilter; query: string; library: string; group: string; box: string; index: number; mode: SpaceSelectionMode};
+
 const noop = () => undefined;
 
 export function isShortSpaceViewport(width: number, height: number) {
@@ -112,6 +120,13 @@ export type SpaceStatusRail = {
 };
 
 export function SpaceSurface({
+  allowBundledAudio = false,
+  contentManifest,
+  audioAuthorityToken,
+  refreshAudioDownload,
+  browseState,
+  onBrowseStateChange,
+  learnedIds = [],
   cardStateById,
   currentLearningCard,
   pendingReviewIds = [],
@@ -129,6 +144,13 @@ export function SpaceSurface({
   spaceSyncRail,
   usesAccessibilityLayout = false,
 }: {
+  allowBundledAudio?: boolean;
+  contentManifest?: VerifiedContentManifest | null;
+  audioAuthorityToken?: string | null;
+  refreshAudioDownload?: RefreshLearningAudioDownload;
+  browseState?: SpaceBrowseState;
+  onBrowseStateChange?: (value: SpaceBrowseState) => void;
+  learnedIds?: string[];
   cardStateById: Record<string, { isFavorited: boolean; isSleeping: boolean }>;
   currentLearningCard: LearningCard | null;
   pendingReviewIds?: string[];
@@ -149,9 +171,11 @@ export function SpaceSurface({
   const { height: viewportHeight, width: viewportWidth } =
     useWindowDimensions();
   const usesShortViewport = isShortSpaceViewport(viewportWidth, viewportHeight);
-  const [filter, setFilter] = useState<SpaceCardFilter>('all');
+  const [filter, setFilter] = useState<SpaceCardFilter>(browseState?.filter ?? 'all');
+  const [query, setQuery] = useState(browseState?.query ?? '');
+  const [showAnswer, setShowAnswer] = useState(false);
   const [filterLimit, setFilterLimit] = useState(40);
-  const matches = filterSpaceCards(spaceCards, filter, Object.keys(cardStateById).filter(id => cardStateById[id].isFavorited), pendingReviewIds);
+  const matches = filterSpaceCards(spaceCards, filter, Object.keys(cardStateById).filter(id => cardStateById[id].isFavorited), pendingReviewIds, Object.keys(cardStateById).filter(id => cardStateById[id].isSleeping), query);
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const focusedSelection = useMemo(() => {
     if (!currentLearningCard) {
@@ -186,9 +210,9 @@ export function SpaceSurface({
     };
   }, [currentLearningCard, seed]);
   const [selectionMode, setSelectionMode] =
-    useState<SpaceSelectionMode>('follow_current');
+    useState<SpaceSelectionMode>(browseState?.mode ?? 'follow_current');
   const [selectedLibraryName, setSelectedLibraryName] = useState(
-    focusedSelection?.libraryName ?? seed.libraries[0]?.libraryName ?? '',
+    browseState?.library ?? focusedSelection?.libraryName ?? seed.libraries[0]?.libraryName ?? '',
   );
   const selectedLibrary =
     seed.libraries.find(
@@ -196,7 +220,7 @@ export function SpaceSurface({
     ) ?? seed.libraries[0];
 
   const [selectedGroupName, setSelectedGroupName] = useState(
-    focusedSelection?.groupName ?? selectedLibrary?.groups[0]?.groupName ?? '',
+    browseState?.group ?? focusedSelection?.groupName ?? selectedLibrary?.groups[0]?.groupName ?? '',
   );
   const selectedGroup =
     selectedLibrary?.groups.find(
@@ -204,11 +228,13 @@ export function SpaceSurface({
     ) ?? selectedLibrary?.groups[0];
 
   const [selectedBoxRef, setSelectedBoxRef] = useState(
-    focusedSelection?.boxRef ?? selectedGroup?.boxes[0]?.boxRef ?? '',
+    browseState?.box ?? focusedSelection?.boxRef ?? selectedGroup?.boxes[0]?.boxRef ?? '',
   );
   const [selectedCardIndex, setSelectedCardIndex] = useState(
-    focusedSelection?.cardIndex ?? 0,
+    browseState?.index ?? focusedSelection?.cardIndex ?? 0,
   );
+  useEffect(() => {onBrowseStateChange?.({filter, query, library: selectedLibraryName, group: selectedGroupName, box: selectedBoxRef, index: selectedCardIndex, mode: selectionMode});}, [filter, query, selectedLibraryName, selectedGroupName, selectedBoxRef, selectedCardIndex, selectionMode, onBrowseStateChange]);
+  useEffect(() => {setShowAnswer(false);}, [selectedBoxRef, selectedCardIndex]);
   const focusedSelectionKey = focusedSelection
     ? [
         focusedSelection.cardId,
@@ -575,7 +601,7 @@ export function SpaceSurface({
                   </Text>
                 </View>
                 <View style={styles.headerActionStack}>
-                  <Text style={[styles.stateTag, { color: palette.warning }]}>
+                  <Text style={[styles.stateTag, { color: STUDIO.color.reviewInk }]}>
                     {isSpaceLoading ? '加载中' : '暂无卡片'}
                   </Text>
                   <ActionChip
@@ -649,6 +675,21 @@ export function SpaceSurface({
   const selectedSource = spaceCards.find(
     card => card.card_id === selectedCard?.cardId,
   );
+  const inspectedCardLearned = learnedIds.includes(selectedCard?.cardId ?? '');
+  const inspectedAnswerCard = inspectedCardLearned ? spaceCards.find(card => card.card_id === selectedCard?.cardId) : undefined;
+  const inspectedAnswer = inspectedAnswerCard ? displayCardText(inspectedAnswerCard, answerComparison(inspectedAnswerCard, createLearningCardState(inspectedAnswerCard)).correct) : '';
+  const inspectedAnalysis = inspectedAnswerCard ? displayCardText(inspectedAnswerCard, inspectedAnswerCard.analysis.summary) : '';
+  const inspectedTip = inspectedAnswerCard ? displayCardText(inspectedAnswerCard, inspectedAnswerCard.analysis.exam_tip) : '';
+  const readAudioSelection = (() => {
+    if (!inspectedAnswerCard?.audio || !audioAuthorityToken) return null;
+    try {
+      if (allowBundledAudio && !contentManifest) return bundledAudioSelection(inspectedAnswerCard, audioAuthorityToken);
+      if (!contentManifest) return null;
+      const selected = resolveCardAudioDownload(contentManifest, inspectedAnswerCard);
+      return selected ? {...selected, authorityToken: audioAuthorityToken, cardToken: `${inspectedAnswerCard.card_id}:${inspectedAnswerCard.audio.sha256}`} : null;
+    } catch {return null;}
+  })();
+  const inspectedHeading = inspectedAnswerCard ? answerHeading(inspectedAnswerCard) : '';
   const selectedPreview = selectedSource
     ? spaceCardPreview(selectedSource)
     : { title: selectedCard?.prompt ?? '暂无卡片', detail: [] };
@@ -672,6 +713,7 @@ export function SpaceSurface({
     setSelectedBoxRef(box.boxRef);
     setSelectedCardIndex(Math.max(0, box.cards.findIndex(item => item.cardId === card.card_id)));
     setFilter('all');
+    setQuery('');
     onOpenCardList?.();
   };
   const inspectCard = (cardId: string) => {
@@ -700,14 +742,17 @@ export function SpaceSurface({
         ) : null}
         {stateRailStack}
         <View style={styles.filterBar} accessibilityRole="toolbar" testID="space-filter-bar">
-          {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习']] as const).map(([value, label, name]) => <Pressable key={value}
+          {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习'], ['sleeping', '已暂停', '只看已暂停']] as const).map(([value, label, name]) => <Pressable key={value}
             accessibilityRole="button" accessibilityLabel={name} accessibilityState={{selected: filter === value}}
             onPress={() => {setFilter(value); setFilterLimit(40);}} style={[styles.filterButton, {borderBottomColor: filter === value ? palette.accent : 'transparent'}]} testID={`space-filter-${value}`}>
             <Text style={{color: filter === value ? palette.text : palette.textMuted}}>{label}</Text>
           </Pressable>)}
         </View>
-        {filter !== 'all' ? <View style={styles.filterResults} testID="space-filter-results">
-          <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。' : '目前没有待复习的卡片。'}</Text>
+        <TextInput accessibilityLabel="查找卡片" testID="space-search" value={query} placeholder="查找题目关键词或卡盒名称" placeholderTextColor={palette.textMuted} onChangeText={value => {setQuery(value); setFilterLimit(40);}} style={{color: palette.text, backgroundColor: palette.panel, borderRadius: 14, padding: 12, minHeight: 44}}/>
+        {filter !== 'all' || query.trim() ? <View style={styles.filterResults} testID="space-filter-results">
+          <View style={matches.length ? undefined : {gap: 16, alignItems: 'center', paddingVertical: 32, paddingHorizontal: 24}}>{!matches.length ? <Text accessible={false} style={{fontSize: 40, color: palette.textMuted}}>{filter === 'favorites' ? '☆' : '○'}</Text> : null}
+          <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length ? `${matches.length} 张卡片` : query.trim() ? '没有找到匹配的卡片，试试其他关键词。' : filter === 'favorites' ? '还没有收藏的卡片。学习时点卡片右上角的 ☆，就能在这里找到它。' : filter === 'sleeping' ? '目前没有暂停的卡片。暂停后仍保留在原来的卡盒中，可以随时恢复。' : '目前没有待复习的卡片。'}</Text>
+          {!matches.length ? <Pressable accessibilityRole="button" onPress={query.trim() ? () => setQuery('') : onReturnToLearning} style={{backgroundColor: palette.accent, borderRadius: 14, minHeight: 44, justifyContent: 'center', paddingHorizontal: 24}} testID="space-empty-go-learning"><Text style={{color: palette.panelStrong}}>{query.trim() ? '清除搜索' : '去学习'}</Text></Pressable> : null}</View>
           {matches.slice(0, filterLimit).map((item, index) => {
             const locationLabel = formatSpacePathByNames(
               item.space_metadata.library,
@@ -863,7 +908,7 @@ export function SpaceSurface({
                       box.boxName,
                       '卡盒',
                     );
-                    const countLabel = `${box.cards.length} 张`;
+                    const countLabel = `已学 ${box.cards.filter(card => learnedIds.includes(card.cardId)).length} / ${box.cards.length}`;
                     const accessibleLabel = `${displayName}，${countLabel}`;
                     return (
                       <Pressable
@@ -1091,6 +1136,7 @@ export function SpaceSurface({
                   {[
                     selectedCard?.interactionLabel,
                     inspectedCardIsCurrent ? '当前' : '',
+                    inspectedCardLearned ? '已学过' : '未学习',
                     isFavorited ? '已收藏' : '',
                     isSleeping ? '休眠' : '',
                   ]
@@ -1118,6 +1164,10 @@ export function SpaceSurface({
                     </Text>
                   ))}
                 </View>
+                {selectedCard && learnedIds.includes(selectedCard.cardId) ? <View>
+                  <Pressable accessibilityRole="button" onPress={() => setShowAnswer(value => !value)} style={styles.quietAction} testID="space-read-answer"><Text style={{color: palette.text}}>{showAnswer ? '收起答案与解析' : '回看答案与解析'}</Text></Pressable>
+                  {showAnswer ? <View style={{gap: 10, paddingVertical: 12}}>{readAudioSelection ? <LearningAudioPlayer palette={{...palette, background: palette.background ?? palette.panel, tabIdle: palette.panel}} selection={readAudioSelection} refreshDownload={refreshAudioDownload}/> : null}<Text style={{color: palette.textMuted}}>{inspectedHeading}</Text><Text style={[styles.cardPreviewDetail, {color: palette.text}]}>{inspectedAnswer}</Text><Text style={[styles.cardPreviewDetail, {color: palette.text}]}>{inspectedAnalysis}</Text><Text style={[styles.cardPreviewDetail, {color: palette.textMuted}]}>{inspectedTip}</Text></View> : null}
+                </View> : null}
                 <View
                   style={[
                     styles.stateActionRow,
@@ -1178,7 +1228,7 @@ export function SpaceSurface({
                             styles.quietActionText,
                             {
                               color: isSleeping
-                                ? palette.warning
+                                ? (isDarkSpacePalette ? palette.warning : STUDIO.color.reviewInk)
                                 : palette.text,
                             },
                           ]}
@@ -1375,7 +1425,7 @@ function SpaceGateRailCard({
     >
       <View style={styles.gateRailHeader}>
         <View style={styles.statusCopy}>
-          <Text style={[styles.eyebrow, { color: palette.warning }]}>
+          <Text style={[styles.eyebrow, { color: STUDIO.color.reviewInk }]}>
             完整空间
           </Text>
           <Text style={[styles.cardTitle, { color: palette.text }]}>
@@ -1385,7 +1435,7 @@ function SpaceGateRailCard({
             {rail.detail}
           </Text>
         </View>
-        <Text style={[styles.stateTag, { color: palette.warning }]}>
+        <Text style={[styles.stateTag, { color: STUDIO.color.reviewInk }]}>
           {rail.label}
         </Text>
       </View>

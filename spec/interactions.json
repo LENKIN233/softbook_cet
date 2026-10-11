@@ -28,9 +28,10 @@
     "download_url_resolution": "remote_authenticated_content_manifest_bound_to_exact_track_and_content_version_or_local_bundled_descriptor_with_byte_integrity",
     "resource_integrity": "signed_manifest_descriptor_plus_downloaded_byte_sha256",
     "playback_trigger": "explicit_user_action_only",
-    "playback_authority": "the_mobile_player_binds_each_audio_selection_to_the_exact_server_selection_id_or_an_explicit_local_attempt_identity_and_each_new_prepare_to_a_controller_instance_scoped_playback_nonce",
+    "playback_authority": "the_mobile_player_binds_each_audio_selection_to_the_exact_server_selection_id_or_an_explicit_local_attempt_identity_and_each_new_prepare_to_a_controller_instance_scoped_playback_nonce; authorized learned-card Space replay instead binds exact account scope, content version and card asset under an explicit read-only Space identity without a learning event or scheduler change",
     "native_event_rule": "ended_error_and_interruption_events_change_visible_state_only_when_their_exact_playback_nonce_is_still_current_while_pause_and_resume_within_one_selection_retain_that_nonce",
-    "lifecycle_interruption_rule": "iOS_background_or_audio_session_interruption_binds_and_invalidates_the_exact_current_pending_ready_or_playing_native_generation_stops it and emits one exact tokened requires_prepare event so delayed JS AppState delivery cannot autoplay; Android host pause does the same for pending or ready before first play while any exact token with play requested is paused and emits interruption without relying on isPlaying so buffering or focus wait cannot activate in background; natural playback completion emits the exact ended event and releases the native player on both platforms"
+    "lifecycle_interruption_rule": "iOS_background_or_audio_session_interruption_binds_and_invalidates_the_exact_current_pending_ready_or_playing_native_generation_stops it and emits one exact tokened requires_prepare event so delayed JS AppState delivery cannot autoplay; Android host pause does the same for pending or ready before first play while any exact token with play requested is paused and emits interruption without relying on isPlaying so buffering or focus wait cannot activate in background; natural playback completion emits the exact ended event and releases the native player on both platforms",
+    "position_and_seek": "Read actual player position and seek only with the exact current playback token. Explicit restart may play from zero; rewind must not autoplay or revive interrupted preparation."
   },
   "support_usage_policy": {
     "peek_and_hint_remain_available_on_all_five_core_interactions": true,
@@ -50,7 +51,8 @@
         "front",
         "analysis"
       ],
-      "notes": "适合知识点识别与短解释"
+      "notes": "适合知识点识别与短解释",
+      "self_assessment_commit": "The visible rating may be changed before advancing. Advance persists one final rating; queued or acknowledged events stay immutable."
     },
     {
       "id": "multiple_choice",
@@ -79,7 +81,8 @@
         "answer_key.lock_pattern"
       ],
       "notes": "适合调整多个位置，只有全部正确时才开锁；最后正确锁位直接呈现结果，不再要求重复确认，继续操作沿用原有单次完成记录边界。",
-      "attempt_assessment": "An attempt with any valid incorrect lock selection needs review even after every slot is corrected. Keep the mistake flag for that attempt, record incorrect/review_needed once at completion, and explain that the lock is complete and will be practised again. A fresh attempt without mistakes records correct/passed. No extra self-rating or attempt counter is shown."
+      "attempt_assessment": "An attempt with any valid incorrect lock selection needs review even after every slot is corrected. Keep the mistake flag for that attempt, record incorrect/review_needed once at completion, and explain that the lock is complete and will be practised again. A fresh attempt without mistakes records correct/passed. No extra self-rating or attempt counter is shown.",
+      "slot_order": "Choose any unresolved slot. Correct slots stay unlocked; all slots must be correct to finish, and any valid wrong selection remains in attempt assessment."
     },
     {
       "id": "elimination",

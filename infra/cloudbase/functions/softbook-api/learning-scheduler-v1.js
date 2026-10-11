@@ -634,7 +634,7 @@ function normalizeSelectionContext(input) {
       throw unavailable('The canonical card source contains an invalid card.');
     }
 
-    return {cardId: card.card_id, index};
+    return {cardId: card.card_id, index, libraryKey: card.space_metadata?.library ?? card.card_id.slice(1, 2)};
   });
   const cardIdSet = new Set(cards.map(card => card.cardId));
 
@@ -884,7 +884,15 @@ function selectNextCard(context, randomBytes) {
     };
   }
 
-  for (const card of context.accessibleCards) {
+  const learnedByLibrary = new Map();
+  for (const card of context.cards) {
+    if (Object.hasOwn(context.learning.eventsByCardId, card.cardId)) learnedByLibrary.set(card.libraryKey, (learnedByLibrary.get(card.libraryKey) ?? 0) + 1);
+  }
+  const newCardOrder = [...context.accessibleCards].sort((left, right) =>
+    Math.floor((learnedByLibrary.get(left.libraryKey) ?? 0) / 5) -
+    Math.floor((learnedByLibrary.get(right.libraryKey) ?? 0) / 5) || left.index - right.index);
+
+  for (const card of newCardOrder) {
     if (
       context.sleepingCardIds.has(card.cardId) ||
       Object.hasOwn(context.learning.eventsByCardId, card.cardId)

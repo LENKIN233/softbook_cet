@@ -40,7 +40,7 @@ const PAYLOAD_MODES = [
   'full-track-candidate',
 ];
 const FULL_TRACK_CANDIDATE_POLICIES = new Map([
-  ['cet4', {cardCount: 1180, boxCount: 108, audioCount: 301}],
+  ['cet4', {cardCount: 1180, boxCount: 108, audioCount: 297}],
   ['cet6', {cardCount: 1234, boxCount: 110, audioCount: 328}],
 ]);
 const CONTROLLED_PILOT_LIBRARY_COUNTS = new Map([

@@ -1,8 +1,9 @@
+import {getChinaDayKey} from '../shared/chinaDay';
 import {StudioPressable as Pressable} from '../learning/NativeMotion';
 import {StudioMark} from '../visual/StudioMark';
 import {StudioRouteIcon} from '../visual/StudioRouteIcon';
 import {STUDIO} from '../visual/studio';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   AppState,
@@ -27,7 +28,7 @@ import {
   LearningResultDetailSurface,
   LearningSurface,
 } from '../learning/LearningSurface';
-import { SpaceSurface, type SpaceSurfaceScreen } from '../space/SpaceSurface';
+import { SpaceSurface, type SpaceSurfaceScreen, type SpaceBrowseState } from '../space/SpaceSurface';
 import { StatisticsSurface } from '../statistics/StatisticsSurface';
 import { createLearningSessionRepository } from '../learning/learningRepository';
 import {
@@ -78,6 +79,7 @@ export function LocalStudyApp({
   const [entered, setEntered] = useState(false);
   const [route, setRoute] = useState<Route>('learning');
   const [detail, setDetail] = useState(false);
+  const spaceBrowse = useRef(new Map<string, SpaceBrowseState>());
   const [spaceScreen, setSpaceScreen] =
     useState<SpaceSurfaceScreen>('overview');
   const [busy, setBusy] = useState(false);
@@ -625,6 +627,7 @@ export function LocalStudyApp({
                 </ScrollView>
               ) : (
                 <LearningSurface
+                allowSelfAssessmentAmend={false}
                   palette={palette}
                   sessionCards={sessionCards}
                   sessionLabel="学习"
@@ -717,6 +720,11 @@ export function LocalStudyApp({
                 palette={palette}
                 deviceClass={deviceClass}
                 usesAccessibilityLayout={fontScale >= 1.3}
+                allowBundledAudio
+                audioAuthorityToken={`${track}:${session?.contentVersion}:space`}
+                browseState={spaceBrowse.current.get(track)}
+                onBrowseStateChange={value => spaceBrowse.current.set(track, value)}
+                learnedIds={state.results.map(result => result.cardId)}
                 spaceCards={cards}
                 cardStateById={rows}
                 currentLearningCard={card}
@@ -735,6 +743,7 @@ export function LocalStudyApp({
             ) : null}
             {route === 'statistics' ? (
               <StatisticsSurface
+                performanceResults={state.results.filter(result => getChinaDayKey(new Date(result.completedAt)) === day)}
                 palette={palette}
                 deviceClass={deviceClass}
                 canCheckInToday={counts.learning + counts.review > 0}

@@ -1,4 +1,4 @@
-import type { EliminationCard, LearningCard, LearningCardState } from './model';
+import type { EliminationCard, LearningCard, LearningCardState, LearningCardResult } from './model';
 
 // Never guess which distinct front text is optional: imported front material
 // remains visible. Only exact repeats of already-visible text are suppressed.
@@ -18,13 +18,20 @@ function withoutRepeatedTask(text: string, prompt: string) {
 }
 
 export function displayCardText(card: LearningCard, text: string) {
-  return card.interaction_id === 'lock' ? text.replace(/\{\{blank\}\}/g, '____') : text;
+  const value = text.replace(/\*\*([^*]+)\*\*/g, '$1');
+  return card.interaction_id === 'lock' ? value.replace(/\{\{blank\}\}/g, '____') : value;
 }
 
 export function frontMaterial(card: LearningCard) {
   const seen = new Set([displayCardText(card, card.front.prompt).trim()]);
   return [card.front.support, card.front.context].flatMap(text => {
-    const value = displayCardText(card, withoutRepeatedTask(text, card.front.prompt)).trim();
+    let value = withoutRepeatedTask(text, card.front.prompt).trim();
+    if (card.interaction_id === 'multiple_choice') {
+      // Remove only an exact trailing option block already shown as controls.
+      const options = card.options.map(option => `${option.label}. ${option.text}`).join('\n');
+      if (value.endsWith(options)) value = value.slice(0, -options.length).trimEnd();
+    }
+    value = displayCardText(card, value);
     if (!value || seen.has(value)) return [];
     seen.add(value);
     return [value];
@@ -114,7 +121,7 @@ export function answerComparison(card: LearningCard, state: LearningCardState) {
     };
   }
   if (card.interaction_id === 'lock') {
-    return { correct: card.answer_key.lock_pattern.join(' '), selected: null };
+    return { correct: lockPassage(card, card.answer_key.lock_pattern), selected: null };
   }
   if (card.interaction_id === 'swipe') {
     const stateText = (id: string | null) => {
@@ -136,4 +143,45 @@ export function answerComparison(card: LearningCard, state: LearningCardState) {
     correct: itemText(card.answer_key.correct_items),
     selected: itemText(state.eliminatedItemIds) || '未划去任何内容',
   };
+}
+
+export function lockPassage(card: Extract<LearningCard, {interaction_id: 'lock'}>, values: readonly (string | null)[]) {
+  const source = lockPassageSource(card);
+  if (!source) return card.lock_slots.map((slot, index) => `${slot.label}：${values[index] ?? '____'}`).join('；');
+  let index = 0;
+  return source.replace(/\{\{blank\}\}/g, () => values[index++] ?? '____');
+}
+export function stateDescription(option: {label: string; description: string} | undefined) {
+  return option ? option.label.trim() === option.description.trim()
+    ? option.label : `${option.label} · ${option.description}` : '未选择';
+}
+export function answerHeading(card: LearningCard) {
+  return card.interaction_id === 'elimination' ? '应删除的部分' : card.interaction_id === 'flip' ? '核对答案' : card.interaction_id === 'lock' ? '补全后的内容' : '正确答案';
+}
+
+export function cardTextParts(card: LearningCard, text: string) {
+  const source = card.interaction_id === 'lock' ? text.replace(/\{\{blank\}\}/g, '____') : text;
+  return source.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map(part =>
+    /^\*\*[^*]+\*\*$/.test(part) ? {text: part.slice(2, -2), emphasized: true} : {text: part, emphasized: false});
+}
+
+export function newCardGroup(card: LearningCard | null, catalog: readonly LearningCard[], results: readonly LearningCardResult[], sleeping: readonly string[]) {
+  if (!card) return undefined;
+  const libraryCards = catalog.filter(item => item.space_metadata.library === card.space_metadata.library);
+  const learned = new Set(results.filter(result => result.cardId !== card.card_id).map(result => result.cardId));
+  const count = libraryCards.filter(item => learned.has(item.card_id)).length;
+  const step = count % 5 + 1;
+  const remaining = libraryCards.filter(item => item.card_id === card.card_id || (!learned.has(item.card_id) && !sleeping.includes(item.card_id))).length;
+  return {step, size: Math.max(step, Math.min(5, step - 1 + remaining))};
+}
+
+export function lockPassageSource(card: LearningCard) {
+  if (card.interaction_id !== 'lock') return undefined;
+  return [card.front.support, card.front.context, card.front.prompt].map(text => withoutRepeatedTask(text, card.front.prompt).trim()).find(text =>
+    (text.match(/\{\{blank\}\}/g) ?? []).length === card.lock_slots.length);
+}
+export function attemptLabel(result: LearningCardResult) {
+  if (result.outcome === 'correct') return '本次答对';
+  if (result.outcome === 'incorrect') return result.interactionId === 'lock' ? '本次曾选错，稍后复习' : '本次答错，稍后复习';
+  return result.outcome === 'confident' ? '有把握' : '需要复习';
 }

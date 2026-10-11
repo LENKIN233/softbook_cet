@@ -1,5 +1,7 @@
 import React from 'react';
 import {StudioPressable as Pressable, MotionView} from '../learning/NativeMotion';
+import {summarizeLearningResults} from '../learning/sessionCore';
+import type {LearningCardResult} from '../learning/model';
 import {STUDIO} from '../visual/studio';
 import {
   ScrollView,
@@ -38,6 +40,7 @@ type StatisticsPalette = {
 type DeviceClass = 'phone' | 'tablet';
 
 export function StatisticsSurface({
+  performanceResults,
   canCheckInToday,
   cumulativeLearnedCount,
   deviceClass,
@@ -52,6 +55,7 @@ export function StatisticsSurface({
   syncStatusDetail,
   syncStatusLabel,
 }: {
+  performanceResults?: LearningCardResult[];
   canCheckInToday: boolean;
   cumulativeLearnedCount?: number;
   deviceClass: DeviceClass;
@@ -74,6 +78,7 @@ export function StatisticsSurface({
     deviceClass === 'phone' &&
     !usesAccessibilityLayout &&
     cumulativeLearnedCount !== undefined;
+  const performance = summarizeLearningResults(performanceResults ?? [], performanceResults?.length ?? 0);
   const totalCompletedCount = learningCompletedCount + reviewCompletedCount;
   const hasLearningProgress = totalCompletedCount > 0;
   const checkInSummary = hasCheckedInToday
@@ -180,6 +185,7 @@ export function StatisticsSurface({
         ) : null}
       </View>
 
+      {performanceResults ? <View style={{gap: 10, paddingHorizontal: 18}}><Text style={[styles.cardSummary, {color: palette.textMuted}]}>今天每张卡的最近结果</Text>{[['自动答对', performance.autoCorrectCount], ['自动答错', performance.autoIncorrectCount], ['自评有把握', performance.confidentFlipCount], ['自评需复习', performance.reviewFlipCount], ['用过提示', performance.hintUseCount]].map(([label,value]) => <View key={label} style={{flexDirection: 'row', justifyContent: 'space-between'}}><Text style={{color: palette.textMuted}}>{label}</Text><Text style={{color: palette.text}}>{value}</Text></View>)}</View> : null}
       <View
         style={[
           styles.actionDock,
@@ -215,10 +221,10 @@ export function StatisticsSurface({
               usesAccessibilityLayout ? styles.nextStepButtonAccessible : null,
               {
                 backgroundColor: nextStepIsReview
-                  ? palette.warningText
+                  ? palette.warning
                   : palette.primaryActionSurface,
                 borderColor: nextStepIsReview
-                  ? palette.warningText
+                  ? palette.warning
                   : palette.primaryActionSurface,
               },
             ]}
@@ -229,7 +235,7 @@ export function StatisticsSurface({
                 styles.primaryButtonLabel,
                 {
                   color: nextStepIsReview
-                    ? palette.warningText
+                    ? STUDIO.color.reviewInk
                     : palette.primaryActionText,
                 },
               ]}

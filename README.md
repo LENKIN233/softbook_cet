@@ -88,54 +88,20 @@ cd apps/mobile
 npm run ios
 ```
 
-### 完整本地产品
+### 三端本地体验
 
-普通 `dev` / `ios` / `android` 命令现在使用完整本地卡库：CET4 1,180 张、CET6
-1,234 张，629 条音频随产品打包。默认学习四级，卡库按知识点顺序展开；原有示例
-已从运行时删除，少量交互测试数据仅在测试目录保留。无需 CloudBase 即可读卡、
-播放音频、作答和查看空间。本地登录仍使用开发验证码（Web `123456`，移动端 `2468`），
-不代表真实短信、跨设备同步或正式发布。本机原示例的空间与游标记录不迁入新卡库。
+使用本机后端测试完整登录、学习、空间和统计流程，入口与当前配置见 [本地后端说明](docs/local-backend.md)。测试验证码由后端输出，不发送真实短信。
 
 ```bash
-# 直接体验完整本地卡库，音频由本机提供
-npm --prefix apps/web run dev
-# 原生应用需要重新构建，才能包含随包音频
-npm --prefix apps/mobile run ios
-npm --prefix apps/mobile run android
-```
-
-内容来自 `card-make@6e4367e5b2c9a8dc114a820146b84c82091a2fa0` 的固定导出，
-来源与哈希见 `infra/cloudbase/functions/softbook-api/card-content/provenance.json`。
-接入不改变候选内容的发布授权状态。详情见 `docs/content/bundled-library.md`。
-
-下面的 `product:local` 是单独的**云端接入模式**：
-完整本地产品命令会从 tracked receiver delivery profile 与公开 Ed25519 keyring 生成当前
-commit 的临时公开 runtime profile，连接已经导入 CloudBase 的 1180 张 CET4 卡、108 个盒和
-301 个私有音频，并强制使用封闭内测的邀请资格语义；profile 不包含 token、私钥或凭证。
-命令要求 tracked worktree 干净，避免运行代码与 profile 声明的 commit 不一致。
-
-```bash
-# PC Web：构建正式 Web 产物并在 http://127.0.0.1:4173 预览
 npm --prefix apps/web run product:local
-
-# Android：先启动一个 Android 模拟器或连接设备
+npm --prefix apps/mobile run product:local:ios
 npm --prefix apps/mobile run product:local:android
-
-# iOS：使用明确的已启动 Simulator UDID
-npm --prefix apps/mobile run product:local:ios -- \
-  --device <simulator-udid>
 ```
 
-只验证三端启动计划、公开 profile 与内容 key 绑定而不启动应用：
-
-```bash
-node scripts/run_local_product.mjs --target web --check
-node scripts/run_local_product.mjs --target android --check
-node scripts/run_local_product.mjs --target ios --device <simulator-udid> --check
-```
-
-完整本地产品依赖现有 receiver CloudBase；它不是完全离线单机模式。开发 demo 不再提供
-与封闭内测冲突的模拟自助购买入口。
+`product:receiver` 是独立的云端接入入口，按 `docs/local-backend.md` 中的 receiver profile 运行。
+仅随包卡库的离线开发入口是 Web 的 `build:device` / `start:device` 和原生的 `android:device`；
+它们的本机记录不能证明云端同步或正式短信可用。普通 Web `dev` 没有自动注入本地后端配置。
+卡库来源与哈希见 `infra/cloudbase/functions/softbook-api/card-content/provenance.json`；开发体验不改变内容发布授权状态。
 
 ### 学习卡源 runtime config
 
