@@ -5,8 +5,13 @@
     "user_must_be_able_to": [
       "see_current_card_physical_position",
       "browse_library_group_box_card_hierarchy",
-      "inspect_box_contents"
-    ]
+      "inspect_box_contents",
+      "search_authorized_front_material_and_box_names",
+      "filter_paused_cards_without_changing_box_ownership",
+      "distinguish_learned_and_unlearned_cards"
+    ],
+    "learned_card_replay": "Only already learned cards expose answers, explanations and explicit audio replay in Space. Replay preserves scheduler position and completion counts; unlearned cards expose front material only.",
+    "browse_continuity": "Ordinary navigation restores the inspected box and card within the same account, course and content version. Opening Space from the active study task explicitly locates that task."
   },
   "position_control_model": {
     "algorithm_is_primary_driver": true,

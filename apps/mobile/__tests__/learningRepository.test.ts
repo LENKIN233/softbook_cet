@@ -213,6 +213,19 @@ test('renews only the selected audio through canonical content and a fresh verif
   expect(session.contentManifest?.downloads[0].url).not.toBe(renewed.url);
 });
 
+
+test('read-only audio renews an authorized catalog card without altering the daily selection', async () => {
+  const fixture = createAudioRefreshFixture();
+  const session = await fixture.repository.loadSession(authenticatedContext, 'cet4');
+  const history = {...session, cards: [], serverSelection: null};
+  const cardId = session.cards[0].card_id;
+  await expect(fixture.repository.refreshAudioDownload!(authenticatedContext, history, 'cet4.002001.prompt')).rejects.toThrow();
+  await expect(fixture.repository.refreshAudioDownload!(authenticatedContext, history, 'cet4.002001.prompt', {readOnlyCardId: cardId})).resolves.toBeDefined();
+  expect(history.serverSelection).toBeNull();
+  await expect(fixture.repository.refreshAudioDownload!(authenticatedContext, history, 'cet4.002001.prompt', {readOnlyCardId: '999999'})).rejects.toThrow();
+  await expect(fixture.repository.refreshAudioDownload!(authenticatedContext, history, 'cet4.002001.prompt', {readOnlyCardId: cardId, isCurrent: () => false})).rejects.toMatchObject({reason: 'session_superseded'});
+});
+
 test.each(['content', 'asset', 'size', 'signature', 'removed'] as const)('refuses audio renewal after %s authority drift', async drift => {
   const fixture = createAudioRefreshFixture();
   const session = await fixture.repository.loadSession(authenticatedContext, 'cet4');

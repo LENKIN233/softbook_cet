@@ -93,6 +93,7 @@ export function LocalStudyApp({
   const studySpaceOrigin = useRef<{track: LearningTrack; detailOpen: boolean} | null>(null);
   const isStudyActive = entered && route === 'learning' && learningView === 'study';
   const [detail, setDetail] = useState(false);
+  const spaceBrowse = useRef(new Map<string, import('../space/SpaceSurface').SpaceBrowseState>());
   const [spaceScreen, setSpaceScreen] =
     useState<SpaceSurfaceScreen>('overview');
   const [busy, setBusy] = useState(false);
@@ -798,6 +799,11 @@ export function LocalStudyApp({
                 palette={palette}
                 deviceClass={deviceClass}
                 usesAccessibilityLayout={usesLargeTextLayout(fontScale)}
+                allowBundledAudio
+                audioAuthorityToken={`${track}:${session?.contentVersion}:space`}
+                learnedIds={state.results.map(result => result.cardId)}
+                browseState={spaceBrowse.current.get(track)}
+                onBrowseStateChange={value => spaceBrowse.current.set(track, value)}
                 spaceCards={cards}
                 cardStateById={rows}
                 currentLearningCard={card}

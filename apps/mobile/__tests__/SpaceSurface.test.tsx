@@ -893,3 +893,21 @@ test('does not render raw metadata values from loaded Space cards', () => {
   expect(renderedText).toContain('当前卡盒');
   expect(renderedText).not.toContain('馆 1 / 组 1 / 盒 1');
 });
+
+
+test('a keyword result opens the inspected card instead of leaving the search list over its details', () => {
+  const session = createLocalLearningSession('cet4');
+  const target = session.cards[1];
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  const props = {cardStateById: {}, currentLearningCard: session.cards[0], deviceClass: 'phone' as const,
+    palette, spaceCards: session.cards, onOpenCardList: jest.fn(), onReturnToLearning: jest.fn(),
+    onToggleFavoriteTag: jest.fn(), onToggleSleepState: jest.fn()};
+  ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<SpaceSurface {...props}/>);});
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-search'}).props.onChangeText(target.front.prompt));
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-filter-card-0'}).props.onPress());
+  ReactTestRenderer.act(() => tree.update(<SpaceSurface {...props} screen="card_list"/>));
+  expect(tree.root.findAllByProps({testID: 'space-filter-results'})).toHaveLength(0);
+  expect(tree.root.findByProps({testID: 'space-browse-card-face'})).toBeTruthy();
+  expect(tree.root.findAllByProps({testID: 'space-read-answer'})).toHaveLength(0);
+  ReactTestRenderer.act(() => tree.unmount());
+});

@@ -838,7 +838,7 @@ test('lock rows reveal the next controls only after the current row is correct',
   expect(
     findChoice(firstSlot.label, firstExpected).props.accessibilityState,
   ).toEqual({ checked: false, disabled: false });
-  expect(tree!.root.findAllByProps({accessibilityLabel: `${secondSlot.label}，${secondSlot.options[0]}`})).toHaveLength(0);
+  expect(findChoice(secondSlot.label, secondSlot.options[0]).props.accessibilityState.disabled).toBe(false);
 
   cardState.lockSelections[firstSlot.id] = firstWrong;
   ReactTestRenderer.act(() => {

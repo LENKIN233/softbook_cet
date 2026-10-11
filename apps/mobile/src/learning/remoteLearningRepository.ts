@@ -73,7 +73,7 @@ export function createRemoteLearningSessionRepository(
       };
       assertCurrent();
       const manifestConfig = config.contentManifestConfig;
-      const card = session.cards.find(candidate => candidate.card_id === session.serverSelection?.cardId);
+      const card = options?.readOnlyCardId ? session.catalogCards.find(candidate => candidate.card_id === options.readOnlyCardId) : session.cards.find(candidate => candidate.card_id === session.serverSelection?.cardId);
       if (
         !context.authToken || !config.remoteConfig ||
         !manifestConfig || manifestConfig.mode !== 'remote' ||

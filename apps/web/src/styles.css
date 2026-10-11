@@ -599,3 +599,6 @@ details[open] > summary > .disclosure-chevron {transform:rotate(180deg);}
   .route-icon {width:24px;height:24px;}
 }
 @media(max-width:400px) {.mobile-header .wordmark{display:none}.learning-paper-address{flex-wrap:wrap}.paper-address-button{flex:1;min-width:160px}.card-favorite{margin-left:auto}}
+
+.audio-repeat-actions {display: flex; gap: 14px;}
+.audio-repeat-actions button {display: inline-flex; align-items: center; gap: 6px; min-height: 44px;}

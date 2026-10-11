@@ -613,3 +613,49 @@ test('controller instances never reuse a playback nonce', async () => {
     readPreparedPlaybackToken(second.engine),
   );
 });
+
+test('actual position and seeks stay on the current playback token and rewind never resumes paused audio', async () => {
+  const {engine} = createEngine();
+  engine.getPosition = jest.fn().mockResolvedValue(1250);
+  engine.seek = jest.fn().mockResolvedValue(undefined);
+  const controller = new LearningAudioController({cache: createCache(), engine, isOnline: async () => true});
+  controller.select(selection);
+  await controller.press();
+  const token = readPreparedPlaybackToken(engine);
+  expect(await controller.getPosition()).toBe(1250);
+  await controller.press();
+  await controller.seekTo(99000);
+  expect(engine.seek).toHaveBeenLastCalledWith(token, selection.asset.duration_ms);
+  expect(engine.play).toHaveBeenCalledTimes(1);
+  await controller.restart();
+  expect(engine.seek).toHaveBeenLastCalledWith(token, 0);
+  expect(engine.play).toHaveBeenCalledTimes(2);
+  const delayed = createDeferred<number>();
+  engine.getPosition = jest.fn(() => delayed.promise);
+  const oldPosition = controller.getPosition();
+  controller.select({...selection, authorityToken: 'another-attempt'});
+  delayed.resolve(1800);
+  expect(await oldPosition).toBeNull();
+  await controller.seekTo(0);
+  expect(engine.seek).toHaveBeenCalledTimes(2);
+  controller.dispose();
+});
+
+
+test('restart never resumes after a disabled surface cancels its pending seek', async () => {
+  const {engine} = createEngine();
+  const seek = createDeferred<void>();
+  engine.seek = jest.fn(() => seek.promise);
+  const controller = new LearningAudioController({cache: createCache(), engine, isOnline: async () => true});
+  controller.select(selection);
+  await controller.press();
+  await controller.press();
+  let enabled = true;
+  const restarting = controller.restart(() => enabled);
+  enabled = false;
+  seek.resolve();
+  await restarting;
+  expect(engine.play).toHaveBeenCalledTimes(1);
+  expect(controller.getState().status).toBe('paused');
+  controller.dispose();
+});

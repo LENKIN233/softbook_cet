@@ -13,6 +13,7 @@ import {
 } from '../../mobile/src/runtime/remoteRequest';
 
 type AudioElement = {
+  currentTime?: number;
   addEventListener: (
     type: 'ended' | 'error',
     listener: () => void,
@@ -23,6 +24,8 @@ type AudioElement = {
 };
 
 export type VerifiedWebAudioPlayback = {
+  getPosition?: () => number | null;
+  seek?: (milliseconds: number) => void;
   pause: () => void;
   play: () => Promise<void>;
   stop: () => void;
@@ -157,6 +160,8 @@ async function prepareVerifiedCardAudioOnce(
   audio.addEventListener('error', () => terminate('error'), {once: true});
 
   return {
+    getPosition: () => !terminated && typeof audio.currentTime === 'number' ? audio.currentTime * 1000 : null,
+    seek: milliseconds => {if (!terminated && Number.isFinite(milliseconds)) audio.currentTime = Math.max(0, Math.min(milliseconds, selection.asset.duration_ms)) / 1000;},
     pause() {
       try {
         audio.pause();

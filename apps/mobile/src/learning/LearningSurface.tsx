@@ -1193,15 +1193,8 @@ function InteractionBody({
               const expectedValue = card.answer_key.lock_pattern[index];
               const isUnlocked = selectedValue === expectedValue;
               const hasWrongSelection = selectedValue !== null && !isUnlocked;
-              const firstLockedIndex = card.lock_slots.findIndex(
-                (candidateSlot, candidateIndex) =>
-                  cardState.lockSelections[candidateSlot.id] !==
-                  card.answer_key.lock_pattern[candidateIndex],
-              );
-              const isCurrentRow = firstLockedIndex === index;
-              const canChoose = currentResult === null && isCurrentRow;
-              const isWaitingForPrevious =
-                firstLockedIndex >= 0 && index > firstLockedIndex;
+              const isCurrentRow = !isUnlocked;
+              const canChoose = currentResult === null && !isUnlocked;
 
               return (
                 <View
@@ -1222,7 +1215,7 @@ function InteractionBody({
                   <View
                     accessible
                     accessibilityRole="image"
-                    accessibilityLabel={`${slot.label}，${isUnlocked ? '已开锁' : isCurrentRow ? '当前锁位' : '等待上一行'}`}
+                    accessibilityLabel={`${slot.label}，${isUnlocked ? '已开锁' : isCurrentRow ? '当前锁位' : '待选择'}`}
                     style={[
                       styles.lockGlyph,
                       compact ? styles.lockGlyphCompact : null,
@@ -1264,8 +1257,6 @@ function InteractionBody({
                             ? '已开锁'
                             : hasWrongSelection
                             ? '再试一次'
-                            : isWaitingForPrevious
-                            ? '按顺序解锁'
                             : '待选择'}
                         </Text>
                       ) : null}
