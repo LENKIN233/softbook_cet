@@ -178,6 +178,8 @@ export function SpaceSurface({
   const [showAnswer, setShowAnswer] = useState(false);
   const [filterLimit, setFilterLimit] = useState(40);
   const matches = filterSpaceCards(spaceCards, filter, Object.keys(cardStateById).filter(id => cardStateById[id].isFavorited), pendingReviewIds, Object.keys(cardStateById).filter(id => cardStateById[id].isSleeping), query);
+  const filterEmptyMessage = query.trim() ? '没有找到匹配的卡片，试试其他关键词。' : filter === 'favorites' ? '还没有收藏的卡片。学习时点击 ☆，就能在这里找到它。' : filter === 'sleeping' ? '目前没有暂停的卡片。暂停后仍保留在原卡盒，可随时恢复。' : '目前没有待复习的卡片。';
+  const showsEmptyFilter = (filter !== 'all' || Boolean(query.trim())) && matches.length === 0;
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const focusedSelection = useMemo(() => {
     if (!currentLearningCard) {
@@ -748,8 +750,12 @@ export function SpaceSurface({
             <Text style={[styles.spaceMeta, {color: palette.text}]}>{query.trim() ? '查找结果' : filter === 'favorites' ? '只看收藏' : filter === 'sleeping' ? '已暂停' : '只看待复习'} · 当前科目全部卡盒</Text>
             <ActionChip icon="close" label="清除筛选" onPress={() => {setFilter('all'); setQuery('');}} palette={palette} testID="space-clear-filter" />
           </View>
-          <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。学习时点击 ☆，就能在这里找到它。' : query.trim() ? '没有找到匹配的卡片，试试其他关键词。' : filter === 'sleeping' ? '目前没有暂停的卡片。暂停后仍保留在原卡盒，可随时恢复。' : '目前没有待复习的卡片。'}</Text>
-          {!matches.length ? <View style={{alignItems: 'center', gap: 16, padding: 24}}><StudioIcon name={filter === 'favorites' ? 'star' : 'book'} color={palette.textMuted} size={40}/><Pressable accessibilityRole="button" onPress={query.trim() ? () => setQuery('') : onReturnToLearning} style={{minHeight: 44, justifyContent: 'center', paddingHorizontal: 20, borderRadius: 14, backgroundColor: palette.accent}} testID="space-empty-go-learning"><Text style={{color: palette.panelStrong}}>{query.trim() ? '清除搜索' : '去学习'}</Text></Pressable></View> : null}
+          {matches.length ? <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length} 张卡片</Text> : null}
+          {!matches.length ? <View style={{alignItems: 'center', gap: 16, paddingVertical: 32, paddingHorizontal: 20}}>
+            <StudioIcon name={filter === 'favorites' ? 'star' : filter === 'sleeping' ? 'moon' : 'book'} color={palette.textMuted} size={40}/>
+            <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted, textAlign: 'center', maxWidth: 340, lineHeight: 24}}>{filterEmptyMessage}</Text>
+            <Pressable accessibilityRole="button" onPress={query.trim() ? () => setQuery('') : onReturnToLearning} style={{minHeight: 44, justifyContent: 'center', paddingHorizontal: 20, borderRadius: 14, backgroundColor: palette.accent}} testID="space-empty-go-learning"><Text style={{color: palette.panelStrong}}>{query.trim() ? '清除搜索' : '去学习'}</Text></Pressable>
+          </View> : null}
           {matches.slice(0, filterLimit).map((item, index) => {
             const locationLabel = formatSpacePathByNames(
               item.space_metadata.library,
@@ -1082,7 +1088,7 @@ export function SpaceSurface({
               <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.quietActionText}>回卡盒</StudioActionLabel>
             </Pressable>
           ) : null}
-          <Pressable
+          {!showsEmptyFilter ? <Pressable
             accessibilityRole="button"
             accessibilityLabel="返回学习"
             onPress={onReturnToLearning}
@@ -1093,7 +1099,7 @@ export function SpaceSurface({
             testID="space-return-learning"
           >
             <StudioActionLabel icon="book" color={primaryActionText} textStyle={styles.returnActionText}>返回学习</StudioActionLabel>
-          </Pressable>
+          </Pressable> : null}
         </View>
         {screen === 'overview' && filter === 'all' && selectedGroup.boxes.length > 1 ? (
           <View style={styles.neighborSection}>

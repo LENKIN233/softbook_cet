@@ -37,6 +37,7 @@ export function SpaceSurface({busy, cards, canMutate, currentCardId, pendingRevi
   useEffect(() => () => onStopAudio?.(), [selected?.card_id, onStopAudio]);
   const currentBoxIsSelected = selectedBox?.boxRef === currentBox?.boxRef;
   const matches = filterSpaceCards(cards, filter, favorites, pendingReviewIds, sleeping, query);
+  const filterEmptyMessage = query.trim() ? '没有找到匹配的卡片，试试其他关键词。' : filter === 'favorites' ? '还没有收藏的卡片。学习时点击 ☆，就能在这里找到它。' : filter === 'sleeping' ? '目前没有暂停的卡片。暂停后仍保留在原卡盒，可随时恢复。' : '目前没有待复习的卡片。';
   const libraries = [...new Set(boxes.map(box => box.library))];
   const groups = [...new Set(boxes.filter(box => box.library === selectedBox?.library).map(box => box.group))];
   const neighbors = boxes.filter(box => box.library === selectedBox?.library && box.group === selectedBox?.group && box !== selectedBox);
@@ -79,8 +80,8 @@ export function SpaceSurface({busy, cards, canMutate, currentCardId, pendingRevi
       <div className="space-filters" role="group" aria-label="卡片筛选">{([['all', '全部卡片'], ['favorites', '只看收藏'], ['review', '只看待复习'], ['sleeping', '已暂停']] as const).map(([value, label]) => <button key={value} className="text-button" aria-pressed={filter === value} onClick={() => {setFilter(value); setFilterLimit(40);}}><IconLabel name={value === 'all' ? 'grid' : value === 'favorites' ? 'star' : value === 'sleeping' ? 'moon' : 'refresh'}>{label}</IconLabel>{filter === value ? <StudioIcon name="check" /> : null}</button>)}</div>
       <label className="space-search"><StudioIcon name="search"/>查找卡片<input aria-label="查找卡片" value={query} placeholder="题目关键词或卡盒名称" onChange={event => {setQuery(event.target.value); setFilterLimit(40);}}/></label>
       {filter !== 'all' || query.trim() ? <section className="filtered-cards" aria-label="筛选结果"><div className="space-filter-summary"><strong>{query.trim() ? '查找结果' : filter === 'favorites' ? '只看收藏' : filter === 'sleeping' ? '已暂停' : '只看待复习'}</strong><button className="text-button" onClick={() => {setFilter('all'); setQuery('');}}><IconLabel name="close">清除筛选</IconLabel></button></div>
-        <p className="muted" role="status">{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。学习时点击 ☆，就能在这里找到它。' : query.trim() ? '没有找到匹配的卡片，试试其他关键词。' : filter === 'sleeping' ? '目前没有暂停的卡片。暂停后仍保留在原卡盒，可随时恢复。' : '目前没有待复习的卡片。'}</p>
-        {!matches.length ? <div className="space-empty-actions"><StudioIcon name={filter === 'favorites' ? 'star' : 'book'} size={40}/><button className="primary" onClick={query.trim() ? () => setQuery('') : onReturn}>{query.trim() ? '清除搜索' : '去学习'}</button></div> : null}
+        {matches.length ? <p className="muted" role="status">{matches.length} 张卡片</p> : null}
+        {!matches.length ? <div className="space-empty-actions"><StudioIcon name={filter === 'favorites' ? 'star' : filter === 'sleeping' ? 'moon' : 'book'} size={40}/><p className="muted" role="status">{filterEmptyMessage}</p><button className="primary" onClick={query.trim() ? () => setQuery('') : onReturn}>{query.trim() ? '清除搜索' : '去学习'}</button></div> : null}
         {matches.slice(0, filterLimit).map(card => <button className="filtered-card" key={card.card_id} onClick={() => selectCard(card)}><span className="muted">{[card.space_metadata.library, card.space_metadata.group, card.space_metadata.box].map(name => formatSpaceDisplayName(name, '')).join(' / ')}</span><strong>{spaceCardPreview(card).title}</strong>{card.card_id === currentCardId ? <small>正在学习</small> : null}</button>)}
         {matches.length > filterLimit ? <button className="text-button" onClick={() => setFilterLimit(value => value + 40)}><IconLabel name="chevronDown">显示更多</IconLabel></button> : null}
       </section> : <section className="shelf-map" aria-label="知识空间层级">
