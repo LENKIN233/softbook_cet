@@ -105,6 +105,9 @@ it('switches authenticated tracks without losing the old track when the next loa
     return fetchFour(input, init);
   });
   const {root} = await login();
+  await press(root, 'learning-help-button');
+  await press(root, 'learning-flip-button');
+  expect(root.findByType(LearningSurface).props.currentCardState).toMatchObject({isFlipped: true, isPeeked: true});
   await press(root, 'route-tab-mine'); await settle();
   await press(root, 'mine-track-cet6'); await settle();
   expect(root.findByProps({testID: 'mine-track-cet4'}).props.accessibilityState.selected).toBe(true);
@@ -123,6 +126,7 @@ it('switches authenticated tracks without losing the old track when the next loa
   expect(root.findByProps({testID: 'mine-track-cet4'}).props.accessibilityState.selected).toBe(true);
   await press(root, 'route-tab-learning'); await settle();
   expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(runtime.base.cards[0].card_id);
+  expect(root.findByType(LearningSurface).props.currentCardState).toMatchObject({isFlipped: true, isPeeked: true});
 });
 
 it('keeps the current track when the new preference cannot be saved and permits retry', async () => {
