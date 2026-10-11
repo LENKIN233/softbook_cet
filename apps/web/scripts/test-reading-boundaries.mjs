@@ -87,8 +87,8 @@ try {
       await page.goto(`${server.resolvedUrls.local[0]}?track=${track}&id=${id}`);
       await enterScene(page);
       const card = await page.evaluate(() => window.qaCard);
-      await page.getByRole('button',{name:card.answer_key.lock_pattern[0],exact:true}).click();
-      const visible = await page.locator('.lock-row.available').evaluate(node => {
+      await page.getByRole('group',{name:card.lock_slots[0].label+'选项',exact:true}).getByRole('button',{name:card.answer_key.lock_pattern[0],exact:true}).click();
+      const visible = await page.getByRole('group',{name:card.lock_slots[1].label+'锁位',exact:true}).evaluate(node => {
         const slot = node.getBoundingClientRect(), body = node.closest('.paper-body').getBoundingClientRect();
         return slot.top >= body.top - 1 && slot.bottom <= body.bottom + 1;
       });
@@ -116,7 +116,7 @@ try {
           await page.getByRole('group',{name:'四选一选项'}).getByRole('button').last().click();
           await page.getByRole('button',{name:'提交答案',exact:true}).click();
         } else if (kind === 'lock') {
-          for (const [index,slot] of card.lock_slots.entries()) await page.getByRole('group',{name:slot.label+'选项',exact:true}).getByRole('button',{name:card.answer_key.lock_pattern[index],exact:true}).click();
+          for (const [index,slot] of [...card.lock_slots.entries()].reverse()) await page.getByRole('group',{name:slot.label+'选项',exact:true}).getByRole('button',{name:card.answer_key.lock_pattern[index],exact:true}).click();
         } else if (kind === 'elimination') {
           for (const id of card.answer_key.correct_items) await page.getByRole('group',{name:/选择要删除/}).getByRole('button',{name:card.elimination_items.find(item=>item.id===id).text,exact:false}).click();
           await page.getByRole('button',{name:'提交答案',exact:true}).click();
