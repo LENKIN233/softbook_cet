@@ -68,7 +68,14 @@
     "progress_sync_granularity": "daily_level",
     "exact_cross_device_resume_is_not_required": true,
     "cross_device_should_inherit_some_progress": true,
-    "membership_state_must_be_unified": true
+    "membership_state_must_be_unified": true,
+    "same_client_course_switch_draft": {
+      "lifetime": "current authenticated client lifetime only",
+      "retained": "unsubmitted presentation and answer selections per course",
+      "restore_authority": "same account session, course, source, content version, exact server selection, phase, card and interaction",
+      "stale_authority": "discard the old draft when the returned selection no longer agrees",
+      "side_effect_boundary": "restoring a draft does not submit a result, change the scheduler or replay audio"
+    }
   },
   "authentication_policy": {
     "login_is_required_before_learning": true,

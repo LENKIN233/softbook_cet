@@ -1,3 +1,4 @@
+import {rememberCourseLearningDraft, takeCourseLearningDraft, type CourseLearningDrafts} from './src/learning/courseDraft';
 import {usesLargeTextLayout} from './src/learning/readability';
 import {ScaledText as Text} from './src/visual/ScaledText';
 import {StudioRouteIcon as RouteIcon} from './src/visual/StudioRouteIcon';
@@ -776,6 +777,7 @@ function AppShell({
   const [learningScreen, setLearningScreen] =
     useState<LearningSurfaceScreen>('practice');
   const spaceBrowse = useRef(new Map<string, import('./src/space/SpaceSurface').SpaceBrowseState>());
+  const courseDrafts = useRef<CourseLearningDrafts>(new Map());
   const [spaceScreen, setSpaceScreen] =
     useState<SpaceSurfaceScreen>('overview');
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
@@ -998,6 +1000,7 @@ function AppShell({
   } | null>(null);
   const resetRuntimeAfterLogout = useCallback(
     (error: string | null = null) => {
+      courseDrafts.current.clear();
       setCoursePickerVisible(false);
       setLearningView('home');
       setLearningStartIntent('learning');
@@ -4496,7 +4499,9 @@ function AppShell({
           const restoreDraft = session.schedulingMode === 'server' && session.serverSelection?.phase === 'learning' &&
             draft?.scope === learningLoadSessionScopeKey && draft.track === session.track &&
             draft.contentVersion === session.contentVersion && draft.cardId === nextCard?.card_id;
-          setLearningCardState(restoreDraft ? {...draft.state, isFavorited: readSpaceCardState(draft.cardId).isFavorited}
+          const courseDraft = takeCourseLearningDraft(courseDrafts.current, learningLoadSessionScopeKey, session);
+          const restoredState = restoreDraft ? draft.state : courseDraft;
+          setLearningCardState(restoredState ? {...restoredState, isFavorited: nextCard ? readSpaceCardState(nextCard.card_id).isFavorited : false}
             : nextCard ? createTrackedLearningAttemptState(nextCard) : null);
           if (restoreDraft) preReviewDraftRef.current = null;
         }
@@ -6514,6 +6519,7 @@ function AppShell({
       await guidance.selectTrack(nextTrack);
       if (getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) !== scopeKey || accountDeletionOriginRef.current !== null || pendingAccountLogoutCleanupRef.current !== null) return;
       // Commit the new track only after both canonical reads have succeeded.
+      if (!learningCurrentResult && !outgoingResult) rememberCourseLearningDraft(courseDrafts.current, scopeKey, learningSession, learningCardState);
       learningTrackRef.current = nextTrack;
       setLearningTrack(nextTrack);
       setLearningView('home');

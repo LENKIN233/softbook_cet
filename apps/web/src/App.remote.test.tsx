@@ -725,6 +725,36 @@ describe('PC Web remote UI authority', () => {
     expect(screen.queryByRole('button', {name: '已收藏'})).toBeNull();
   });
 
+
+  it('restores an unsubmitted flip and hint after a round trip between courses without completing a card', async () => {
+    const four = createSnapshot('premium'), six = structuredClone(four);
+    six.bootstrap.track = 'cet6';
+    six.learningSession.track = 'cet6';
+    let active = four;
+    const controller = createController(four, {
+      switchTrack: vi.fn(async (track, remember) => {active = track === 'cet4' ? four : six; remember?.(active); return active;}),
+      loadAuthenticatedState: async () => active,
+    });
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '看判断方法'}));
+    expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: '返回'}));
+    await screen.findByRole('button', {name: '继续学习'});
+    fireEvent.click(screen.getByRole('button', {name: '选择备考科目'}));
+    fireEvent.click(within(screen.getByRole('dialog', {name: '切换备考科目'})).getByRole('button', {name: '英语六级'}));
+    await screen.findByRole('heading', {name: '英语六级'});
+    expect(screen.queryByText('返回学习可接着这张卡。')).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '选择备考科目'}));
+    fireEvent.click(within(screen.getByRole('dialog', {name: '切换备考科目'})).getByRole('button', {name: '英语四级'}));
+    await screen.findByRole('heading', {name: '英语四级'});
+    fireEvent.click(screen.getByRole('button', {name: /^(开始学习|继续学习)$/}));
+    await screen.findByRole('article');
+    expect(screen.getByText('Card 1 answer')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '收起判断方法'})).toBeInTheDocument();
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+  });
+
   it('preserves an unsubmitted card draft across an auxiliary snapshot', async () => {
     const initial = createSnapshot('premium');
     const afterFavorite = createSnapshot('premium');

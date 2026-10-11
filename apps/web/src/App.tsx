@@ -1,3 +1,4 @@
+import {rememberCourseLearningDraft, takeCourseLearningDraft, type CourseLearningDrafts} from '../../mobile/src/learning/courseDraft';
 import {LearningSceneNavigation} from './LearningSceneNavigation';
 import {StudioIcon, IconLabel, DisclosureLabel} from './StudioIcon';
 import {CourseSwitch} from './CourseSwitch';
@@ -199,6 +200,7 @@ function AccountApp({
   const [localResumeCardId, setLocalResumeCardId] = useState<string | null>(null);
   const [localCheckedInDay, setLocalCheckedInDay] = useState<string | null>(null);
   const spaceBrowse = useRef(new Map<string, import('./SpaceSurface').SpaceBrowseState>());
+  const courseDrafts = useRef<CourseLearningDrafts>(new Map());
   const [spaceSync, setSpaceSync] = useState<
     WebRemoteSnapshot['spaceSync'] | null
   >(null);
@@ -584,10 +586,11 @@ function AccountApp({
     setLearningSegment(previous => snapshot.bootstrap.content.releaseClass === 'controlled_pilot'
       ? null : initializeLearningSegment(previous, segmentScope(nextSession.track), nextSession.track));
     const nextCard = nextSession.cards[0] ?? null;
+    const courseDraft = takeCourseLearningDraft(courseDrafts.current, phone, nextSession);
     const draft = reviewResumeDraft.current;
     const restoredDraft = draft && draft.epoch === accountAuthorityGeneration.current && draft.phone === phone &&
       draft.track === nextSession.track && draft.sourceId === nextSession.sourceId && draft.version === nextSession.contentVersion &&
-      draft.cardId === nextCard?.card_id && nextSession.serverSelection?.phase === 'learning' ? draft.state : null;
+      draft.cardId === nextCard?.card_id && nextSession.serverSelection?.phase === 'learning' ? draft.state : courseDraft;
     const previousSelectionId = session?.serverSelection?.selectionId ?? null;
     const nextSelectionId = nextSession.serverSelection?.selectionId ?? null;
     const preservesCurrentCardDraft =
@@ -795,6 +798,7 @@ function AccountApp({
 
   async function switchRemoteTrack(nextTrack: LearningTrack) {
     if (remoteController === null || remoteBusy || accountDeletionLocksAccount || resolutionInFlight.current) return;
+    if (!resolved && !queuedLearningResult) rememberCourseLearningDraft(courseDrafts.current, phone, session, cardState);
     const generation = ++accountAuthorityGeneration.current;
     setRemoteBusy(true);
     setLearningSceneActive(false);
@@ -808,7 +812,7 @@ function AccountApp({
         if (accountAuthorityGeneration.current !== generation) throw new Error('当前账号已变化，请重新选择科目。');
         onRememberGuidance({...firstRunRecord, selectedTrack: nextTrack});
       });
-      if (accountAuthorityGeneration.current === generation) applyHomeSnapshot(snapshot);
+      if (accountAuthorityGeneration.current === generation) {setPauseNotice(null); applyHomeSnapshot(snapshot);}
     } catch (error) {
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '切换失败，已保留当前考试和学习记录，请重试。');
     } finally {
@@ -870,6 +874,7 @@ function AccountApp({
   }
 
   function resetAccountState() {
+    courseDrafts.current.clear();
     spaceBrowse.current.clear();
     setLearningSceneActive(false);
     setLearningScenePreparing(false);
