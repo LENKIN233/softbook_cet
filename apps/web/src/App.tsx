@@ -227,6 +227,7 @@ function AccountApp({
     return () => {channel.close(); learningChannel.current = null;};
   }, [runtime.mode]);
   const activeScene = route === 'learning' && learningSceneActive;
+  const stopSpaceAudio = useCallback(() => {audioRequestGeneration.current += 1; remoteController?.stopCardAudio?.(); setAudioStatus('idle');}, [remoteController]);
   const refreshExternalLearning = useEffectEvent(() => {void reloadRemoteState(false, true);});
   useEffect(() => {
     if (!activeScene || externalLearningRevision <= consumedLearningRevision.current || remoteBusy || resolved || resolutionInFlight.current) return;
@@ -1788,7 +1789,7 @@ function AccountApp({
           audioStatus={audioStatus}
           readAudioPosition={remoteController?.readAudioPosition}
           onSeekAudio={remoteController?.seekCardAudio}
-          onStopAudio={remoteController?.stopCardAudio}
+          onStopAudio={stopSpaceAudio}
           onPlayCardAudio={remoteController?.playSpaceCardAudio ? id => {void playSpaceAudio(id);} : undefined}
           cards={spaceCards}
           canMutate={membershipAccess?.completePhysicalSpace === true}

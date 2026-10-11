@@ -29,12 +29,12 @@ export function SpaceSurface({busy, cards, canMutate, currentCardId, pendingRevi
   const [query, setQuery] = useState(browseState?.query ?? '');
   const [answerCardId, setAnswerCardId] = useState<string | null>(null);
   useEffect(() => {onBrowseStateChange?.({selection, filter, query});}, [selection, filter, query, onBrowseStateChange]);
-  useEffect(() => () => onStopAudio?.(), [selection?.cardId, onStopAudio]);
   const boxTray = useRef<HTMLElement>(null);
   const boxes = useMemo(() => buildSpaceBoxes(cards), [cards]);
   const currentBox = boxes.find(box => box.cards.some(card => card.card_id === currentCardId));
   const selectedBox = boxes.find(box => box.boxRef === selection?.boxRef) ?? currentBox ?? boxes[0];
   const selected = selectedBox?.cards.find(card => card.card_id === (selection?.cardId ?? currentCardId)) ?? selectedBox?.cards[0];
+  useEffect(() => {setAnswerCardId(null); return () => onStopAudio?.();}, [selected?.card_id, onStopAudio]);
   const currentBoxIsSelected = selectedBox?.boxRef === currentBox?.boxRef;
   const matches = filterSpaceCards(cards, filter, favorites, pendingReviewIds, sleeping, query);
   const libraries = [...new Set(boxes.map(box => box.library))];

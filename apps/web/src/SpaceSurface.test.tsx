@@ -109,3 +109,16 @@ it('searches front material without leaking hidden answers and restores the insp
   expect(screen.getByRole('region', {name: '已学卡答案与解析'})).toBeVisible();
   expect(callbacks.onReturn).not.toHaveBeenCalled();
 });
+
+
+it('stops read-only audio when following a changed current card and on unmount', () => {
+  const onStopAudio = vi.fn();
+  const callbacks = props();
+  const view = render(<SpaceSurface {...callbacks} learnedIds={[current.card_id]} onStopAudio={onStopAudio}/>);
+  fireEvent.click(screen.getByRole('button', {name: '回看答案与解析'}));
+  view.rerender(<SpaceSurface {...callbacks} learnedIds={[current.card_id]} currentCardId={otherLibrary.card_id} onStopAudio={onStopAudio}/>);
+  expect(onStopAudio).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('button', {name: '收起答案与解析'})).toBeNull();
+  view.unmount();
+  expect(onStopAudio).toHaveBeenCalledTimes(2);
+});
