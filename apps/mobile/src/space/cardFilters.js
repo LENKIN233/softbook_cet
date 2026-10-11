@@ -17,8 +17,12 @@ export function reviewCardIds(results, sleeping = []) {
     .map(result => result.cardId);
 }
 
-export function filterSpaceCards(cards, filter, favorites, pendingReview) {
-  if (filter === 'all') return cards;
-  const selected = new Set(filter === 'favorites' ? favorites : pendingReview);
-  return cards.filter(card => selected.has(card.card_id));
+export function filterSpaceCards(cards, filter, favorites, pendingReview, sleeping = [], query = '') {
+  const selected = new Set(filter === 'favorites' ? favorites : filter === 'sleeping' ? sleeping : pendingReview);
+  const needle = query.trim().toLocaleLowerCase();
+  return cards.filter(card => (filter === 'all' || selected.has(card.card_id)) && (!needle || [
+    card.front?.prompt, card.front?.support, card.front?.context,
+    ...(card.options ?? []).map(option => option.text),
+    card.space_metadata?.library, card.space_metadata?.group, card.space_metadata?.box,
+  ].filter(Boolean).join(' ').toLocaleLowerCase().includes(needle)));
 }

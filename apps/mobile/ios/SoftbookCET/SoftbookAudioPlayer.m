@@ -1,3 +1,4 @@
+#include <math.h>
 #import <AVFoundation/AVFoundation.h>
 #import <React/RCTEventEmitter.h>
 #import <React/RCTLog.h>
@@ -176,6 +177,23 @@ RCT_EXPORT_METHOD(pause:(NSString *)playbackToken
     return;
   }
   [self.player pause];
+  resolve(nil);
+}
+
+RCT_EXPORT_METHOD(getPosition:(NSString *)token resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+  if (self.player == nil || ![self.playbackToken isEqualToString:token]) {
+    reject(@"audio_not_ready", @"Audio is not ready.", nil); return;
+  }
+  resolve(@(self.player.currentTime * 1000));
+}
+
+RCT_EXPORT_METHOD(seek:(NSString *)token milliseconds:(double)milliseconds resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+{
+  if (self.player == nil || ![self.playbackToken isEqualToString:token] || !isfinite(milliseconds)) {
+    reject(@"audio_not_ready", @"Audio is not ready.", nil); return;
+  }
+  self.player.currentTime = MAX(0, MIN(milliseconds / 1000, self.player.duration));
   resolve(nil);
 }
 

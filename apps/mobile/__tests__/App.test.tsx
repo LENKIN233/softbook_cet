@@ -5848,7 +5848,7 @@ test('does not expose internal metadata copy on primary surfaces', async () => {
   expectNoSyntheticProductCopy(tree!);
 });
 
-test('keeps learning bounded and long secondary surfaces scroll-reachable', async () => {
+test('keeps login reachable with the keyboard and learning bounded on long secondary surfaces', async () => {
   let tree: ReactTestRenderer.ReactTestRenderer;
 
   await ReactTestRenderer.act(() => {
@@ -5856,7 +5856,8 @@ test('keeps learning bounded and long secondary surfaces scroll-reachable', asyn
   });
 
   const root = tree!.root;
-  expect(root.findAllByType(ScrollView)).toHaveLength(0);
+  expect(root.findAllByType(ScrollView)).toHaveLength(1);
+  expect(root.findByType(ScrollView).props.keyboardShouldPersistTaps).toBe('handled');
 
   await loginIntoLearningFlow(root);
   expect(root.findAllByType(ScrollView).filter(node => !node.props.horizontal && node.props.scrollEnabled !== false)).toHaveLength(1);

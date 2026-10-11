@@ -1,6 +1,11 @@
+import {LearningAudioPlayer} from '../audio/LearningAudioPlayer';
+import {bundledAudioSelection} from '../audio/bundledAudio';
+import {resolveCardAudioDownload, type VerifiedContentManifest} from '../audio/contentManifestRepository';
+import type {RefreshLearningAudioDownload} from '../audio/learningAudioController';
+import {createLearningCardState} from '../learning/sessionCore';
 import {ScaledText as Text} from '../visual/ScaledText';
 import {filterSpaceCards, type SpaceCardFilter} from './cardFilters';
-import { spaceCardPreview } from '../learning/presentation';
+import {spaceCardPreview, answerComparison, displayCardText} from '../learning/presentation';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {StudioPressable as Pressable, MotionView} from '../learning/NativeMotion';
 import {STUDIO} from '../visual/studio';
@@ -10,6 +15,7 @@ import {
   ScrollView,
   StyleProp,
   StyleSheet,
+  TextInput,
   useWindowDimensions,
   View,
   ViewStyle,
@@ -84,6 +90,7 @@ type SpaceSeed = {
   libraryCount: number;
 };
 
+export type SpaceBrowseState = {filter: SpaceCardFilter; query: string; library: string; group: string; box: string; index: number; mode: SpaceSelectionMode};
 const noop = () => undefined;
 
 export function isShortSpaceViewport(width: number, height: number) {
@@ -114,6 +121,13 @@ export type SpaceStatusRail = {
 };
 
 export function SpaceSurface({
+  learnedIds = [],
+  browseState,
+  onBrowseStateChange,
+  contentManifest,
+  audioAuthorityToken,
+  refreshAudioDownload,
+  allowBundledAudio = false,
   cardStateById,
   currentLearningCard,
   pendingReviewIds = [],
@@ -131,6 +145,13 @@ export function SpaceSurface({
   spaceSyncRail,
   usesAccessibilityLayout = false,
 }: {
+  learnedIds?: string[];
+  browseState?: SpaceBrowseState;
+  onBrowseStateChange?: (state: SpaceBrowseState) => void;
+  contentManifest?: VerifiedContentManifest | null;
+  audioAuthorityToken?: string | null;
+  refreshAudioDownload?: RefreshLearningAudioDownload;
+  allowBundledAudio?: boolean;
   cardStateById: Record<string, { isFavorited: boolean; isSleeping: boolean }>;
   currentLearningCard: LearningCard | null;
   pendingReviewIds?: string[];
@@ -151,10 +172,14 @@ export function SpaceSurface({
   const { height: viewportHeight, width: viewportWidth } =
     useWindowDimensions();
   const usesShortViewport = isShortSpaceViewport(viewportWidth, viewportHeight);
-  const [filter, setFilter] = useState<SpaceCardFilter>('all');
+  const [filter, setFilter] = useState<SpaceCardFilter>(browseState?.filter ?? 'all');
   const [isBrowsing, setIsBrowsing] = useState(false);
+  const [query, setQuery] = useState(browseState?.query ?? '');
+  const [showAnswer, setShowAnswer] = useState(false);
   const [filterLimit, setFilterLimit] = useState(40);
-  const matches = filterSpaceCards(spaceCards, filter, Object.keys(cardStateById).filter(id => cardStateById[id].isFavorited), pendingReviewIds);
+  const matches = filterSpaceCards(spaceCards, filter, Object.keys(cardStateById).filter(id => cardStateById[id].isFavorited), pendingReviewIds, Object.keys(cardStateById).filter(id => cardStateById[id].isSleeping), query);
+  const filterEmptyMessage = query.trim() ? '没有找到匹配的卡片，试试其他关键词。' : filter === 'favorites' ? '还没有收藏的卡片。学习时点击 ☆，就能在这里找到它。' : filter === 'sleeping' ? '目前没有暂停的卡片。暂停后仍保留在原卡盒，可随时恢复。' : '目前没有待复习的卡片。';
+  const showsEmptyFilter = (filter !== 'all' || Boolean(query.trim())) && matches.length === 0;
   const seed = useMemo(() => buildSpaceSeed(spaceCards), [spaceCards]);
   const focusedSelection = useMemo(() => {
     if (!currentLearningCard) {
@@ -189,9 +214,9 @@ export function SpaceSurface({
     };
   }, [currentLearningCard, seed]);
   const [selectionMode, setSelectionMode] =
-    useState<SpaceSelectionMode>('follow_current');
+    useState<SpaceSelectionMode>(browseState?.mode ?? 'follow_current');
   const [selectedLibraryName, setSelectedLibraryName] = useState(
-    focusedSelection?.libraryName ?? seed.libraries[0]?.libraryName ?? '',
+    browseState?.library ?? focusedSelection?.libraryName ?? seed.libraries[0]?.libraryName ?? '',
   );
   const selectedLibrary =
     seed.libraries.find(
@@ -199,7 +224,7 @@ export function SpaceSurface({
     ) ?? seed.libraries[0];
 
   const [selectedGroupName, setSelectedGroupName] = useState(
-    focusedSelection?.groupName ?? selectedLibrary?.groups[0]?.groupName ?? '',
+    browseState?.group ?? focusedSelection?.groupName ?? selectedLibrary?.groups[0]?.groupName ?? '',
   );
   const selectedGroup =
     selectedLibrary?.groups.find(
@@ -207,11 +232,13 @@ export function SpaceSurface({
     ) ?? selectedLibrary?.groups[0];
 
   const [selectedBoxRef, setSelectedBoxRef] = useState(
-    focusedSelection?.boxRef ?? selectedGroup?.boxes[0]?.boxRef ?? '',
+    browseState?.box ?? focusedSelection?.boxRef ?? selectedGroup?.boxes[0]?.boxRef ?? '',
   );
   const [selectedCardIndex, setSelectedCardIndex] = useState(
-    focusedSelection?.cardIndex ?? 0,
+    browseState?.index ?? focusedSelection?.cardIndex ?? 0,
   );
+  useEffect(() => {onBrowseStateChange?.({filter, query, library: selectedLibraryName, group: selectedGroupName, box: selectedBoxRef, index: selectedCardIndex, mode: selectionMode});}, [filter, query, selectedLibraryName, selectedGroupName, selectedBoxRef, selectedCardIndex, selectionMode, onBrowseStateChange]);
+  useEffect(() => {setShowAnswer(false);}, [selectedBoxRef, selectedCardIndex]);
   const focusedSelectionKey = focusedSelection
     ? [
         focusedSelection.cardId,
@@ -352,6 +379,7 @@ export function SpaceSurface({
     }
 
     setFilter('all');
+    setQuery('');
     setSelectionMode('follow_current');
     setSelectedLibraryName(focusedSelection.libraryName);
     setSelectedGroupName(focusedSelection.groupName);
@@ -654,6 +682,18 @@ export function SpaceSurface({
     card => card.card_id === selectedCard?.cardId,
   );
   const selectedTrackLabel = (selectedSource?.track ?? currentLearningCard?.track) === 'cet6' ? '六级' : '四级';
+  const inspectedCardLearned = learnedIds.includes(selectedCard?.cardId ?? '');
+  const inspectedAnswer = selectedSource && inspectedCardLearned ? displayCardText(selectedSource, answerComparison(selectedSource, createLearningCardState(selectedSource)).correct) : '';
+  const inspectedAnalysis = selectedSource ? displayCardText(selectedSource, selectedSource.analysis.summary) : '';
+  const inspectedTip = selectedSource ? displayCardText(selectedSource, selectedSource.analysis.exam_tip) : '';
+  const readAudioSelection = (() => {
+    if (!selectedSource?.audio || !inspectedCardLearned || !audioAuthorityToken) return null;
+    try {
+      if (allowBundledAudio && !contentManifest) return bundledAudioSelection(selectedSource, audioAuthorityToken);
+      const resource = contentManifest ? resolveCardAudioDownload(contentManifest, selectedSource) : null;
+      return resource ? {...resource, authorityToken: audioAuthorityToken, cardToken: `${selectedSource.card_id}:${selectedSource.audio.sha256}`} : null;
+    } catch {return null;}
+  })();
   const selectedPreview = selectedSource
     ? spaceCardPreview(selectedSource)
     : { title: selectedCard?.prompt ?? '暂无卡片', detail: [] };
@@ -677,6 +717,7 @@ export function SpaceSurface({
     setSelectedBoxRef(box.boxRef);
     setSelectedCardIndex(Math.max(0, box.cards.findIndex(item => item.cardId === card.card_id)));
     setFilter('all');
+    setQuery('');
     onOpenCardList?.();
   };
   const inspectCard = (cardId: string) => {
@@ -703,12 +744,18 @@ export function SpaceSurface({
             >{`${selectedTrackLabel} · ${visibleShelfName} / ${visibleSectionName}`}</Text>
           </View>
         {stateRailStack}
-        {filter !== 'all' ? <View style={styles.filterResults} testID="space-filter-results">
+        <TextInput testID="space-search" accessibilityLabel="查找卡片" placeholder="题目关键词或卡盒名称" placeholderTextColor={palette.textMuted} value={query} onChangeText={value => {setQuery(value); setFilterLimit(40);}} style={{color: palette.text, backgroundColor: palette.panel, borderRadius: 14, padding: 12, minHeight: 44}}/>
+        {filter !== 'all' || query.trim() ? <View style={styles.filterResults} testID="space-filter-results">
           <View style={styles.filterSummary}>
-            <Text style={[styles.spaceMeta, {color: palette.text}]}>{filter === 'favorites' ? '只看收藏' : '只看待复习'} · 当前科目全部卡盒</Text>
-            <ActionChip icon="close" label="清除筛选" onPress={() => setFilter('all')} palette={palette} testID="space-clear-filter" />
+            <Text style={[styles.spaceMeta, {color: palette.text}]}>{query.trim() ? '查找结果' : filter === 'favorites' ? '只看收藏' : filter === 'sleeping' ? '已暂停' : '只看待复习'} · 当前科目全部卡盒</Text>
+            <ActionChip icon="close" label="清除筛选" onPress={() => {setFilter('all'); setQuery('');}} palette={palette} testID="space-clear-filter" />
           </View>
-          <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length ? `${matches.length} 张卡片` : filter === 'favorites' ? '还没有收藏的卡片。' : '目前没有待复习的卡片。'}</Text>
+          {matches.length ? <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted}}>{matches.length} 张卡片</Text> : null}
+          {!matches.length ? <View style={{alignItems: 'center', gap: 16, paddingVertical: 32, paddingHorizontal: 20}}>
+            <StudioIcon name={filter === 'favorites' ? 'star' : filter === 'sleeping' ? 'moon' : 'book'} color={palette.textMuted} size={40}/>
+            <Text accessibilityLiveRegion="polite" style={{color: palette.textMuted, textAlign: 'center', maxWidth: 340, lineHeight: 24}}>{filterEmptyMessage}</Text>
+            <Pressable accessibilityRole="button" onPress={query.trim() ? () => setQuery('') : onReturnToLearning} style={{minHeight: 44, justifyContent: 'center', paddingHorizontal: 20, borderRadius: 14, backgroundColor: palette.accent}} testID="space-empty-go-learning"><Text style={{color: palette.panelStrong}}>{query.trim() ? '清除搜索' : '去学习'}</Text></Pressable>
+          </View> : null}
           {matches.slice(0, filterLimit).map((item, index) => {
             const locationLabel = formatSpacePathByNames(
               item.space_metadata.library,
@@ -893,6 +940,7 @@ export function SpaceSurface({
                   {[
                     selectedCard?.interactionLabel,
                     inspectedCardIsCurrent ? '当前' : '',
+                    inspectedCardLearned ? '已学过' : '未学习',
                     isFavorited ? '已收藏' : '',
                     isSleeping ? '休眠' : '',
                   ]
@@ -920,6 +968,7 @@ export function SpaceSurface({
                     </Text>
                   ))}
                 </View>
+                {inspectedCardLearned ? <View><Pressable accessibilityRole="button" accessibilityState={{expanded: showAnswer}} onPress={() => setShowAnswer(value => !value)} style={styles.quietAction} testID="space-read-answer"><Text style={{color: palette.text}}>{showAnswer ? '收起答案与解析' : '回看答案与解析'}</Text></Pressable>{showAnswer ? <View style={{gap: 12, paddingVertical: 12}}>{readAudioSelection ? <LearningAudioPlayer palette={{...palette, background: palette.background ?? palette.panel, tabIdle: palette.panel}} selection={readAudioSelection} refreshDownload={refreshAudioDownload}/> : null}<Text style={[styles.cardPreviewDetail, {color: palette.text}]}>{inspectedAnswer}</Text><Text style={[styles.cardPreviewDetail, {color: palette.text}]}>{inspectedAnalysis}</Text><Text style={[styles.cardPreviewDetail, {color: palette.textMuted}]}>{inspectedTip}</Text></View> : null}</View> : null}
                 <View
                   style={[
                     styles.stateActionRow,
@@ -1039,7 +1088,7 @@ export function SpaceSurface({
               <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.quietActionText}>回卡盒</StudioActionLabel>
             </Pressable>
           ) : null}
-          <Pressable
+          {!showsEmptyFilter ? <Pressable
             accessibilityRole="button"
             accessibilityLabel="返回学习"
             onPress={onReturnToLearning}
@@ -1050,7 +1099,7 @@ export function SpaceSurface({
             testID="space-return-learning"
           >
             <StudioActionLabel icon="book" color={primaryActionText} textStyle={styles.returnActionText}>返回学习</StudioActionLabel>
-          </Pressable>
+          </Pressable> : null}
         </View>
         {screen === 'overview' && filter === 'all' && selectedGroup.boxes.length > 1 ? (
           <View style={styles.neighborSection}>
@@ -1079,11 +1128,11 @@ export function SpaceSurface({
             {isBrowsing ? <>
               <Text style={[styles.spaceMeta, {color: palette.textMuted}]}>筛选当前科目全部卡盒，卡片保留原来的位置。</Text>
         <View style={styles.filterBar} accessibilityRole="toolbar" testID="space-filter-bar">
-          {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习']] as const).map(([value, label, name]) => <Pressable key={value}
+          {([['all', '全部卡片', '全部卡片'], ['favorites', '收藏', '只看收藏'], ['review', '待复习', '只看待复习'], ['sleeping', '已暂停', '只看已暂停']] as const).map(([value, label, name]) => <Pressable key={value}
             accessibilityRole="button" accessibilityLabel={name} accessibilityState={{selected: filter === value}}
             onPress={() => {setFilter(value); setFilterLimit(40);}} style={[styles.filterButton, {backgroundColor: filter === value ? palette.accentSoft : palette.panel,
               borderColor: filter === value ? palette.accent : palette.border}]} testID={`space-filter-${value}`}>
-            <StudioActionLabel icon={value === 'favorites' ? 'star' : value === 'review' ? 'refresh' : 'grid'} color={palette.text}
+            <StudioActionLabel icon={value === 'favorites' ? 'star' : value === 'review' ? 'refresh' : value === 'sleeping' ? 'moon' : 'grid'} color={palette.text}
               textStyle={[styles.quietActionText, filter === value ? {fontWeight: '700'} : null]}>{label}</StudioActionLabel>
           </Pressable>)}
         </View>
@@ -1219,7 +1268,7 @@ export function SpaceSurface({
                       box.boxName,
                       '卡盒',
                     );
-                    const countLabel = `${box.cards.length} 张`;
+                    const countLabel = `已学 ${box.cards.filter(card => learnedIds.includes(card.cardId)).length} / ${box.cards.length}`;
                     const accessibleLabel = `${displayName}，${countLabel}`;
                     return (
                       <Pressable

@@ -19,6 +19,7 @@ import React, {
   startTransition,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -32,6 +33,7 @@ import {
   findNodeHandle,
   InputAccessoryView,
   Keyboard,
+  KeyboardAvoidingView,
   Linking,
   Modal,
   Platform,
@@ -773,6 +775,7 @@ function AppShell({
   const sessionSubmittedCardMetadata = useRef(new Map<string, Omit<ConfirmedLearningSegmentCard, 'completionId'>>());
   const [learningScreen, setLearningScreen] =
     useState<LearningSurfaceScreen>('practice');
+  const spaceBrowse = useRef(new Map<string, import('./src/space/SpaceSurface').SpaceBrowseState>());
   const [spaceScreen, setSpaceScreen] =
     useState<SpaceSurfaceScreen>('overview');
   const [persistenceHydrated, setPersistenceHydrated] = useState(false);
@@ -1860,6 +1863,9 @@ function AppShell({
       ? reviewCompletedResults
       : learningCompletedResults;
   const currentLearningCard = activeSessionCards[learningIndex] ?? null;
+  const attemptKey = `${learningSession?.track}:${learningSession?.contentVersion}:${learningSession?.serverSelection?.selectionId}:${learningPhase}:${learningIndex}:${currentLearningCard?.card_id}`;
+  const liveAttempt = useRef({key: attemptKey, state: learningCardState, result: learningCurrentResult});
+  useLayoutEffect(() => {liveAttempt.current = {key: attemptKey, state: learningCardState, result: learningCurrentResult};}, [attemptKey, learningCardState, learningCurrentResult]);
   const isLocalLearning = learningSession?.schedulingMode === 'local';
   const localGroup = localBatch(activeSessionCards.length, learningIndex, localBatchComplete);
   const presentedCards = isLocalLearning ? activeSessionCards.slice(localGroup.start, localGroup.end) : activeSessionCards;
@@ -4891,7 +4897,8 @@ function AppShell({
     startTransition(() => {
       setActiveRoute(nextRoute);
       setLearningScreen('practice');
-      setSpaceScreen('overview');
+      if (fromStudy || (nextRoute === activeRoute && nextRoute === 'space')) setSpaceScreen('overview');
+      if (fromStudy) spaceBrowse.current.delete(`${getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())}:${learningTrack}:${learningSession?.contentVersion}`);
     });
   };
 
@@ -5865,11 +5872,13 @@ function AppShell({
       }));
     },
     onSetLockSelection: (slotId: string, value: string) => {
-      if (!currentLearningCard || currentLearningCard.interaction_id !== 'lock' || !learningCardState || learningCurrentResult || outgoingResult) return;
-      const nextState = selectLockOption(currentLearningCard, learningCardState, slotId, value);
+      const attempt = liveAttempt.current;
+      if (!currentLearningCard || currentLearningCard.interaction_id !== 'lock' || attempt.key !== attemptKey || !attempt.state || attempt.result || outgoingResult) return;
+      const nextState = selectLockOption(currentLearningCard, attempt.state, slotId, value);
+      attempt.state = nextState;
       setLearningCardState(nextState);
       const result = evaluateLearningCard(currentLearningCard, nextState);
-      if (result) {setLearningCurrentResult(result); setLearningScreen('practice'); saveLearningCardResult(result, nextState);}
+      if (result) {attempt.result = result; setLearningCurrentResult(result); setLearningScreen('practice'); saveLearningCardResult(result, nextState);}
     },
     onToggleEliminationItem: (itemId: string) => {
       patchLearningCardState(current => ({
@@ -6351,6 +6360,19 @@ function AppShell({
           ),
         )
     : [];
+  const spaceAudioAuthority = activeRoute === 'space' ? `${getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())}:${learningSession?.contentVersion}:space` : null;
+  const spaceAudioAuthorityRef = useRef(spaceAudioAuthority);
+  spaceAudioAuthorityRef.current = spaceAudioAuthority;
+  const refreshSpaceAudioDownload: RefreshLearningAudioDownload = async selection => {
+    const origin = authSessionCoordinator.getCurrentSession(); const session = learningSession;
+    const scope = getAuthSessionScopeKey(origin);
+    const card = session?.catalogCards.find(item => item.audio?.asset_id === selection.asset.asset_id && item.audio.sha256 === selection.asset.sha256);
+    const isCurrent = () => scope !== null && getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === scope && spaceAudioAuthorityRef.current === selection.authorityToken;
+    if (!origin || !session || !card?.audio || !isCurrent() || selection.cardToken !== `${card.card_id}:${card.audio.sha256}` || !catalogResults.some(result => result.cardId === card.card_id) || !learningSessionRepository.refreshAudioDownload) throw new RemoteRequestLifecycleError('caller_cancelled');
+    const download = await learningSessionRepository.refreshAudioDownload({phoneNumber: origin.phoneNumber, authToken: getAuthAccessToken(origin)}, session, card.audio.asset_id, {isCurrent, readOnlyCardId: card.card_id});
+    if (!isCurrent()) throw new RemoteRequestLifecycleError('caller_cancelled');
+    return download;
+  };
   const spaceSurfaceCards = membershipAccess.completePhysicalSpace
     ? currentCatalogSession?.catalogCards ?? []
     : accessibleSpaceCards;
@@ -6579,6 +6601,7 @@ function AppShell({
     <LearningSleepSurface
       canOpenSpace={membershipAccess.completePhysicalSpace}
       onGoToSpace={() => {
+        spaceBrowse.current.delete(`${getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())}:${learningTrack}:${learningSession?.contentVersion}`);
         startTransition(() => {
           setActiveRoute('space');
           setLearningScreen('practice');
@@ -6677,6 +6700,12 @@ function AppShell({
     />
   ) : route.key === 'space' ? (
     <SpaceSurface
+      contentManifest={learningSession?.contentManifest}
+      audioAuthorityToken={spaceAudioAuthority}
+      refreshAudioDownload={refreshSpaceAudioDownload}
+      learnedIds={catalogResults.map(result => result.cardId)}
+      browseState={spaceBrowse.current.get(`${getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())}:${learningTrack}:${learningSession?.contentVersion}`)}
+      onBrowseStateChange={value => spaceBrowse.current.set(`${getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())}:${learningTrack}:${learningSession?.contentVersion}`, value)}
       cardStateById={spaceCardStateById}
       currentLearningCard={activeLearningContextCard}
       pendingReviewIds={pendingSpaceReviewIds}
@@ -6942,7 +6971,7 @@ function AppShell({
             smsCode={deletionRecoveryCode}
           />
         ) : !isAuthenticated ? (
-          <View style={styles.standaloneAuthRoot} testID="standalone-auth-root">
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.standaloneAuthRoot} testID="standalone-auth-root"><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{flexGrow: 1}} style={{flex: 1}}>
             <AuthGate
               authMode={authRepositoryConfig.mode}
               authState={authState}
@@ -6951,7 +6980,7 @@ function AppShell({
               route={ROUTES[0]}
               standalone
             />
-          </View>
+          </ScrollView></KeyboardAvoidingView>
         ) : deviceClass === 'tablet' ? (
           <TabletShell
             activeRoute={activeRoute}
@@ -9150,6 +9179,7 @@ function MembershipHostCard({
           ))}
         </View>
       )}
+      {membershipState.stage === 'trial' && membershipState.trialExpiresAt ? <Text style={[styles.authSummary, {color: palette.textMuted}]}>试用至 {new Date(membershipState.trialExpiresAt).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}</Text> : null}
       {membershipState.recoveryPromptVisible ? (
         <View
           style={[

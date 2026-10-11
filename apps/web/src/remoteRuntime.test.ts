@@ -822,6 +822,58 @@ describe('authenticated Web remote orchestration', () => {
     await expect(deletionStateStore.getRevision()).resolves.toBe(5);
   });
 
+
+  it('allows a new SMS after a peer clears the logout marker before the late cleanup dispatch', async () => {
+    localStorage.clear();
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const store = createWebAccountDeletionStateStore(localStorage);
+    vi.spyOn(authRepository, 'logout').mockImplementation(async () => {await clearCurrentDeletionState(store, 'local_cleanup');});
+    const controller = createWebRemoteRuntimeController({accountDeletionStateStore: store,
+      accountBootstrapRepository: {load: async () => createBootstrapFixture(createInitialMembershipState())},
+      authRepository, authSessionCoordinator, learningEventSyncRepository: createEmptyEventSyncRepository(),
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track), loadSession: async () => createLearningSessionFixture(null), continueRound: async () => undefined},
+      mutationQueueRepository: createMutationRepository([]), playAudio: async () => 'ready', track: 'cet4'});
+    controller.start();
+    try {
+      await controller.requestSmsCode(PHONE);
+      await controller.verifySmsCode(PHONE, '123456');
+      await controller.logout();
+      await expect(controller.resumeAccountDeletion()).resolves.toEqual({status: 'none'});
+      await expect(controller.requestSmsCode(PHONE)).resolves.toMatchObject({phoneNumber: PHONE});
+      await expect(controller.verifySmsCode(PHONE, '123456')).resolves.toBeDefined();
+      expect(controller.isAuthenticated()).toBe(true);
+    } finally {controller.dispose();}
+  });
+
+  it('replays learned catalog audio without a daily selection and refuses unlearned or mismatched-source history', async () => {
+    const authRepository = createSimpleAuthRepository();
+    const authSessionCoordinator = createAuthSessionCoordinator({authRepository, authSessionStore: createMemoryOnlyAuthSessionStore()});
+    const bootstrap = createBootstrapFixture(createInitialMembershipState());
+    bootstrap.learning = {...bootstrap.learning, source: {id: 'source-1', label: 'CET4'}, cardStates: [{...createLearningResult(), phase: 'learning', serverSequence: 1}]};
+    const playAudio = vi.fn(async (): Promise<'playing'> => 'playing');
+    const loadSession = vi.fn(async () => createLearningSessionFixture(null));
+    const load = vi.fn(async () => bootstrap);
+    const events = createEmptyEventSyncRepository();
+    const replay = vi.spyOn(events, 'startReplay');
+    const controller = createWebRemoteRuntimeController({accountBootstrapRepository: {load},
+      authRepository, authSessionCoordinator, learningEventSyncRepository: events,
+      learningSessionRepository: {loadCatalog: async (_context, track) => createLearningCatalogFixture(track), loadSession, continueRound: async () => undefined},
+      mutationQueueRepository: createMutationRepository([]), playAudio, track: 'cet4'});
+    await controller.requestSmsCode(PHONE);
+    await controller.verifySmsCode(PHONE, '123456');
+    const replayCount = replay.mock.calls.length;
+    await expect(controller.playSpaceCardAudio!('000001')).resolves.toBe('playing');
+    expect(playAudio).toHaveBeenLastCalledWith(expect.objectContaining({card_id: '000001'}), expect.any(Object), expect.objectContaining({selectionId: 'space:000001'}));
+    expect(loadSession).not.toHaveBeenCalled();
+    expect(replay).toHaveBeenCalledTimes(replayCount);
+    await expect(controller.playSpaceCardAudio!('999999')).rejects.toThrow('暂时不能回听');
+    load.mockResolvedValueOnce({...bootstrap, learning: {...bootstrap.learning, source: {id: 'other-source', label: 'other'}}});
+    await controller.loadLearningHome();
+    await expect(controller.playSpaceCardAudio!('000001')).rejects.toThrow('暂时不能回听');
+    expect(playAudio).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps login closed and resumes failed local cleanup without a session after reload', async () => {
     localStorage.clear();
     let mutationClearAttempts = 0;

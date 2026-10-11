@@ -16,7 +16,7 @@ const otherLibrary = card('010001', '仔细阅读', '定位词抓取', '题干�
 const props = (): SpaceSurfaceProps => ({busy: false, cards: [first, current, neighbor, otherLibrary], canMutate: true, currentCardId: current.card_id, pendingReviewIds: [neighbor.card_id], favorites: [otherLibrary.card_id], sleeping: [], membership: createInitialMembershipState(), onFavorite: vi.fn(), onSleep: vi.fn(), onReturn: vi.fn(), statusMessage: '', syncStatus: '已同步'});
 afterEach(cleanup);
 function tray() {return screen.getByRole('region', {name: /^当前卡盒/});}
-function browse() {fireEvent.click(screen.getByText('浏览全部卡盒').closest('summary')!);}
+function browse() {fireEvent.click(screen.getByText('浏览与查找卡片').closest('summary')!);}
 
 describe('current task first Space', () => {
   it('starts on the actual current card within its box and leaves full navigation collapsed', () => {
@@ -24,7 +24,7 @@ describe('current task first Space', () => {
     render(<SpaceSurface {...callbacks}/>);
     expect(within(tray()).getByText(`材料 ${current.card_id}`)).toBeVisible();
     expect(screen.getByText('翻面 · 正在学习')).toBeVisible();
-    expect(screen.getByText('浏览全部卡盒').parentElement).not.toHaveAttribute('open');
+    expect(screen.getByText('浏览与查找卡片').parentElement).not.toHaveAttribute('open');
     expect(screen.getByRole('button', {name: '只看收藏'})).not.toBeVisible();
     fireEvent.click(screen.getByRole('button', {name: '返回学习'}));
     expect(callbacks.onReturn).toHaveBeenCalledOnce();
@@ -83,4 +83,42 @@ describe('current task first Space', () => {
     fireEvent.click(screen.getByText('休眠区 · 1 张'));
     expect(screen.getByText(/休眠的卡片暂时离开学习流/)).toBeVisible();
   });
+});
+
+
+it('searches front material without leaking hidden answers and restores the inspected address', () => {
+  const callbacks = props();
+  const hidden = {...otherLibrary, back_text: 'private-back-only-word'};
+  const remember = vi.fn();
+  const view = render(<SpaceSurface {...callbacks} cards={[first, current, neighbor, hidden]} sleeping={[neighbor.card_id]} onBrowseStateChange={remember}/>);
+  browse();
+  fireEvent.change(screen.getByLabelText('查找卡片'), {target: {value: 'private-back-only-word'}});
+  expect(within(screen.getByRole('region', {name: '筛选结果'})).queryByRole('button', {name: /题干定位/})).toBeNull();
+  fireEvent.click(screen.getByRole('button', {name: '清除筛选'}));
+  fireEvent.click(screen.getByRole('button', {name: '已暂停'}));
+  const result = screen.getByRole('region', {name: '筛选结果'});
+  expect(within(result).getByRole('button', {name: /关键词预测/})).toBeVisible();
+  fireEvent.click(within(result).getByRole('button', {name: /关键词预测/}));
+  expect(screen.queryByRole('button', {name: '回看答案与解析'})).toBeNull();
+  const state = remember.mock.calls.at(-1)![0];
+  view.unmount();
+  render(<SpaceSurface {...callbacks} sleeping={[neighbor.card_id]} browseState={state} learnedIds={[neighbor.card_id]}/>);
+  expect(within(tray()).getByRole('heading', {name: '关键词预测'})).toBeVisible();
+  fireEvent.click(screen.getByRole('button', {name: '回看答案与解析'}));
+  expect(screen.getByRole('button', {name: '收起答案与解析'})).toBeVisible();
+  expect(screen.getByRole('region', {name: '已学卡答案与解析'})).toBeVisible();
+  expect(callbacks.onReturn).not.toHaveBeenCalled();
+});
+
+
+it('stops read-only audio when following a changed current card and on unmount', () => {
+  const onStopAudio = vi.fn();
+  const callbacks = props();
+  const view = render(<SpaceSurface {...callbacks} learnedIds={[current.card_id]} onStopAudio={onStopAudio}/>);
+  fireEvent.click(screen.getByRole('button', {name: '回看答案与解析'}));
+  view.rerender(<SpaceSurface {...callbacks} learnedIds={[current.card_id]} currentCardId={otherLibrary.card_id} onStopAudio={onStopAudio}/>);
+  expect(onStopAudio).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole('button', {name: '收起答案与解析'})).toBeNull();
+  view.unmount();
+  expect(onStopAudio).toHaveBeenCalledTimes(2);
 });

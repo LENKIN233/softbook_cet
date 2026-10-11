@@ -42,3 +42,10 @@ test('remote sequence outranks device clocks when selecting the latest result', 
     {cardId: 'a', outcome: 'incorrect', serverSequence: 1, completedAt: '2026-09-19T00:00:00Z'},
   ]), []);
 });
+
+test('search and paused filters retain ownership and do not search hidden answers', () => {
+  const visible = {card_id: 'a', front: {prompt: 'A campus notice', support: 'opening hours'}, options: [{text: 'Monday'}], back_text: 'private-only-answer', space_metadata: {library: '听力', group: '通知', box: '校园'}};
+  assert.deepEqual(filterSpaceCards([visible], 'sleeping', [], [], ['a'], 'monday'), [visible]);
+  assert.deepEqual(filterSpaceCards([visible], 'all', [], [], [], 'private-only-answer'), []);
+  assert.deepEqual(filterSpaceCards([visible], 'sleeping', [], [], ['not-accessible']), []);
+});

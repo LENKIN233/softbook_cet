@@ -287,7 +287,7 @@ describe("local study user journey", () => {
     await enter();
     fireEvent.click(screen.getByRole("button", { name: "收藏" }));
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
-    fireEvent.click(screen.getByText("浏览全部卡盒").closest('summary')!);
+    fireEvent.click(screen.getByText("浏览与查找卡片").closest('summary')!);
     fireEvent.click(screen.getByRole("button", { name: "只看收藏" }));
     const found = screen.getByRole("region", { name: "筛选结果" });
     expect(found).toHaveTextContent("听力 / 逻辑关系 / 转折关系");
@@ -304,7 +304,7 @@ describe("local study user journey", () => {
     const frameIds = JSON.parse(localStorage.getItem("softbook-cet/study/v2/cet4")!).state.frame.ids;
     fireEvent.click(screen.getByRole("button", { name: "空间" }));
     fireEvent.click(screen.getByRole("button", { name: "暂不学习这张卡" }));
-    fireEvent.click(screen.getByText("浏览全部卡盒").closest('summary')!);
+    fireEvent.click(screen.getByText("浏览与查找卡片").closest('summary')!);
     fireEvent.click(screen.getByRole("button", {name: paused.space_metadata.library}));
     fireEvent.click(screen.getByRole("button", {name: paused.space_metadata.group}));
     const boxCount = cards.filter(card => card.space_metadata.box_ref === paused.space_metadata.box_ref).length;

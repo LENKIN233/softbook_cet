@@ -39,6 +39,49 @@ describe('PC Web remote UI authority', () => {
     delete window.__SOFTBOOK_WEB_RUNTIME__;
   });
 
+
+  it('submits phone and SMS with Enter while preventing duplicate requests and IME submission', async () => {
+    const controller = createController(createSnapshot('premium'));
+    render(<App remoteRuntimeFactory={() => controller}/>);
+    const phoneInput = await screen.findByLabelText('手机号');
+    fireEvent.change(phoneInput, {target: {value: PHONE}});
+    fireEvent.keyDown(phoneInput, {key: 'Enter', isComposing: true});
+    expect(controller.requestSmsCode).not.toHaveBeenCalled();
+    fireEvent.keyDown(phoneInput, {key: 'Enter'});
+    fireEvent.keyDown(phoneInput, {key: 'Enter'});
+    const codeInput = await screen.findByLabelText('短信验证码');
+    expect(controller.requestSmsCode).toHaveBeenCalledTimes(1);
+    fireEvent.change(codeInput, {target: {value: '123456'}});
+    fireEvent.keyDown(codeInput, {key: 'Enter'});
+    await screen.findByRole('button', {name: '开始学习'});
+    expect(controller.verifySmsCode).toHaveBeenCalledTimes(1);
+    expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
+  });
+
+  it('refreshes an unresolved active task on a peer change but never starts learning from the course home', async () => {
+    let notify: ((event: MessageEvent) => void) | null = null;
+    class TestChannel {
+      private handler: ((event: MessageEvent) => void) | null = null;
+      set onmessage(value: ((event: MessageEvent) => void) | null) {this.handler = value; notify = value;}
+      get onmessage() {return this.handler;}
+      close() {notify = null;}
+      postMessage() {}
+    }
+    vi.stubGlobal('BroadcastChannel', TestChannel);
+    try {
+      const controller = createController(createSnapshot('premium'));
+      await authenticateToHome(controller);
+      await act(async () => {notify?.(new MessageEvent('message', {data: {type: 'learning_changed'}}));});
+      expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', {name: '开始学习'}));
+      await screen.findByRole('article');
+      await act(async () => {await Promise.resolve();});
+      const selected = vi.mocked(controller.loadAuthenticatedState).mock.calls.length;
+      await act(async () => {notify?.(new MessageEvent('message', {data: {type: 'learning_changed'}}));});
+      expect(controller.loadAuthenticatedState).toHaveBeenCalledTimes(selected + 1);
+    } finally {vi.unstubAllGlobals();}
+  });
+
   it('opens the course home after login and enters the scene only from its primary action', async () => {
     const snapshot = createSnapshot('premium');
     const controller = createController(snapshot);

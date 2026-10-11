@@ -18,6 +18,8 @@ export type LearningAudioEngineEvent = {
 };
 
 export type LearningAudioEngine = {
+  getPosition?: (playbackToken: string) => Promise<number>;
+  seek?: (playbackToken: string, milliseconds: number) => Promise<void>;
   pause: (playbackToken: string) => Promise<void>;
   play: (playbackToken: string) => Promise<void>;
   prepare: (filePath: string, playbackToken: string) => Promise<void>;
@@ -140,6 +142,32 @@ export class LearningAudioController {
     this.selection = selection;
     this.setState({ status: 'idle' });
     this.dependencies.engine.stop().catch(() => undefined);
+  }
+
+  async getPosition() {
+    const token = this.activePlaybackToken;
+    if (!token || !['playing', 'paused'].includes(this.state.status) || !this.dependencies.engine.getPosition) return null;
+    const generation = this.generation;
+    const position = await this.dependencies.engine.getPosition(token);
+    return generation === this.generation && token === this.activePlaybackToken && Number.isFinite(position) ? Math.max(0, position) : null;
+  }
+
+  async seekTo(milliseconds: number) {
+    const token = this.activePlaybackToken;
+    if (!token || !['playing', 'paused'].includes(this.state.status) || !this.dependencies.engine.seek || !Number.isFinite(milliseconds) || !this.selection) return;
+    await this.dependencies.engine.seek(token, Math.max(0, Math.min(milliseconds, this.selection.asset.duration_ms)));
+  }
+
+  async restart(isCurrent: () => boolean = () => true) {
+    const generation = this.generation;
+    const revision = this.playbackRevision;
+    const wasPaused = this.state.status === 'paused';
+    if (!isCurrent() || this.state.status === 'loading' || !this.selection) return;
+    if (this.activePlaybackToken && this.dependencies.engine.seek) {
+      await this.seekTo(0);
+      if (!isCurrent() || generation !== this.generation || revision !== this.playbackRevision) return;
+      if (wasPaused && this.state.status === 'paused') await this.press();
+    } else await this.press();
   }
 
   async press() {

@@ -198,6 +198,7 @@ function AccountApp({
   const [localSavedCheckInDay, setLocalSavedCheckInDay] = useState<string | null>(null);
   const [localResumeCardId, setLocalResumeCardId] = useState<string | null>(null);
   const [localCheckedInDay, setLocalCheckedInDay] = useState<string | null>(null);
+  const spaceBrowse = useRef(new Map<string, import('./SpaceSurface').SpaceBrowseState>());
   const [spaceSync, setSpaceSync] = useState<
     WebRemoteSnapshot['spaceSync'] | null
   >(null);
@@ -215,13 +216,30 @@ function AccountApp({
       runtime.mode === 'remote' ? 'checking' : 'none',
     );
   const routeMotion = useRouteMotion(`${authStage}:${phone}:${accountDeletionStage}`);
+  const learningChannel = useRef<BroadcastChannel | null>(null);
+  const [externalLearningRevision, setExternalLearningRevision] = useState(0);
+  const consumedLearningRevision = useRef(0);
+  useEffect(() => {
+    if (runtime.mode !== 'remote' || typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('softbook-learning-changes-v1');
+    learningChannel.current = channel;
+    channel.onmessage = event => {if (event.data?.type === 'learning_changed') setExternalLearningRevision(value => value + 1);};
+    return () => {channel.close(); learningChannel.current = null;};
+  }, [runtime.mode]);
   const activeScene = route === 'learning' && learningSceneActive;
+  const stopSpaceAudio = useCallback(() => {audioRequestGeneration.current += 1; remoteController?.stopCardAudio?.(); setAudioStatus('idle');}, [remoteController]);
+  const refreshExternalLearning = useEffectEvent(() => {void reloadRemoteState(false, true);});
+  useEffect(() => {
+    if (!activeScene || externalLearningRevision <= consumedLearningRevision.current || remoteBusy || resolved || resolutionInFlight.current) return;
+    consumedLearningRevision.current = externalLearningRevision;
+    refreshExternalLearning();
+  }, [activeScene, externalLearningRevision, remoteBusy, resolved]);
   const navigateRoute = (next: RouteKey, resumeScene = false) => {
     if (next === 'learning') setPauseNotice(null);
     if (next === 'space') setSpaceSceneReturn(activeScene);
     if (next === 'learning') {setLearningSceneActive(resumeScene); if (!resumeScene) setSpaceSceneReturn(false);}
     else if (next !== 'space') setLearningSceneActive(false);
-    if (route === 'learning' && next !== 'learning') {
+    if ((route === 'learning' || route === 'space') && next !== route) {
       audioRequestGeneration.current += 1;
       remoteController?.stopCardAudio?.();
       bundledAudio.current?.stop();
@@ -798,7 +816,7 @@ function AccountApp({
     }
   }
 
-  async function reloadRemoteState(continueNormalLearning = false) {
+  async function reloadRemoteState(continueNormalLearning = false, externalChange = false) {
     if (remoteController === null) return;
     const generation = accountAuthorityGeneration.current;
     setRemoteBusy(true);
@@ -806,7 +824,9 @@ function AccountApp({
       const reviewOnly = requestedReview && sessionComplete && !session?.roundCompletion && !continueNormalLearning;
       const snapshot = activeScene ? reviewOnly ? await remoteController.requestReview() : await remoteController.loadAuthenticatedState() : await remoteController.loadLearningHome();
       if (accountAuthorityGeneration.current === generation) {
+        const selectionChanged = snapshot.learningSession.serverSelection?.selectionId !== session?.serverSelection?.selectionId;
         if (activeScene) applyRemoteSnapshot(snapshot, reviewOnly); else applyHomeSnapshot(snapshot);
+        if (externalChange && selectionChanged) setRemoteError('学习安排已在另一个页面更新，已切换到当前卡片。');
       }
     } catch (error) {
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '学习进度加载失败，请重试。');
@@ -850,6 +870,7 @@ function AccountApp({
   }
 
   function resetAccountState() {
+    spaceBrowse.current.clear();
     setLearningSceneActive(false);
     setLearningScenePreparing(false);
     setLearningEntryIntent('learning');
@@ -947,18 +968,22 @@ function AccountApp({
       return;
     }
     if (runtime.mode === 'remote' && remoteController !== null) {
+      const generation = accountAuthorityGeneration.current;
       setRemoteBusy(true);
       try {
         const outcome = await remoteController.logout();
+        if (accountAuthorityGeneration.current !== generation) return;
         if (outcome !== null && outcome.status !== 'none') {
           applyAccountDeletionOutcome(outcome);
           return;
         }
         resetAccountState();
       } catch {
+        if (accountAuthorityGeneration.current !== generation) return;
         try {
           const deletionOutcome =
             await remoteController.resumeAccountDeletion();
+          if (accountAuthorityGeneration.current !== generation) return;
           if (
             deletionOutcome.status === 'none' &&
             !remoteController.isAuthenticated()
@@ -975,7 +1000,7 @@ function AccountApp({
         }
         setRemoteError('退出未完成，请重试。');
       } finally {
-        setRemoteBusy(false);
+        if (accountAuthorityGeneration.current === generation) setRemoteBusy(false);
       }
       return;
     }
@@ -1121,6 +1146,7 @@ function AccountApp({
   }
 
   function presentAcknowledgedLearningResult(result: LearningCardResult) {
+    learningChannel.current?.postMessage({type: 'learning_changed'});
     const completion = pendingSegmentCompletion.current;
     if (completion && completion.card.cardId === result.cardId) {
       setLearningSegment(previous => previous?.scope === completion.scope
@@ -1221,6 +1247,23 @@ function AccountApp({
       if (accountAuthorityGeneration.current === generation) await handleRemoteFailure(error, '当前学习结果暂时没有同步。');
     } finally {
       if (accountAuthorityGeneration.current === generation) setRemoteBusy(false);
+    }
+  }
+
+  async function playSpaceAudio(cardId: string) {
+    if (route !== 'space' || !remoteController?.playSpaceCardAudio) return;
+    const requestGeneration = ++audioRequestGeneration.current;
+    const accountGeneration = accountAuthorityGeneration.current;
+    const isCurrent = () => requestGeneration === audioRequestGeneration.current && accountGeneration === accountAuthorityGeneration.current;
+    setRemoteError('');
+    setAudioStatus('loading');
+    try {
+      const status = await remoteController.playSpaceCardAudio(cardId);
+      if (isCurrent()) setAudioStatus(status);
+    } catch (error) {
+      if (!isCurrent()) return;
+      setAudioStatus('error');
+      await handleRemoteFailure(error, '音频暂时无法播放，请重试。');
     }
   }
 
@@ -1482,6 +1525,7 @@ function AccountApp({
             <label htmlFor="phone">手机号</label>
             <input
               id="phone"
+              onKeyDown={event => {if (event.key === 'Enter' && !remoteBusy && !event.nativeEvent.isComposing) {event.preventDefault(); void requestCode();}}}
               inputMode="tel"
               autoComplete="tel"
               value={phone}
@@ -1494,6 +1538,7 @@ function AccountApp({
                 <label htmlFor="code">短信验证码</label>
                 <input
                   id="code"
+                  onKeyDown={event => {if (event.key === 'Enter' && !remoteBusy && !event.nativeEvent.isComposing) {event.preventDefault(); void verifyCode();}}}
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   value={code}
@@ -1546,7 +1591,7 @@ function AccountApp({
       {activeScene ? <LearningSceneNavigation progress={sceneProgress}
         overall={sceneOverall}
         onExit={() => void pauseLearning()}
-        onOpenSpace={() => navigateRoute('space')} spaceDisabled={session === null} /> : <>
+        onOpenSpace={() => {spaceBrowse.current.delete(`${phone}:${homeSnapshot?.bootstrap.track ?? session?.track}:${homeSnapshot?.bootstrap.content.version ?? session?.contentVersion}`); navigateRoute('space');}} spaceDisabled={session === null} /> : <>
       <header className="mobile-header">
         <div className="brand-lockup"><span aria-hidden="true" className="brand-mark"><StudioMark /></span><span className="wordmark">软书</span></div>
         <div className="header-controls"><CourseSwitch track={session?.track ?? runtime.track} disabled={remoteBusy || accountDeletionLocksAccount} onSelect={value => void switchRemoteTrack(value)} /><button className="header-profile" aria-label="我的账户" disabled={remoteBusy || accountDeletionLocksAccount} onClick={() => navigateRoute('mine')}><StudioIcon name="user" size={24} /></button></div>
@@ -1658,7 +1703,7 @@ function AccountApp({
             busy={productBusy}
             statusMessage={remoteError}
             syncStatus={genericSyncStatus}
-            onOpenSpace={() => navigateRoute('space')}
+            onOpenSpace={() => {spaceBrowse.current.delete(`${phone}:${homeSnapshot?.bootstrap.track ?? session?.track}:${homeSnapshot?.bootstrap.content.version ?? session?.contentVersion}`); navigateRoute('space');}}
             onRestart={() => {
               if (runtime.mode === 'remote') {
                 if (remoteController === null) return;
@@ -1716,6 +1761,9 @@ function AccountApp({
           onState={setCardState}
           onResolve={stateOverride => void resolveCurrentCard(stateOverride)}
           onContinue={continueLearning}
+          onReadAudioPosition={remoteController?.readAudioPosition}
+          onSeekAudio={remoteController?.seekCardAudio}
+          onRestartAudio={() => {remoteController?.seekCardAudio?.(0); if (audioStatus !== 'playing') void playCurrentAudio();}}
           onPlayAudio={() => void playCurrentAudio()}
           onReloadQueued={() => {
             if (rejectedCompletion && queuedLearningResult) {
@@ -1727,7 +1775,7 @@ function AccountApp({
             } else void reloadRemoteState();
           }}
           onRetryQueued={() => void retryQueuedLearningResult()}
-          onOpenSpace={() => navigateRoute('space')}
+          onOpenSpace={() => {spaceBrowse.current.delete(`${phone}:${homeSnapshot?.bootstrap.track ?? session?.track}:${homeSnapshot?.bootstrap.content.version ?? session?.contentVersion}`); navigateRoute('space');}}
           onFavorite={cardId => void toggleFavorite(cardId)}
           retryBusy={remoteBusy}
         />
@@ -1735,6 +1783,14 @@ function AccountApp({
       {route === 'space' && membership !== null ? (
         <SpaceSurface
           busy={productBusy}
+          learnedIds={catalogResults.map(result => result.cardId)}
+          browseState={spaceBrowse.current.get(`${phone}:${homeSnapshot?.bootstrap.track ?? session?.track}:${homeSnapshot?.bootstrap.content.version ?? session?.contentVersion}`)}
+          onBrowseStateChange={value => spaceBrowse.current.set(`${phone}:${homeSnapshot?.bootstrap.track ?? session?.track}:${homeSnapshot?.bootstrap.content.version ?? session?.contentVersion}`, value)}
+          audioStatus={audioStatus}
+          readAudioPosition={remoteController?.readAudioPosition}
+          onSeekAudio={remoteController?.seekCardAudio}
+          onStopAudio={stopSpaceAudio}
+          onPlayCardAudio={remoteController?.playSpaceCardAudio ? id => {void playSpaceAudio(id);} : undefined}
           cards={spaceCards}
           canMutate={membershipAccess?.completePhysicalSpace === true}
           currentCardId={currentCard?.card_id ?? null}
@@ -1866,6 +1922,9 @@ type LearningSurfaceProps = {
   onContinue: () => void | Promise<void>;
   onOpenSpace: () => void;
   onFavorite: (cardId: string) => void;
+  onReadAudioPosition?: () => number | null | Promise<number | null>;
+  onSeekAudio?: (milliseconds: number) => void;
+  onRestartAudio?: () => void;
   onPlayAudio: (() => void) | null;
   onReloadQueued: () => void;
   onRetryQueued: () => void;
@@ -1880,6 +1939,8 @@ type LearningSurfaceProps = {
 
 function LearningSurface(props: LearningSurfaceProps) {
   const {card, cardState, resolved, onResolve, onState} = props;
+  const lockDraft = useRef(cardState);
+  useLayoutEffect(() => {lockDraft.current = cardState;}, [cardState, props.motionIdentity]);
   const cardRef = useRef<HTMLElement | null>(null);
   const answerRef = useRef<HTMLHeadingElement | null>(null);
   const activeLockSlot = card?.interaction_id === 'lock' && cardState
@@ -1929,11 +1990,12 @@ function LearningSurface(props: LearningSurfaceProps) {
   const questionContext = spaceCardPreview(card);
   const backVisible = card.interaction_id === 'flip' && cardState.isFlipped;
   const resolveLock = (slotId: string, value: string) => {
-    const next = selectLockOption(card, cardState, slotId, value);
+    const next = selectLockOption(card, lockDraft.current ?? cardState, slotId, value);
+    lockDraft.current = next;
     if (canSubmitLearningCard(card, next)) onResolve(next);
     else patchState(next);
   };
-  const audioControl = card.audio ? <StudioAudio status={props.audioStatus} durationMs={card.audio.duration_ms} disabled={props.busy} onPlay={props.onPlayAudio} /> : null;
+  const audioControl = card.audio ? <StudioAudio status={props.audioStatus} durationMs={card.audio.duration_ms} disabled={props.busy} onPlay={props.onPlayAudio} readPosition={props.onReadAudioPosition} onSeek={props.onSeekAudio} onRestart={props.onRestartAudio} /> : null;
   const interaction = <Interaction key={props.motionIdentity} card={card} state={cardState} onFlip={onFlip} resolved={false} patch={patchState} disabled={props.busy || motionBusy || Boolean(props.queuedResult)}
             onResolveLock={resolveLock}
             onResolveFlip={value => onResolve({...cardState, isFlipped: true, flipConfidence: value})}
@@ -2053,12 +2115,7 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
             const selectedValue = state.lockSelections[slot.id];
             const expectedValue = card.answer_key.lock_pattern[slotIndex];
             const isUnlocked = selectedValue === expectedValue;
-            const currentSlotIndex = card.lock_slots.findIndex(
-              (candidate, candidateIndex) =>
-                state.lockSelections[candidate.id] !==
-                card.answer_key.lock_pattern[candidateIndex],
-            );
-            const isAvailable = currentSlotIndex === slotIndex;
+            const isAvailable = !isUnlocked;
             const statusLabel = isUnlocked
               ? '已开锁'
               : selectedValue !== null && isAvailable
@@ -2099,7 +2156,7 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
                     </div>
                   ) : (
                     <span className={isUnlocked ? 'lock-answer' : 'lock-placeholder'}>
-                      {isUnlocked ? selectedValue : '完成上一行后继续'}
+                      {isUnlocked ? selectedValue : '待选择'}
                     </span>
                   )}
                 </div>
@@ -2321,6 +2378,7 @@ function MineSurface({
   return <main className="account-workbench"><section className="account-object" aria-labelledby="mine-title">
     <p className="eyebrow">我的账户</p><h1 id="mine-title">{maskPhone(phone)}</h1>
     <div className="account-row"><span>{localOnly ? '使用方式' : '会员状态'}</span><strong>{localOnly ? '本地体验' : stageLabel}</strong></div>
+    {membership.stage === 'trial' && membership.trialExpiresAt ? <p className="muted">试用至 {new Date(membership.trialExpiresAt).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}</p> : null}
     <div className="account-row"><span>学习记录</span><strong>{syncStatus}</strong></div>
     {onSwitchTrack ? <fieldset className="account-track-selector" disabled={busy || accountLocked}>
       <legend>备考科目</legend>

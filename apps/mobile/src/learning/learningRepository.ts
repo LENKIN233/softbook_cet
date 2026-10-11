@@ -28,7 +28,7 @@ export type LearningSessionRepository = {
     context: LearningSessionRepositoryContext,
     session: LearningSession,
     assetId: string,
-    options?: {isCurrent?: () => boolean},
+    options?: {isCurrent?: () => boolean; readOnlyCardId?: string},
   ) => Promise<ContentAssetDownload>;
   continueRound: (
     context: LearningSessionRepositoryContext,

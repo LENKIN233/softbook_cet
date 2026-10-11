@@ -186,6 +186,8 @@ type RemoteRuntimeDependencies = {
     session: LearningSession,
     authority: WebAudioAuthority,
   ) => Promise<'paused' | 'playing' | 'ready'>;
+  readAudioPosition?: () => number | null;
+  seekAudio?: (milliseconds: number) => void;
   stopAudio?: () => void;
   runtimeSessionId?: string;
   runAccountCleanup?: <Result>(
@@ -233,6 +235,7 @@ export type WebRemoteRuntimeController = {
   refreshStatistics: () => Promise<Pick<WebRemoteSnapshot, 'bootstrap' | 'checkInSync'>>;
   switchTrack: (track: LearningTrack, beforeCommit?: (snapshot: WebRemoteSnapshot) => void) => Promise<WebRemoteSnapshot>;
   logout: () => Promise<WebAccountDeletionOutcome | null>;
+  playSpaceCardAudio?: (cardId: string) => Promise<'paused' | 'playing' | 'ready'>;
   playCardAudio: (
     card: LearningCard,
   ) => Promise<'paused' | 'playing' | 'ready'>;
@@ -241,6 +244,8 @@ export type WebRemoteRuntimeController = {
   requestAccountDeletionRecoverySmsCode: () => Promise<WebAccountDeletionRecoveryChallenge>;
   resumeAccountDeletion: () => Promise<WebAccountDeletionOutcome>;
   start: () => void;
+  readAudioPosition?: () => number | null;
+  seekCardAudio?: (milliseconds: number) => void;
   stopCardAudio?: () => void;
   subscribeAccountPresentationInvalidation: (
     listener: (event: WebAccountPresentationInvalidation) => void,
@@ -533,6 +538,8 @@ export function createWebRemoteRuntime(
   });
 
   let activeAudio: {
+    getPosition?: () => number | null;
+    seek?: (milliseconds: number) => void;
     cardToken: string;
     generation: number;
     pause: () => void;
@@ -641,7 +648,7 @@ export function createWebRemoteRuntime(
             if (!isCurrent() || authSession?.mode !== 'remote') throw new RemoteRequestLifecycleError('session_superseded');
             const download = await learningSessionRepository.refreshAudioDownload(
               {authToken: authSession.accessToken, phoneNumber: authSession.phoneNumber},
-              session, card.audio.asset_id, {isCurrent},
+              session, card.audio.asset_id, {isCurrent, readOnlyCardId: authority.selectionId === `space:${card.card_id}` ? card.card_id : undefined},
             );
             if (!isCurrent()) throw new RemoteRequestLifecycleError('session_superseded');
             return download;
@@ -688,6 +695,8 @@ export function createWebRemoteRuntime(
       requestedAudio.status = 'playing';
       return 'playing';
     },
+    readAudioPosition: () => activeAudio?.getPosition?.() ?? null,
+    seekAudio: milliseconds => activeAudio?.seek?.(milliseconds),
     stopAudio: stopActiveAudio,
     setAccountDeletionQuarantine(sessionScopeKey, active) {
       if (active) {
@@ -746,11 +755,14 @@ export function createWebRemoteRuntimeController(
   let challengeDeletionRevision: number | null = null;
   let deletionRecoveryChallenge: WebAccountDeletionRecoveryChallenge | null =
     null;
+  let lastLocalCleanupAuthority: {phoneNumber: string; revision: number} | null = null;
   let activeAccountPhoneNumber: string | null = null;
   let activeTrack = dependencies.track;
   let trackSwitchInFlight = false;
   let currentBootstrap: AccountBootstrapSnapshot | null = null;
   let currentLearningSession: LearningSession | null = null;
+  let readableLearnedCardIds = new Set<string>();
+  let lastConfirmedCompletion: {cardId: string; contentVersion: string} | null = null;
   let persistedLearningResult: LearningCardResult | null = null;
   let persistedSelectionId: string | null = null;
   let persistedLearningEventId: string | null = null;
@@ -790,7 +802,7 @@ export function createWebRemoteRuntimeController(
     if (!hasPresentedAccount && source !== 'external_epoch') {
       return;
     }
-    resetControllerAccountState();
+    resetControllerAccountState(true);
     for (const listener of accountPresentationInvalidationListeners) {
       try {
         listener(reason === undefined ? {source} : {reason, source});
@@ -1052,7 +1064,8 @@ export function createWebRemoteRuntimeController(
     }
   };
 
-  function resetControllerAccountState() {
+  function resetControllerAccountState(preserveLocalCleanupAuthority = false) {
+    if (!preserveLocalCleanupAuthority) lastLocalCleanupAuthority = null;
     controllerAccountAuthorityGeneration += 1;
     dependencies.setAccountWriteRevision?.(null);
     challenge = null;
@@ -1061,6 +1074,8 @@ export function createWebRemoteRuntimeController(
     activeAccountPhoneNumber = null;
     currentBootstrap = null;
     currentLearningSession = null;
+    lastConfirmedCompletion = null;
+    readableLearnedCardIds.clear();
     persistedLearningResult = null;
     persistedSelectionId = null;
     persistedLearningEventId = null;
@@ -1201,10 +1216,10 @@ export function createWebRemoteRuntimeController(
     if (stateStore === undefined) {
       throw new Error('Web local account cleanup store is unavailable.');
     }
-    activeAccountPhoneNumber = phoneNumber;
     const cleanup = async (
       authority: WebAccountResolvedCleanupAuthority,
     ): Promise<WebAccountDeletionOutcome> => {
+      activeAccountPhoneNumber = phoneNumber;
       dependencies.stopAudio?.();
       if (dependencies.authSessionCoordinator.getCurrentSession() !== null) {
         await dependencies.authSessionCoordinator.invalidate();
@@ -1259,7 +1274,9 @@ export function createWebRemoteRuntimeController(
   const persistLocalAccountCleanup = async (
     phoneNumber: string,
     expectedRevision: number,
+    isCurrent?: () => boolean,
   ) => {
+    if (isCurrent && !isCurrent()) throw new WebAccountEpochError();
     const ensureCleanupAuthority =
       dependencies.accountDeletionStateStore?.ensureCleanupAuthority;
     if (ensureCleanupAuthority === undefined) {
@@ -1270,6 +1287,8 @@ export function createWebRemoteRuntimeController(
         phoneNumber,
         expectedRevision,
       );
+      if (authority.phase === 'local_cleanup') lastLocalCleanupAuthority = {phoneNumber: authority.phoneNumber, revision: authority.revision};
+      if (isCurrent && !isCurrent()) throw new WebAccountEpochError();
       const sessionScopeKey = getAuthSessionScopeKey(
         dependencies.authSessionCoordinator.getCurrentSession(),
       );
@@ -1685,6 +1704,7 @@ export function createWebRemoteRuntimeController(
         }
         activeTrack = requestTrack;
         currentBootstrap = bootstrap;
+        readableLearnedCardIds = new Set(bootstrap.learning.cardStates.filter(result => (bootstrap.learning.source === null || bootstrap.learning.source.id === learningSession.sourceId) && learningSession.catalogCards.some(card => card.card_id === result.cardId && card.interaction_id === result.interactionId)).map(result => result.cardId));
         currentLearningSession = effectiveSession;
         presentedSessionScopeKey = requestSessionScopeKey;
         reconciledLearningCompletionRevision = requestLearningCompletionRevision;
@@ -1837,6 +1857,7 @@ export function createWebRemoteRuntimeController(
           requestSessionScopeKey,
           requestDeletionRevision,
           () => {
+            if (sync.completionStatus === 'confirmed' && contentVersion) lastConfirmedCompletion = {cardId: result.cardId, contentVersion};
             if (sync.completionStatus === 'confirmed' || sync.completionStatus === 'rejected') {
               learningCompletionRevision += 1;
             }
@@ -1946,6 +1967,8 @@ export function createWebRemoteRuntimeController(
     },
 
     dispose: disposeRuntime,
+    readAudioPosition: () => dependencies.readAudioPosition?.() ?? null,
+    seekCardAudio: milliseconds => dependencies.seekAudio?.(milliseconds),
     stopCardAudio: () => dependencies.stopAudio?.(),
 
     isAuthenticated() {
@@ -1980,7 +2003,11 @@ export function createWebRemoteRuntimeController(
     async logout() {
       const currentSession =
         dependencies.authSessionCoordinator.getCurrentSession();
+      const originScope = getAuthSessionScopeKey(currentSession);
+      const originGeneration = controllerAccountAuthorityGeneration;
+      const isOriginCurrent = () => originGeneration === controllerAccountAuthorityGeneration && getAuthSessionScopeKey(dependencies.authSessionCoordinator.getCurrentSession()) === originScope;
       const deletionStateBeforeLogout = await readStableDeletionState();
+      if (!isOriginCurrent()) throw new WebAccountEpochError();
       if (deletionStateBeforeLogout.state !== null) {
         return dispatchPersistedCleanup(deletionStateBeforeLogout.state);
       }
@@ -2000,6 +2027,7 @@ export function createWebRemoteRuntimeController(
       const cleanupAuthority = await persistLocalAccountCleanup(
         phoneNumber,
         deletionStateBeforeLogout.revision ?? 0,
+        isOriginCurrent,
       );
       if (
         cleanupAuthority !== null &&
@@ -2026,6 +2054,20 @@ export function createWebRemoteRuntimeController(
           phoneNumber,
         },
       );
+    },
+
+    async playSpaceCardAudio(cardId) {
+      await requireAuthenticatedContext();
+      const scope = getAuthSessionScopeKey(dependencies.authSessionCoordinator.getCurrentSession());
+      const revision = sessionDeletionRevision;
+      const session = currentLearningSession;
+      const card = session?.catalogCards.find(item => item.card_id === cardId);
+      if (!scope || !session?.contentVersion || !card || !(readableLearnedCardIds.has(cardId) || (lastConfirmedCompletion?.cardId === cardId && lastConfirmedCompletion.contentVersion === session.contentVersion))) throw new Error('这张卡片暂时不能回听。');
+      const status = await dependencies.playAudio(card, session, {sessionScopeKey: scope, deletionRevision: revision, contentVersion: session.contentVersion, selectionId: `space:${cardId}`});
+      return runWithAuthenticatedAuthority(scope, revision, () => {
+        if (currentLearningSession?.contentVersion !== session.contentVersion) {dependencies.stopAudio?.(); throw new WebAccountEpochError();}
+        return status;
+      });
     },
 
     async playCardAudio(card) {
@@ -2175,8 +2217,15 @@ export function createWebRemoteRuntimeController(
       ) {
         return submitAccountDeletionRequest();
       }
-      const persisted = (await readStableDeletionState()).state;
+      const observed = await readStableDeletionState();
+      const persisted = observed.state;
       if (persisted === null) {
+        if (dependencies.authSessionCoordinator.getCurrentSession() === null) {
+          if (activeAccountPhoneNumber !== null && (!lastLocalCleanupAuthority || lastLocalCleanupAuthority.phoneNumber !== activeAccountPhoneNumber || observed.revision === null || observed.revision <= lastLocalCleanupAuthority.revision)) {
+            throw new WebAccountEpochError('上一个 Web 会话仍需要完成对应账号的本地清理。');
+          }
+          resetControllerAccountState();
+        }
         return {status: 'none'};
       }
       activeAccountPhoneNumber = persisted.phoneNumber;
@@ -2319,6 +2368,7 @@ export function createWebRemoteRuntimeController(
             sessionEstablished = true;
             activeAccountPhoneNumber = session.phoneNumber;
             sessionDeletionRevision = deletionStateAfterVerify.revision;
+            lastLocalCleanupAuthority = null;
             dependencies.setAccountWriteRevision?.(sessionDeletionRevision);
           },
         );

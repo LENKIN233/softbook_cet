@@ -15,7 +15,9 @@ test('correcting a lock mistake completes once as review-needed without inventin
   const first = card.lock_slots[0];
   const wrong = first.options.find(value => value !== card.answer_key.lock_pattern[0])!;
   expect(selectLockOption(card, state, 'missing', wrong)).toBe(state);
-  expect(selectLockOption(card, state, card.lock_slots[1].id, card.answer_key.lock_pattern[1])).toBe(state);
+  state = selectLockOption(card, state, card.lock_slots[1].id, card.answer_key.lock_pattern[1]);
+  expect(state.lockSelections[card.lock_slots[1].id]).toBe(card.answer_key.lock_pattern[1]);
+  expect(evaluateLearningCard(card, state)).toBeNull();
   state = selectLockOption(card, state, first.id, wrong);
   expect(evaluateLearningCard(card, state)).toBeNull();
   for (const [index, slot] of card.lock_slots.entries()) {
