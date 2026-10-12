@@ -16,6 +16,7 @@ import {createLocalLearningStore, LocalLearningStorageError, type LocalLearningS
 import {getChinaDayKey as chinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {authFailure} from '../../mobile/src/auth/authErrorCopy';
 import {endsLocalBatch, localBatch, localResumeIndex} from '../../mobile/src/learning/localBatch';
+import {resultVerdict} from '../../mobile/src/learning/resultFeedback';
 import {displayCardText, frontMaterial, eliminationPassage, answerComparison, spaceCardPreview, cardTextBlocks, lockAnswerText, lockTemplate, resultAnswerLabel} from '../../mobile/src/learning/presentation';
 import {resolveLibraryTone} from '../../mobile/src/visual/tokens';
 import {useObjectMotion, useRouteMotion, transitionObjectName} from './motion';
@@ -1955,13 +1956,14 @@ function LearningSurface(props: LearningSurfaceProps) {
   const {perform, busy: motionBusy} = useObjectMotion(props.motionIdentity, cardRef);
   const onContinue = useCallback(() => perform('advance', props.onContinue), [perform, props.onContinue]);
   const onFlip = useCallback(() => perform('flip', () => onState(previous => previous ? {...previous, isFlipped: true} : previous)), [onState, perform]);
-  useEffect(() => {
-    if (!resolved || card?.interaction_id === 'flip' || !answerRef.current) return;
+  const answerRevealed = card?.interaction_id === 'flip' ? Boolean(cardState?.isFlipped) : Boolean(resolved);
+  useLayoutEffect(() => {
+    if (!answerRevealed || !answerRef.current) return;
     answerRef.current.focus({preventScroll: true});
     const body = cardRef.current?.querySelector('.paper-body');
     if (body) body.scrollTop = 0;
-    answerRef.current.scrollIntoView?.({block: 'start'});
-  }, [resolved, card?.interaction_id]);
+    cardRef.current?.querySelector('.flip-back, .result-slip')?.scrollIntoView?.({block: 'start'});
+  }, [answerRevealed, card?.card_id]);
   useLayoutEffect(() => {
     if (!resolved && activeLockSlot > 0) {
       cardRef.current?.querySelector('.lock-row.available')?.scrollIntoView?.({block: 'nearest', inline: 'nearest'});
@@ -2018,7 +2020,7 @@ function LearningSurface(props: LearningSurfaceProps) {
         {resolved && !backVisible ? audioControl : null}
         {backVisible ? <section className="flip-back" aria-label={resolved ? '答案对照' : '核对答案'}>
           <p className="flip-back-label">核对答案</p>
-          <h2 className={isLongQuestion(comparison.correct) ? 'long-question' : undefined}>{comparison.correct}</h2>
+          <h2 ref={answerRef} tabIndex={-1} className={isLongQuestion(comparison.correct) ? 'long-question' : undefined}>{comparison.correct}</h2>
           <p className="answer-reason">{card.analysis.summary}</p>
           <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
           {audioControl}
@@ -2026,6 +2028,7 @@ function LearningSurface(props: LearningSurfaceProps) {
           {resolved ? <p className="self-assess-receipt" role="status">已记录：<span>{resolved.outcome === 'confident' ? '有把握' : '需要复习'}</span></p> : null}
           {resolved ? <ResultExplanation card={card} /> : <LearningHelp key={`help:${props.motionIdentity}`} card={card} state={cardState} patch={patchState} />}
         </section> : resolved ? <section className={`result-slip ${resultTone(resolved)}${card.interaction_id === 'elimination' ? ' elimination-result' : ''}`} aria-label="答案对照" aria-live="polite">
+          <p className="result-verdict" role="status">{resultVerdict(resolved)}</p>
           <p className="result-label">{resultAnswerLabel(card)}</p>
           <h2 ref={answerRef} tabIndex={-1} className={`answer-first${card.interaction_id === 'lock' || card.interaction_id === 'elimination' ? ' contextual-answer' : ''}${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{comparison.correct}</h2>
           {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</span> {comparison.selected}</p> : null}
@@ -2218,14 +2221,16 @@ function SwipeInteraction({
   const swipeRef = useRef<HTMLDivElement | null>(null);
   const {perform, busy: motionBusy} = useObjectMotion(card.card_id, swipeRef);
   const [dragX, setDragX] = useState(0);
-  const pointerStart = useRef<number | null>(null);
+  const pointerStart = useRef<{x: number; y: number; id: number} | null>(null);
   const selectedState = card.swipe_states.find(
     item => item.id === state.swipeSelection,
   );
 
   useLayoutEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (disabled || motionBusy || (event.target as HTMLElement | null)?.closest('button, input, textarea, select')) return;
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || event.isComposing || event.repeat) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (resolved || disabled || motionBusy || target?.closest('button, input, textarea, select, summary, a, [contenteditable]:not([contenteditable="false"])')) return;
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
       const direction = event.key === 'ArrowLeft' ? 'left' : 'right';
       const option = card.swipe_states[direction === 'left' ? 0 : 1];
@@ -2235,13 +2240,15 @@ function SwipeInteraction({
     };
     window.addEventListener('keydown', keyboard);
     return () => window.removeEventListener('keydown', keyboard);
-  }, [card.swipe_states, disabled, motionBusy, onCommit, perform]);
+  }, [card.swipe_states, resolved, disabled, motionBusy, onCommit, perform]);
 
   function settleFromPointer(event: React.PointerEvent<HTMLDivElement>) {
-    if (pointerStart.current === null) return;
-    const distance = event.clientX - pointerStart.current;
+    const start = pointerStart.current;
+    if (!start || start.id !== event.pointerId) return;
+    const distance = event.clientX - start.x;
+    const vertical = event.clientY - start.y;
     pointerStart.current = null;
-    if (disabled || Math.abs(distance) < 72) {setDragX(0); return;}
+    if (resolved || disabled || motionBusy || Math.abs(distance) < 72 || Math.abs(distance) <= Math.abs(vertical) * 1.15) {setDragX(0); return;}
     const nextState = card.swipe_states[distance < 0 ? 0 : 1];
     if (nextState) perform(distance < 0 ? 'left' : 'right', () => {setDragX(0); onCommit(nextState.id);});
   }
@@ -2261,16 +2268,32 @@ function SwipeInteraction({
             transform: `translateX(${dragX}px) rotate(${dragX / 28}deg)`,
           }}
           onPointerDown={event => {
-            if (disabled || motionBusy) return;
-            pointerStart.current = event.clientX;
-            event.currentTarget.setPointerCapture?.(event.pointerId);
+            if (resolved || disabled || motionBusy || event.button !== 0 || event.isPrimary === false) return;
+            pointerStart.current = {x: event.clientX, y: event.clientY, id: event.pointerId};
           }}
           onPointerMove={event => {
-            if (pointerStart.current === null || disabled) return;
-            const distance = event.clientX - pointerStart.current;
-            setDragX(Math.max(-140, Math.min(140, distance)));
+            const start = pointerStart.current;
+            if (!start || start.id !== event.pointerId || resolved || disabled || motionBusy) return;
+            const distance = event.clientX - start.x;
+            const vertical = event.clientY - start.y;
+            if (Math.abs(vertical) > 8 && Math.abs(distance) <= Math.abs(vertical) * 1.15) {
+              pointerStart.current = null;
+              setDragX(0);
+              return;
+            }
+            if (Math.abs(distance) > 8 && Math.abs(distance) > Math.abs(vertical) * 1.15) {
+              event.currentTarget.setPointerCapture?.(event.pointerId);
+              setDragX(Math.max(-140, Math.min(140, distance)));
+            }
           }}
           onPointerUp={settleFromPointer}
+          onPointerLeave={event => {
+            if (!event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+              pointerStart.current = null;
+              setDragX(0);
+            }
+          }}
+          onLostPointerCapture={() => {pointerStart.current = null; setDragX(0);}}
           onPointerCancel={() => {
             pointerStart.current = null;
             setDragX(0);
