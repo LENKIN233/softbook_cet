@@ -503,3 +503,20 @@ function openGlobalRoute(name: '统计' | '我的') {
   }
   fireEvent.click(screen.getByRole('button', {name}));
 }
+
+it('restores Space scrolling after statistics without the shell resetting it', async () => {
+  const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+  await enter();
+  fireEvent.click(screen.getByRole('button', {name: '空间'}));
+  const browser = screen.getByText('浏览与查找卡片').closest('details')!;
+  browser.open = true;
+  fireEvent(browser, new Event('toggle'));
+  Object.defineProperty(window, 'scrollY', {value: 625, configurable: true});
+  fireEvent.scroll(window);
+  fireEvent.click(screen.getByRole('button', {name: '统计'}));
+  scrollTo.mockClear();
+  fireEvent.click(screen.getByRole('button', {name: '空间'}));
+  expect(screen.getByText('浏览与查找卡片').closest('details')).toHaveAttribute('open');
+  expect(scrollTo).toHaveBeenLastCalledWith({top: 625, behavior: 'instant'});
+  Object.defineProperty(window, 'scrollY', {value: 0, configurable: true});
+});

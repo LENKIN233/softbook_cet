@@ -566,7 +566,7 @@ function AccountApp({
   }, [remoteController]);
 
   useLayoutEffect(() => {
-    window.scrollTo({behavior: 'auto', top: 0});
+    if (route !== 'space') window.scrollTo({behavior: 'auto', top: 0});
   }, [currentIndex, currentCard?.card_id, session?.serverSelection?.selectionId, learningPhase, route]);
 
   function segmentScope(track: LearningTrack) {
@@ -1787,6 +1787,7 @@ function AccountApp({
       ) : null}
       {route === 'space' && membership !== null ? (
         <SpaceSurface
+          key={`${phone}:${homeSnapshot?.bootstrap.track ?? session?.track}:${homeSnapshot?.bootstrap.content.version ?? session?.contentVersion}`}
           busy={productBusy}
           learnedIds={catalogResults.map(result => result.cardId)}
           browseState={spaceBrowse.current.get(`${phone}:${homeSnapshot?.bootstrap.track ?? session?.track}:${homeSnapshot?.bootstrap.content.version ?? session?.contentVersion}`)}

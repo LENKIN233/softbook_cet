@@ -1,5 +1,5 @@
 {
-  "version": "vnext-1",
+  "version": "vnext-2",
   "purpose": "Machine-readable contract for physical-space visibility and partial user control boundaries.",
   "visibility_contract": {
     "user_must_be_able_to": [
@@ -11,7 +11,7 @@
       "distinguish_learned_and_unlearned_cards"
     ],
     "learned_card_replay": "Only already learned cards expose answers, explanations and explicit audio replay in Space. Replay preserves scheduler position and completion counts; unlearned cards expose front material only.",
-    "browse_continuity": "Ordinary navigation restores the inspected box and card within the same account, course and content version. Opening Space from the active study task explicitly locates that task."
+    "browse_continuity": "Ordinary navigation restores the inspected box and card, expanded sections and scroll position within the same account, course and content version. Opening Space from the active study task explicitly locates that task."
   },
   "position_control_model": {
     "algorithm_is_primary_driver": true,

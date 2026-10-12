@@ -691,7 +691,7 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
     root.findByProps({ testID: 'space-return-learning' }).props.style,
   );
   const viewportStyle = StyleSheet.flatten(
-    root.findByProps({testID: 'space-fixed-viewport'}).props.style,
+    root.findByProps({testID: 'space-scroll-viewport'}).props.contentContainerStyle,
   );
 
   expect(openBoxDeckStyle.overflow).not.toBe('hidden');
@@ -701,7 +701,7 @@ test('stacks Space objects instead of overlapping them at accessibility font siz
     expect(style.height).toBeUndefined();
   });
   expect(returnStyle.minHeight).toBeGreaterThanOrEqual(44);
-  expect(viewportStyle.flex).toBe(0);
+  expect(viewportStyle.flexGrow).toBe(1);
   const overviewPromptNodes = root.findAllByProps({children: longPrompt});
   expect(overviewPromptNodes.length).toBeGreaterThan(0);
   overviewPromptNodes.forEach(node => {
@@ -909,5 +909,47 @@ test('a keyword result opens the inspected card instead of leaving the search li
   expect(tree.root.findAllByProps({testID: 'space-filter-results'})).toHaveLength(0);
   expect(tree.root.findByProps({testID: 'space-browse-card-face'})).toBeTruthy();
   expect(tree.root.findAllByProps({testID: 'space-read-answer'})).toHaveLength(0);
+  ReactTestRenderer.act(() => tree.unmount());
+});
+
+test('restores the expanded directory and scroll position after leaving Space', () => {
+  const session = createLocalLearningSession('cet4');
+  const current = session.cards[0];
+  const focusKey = `${current.space_metadata.box_ref}:all:overview`;
+  const scrollTo = jest.fn();
+  const save = jest.fn();
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<SpaceSurface
+      cardStateById={{}} currentLearningCard={current} deviceClass="phone"
+      palette={palette} spaceCards={session.cards} onReturnToLearning={jest.fn()}
+      onToggleFavoriteTag={jest.fn()} onToggleSleepState={jest.fn()}
+      browseState={{filter: 'all', query: '', library: current.space_metadata.library,
+        group: current.space_metadata.group, box: current.space_metadata.box_ref, index: 0,
+        mode: 'manual', browserOpen: true, scrollOffsets: {[focusKey]: 420}}}
+      onBrowseStateChange={save}
+    />);
+  });
+  expect(tree.root.findByProps({testID: 'space-browse-rail'})).toBeTruthy();
+  const viewport = tree.root.findByProps({testID: 'space-scroll-viewport'});
+  viewport.instance.scrollTo = scrollTo;
+  ReactTestRenderer.act(() => viewport.props.onContentSizeChange(390, 1800));
+  expect(scrollTo).toHaveBeenLastCalledWith({y: 420, animated: false});
+  ReactTestRenderer.act(() => viewport.props.onScroll({nativeEvent: {contentOffset: {y: 600}}}));
+  expect(save.mock.lastCall[0].scrollOffsets[focusKey]).toBe(600);
+  const saved = save.mock.lastCall[0];
+  ReactTestRenderer.act(() => tree.unmount());
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<SpaceSurface
+      cardStateById={{}} currentLearningCard={current} deviceClass="phone"
+      palette={palette} spaceCards={session.cards} onReturnToLearning={jest.fn()}
+      onToggleFavoriteTag={jest.fn()} onToggleSleepState={jest.fn()} browseState={saved}
+    />);
+  });
+  const restoredViewport = tree.root.findByProps({testID: 'space-scroll-viewport'});
+  restoredViewport.instance.scrollTo = scrollTo;
+  ReactTestRenderer.act(() => restoredViewport.props.onContentSizeChange(390, 1800));
+  expect(scrollTo).toHaveBeenLastCalledWith({y: 600, animated: false});
+  expect(tree.root.findByProps({testID: 'space-browse-rail'})).toBeTruthy();
   ReactTestRenderer.act(() => tree.unmount());
 });

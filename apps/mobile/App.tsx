@@ -6706,6 +6706,7 @@ function AppShell({
     />
   ) : route.key === 'space' ? (
     <SpaceSurface
+      key={`${getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession())}:${learningTrack}:${learningSession?.contentVersion}`}
       contentManifest={learningSession?.contentManifest}
       audioAuthorityToken={spaceAudioAuthority}
       refreshAudioDownload={refreshSpaceAudioDownload}
@@ -7763,7 +7764,7 @@ function PhoneShell({
         route={route}
       />
       <View style={styles.shellContent}>
-        {usesAccessibilityLayout && activeRoute !== 'learning' ? (
+        {usesAccessibilityLayout && activeRoute !== 'learning' && activeRoute !== 'space' ? (
           <ScrollView
             ref={readingScroll}
             contentContainerStyle={styles.shellAccessibleContent}
