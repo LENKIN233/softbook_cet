@@ -79,7 +79,7 @@ input + label { margin-top: .75rem; }
 .learning-tools { display:flex; flex-wrap:wrap; align-items:center; gap:4px 20px; margin-top:18px; }
 .learning-tools .text-button { padding:8px 0; font-size:13px; }
 .learning-card .result-slip { border:0; background:transparent; padding:0; margin:0; }
-.result-label {color:var(--success);font-size:12px;line-height:1.5;font-weight:500;margin-bottom:8px;}
+.result-label {color:var(--muted);font-size:12px;line-height:1.5;font-weight:500;margin-bottom:8px;}
 .learning-card .answer-first { scroll-margin-top:24px;font-size:24px;font-weight:550;line-height:1.55;margin:4px 0 16px;overflow-wrap:anywhere; }
 .selected-answer { font-size:15px; color:var(--danger); margin-bottom:24px; line-height:1.6; }
 .selected-answer span { color:var(--muted); margin-right:12px; font-size:12px; }
@@ -156,8 +156,10 @@ input + label { margin-top: .75rem; }
 .swipe-trail > span:last-child { min-width: 0; display: grid; gap: .22rem; }
 .swipe-trail small { color: var(--muted); line-height: 1.35; }
 .swipe-trail.selected { border-color: var(--hall); background: var(--hall-soft); box-shadow: inset 0 0 0 1px var(--hall); }
-.result-slip.good .result-label { color: var(--success); }
-.result-slip.review .result-label { color: #795500; }
+.result-verdict {font-size:16px;line-height:1.5;font-weight:650;margin:0 0 12px;color:var(--ink);}
+.result-slip.good .result-verdict { color: var(--success); }
+.result-slip.review .result-verdict { color: var(--danger); }
+.interaction-lock .result-slip.review .result-verdict { color: #765719; }
 .answer-comparison { display: grid; gap: .75rem; margin: 1rem 0; }
 .answer-comparison > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem 1rem; }
 .answer-comparison dt { flex: 0 0 5em; color: var(--muted); font-size: .875rem; }
@@ -602,3 +604,5 @@ details[open] > summary > .disclosure-chevron {transform:rotate(180deg);}
 
 .audio-repeat-actions {display: flex; gap: 14px;}
 .audio-repeat-actions button {display: inline-flex; align-items: center; gap: 6px; min-height: 44px;}
+
+.answer-first:focus, .flip-back h2:focus {outline:none;}

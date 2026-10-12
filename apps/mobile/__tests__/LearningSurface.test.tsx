@@ -1323,3 +1323,47 @@ test('flip confidence preserves the existing answer and an opened original quest
   expect(tree.root.findByProps({testID: 'learning-next-button'})).toBeTruthy();
   ReactTestRenderer.act(() => tree.unmount());
 });
+
+test.each(['correct', 'incorrect'] as const)('makes the %s objective verdict explicit before the answer', outcome => {
+  const session = createLocalLearningSession('cet4');
+  const card = session.cards.find(item => item.interaction_id === 'multiple_choice')!;
+  const state = createLearningCardState(card);
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<LearningSurface
+      audioAttemptId={null} palette={palette} sessionCards={[card]} sessionLabel={session.sourceLabel}
+      phase="learning" currentCard={card} currentCardState={state} currentIndex={0}
+      currentResult={{cardId: card.card_id, interactionId: card.interaction_id, outcome,
+        completedAt: '2026-10-12T00:00:00.000Z', isFavorited: false, usedHint: false, usedPeek: false}}
+      completedResults={[]} reviewCandidateCount={0}
+      onToggleHint={jest.fn()} onTogglePeek={jest.fn()} onToggleFavorite={jest.fn()}
+      onFlip={jest.fn()} onSetFlipConfidence={jest.fn()} onSelectOption={jest.fn()}
+      onSetLockSelection={jest.fn()} onToggleEliminationItem={jest.fn()} onSelectSwipeState={jest.fn()}
+      onSubmitCurrentCard={jest.fn()} onAdvanceCard={jest.fn()} onRestartDeck={jest.fn()} onOpenResultDetail={jest.fn()}
+    />);
+  });
+  const text = visibleText(tree.toJSON());
+  const verdict = outcome === 'correct' ? '这次答对了' : '这次答错了';
+  expect(text).toContain(verdict);
+  expect(text.indexOf(verdict)).toBeLessThan(text.indexOf('正确答案'));
+  ReactTestRenderer.act(() => tree.unmount());
+});
+test.each([false, true])('deduplicates equal swipe labels while retaining different descriptions: %s', different => {
+  const session = createLocalLearningSession('cet4');
+  const original = session.cards.find(item => item.interaction_id === 'swipe')!;
+  if (original.interaction_id !== 'swipe') throw new Error('Expected swipe');
+  const card = {...original, swipe_states: original.swipe_states.map((item, i) => ({...item, label: i ? 'True' : 'False', description: different ? (i ? '符合原文' : '不符合原文') : (i ? 'True' : 'False')}))};
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<LearningResultDetailSurface
+      palette={palette} card={card} cardState={{...createLearningCardState(card), swipeSelection: card.swipe_states[1].id}} isLastCard={true}
+      currentIndex={0} sessionCardCount={1} sessionLabel={session.sourceLabel} phase="learning"
+      onAdvanceCard={jest.fn()} onBackToPractice={jest.fn()} result={{cardId: card.card_id, interactionId: 'swipe', outcome: 'incorrect',
+        completedAt: '2026-10-12T00:00:00.000Z', isFavorited: false, usedHint: false, usedPeek: false}}
+    />);
+  });
+  const text = visibleText(tree.toJSON());
+  expect(text).not.toMatch(/True · True|False · False/);
+  if (different) expect(text).toContain('True · 符合原文');
+  ReactTestRenderer.act(() => tree.unmount());
+});

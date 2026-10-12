@@ -1,6 +1,6 @@
 import {ScaledText as Text} from '../visual/ScaledText';
 import {isLongQuestion, stackChoiceOptions, usesLargeTextLayout} from './readability';
-import {resultFeedback} from './resultFeedback';
+import {resultFeedback, resultVerdict} from './resultFeedback';
 import {EliminationPassageText} from './EliminationPassageText';
 import {displayCardText, answerComparison, eliminationPassage, frontMaterial, cardTextBlocks, lockAnswerText, lockTemplate, resultAnswerLabel} from './presentation';
 import {useCardMotion, useReducedMotion, MotionView, MotionPressable, StudioPressable as Pressable, LockMotionGlyph, StrikeText} from './NativeMotion';
@@ -1739,6 +1739,13 @@ function formatOptionText(option: { label: string; text: string } | undefined) {
   return option ? `${option.label} · ${option.text}` : '未选择';
 }
 
+function formatSwipeState(option: {label: string; description: string} | undefined) {
+  if (!option) return '未选择';
+  const label = option.label.trim();
+  const description = option.description.trim();
+  return !description || description === label ? label : `${label} · ${description}`;
+}
+
 function getResolvedAnswerRows(
   card: LearningCard,
   cardState: LearningCardState,
@@ -1823,17 +1830,13 @@ function getResolvedAnswerRows(
       return [
         {
           label: '你的方向',
-          displayText: selectedState
-            ? `${selectedState.label} · ${selectedState.description}`
-            : '未选择',
+          displayText: formatSwipeState(selectedState),
           testID: 'learning-detail-selected-answer',
           tone: selectedState?.id === correctState?.id ? 'success' : 'warning',
         },
         {
           label: '正确判断',
-          displayText: correctState
-            ? `${correctState.label} · ${correctState.description}`
-            : '待确认',
+          displayText: correctState ? formatSwipeState(correctState) : '待确认',
           testID: 'learning-detail-correct-answer',
           tone: 'success',
         },
@@ -2303,18 +2306,14 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
   const comparison = answerComparison(card, cardState);
   const answerLabel = resultAnswerLabel(card);
   return <View style={styles.answerSummary} testID="learning-result-summary">
-    <Text style={[styles.answerEyebrow, {color: card.interaction_id === 'elimination' ? palette.textMuted : palette.success}]}>{answerLabel}</Text>
+    <Text accessibilityLiveRegion="polite" testID="learning-result-verdict" style={[styles.resultVerdict, {color: getResultTone(result, palette)}]}>{resultVerdict(result)}</Text>
+    <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{answerLabel}</Text>
     <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
     {comparison.selected && comparison.selected !== comparison.correct ? <View style={styles.answerSelectionRow}>
       <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</Text>
       <Text style={[styles.answerSelection, {color: palette.danger}]}>{comparison.selected}</Text>
     </View> : null}
     {result.outcome === 'confident' || result.outcome === 'review' ? <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{result.outcome === 'confident' ? '有把握' : '需要复习'}</Text> : null}
-    {card.interaction_id === 'lock' && result.outcome === 'incorrect' ? (
-      <Text style={[styles.answerEyebrow, {color: STUDIO.color.reviewInk}]}>
-        已解锁，稍后复习
-      </Text>
-    ) : null}
     <Text style={[styles.answerReason, {color: palette.text}]}>{card.analysis.summary}</Text>
     <QuestionRecall key={`question:${card.card_id}`} card={card} palette={palette} />
     <AudioTranscript key={`transcript:${card.card_id}`} card={card} palette={palette} />
@@ -2484,6 +2483,7 @@ function MetricPill({
 }
 
 const styles = StyleSheet.create({
+  resultVerdict: {fontSize: 16, lineHeight: 24, fontWeight: '600'},
   recalledQuestion: {gap: 12, paddingVertical: 8},
   promptBlocks: {gap: 16},
   promptBody: {fontSize: 18, lineHeight: 30, fontWeight: '400', marginBottom: 0},

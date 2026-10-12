@@ -520,3 +520,62 @@ it('restores Space scrolling after statistics without the shell resetting it', a
   expect(scrollTo).toHaveBeenLastCalledWith({top: 625, behavior: 'instant'});
   Object.defineProperty(window, 'scrollY', {value: 0, configurable: true});
 });
+
+it.each(['metaKey', 'ctrlKey', 'altKey', 'shiftKey', 'isComposing', 'repeat'])(
+  'does not answer a swipe card from a %s arrow event', async flag => {
+    await enter(); reach('swipe');
+    const event = new KeyboardEvent('keydown', {key: 'ArrowRight', [flag]: true, bubbles: true, cancelable: true});
+    fireEvent(screen.getByRole('group', {name: '当前滑动卡，可拖动或使用左右选项'}), event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(screen.queryByRole('region', {name: '答案对照'})).toBeNull();
+  },
+);
+
+function sendPointer(node: Element, type: string, x: number, y: number, extra = {}) {
+  const event = new Event(type, {bubbles: true, cancelable: true});
+  Object.assign(event, {clientX: x, clientY: y, pointerId: 1, button: 0, isPrimary: true, ...extra});
+  fireEvent(node, event);
+}
+it.each([[100, 270], [100, 100], [20, 100]])('keeps a %s/%s scroll gesture from answering', async (dx, dy) => {
+  await enter(); reach('swipe');
+  const node = screen.getByRole('group', {name: '当前滑动卡，可拖动或使用左右选项'});
+  sendPointer(node, 'pointerdown', 100, 100);
+  sendPointer(node, 'pointermove', 100 + dx, 100 + dy);
+  sendPointer(node, 'pointerup', 100 + dx, 100 + dy);
+  expect(screen.queryByRole('region', {name: '答案对照'})).toBeNull();
+});
+it('still answers a deliberate horizontal swipe and ignores cancelled gestures', async () => {
+  await enter(); reach('swipe');
+  const node = screen.getByRole('group', {name: '当前滑动卡，可拖动或使用左右选项'});
+  sendPointer(node, 'pointerdown', 100, 100);
+  sendPointer(node, 'pointermove', 200, 100);
+  sendPointer(node, 'pointercancel', 200, 100);
+  expect(screen.queryByRole('region', {name: '答案对照'})).toBeNull();
+  sendPointer(node, 'pointerdown', 100, 100);
+  sendPointer(node, 'pointermove', 200, 115);
+  sendPointer(node, 'pointerup', 200, 115);
+  expect(screen.getByRole('region', {name: '答案对照'})).toBeInTheDocument();
+});
+it('opens a flip answer at the start of the reading area', async () => {
+  await enter();
+  const card = current();
+  if (card.interaction_id !== 'flip') throw new Error('Expected flip');
+  const body = screen.getByRole('article').querySelector('.paper-body')!;
+  body.scrollTop = 180;
+  fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+  expect(body.scrollTop).toBe(0);
+  expect(screen.getByRole('heading', {name: card.back_text})).toHaveFocus();
+});
+it.each([true, false])('shows a separate objective verdict for wrong=%s', async wrong => {
+  await enter(); reach('multiple_choice'); answer(current(), wrong);
+  expect(within(screen.getByRole('region', {name: '答案对照'})).getByText(wrong ? '这次答错了' : '这次答对了')).toBeVisible();
+});
+
+it.each([{button: 2}, {isPrimary: false}])('ignores non-primary pointer starts %j', async extra => {
+  await enter(); reach('swipe');
+  const node = screen.getByRole('group', {name: '当前滑动卡，可拖动或使用左右选项'});
+  sendPointer(node, 'pointerdown', 100, 100, extra);
+  sendPointer(node, 'pointermove', 220, 100);
+  sendPointer(node, 'pointerup', 220, 100);
+  expect(screen.queryByRole('region', {name: '答案对照'})).toBeNull();
+});
