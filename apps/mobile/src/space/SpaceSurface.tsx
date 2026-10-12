@@ -6,7 +6,7 @@ import {createLearningCardState} from '../learning/sessionCore';
 import {ScaledText as Text} from '../visual/ScaledText';
 import {filterSpaceCards, type SpaceCardFilter} from './cardFilters';
 import {spaceCardPreview, answerComparison, displayCardText} from '../learning/presentation';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {StudioPressable as Pressable, MotionView} from '../learning/NativeMotion';
 import {STUDIO} from '../visual/studio';
 import {StudioIcon} from '../visual/StudioIcon';
@@ -90,7 +90,7 @@ type SpaceSeed = {
   libraryCount: number;
 };
 
-export type SpaceBrowseState = {filter: SpaceCardFilter; query: string; library: string; group: string; box: string; index: number; mode: SpaceSelectionMode};
+export type SpaceBrowseState = {filter: SpaceCardFilter; query: string; library: string; group: string; box: string; index: number; mode: SpaceSelectionMode; browserOpen?: boolean; showAnswer?: boolean; filterLimit?: number; scrollOffsets?: Record<string, number>};
 const noop = () => undefined;
 
 export function isShortSpaceViewport(width: number, height: number) {
@@ -173,10 +173,11 @@ export function SpaceSurface({
     useWindowDimensions();
   const usesShortViewport = isShortSpaceViewport(viewportWidth, viewportHeight);
   const [filter, setFilter] = useState<SpaceCardFilter>(browseState?.filter ?? 'all');
-  const [isBrowsing, setIsBrowsing] = useState(false);
+  const [isBrowsing, setIsBrowsing] = useState(browseState?.browserOpen ?? false);
   const [query, setQuery] = useState(browseState?.query ?? '');
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [filterLimit, setFilterLimit] = useState(40);
+  const [showAnswer, setShowAnswer] = useState(browseState?.showAnswer ?? false);
+  const [filterLimit, setFilterLimit] = useState(browseState?.filterLimit ?? 40);
+  const scrollOffsets = useRef({...browseState?.scrollOffsets});
   const matches = filterSpaceCards(spaceCards, filter, Object.keys(cardStateById).filter(id => cardStateById[id].isFavorited), pendingReviewIds, Object.keys(cardStateById).filter(id => cardStateById[id].isSleeping), query);
   const filterEmptyMessage = query.trim() ? '没有找到匹配的卡片，试试其他关键词。' : filter === 'favorites' ? '还没有收藏的卡片。学习时点击 ☆，就能在这里找到它。' : filter === 'sleeping' ? '目前没有暂停的卡片。暂停后仍保留在原卡盒，可随时恢复。' : '目前没有待复习的卡片。';
   const showsEmptyFilter = (filter !== 'all' || Boolean(query.trim())) && matches.length === 0;
@@ -237,8 +238,16 @@ export function SpaceSurface({
   const [selectedCardIndex, setSelectedCardIndex] = useState(
     browseState?.index ?? focusedSelection?.cardIndex ?? 0,
   );
-  useEffect(() => {onBrowseStateChange?.({filter, query, library: selectedLibraryName, group: selectedGroupName, box: selectedBoxRef, index: selectedCardIndex, mode: selectionMode});}, [filter, query, selectedLibraryName, selectedGroupName, selectedBoxRef, selectedCardIndex, selectionMode, onBrowseStateChange]);
-  useEffect(() => {setShowAnswer(false);}, [selectedBoxRef, selectedCardIndex]);
+  const saveBrowseState = useCallback(() => {
+    onBrowseStateChange?.({filter, query, library: selectedLibraryName, group: selectedGroupName, box: selectedBoxRef, index: selectedCardIndex, mode: selectionMode, browserOpen: isBrowsing, showAnswer, filterLimit, scrollOffsets: {...scrollOffsets.current}});
+  }, [filter, query, selectedLibraryName, selectedGroupName, selectedBoxRef, selectedCardIndex, selectionMode, isBrowsing, showAnswer, filterLimit, onBrowseStateChange]);
+  useEffect(saveBrowseState, [saveBrowseState]);
+  const answerSelection = useRef(`${selectedBoxRef}:${selectedCardIndex}`);
+  useEffect(() => {
+    const key = `${selectedBoxRef}:${selectedCardIndex}`;
+    if (answerSelection.current !== key) setShowAnswer(false);
+    answerSelection.current = key;
+  }, [selectedBoxRef, selectedCardIndex]);
   const focusedSelectionKey = focusedSelection
     ? [
         focusedSelection.cardId,
@@ -405,9 +414,7 @@ export function SpaceSurface({
   const hasStateRail = Boolean(
     spaceGateRail || spaceSyncRail?.state === 'error' || spaceSyncRail?.requiresAttention || spaceStatusRail,
   );
-  const usesScrollableViewport = usesAccessibilityLayout
-    ? deviceClass === 'tablet'
-    : deviceClass === 'phone' || usesShortViewport || hasStateRail;
+  const usesScrollableViewport = deviceClass === 'phone' || usesShortViewport || hasStateRail || usesAccessibilityLayout;
 
   if (!selectedLibrary || !selectedGroup || !selectedBox) {
     const emptyTone = currentLearningCard
@@ -732,10 +739,13 @@ export function SpaceSurface({
   };
   return (
     <SpaceViewport
+      key={`${selectedBox.boxRef}:${filter}:${screen}`}
       deviceClass={deviceClass}
       usesAccessibilityLayout={usesAccessibilityLayout}
       usesShortViewport={usesScrollableViewport || deviceClass === 'tablet'}
       focusKey={`${selectedBox.boxRef}:${filter}:${screen}`}
+      savedOffsets={scrollOffsets.current}
+      onScrollOffsetChange={(key, y) => {scrollOffsets.current[key] = y; saveBrowseState();}}
     >
       <View style={styles.spaceComposition} testID="space-shelf-desk">
         <View testID="space-address-shelf">
@@ -1329,20 +1339,27 @@ export function SpaceSurface({
 function SpaceViewport({
   children,
   focusKey,
+  savedOffsets,
+  onScrollOffsetChange,
   deviceClass,
   usesAccessibilityLayout,
   usesShortViewport,
 }: {
   children: React.ReactNode;
   focusKey?: string;
+  savedOffsets?: Record<string, number>;
+  onScrollOffsetChange?: (key: string, y: number) => void;
   deviceClass: DeviceClass;
   usesAccessibilityLayout: boolean;
   usesShortViewport: boolean;
 }) {
   const scrollRef = useRef<ScrollView>(null);
-  useEffect(() => {
-    scrollRef.current?.scrollTo({y: 0, animated: false});
-  }, [focusKey]);
+  const restored = useRef(false);
+  const initialOffset = useRef(0);
+  useLayoutEffect(() => {
+    restored.current = false;
+    initialOffset.current = Math.max(0, savedOffsets?.[focusKey ?? ''] ?? 0);
+  }, [focusKey, savedOffsets]);
   const baseStyle = [
     styles.content,
     deviceClass === 'tablet' ? styles.contentTablet : null,
@@ -1352,6 +1369,17 @@ function SpaceViewport({
     return (
       <ScrollView
         ref={scrollRef}
+        keyboardShouldPersistTaps="handled"
+        onContentSizeChange={() => {
+          if (!restored.current) {
+            scrollRef.current?.scrollTo({y: initialOffset.current, animated: false});
+            restored.current = true;
+          }
+        }}
+        scrollEventThrottle={100}
+        onScroll={event => {
+          if (restored.current && focusKey) onScrollOffsetChange?.(focusKey, Math.max(0, event.nativeEvent.contentOffset.y));
+        }}
         contentContainerStyle={[...baseStyle, styles.contentShortViewport]}
         showsVerticalScrollIndicator={false}
         style={styles.contentScroll}

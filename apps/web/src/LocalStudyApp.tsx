@@ -521,9 +521,10 @@ export function LocalStudyApp({
           ) : null}
           {route === "space" ? (
             <Space
+              key={`${track}:${session?.contentVersion}`}
               learnedIds={state.results.map(result => result.cardId)}
-              browseState={spaceBrowse.current.get(track)}
-              onBrowseStateChange={value => spaceBrowse.current.set(track, value)}
+              browseState={spaceBrowse.current.get(`${track}:${session?.contentVersion}`)}
+              onBrowseStateChange={value => spaceBrowse.current.set(`${track}:${session?.contentVersion}`, value)}
               cards={cards}
               busy={busy}
               canMutate

@@ -1,6 +1,6 @@
 import {createLearningCardState} from '../../mobile/src/learning/sessionCore';
 import {StudioAudio} from './StudioAudio';
-import {useEffect, useMemo, useRef, useState, type CSSProperties} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent} from 'react';
 import {type LearningCard, INTERACTION_LABELS} from '../../mobile/src/learning/model';
 import {displayCardText, spaceCardPreview, answerComparison} from '../../mobile/src/learning/presentation';
 import {filterSpaceCards, type SpaceCardFilter} from '../../mobile/src/space/cardFilters';
@@ -12,7 +12,7 @@ import './spaceSurface.css';
 import {StudioIcon, IconLabel, DisclosureLabel} from './StudioIcon';
 
 type SpaceBox = {box: string; boxRef: string; cards: LearningCard[]; group: string; library: string};
-export type SpaceBrowseState = {selection: {boxRef: string; cardId: string} | null; filter: SpaceCardFilter; query: string};
+export type SpaceBrowseState = {selection: {boxRef: string; cardId: string} | null; filter: SpaceCardFilter; query: string; scrollY?: number; openSections?: string[]; answerCardId?: string | null; filterLimit?: number};
 export type SpaceSurfaceProps = {
   learnedIds?: string[]; browseState?: SpaceBrowseState; onBrowseStateChange?: (state: SpaceBrowseState) => void;
   audioStatus?: 'idle' | 'loading' | 'paused' | 'playing' | 'ready' | 'error'; onPlayCardAudio?: (id: string) => void; readAudioPosition?: () => number | null | Promise<number | null>; onSeekAudio?: (ms: number) => void; onStopAudio?: () => void;
@@ -24,11 +24,29 @@ export type SpaceSurfaceProps = {
 
 export function SpaceSurface({busy, cards, canMutate, currentCardId, pendingReviewIds, favorites, sleeping, membership, onFavorite, onSleep, onReturn, statusMessage, syncStatus, learnedIds = [], browseState, onBrowseStateChange, audioStatus = 'idle', onPlayCardAudio, readAudioPosition, onSeekAudio, onStopAudio}: SpaceSurfaceProps) {
   const [filter, setFilter] = useState<SpaceCardFilter>(browseState?.filter ?? 'all');
-  const [filterLimit, setFilterLimit] = useState(40);
+  const [filterLimit, setFilterLimit] = useState(browseState?.filterLimit ?? 40);
   const [selection, setSelection] = useState<{boxRef: string; cardId: string} | null>(browseState?.selection ?? null);
   const [query, setQuery] = useState(browseState?.query ?? '');
-  const [answerCardId, setAnswerCardId] = useState<string | null>(null);
-  useEffect(() => {onBrowseStateChange?.({selection, filter, query});}, [selection, filter, query, onBrowseStateChange]);
+  const [answerCardId, setAnswerCardId] = useState<string | null>(browseState?.answerCardId ?? null);
+  const [openSections, setOpenSections] = useState<string[]>(browseState?.openSections ?? []);
+  const scrollY = useRef(browseState?.scrollY ?? 0);
+  const save = useRef(() => {});
+  useLayoutEffect(() => {
+    save.current = () => onBrowseStateChange?.({selection, filter, query, openSections, answerCardId, filterLimit, scrollY: scrollY.current});
+    save.current();
+  }, [selection, filter, query, openSections, answerCardId, filterLimit, onBrowseStateChange]);
+  useLayoutEffect(() => {
+    const target = scrollY.current;
+    window.scrollTo({top: target, behavior: 'instant'});
+    const frame = requestAnimationFrame(() => window.scrollTo({top: target, behavior: 'instant'}));
+    const rememberScroll = () => {scrollY.current = Math.max(0, window.scrollY); save.current();};
+    window.addEventListener('scroll', rememberScroll, {passive: true});
+    return () => {cancelAnimationFrame(frame); window.removeEventListener('scroll', rememberScroll);};
+  }, []);
+  const sectionProps = (key: string) => ({open: openSections.includes(key), onToggle: (event: SyntheticEvent<HTMLDetailsElement>) => {
+    const open = event.currentTarget.open;
+    setOpenSections(value => value.includes(key) === open ? value : open ? [...value, key] : value.filter(item => item !== key));
+  }});
   const boxTray = useRef<HTMLElement>(null);
   const boxes = useMemo(() => buildSpaceBoxes(cards), [cards]);
   const currentBox = boxes.find(box => box.cards.some(card => card.card_id === currentCardId));
@@ -71,11 +89,11 @@ export function SpaceSurface({busy, cards, canMutate, currentCardId, pendingRevi
       <div className="space-current-actions">{currentBox && (!currentBoxIsSelected || selected?.card_id !== currentCardId) ? <button className="text-button" onClick={returnToCurrent}><IconLabel name="folder">回到当前卡盒</IconLabel></button> : null}<button className="primary" onClick={onReturn}><IconLabel name="arrowLeft">返回学习</IconLabel></button></div>
       {statusMessage ? <p className="notice error" role="alert">{statusMessage}</p> : null}
       {!['已保存在本机', '已同步', ''].includes(syncStatus) ? <p className="notice" role="status">空间设置 · {syncStatus}</p> : null}
-      {otherActiveCards.length ? <details className="space-box-rest"><summary><DisclosureLabel name="list">查看盒内其他卡片 · {otherActiveCards.length} 张</DisclosureLabel></summary><div className="contained-cards" aria-label="盒内其他卡片">{otherActiveCards.map(renderCard)}</div></details> : null}
-      <details className="space-sleep-details"><summary><DisclosureLabel name="moon">休眠区 · {sleepingCards.length ? `${sleepingCards.length} 张` : '暂无休眠'}</DisclosureLabel></summary><section className="sleep-region" aria-label="盒内休眠区"><p className="muted">休眠的卡片暂时离开学习流，仍保留在这个盒中。恢复后可继续学习。</p><div className="contained-cards">{sleepingCards.filter(card => card !== selected).map(renderCard)}</div></section></details>
+      {otherActiveCards.length ? <details className="space-box-rest" {...sectionProps(`${selectedBox?.boxRef}:rest`)}><summary><DisclosureLabel name="list">查看盒内其他卡片 · {otherActiveCards.length} 张</DisclosureLabel></summary><div className="contained-cards" aria-label="盒内其他卡片">{otherActiveCards.map(renderCard)}</div></details> : null}
+      <details className="space-sleep-details" {...sectionProps(`${selectedBox?.boxRef}:sleep`)}><summary><DisclosureLabel name="moon">休眠区 · {sleepingCards.length ? `${sleepingCards.length} 张` : '暂无休眠'}</DisclosureLabel></summary><section className="sleep-region" aria-label="盒内休眠区"><p className="muted">休眠的卡片暂时离开学习流，仍保留在这个盒中。恢复后可继续学习。</p><div className="contained-cards">{sleepingCards.filter(card => card !== selected).map(renderCard)}</div></section></details>
     </section>
     {neighbors.length ? <section className="space-neighbors" aria-label="本组其他卡盒"><h2>本组其他卡盒</h2><div>{neighbors.map(box => <button className="text-button" key={box.boxRef} onClick={() => selectBox(box)}>{box.box}<small>已学 {box.cards.filter(card => learnedIds.includes(card.card_id)).length} / {box.cards.length}</small></button>)}</div></section> : null}
-    <details className="space-browser"><summary><DisclosureLabel name="grid">浏览与查找卡片</DisclosureLabel></summary>
+    <details className="space-browser" {...sectionProps('browser')}><summary><DisclosureLabel name="grid">浏览与查找卡片</DisclosureLabel></summary>
       <p className="space-filter-scope">筛选当前科目全部卡盒，卡片保留原来的位置。</p>
       <div className="space-filters" role="group" aria-label="卡片筛选">{([['all', '全部卡片'], ['favorites', '只看收藏'], ['review', '只看待复习'], ['sleeping', '已暂停']] as const).map(([value, label]) => <button key={value} className="text-button" aria-pressed={filter === value} onClick={() => {setFilter(value); setFilterLimit(40);}}><IconLabel name={value === 'all' ? 'grid' : value === 'favorites' ? 'star' : value === 'sleeping' ? 'moon' : 'refresh'}>{label}</IconLabel>{filter === value ? <StudioIcon name="check" /> : null}</button>)}</div>
       <label className="space-search"><StudioIcon name="search"/>查找卡片<input aria-label="查找卡片" value={query} placeholder="题目关键词或卡盒名称" onChange={event => {setQuery(event.target.value); setFilterLimit(40);}}/></label>

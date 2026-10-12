@@ -336,7 +336,7 @@ input + label { margin-top: .75rem; }
 .account-track-selector button + button { margin-left: .75rem; }
 
 /* Light Studio: shared token values are installed from visualTheme.ts. */
-.brand-mark svg {width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round;}
+.brand-mark svg {width:21px;height:21px;fill:none;stroke:currentColor;stroke-linejoin:round;}
 .rail-brand {justify-content:center;padding:0;}
 .rail-brand .wordmark,.rail-account > span:last-child {display:none;}
 .mobile-header .brand-lockup {display:none;}

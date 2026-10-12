@@ -122,3 +122,22 @@ it('stops read-only audio when following a changed current card and on unmount',
   view.unmount();
   expect(onStopAudio).toHaveBeenCalledTimes(2);
 });
+
+it('retains open sections and scroll position across a Space remount', () => {
+  const callbacks = props();
+  const save = vi.fn();
+  const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+  const view = render(<SpaceSurface {...callbacks} browseState={{selection: null, filter: 'all', query: '', scrollY: 450, openSections: ['browser', '0000:rest']}} onBrowseStateChange={save}/>);
+  expect(screen.getByText('浏览与查找卡片').closest('details')).toHaveAttribute('open');
+  expect(screen.getByText(/查看盒内其他卡片/).closest('details')).toHaveAttribute('open');
+  expect(scrollTo).toHaveBeenCalledWith({top: 450, behavior: 'instant'});
+  Object.defineProperty(window, 'scrollY', {value: 625, configurable: true});
+  fireEvent.scroll(window);
+  expect(save.mock.lastCall?.[0].scrollY).toBe(625);
+  const saved = save.mock.lastCall![0];
+  view.unmount();
+  render(<SpaceSurface {...callbacks} browseState={saved}/>);
+  expect(scrollTo).toHaveBeenLastCalledWith({top: 625, behavior: 'instant'});
+  scrollTo.mockRestore();
+  Object.defineProperty(window, 'scrollY', {value: 0, configurable: true});
+});

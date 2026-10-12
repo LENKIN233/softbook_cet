@@ -796,14 +796,15 @@ export function LocalStudyApp({
             ) : null}
             {route === 'space' ? (
               <SpaceSurface
+                key={`${track}:${session?.contentVersion}`}
                 palette={palette}
                 deviceClass={deviceClass}
                 usesAccessibilityLayout={usesLargeTextLayout(fontScale)}
                 allowBundledAudio
                 audioAuthorityToken={`${track}:${session?.contentVersion}:space`}
                 learnedIds={state.results.map(result => result.cardId)}
-                browseState={spaceBrowse.current.get(track)}
-                onBrowseStateChange={value => spaceBrowse.current.set(track, value)}
+                browseState={spaceBrowse.current.get(`${track}:${session?.contentVersion}`)}
+                onBrowseStateChange={value => spaceBrowse.current.set(`${track}:${session?.contentVersion}`, value)}
                 spaceCards={cards}
                 cardStateById={rows}
                 currentLearningCard={card}
