@@ -68,23 +68,6 @@ export function StatisticsSurface({statistics, track, canCheckInToday,
       <Text style={[styles.detail, {color: palette.text}]}>当前科目的统计暂时无法读取。</Text>
       <Text style={[styles.detail, {color: palette.textMuted}]}>你可以继续学习，记录恢复后会在这里显示。</Text>
     </View>}
-    <Pressable accessibilityRole="button" testID="statistics-go-learning-button" onPress={onGoToLearning}
-      style={[styles.primary, {backgroundColor: palette.primaryActionSurface}]}>
-      <StudioActionLabel icon="play" color={palette.primaryActionText} size={22} textStyle={styles.buttonLabel}>继续学习</StudioActionLabel>
-    </Pressable>
-    <Pressable accessibilityRole="button" accessibilityState={{expanded: showExplanation}}
-      testID="statistics-explanation-toggle" onPress={() => setShowExplanation(value => !value)} style={[styles.textButton, {backgroundColor: palette.panelStrong, borderColor: palette.border}]}>
-      <StudioActionLabel icon={showExplanation ? 'chevronUp' : 'info'} color={palette.text} textStyle={styles.buttonLabel}>{showExplanation ? '收起统计说明' : '如何统计'}</StudioActionLabel>
-    </Pressable>
-    {showExplanation ? <Text style={[styles.explanation, {color: palette.textMuted}]} testID="statistics-explanation">
-      完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。
-    </Text> : null}
-    {pendingReviewCount > 0 && onStartReview ? <View style={styles.reviewEntry}>
-      <Text style={[styles.detail, {color: palette.textMuted}]}>有 {pendingReviewCount} 张卡需要再练。</Text>
-      <Pressable accessibilityRole="button" testID="statistics-start-review-button" onPress={onStartReview} style={[styles.textButton, {backgroundColor: palette.accentSoft, borderColor: palette.accent}]}>
-        <StudioActionLabel icon="refresh" color={palette.text} textStyle={styles.buttonLabel}>开始复习</StudioActionLabel>
-      </Pressable>
-    </View> : null}
     <View testID="statistics-checkin-card" style={[styles.checkIn, {borderColor: palette.border}]}>
       <View style={styles.checkInCopy}>
         <Text style={[styles.label, {color: palette.text}]}>签到</Text>
@@ -103,6 +86,23 @@ export function StatisticsSurface({statistics, track, canCheckInToday,
           textStyle={styles.buttonLabel} textTestID={hasCheckedInToday ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>{checkInLabel}</StudioActionLabel>
       </Pressable>
     </View>
+    <Pressable accessibilityRole="button" testID="statistics-go-learning-button" onPress={onGoToLearning}
+      style={[styles.primary, {backgroundColor: palette.primaryActionSurface}]}>
+      <StudioActionLabel icon="play" color={palette.primaryActionText} size={22} textStyle={styles.buttonLabel}>继续学习</StudioActionLabel>
+    </Pressable>
+    <Pressable accessibilityRole="button" accessibilityState={{expanded: showExplanation}}
+      testID="statistics-explanation-toggle" onPress={() => setShowExplanation(value => !value)} style={[styles.textButton, {backgroundColor: palette.panelStrong, borderColor: palette.border}]}>
+      <StudioActionLabel icon={showExplanation ? 'chevronUp' : 'info'} color={palette.text} textStyle={styles.buttonLabel}>{showExplanation ? '收起统计说明' : '如何统计'}</StudioActionLabel>
+    </Pressable>
+    {showExplanation ? <Text style={[styles.explanation, {color: palette.textMuted}]} testID="statistics-explanation">
+      完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。
+    </Text> : null}
+    {pendingReviewCount > 0 && onStartReview ? <View style={styles.reviewEntry}>
+      <Text style={[styles.detail, {color: palette.textMuted}]}>有 {pendingReviewCount} 张卡需要再练。</Text>
+      <Pressable accessibilityRole="button" testID="statistics-start-review-button" onPress={onStartReview} style={[styles.textButton, {backgroundColor: palette.accentSoft, borderColor: palette.accent}]}>
+        <StudioActionLabel icon="refresh" color={palette.text} textStyle={styles.buttonLabel}>开始复习</StudioActionLabel>
+      </Pressable>
+    </View> : null}
     {hasSyncNotice ? <View testID="statistics-status-ledger">
       <Text testID="statistics-sync-label" accessibilityLiveRegion="polite" style={[styles.detail, {color: palette.textMuted}]}>{syncStatusLabel}</Text>
       <Text testID="statistics-sync-detail" style={[styles.detail, {color: palette.textMuted}]}>{syncStatusDetail}</Text>
