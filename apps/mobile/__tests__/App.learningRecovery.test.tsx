@@ -11,6 +11,7 @@ jest.mock('../src/onboarding/FirstRunGuidance', () => ({
   FirstRunGuidanceBoundary: require('./fixtures/completedFirstRunGuidance').CompletedFirstRunGuidance,
 }));
 import {LearningSurface} from '../src/learning/LearningSurface';
+import {StatisticsSurface} from '../src/statistics/StatisticsSurface';
 import {LearningEventOutbox} from '../src/sync/learningEventOutbox';
 import {createReactNativeLearningEventOutboxStorage} from '../src/sync/learningEventOutboxStorage.native';
 import type {LearningAudioSelection, RefreshLearningAudioDownload} from '../src/audio/learningAudioController';
@@ -449,14 +450,14 @@ test('an explicit rejection of an old-content selection refreshes without counti
   const outbox=new LearningEventOutbox({storage:createReactNativeLearningEventOutboxStorage()});
   expect(await outbox.getPendingCount('13800138000')).toBe(0);
   expect(await outbox.getRejectedEntries('13800138000')).toHaveLength(1);
-  expect(root.findByProps({testID:'learning-rejected-result-notice'}).props.children).toBe('这次结果未计入，已更新学习安排。');
+  expect(root.findByProps({testID:'learning-rejected-result-notice'}).props.children).toBe('此前有 1 条作答未计入。学习安排已更新。');
   expect(root.findByType(LearningSurface).props.completedResults).toHaveLength(0);
   expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(runtime.base.catalogCards.at(-1)!.card_id);
   expect(mockLoadSession).toHaveBeenCalledTimes(2);
   act(()=>tree.unmount());trees.splice(trees.indexOf(tree),1);
   let restored!:ReactTestRenderer.ReactTestRenderer;
   await act(async()=>{restored=ReactTestRenderer.create(<App/>)});trees.push(restored);await settle();
-  expect(restored.root.findByProps({testID:'learning-rejected-result-notice'}).props.children).toBe('这次结果未计入，已更新学习安排。');
+  expect(restored.root.findByProps({testID:'learning-rejected-result-notice'}).props.children).toBe('此前有 1 条作答未计入。学习安排已更新。');
   const settledLoads=mockLoadSession.mock.calls.length;
   await settle();expect(mockLoadSession).toHaveBeenCalledTimes(settledLoads);
   expect(runtime.requests.mock.calls.filter(([input])=>input.endsWith('/v2/learning/events'))).toHaveLength(1);
@@ -471,6 +472,98 @@ test('an unknown conflict stays pending and is never labelled as rejected or sil
   expect(await outbox.getRejectedEntries('13800138000')).toHaveLength(0);
   expect(root.findAllByProps({testID:'learning-rejected-result-notice'})).toHaveLength(0);
   expect(mockLoadSession).toHaveBeenCalledTimes(1);
+});
+
+test.each(['same', 'selection', 'content'] as const)('pause durably restores an unsubmitted choice after remount only with %s authority', async authority => {
+  const runtime = createRuntime();
+  const card = runtime.base.catalogCards.find(item => item.interaction_id === 'multiple_choice')!;
+  if (card.interaction_id !== 'multiple_choice') throw new Error('Expected a choice fixture.');
+  const optionId = card.options[1].id;
+  runtime.setSelection(card.card_id);
+  const {root, tree} = await login();
+  await act(() => root.findByType(LearningSurface).props.onSelectOption(optionId));
+  await press(root, 'learning-pause-button'); await settle();
+  act(() => tree.unmount()); trees.splice(trees.indexOf(tree), 1);
+  if (authority === 'selection') runtime.setSelection(card.card_id);
+  if (authority === 'content') runtime.setContentVersion(`sha256:${'b'.repeat(64)}`);
+  let restored!: ReactTestRenderer.ReactTestRenderer;
+  await act(async () => {restored = ReactTestRenderer.create(<App/>);}); trees.push(restored); await settle();
+  await press(restored.root, 'learning-home-start-button'); await settle();
+  expect(restored.root.findByType(LearningSurface).props.currentCardState.selectedOptionId).toBe(authority === 'same' ? optionId : null);
+  expect(restored.root.findByType(LearningSurface).props.currentResult).toBeNull();
+  expect(runtime.requests.mock.calls.filter(([input]) => input.endsWith('/v2/learning/events'))).toHaveLength(0);
+});
+
+test('pause explains a failed draft write and permits returning to the unchanged choice', async () => {
+  const runtime = createRuntime();
+  const card = runtime.base.catalogCards.find(item => item.interaction_id === 'multiple_choice')!;
+  if (card.interaction_id !== 'multiple_choice') throw new Error('Expected a choice fixture.');
+  runtime.setSelection(card.card_id);
+  const {root, tree} = await login();
+  await act(() => root.findByType(LearningSurface).props.onSelectOption(card.options[0].id)); await settle();
+  const write = jest.mocked(AsyncStorage.setItem), original = write.getMockImplementation()!;
+  write.mockImplementation(async (key, value) => {if (key === 'softbook-cet/user-state/v1') throw new Error('storage unavailable'); return original(key, value);});
+  await press(root, 'learning-pause-button'); await settle();
+  expect(JSON.stringify(tree.toJSON())).toContain('草稿还没保存到本机');
+  expect(JSON.stringify(tree.toJSON())).not.toContain('当前练习已保留，可以随时接着学');
+  write.mockImplementation(original);
+  await press(root, 'learning-home-start-button'); await settle();
+  expect(root.findByType(LearningSurface).props.currentCardState.selectedOptionId).toBe(card.options[0].id);
+  expect(runtime.requests.mock.calls.filter(([input]) => input.endsWith('/v2/learning/events'))).toHaveLength(0);
+});
+
+test('a delayed pause save does not navigate back after opening Space', async () => {
+  createRuntime();
+  const {root} = await login();
+  const write = jest.mocked(AsyncStorage.setItem), original = write.getMockImplementation()!;
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => {release = resolve;});
+  write.mockImplementation(async (key, value) => {
+    if (key === 'softbook-cet/user-state/v1') await gate;
+    return original(key, value);
+  });
+  let pause!: Promise<void>;
+  await act(async () => {pause = root.findByProps({testID: 'learning-pause-button'}).props.onPress();});
+  await press(root, 'route-tab-space'); await settle();
+  expect(root.findAllByProps({testID: 'learning-study-home'})).toHaveLength(0);
+  await act(async () => {release(); await pause;}); await settle();
+  expect(root.findAllByProps({testID: 'learning-study-home'})).toHaveLength(0);
+  expect(root.findByProps({testID: 'route-tab-space'}).props.accessibilityState.selected).toBe(true);
+});
+
+test('historical rejection does not describe a later accepted answer as this result failing', async () => {
+  const runtime = createRuntime(); const {root} = await login();
+  await press(root, 'learning-flip-button');
+  runtime.setSelection(runtime.base.cards[0].card_id);
+  runtime.rejectEvents('learning_event_selection_conflict');
+  await press(root, 'learning-flip-confident-button'); await press(root, 'learning-next-button'); await settle();
+  runtime.rejectEvents(''); runtime.acceptCompletions();
+  await press(root, 'learning-flip-button'); await press(root, 'learning-flip-confident-button'); await settle();
+  expect(root.findByType(LearningSurface).props.advanceState.detail).toBe('本次作答已保存。');
+  const notice = root.findByProps({testID: 'learning-rejected-result-notice'}).props.children;
+  expect(notice).toContain('此前');
+  expect(notice).toContain('1');
+  expect(notice).not.toContain('这次结果未计入');
+});
+
+test('check-in explains unavailable account hydration while completed statistics already exist', async () => {
+  const runtime = createRuntime(); runtime.acceptCompletions();
+  const {root, tree} = await login();
+  await press(root, 'learning-flip-button'); await press(root, 'learning-flip-confident-button'); await settle();
+  await press(root, 'learning-pause-button'); await settle();
+  act(() => tree.unmount()); trees.splice(trees.indexOf(tree), 1);
+  const load = mockLoadCatalog.getMockImplementation()!;
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => {release = resolve;});
+  mockLoadCatalog.mockImplementation(async (...args) => {await gate; return load(...args);});
+  let restored!: ReactTestRenderer.ReactTestRenderer;
+  await act(async () => {restored = ReactTestRenderer.create(<App/>);}); trees.push(restored); await settle();
+  await press(restored.root, 'route-tab-statistics'); await settle();
+  expect(restored.root.findByType(StatisticsSurface).props.learningCompletedCount).toBe(1);
+  expect(restored.root.findByProps({testID: 'statistics-checkin-button'}).props.disabled).toBe(true);
+  expect(JSON.stringify(restored.toJSON())).toContain('账号信息正在更新');
+  await act(async () => {release();}); await settle();
+  expect(restored.root.findByProps({testID: 'statistics-checkin-button'}).props.disabled).toBe(false);
 });
 
 function audioSelection(root:ReactTestRenderer.ReactTestInstance): LearningAudioSelection {

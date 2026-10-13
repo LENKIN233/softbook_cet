@@ -127,14 +127,28 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
   }
 
   override func bundleURL() -> URL? {
-#if DEBUG && SOFTBOOK_EXPERIENCE
-    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index.experience")
+#if DEBUG && SOFTBOOK_EXPERIENCE && targetEnvironment(simulator)
+    // The dedicated simulator runner starts and warms Metro on this loopback
+    // address. The instance provider probes /status first and can discard an
+    // otherwise valid URL after one timeout, leaving this Debug app with no JS.
+    // Let the bundle loader report connection errors against the actual URL.
+    let url = RCTBundleURLProvider.jsBundleURL(
+      forBundleRoot: "index.experience",
+      packagerHost: "127.0.0.1:8081",
+      enableDev: true,
+      enableMinification: false,
+      inlineSourceMap: false
+    )
+    NSLog("[Softbook Experience] Simulator bundle URL: %@", url?.absoluteString ?? "<invalid URL>")
+    return url
+#elseif DEBUG && SOFTBOOK_EXPERIENCE
+    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index.experience")
 #elseif SOFTBOOK_DEVICE_LOCAL || SOFTBOOK_LOCAL_BACKEND
-    Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #elseif DEBUG
-    RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
 #else
-    Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
 }

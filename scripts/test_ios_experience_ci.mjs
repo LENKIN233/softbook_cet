@@ -12,10 +12,10 @@ function exercise(phase, flags = {}) {
   const bin = join(temp, 'bin');
   mkdirSync(bin);
   const commands = {
-    npm: 'exec sleep 60',
+    npm: 'echo "metro $*" >> "$TRACE"; exec sleep 60',
     xcodebuild: 'echo compiler >> "$TRACE"; exit "${COMPILER_EXIT:-0}"',
     xcrun: 'echo "xcrun $*" >> "$TRACE"',
-    curl: 'case "$*" in *.bundle*) echo warm >> "$TRACE"; exit "${WARM_EXIT:-0}" ;; *) echo packager-status:running ;; esac',
+    curl: 'for value in "$@"; do case "$value" in http*) echo "curl-url $value" >> "$TRACE" ;; esac; done; case "$*" in *.bundle*) echo warm >> "$TRACE"; exit "${WARM_EXIT:-0}" ;; *) echo packager-status:running ;; esac',
     node: 'echo journey >> "$TRACE"; exit "${JOURNEY_EXIT:-0}"',
   };
   for (const [name, body] of Object.entries(commands)) {
@@ -57,6 +57,21 @@ test('the app bundle is ready before the journey is dispatched', () => {
   assert.ok(result.trace.indexOf('warm') >= 0);
   assert.ok(result.trace.indexOf('journey') > result.trace.indexOf('warm'));
   assert.ok(result.trace.includes('xcrun simctl shutdown disposable-test'));
+});
+
+test('Metro and bundle warmup use the same simulator loopback address', () => {
+  const result = exercise('run');
+  assert.equal(result.status, 0);
+  assert.ok(result.trace.includes('metro --prefix apps/mobile start -- --host 127.0.0.1 --port 8081'));
+  const urls = result.trace.filter(line => line.startsWith('curl-url ')).map(line => new URL(line.slice(9)));
+  assert.equal(urls.length, 2);
+  for (const url of urls) assert.equal(url.origin, 'http://127.0.0.1:8081');
+  assert.equal(urls[0].pathname, '/status');
+  assert.equal(urls[1].pathname, '/index.experience.bundle');
+  assert.equal(urls[1].searchParams.get('platform'), 'ios');
+  assert.equal(urls[1].searchParams.get('app'), 'com.softbook.cet.experience');
+  assert.equal(urls[1].searchParams.get('dev'), 'true');
+  assert.equal(urls[1].searchParams.get('runModule'), 'true');
 });
 
 test('failed experience acceptance stays failed after cleanup', () => {

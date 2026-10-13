@@ -492,10 +492,11 @@
       "scope": [
         "daily_check_in_key",
         "learning_cursor",
+        "validated_unsubmitted_learning_draft_bound_to_card_content_and_selection",
         "favorite_tags",
         "sleep_state"
       ],
-      "corruption_behavior": "discard_invalid_payload_and_fall_back_to_empty_state",
+      "corruption_behavior": "discard_invalid_payload_and_fall_back_to_empty_state; a malformed optional learningDraft is discarded independently without erasing valid check-in or space state",
       "migration": "user-state.v1 space entries receive an epoch timestamp so stale restored state cannot outrank server canonical state",
       "space_state_timestamp": "preserve the timestamp of each explicit favorite or sleep action"
     },

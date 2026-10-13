@@ -49,10 +49,19 @@ node scripts/run_experience_acceptance.mjs --device <device-id> --output <new-ou
 该命令会清空指定模拟器内测试应用的数据，禁止对用户日常设备执行。
 `index.experience.js` 只在 Debug 下选取这两个已导出的真实卡片，不进入正常本地或 Release 入口。卡库排序变化不会自动更换验收对象，样本类型变化则要求同步修订流程。
 
-runner 先用独立的 420 秒预算安装驱动、清空应用并完成开发测试登录，确认学习卡就绪后，
-再复用驱动执行原有 240 秒阅读流程；
-任一阶段失败立即停止，不重试。准备日志与阅读截图分目录保留，不能互相充当证据。
-CI 外层 20 分钟还覆盖 Metro 冷启动、两次 OCR 编译与收尾。
+runner 在一个 Maestro 会话中执行 `reading.yaml`，由它内嵌 `prepare.yaml`：先清空应用、
+启动并完成科目选择和学习引导，再进入阅读动作。驱动准备与页面操作共用 660 秒预算，
+各步骤另有自己的有界等待；避免准备结束后重启 XCTest 驱动。任一步骤失败立即停止，不重试。
+执行日志写入 `maestro.log`，准备与阅读的命令记录、设备日志及截图统一位于 `capture/`。
+`report.json` 的 `journeys` 只在完整采集并检查阅读截图后填入；空数组本身不能定位失败阶段。
+应结合报告的 `error`、Maestro 最后失败步骤和设备日志，区分驱动连接、脚本启动和页面断言失败。
+准备流程尚未到达首题时不能记为阅读业务失败；准备截图也不能替代阅读截图。
+
+CI 的运行步骤外层预算为 20 分钟，覆盖 Metro 冷启动、bundle 预热、多次 OCR 调用与收尾；
+Debug 构建安装是独立步骤，预算为 45 分钟。`run_ios_experience_ci.sh` 将 Metro 绑定到
+`127.0.0.1:8081` 并在运行前预热 bundle；仅 `DEBUG && SOFTBOOK_EXPERIENCE` 模拟器包直接使用该地址，
+将实际脚本 URL 写入设备日志，避免再次 `/status` 探测超时后丢失脚本地址。
+宿主预热成功只证明宿主可访问 Metro；设备仍须实际加载脚本并到达准备流程控件。
 CI 由独立的 iOS runtime step 自动执行；它不进入纯 `validate_harness.py`。
 
 输出包含运行版本、源码与截图哈希、已知失败样本校准、实际截图和判定。

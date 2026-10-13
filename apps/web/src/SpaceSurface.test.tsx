@@ -4,6 +4,8 @@ import {SpaceSurface, type SpaceSurfaceProps} from './SpaceSurface';
 import {createLocalLearningSession} from '../../mobile/__tests__/fixtures/interactionSession';
 import {createInitialMembershipState} from '../../mobile/src/membership/localMembership';
 import type {LearningCard} from '../../mobile/src/learning/model';
+import {bundledCardLibrary} from '../../mobile/src/learning/bundledCardLibrary';
+import {normalizeLearningCardRecord} from '../../mobile/src/learning/sourceContract';
 
 const base = createLocalLearningSession('cet4').catalogCards[0];
 function card(id: string, library: string, group: string, box: string, boxRef: string): LearningCard {
@@ -140,4 +142,37 @@ it('retains open sections and scroll position across a Space remount', () => {
   expect(scrollTo).toHaveBeenLastCalledWith({top: 625, behavior: 'instant'});
   scrollTo.mockRestore();
   Object.defineProperty(window, 'scrollY', {value: 0, configurable: true});
+});
+
+it('shows learning state and a short matching excerpt in search results, retaining full material on inspection', () => {
+  const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === '031106')!;
+  const longCard = normalizeLearningCardRecord(record);
+  const unseen = {...otherLibrary, front: {...otherLibrary.front, prompt: 'Group projects 的另一道题'}, back_text: 'hidden-search-answer'};
+  render(<SpaceSurface {...props()} cards={[longCard, unseen]} currentCardId={longCard.card_id} learnedIds={[longCard.card_id]}/>);
+  browse();
+  fireEvent.change(screen.getByLabelText('查找卡片'), {target: {value: 'Group projects'}});
+  const results = screen.getByRole('region', {name: '筛选结果'});
+  const rows = results.querySelectorAll('.filtered-card');
+  expect(rows).toHaveLength(2);
+  expect(within(rows[0] as HTMLElement).getByText('已学过')).toBeVisible();
+  expect(within(rows[1] as HTMLElement).getByText('未学习')).toBeVisible();
+  expect(rows[0].textContent).toContain('Group projects');
+  expect(rows[0].textContent).not.toContain('repeated practice in clear discussion');
+  expect(rows[1].textContent).not.toContain('hidden-search-answer');
+  fireEvent.click(rows[0]);
+  expect(tray().textContent).toContain('repeated practice in clear discussion');
+  expect(screen.getByLabelText('查找卡片')).toHaveValue('Group projects');
+});
+
+it('includes all original options in an already learned card recall without opening unseen answers', () => {
+  const choice = normalizeLearningCardRecord(bundledCardLibrary.cet6.cards.find(item => item.card_id === '161004')!);
+  if (choice.interaction_id !== 'multiple_choice') throw new Error('Expected real choice');
+  const callbacks = {...props(), cards: [choice], currentCardId: choice.card_id};
+  const view = render(<SpaceSurface {...callbacks} learnedIds={[choice.card_id]}/>);
+  fireEvent.click(screen.getByRole('button', {name: '回看答案与解析'}));
+  const answer = screen.getByRole('region', {name: '已学卡答案与解析'});
+  for (const option of choice.options) expect(within(within(answer).getByRole('group', {name: '原题选项'})).getByText(`${option.label} · ${option.text}`)).toBeVisible();
+  view.rerender(<SpaceSurface {...callbacks} learnedIds={[]}/>);
+  expect(screen.queryByRole('region', {name: '已学卡答案与解析'})).toBeNull();
+  expect(screen.queryByText(choice.analysis.summary)).toBeNull();
 });

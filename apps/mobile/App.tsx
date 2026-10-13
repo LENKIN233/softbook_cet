@@ -141,6 +141,7 @@ import {
 } from './src/persistence/userStateStore';
 import {LOCAL_CARD_SOURCE_ID} from './src/learning/localCardSource';
 import type {LocalLearningProgress} from './src/persistence/localLearningProgress';
+import {captureLearningDraft, restoreLearningDraft, type LearningDraft} from './src/persistence/learningDraft';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { resolveContentManifestRuntimeConfig } from './src/audio/contentManifestRuntimeConfig';
 import type {RefreshLearningAudioDownload} from './src/audio/learningAudioController';
@@ -950,6 +951,7 @@ function AppShell({
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
   const persistedLocalProgress = useRef<LocalLearningProgress | null>(null);
+  const persistedLearningDraft = useRef<LearningDraft | null>(null);
   const accountBootstrapStatusRef = useRef(accountBootstrapStatus);
   const accountBootstrapSnapshotRef = useRef<AccountBootstrapSnapshot | null>(
     null,
@@ -1025,6 +1027,7 @@ function AppShell({
       pendingMembershipRefreshKey.current = null;
       persistedLearningCursor.current = null;
       persistedLocalProgress.current = null;
+      persistedLearningDraft.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
       accountBootstrapRefreshRequired.current = false;
@@ -2111,7 +2114,7 @@ function AppShell({
             membershipErrorMessage: null,
             membershipRefreshSucceeded: true,
             membershipState: accountBootstrap.membership.state,
-            persistedUserState: reconciliation.persistedUserState,
+            persistedUserState: {...reconciliation.persistedUserState, learningDraft: persistedUserState.learningDraft ?? null},
           };
         } catch (error) {
           if (
@@ -2255,6 +2258,7 @@ function AppShell({
       persistedLearningCursor.current =
         hydration.persistedUserState.learningCursor;
       persistedLocalProgress.current = hydration.persistedUserState.localLearningProgress ?? null;
+      persistedLearningDraft.current = hydration.persistedUserState.learningDraft ?? null;
       // Keep an acknowledged command awaiting its read confirmation through
       // independent refreshes in this session. On restart only the durable
       // queue can restore pending state; stale local check-in flags cannot.
@@ -2336,9 +2340,16 @@ function AppShell({
     ? 0
     : reviewCompletedResults.length;
   const canCheckInToday =
+    canWriteAccountState &&
     !hasCheckedInToday &&
     progressSyncState.state !== 'syncing' &&
     learningCompletedCount + reviewCompletedCount > 0;
+  const checkInUnavailableReason = !hasCheckedInToday && (
+    !canAccessAccountState || (pendingCheckIn?.dayKey !== todayKey && !canWriteAccountState)
+  ) ? learningCatalogStatus === 'error' || learningBootstrapStatus === 'error' || accountBootstrapStatus === 'deferred'
+      ? '账号信息暂时无法确认，请返回学习页重新读取。'
+      : '账号信息正在更新，请稍后签到。'
+    : undefined;
   const favoriteCount = Object.values(spaceCardStateById).filter(
     state => state.isFavorited,
   ).length;
@@ -3923,8 +3934,14 @@ function AppShell({
       };
     }
 
+    if (learningBootstrapStatus === 'ready' && learningSession?.track === learningTrack && currentLearningCard) {
+      persistedLearningDraft.current = learningCurrentResult || outgoingResult || learningEventEnqueueInFlight.current
+        ? null : captureLearningDraft(learningSession, currentLearningCard, learningCardState, learningPhase);
+    }
+
     userStateStore
       .save(authState.phoneNumber, {
+        learningDraft: persistedLearningDraft.current,
         ...(runtimeAccountBootstrapMode === 'local'
           ? {localLearningProgress: persistedLocalProgress.current} : {}),
         checkedInDayKey,
@@ -3942,6 +3959,10 @@ function AppShell({
     isAuthenticated,
     learningPhase,
     learningSession,
+    learningTrack,
+    learningCardState,
+    learningCurrentResult,
+    outgoingResult,
     persistenceHydrated,
     spaceCardStateById,
     userStateStore,
@@ -4546,7 +4567,9 @@ function AppShell({
             draft?.scope === learningLoadSessionScopeKey && draft.track === session.track &&
             draft.contentVersion === session.contentVersion && draft.cardId === nextCard?.card_id;
           const courseDraft = takeCourseLearningDraft(courseDrafts.current, learningLoadSessionScopeKey, session);
-          const restoredState = restoreDraft ? draft.state : courseDraft;
+          const restoredState = restoreDraft ? draft.state : courseDraft ?? restoreLearningDraft(
+            persistedLearningDraft.current, session, nextCard, scheduledPhase,
+          );
           setLearningCardState(restoredState ? {...restoredState, isFavorited: nextCard ? readSpaceCardState(nextCard.card_id).isFavorited : false}
             : nextCard ? createTrackedLearningAttemptState(nextCard) : null);
           if (restoreDraft) preReviewDraftRef.current = null;
@@ -5340,7 +5363,8 @@ function AppShell({
     onLogout: async () => {
       if (authRepositoryConfig.mode === 'local') {
         try {
-          await userStateStore.save(authState.phoneNumber, {checkedInDayKey, learningCursor: persistedLearningCursor.current, spaceCardStateById});
+          await userStateStore.save(authState.phoneNumber, {checkedInDayKey, learningCursor: persistedLearningCursor.current,
+            learningDraft: persistedLearningDraft.current, spaceCardStateById}, {verify: true});
           await authSessionCoordinator.invalidate();
           resetRuntimeAfterLogout(null);
         } catch {
@@ -6213,6 +6237,9 @@ function AppShell({
         learningCompletedCount + reviewCompletedCount > 0;
 
       if (isConfirmed || (!retryPendingCheckIn && (!canCheckInLiveDay || !canWriteAccountState))) {
+        if (!isConfirmed && !canWriteAccountState) setProgressSyncState({
+          detail: checkInUnavailableReason ?? '账号信息正在更新，请稍后签到。', label: '暂不可签到', state: 'error',
+        });
         return;
       }
 
@@ -6815,6 +6842,7 @@ function AppShell({
       canCheckInToday={canCheckInToday}
       checkInStatus={pendingCheckIn?.dayKey === todayKey ? pendingCheckIn.phase : undefined}
       checkInBusy={checkInBusy}
+      checkInUnavailableReason={checkInUnavailableReason}
       cumulativeLearnedCount={runtimeAccountBootstrapMode === 'remote' && mappedAccountBootstrapSnapshot !== null && learningSession !== null && mappedAccountBootstrapSnapshot.content.version === learningSession.contentVersion ? catalogResults.length : undefined}
       deviceClass={deviceClass}
       hasCheckedInToday={hasCheckedInToday}
@@ -6831,9 +6859,10 @@ function AppShell({
   ) : null;
   const hasRejectedLearningNotice = rejectedLearningNotice?.sessionScopeKey === activeLearningNoticeScope &&
     rejectedLearningNotice.count > 0;
-  const rejectedLearningNoticeCopy = (learningBootstrapStatus === 'ready' || currentCatalogSession !== null) && accountBootstrapHydrationSettled
-    ? '这次结果未计入，已更新学习安排。'
-    : learningBootstrapStatus === 'error' ? '这次结果未计入，请重试更新学习安排。' : '这次结果未计入，正在更新学习安排。';
+  const rejectedLearningNoticeCopy = `此前有 ${rejectedLearningNotice?.count ?? 0} 条作答未计入。` + (
+    (learningBootstrapStatus === 'ready' || currentCatalogSession !== null) && accountBootstrapHydrationSettled
+      ? '学习安排已更新。'
+      : learningBootstrapStatus === 'error' ? '请重试更新学习安排。' : '正在更新学习安排。');
   const contentWithLearningNotice = route.key === 'learning' && hasRejectedLearningNotice ? (
       <>
         <Text accessibilityLiveRegion="polite" testID="learning-rejected-result-notice"
@@ -6855,8 +6884,28 @@ function AppShell({
     JSON.stringify([card.library, card.group, card.boxRef]), formatSpaceDisplayName(card.box, '知识点'),
   ])).values()] : [];
   const segmentSummaryVisible = visibleSegment?.summaryVisible === true && outgoingResult === null && currentRoundCompletion === null;
-  const pauseLearning = () => {
-    setPauseNotice('当前练习已保留，可以随时接着学。');
+  const pauseLearning = async () => {
+    const scope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
+    const resourceIdentity = presentedResourceIdentityRef.current;
+    const isCurrent = () => getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === scope &&
+      presentedResourceIdentityRef.current === resourceIdentity;
+    let notice = '当前练习已保留，可以随时接着学。';
+    if (!learningCurrentResult && !outgoingResult && learningSession && currentLearningCard && learningCardState) {
+      try {
+        if (!canWriteAccountState || learningEventEnqueueInFlight.current) throw new Error('Draft authority is not ready.');
+        const draft = captureLearningDraft(learningSession, currentLearningCard, learningCardState, learningPhase);
+        if (!draft) throw new Error('Draft scope is unavailable.');
+        await userStateStore.save(authState.phoneNumber, {checkedInDayKey,
+          learningCursor: persistedLearningCursor.current, spaceCardStateById,
+          localLearningProgress: persistedLocalProgress.current, learningDraft: draft}, {verify: true});
+        if (!isCurrent()) return;
+        persistedLearningDraft.current = draft;
+      } catch {
+        if (!isCurrent()) return;
+        notice = '草稿还没保存到本机，请返回练习后重试；关闭应用可能丢失本次选择。';
+      }
+    }
+    setPauseNotice(notice);
     setLearningView('home');
     setLearningStartIntent('learning');
     studySpaceOrigin.current = null;
@@ -6954,6 +7003,7 @@ function AppShell({
     authState.error === CLIENT_UPDATE_REQUIRED_COPY ? contentWithLearningNotice
   : route.key === 'learning' && learningView === 'home' ? (
     <StudyHome track={learningTrack} todayCount={homeTodayCount}
+      trialDays={accountBootstrapSnapshot?.membership.state.stage === 'trial_available' ? accountBootstrapSnapshot.membership.state.trialDurationDays : undefined}
       reviewCount={homeCatalogKnown ? pendingSpaceReviewIds.length : null}
       progress={sceneProgress} learnedCount={homeCatalogKnown ? catalogResults.length : null}
       catalogCount={homeCatalogKnown ? homeCatalogCount : null}

@@ -1,7 +1,7 @@
 appId: com.softbook.cet.experience
 name: prepare-reading-device
 ---
-# Dedicated disposable device. Preparation has its own bounded budget.
+# Dedicated disposable device. Preparation shares the bounded reading session.
 - clearState
 - launchApp
 - extendedWaitUntil:

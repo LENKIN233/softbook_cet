@@ -17,7 +17,7 @@ import {getChinaDayKey as chinaDayKey} from '../../mobile/src/shared/chinaDay';
 import {authFailure} from '../../mobile/src/auth/authErrorCopy';
 import {endsLocalBatch, localBatch, localResumeIndex} from '../../mobile/src/learning/localBatch';
 import {resultVerdict} from '../../mobile/src/learning/resultFeedback';
-import {displayCardText, frontMaterial, eliminationPassage, answerComparison, spaceCardPreview, cardTextBlocks, lockAnswerText, lockTemplate, resultAnswerLabel} from '../../mobile/src/learning/presentation';
+import {displayCardText, frontMaterial, eliminationPassage, answerComparison, spaceCardPreview, cardRecallOptions, cardTextBlocks, lockAnswerText, lockTemplate, resultAnswerLabel} from '../../mobile/src/learning/presentation';
 import {resolveLibraryTone} from '../../mobile/src/visual/tokens';
 import {useObjectMotion, useRouteMotion, transitionObjectName} from './motion';
 import {
@@ -1644,6 +1644,7 @@ function AccountApp({
           today={homeFactsReadable && trackStatistics?.track === session?.track && trackStatistics?.dayKey === liveChinaDay ? trackStatistics.completedCardCount : null}
           pendingReview={homeFactsReadable ? homeSnapshot!.bootstrap.progress.snapshot.pendingReviewCount : null}
           overall={sceneOverall} continuing={hasHomeActivity} reviewIntent={learningEntryIntent === 'review'}
+          trialDays={homeSnapshot?.membership.stage === 'trial_available' ? homeSnapshot.membership.trialDurationDays : undefined}
           busy={remoteBusy} disabled={accountDeletionLocksAccount || remoteController === null}
           startLabel={homeSnapshot === null ? '重新读取' : undefined} notice={[pauseNotice, ...remoteSyncFacts].filter(Boolean).join('；')} error={remoteError} onStart={() => void enterLearningScene()} />
         : learningScenePreparing ? <main className="workbench"><p role="status">正在准备学习…</p></main>
@@ -1685,13 +1686,11 @@ function AccountApp({
               <p className="notice" role="status">学习记录 · {genericSyncStatus}</p>
             </section>
           </main>
-        ) : runtime.mode === 'remote' && requestedReview && sessionComplete && !session?.roundCompletion ? (
-          <main className="workbench"><section className="learning-card" aria-labelledby="empty-review-title">
-            <h1 id="empty-review-title">暂时没有需要复习的卡片</h1>
-            <p>可以继续学习新内容，之后按学习安排复习。</p>
-            {remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}
-            <button className="primary" disabled={productBusy} onClick={() => void reloadRemoteState(true)}><IconLabel name="arrowRight">继续学习</IconLabel></button>
-          </section></main>
+        ) : runtime.mode === 'remote' && sessionComplete && !session?.roundCompletion ? (
+          <EmptyLearningSurface reviewOnly={requestedReview} nextDueAt={session?.nextDueAt ?? null}
+            pendingSync={(learningSync?.pendingEventCount ?? 0) > 0} sleepingCount={sleeping.length}
+            busy={productBusy} error={remoteError} onRefresh={() => void reloadRemoteState()}
+            onContinueLearning={() => void reloadRemoteState(true)} onOpenSpace={() => navigateRoute('space')} />
         ) : sessionComplete ? (
           <SessionCompleteSurface
             phase={learningPhase}
@@ -2022,7 +2021,7 @@ function LearningSurface(props: LearningSurfaceProps) {
           <p className="flip-back-label">核对答案</p>
           <h2 ref={answerRef} tabIndex={-1} className={isLongQuestion(comparison.correct) ? 'long-question' : undefined}>{comparison.correct}</h2>
           <p className="answer-reason">{card.analysis.summary}</p>
-          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
+          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}{cardRecallOptions(card).length > 0 ? <ul aria-label="原题选项">{cardRecallOptions(card).map((text, index) => <li key={index}>{text}</li>)}</ul> : null}</details>
           {audioControl}
           {resolved && card.audio?.transcript?.trim() ? <details className="full-analysis"><summary><DisclosureLabel name="volume">听力原文</DisclosureLabel></summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           {resolved ? <p className="self-assess-receipt" role="status">已记录：<span>{resolved.outcome === 'confident' ? '有把握' : '需要复习'}</span></p> : null}
@@ -2032,7 +2031,7 @@ function LearningSurface(props: LearningSurfaceProps) {
           <p className="result-label">{resultAnswerLabel(card)}</p>
           <h2 ref={answerRef} tabIndex={-1} className={`answer-first${card.interaction_id === 'lock' || card.interaction_id === 'elimination' ? ' contextual-answer' : ''}${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{comparison.correct}</h2>
           {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</span> {comparison.selected}</p> : null}
-          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}</details>
+          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}{cardRecallOptions(card).length > 0 ? <ul aria-label="原题选项">{cardRecallOptions(card).map((text, index) => <li key={index}>{text}</li>)}</ul> : null}</details>
           <p className="answer-reason">{card.analysis.summary}</p>
           {card.interaction_id === 'lock' && resolved.outcome === 'incorrect' ? <p className="answer-reason">已解锁，稍后复习。</p> : null}
           {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary><DisclosureLabel name="volume">听力原文</DisclosureLabel></summary><p className="front-material">{card.audio.transcript}</p></details> : null}
@@ -2645,6 +2644,25 @@ function AccountDeletionRecoverySurface({
       </section>
     </main>
   );
+}
+
+function EmptyLearningSurface({reviewOnly, nextDueAt, pendingSync, sleepingCount, busy, error, onRefresh, onContinueLearning, onOpenSpace}: {
+  reviewOnly: boolean; nextDueAt: string | null; pendingSync: boolean; sleepingCount: number;
+  busy: boolean; error: string; onRefresh: () => void; onContinueLearning: () => void; onOpenSpace: () => void;
+}) {
+  const dueLabel = nextDueAt && Number.isFinite(Date.parse(nextDueAt))
+    ? new Intl.DateTimeFormat('zh-CN', {timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'}).format(new Date(nextDueAt)) : null;
+  return <main className="completion-workbench"><section className="completion-object" aria-labelledby="empty-learning-title">
+    <h1 id="empty-learning-title">{reviewOnly ? '暂时没有需要复习的卡片' : '暂时没有可学习的卡片'}</h1>
+    {pendingSync ? <p role="status">本次作答已保留，确认后会更新学习安排。</p>
+      : dueLabel ? <p>下一次复习：<time dateTime={nextDueAt!}>{dueLabel}</time>（北京时间）</p>
+      : <p>{reviewOnly ? '可以继续学习新内容，稍后再查看复习安排。' : '可以稍后刷新学习安排，或到空间查看卡片。'}</p>}
+    {sleepingCount > 0 ? <p>休眠中的卡不会继续出题，可到空间恢复学习。</p> : null}
+    {error ? <p className="notice error" role="alert">{error}</p> : null}
+    {reviewOnly ? <button className="primary" disabled={busy} onClick={onContinueLearning}><IconLabel name="arrowRight">继续学习</IconLabel></button> : null}
+    <button className={reviewOnly ? 'secondary' : 'primary'} disabled={busy} onClick={onRefresh}><IconLabel name="refresh">{reviewOnly ? '刷新复习安排' : '刷新学习进度'}</IconLabel></button>
+    <button className="secondary" disabled={busy} onClick={onOpenSpace}><IconLabel name="map">查看卡片</IconLabel></button>
+  </section></main>;
 }
 
 function SessionCompleteSurface({continueLabel, busy, phase, results, total, onOpenSpace, onRestart, onStartReview, reviewCountOverride, serverSequenced, statusMessage, syncStatus}: {continueLabel?: string; busy: boolean; phase: 'learning' | 'review'; results: LearningCardResult[]; total: number; onOpenSpace: () => void; onRestart: () => void; onStartReview: () => void; reviewCountOverride?: number; serverSequenced: boolean; statusMessage: string; syncStatus: string}) {

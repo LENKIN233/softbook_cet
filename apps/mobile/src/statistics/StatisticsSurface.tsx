@@ -20,6 +20,7 @@ type Props = {
   hasCheckedInToday: boolean;
   checkInStatus?: 'queued' | 'confirming';
   checkInBusy?: boolean;
+  checkInUnavailableReason?: string;
   deviceClass: 'phone' | 'tablet';
   onCheckIn: () => void;
   onGoToLearning: () => void;
@@ -38,11 +39,11 @@ type Props = {
 export function StatisticsSurface({statistics, track, canCheckInToday,
   pendingReviewCount = 0, onStartReview,
   hasCheckedInToday, deviceClass, onCheckIn, onGoToLearning, palette,
-  syncStatusLabel, syncStatusDetail, checkInStatus, checkInBusy = false}: Props) {
+  syncStatusLabel, syncStatusDetail, checkInStatus, checkInBusy = false, checkInUnavailableReason}: Props) {
   const [showExplanation, setShowExplanation] = useState(false);
   const scope = statistics?.track ?? track;
   const hasSyncNotice = !['已记录', '已同步', '暂无记录', '已保存在本机'].includes(syncStatusLabel);
-  const checkInDisabled = checkInBusy || hasCheckedInToday || (!canCheckInToday && !checkInStatus);
+  const checkInDisabled = Boolean(checkInUnavailableReason) || checkInBusy || hasCheckedInToday || (!canCheckInToday && !checkInStatus);
   const checkInLabel = hasCheckedInToday ? '今日已签到'
     : checkInBusy ? checkInStatus === 'confirming' ? '正在确认' : '正在保存'
     : checkInStatus === 'confirming' ? '重新确认'
@@ -73,6 +74,7 @@ export function StatisticsSurface({statistics, track, canCheckInToday,
         <Text style={[styles.label, {color: palette.text}]}>签到</Text>
         <Text testID="statistics-checkin-summary" style={[styles.detail, {color: palette.textMuted}]}>
           {hasCheckedInToday ? '今天已签到。'
+            : checkInUnavailableReason ? checkInUnavailableReason
             : checkInStatus === 'confirming' ? '签到已提交，尚未确认结果。'
             : checkInStatus === 'queued' ? '签到已保存在本机，等待同步。'
             : canCheckInToday ? '今天的学习已记录，可以签到。' : '完成一张卡后可以签到，四六级共用签到记录。'}

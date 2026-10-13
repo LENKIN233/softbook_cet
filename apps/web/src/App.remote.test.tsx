@@ -205,6 +205,68 @@ describe('PC Web remote UI authority', () => {
     expect(controller.completeCurrentCard).toHaveBeenCalledTimes(1);
   });
 
+  it('shows the next due time for an empty server selection instead of a completed round', async () => {
+    const empty = createSnapshot('premium');
+    empty.learningSession.cards = [];
+    empty.learningSession.serverSelection = null;
+    empty.learningSession.nextDueAt = '2026-10-14T00:00:00.000Z';
+    const controller = createController(empty);
+    await authenticateToHome(controller);
+    fireEvent.click(screen.getByRole('button', {name: '开始学习'}));
+    await screen.findByRole('heading', {name: '暂时没有可学习的卡片'});
+    expect(screen.getByText(/下一次复习/)).toHaveTextContent('2026/10/14 08:00');
+    expect(screen.getByText(/下一次复习/)).toHaveTextContent('北京时间');
+    expect(screen.queryByRole('heading', {name: '本轮完成'})).toBeNull();
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+  });
+
+  it('keeps an empty selection without a due time honest and offers a refresh', async () => {
+    const empty = createSnapshot('premium');
+    empty.learningSession.cards = [];
+    empty.learningSession.serverSelection = null;
+    const controller = createController(empty);
+    await authenticateToHome(controller);
+    fireEvent.click(screen.getByRole('button', {name: '开始学习'}));
+    await screen.findByRole('heading', {name: '暂时没有可学习的卡片'});
+    expect(screen.queryByText(/下一次复习/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: '刷新学习进度'}));
+    await act(async () => {await Promise.resolve();});
+    expect(controller.loadAuthenticatedState).toHaveBeenCalledTimes(2);
+  });
+
+  it('explains the trial clock before the first learning request', async () => {
+    const initial = createSnapshot('trial');
+    initial.membership = {...createInitialMembershipState(), trialDurationDays: 5};
+    initial.bootstrap.membership.state = initial.membership;
+    const controller = createController(initial);
+    await authenticateToHome(controller);
+    expect(screen.getByText(/点击后开始连续5天试用/)).toBeInTheDocument();
+    expect(controller.loadAuthenticatedState).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', {name: '开始5天试用并学习'}));
+    await screen.findByRole('article');
+    expect(controller.loadAuthenticatedState).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps all original options available after a correct multiple-choice answer', async () => {
+    const initial = createSnapshot('premium');
+    const choice: LearningCard = {...createCard(1), interaction_id: 'multiple_choice', auto_scoring: true,
+      front: {eyebrow: '语法', prompt: 'Which sentence matches?', support: '', context: ''},
+      options: [{id: 'A', label: 'A', text: 'First original sentence'}, {id: 'B', label: 'B', text: 'Correct original sentence'},
+        {id: 'C', label: 'C', text: 'Third original sentence'}, {id: 'D', label: 'D', text: 'Fourth original sentence'}],
+      answer_key: {correct_option: 'B'}};
+    initial.learningSession.cards = [choice];
+    initial.learningSession.catalogCards[0] = choice;
+    await authenticateRemote(createController(initial));
+    fireEvent.click(screen.getByRole('button', {name: /^B\s*Correct original sentence$/}));
+    fireEvent.click(screen.getByRole('button', {name: '提交答案'}));
+    await screen.findByText('这次答对了');
+    fireEvent.click(screen.getByText('回看题目'));
+    const options = screen.getByRole('list', {name: '原题选项'});
+    for (const text of ['First original sentence', 'Correct original sentence', 'Third original sentence', 'Fourth original sentence']) {
+      expect(options).toHaveTextContent(text);
+    }
+  });
+
   it('shows an empty requested review without claiming all new learning is complete', async () => {
     const initial = createSnapshot('premium');
     initial.bootstrap.learning.cardStates = [{cardId: createCard(2).card_id, interactionId: 'flip',
