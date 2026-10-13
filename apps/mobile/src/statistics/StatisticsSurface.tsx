@@ -18,6 +18,8 @@ type Props = {
   track: 'cet4' | 'cet6';
   canCheckInToday: boolean;
   hasCheckedInToday: boolean;
+  checkInStatus?: 'queued' | 'confirming';
+  checkInBusy?: boolean;
   deviceClass: 'phone' | 'tablet';
   onCheckIn: () => void;
   onGoToLearning: () => void;
@@ -36,10 +38,15 @@ type Props = {
 export function StatisticsSurface({statistics, track, canCheckInToday,
   pendingReviewCount = 0, onStartReview,
   hasCheckedInToday, deviceClass, onCheckIn, onGoToLearning, palette,
-  syncStatusLabel, syncStatusDetail}: Props) {
+  syncStatusLabel, syncStatusDetail, checkInStatus, checkInBusy = false}: Props) {
   const [showExplanation, setShowExplanation] = useState(false);
   const scope = statistics?.track ?? track;
   const hasSyncNotice = !['已记录', '已同步', '暂无记录', '已保存在本机'].includes(syncStatusLabel);
+  const checkInDisabled = checkInBusy || hasCheckedInToday || (!canCheckInToday && !checkInStatus);
+  const checkInLabel = hasCheckedInToday ? '今日已签到'
+    : checkInBusy ? checkInStatus === 'confirming' ? '正在确认' : '正在保存'
+    : checkInStatus === 'confirming' ? '重新确认'
+    : checkInStatus === 'queued' ? '重试同步' : '签到';
   return <ScrollView testID="statistics-scroll" showsVerticalScrollIndicator={false}
     contentContainerStyle={[styles.page, deviceClass === 'tablet' && styles.tablet]}>
     <View testID="statistics-day-object" style={styles.heading}>
@@ -82,15 +89,18 @@ export function StatisticsSurface({statistics, track, canCheckInToday,
       <View style={styles.checkInCopy}>
         <Text style={[styles.label, {color: palette.text}]}>签到</Text>
         <Text testID="statistics-checkin-summary" style={[styles.detail, {color: palette.textMuted}]}>
-          {hasCheckedInToday ? '今天已签到。' : canCheckInToday ? '今天的学习已记录，可以签到。' : '完成一张卡后可以签到，四六级共用签到记录。'}
+          {hasCheckedInToday ? '今天已签到。'
+            : checkInStatus === 'confirming' ? '签到已提交，尚未确认结果。'
+            : checkInStatus === 'queued' ? '签到已保存在本机，等待同步。'
+            : canCheckInToday ? '今天的学习已记录，可以签到。' : '完成一张卡后可以签到，四六级共用签到记录。'}
         </Text>
       </View>
-      <Pressable accessibilityRole="button" testID="statistics-checkin-button" disabled={!canCheckInToday || hasCheckedInToday}
-        accessibilityState={{disabled: !canCheckInToday || hasCheckedInToday}}
-        onPress={onCheckIn} style={[styles.secondary, {borderColor: canCheckInToday && !hasCheckedInToday ? palette.accent : palette.border,
-          backgroundColor: hasCheckedInToday ? palette.panelStrong : canCheckInToday ? palette.accentSoft : palette.panel}]}>
-        <StudioActionLabel icon={hasCheckedInToday ? 'checkCircle' : 'calendar'} color={hasCheckedInToday ? palette.success : canCheckInToday ? palette.text : palette.textMuted}
-          textStyle={styles.buttonLabel} textTestID={hasCheckedInToday ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>{hasCheckedInToday ? '今日已签到' : '签到'}</StudioActionLabel>
+      <Pressable accessibilityRole="button" testID="statistics-checkin-button" disabled={checkInDisabled}
+        accessibilityState={{disabled: checkInDisabled, busy: checkInBusy}}
+        onPress={onCheckIn} style={[styles.secondary, {borderColor: !checkInDisabled ? palette.accent : palette.border,
+          backgroundColor: hasCheckedInToday ? palette.panelStrong : !checkInDisabled ? palette.accentSoft : palette.panel}]}>
+        <StudioActionLabel icon={hasCheckedInToday ? 'checkCircle' : 'calendar'} color={hasCheckedInToday ? palette.success : !checkInDisabled ? palette.text : palette.textMuted}
+          textStyle={styles.buttonLabel} textTestID={hasCheckedInToday ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>{checkInLabel}</StudioActionLabel>
       </Pressable>
     </View>
     {hasSyncNotice ? <View testID="statistics-status-ledger">

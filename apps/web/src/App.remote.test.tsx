@@ -591,6 +591,25 @@ describe('PC Web remote UI authority', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it('clears the verification error when returning to edit the phone number', async () => {
+    const controller = createController(createSnapshot('premium'), {
+      verifySmsCode: vi.fn().mockRejectedValue(new RemoteHttpError('private', 401, 'invalid_sms_code')),
+    });
+    render(<App remoteRuntimeFactory={() => controller} />);
+    fireEvent.change(await screen.findByLabelText('手机号'), {target: {value: PHONE}});
+    fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
+    fireEvent.change(await screen.findByLabelText('短信验证码'), {target: {value: '123456'}});
+    fireEvent.click(screen.getByRole('button', {name: '登录'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('验证码不正确');
+    fireEvent.click(screen.getByRole('button', {name: '更换手机号 / 重新获取验证码'}));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByLabelText('短信验证码')).toBeNull();
+    fireEvent.change(screen.getByLabelText('手机号'), {target: {value: '13800008852'}});
+    fireEvent.click(screen.getByRole('button', {name: '获取验证码'}));
+    expect(await screen.findByLabelText('短信验证码')).toHaveValue('');
+    expect(controller.requestSmsCode).toHaveBeenLastCalledWith('13800008852');
+  });
+
   it('recovers a stale registration challenge with a fresh code for the same phone', async () => {
     const snapshot = createSnapshot('premium');
     const controller = createController(snapshot, {

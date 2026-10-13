@@ -656,11 +656,17 @@ test('restores an exact queued check-in without treating event-derived progress 
         .findAllByProps({ testID: 'statistics-sync-detail' })
         .some(node => String(node.props.children).includes('联网后会自动更新')),
     ).toBe(true);
+    expect(tree.root.findAllByProps({testID: 'statistics-checkin-complete-label'})).toHaveLength(0);
+    expect(tree.root.findByType(StatisticsSurface).props).toMatchObject({
+      hasCheckedInToday: false,
+      checkInStatus: 'queued',
+      checkInBusy: false,
+    });
     expect(
-      tree.root.findByProps({
-        testID: 'statistics-checkin-complete-label',
-      }),
-    ).toBeTruthy();
+      tree.root.findAllByProps({testID: 'statistics-checkin-ready-label'})
+        .some(node => node.props.children === '重试同步'),
+    ).toBe(true);
+    expect(findPressableByTestId(tree.root, 'statistics-checkin-button').props.disabled).toBe(false);
     expect(checkInRequests.length).toBeGreaterThanOrEqual(1);
     checkInRequests.forEach(request => {
       expect(request.method).toBe('POST');
@@ -687,6 +693,16 @@ test('restores an exact queued check-in without treating event-derived progress 
     expect(JSON.stringify(queuedMutations)).not.toMatch(
       /authToken|accessToken|refreshToken|favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/,
     );
+    const beforeRetry = checkInRequests.length;
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(tree!.root, 'statistics-checkin-button').props.onPress();
+      await flushAsyncEffects();
+      await flushAsyncEffects();
+    });
+    expect(checkInRequests).toHaveLength(beforeRetry + 1);
+    expect(JSON.parse(String(checkInRequests[beforeRetry].body))).toEqual({day_key: dayKey});
+    expect(tree.root.findAllByProps({testID: 'statistics-checkin-complete-label'})).toHaveLength(0);
+    expect(findPressableByTestId(tree.root, 'statistics-checkin-button').props.disabled).toBe(false);
   } finally {
     if (tree) {
       await ReactTestRenderer.act(() => {

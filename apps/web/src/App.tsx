@@ -1565,7 +1565,7 @@ function AccountApp({
               : authStage === 'phone' ? '获取验证码' : '登录'}</IconLabel>
           </button>
           {authStage === 'code' ? (
-            <button className="text-button" disabled={remoteBusy} onClick={() => {setAuthStage('phone'); setCode('');}}>
+            <button className="text-button" disabled={remoteBusy} onClick={() => {setAuthStage('phone'); setCode(''); setAuthError('');}}>
               <IconLabel name="phone">更换手机号 / 重新获取验证码</IconLabel>
             </button>
           ) : null}

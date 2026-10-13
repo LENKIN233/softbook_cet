@@ -3435,8 +3435,11 @@ test('space map uses the active learning session catalog', async () => {
   expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain('仔细阅读');
 });
 
-test('queues a failed explicit remote check-in without uploading progress counters', async () => {
+test('retries a durably queued check-in after network failure and only shows completion after canonical confirmation', async () => {
   const checkInRequests: MockFetchInit[] = [];
+  let shouldFailCheckIn = true;
+  let checkedInToday = false;
+  let releaseConfirmation: (() => void) | undefined;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     accountBootstrap: {
@@ -3481,7 +3484,10 @@ test('queues a failed explicit remote check-in without uploading progress counte
     }
 
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
-      return createJsonResponse(createAccountBootstrapPayload());
+      if (checkedInToday) await new Promise<void>(resolve => {releaseConfirmation = resolve;});
+      return createJsonResponse(createAccountBootstrapPayload(
+        createLocalLearningSession('cet4'), 'free', [], checkedInToday,
+      ));
     }
 
     if (input === 'https://api.softbook.example/v2/membership/entitlement') {
@@ -3490,7 +3496,9 @@ test('queues a failed explicit remote check-in without uploading progress counte
 
     if (input === 'https://api.softbook.example/v2/progress/check-in') {
       checkInRequests.push(init ?? {});
-      return createJsonResponse({}, 503);
+      if (shouldFailCheckIn) return createJsonResponse({}, 503);
+      checkedInToday = true;
+      return createDailyCheckInResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -3533,8 +3541,10 @@ test('queues a failed explicit remote check-in without uploading progress counte
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已排队');
-  expect(output).toContain('联网后会自动更新');
+  expect(output).not.toContain('今日已签到');
+  expect(output).not.toContain('今天已签到。');
+  expect(output).toContain('重试同步');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
   expect(checkInRequests).toHaveLength(1);
   expect(JSON.parse(String(checkInRequests[0].body))).toEqual({
     day_key: getChinaDayKey(),
@@ -3545,6 +3555,31 @@ test('queues a failed explicit remote check-in without uploading progress counte
   expect(queuedMutations).toContain('check_in_daily_progress');
   expect(queuedMutations).not.toMatch(/favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/);
   expectNoUserVisibleMetadataLeakage(tree!);
+
+  shouldFailCheckIn = false;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+  });
+  expect(checkInRequests).toHaveLength(2);
+  expect(checkInRequests[1].body).toBe(checkInRequests[0].body);
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).not.toContain('check_in_daily_progress');
+  expect(JSON.stringify(tree!.toJSON())).not.toContain('今日已签到');
+  expect(JSON.stringify(tree!.toJSON())).toContain('正在确认');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(true);
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+  });
+  expect(checkInRequests).toHaveLength(2);
+  expect(releaseConfirmation).toBeDefined();
+  await ReactTestRenderer.act(async () => {
+    releaseConfirmation!();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+  expect(JSON.stringify(tree!.toJSON())).toContain('今日已签到');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(true);
 });
 
 test('does not count a prior China-day card projection as today or enable check-in', async () => {
@@ -4361,8 +4396,9 @@ test('replays an explicit queued check-in and confirms it through bootstrap afte
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('keeps an acknowledged check-in pending when canonical bootstrap does not confirm it', async () => {
+test.each(['unconfirmed', 'unavailable'])('keeps an acknowledged check-in pending when canonical bootstrap is %s', async confirmationState => {
   let checkInRequestCount = 0;
+  let checkedInToday = false;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
@@ -4380,7 +4416,12 @@ test('keeps an acknowledged check-in pending when canonical bootstrap does not c
       return createRemoteAuthSessionResponse();
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
-      return createJsonResponse(createAccountBootstrapPayload());
+      if (confirmationState === 'unavailable' && checkInRequestCount > 0 && !checkedInToday) {
+        return createJsonResponse({}, 503);
+      }
+      return createJsonResponse(createAccountBootstrapPayload(
+        createLocalLearningSession('cet4'), 'free', [], checkedInToday,
+      ));
     }
     if (input === 'https://api.softbook.example/v2/progress/check-in') {
       checkInRequestCount += 1;
@@ -4419,13 +4460,80 @@ test('keeps an acknowledged check-in pending when canonical bootstrap does not c
   expect(checkInRequestCount).toBe(1);
   expect(output).toContain('待确认');
   expect(output).toContain('等待重新确认');
-  expect(
-    root.findByProps({ testID: 'statistics-checkin-complete-label' }),
-  ).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'statistics-checkin-complete-label' })).toHaveLength(0);
+  expect(output).toContain('重新确认');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).not.toContain(
     'check_in_daily_progress',
   );
   expectNoUserVisibleMetadataLeakage(tree!);
+
+  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(async () => {await flushAsyncEffects();});
+  await openRoute(root, 'statistics');
+  expect(JSON.stringify(tree!.toJSON())).toContain('重新确认');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
+  expect(checkInRequestCount).toBe(1);
+
+  checkedInToday = true;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+  expect(checkInRequestCount).toBe(1);
+  expect(root.findByProps({ testID: 'statistics-checkin-complete-label' })).toBeTruthy();
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(true);
+});
+
+test('restores an exact queued check-in without presenting it as confirmed and can retry without new learning', async () => {
+  const dayKey = getChinaDayKey();
+  await new MutationQueueManager({storage: createReactNativeMutationQueueStorage()})
+    .enqueue('check_in_daily_progress', {context: {phoneNumber: '13800138000'}, dayKey},
+      `check-in:13800138000:${dayKey}`);
+  let shouldFailCheckIn = true;
+  let checkedInToday = false;
+  const requests: string[] = [];
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {learningState: 'local', membership: 'local', spaceState: 'local'},
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) return createJsonResponse(createAccountBootstrapPayload(
+      createLocalLearningSession('cet4'), 'free', [], checkedInToday,
+    ));
+    if (input.endsWith('/v2/progress/check-in')) {
+      requests.push(String(init?.body));
+      if (shouldFailCheckIn) return createJsonResponse({}, 503);
+      checkedInToday = true;
+      return createDailyCheckInResponse(init);
+    }
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  const root = tree.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'statistics');
+  await ReactTestRenderer.act(async () => {await flushAsyncEffects();});
+  expect(requests.length).toBeGreaterThan(0);
+  expect(root.findByType(StatisticsSurface).props.learningCompletedCount).toBe(0);
+  expect(JSON.stringify(tree.toJSON())).not.toContain('今日已签到');
+  expect(JSON.stringify(tree.toJSON())).toContain('重试同步');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
+  const failedRequestCount = requests.length;
+  shouldFailCheckIn = false;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+  expect(requests).toHaveLength(failedRequestCount + 1);
+  expect(requests.every(body => body === JSON.stringify({day_key: dayKey}))).toBe(true);
+  expect(JSON.stringify(tree.toJSON())).toContain('今日已签到');
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).not.toContain('check_in_daily_progress');
 });
 
 test('does not mark check-in complete when durable mutation storage fails', async () => {
