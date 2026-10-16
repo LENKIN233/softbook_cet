@@ -409,3 +409,9 @@ its statistics are unavailable. The current FlexDB read is bounded at 1000
 matching rows: a full page yields null rather than silently truncating totals,
 using unsupported ordered pagination, or blocking the learning route. This
 repository-local change does not claim a deployed CloudBase change.
+
+The optional `statistics.answer_breakdown` has nonnegative `correct`, `incorrect`,
+`confident`, `review`, `hints` and `peeks`. The first four sum to completed attempts;
+assistance counts each cannot exceed attempts. Only immutable accepted events
+supply these counts. Incomplete historical event metadata omits the breakdown,
+so clients do not invent objective scores or substitute latest-per-card results.

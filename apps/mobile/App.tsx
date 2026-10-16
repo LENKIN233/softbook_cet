@@ -8753,7 +8753,7 @@ function MineSurface({
         style={[
           styles.mineProfilePanel,
           isCompactPhone ? styles.mineProfilePanelCompact : null,
-          { backgroundColor: palette.panel, borderColor: palette.border },
+          { backgroundColor: 'transparent', borderColor: 'transparent' },
         ]}
         testID="mine-profile-card"
       >
@@ -8773,7 +8773,7 @@ function MineSurface({
                   { color: palette.accent },
                 ]}
               >
-                我的会员
+                我的账号
               </Text>
             </View>
             <View
@@ -8804,23 +8804,14 @@ function MineSurface({
               { color: palette.text },
             ]}
           >
-            会员与试用
-          </Text>
-          <Text
-            style={[
-              styles.mineAccountSummary,
-              isCompactPhone ? styles.mineAccountSummaryCompact : null,
-              { color: palette.textMuted },
-            ]}
-          >
-            查看会员状态，管理登录账号。
+            账号与会员
           </Text>
           <View
             style={[
               styles.mineAccountLedger,
               {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
             ]}
             testID="mine-account-ledger"
@@ -8837,13 +8828,7 @@ function MineSurface({
               value={syncDetail}
               valueTestID="mine-profile-sync"
             />
-            <MineAccountRow
-              label="学习顺序"
-              last
-              palette={palette}
-              value="系统推荐"
-              valueTestID="mine-profile-route"
-            />
+
           </View>
         </View>
         {onSwitchTrack ? <View style={{paddingVertical: 16, gap: 12}}>
@@ -8891,8 +8876,8 @@ function MineSurface({
               styles.mineSessionCard,
               isCompactPhone ? styles.mineAccountPrivacyCardCompact : null,
               {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
             ]}
             testID="mine-session-card"
@@ -9273,47 +9258,10 @@ function MembershipHostCard({
           ]}
           testID="membership-access-strip"
         >
-          {benefitSummary.map(item => (
-            <View
-              key={item.label}
-              style={[
-                styles.membershipAccessStep,
-                compact ? styles.membershipAccessStepCompact : null,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: 'transparent',
-                },
-              ]}
-              testID="membership-access-step"
-            >
-              <View
-                style={[
-                  styles.membershipAccessDot,
-                  {
-                    backgroundColor: item.open
-                      ? palette.success
-                      : hexToRgba(palette.warning, 0.2),
-                    borderColor: item.open ? palette.success : palette.warning,
-                  },
-                ]}
-              />
-              <Text
-                numberOfLines={1}
-                style={[styles.membershipAccessLabel, { color: palette.text }]}
-              >
-                {item.label}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.membershipAccessValue,
-                  { color: item.open ? palette.success : palette.warning },
-                ]}
-              >
-                {item.open ? '可用' : '不可用'}
-              </Text>
-            </View>
-          ))}
+          <Text style={[styles.membershipSummary, {color: palette.textMuted}]}>
+            {benefitSummary.every(item => item.open) ? '完整卡库、知识空间和智能复习均可使用。'
+              : benefitSummary.map(item => `${item.label}${item.open ? '可用' : '需开通'}`).join(' · ')}
+          </Text>
         </View>
       )}
       {membershipState.stage === 'trial' && membershipState.trialExpiresAt ? <Text style={[styles.authSummary, {color: palette.textMuted}]}>试用至 {new Date(membershipState.trialExpiresAt).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}</Text> : null}

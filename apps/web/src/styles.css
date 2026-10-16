@@ -607,3 +607,5 @@ details[open] > summary > .disclosure-chevron {transform:rotate(180deg);}
 .audio-repeat-actions button {display: inline-flex; align-items: center; gap: 6px; min-height: 44px;}
 
 .answer-first:focus, .flip-back h2:focus {outline:none;}
+
+.assessment-confirm {display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;}

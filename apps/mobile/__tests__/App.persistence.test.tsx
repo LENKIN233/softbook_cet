@@ -357,7 +357,7 @@ test('persists a successful login and restores it after relaunch', async () => {
 test('retains completed local learning and its cursor after relaunch', async () => {
   await createAuthSessionStore().save({mode: 'local', phoneNumber: '13800138000'});
   const tree = await renderAppAndWaitForLearning();
-  for (const id of ['learning-flip-button', 'learning-flip-review-button', 'learning-next-button']) {
+  for (const id of ['learning-flip-button', 'learning-flip-review-button', 'learning-flip-confirm-button', 'learning-next-button']) {
     await ReactTestRenderer.act(async () => {
       findPressableByTestId(tree.root, id).props.onPress();
       await flushAsyncEffects();
@@ -509,9 +509,7 @@ test('restores remote account state from canonical bootstrap before local use', 
     expect(
       tree.root.findByProps({ testID: 'mine-membership-stage' }).props.children,
     ).toBe('会员');
-    expect(
-      tree.root.findByProps({ testID: 'mine-profile-route' }).props.children,
-    ).toBe('系统推荐');
+    expect(tree.root.findAllByProps({testID: 'mine-profile-route'})).toHaveLength(0);
     await openRoute(tree.root, 'statistics');
     expect(
       tree.root.findAllByProps({ testID: 'statistics-checkin-complete-label' }),

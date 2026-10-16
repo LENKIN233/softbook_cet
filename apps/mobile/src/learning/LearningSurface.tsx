@@ -34,12 +34,10 @@ import {
 } from './model';
 import { canSubmitLearningCard, summarizeLearningResults } from './session';
 import {
-  SELF_ASSESS_COLORS,
   hexToRgba,
   resolveLibraryTone,
 } from '../visual/tokens';
 import {
-  formatLearningSessionDisplayLabel,
   formatSpaceDisplayName,
 } from '../space/spaceMetadataDisplay';
 
@@ -763,7 +761,7 @@ export function LearningSurface({
 
               ) : null}
 
-              {audioSelection ? (
+              {audioSelection && !currentResult ? (
                 <View
                   style={styles.audioResourceSlot}
                   testID="learning-audio-slot"
@@ -841,6 +839,20 @@ export function LearningSurface({
                   />
                 </View>
               )}
+              {audioSelection && currentResult ? (
+                <View
+                  style={styles.audioResourceSlot}
+                  testID="learning-audio-slot"
+                >
+                  <LearningAudioPlayer
+                    disabled={interactionLocked}
+                    palette={palette}
+                    selection={audioSelection}
+                    refreshDownload={refreshAudioDownload}
+                  />
+                </View>
+              ) : null}
+
             </ScrollView>
           </Animated.View>
         </View>
@@ -915,66 +927,7 @@ export function LearningSurface({
                 </StudioActionLabel>
               </Pressable>
             ) : (
-              <View
-                style={[
-                  styles.confidenceRow,
-                  isCompactPhone ? styles.confidenceRowCompact : null,
-                  isAccessibilityText ? styles.confidenceRowAccessible : null,
-                ]}
-              >
-                <Pressable
-                  accessibilityLabel="自评有把握"
-                  accessibilityRole="radio"
-                  accessibilityState={{
-                    checked: currentCardState.flipConfidence === 'confident',
-                  }}
-                  onPress={() => onSetFlipConfidence('confident')}
-                  style={[
-                    styles.choicePill,
-                    styles.choicePillWide,
-                    isAccessibilityText ? styles.choicePillAccessible : null,
-                    isCompactPhone ? styles.choicePillCompact : null,
-                    {
-                      backgroundColor: hexToRgba(
-                        SELF_ASSESS_COLORS.confident,
-                        0.12,
-                      ),
-                      borderColor: SELF_ASSESS_COLORS.confident,
-                    },
-                  ]}
-                  testID="learning-flip-confident-button"
-                >
-                  <StudioActionLabel icon="checkCircle" color="#146047" textStyle={styles.choiceLabel}>
-                    有把握
-                  </StudioActionLabel>
-                </Pressable>
-                <Pressable
-                  accessibilityLabel="自评需要复习"
-                  accessibilityRole="radio"
-                  accessibilityState={{
-                    checked: currentCardState.flipConfidence === 'review',
-                  }}
-                  onPress={() => onSetFlipConfidence('review')}
-                  style={[
-                    styles.choicePill,
-                    styles.choicePillWide,
-                    isAccessibilityText ? styles.choicePillAccessible : null,
-                    isCompactPhone ? styles.choicePillCompact : null,
-                    {
-                      backgroundColor: hexToRgba(
-                        SELF_ASSESS_COLORS.review,
-                        0.12,
-                      ),
-                      borderColor: SELF_ASSESS_COLORS.review,
-                    },
-                  ]}
-                  testID="learning-flip-review-button"
-                >
-                  <StudioActionLabel icon="refresh" color="#72530D" textStyle={styles.choiceLabel}>
-                    需要复习
-                  </StudioActionLabel>
-                </Pressable>
-              </View>
+              <FlipAssessment key={currentCard.card_id} onConfirm={onSetFlipConfidence} palette={palette} />
             )}
           </View>
         ) : null}
@@ -1000,6 +953,24 @@ export function LearningSurface({
       {page}
     </ScrollView>
   );
+}
+
+function FlipAssessment({onConfirm, palette}: {onConfirm: (value: 'confident' | 'review') => void; palette: LearningSurfacePalette}) {
+  const [choice, setChoice] = React.useState<'confident' | 'review' | null>(null);
+  return <View style={styles.assessmentChoices}>
+    <View style={styles.confidenceRow}>
+      {(['confident', 'review'] as const).map(value => <Pressable key={value} accessibilityRole="radio"
+        accessibilityState={{checked: choice === value}} onPress={() => setChoice(value)}
+        style={[styles.choicePill, styles.choicePillWide, {borderColor: choice === value ? palette.accent : palette.border, backgroundColor: choice === value ? palette.accentSoft : palette.panel}]}
+        testID={`learning-flip-${value}-button`}>
+        <Text style={[styles.choiceLabel, {color: palette.text}]}>{value === 'confident' ? '有把握' : '需要复习'}</Text>
+      </Pressable>)}
+    </View>
+    {choice ? <View style={styles.detailToolbar}>
+      <Pressable accessibilityRole="button" onPress={() => setChoice(null)} style={styles.analysisLink} testID="learning-flip-undo-button"><Text style={{color: palette.text}}>撤销选择</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => onConfirm(choice)} style={[styles.primaryButton, {backgroundColor: palette.primaryActionSurface}]} testID="learning-flip-confirm-button"><Text style={[styles.primaryButtonLabel, {color: palette.primaryActionText}]}>保存自评</Text></Pressable>
+    </View> : null}
+  </View>;
 }
 
 function LearningHelp({card, state, palette, onToggleHint, onTogglePeek, onReveal}: {
@@ -1851,15 +1822,11 @@ export function LearningResultDetailSurface({
   advanceState = DEFAULT_LEARNING_ADVANCE_STATE,
   card,
   cardState,
-  currentIndex,
   isLastCard,
   onAdvanceCard,
   onBackToPractice,
   palette,
-  phase,
   result,
-  sessionCardCount,
-  immersive = false,
 }: {
   advanceState?: LearningAdvanceState;
   card: LearningCard;
@@ -1875,7 +1842,6 @@ export function LearningResultDetailSurface({
   sessionLabel: string;
   immersive?: boolean;
 }) {
-  const isReviewPhase = phase === 'review';
   const {
     fontScale,
     height: viewportHeight,
@@ -1888,35 +1854,14 @@ export function LearningResultDetailSurface({
     viewportWidth,
     viewportHeight,
   );
-  const displaySessionLabel = formatLearningSessionDisplayLabel(phase);
-  const visibleShelfName = formatSpaceDisplayName(
-    card.space_metadata.library,
-    '当前书架',
-  );
-  const visibleSectionName = formatSpaceDisplayName(
-    card.space_metadata.group,
-    '当前分区',
-  );
-  const visibleContainerName = formatSpaceDisplayName(
-    card.space_metadata.box,
-    '当前卡盒',
-  );
+  const visibleContainerName = formatSpaceDisplayName(card.space_metadata.box, '解析');
   const resultTone = getResultTone(result, palette);
-  const courseName = card.track === 'cet6' ? '英语六级' : '英语四级';
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const primaryAction = getLibraryActionColors(detailLibraryTone.accentStrong, palette);
-  const neutralAction = getNeutralActionSurface(palette);
   const feedback = resultFeedback(result.outcome);
   const detailOutcomeTitle = feedback.title;
   const detailOutcomeCaption = feedback.caption;
-  const boundedSessionCardCount = Math.max(sessionCardCount, 1);
-  const progressOrdinal = Math.min(currentIndex + 1, boundedSessionCardCount);
-  const progressPercent = `${Math.max(
-    Math.round((progressOrdinal / boundedSessionCardCount) * 100),
-    10,
-  )}%` as DimensionValue;
-  const progressCount = `${progressOrdinal}/${boundedSessionCardCount}`;
 
   return (
     <ScrollView
@@ -1953,145 +1898,19 @@ export function LearningResultDetailSurface({
         ]}
         testID="learning-detail-resolved-card"
       >
-        <View
-          style={[
-            styles.cardAddressShelf,
-            isCompactPhone ? styles.cardAddressShelfCompact : null,
-            immersive ? styles.immersiveAddress : null,
-          ]}
-        >
-          <View style={styles.heroChipRow}>
-            <View
-              pointerEvents="none"
-              style={[
-                styles.cardObjectAccent,
-                isCompactPhone ? styles.cardObjectAccentCompact : null,
-                { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.92) },
-              ]}
-            />
-            <View
-              style={[
-                styles.cardObjectHeaderText,
-                isCompactPhone ? styles.cardObjectHeaderTextCompact : null,
-              ]}
-            >
-              <Text
-                maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
-                style={[styles.learningFrameMeta, { color: palette.textMuted }]}
-              >
-                {isCompactPhone
-                  ? `${
-                      phase === 'review' ? '本轮复习' : displaySessionLabel
-                    } · ${visibleContainerName}`
-                  : phase === 'review'
-                  ? '本轮复习'
-                  : displaySessionLabel}
-              </Text>
-              <Text
-                maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
-                style={[
-                  styles.cardObjectLead,
-                  isCompactPhone ? styles.cardObjectLeadCompact : null,
-                  { color: palette.text },
-                ]}
-              >
-                解析
-              </Text>
-            </View>
-          </View>
-          {!immersive && sessionCardCount > 1 ? <View
-            style={[
-              styles.cardProgressCluster,
-              isCompactPhone ? styles.cardProgressClusterCompact : null,
-              {
-                backgroundColor: palette.panelStrong,
-                borderColor: hexToRgba(detailLibraryTone.accent, 0.14),
-              },
-            ]}
-          >
-            <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.cardProgressCount, { color: palette.text }]}>
-              {progressCount}
-            </Text>
-            <View
-              style={[
-                styles.cardProgressTrack,
-                { backgroundColor: palette.panel, borderColor: palette.border },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    backgroundColor: detailLibraryTone.accent,
-                    width: progressPercent,
-                  },
-                ]}
-              />
-            </View>
-          </View> : null}
+        <View style={styles.detailToolbar}>
+          <Pressable accessibilityRole="button" onPress={onBackToPractice} style={styles.analysisLink} testID="learning-result-back-button">
+            <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.analysisLinkText}>返回卡面</StudioActionLabel>
+          </Pressable>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, {color: palette.text}]}>{visibleContainerName}</Text>
         </View>
-
-        {isCompactPhone ? <Pressable
-          accessibilityRole="button"
-          onPress={onBackToPractice}
-          style={styles.analysisLink}
-          testID="learning-result-back-button"
-        ><StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.analysisLinkText}>返回卡面</StudioActionLabel></Pressable> : null}
-
-        {!isCompactPhone ? (
-          <View
-            style={[
-              styles.cardLocationStrip,
-              {
-                backgroundColor: 'transparent',
-                borderColor: hexToRgba(palette.textMuted, 0.14),
-              },
-            ]}
-          >
-            <View
-              pointerEvents="none"
-              style={[
-                styles.cardLocationDot,
-                { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.62) },
-              ]}
-            />
-            <View style={styles.cardLocationTextWrap}>
-              <Text
-                numberOfLines={isAccessibilityText ? undefined : 1}
-                style={[styles.cardLocationTitle, { color: palette.textMuted }]}
-              >
-                {visibleContainerName}
-              </Text>
-              <Text
-                numberOfLines={isAccessibilityText ? undefined : 1}
-                style={[styles.cardLocationMeta, { color: palette.textMuted }]}
-              >
-                {`${courseName} · ${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
-              </Text>
-            </View>
-            <Pressable
-              onPress={onBackToPractice}
-              style={[
-                styles.detailCollapseButton,
-                {
-                  backgroundColor: palette.panel,
-                  borderColor: palette.border,
-                },
-              ]}
-              testID="learning-result-back-button"
-            >
-              <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.detailCollapseLabel}>返回卡面</StudioActionLabel>
-            </Pressable>
-          </View>
-        ) : null}
-
         <View
           style={[
             styles.detailAnswerSlip,
             isCompactPhone ? styles.detailAnswerSlipCompact : null,
             {
-              backgroundColor: neutralAction.surface,
-              borderColor: neutralAction.border,
+              backgroundColor: palette.panel,
+              borderColor: palette.border,
             },
           ]}
           testID="learning-detail-answer-slip"
@@ -2308,7 +2127,7 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
   return <View style={styles.answerSummary} testID="learning-result-summary">
     <Text accessibilityLiveRegion="polite" testID="learning-result-verdict" style={[styles.resultVerdict, {color: getResultTone(result, palette)}]}>{resultVerdict(result)}</Text>
     <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{answerLabel}</Text>
-    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
+    <Text style={[styles.answerHeadline, card.interaction_id === 'multiple_choice' ? styles.resultAnswerText : null, isLongQuestion(comparison.correct) ? styles.longQuestion : null, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
     {comparison.selected && comparison.selected !== comparison.correct ? <View style={styles.answerSelectionRow}>
       <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</Text>
       <Text style={[styles.answerSelection, {color: palette.danger}]}>{comparison.selected}</Text>
@@ -2483,6 +2302,9 @@ function MetricPill({
 }
 
 const styles = StyleSheet.create({
+  assessmentChoices: {gap: 8},
+  detailToolbar: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12},
+  resultAnswerText: {fontSize: 20, lineHeight: 29, fontWeight: '500'},
   resultVerdict: {fontSize: 16, lineHeight: 24, fontWeight: '600'},
   recalledQuestion: {gap: 12, paddingVertical: 8},
   promptBlocks: {gap: 16},
@@ -2710,13 +2532,13 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'flex-start',
     minHeight: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 16,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   detailAnswerSlipCompact: {
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   detailSlipHeader: {
     alignItems: 'center',

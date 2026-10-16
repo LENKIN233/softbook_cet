@@ -1253,3 +1253,24 @@ test('rejects statistics changed without the accepted-event revision changing', 
   expect(() => assertAccountBootstrapRevisionTransition(before, after))
     .toThrow('statistics changed without');
 });
+
+test('validates optional answer breakdown independently of older statistics payloads', () => {
+  const payload = withStudyStatistics();
+  Object.assign(payload.data.statistics, {answer_breakdown: {correct: 1, incorrect: 0, confident: 1, review: 1, hints: 2, peeks: 0}});
+  expect(parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY).statistics?.answerBreakdown)
+    .toEqual({correct: 1, incorrect: 0, confident: 1, review: 1, hints: 2, peeks: 0});
+  Object.assign(payload.data.statistics, {answer_breakdown: {correct: 3, incorrect: 0, confident: 1, review: 1, hints: 2, peeks: 0}});
+  expect(() => parseAccountBootstrapPayload(payload, 'cet4', DAY_KEY)).toThrow('breakdown is inconsistent');
+});
+
+
+test('accepts additive answer metadata on a rolling server upgrade but rejects changed established breakdowns', () => {
+  const raw = withStudyStatistics();
+  const older = parseAccountBootstrapPayload(raw, 'cet4', DAY_KEY);
+  Object.assign(raw.data.statistics, {answer_breakdown: {correct: 1, incorrect: 0, confident: 1, review: 1, hints: 0, peeks: 0}});
+  const upgraded = parseAccountBootstrapPayload(raw, 'cet4', DAY_KEY);
+  expect(() => assertAccountBootstrapRevisionTransition(older, upgraded)).not.toThrow();
+  Object.assign(raw.data.statistics, {answer_breakdown: {correct: 1, incorrect: 0, confident: 1, review: 1, hints: 1, peeks: 0}});
+  const changed = parseAccountBootstrapPayload(raw, 'cet4', DAY_KEY);
+  expect(() => assertAccountBootstrapRevisionTransition(upgraded, changed)).toThrow('statistics changed without');
+});

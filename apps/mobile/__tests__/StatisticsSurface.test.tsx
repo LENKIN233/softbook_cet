@@ -64,3 +64,16 @@ test('keeps an explicit secondary review entry without claiming those cards are 
   act(() => tree.update(<StatisticsSurface {...base} pendingReviewCount={0} onStartReview={onStartReview}/>));
   expect(tree.root.findAllByProps({testID: 'statistics-start-review-button'})).toHaveLength(0);
 });
+
+test('reveals canonical outcomes separately and places review before secondary explanations', () => {
+  const tree = render({pendingReviewCount: 2, onStartReview: jest.fn(), statistics: {
+    track: 'cet4', dayKey: '2026-10-16', completedCardCount: 2, completedAttemptCount: 4, reviewAttemptCount: 2,
+    cumulativeLearnedCardCount: 2, answerBreakdown: {correct: 1, incorrect: 1, confident: 1, review: 1, hints: 2, peeks: 1},
+  }});
+  expect(text(tree.toJSON()).indexOf('开始复习')).toBeLessThan(text(tree.toJSON()).indexOf('如何统计'));
+  act(() => tree.root.findByProps({testID: 'statistics-answers-toggle'}).props.onPress());
+  const detail = text(tree.toJSON());
+  expect(detail).toContain('自动判定：答对 1 次，答错 1 次');
+  expect(detail).toContain('翻面自评：有把握 1 次，需要复习 1 次');
+  expect(detail).toContain('使用提示 2 次');
+});

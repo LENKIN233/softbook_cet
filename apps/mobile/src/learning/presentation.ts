@@ -18,6 +18,7 @@ function withoutRepeatedTask(text: string, prompt: string) {
 }
 
 export function displayCardText(card: LearningCard, text: string, state?: LearningCardState) {
+  text = text.replace(/划线词/g, '目标词');
   if (card.interaction_id !== 'lock') return text;
   const blank = /\{\{blank\}\}|_{2,}/g;
   if (state && (text.match(blank)?.length ?? 0) === card.lock_slots.length) {

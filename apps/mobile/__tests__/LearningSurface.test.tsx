@@ -1230,9 +1230,9 @@ test('result detail reads as a resolved card without raw metadata', () => {
     tree!.root.findByProps({ testID: 'learning-detail-analysis-tip' }).props
       .numberOfLines,
   ).toBeUndefined();
-  expect(output).toContain('2/3');
+  expect(tree!.root.findByProps({testID: 'learning-result-back-button'})).toBeTruthy();
   expect(output).toContain(card.space_metadata.box);
-  expect(output).toContain(card.space_metadata.group);
+  expect(output).toContain(card.analysis.summary);
   expect(output).not.toContain('结果在当前卡');
   expect(output).toContain('四选一');
   expect(output).toContain('回答正确');

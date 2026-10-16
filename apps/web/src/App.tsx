@@ -1,3 +1,4 @@
+import {CardText} from './CardText';
 import {rememberCourseLearningDraft, takeCourseLearningDraft, type CourseLearningDrafts} from '../../mobile/src/learning/courseDraft';
 import {LearningSceneNavigation} from './LearningSceneNavigation';
 import {StudioIcon, IconLabel, DisclosureLabel} from './StudioIcon';
@@ -2019,9 +2020,9 @@ function LearningSurface(props: LearningSurfaceProps) {
         {resolved && !backVisible ? audioControl : null}
         {backVisible ? <section className="flip-back" aria-label={resolved ? '答案对照' : '核对答案'}>
           <p className="flip-back-label">核对答案</p>
-          <h2 ref={answerRef} tabIndex={-1} className={isLongQuestion(comparison.correct) ? 'long-question' : undefined}>{comparison.correct}</h2>
-          <p className="answer-reason">{card.analysis.summary}</p>
-          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}{cardRecallOptions(card).length > 0 ? <ul aria-label="原题选项">{cardRecallOptions(card).map((text, index) => <li key={index}>{text}</li>)}</ul> : null}</details>
+          <h2 ref={answerRef} tabIndex={-1} className={isLongQuestion(comparison.correct) ? 'long-question' : undefined}><CardText text={comparison.correct} /></h2>
+          <p className="answer-reason">{<CardText text={card.analysis.summary} />}</p>
+          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}><CardText text={text} /></p>)}{cardRecallOptions(card).length > 0 ? <ul aria-label="原题选项">{cardRecallOptions(card).map((text, index) => <li key={index}>{text}</li>)}</ul> : null}</details>
           {audioControl}
           {resolved && card.audio?.transcript?.trim() ? <details className="full-analysis"><summary><DisclosureLabel name="volume">听力原文</DisclosureLabel></summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           {resolved ? <p className="self-assess-receipt" role="status">已记录：<span>{resolved.outcome === 'confident' ? '有把握' : '需要复习'}</span></p> : null}
@@ -2029,16 +2030,16 @@ function LearningSurface(props: LearningSurfaceProps) {
         </section> : resolved ? <section className={`result-slip ${resultTone(resolved)}${card.interaction_id === 'elimination' ? ' elimination-result' : ''}`} aria-label="答案对照" aria-live="polite">
           <p className="result-verdict" role="status">{resultVerdict(resolved)}</p>
           <p className="result-label">{resultAnswerLabel(card)}</p>
-          <h2 ref={answerRef} tabIndex={-1} className={`answer-first${card.interaction_id === 'lock' || card.interaction_id === 'elimination' ? ' contextual-answer' : ''}${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}>{comparison.correct}</h2>
+          <h2 ref={answerRef} tabIndex={-1} className={`answer-first${card.interaction_id === 'lock' || card.interaction_id === 'elimination' ? ' contextual-answer' : ''}${isLongQuestion(comparison.correct) ? ' long-question' : ''}`}><CardText text={comparison.correct} /></h2>
           {comparison.selected && comparison.selected !== comparison.correct ? <p className="selected-answer"><span>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</span> {comparison.selected}</p> : null}
-          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}>{text}</p>)}{cardRecallOptions(card).length > 0 ? <ul aria-label="原题选项">{cardRecallOptions(card).map((text, index) => <li key={index}>{text}</li>)}</ul> : null}</details>
-          <p className="answer-reason">{card.analysis.summary}</p>
+          <details className="full-analysis"><summary><DisclosureLabel name="eye">回看题目</DisclosureLabel></summary><p>{questionContext.title}</p>{questionContext.detail.map(text => <p key={text}><CardText text={text} /></p>)}{cardRecallOptions(card).length > 0 ? <ul aria-label="原题选项">{cardRecallOptions(card).map((text, index) => <li key={index}>{text}</li>)}</ul> : null}</details>
+          <p className="answer-reason">{<CardText text={card.analysis.summary} />}</p>
           {card.interaction_id === 'lock' && resolved.outcome === 'incorrect' ? <p className="answer-reason">已解锁，稍后复习。</p> : null}
           {card.audio?.transcript?.trim() ? <details className="full-analysis"><summary><DisclosureLabel name="volume">听力原文</DisclosureLabel></summary><p className="front-material">{card.audio.transcript}</p></details> : null}
           <ResultExplanation card={card} />
         </section> : <>
           {card.interaction_id !== 'swipe' ? <CardPrompt text={displayCardText(card, card.front.prompt, cardState)} /> : null}
-          {material.map(text => <p className="front-material" key={text}>{text}</p>)}
+          {material.map(text => <p className="front-material" key={text}><CardText text={text} /></p>)}
           {audioControl}
           {card.interaction_id !== 'flip' ? interaction : null}
           <LearningHelp key={`help:${props.motionIdentity}`} card={card} state={cardState} patch={patchState} />
@@ -2056,8 +2057,8 @@ function LearningSurface(props: LearningSurfaceProps) {
 
 function CardPrompt({text, body = false}: {text: string; body?: boolean}) {
   const blocks = cardTextBlocks(text);
-  if (!body && blocks.length === 1) return <h2 className={isLongQuestion(text) ? 'long-question' : undefined}>{text}</h2>;
-  return <div className="card-prompt-blocks">{blocks.map((block, index) => <p className={block.gloss ? 'card-gloss' : 'card-prompt-body'} key={index}>{block.text}</p>)}</div>;
+  if (!body && blocks.length === 1) return <h2 className={isLongQuestion(text) ? 'long-question' : undefined}>{<CardText text={text} />}</h2>;
+  return <div className="card-prompt-blocks">{blocks.map((block, index) => <p className={block.gloss ? 'card-gloss' : 'card-prompt-body'} key={index}>{<CardText text={block.text} />}</p>)}</div>;
 }
 
 function LearningHelp({card, state, patch}: {card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void}) {
@@ -2069,7 +2070,7 @@ function LearningHelp({card, state, patch}: {card: LearningCard; state: Learning
   }, [open, state.isHintVisible]);
   return <div className="learning-help">
     <button className="text-button" aria-expanded={open} onClick={() => patch({hasUsedPeek: true, isPeeked: !open})}><IconLabel name="help">{open ? '收起判断方法' : '看判断方法'}</IconLabel><StudioIcon name={open ? 'chevronUp' : 'chevronDown'} /></button>
-    {open ? <div><p ref={methodRef} className="attached-note">{card.analysis.exam_tip}</p>
+    {open ? <div><p ref={methodRef} className="attached-note">{<CardText text={card.analysis.exam_tip} />}</p>
       {card.hint_layer ? <><button className="text-button" aria-expanded={state.isHintVisible} onClick={() => patch({hasUsedHint: true, isHintVisible: !state.isHintVisible})}><IconLabel name="lightbulb">{state.isHintVisible ? '收起提示' : '再看一个提示'}</IconLabel><StudioIcon name={state.isHintVisible ? 'chevronUp' : 'chevronDown'} /></button>{state.isHintVisible ? <p ref={hintRef} className="attached-note">{card.hint_layer.content}</p> : null}</> : null}
     </div> : null}
   </div>;
@@ -2093,10 +2094,12 @@ function ChoiceOptions({card, state, disabled, patch}: {card: Extract<LearningCa
 
 function ResultExplanation({card}: {card: LearningCard}) {
   const [open, setOpen] = useState(false);
-  return <details className="full-analysis" onToggle={event => setOpen(event.currentTarget.open)}><summary><DisclosureLabel name="list">{open ? '收起完整解析' : '展开完整解析'}</DisclosureLabel></summary><h3>{card.analysis.title}</h3><p>{card.analysis.exam_tip}</p></details>;
+  return <details className="full-analysis" onToggle={event => setOpen(event.currentTarget.open)}><summary><DisclosureLabel name="list">{open ? '收起完整解析' : '展开完整解析'}</DisclosureLabel></summary><h3>{<CardText text={card.analysis.title} />}</h3><p>{<CardText text={card.analysis.exam_tip} />}</p></details>;
 }
 
 function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveLock, onResolveFlip, onResolveSwipe}: {onResolveLock: (slotId: string, value: string) => void; resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
+  const [assessment, setAssessment] = useState<{cardId: string; value: 'confident' | 'review'} | null>(null);
+  const pending = assessment?.cardId === card.card_id ? assessment.value : null;
   switch (card.interaction_id) {
     case 'flip':
       return (
@@ -2106,9 +2109,13 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
           ) : (
             <>
               <div className="confidence" role="group" aria-label="自我评估">
-                <button className={state.flipConfidence === 'confident' ? 'confidence-good selected' : 'confidence-good'} aria-pressed={state.flipConfidence === 'confident'} disabled={disabled} onClick={() => onResolveFlip('confident')}>有把握</button>
-                <button className={state.flipConfidence === 'review' ? 'confidence-review selected' : 'confidence-review'} aria-pressed={state.flipConfidence === 'review'} disabled={disabled} onClick={() => onResolveFlip('review')}>需要复习</button>
+                <button className={pending === 'confident' ? 'confidence-good selected' : 'confidence-good'} aria-pressed={pending === 'confident'} disabled={disabled} onClick={() => setAssessment({cardId: card.card_id, value: 'confident'})}>有把握</button>
+                <button className={pending === 'review' ? 'confidence-review selected' : 'confidence-review'} aria-pressed={pending === 'review'} disabled={disabled} onClick={() => setAssessment({cardId: card.card_id, value: 'review'})}>需要复习</button>
               </div>
+              {pending ? <div className="assessment-confirm">
+                <button className="text-button" disabled={disabled} onClick={() => setAssessment(null)}>撤销选择</button>
+                <button className="primary" disabled={disabled} onClick={() => onResolveFlip(pending)}>保存自评</button>
+              </div> : null}
             </>
           )}
         </div>
@@ -2355,6 +2362,11 @@ function StatisticsSurface({statistics, statisticsLoading = false, track, localO
       </> : <p role="status">当前科目的统计暂时无法读取。你可以继续学习，记录恢复后会在这里显示。</p>}
       <button className="primary wide" disabled={disabled} onClick={onContinueLearning}><IconLabel name="arrowRight">继续学习</IconLabel></button>
       {onReview && pendingReviewCount > 0 ? <div className="account-policy"><p className="muted">有 {pendingReviewCount} 张卡需要再练</p><button className="secondary" disabled={disabled} onClick={onReview}><IconLabel name="refresh">开始复习</IconLabel></button></div> : null}
+      {statistics?.answerBreakdown ? <details className="full-analysis"><summary><DisclosureLabel name="list">作答情况</DisclosureLabel></summary>
+        <p>自动判定：答对 {statistics.answerBreakdown.correct} 次，答错 {statistics.answerBreakdown.incorrect} 次</p>
+        <p>翻面自评：有把握 {statistics.answerBreakdown.confident} 次，需要复习 {statistics.answerBreakdown.review} 次</p>
+        <p>使用提示 {statistics.answerBreakdown.hints} 次，查看思路 {statistics.answerBreakdown.peeks} 次。自评不计入客观答对。</p>
+      </details> : null}
       <details className="full-analysis"><summary><DisclosureLabel name="info">如何统计</DisclosureLabel></summary><p>完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。</p></details>
       <section className="account-policy" aria-live="polite">
         <p>{checkInSync?.status === 'queued' ? localOnly ? '签到正在保存到本机。' : '签到已保存在本机，联网后会同步。'

@@ -317,3 +317,10 @@ it('finds bounded context in front options and never summarizes hidden answer fi
   expect(bounded.excerpt!.length).toBeLessThanOrEqual(162);
   expect(long.front.prompt).toHaveLength(('前文。'.repeat(100) + 'needle-match 后文。'.repeat(100)).length);
 });
+
+test('paired emphasis remains distinct from literal grammaticality asterisks', () => {
+  const {inlineTextSegments} = require('../src/learning/inlineText');
+  expect(inlineTextSegments('**word**\n*ungrammatical')).toEqual([
+    {text: 'word', strong: true}, {text: '\n*ungrammatical', strong: false},
+  ]);
+});

@@ -92,8 +92,15 @@ export function assertAccountBootstrapRevisionTransition(
       if (counts.some(key => after[key] < before[key])) {
         throw new Error('Bootstrap study statistics must not regress within a day.');
       }
+      const beforeAnswers = before.answerBreakdown;
+      const afterAnswers = after.answerBreakdown;
+      if (beforeAnswers && afterAnswers && Object.keys(beforeAnswers).some(key =>
+          afterAnswers[key as keyof typeof afterAnswers] < beforeAnswers[key as keyof typeof beforeAnswers])) {
+        throw new Error('Bootstrap answer breakdown must not regress within a day.');
+      }
       if (previousRevisions.learning.eventServerSequence ===
-          nextRevisions.learning.eventServerSequence && !jsonEqual(before, after)) {
+          nextRevisions.learning.eventServerSequence && (counts.some(key => before[key] !== after[key]) ||
+          (beforeAnswers && afterAnswers && !jsonEqual(beforeAnswers, afterAnswers)))) {
         throw new Error('Bootstrap study statistics changed without a new event revision.');
       }
     }

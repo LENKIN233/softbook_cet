@@ -67,6 +67,9 @@ async function press(root:ReactTestRenderer.ReactTestInstance,id:string) {
     await act(async()=>{root.findByProps({testID:'learning-help-button'}).props.onPress();await Promise.resolve();});
   }
   await act(async()=>{root.findByProps({testID:id}).props.onPress();await Promise.resolve();});
+  if (['learning-flip-confident-button', 'learning-flip-review-button'].includes(id)) {
+    await act(async () => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress(); await Promise.resolve();});
+  }
   if (id === 'route-tab-learning') {
     await settle();
     await press(root, 'learning-home-start-button');
