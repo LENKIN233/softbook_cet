@@ -1,3 +1,4 @@
+import {inlineTextSegments} from './inlineText';
 import type { EliminationCard, LearningCard, LearningCardState, LockCard } from './model';
 
 // Never guess which distinct front text is optional: imported front material
@@ -114,7 +115,7 @@ export function cardRecallOptions(card: LearningCard): string[] {
   }
 }
 
-const compactText = (text: string) => text.replace(/\s+/g, ' ').trim();
+const compactText = (text: string) => inlineTextSegments(text).map(segment => segment.text).join('').replace(/\s+/g, ' ').trim();
 
 function excerptWindow(text: string, start: number, length: number) {
   // Keep Unicode characters intact. At an English word boundary, prefer a
