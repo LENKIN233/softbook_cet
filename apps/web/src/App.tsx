@@ -1840,7 +1840,7 @@ function AccountApp({
         />
       ) : null}
       {route === 'statistics' ? (
-        <>{pauseNotice ? <p className="learning-pause-notice" role="status">{pauseNotice}</p> : null}{remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}{dayNeedsRefresh ? <main className="ledger-workbench"><section className="ledger"><h1>学习统计</h1><p role="status">{statisticsLoading ? '正在读取今天的记录…' : '今天的记录还未更新，请重新读取。'}</p><button className="primary" disabled={statisticsLoading} onClick={() => void refreshStatistics()}><IconLabel name="refresh">重新读取</IconLabel></button></section></main> : <StatisticsSurface
+        <>{remoteError ? <p className="notice error" role="alert">{remoteError}</p> : null}{dayNeedsRefresh ? <main className="ledger-workbench"><section className="ledger"><h1>学习统计</h1><p role="status">{statisticsLoading ? '正在读取今天的记录…' : '今天的记录还未更新，请重新读取。'}</p><button className="primary" disabled={statisticsLoading} onClick={() => void refreshStatistics()}><IconLabel name="refresh">重新读取</IconLabel></button></section></main> : <StatisticsSurface
           statisticsLoading={statisticsLoading}
           statistics={trackStatistics?.track === session?.track && trackStatistics?.dayKey === liveChinaDay ? trackStatistics : null}
           track={session?.track ?? runtime.track}

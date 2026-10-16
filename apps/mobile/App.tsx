@@ -7019,8 +7019,6 @@ function AppShell({
       onPause={pauseLearning} onOpenSpace={openSpaceFromStudy} palette={palette}>
       {sceneBody}
     </StudyScene>
-  ) : route.key === 'statistics' && pauseNotice ? (
-    <View style={styles.sessionContent}><Text accessibilityLiveRegion="polite" testID="learning-pause-notice" style={[styles.segmentPauseNotice, {color: palette.textMuted}]}>{pauseNotice}</Text>{contentWithLearningNotice}</View>
   ) : contentWithLearningNotice;
 
   return (
