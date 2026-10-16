@@ -2312,8 +2312,6 @@ const styles = StyleSheet.create({
   promptGloss: {fontSize: 14, lineHeight: 23, fontWeight: '400'},
   contextualAnswer: {fontSize: 19, lineHeight: 30, fontWeight: '400'},
   naturalHeight: {flex: 0, flexGrow: 0, flexShrink: 0, height: 'auto', minHeight: 0},
-  confidenceRowAccessible: {flexDirection: 'column', alignItems: 'stretch', gap: 10},
-  choicePillAccessible: {flex: 0, flexShrink: 0, width: '100%'},
   viewportScroll: {flex: 1},
   viewportScrollContent: {flexGrow: 1},
   viewportScrollFit: {height: '100%'},
@@ -2333,7 +2331,6 @@ const styles = StyleSheet.create({
   answerHeadline: {fontSize: 27, lineHeight: 36, fontWeight: '600'},
   answerSelectionRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', marginBottom: 8},
   answerSelection: {fontSize: 16, lineHeight: 24, flexShrink: 1},
-  answerQuestion: {fontSize: 15, lineHeight: 24, borderTopWidth: 1, paddingTop: 16, marginTop: 8},
   answerReason: {fontSize: 16, lineHeight: 27, fontWeight: '400'},
   analysisLink: {minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start', maxWidth: '100%', paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: STUDIO.color.line, borderRadius: 12, backgroundColor: STUDIO.color.paperSoft},
   analysisLinkText: {fontSize: 13, lineHeight: 21, fontWeight: '600'},
@@ -2342,10 +2339,6 @@ const styles = StyleSheet.create({
   helpTextLabel: {fontSize: 13, lineHeight: 20, fontWeight: '600'},
   favoriteActionLabel: {fontSize: 12, lineHeight: 18, fontWeight: '600'},
   formingSentence: {fontSize: 21, lineHeight: 32, borderBottomWidth: 1, paddingVertical: 12, marginBottom: 8},
-  passageArea: {gap: 14},
-  passageText: {fontSize: 19, lineHeight: 44, fontWeight: '400'},
-  passageCandidate: {fontSize: 19, lineHeight: 44},
-  passageGuidance: {fontSize: 12, lineHeight: 20},
 
   audioResourceSlot: {
     alignItems: 'flex-start',
@@ -2392,12 +2385,6 @@ const styles = StyleSheet.create({
   completeHeroCard: {
     paddingVertical: 18,
   },
-  heroTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
   heroChipRow: {
     alignItems: 'center',
     flex: 1,
@@ -2405,16 +2392,6 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
     gap: 7,
     minHeight: 42,
-  },
-  heroKicker: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-  },
-  heroEyebrow: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1,
   },
   heroTitle: {
     fontSize: 28,
@@ -2425,19 +2402,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23,
   },
-  learningFrameHeader: {
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 8,
-  },
-  learningFrameTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
   learningFrameMeta: {
     fontSize: 11,
     fontWeight: '500',
@@ -2445,31 +2409,9 @@ const styles = StyleSheet.create({
 
     lineHeight: 17,
   },
-  learningFrameSummary: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
   detailScreen: {
     justifyContent: 'flex-start',
     paddingHorizontal: 18,
-  },
-  detailObjectHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  detailCollapseButton: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  detailCollapseLabel: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   detailResolvedCard: {
     borderRadius: STUDIO.radius.card,
@@ -2490,40 +2432,6 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingHorizontal: 18,
     paddingVertical: 18,
-  },
-  detailResolvedHero: {
-    borderRadius: 14,
-    borderWidth: 0,
-    paddingHorizontal: 13,
-    paddingVertical: 16,
-  },
-  detailResolvedHeroCompact: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  detailTitleWrap: {
-    alignSelf: 'stretch',
-    gap: 6,
-  },
-  detailStatePill: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  detailStateText: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 17,
-  },
-  detailPrompt: {
-    fontSize: 19,
-    fontWeight: '500',
-    lineHeight: 29,
-  },
-  detailPromptCompact: {
-    fontSize: 18,
-    lineHeight: 28,
   },
   detailAnswerSlip: {
     borderRadius: 16,
@@ -2633,22 +2541,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingVertical: 8,
   },
-  detailCardLocationStrip: {
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-  },
-  learningCardLocationHint: {
-    borderWidth: 0,
-    gap: 7,
-    paddingHorizontal: 2,
-    paddingVertical: 2,
-  },
-  progressTrack: {
-    height: 8,
-    borderWidth: 1,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
   cardProgressTrack: {
     borderRadius: 2, borderWidth: 0, height: 3, overflow: 'hidden', width: 26,
   },
@@ -2656,47 +2548,8 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 999,
   },
-  progressFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  progressCaption: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  progressFigure: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  progressRail: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  progressNode: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  progressNodeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   studyCard: {
     borderWidth: 0, borderRadius: 0, overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 0, gap: 12, position: 'relative',
-  },
-  cardStageAtmosphere: {
-    borderRadius: 999,
-    bottom: -120,
-    height: 280,
-    opacity: 0.42,
-    position: 'absolute',
-    right: -130,
-    width: 280,
   },
   studyCardOneScreen: {
     flexGrow: 0, flexShrink: 1, gap: 12, height: '100%', minHeight: 0, paddingHorizontal: 0, paddingVertical: 0,
@@ -2757,24 +2610,6 @@ const styles = StyleSheet.create({
     minWidth: 48,
     paddingHorizontal: 9,
   },
-  cardIdentityToolLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 16,
-  },
-  favoriteTagGlyph: {
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  cardEdgeHint: {
-    alignItems: 'flex-start', borderWidth: 0, minHeight: 44, minWidth: 44, justifyContent: 'center', paddingVertical: 8,
-  },
-  cardEdgeHintCompact: {
-    minHeight: 44,
-  },
-  cardEdgeHintLabel: {
-    fontSize: 13, fontWeight: '400', lineHeight: 20,
-  },
   cardStageBody: {
     flex: 1, justifyContent: 'flex-start', minHeight: 0, zIndex: 1,
   },
@@ -2816,35 +2651,6 @@ const styles = StyleSheet.create({
 
     fontVariant: ['tabular-nums'],
   },
-  cardLocationStrip: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 9,
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  cardLocationDot: {
-    borderRadius: 999,
-    height: 8,
-    width: 8,
-  },
-  cardLocationTextWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  cardLocationTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cardLocationMeta: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   studyCardTop: {
     alignItems: 'flex-start',
     borderRadius: 0,
@@ -2863,11 +2669,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 7,
   },
-  cardEyebrow: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.4,
-  },
   cardPrompt: {
     fontSize: STUDIO.type.prompt, lineHeight: 29, fontWeight: '600',
   },
@@ -2880,58 +2681,8 @@ const styles = StyleSheet.create({
   contextCard: {
     borderWidth: 0, borderRadius: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 12,
   },
-  contextCardSupportActive: {
-    borderLeftWidth: 0,
-  },
-  denseSupportLayer: {
-    borderRadius: 8, borderWidth: 0, borderLeftWidth: 2, paddingHorizontal: 14, paddingVertical: 12, gap: 5,
-  },
-  denseSupportTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 16,
-  },
-  denseSupportBody: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
   cardSupport: {
     fontSize: STUDIO.type.body, fontWeight: '400', lineHeight: 25,
-  },
-  cardContext: {
-    fontSize: 14, fontWeight: '400', lineHeight: 23,
-  },
-  attachedLayerPanel: {
-    borderLeftWidth: 0,
-    marginTop: -8,
-  },
-  peekPanel: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 14,
-    gap: 6,
-  },
-  peekTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  peekText: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  hintPanel: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-    gap: 6,
-  },
-  hintTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  hintText: {
-    fontSize: 14,
-    lineHeight: 21,
   },
   interactionCard: {
     borderWidth: 1,
@@ -2964,22 +2715,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  interactionTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  interactionMeta: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-  },
-  actionCue: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 17,
-  },
   interactionBody: {
     gap: 8,
   },
@@ -3010,10 +2745,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
-  confidenceRowCompact: {
-    flexWrap: 'nowrap',
-    gap: 6,
-  },
   choicePill: {
     minHeight: 48,
     borderWidth: 1,
@@ -3026,10 +2757,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 132,
     alignItems: 'center',
-  },
-  choicePillCompact: {
-    minHeight: 48,
-    paddingVertical: 7,
   },
   choiceLabel: {
     fontSize: 14,
@@ -3081,17 +2808,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  optionStateLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
   optionText: {
     flex: 0, minWidth: 0, fontSize: 15, fontWeight: '400', lineHeight: 23,
 
     alignSelf: 'stretch',
-  },
-  lockGroup: {
-    gap: 10,
   },
   lockList: {
     gap: 6,
@@ -3125,10 +2845,6 @@ const styles = StyleSheet.create({
   lockGlyphCompact: {
     height: 22,
     width: 22,
-  },
-  lockGlyphLabel: {
-    fontSize: 10,
-    fontWeight: '700',
   },
   lockBody: {
     flex: 1,
@@ -3187,10 +2903,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
-  inlineHelper: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
   eliminationGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -3225,9 +2937,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '600',
-  },
-  eliminationTextStruck: {
-    textDecorationLine: 'line-through',
   },
   eliminationStateLabel: {
     fontSize: 12,
@@ -3284,11 +2993,6 @@ const styles = StyleSheet.create({
   swipeTopCardAccessible: {
     width: '100%',
   },
-  swipePromptLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-  },
   swipeTrailRow: {
     flexDirection: 'row',
     gap: 12,
@@ -3332,20 +3036,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     maxWidth: '100%',
   },
-  swipeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  swipeStateCard: {
-    flex: 1,
-    minWidth: 128,
-    borderWidth: 1,
-    borderRadius: 18,
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
   swipeLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -3374,84 +3064,15 @@ const styles = StyleSheet.create({
   resultActionRail: {
     paddingTop: 4,
   },
-  oneScreenDockAnchored: {
-    marginTop: 'auto',
-  },
-  oneScreenDockNatural: {
-    marginTop: 4,
-  },
-  oneScreenDockCompact: {
-    gap: 0,
-  },
   oneScreenDockSmallViewport: {
     gap: 4,
     marginTop: 0,
   },
-  submitActionDock: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-    minHeight: 58,
-    paddingHorizontal: 0,
-    paddingVertical: 4,
-  },
-  submitActionDockCompact: {
-    gap: 8,
-    minHeight: 52,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  submitActionTextStack: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-  },
-  submitActionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 19,
-  },
-  submitActionDetail: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 17,
-  },
-  submitActionButton: {
-    alignItems: 'center',
-    borderRadius: 17,
-    justifyContent: 'center',
-    minHeight: 48,
-    minWidth: 118,
-    paddingHorizontal: 16,
-  },
-  submitActionButtonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   primaryButtonLabel: {
     fontSize: 14, fontWeight: '600', lineHeight: 24,
   },
-  secondaryButton: {
-    minHeight: 48,
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  secondaryButtonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   resultCard: {
     borderRadius: 0, borderWidth: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 12,
-  },
-  resultCardCompact: {
-    gap: 10, paddingHorizontal: 0, paddingVertical: 0,
   },
   completeActionCard: {
     paddingVertical: 16,
@@ -3461,11 +3082,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
-  },
-  resultActionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
   },
   resultAdvanceStatus: {
     fontSize: 12,
@@ -3489,36 +3105,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
-  settlePanel: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-    gap: 5,
-  },
-  settleTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  settleText: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  resultBadge: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  resultBadgePositive: {
-    backgroundColor: 'rgba(39, 174, 96, 0.12)',
-  },
-  resultBadgeNegative: {
-    backgroundColor: 'rgba(235, 87, 87, 0.12)',
-  },
-  resultBadgeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   metricWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -3539,24 +3125,5 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 18,
     fontWeight: '600',
-  },
-  resultRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  resultCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  resultTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  resultMeta: {
-    fontSize: 12,
   },
 });

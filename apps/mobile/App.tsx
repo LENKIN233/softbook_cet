@@ -10337,13 +10337,11 @@ function getMembershipCardSummary(
 }
 
 const styles = StyleSheet.create({
-  sessionContent: {flex: 1},
   segmentSecondary: {minHeight: 48, paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: STUDIO.color.line, borderRadius: 14, backgroundColor: STUDIO.color.paperSoft},
   segmentSummary: {padding: 24, gap: 20, flexGrow: 1, justifyContent: 'center'},
   segmentTitle: {fontSize: 26, fontWeight: '600'},
   segmentDetail: {fontSize: 16, lineHeight: 26},
   segmentPrimary: {minHeight: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center'},
-  segmentPauseNotice: {paddingHorizontal: 20, paddingVertical: 10, fontSize: 13},
   learningRecoveryNotice: {fontSize: 14, lineHeight: 22, paddingHorizontal: 18, paddingVertical: 8},
   safeArea: {
     flex: 1,
@@ -10354,28 +10352,6 @@ const styles = StyleSheet.create({
   appCanvasBackdrop: {
     ...StyleSheet.absoluteFill,
     overflow: 'hidden',
-  },
-  appAuroraTop: {
-    borderRadius: 999,
-    height: 360,
-    left: -160,
-    position: 'absolute',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.22,
-    shadowRadius: 80,
-    top: -190,
-    width: 480,
-  },
-  appAuroraBottom: {
-    borderRadius: 999,
-    bottom: -260,
-    height: 440,
-    position: 'absolute',
-    right: -220,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.16,
-    shadowRadius: 90,
-    width: 520,
   },
   shellRoot: {
     flex: 1,
@@ -10406,34 +10382,11 @@ const styles = StyleSheet.create({
     gap: 10,
     minWidth: 0,
   },
-  phoneBrandMark: {
-    alignItems: 'center',
-    borderRadius: 8,
-    height: 28,
-    justifyContent: 'center',
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0,
-    shadowRadius: 14,
-    width: 28,
-  },
-  phoneBrandMarkLabel: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
   phoneTopTitle: {
     fontSize: 18, fontWeight: '600',
   },
   phoneTopTitleLearning: {
     fontSize: 18,
-  },
-  phoneTopMeta: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  phoneTopMetaLearning: {
-    fontSize: 11,
   },
   phoneAccountChip: {
     flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 14, minWidth: 70, minHeight: 48, paddingHorizontal: 13,
@@ -10442,24 +10395,6 @@ const styles = StyleSheet.create({
   phoneCourseChip: {minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: 'transparent'},
   phoneCourseLabel: {fontSize: 13, lineHeight: 20, fontWeight: '600'},
   phoneAccountChipIconOnly: {minWidth: 48, paddingHorizontal: 10},
-  phoneAccountChipDot: {
-    borderRadius: 999,
-    height: 6,
-    width: 6,
-  },
-  phoneAccountChipCopy: {
-    gap: 1,
-  },
-  phoneAccountChipLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    lineHeight: 11,
-  },
-  phoneAccountChipValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 13,
-  },
   tabletRoot: {
     flex: 1,
     flexDirection: 'row',
@@ -10518,11 +10453,6 @@ const styles = StyleSheet.create({
   tabletContent: {
     flex: 1,
     gap: 12,
-  },
-  brandEyebrow: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1.1,
   },
   brandTitle: {
     fontSize: 28,
@@ -10876,27 +10806,11 @@ const styles = StyleSheet.create({
   authPanelHeader: {
     gap: 5,
   },
-  authPanelHeaderDock: {
-    paddingHorizontal: 2,
-  },
   authPanelTitleRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'space-between',
-  },
-  authPanelStatePill: {
-    borderRadius: 999,
-    borderWidth: 0,
-    maxWidth: 96,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  authPanelStatePillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 14,
-    textAlign: 'center',
   },
   authSummary: {
     fontSize: 13,
@@ -11161,9 +11075,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 12,
   },
-  fieldGroup: {
-    gap: 6,
-  },
   authPhoneFieldDock: {
     alignItems: 'center',
     alignSelf: 'stretch',
@@ -11333,16 +11244,6 @@ const styles = StyleSheet.create({
     flexShrink: 1, textAlign: 'center',
     fontSize: 14,
     fontWeight: '600',
-  },
-  sectionGrid: {
-    gap: 14,
-  },
-  sectionGridTablet: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  infoCardHalf: {
-    width: '48%',
   },
   infoCard: {
     borderWidth: 1,
@@ -11640,15 +11541,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 30,
   },
-  mineAccountSummary: {
-    fontSize: 13,
-    fontWeight: '400',
-    lineHeight: 21,
-  },
-  mineAccountSummaryCompact: {
-    fontSize: 13,
-    lineHeight: 21,
-  },
   mineAccountLedger: {
     borderRadius: 14,
     borderWidth: 0,
@@ -11821,22 +11713,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 8,
   },
-  membershipAccessStrip: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  membershipAccessStripTablet: {
-    gap: 8,
-  },
-  membershipAccessChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-  },
   membershipAccessTrack: {
     flexDirection: 'row',
     gap: 6,
@@ -11883,30 +11759,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 80,
   },
-  membershipCompactBenefitRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5,
-  },
-  membershipCompactBenefitChip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  membershipCompactBenefitDot: {
-    borderRadius: 999,
-    height: 6,
-    width: 6,
-  },
-  membershipCompactBenefitLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    lineHeight: 12,
-  },
   membershipCompactTrialButton: {
     flexDirection: 'row', gap: 8,
     alignItems: 'center',
@@ -11937,35 +11789,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 22,
-  },
-  membershipAccessStep: {
-    borderRadius: 12,
-    borderWidth: 0,
-    flex: 1,
-    gap: 5,
-    minWidth: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-  },
-  membershipAccessStepCompact: {
-    gap: 3,
-    minHeight: 55,
-    paddingHorizontal: 6,
-    paddingVertical: 10,
-  },
-  membershipAccessDot: {
-    borderRadius: 999,
-    borderWidth: 0,
-    height: 8,
-    width: 8,
-  },
-  membershipAccessLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  membershipAccessValue: {
-    fontSize: 10,
-    fontWeight: '600',
   },
   membershipTrialActionRow: {
     alignItems: 'center',
