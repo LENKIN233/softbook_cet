@@ -20,7 +20,7 @@ func prefers(_ retry: VNRecognizedText, to candidate: VNRecognizedText) -> Bool 
      retry.string.count > candidate.string.count && isSubsequence(candidate.string, of: retry.string))
 }
 
-func recognizeLine(_ image: CGImage, box: CGRect, englishFirst: Bool) throws -> [(VNRecognizedText, CGRect)] {
+func recognizeLine(_ image: CGImage, box: CGRect, englishFirst: Bool, englishOnly: Bool = false) throws -> [(VNRecognizedText, CGRect)] {
     let height = box.height * Double(image.height)
     let rect = CGRect(x: box.minX * Double(image.width) - height,
                       y: (1 - box.maxY) * Double(image.height) - height * 0.3,
@@ -30,7 +30,7 @@ func recognizeLine(_ image: CGImage, box: CGRect, englishFirst: Bool) throws -> 
     guard let crop = image.cropping(to: rect) else { return [] }
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
-    request.recognitionLanguages = englishFirst ? ["en-US", "zh-Hans"] : ["zh-Hans", "en-US"]
+    request.recognitionLanguages = englishOnly ? ["en-US"] : englishFirst ? ["en-US", "zh-Hans"] : ["zh-Hans", "en-US"]
     request.usesLanguageCorrection = false
     try VNImageRequestHandler(cgImage: crop).perform([request])
     return (request.results ?? []).compactMap { observation in
@@ -125,6 +125,16 @@ do {
                     }
                 }
                 for (retry, retryBox) in try recognizeLine(image, box: box, englishFirst: englishFirst) {
+                    let overlap = box.intersection(retryBox)
+                    let intersection = overlap.isNull ? 0 : overlap.width * overlap.height
+                    let union = box.width * box.height + retryBox.width * retryBox.height - intersection
+                    if union > 0 && intersection / union >= 0.6 && prefers(retry, to: candidate) {
+                        candidate = retry
+                    }
+                }
+            }
+            if !containsHan(original.string) && original.string.range(of: "[A-Za-z]", options: .regularExpression) != nil {
+                for (retry, retryBox) in try recognizeLine(image, box: box, englishFirst: true, englishOnly: true) {
                     let overlap = box.intersection(retryBox)
                     let intersection = overlap.isNull ? 0 : overlap.width * overlap.height
                     let union = box.width * box.height + retryBox.width * retryBox.height - intersection

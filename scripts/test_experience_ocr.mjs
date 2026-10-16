@@ -19,8 +19,16 @@ test('actual OCR preserves enclosed glyphs and never supplies missing or wrong g
     ['missing-de', '学生使用校园\n咨询服务原\n因', false],
     ['blank', '', false],
   ];
-  const fixtures = [32, 40].flatMap(fontSize => variants.map(([name, text, readable]) =>
-    ({name: `${name}-${fontSize}`, text, fontSize, readable})));
+  const englishVariants = [
+    ['nearby', 'with many traveling\nfrom nearby towns', true, 'with many traveling from nearby towns'],
+    ['nearpy', 'with many traveling\nfrom nearpy towns', false, 'with many traveling from nearby towns'],
+    ['missing-nearby', 'with many traveling\nfrom towns', false, 'with many traveling from nearby towns'],
+    ['few', 'and only a few cycling\nin warm weather', true, 'and only a few cycling in warm weather'],
+    ['tew', 'and only a tew cycling\nin warm weather', false, 'and only a few cycling in warm weather'],
+    ['missing-few', 'and only a cycling\nin warm weather', false, 'and only a few cycling in warm weather'],
+  ];
+  const fixtures = [32, 40].flatMap(fontSize => [...variants, ...englishVariants].map(([name, text, readable, match = expected]) =>
+    ({name: `${name}-${fontSize}`, text, fontSize, readable, expected: match})));
   const run = args => {
     const result = spawnSync('xcrun', ['swift', ...args], {cwd: root, encoding: 'utf8', timeout: 120000, maxBuffer: 4 * 1024 * 1024});
     assert.equal(result.error, undefined);
@@ -34,7 +42,7 @@ test('actual OCR preserves enclosed glyphs and never supplies missing or wrong g
     // Only image paths cross the OCR boundary; it never receives expected text.
     const results = JSON.parse(run(['scripts/experience_ocr.swift', ...fixtures.map(item => path.join(directory, `${item.name}.png`))]));
     for (const [index, item] of fixtures.entries()) {
-      assert.equal(readableExperienceText(results[index], expected), item.readable,
+      assert.equal(readableExperienceText(results[index], item.expected), item.readable,
         `${item.name}: ${results[index].lines.map(line => line.text).join(' / ')}`);
     }
   } finally { fs.rmSync(directory, {recursive: true, force: true}); }
