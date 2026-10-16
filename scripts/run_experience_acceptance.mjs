@@ -89,8 +89,11 @@ try {
     'apps/mobile/src/space/SpaceSurface.tsx',
     'apps/mobile/e2e/experience/reading.yaml', 'apps/mobile/e2e/experience/prepare.yaml',
     'scripts/lib/experience_capture.mjs', 'scripts/lib/experience_text_match.mjs', 'scripts/experience_ocr.swift',
+    'scripts/lib/experience_ocr_fixture.swift', 'scripts/test_experience_ocr.mjs',
     'scripts/run_experience_acceptance.mjs', 'infra/cloudbase/functions/softbook-api/card-content/provenance.json', ...Object.keys(require(join(root, 'infra/cloudbase/functions/softbook-api/card-content'))).flatMap(track => readdirSync(join(root, 'infra/cloudbase/functions/softbook-api/card-content')).filter(name => name.startsWith(track) && name.endsWith('.json')).map(name => `infra/cloudbase/functions/softbook-api/card-content/${name}`))].map(path => [path, hash(readFileSync(join(root, path)))]));
   const fixtureRoot = join(root, 'apps/mobile/e2e/experience/known-failures');
+  run('node', ['--test', 'scripts/test_experience_ocr.mjs'], 'glyph-fidelity-regression.log');
+  report.glyph_fidelity_regression = {status: 'passed', scope: 'two font sizes, enclosed glyph, wrong glyphs, missing glyph, missing particle, blank pixels'};
   const fixtures = ['material', 'answer', 'options'].map(kind => ({kind, path: join(fixtureRoot, `${kind}.png`)}));
   const failedPixels = JSON.parse(run('xcrun', ['swift', 'scripts/experience_ocr.swift', ...fixtures.map(item => item.path)], 'calibration-ocr.log'));
   report.calibration = fixtures.map(({kind, path}, index) => ({kind, image_sha256: hash(readFileSync(path)),
