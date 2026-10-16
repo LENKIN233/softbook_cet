@@ -112,6 +112,7 @@ try {
         if (kind === 'flip') {
           await page.getByRole('button',{name:'翻面看答案',exact:true}).click();
           await page.getByRole('button',{name:'有把握',exact:true}).click();
+          await page.getByRole('button',{name:'保存自评',exact:true}).click();
         } else if (kind === 'multiple_choice') {
           await page.getByRole('group',{name:'四选一选项'}).getByRole('button').last().click();
           await page.getByRole('button',{name:'提交答案',exact:true}).click();

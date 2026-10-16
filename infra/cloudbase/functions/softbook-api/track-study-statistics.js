@@ -8,6 +8,8 @@ function createTrackStudyStatistics(input) {
   const cards = new Set();
   const eventIds = new Set();
   let reviewAttempts = 0;
+  let breakdownComplete = true;
+  const answers = {correct: 0, incorrect: 0, confident: 0, review: 0, hints: 0, peeks: 0};
   for (const event of events) {
     if (
       event.track !== track || event.activity_day !== dayKey ||
@@ -22,9 +24,22 @@ function createTrackStudyStatistics(input) {
     eventIds.add(event.event_id);
     cards.add(event.payload.card_id);
     reviewAttempts += Number(event.payload.phase === 'review');
+    const payload = event.payload;
+    const outcome = payload.outcome;
+    if (!['correct', 'incorrect', 'confident', 'review'].includes(outcome) ||
+        typeof payload.used_hint !== 'boolean' || typeof payload.used_peek !== 'boolean' ||
+        (payload.interaction_id === 'flip' ? !['confident', 'review'].includes(outcome)
+          : !['multiple_choice', 'lock', 'elimination', 'swipe'].includes(payload.interaction_id) || !['correct', 'incorrect'].includes(outcome))) {
+      breakdownComplete = false;
+    } else {
+      answers[outcome] += 1;
+      answers.hints += Number(payload.used_hint);
+      answers.peeks += Number(payload.used_peek);
+    }
   }
   return {
     schema_version: 'track-study-statistics.v1',
+    ...(breakdownComplete ? {answer_breakdown: answers} : {}),
     day_key: dayKey,
     track,
     event_server_sequence: sequence,

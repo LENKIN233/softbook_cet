@@ -17,7 +17,7 @@ npm test
 npm run build
 ```
 
-`npm run dev` 仅在 Vite 开发模式使用仓库内结构化开发卡片。它不代表正式内容、内容批准、服务端调度或上线证据。
+完整本地体验请使用 `npm run build:local` 和 `npm run start:local`，步骤见 [本地后端联调](../../docs/local-backend.md)。`dev` 是配置了远端 runtime 后的前端开发服务器，不会自动提供后端或完整本地卡库。`build:device` / `start:device` 仅供保留的纯本机档案，receiver 入口见根目录说明。
 
 ## 生产边界
 

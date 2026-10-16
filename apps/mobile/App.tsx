@@ -141,6 +141,7 @@ import {
 } from './src/persistence/userStateStore';
 import {LOCAL_CARD_SOURCE_ID} from './src/learning/localCardSource';
 import type {LocalLearningProgress} from './src/persistence/localLearningProgress';
+import {captureLearningDraft, restoreLearningDraft, type LearningDraft} from './src/persistence/learningDraft';
 import { createLearningSessionRepository } from './src/learning/learningRepository';
 import { resolveContentManifestRuntimeConfig } from './src/audio/contentManifestRuntimeConfig';
 import type {RefreshLearningAudioDownload} from './src/audio/learningAudioController';
@@ -886,6 +887,11 @@ function AppShell({
     LearningCardResult[]
   >([]);
   const [checkedInDayKey, setCheckedInDayKey] = useState<string | null>(null);
+  const [pendingCheckIn, setPendingCheckIn] = useState<{
+    dayKey: string; phase: 'queued' | 'confirming';
+  } | null>(null);
+  const [checkInBusy, setCheckInBusy] = useState(false);
+  const checkInActionRef = useRef<object | null>(null);
   const [progressSyncState, setProgressSyncState] = useState<ProgressSyncState>(
     INITIAL_PROGRESS_SYNC_STATE,
   );
@@ -913,6 +919,7 @@ function AppShell({
     useState(0);
   const pendingLearningEventCountRef = useRef(0);
   const unreconciledCheckInDayKeyRef = useRef<string | null>(null);
+  const acknowledgedCheckInDayKeyRef = useRef<string | null>(null);
   const confirmedCheckInDayKeyRef = useRef<string | null>(null);
   const [learningEventRecoveryPending, setLearningEventRecoveryPending] =
     useState(false);
@@ -944,6 +951,8 @@ function AppShell({
   const pendingMembershipRefreshKey = useRef<string | null>(null);
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
   const persistedLocalProgress = useRef<LocalLearningProgress | null>(null);
+  const persistedLearningDraft = useRef<LearningDraft | null>(null);
+  const unsavedLearningWriteIdentity = useRef<string | null>(null);
   const accountBootstrapStatusRef = useRef(accountBootstrapStatus);
   const accountBootstrapSnapshotRef = useRef<AccountBootstrapSnapshot | null>(
     null,
@@ -1019,6 +1028,8 @@ function AppShell({
       pendingMembershipRefreshKey.current = null;
       persistedLearningCursor.current = null;
       persistedLocalProgress.current = null;
+      persistedLearningDraft.current = null;
+      unsavedLearningWriteIdentity.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
       accountBootstrapRefreshRequired.current = false;
@@ -1050,7 +1061,11 @@ function AppShell({
       setMembershipState(createInitialMembershipState());
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
+      setPendingCheckIn(null);
+      checkInActionRef.current = null;
+      setCheckInBusy(false);
       unreconciledCheckInDayKeyRef.current = null;
+      acknowledgedCheckInDayKeyRef.current = null;
       confirmedCheckInDayKeyRef.current = null;
       pendingLearningEventCountRef.current = 0;
       setPendingLearningEventCount(0);
@@ -2101,7 +2116,7 @@ function AppShell({
             membershipErrorMessage: null,
             membershipRefreshSucceeded: true,
             membershipState: accountBootstrap.membership.state,
-            persistedUserState: reconciliation.persistedUserState,
+            persistedUserState: {...reconciliation.persistedUserState, learningDraft: persistedUserState.learningDraft ?? null},
           };
         } catch (error) {
           if (
@@ -2245,14 +2260,27 @@ function AppShell({
       persistedLearningCursor.current =
         hydration.persistedUserState.learningCursor;
       persistedLocalProgress.current = hydration.persistedUserState.localLearningProgress ?? null;
-      unreconciledCheckInDayKeyRef.current = hydration.pendingCheckInDayKey;
+      persistedLearningDraft.current = hydration.persistedUserState.learningDraft ?? null;
+      // Keep an acknowledged command awaiting its read confirmation through
+      // independent refreshes in this session. On restart only the durable
+      // queue can restore pending state; stale local check-in flags cannot.
+      const acknowledgedDay = acknowledgedCheckInDayKeyRef.current;
+      const awaitingConfirmation = acknowledgedDay !== null &&
+        acknowledgedDay === hydration.accountBootstrap?.dayKey &&
+        !hydration.accountBootstrap.progress.snapshot.checkedInToday;
+      const pendingDay = hydration.pendingCheckInDayKey ?? (awaitingConfirmation ? acknowledgedDay : null);
+      unreconciledCheckInDayKeyRef.current = pendingDay;
+      if (!awaitingConfirmation) acknowledgedCheckInDayKeyRef.current = null;
+      setPendingCheckIn(pendingDay === null ? null : {
+        dayKey: pendingDay, phase: awaitingConfirmation ? 'confirming' : 'queued',
+      });
       setCheckedInDayKey(hydration.persistedUserState.checkedInDayKey);
       setSpaceCardStateById(hydration.persistedUserState.spaceCardStateById);
       if (hydration.pendingCheckInDayKey !== null) {
         setProgressSyncState({
           detail: '签到已保存，联网后会自动更新。',
           label: '已排队',
-          state: 'syncing',
+          state: 'idle',
         });
       }
     },
@@ -2263,14 +2291,16 @@ function AppShell({
     (accountBootstrapSnapshot !== null &&
       accountBootstrapSnapshot.dayKey === todayKey &&
       accountBootstrapSnapshot.track === learningTrack);
-  const canWriteAccountState =
+  const canAccessAccountState =
     !trackSwitchPending &&
-    isAccountStateReconciled &&
     accountLogoutState === 'idle' &&
     accountDeletionOriginRef.current === null &&
     deletionRecoveryReceiptRef.current === null &&
     acceptedAccountDeletionCleanupRef.current === null &&
-    !deletionRecoveryReadBlocked &&
+    !deletionRecoveryReadBlocked;
+  const canWriteAccountState =
+    canAccessAccountState &&
+    isAccountStateReconciled &&
     accountBootstrapHydrationSettled &&
     !accountBootstrapIntegrityBlocked;
   const presentedResourcesLocked = outgoingResult !== null && (
@@ -2292,7 +2322,17 @@ function AppShell({
   ]);
   const presentedResourceIdentityRef = useRef(presentedResourceIdentity);
   presentedResourceIdentityRef.current = presentedResourceIdentity;
-  const hasCheckedInToday = checkedInDayKey === todayKey;
+  const learningDraftIdentity = learningSession && currentLearningCard ? JSON.stringify([
+    activeLearningNoticeScope, learningTrack, learningSession.sourceId, learningSession.contentVersion,
+    currentLearningCard.card_id, learningSession.serverSelection?.selectionId, learningPhase,
+  ]) : null;
+  const currentLearningWriteUnsaved = learningDraftIdentity !== null && unsavedLearningWriteIdentity.current === learningDraftIdentity;
+  const hasUnconfirmedLearningResult = Boolean(learningCurrentResult || outgoingResult) &&
+    outgoingResult?.saveState !== 'accepted' && (outgoingResult !== null ||
+      learningEventEnqueueInFlight.current || currentLearningWriteUnsaved);
+  const hasCheckedInToday = runtimeProgressSyncMode === 'remote'
+    ? canonicalProgressSnapshot?.checkedInToday === true
+    : checkedInDayKey === todayKey;
   const learningCompletedCount = canonicalProgressSnapshot
     ? Math.max(
         canonicalProgressSnapshot.learningCompletedCount,
@@ -2310,9 +2350,16 @@ function AppShell({
     ? 0
     : reviewCompletedResults.length;
   const canCheckInToday =
+    canWriteAccountState &&
     !hasCheckedInToday &&
     progressSyncState.state !== 'syncing' &&
     learningCompletedCount + reviewCompletedCount > 0;
+  const checkInUnavailableReason = !hasCheckedInToday && (
+    !canAccessAccountState || (pendingCheckIn?.dayKey !== todayKey && !canWriteAccountState)
+  ) ? learningCatalogStatus === 'error' || learningBootstrapStatus === 'error' || accountBootstrapStatus === 'deferred'
+      ? '账号信息暂时无法确认，请返回学习页重新读取。'
+      : '账号信息正在更新，请稍后签到。'
+    : undefined;
   const favoriteCount = Object.values(spaceCardStateById).filter(
     state => state.isFavorited,
   ).length;
@@ -3239,8 +3286,10 @@ function AppShell({
 
       for (const result of replayedResults) {
         if (result.entry.type === 'check_in_daily_progress') {
-          if (result.entry.payload.dayKey === todayKey) {
+          if (result.entry.payload.dayKey === todayKey && getChinaDayKey() === todayKey) {
             replayedCheckInDayKey = result.entry.payload.dayKey;
+            acknowledgedCheckInDayKeyRef.current = replayedCheckInDayKey;
+            setPendingCheckIn({dayKey: replayedCheckInDayKey, phase: 'confirming'});
             setProgressSyncState({
               detail: '签到已提交，正在确认。',
               label: '确认中',
@@ -3301,6 +3350,9 @@ function AppShell({
       }
 
       const replayBootstrap = accountBootstrapSnapshotRef.current;
+      const remainingPendingCheckIn = await mutationQueueRepository.hasPendingCheckIn(
+        replayPhoneNumber, todayKey,
+      );
       const remainingPendingSpaceActionCount =
         replayBootstrap === null
           ? 0
@@ -3316,6 +3368,15 @@ function AppShell({
 
       if (!isReplayAccountCurrent()) {
         return;
+      }
+
+      if (remainingPendingCheckIn && !replayedCheckInDayKey && getChinaDayKey() === todayKey) {
+        setPendingCheckIn({dayKey: todayKey, phase: 'queued'});
+        setProgressSyncState({
+          detail: '签到已保存在本机，联网后会自动更新，也可以重试同步。',
+          label: '已排队',
+          state: 'error',
+        });
       }
 
       if (
@@ -3428,7 +3489,7 @@ function AppShell({
           }
         }
 
-        if (replayedCheckInDayKey !== null) {
+        if (replayedCheckInDayKey !== null && getChinaDayKey() === replayedCheckInDayKey) {
           const canonicalProgress =
             accountBootstrapSnapshotRef.current?.progress.snapshot;
 
@@ -3438,6 +3499,7 @@ function AppShell({
             canonicalProgress.checkedInToday
           ) {
             setCheckedInDayKey(replayedCheckInDayKey);
+            setPendingCheckIn(null);
             unreconciledCheckInDayKeyRef.current = null;
             confirmedCheckInDayKeyRef.current = replayedCheckInDayKey;
             setProgressSyncState({
@@ -3447,6 +3509,7 @@ function AppShell({
             });
           } else {
             setCheckedInDayKey(replayedCheckInDayKey);
+            setPendingCheckIn({dayKey: replayedCheckInDayKey, phase: 'confirming'});
             unreconciledCheckInDayKeyRef.current = replayedCheckInDayKey;
             confirmedCheckInDayKeyRef.current = null;
             setProgressSyncState({
@@ -3881,8 +3944,17 @@ function AppShell({
       };
     }
 
+    if (learningBootstrapStatus === 'ready' && learningSession?.track === learningTrack && currentLearningCard) {
+      if (!learningCurrentResult && !outgoingResult && !learningEventEnqueueInFlight.current) {
+        persistedLearningDraft.current = captureLearningDraft(learningSession, currentLearningCard, learningCardState, learningPhase);
+      } else if (!hasUnconfirmedLearningResult) {
+        persistedLearningDraft.current = null;
+      }
+    }
+
     userStateStore
       .save(authState.phoneNumber, {
+        learningDraft: persistedLearningDraft.current,
         ...(runtimeAccountBootstrapMode === 'local'
           ? {localLearningProgress: persistedLocalProgress.current} : {}),
         checkedInDayKey,
@@ -3900,6 +3972,11 @@ function AppShell({
     isAuthenticated,
     learningPhase,
     learningSession,
+    learningTrack,
+    learningCardState,
+    learningCurrentResult,
+    outgoingResult,
+    hasUnconfirmedLearningResult,
     persistenceHydrated,
     spaceCardStateById,
     userStateStore,
@@ -3939,7 +4016,11 @@ function AppShell({
       setMembershipPendingAction(null);
       setSpaceCardStateById({});
       setCheckedInDayKey(null);
+      setPendingCheckIn(null);
+      checkInActionRef.current = null;
+      setCheckInBusy(false);
       unreconciledCheckInDayKeyRef.current = null;
+      acknowledgedCheckInDayKeyRef.current = null;
       confirmedCheckInDayKeyRef.current = null;
       pendingLearningEventCountRef.current = 0;
       setPendingLearningEventCount(0);
@@ -4500,7 +4581,9 @@ function AppShell({
             draft?.scope === learningLoadSessionScopeKey && draft.track === session.track &&
             draft.contentVersion === session.contentVersion && draft.cardId === nextCard?.card_id;
           const courseDraft = takeCourseLearningDraft(courseDrafts.current, learningLoadSessionScopeKey, session);
-          const restoredState = restoreDraft ? draft.state : courseDraft;
+          const restoredState = restoreDraft ? draft.state : courseDraft ?? restoreLearningDraft(
+            persistedLearningDraft.current, session, nextCard, scheduledPhase,
+          );
           setLearningCardState(restoredState ? {...restoredState, isFavorited: nextCard ? readSpaceCardState(nextCard.card_id).isFavorited : false}
             : nextCard ? createTrackedLearningAttemptState(nextCard) : null);
           if (restoreDraft) preReviewDraftRef.current = null;
@@ -5294,7 +5377,8 @@ function AppShell({
     onLogout: async () => {
       if (authRepositoryConfig.mode === 'local') {
         try {
-          await userStateStore.save(authState.phoneNumber, {checkedInDayKey, learningCursor: persistedLearningCursor.current, spaceCardStateById});
+          await userStateStore.save(authState.phoneNumber, {checkedInDayKey, learningCursor: persistedLearningCursor.current,
+            learningDraft: persistedLearningDraft.current, spaceCardStateById}, {verify: true});
           await authSessionCoordinator.invalidate();
           resetRuntimeAfterLogout(null);
         } catch {
@@ -5620,6 +5704,7 @@ function AppShell({
       setLearningStateSyncState({detail: '本次作答已保存。', label: '已记录', state: 'idle'});
       return;
     }
+    unsavedLearningWriteIdentity.current = learningDraftIdentity;
     if (pendingLearningEventCountRef.current > 0) return;
       const completionSession = authSessionCoordinator.getCurrentSession();
       const completionSessionScopeKey =
@@ -5711,6 +5796,7 @@ function AppShell({
               boxRef: submittedCard.space_metadata.box_ref,
             });
           }
+          if (unsavedLearningWriteIdentity.current === learningDraftIdentity) unsavedLearningWriteIdentity.current = null;
           learningEventReplayPaused.current = false;
           pendingLearningEventCountRef.current += 1;
           setPendingLearningEventCount(pendingLearningEventCountRef.current);
@@ -5752,6 +5838,7 @@ function AppShell({
             return;
           }
 
+          unsavedLearningWriteIdentity.current = learningDraftIdentity;
           setOutgoingLearningResult(null);
           setLearningStateSyncState({
             detail: getUserFacingErrorMessage(
@@ -5862,6 +5949,7 @@ function AppShell({
         ...learningCardState,
         isFlipped: true,
         flipConfidence: value,
+        pendingFlipConfidence: null,
       };
 
       setLearningCardState(nextState);
@@ -6078,8 +6166,9 @@ function AppShell({
   };
 
   const statisticsHandlers = {
-    onCheckIn: () => {
+    onCheckIn: async () => {
       const liveDayKey = getChinaDayKey();
+      if (!canAccessAccountState || checkInActionRef.current !== null) return;
       const requiresCanonicalDayRefresh =
         runtimeAccountBootstrapMode === 'remote' &&
         accountBootstrapSnapshotRef.current?.dayKey !== liveDayKey;
@@ -6096,7 +6185,7 @@ function AppShell({
         accountBootstrapHydrationSettledRef.current = false;
         setAccountBootstrapHydrationSettled(false);
         setProgressSyncState({
-          detail: '日期已更新，先签到再签到。',
+          detail: '日期已更新，先读取今天的学习记录。',
           label: '更新中',
           state: 'syncing',
         });
@@ -6155,12 +6244,20 @@ function AppShell({
         return;
       }
 
+      const retryPendingCheckIn = pendingCheckIn?.dayKey === liveDayKey;
+      const isConfirmed = runtimeProgressSyncMode === 'remote'
+        ? accountBootstrapSnapshotRef.current?.dayKey === liveDayKey &&
+          accountBootstrapSnapshotRef.current.progress.snapshot.checkedInToday
+        : checkedInDayKey === liveDayKey;
       const canCheckInLiveDay =
-        checkedInDayKey !== liveDayKey &&
+        !isConfirmed &&
         progressSyncState.state !== 'syncing' &&
         learningCompletedCount + reviewCompletedCount > 0;
 
-      if (!canCheckInLiveDay || !canWriteAccountState) {
+      if (isConfirmed || (!retryPendingCheckIn && (!canCheckInLiveDay || !canWriteAccountState))) {
+        if (!isConfirmed && !canWriteAccountState) setProgressSyncState({
+          detail: checkInUnavailableReason ?? '账号信息正在更新，请稍后签到。', label: '暂不可签到', state: 'error',
+        });
         return;
       }
 
@@ -6198,60 +6295,86 @@ function AppShell({
       }
 
       confirmedCheckInDayKeyRef.current = null;
+      const action = {};
+      checkInActionRef.current = action;
+      setCheckInBusy(true);
+      const isCurrentAction = () => checkInActionRef.current === action &&
+        getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === sessionScopeKey &&
+        getChinaDayKey() === liveDayKey;
+      let savedIntent = retryPendingCheckIn;
       setProgressSyncState({
         detail:
-          pendingLearningEventCount > 0
+          pendingCheckIn?.phase === 'confirming'
+            ? '正在重新确认签到结果。'
+            : pendingLearningEventCount > 0
             ? '答题记录确认后再提交签到。'
             : '正在保存签到。',
-        label: '保存中',
+        label: pendingCheckIn?.phase === 'confirming' ? '确认中' : '保存中',
         state: 'syncing',
       });
 
-      mutationQueueRepository
-        .enqueueMutation(
-          'check_in_daily_progress',
-          {
-            context: authenticatedRuntimeContext,
-            dayKey: liveDayKey,
-          },
-          `check-in:${authenticatedRuntimeContext.phoneNumber}:${liveDayKey}`,
-        )
-        .then(() => {
-          if (
-            getAuthSessionScopeKey(
-              authSessionCoordinator.getCurrentSession(),
-            ) !== sessionScopeKey
-          ) {
-            return;
-          }
-
+      try {
+        if (!retryPendingCheckIn) {
+          await mutationQueueRepository.enqueueMutation(
+            'check_in_daily_progress',
+            {context: authenticatedRuntimeContext, dayKey: liveDayKey},
+            `check-in:${authenticatedRuntimeContext.phoneNumber}:${liveDayKey}`,
+          );
+          if (!isCurrentAction()) return;
+          savedIntent = true;
           unreconciledCheckInDayKeyRef.current = liveDayKey;
           setCheckedInDayKey(liveDayKey);
-          setProgressSyncState({
-            detail: '签到已保存，联网后会自动更新。',
-            label: '已排队',
-            state: 'syncing',
-          });
-          startMutationReplay().catch(() => undefined);
-        })
-        .catch((error: unknown) => {
-          if (
-            getAuthSessionScopeKey(
-              authSessionCoordinator.getCurrentSession(),
-            ) !== sessionScopeKey
-          ) {
-            return;
-          }
-
-          setProgressSyncState({
-            detail: getUserFacingErrorMessage(
-              error,
-              '签到保存失败，请重试。',
-            ),
-            label: '保存失败',
-            state: 'error',
-          });
+          setPendingCheckIn({dayKey: liveDayKey, phase: 'queued'});
+        }
+        const queued = await mutationQueueRepository.hasPendingCheckIn(
+          authenticatedRuntimeContext.phoneNumber, liveDayKey,
+        );
+        if (!isCurrentAction()) return;
+        if (queued) {
+          await startMutationReplay({allowCanonicalRefreshRetry: true});
+        } else {
+          // Acknowledged commands have left the queue. Retry the read only;
+          // never create a second intent merely to confirm its result.
+          await retryCanonicalAccountBootstrap({forceFresh: true});
+        }
+      } catch (error) {
+        if (!isCurrentAction() || isRemoteRequestCancellationError(error)) return;
+        setProgressSyncState({
+          detail: getUserFacingErrorMessage(error, savedIntent
+            ? '签到暂时未确认，请重试。' : '签到保存失败，请重试。'),
+          label: savedIntent ? '待确认' : '保存失败',
+          state: 'error',
         });
+      } finally {
+        if (isCurrentAction() && savedIntent) {
+          const progress = accountBootstrapSnapshotRef.current?.progress.snapshot;
+          if (progress?.dayKey === liveDayKey && progress.checkedInToday) {
+            unreconciledCheckInDayKeyRef.current = null;
+            acknowledgedCheckInDayKeyRef.current = null;
+            setCheckedInDayKey(liveDayKey);
+            setPendingCheckIn(null);
+            setProgressSyncState({detail: '签到已更新。', label: '已同步', state: 'synced'});
+          } else {
+            const queued = await mutationQueueRepository.hasPendingCheckIn(
+              authenticatedRuntimeContext.phoneNumber, liveDayKey,
+            ).catch(() => pendingCheckIn?.phase !== 'confirming');
+            if (isCurrentAction()) {
+              unreconciledCheckInDayKeyRef.current = liveDayKey;
+              setPendingCheckIn({dayKey: liveDayKey, phase: queued ? 'queued' : 'confirming'});
+              setProgressSyncState({
+                detail: queued ? '签到已保存在本机，联网后会自动更新，也可以重试同步。'
+                  : '签到已提交，等待重新确认。',
+                label: queued ? '已排队' : '待确认',
+                state: 'error',
+              });
+            }
+          }
+        }
+        if (checkInActionRef.current === action) {
+          checkInActionRef.current = null;
+          setCheckInBusy(false);
+        }
+      }
     },
   };
   const openLearningRoute = () => {
@@ -6682,6 +6805,7 @@ function AppShell({
       onSelectOption={learningHandlers.onSelectOption}
       onSelectSwipeState={learningHandlers.onSelectSwipeState}
       onSetFlipConfidence={learningHandlers.onSetFlipConfidence}
+      onDraftFlipConfidenceChange={value => patchLearningCardState(state => ({...state, pendingFlipConfidence: value}))}
       onSetLockSelection={learningHandlers.onSetLockSelection}
       onSubmitCurrentCard={learningHandlers.onSubmitCurrentCard}
       onToggleEliminationItem={learningHandlers.onToggleEliminationItem}
@@ -6735,6 +6859,9 @@ function AppShell({
       statistics={accountBootstrapSnapshot?.track === learningTrack && accountBootstrapSnapshot.dayKey === todayKey ? accountBootstrapSnapshot.statistics ?? null : null}
       track={learningTrack}
       canCheckInToday={canCheckInToday}
+      checkInStatus={pendingCheckIn?.dayKey === todayKey ? pendingCheckIn.phase : undefined}
+      checkInBusy={checkInBusy}
+      checkInUnavailableReason={checkInUnavailableReason}
       cumulativeLearnedCount={runtimeAccountBootstrapMode === 'remote' && mappedAccountBootstrapSnapshot !== null && learningSession !== null && mappedAccountBootstrapSnapshot.content.version === learningSession.contentVersion ? catalogResults.length : undefined}
       deviceClass={deviceClass}
       hasCheckedInToday={hasCheckedInToday}
@@ -6751,9 +6878,10 @@ function AppShell({
   ) : null;
   const hasRejectedLearningNotice = rejectedLearningNotice?.sessionScopeKey === activeLearningNoticeScope &&
     rejectedLearningNotice.count > 0;
-  const rejectedLearningNoticeCopy = (learningBootstrapStatus === 'ready' || currentCatalogSession !== null) && accountBootstrapHydrationSettled
-    ? '这次结果未计入，已更新学习安排。'
-    : learningBootstrapStatus === 'error' ? '这次结果未计入，请重试更新学习安排。' : '这次结果未计入，正在更新学习安排。';
+  const rejectedLearningNoticeCopy = `此前有 ${rejectedLearningNotice?.count ?? 0} 条作答未计入。` + (
+    (learningBootstrapStatus === 'ready' || currentCatalogSession !== null) && accountBootstrapHydrationSettled
+      ? '学习安排已更新。'
+      : learningBootstrapStatus === 'error' ? '请重试更新学习安排。' : '正在更新学习安排。');
   const contentWithLearningNotice = route.key === 'learning' && hasRejectedLearningNotice ? (
       <>
         <Text accessibilityLiveRegion="polite" testID="learning-rejected-result-notice"
@@ -6775,8 +6903,32 @@ function AppShell({
     JSON.stringify([card.library, card.group, card.boxRef]), formatSpaceDisplayName(card.box, '知识点'),
   ])).values()] : [];
   const segmentSummaryVisible = visibleSegment?.summaryVisible === true && outgoingResult === null && currentRoundCompletion === null;
-  const pauseLearning = () => {
-    setPauseNotice('当前练习已保留，可以随时接着学。');
+  const pauseLearning = async () => {
+    const scope = getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession());
+    const resourceIdentity = presentedResourceIdentityRef.current;
+    const isCurrent = () => getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === scope &&
+      presentedResourceIdentityRef.current === resourceIdentity;
+    let notice = '当前练习已保留，可以随时接着学。';
+    if (hasUnconfirmedLearningResult) {
+      notice = currentLearningWriteUnsaved
+        ? '本次作答还未保存，请返回练习重试。'
+        : '返回练习可查看本次作答的保存状态。';
+    } else if (!learningCurrentResult && !outgoingResult && learningSession && currentLearningCard && learningCardState) {
+      try {
+        if (!canWriteAccountState || learningEventEnqueueInFlight.current) throw new Error('Draft authority is not ready.');
+        const draft = captureLearningDraft(learningSession, currentLearningCard, learningCardState, learningPhase);
+        if (!draft) throw new Error('Draft scope is unavailable.');
+        await userStateStore.save(authState.phoneNumber, {checkedInDayKey,
+          learningCursor: persistedLearningCursor.current, spaceCardStateById,
+          localLearningProgress: persistedLocalProgress.current, learningDraft: draft}, {verify: true});
+        if (!isCurrent()) return;
+        persistedLearningDraft.current = draft;
+      } catch {
+        if (!isCurrent()) return;
+        notice = '草稿还没保存到本机，请返回练习后重试；关闭应用可能丢失本次选择。';
+      }
+    }
+    setPauseNotice(notice);
     setLearningView('home');
     setLearningStartIntent('learning');
     studySpaceOrigin.current = null;
@@ -6874,6 +7026,7 @@ function AppShell({
     authState.error === CLIENT_UPDATE_REQUIRED_COPY ? contentWithLearningNotice
   : route.key === 'learning' && learningView === 'home' ? (
     <StudyHome track={learningTrack} todayCount={homeTodayCount}
+      trialDays={accountBootstrapSnapshot?.membership.state.stage === 'trial_available' ? accountBootstrapSnapshot.membership.state.trialDurationDays : undefined}
       reviewCount={homeCatalogKnown ? pendingSpaceReviewIds.length : null}
       progress={sceneProgress} learnedCount={homeCatalogKnown ? catalogResults.length : null}
       catalogCount={homeCatalogKnown ? homeCatalogCount : null}
@@ -6889,8 +7042,6 @@ function AppShell({
       onPause={pauseLearning} onOpenSpace={openSpaceFromStudy} palette={palette}>
       {sceneBody}
     </StudyScene>
-  ) : route.key === 'statistics' && pauseNotice ? (
-    <View style={styles.sessionContent}><Text accessibilityLiveRegion="polite" testID="learning-pause-notice" style={[styles.segmentPauseNotice, {color: palette.textMuted}]}>{pauseNotice}</Text>{contentWithLearningNotice}</View>
   ) : contentWithLearningNotice;
 
   return (
@@ -8623,7 +8774,7 @@ function MineSurface({
         style={[
           styles.mineProfilePanel,
           isCompactPhone ? styles.mineProfilePanelCompact : null,
-          { backgroundColor: palette.panel, borderColor: palette.border },
+          { backgroundColor: 'transparent', borderColor: 'transparent' },
         ]}
         testID="mine-profile-card"
       >
@@ -8643,7 +8794,7 @@ function MineSurface({
                   { color: palette.accent },
                 ]}
               >
-                我的会员
+                我的账号
               </Text>
             </View>
             <View
@@ -8674,23 +8825,14 @@ function MineSurface({
               { color: palette.text },
             ]}
           >
-            会员与试用
-          </Text>
-          <Text
-            style={[
-              styles.mineAccountSummary,
-              isCompactPhone ? styles.mineAccountSummaryCompact : null,
-              { color: palette.textMuted },
-            ]}
-          >
-            查看会员状态，管理登录账号。
+            账号与会员
           </Text>
           <View
             style={[
               styles.mineAccountLedger,
               {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
             ]}
             testID="mine-account-ledger"
@@ -8707,13 +8849,7 @@ function MineSurface({
               value={syncDetail}
               valueTestID="mine-profile-sync"
             />
-            <MineAccountRow
-              label="学习顺序"
-              last
-              palette={palette}
-              value="系统推荐"
-              valueTestID="mine-profile-route"
-            />
+
           </View>
         </View>
         {onSwitchTrack ? <View style={{paddingVertical: 16, gap: 12}}>
@@ -8761,8 +8897,8 @@ function MineSurface({
               styles.mineSessionCard,
               isCompactPhone ? styles.mineAccountPrivacyCardCompact : null,
               {
-                backgroundColor: palette.panelStrong,
-                borderColor: palette.border,
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
               },
             ]}
             testID="mine-session-card"
@@ -9143,47 +9279,10 @@ function MembershipHostCard({
           ]}
           testID="membership-access-strip"
         >
-          {benefitSummary.map(item => (
-            <View
-              key={item.label}
-              style={[
-                styles.membershipAccessStep,
-                compact ? styles.membershipAccessStepCompact : null,
-                {
-                  backgroundColor: palette.panelStrong,
-                  borderColor: 'transparent',
-                },
-              ]}
-              testID="membership-access-step"
-            >
-              <View
-                style={[
-                  styles.membershipAccessDot,
-                  {
-                    backgroundColor: item.open
-                      ? palette.success
-                      : hexToRgba(palette.warning, 0.2),
-                    borderColor: item.open ? palette.success : palette.warning,
-                  },
-                ]}
-              />
-              <Text
-                numberOfLines={1}
-                style={[styles.membershipAccessLabel, { color: palette.text }]}
-              >
-                {item.label}
-              </Text>
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.membershipAccessValue,
-                  { color: item.open ? palette.success : palette.warning },
-                ]}
-              >
-                {item.open ? '可用' : '不可用'}
-              </Text>
-            </View>
-          ))}
+          <Text style={[styles.membershipSummary, {color: palette.textMuted}]}>
+            {benefitSummary.every(item => item.open) ? '完整卡库、知识空间和智能复习均可使用。'
+              : benefitSummary.map(item => `${item.label}${item.open ? '可用' : '需开通'}`).join(' · ')}
+          </Text>
         </View>
       )}
       {membershipState.stage === 'trial' && membershipState.trialExpiresAt ? <Text style={[styles.authSummary, {color: palette.textMuted}]}>试用至 {new Date(membershipState.trialExpiresAt).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}</Text> : null}
@@ -10261,13 +10360,11 @@ function getMembershipCardSummary(
 }
 
 const styles = StyleSheet.create({
-  sessionContent: {flex: 1},
   segmentSecondary: {minHeight: 48, paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: STUDIO.color.line, borderRadius: 14, backgroundColor: STUDIO.color.paperSoft},
   segmentSummary: {padding: 24, gap: 20, flexGrow: 1, justifyContent: 'center'},
   segmentTitle: {fontSize: 26, fontWeight: '600'},
   segmentDetail: {fontSize: 16, lineHeight: 26},
   segmentPrimary: {minHeight: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center'},
-  segmentPauseNotice: {paddingHorizontal: 20, paddingVertical: 10, fontSize: 13},
   learningRecoveryNotice: {fontSize: 14, lineHeight: 22, paddingHorizontal: 18, paddingVertical: 8},
   safeArea: {
     flex: 1,
@@ -10278,28 +10375,6 @@ const styles = StyleSheet.create({
   appCanvasBackdrop: {
     ...StyleSheet.absoluteFill,
     overflow: 'hidden',
-  },
-  appAuroraTop: {
-    borderRadius: 999,
-    height: 360,
-    left: -160,
-    position: 'absolute',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.22,
-    shadowRadius: 80,
-    top: -190,
-    width: 480,
-  },
-  appAuroraBottom: {
-    borderRadius: 999,
-    bottom: -260,
-    height: 440,
-    position: 'absolute',
-    right: -220,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.16,
-    shadowRadius: 90,
-    width: 520,
   },
   shellRoot: {
     flex: 1,
@@ -10330,34 +10405,11 @@ const styles = StyleSheet.create({
     gap: 10,
     minWidth: 0,
   },
-  phoneBrandMark: {
-    alignItems: 'center',
-    borderRadius: 8,
-    height: 28,
-    justifyContent: 'center',
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0,
-    shadowRadius: 14,
-    width: 28,
-  },
-  phoneBrandMarkLabel: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
   phoneTopTitle: {
     fontSize: 18, fontWeight: '600',
   },
   phoneTopTitleLearning: {
     fontSize: 18,
-  },
-  phoneTopMeta: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  phoneTopMetaLearning: {
-    fontSize: 11,
   },
   phoneAccountChip: {
     flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 14, minWidth: 70, minHeight: 48, paddingHorizontal: 13,
@@ -10366,24 +10418,6 @@ const styles = StyleSheet.create({
   phoneCourseChip: {minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: 'transparent'},
   phoneCourseLabel: {fontSize: 13, lineHeight: 20, fontWeight: '600'},
   phoneAccountChipIconOnly: {minWidth: 48, paddingHorizontal: 10},
-  phoneAccountChipDot: {
-    borderRadius: 999,
-    height: 6,
-    width: 6,
-  },
-  phoneAccountChipCopy: {
-    gap: 1,
-  },
-  phoneAccountChipLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    lineHeight: 11,
-  },
-  phoneAccountChipValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 13,
-  },
   tabletRoot: {
     flex: 1,
     flexDirection: 'row',
@@ -10442,11 +10476,6 @@ const styles = StyleSheet.create({
   tabletContent: {
     flex: 1,
     gap: 12,
-  },
-  brandEyebrow: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1.1,
   },
   brandTitle: {
     fontSize: 28,
@@ -10800,27 +10829,11 @@ const styles = StyleSheet.create({
   authPanelHeader: {
     gap: 5,
   },
-  authPanelHeaderDock: {
-    paddingHorizontal: 2,
-  },
   authPanelTitleRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'space-between',
-  },
-  authPanelStatePill: {
-    borderRadius: 999,
-    borderWidth: 0,
-    maxWidth: 96,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-  },
-  authPanelStatePillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 14,
-    textAlign: 'center',
   },
   authSummary: {
     fontSize: 13,
@@ -11085,9 +11098,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 12,
   },
-  fieldGroup: {
-    gap: 6,
-  },
   authPhoneFieldDock: {
     alignItems: 'center',
     alignSelf: 'stretch',
@@ -11257,16 +11267,6 @@ const styles = StyleSheet.create({
     flexShrink: 1, textAlign: 'center',
     fontSize: 14,
     fontWeight: '600',
-  },
-  sectionGrid: {
-    gap: 14,
-  },
-  sectionGridTablet: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  infoCardHalf: {
-    width: '48%',
   },
   infoCard: {
     borderWidth: 1,
@@ -11564,15 +11564,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 30,
   },
-  mineAccountSummary: {
-    fontSize: 13,
-    fontWeight: '400',
-    lineHeight: 21,
-  },
-  mineAccountSummaryCompact: {
-    fontSize: 13,
-    lineHeight: 21,
-  },
   mineAccountLedger: {
     borderRadius: 14,
     borderWidth: 0,
@@ -11745,22 +11736,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     gap: 8,
   },
-  membershipAccessStrip: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  membershipAccessStripTablet: {
-    gap: 8,
-  },
-  membershipAccessChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-  },
   membershipAccessTrack: {
     flexDirection: 'row',
     gap: 6,
@@ -11807,30 +11782,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 80,
   },
-  membershipCompactBenefitRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 5,
-  },
-  membershipCompactBenefitChip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-  },
-  membershipCompactBenefitDot: {
-    borderRadius: 999,
-    height: 6,
-    width: 6,
-  },
-  membershipCompactBenefitLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    lineHeight: 12,
-  },
   membershipCompactTrialButton: {
     flexDirection: 'row', gap: 8,
     alignItems: 'center',
@@ -11861,35 +11812,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 22,
-  },
-  membershipAccessStep: {
-    borderRadius: 12,
-    borderWidth: 0,
-    flex: 1,
-    gap: 5,
-    minWidth: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-  },
-  membershipAccessStepCompact: {
-    gap: 3,
-    minHeight: 55,
-    paddingHorizontal: 6,
-    paddingVertical: 10,
-  },
-  membershipAccessDot: {
-    borderRadius: 999,
-    borderWidth: 0,
-    height: 8,
-    width: 8,
-  },
-  membershipAccessLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  membershipAccessValue: {
-    fontSize: 10,
-    fontWeight: '600',
   },
   membershipTrialActionRow: {
     alignItems: 'center',

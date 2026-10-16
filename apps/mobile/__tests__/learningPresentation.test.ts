@@ -10,6 +10,8 @@ import {
   spaceCardPreview,
   lockAnswerText,
   cardTextBlocks,
+  cardRecallOptions,
+  spaceSearchSummary,
 } from '../src/learning/presentation';
 import { localLearningCardRecords } from './fixtures/interactionCards';
 import { createLearningCardState } from '../src/learning/sessionCore';
@@ -276,4 +278,49 @@ it('keeps authored paragraphs and only softens a separate explicit vocabulary gl
   ]);
   expect(cardTextBlocks('Question?\n\nWhy: is this true?')[1].gloss).toBe(false);
   expect(cardTextBlocks('practical：切实可行')[0].gloss).toBe(false);
+});
+
+it('recalls every original option without using the answer key or analysis', () => {
+  const record = bundledCardLibrary.cet6.cards.find(item => item.card_id === '161004')!;
+  const card = normalizeLearningCardRecord(record);
+  if (card.interaction_id !== 'multiple_choice') throw new Error('Expected real choice card');
+  expect(cardRecallOptions(card)).toEqual(card.options.map(option => `${option.label} · ${option.text}`));
+  expect(cardRecallOptions({...card, answer_key: {correct_option: 'A'}, analysis: {
+    title: 'hidden-title', summary: 'hidden-explanation', exam_tip: 'hidden-tip',
+  }})).toEqual(cardRecallOptions(card));
+  expect(cardRecallOptions(elimination)).toEqual(elimination.elimination_items.map(item => item.text));
+});
+
+it('summarizes a long real front while keeping the matching passage discoverable', () => {
+  const record = bundledCardLibrary.cet4.cards.find(item => item.card_id === '031106')!;
+  const card = normalizeLearningCardRecord(record);
+  const summary = spaceSearchSummary(card, 'Group projects');
+  expect(summary.title).toBe('按句子之间的关系补全段落：');
+  expect(summary.excerpt).toContain('Group projects');
+  expect(summary.title.length + (summary.excerpt?.length ?? 0)).toBeLessThan(190);
+  expect(summary.excerpt).not.toContain('This is because');
+});
+
+it('finds bounded context in front options and never summarizes hidden answer fields', () => {
+  const record = bundledCardLibrary.cet6.cards.find(item => item.card_id === '161004')!;
+  const card = normalizeLearningCardRecord(record);
+  const summary = spaceSearchSummary(card, 'viable solution');
+  expect(summary.excerpt).toContain('viable solution');
+  const flip = normalizeLearningCardRecord(localLearningCardRecords.find(item => item.interaction_id === 'flip')!);
+  if (flip.interaction_id !== 'flip') throw new Error('Expected flip');
+  const guarded = {...flip, back_text: 'secret-answer', analysis: {title: 'secret-title', summary: 'secret-analysis', exam_tip: 'secret-tip'}};
+  expect(JSON.stringify(spaceSearchSummary(guarded, 'secret'))).not.toContain('secret');
+  const long = {...guarded, front: {...guarded.front, prompt: '前文。'.repeat(100) + 'needle-match 后文。'.repeat(100)}};
+  const bounded = spaceSearchSummary(long, 'needle-match');
+  expect(bounded.excerpt).toContain('needle-match');
+  expect(bounded.title.length).toBeLessThanOrEqual(121);
+  expect(bounded.excerpt!.length).toBeLessThanOrEqual(162);
+  expect(long.front.prompt).toHaveLength(('前文。'.repeat(100) + 'needle-match 后文。'.repeat(100)).length);
+});
+
+test('paired emphasis remains distinct from literal grammaticality asterisks', () => {
+  const {inlineTextSegments} = require('../src/learning/inlineText');
+  expect(inlineTextSegments('**word**\n*ungrammatical')).toEqual([
+    {text: 'word', strong: true}, {text: '\n*ungrammatical', strong: false},
+  ]);
 });

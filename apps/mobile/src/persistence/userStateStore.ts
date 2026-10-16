@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { LearningTrack } from '../learning/model';
 import type {SpaceCardStateValue} from '../space/spaceStateRepository';
 import {parseLocalLearningProgress, type LocalLearningProgress} from './localLearningProgress';
+import {parseLearningDraft, type LearningDraft} from './learningDraft';
 
 export type PersistedSpaceCardState = SpaceCardStateValue;
 
@@ -13,6 +14,7 @@ export type PersistedLearningCursor = {
 };
 
 export type PersistedUserState = {
+  learningDraft?: LearningDraft | null;
   localLearningProgress?: LocalLearningProgress | null;
   checkedInDayKey: string | null;
   learningCursor: PersistedLearningCursor | null;
@@ -28,7 +30,7 @@ export type UserStateStorage = {
 export type UserStateStore = {
   clear: () => Promise<void>;
   load: (phoneNumber: string) => Promise<PersistedUserState>;
-  save: (phoneNumber: string, state: PersistedUserState) => Promise<void>;
+  save: (phoneNumber: string, state: PersistedUserState, options?: {verify?: boolean}) => Promise<void>;
 };
 
 export const USER_STATE_STORAGE_KEY = 'softbook-cet/user-state/v1';
@@ -37,6 +39,7 @@ const LEGACY_USER_STATE_SCHEMA_VERSION = 'user-state.v1';
 export const LEGACY_SPACE_STATE_TIMESTAMP = '1970-01-01T00:00:00.000Z';
 
 type UserStatePayload = {
+  learning_draft?: LearningDraft | null;
   local_learning_progress?: LocalLearningProgress | null;
   checked_in_day_key: string | null;
   learning_cursor: {
@@ -135,18 +138,23 @@ export function createUserStateStore(
       }
     },
 
-    save(phoneNumber, state) {
+    save(phoneNumber, state, options) {
       assertPhoneNumber(phoneNumber);
 
       if (!automaticWritesEnabled) {
+        if (options?.verify) return Promise.reject(new Error('User state cannot be safely written.'));
         return Promise.resolve();
       }
 
       const payload = serializeUserStatePayload(phoneNumber, state);
 
-      return enqueueWrite(() =>
-        storage.setItem(storageKey, JSON.stringify(payload)),
-      );
+      return enqueueWrite(async () => {
+        const encoded = JSON.stringify(payload);
+        await storage.setItem(storageKey, encoded);
+        if (options?.verify && await storage.getItem(storageKey) !== encoded) {
+          throw new Error('User state write could not be verified.');
+        }
+      });
     },
   };
 }
@@ -160,6 +168,7 @@ function serializeUserStatePayload(
   const spaceCardStateById = parseSpaceCardStateMap(state.spaceCardStateById);
 
   return {
+    ...(state.learningDraft === undefined ? {} : {learning_draft: parseLearningDraft(state.learningDraft)}),
     checked_in_day_key: state.checkedInDayKey,
     ...(state.localLearningProgress === undefined ? {} : {
       local_learning_progress: parseLocalLearningProgress(state.localLearningProgress),
@@ -204,6 +213,7 @@ function parseUserStatePayload(payload: unknown): {
   return {
     ownerPhoneNumber: payload.owner_phone_number,
     state: {
+      ...(payload.learning_draft === undefined ? {} : {learningDraft: readLearningDraft(payload.learning_draft)}),
       ...(payload.local_learning_progress === undefined ? {} : {
         localLearningProgress: readLocalProgress(payload.local_learning_progress),
       }),
@@ -215,6 +225,10 @@ function parseUserStatePayload(payload: unknown): {
       ),
     },
   };
+}
+
+function readLearningDraft(value: unknown): LearningDraft | null {
+  try {return parseLearningDraft(value);} catch {return null;}
 }
 
 function readLocalProgress(value: unknown): LocalLearningProgress | null {

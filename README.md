@@ -103,7 +103,9 @@ npm --prefix apps/mobile run android:backend
 
 旧本机记录工具的 Web、Android 与 iOS 启动方式见 [旧本机记录查看与恢复工具](docs/local-study.md)。它使用独立包名和本机数据，不是账号版的默认入口。卡库导入与审计见 [随包卡库说明](docs/content/bundled-library.md)；当前导出仍为候选内容。
 
-下面的 `product:local` 是单独的**接收方云端接入模式**：
+普通 `dev` 只启动前端开发服务，不会启动本机后端。完整账号联调用上面的命令；`product:local` 和原生 `product:local:ios/android` 也是本机后端入口。独立设备本地工具使用 `device` 模式，用途见上面的旧记录恢复说明。
+
+下面的 `product:receiver` 是单独的**接收方云端接入模式**：
 该命令会从 tracked receiver delivery profile 与公开 Ed25519 keyring 生成当前
 commit 的临时公开 runtime profile，连接已经导入 CloudBase 的 1180 张 CET4 卡、108 个盒和
 301 个私有音频，并强制使用封闭内测的邀请资格语义；profile 不包含 token、私钥或凭证。
@@ -111,13 +113,13 @@ commit 的临时公开 runtime profile，连接已经导入 CloudBase 的 1180 �
 
 ```bash
 # PC Web：构建正式 Web 产物并在 http://127.0.0.1:4173 预览
-npm --prefix apps/web run product:local
+npm --prefix apps/web run product:receiver
 
 # Android：先启动一个 Android 模拟器或连接设备
-npm --prefix apps/mobile run product:local:android
+npm --prefix apps/mobile run product:receiver:android
 
 # iOS：使用明确的已启动 Simulator UDID
-npm --prefix apps/mobile run product:local:ios -- \
+npm --prefix apps/mobile run product:receiver:ios -- \
   --device <simulator-udid>
 ```
 

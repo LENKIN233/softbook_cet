@@ -739,6 +739,7 @@ export function LocalStudyApp({
                       study.dispatch({ type: 'favorite', id: card.card_id });
                   }}
                   onFlip={() => patch({ isFlipped: true })}
+                  onDraftFlipConfidenceChange={value => patch({pendingFlipConfidence: value})}
                   onSetFlipConfidence={value => {
                     if (state.frame.draft)
                       study.dispatch({
@@ -747,6 +748,7 @@ export function LocalStudyApp({
                           ...state.frame.draft,
                           isFlipped: true,
                           flipConfidence: value,
+                          pendingFlipConfidence: null,
                         },
                       });
                   }}

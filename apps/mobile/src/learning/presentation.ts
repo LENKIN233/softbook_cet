@@ -1,3 +1,4 @@
+import {inlineTextSegments} from './inlineText';
 import type { EliminationCard, LearningCard, LearningCardState, LockCard } from './model';
 
 // Never guess which distinct front text is optional: imported front material
@@ -18,6 +19,7 @@ function withoutRepeatedTask(text: string, prompt: string) {
 }
 
 export function displayCardText(card: LearningCard, text: string, state?: LearningCardState) {
+  text = text.replace(/划线词/g, '目标词');
   if (card.interaction_id !== 'lock') return text;
   const blank = /\{\{blank\}\}|_{2,}/g;
   if (state && (text.match(blank)?.length ?? 0) === card.lock_slots.length) {
@@ -96,6 +98,61 @@ export function spaceCardPreview(card: LearningCard) {
   return usesMaterialTitle
     ? {title: material[0], detail: [prompt, ...material.slice(1)]}
     : {title: prompt, detail: material};
+}
+
+// These are the choices the learner originally saw, never the grading key.
+export function cardRecallOptions(card: LearningCard): string[] {
+  switch (card.interaction_id) {
+    case 'multiple_choice': return card.options.map(option => `${option.label} · ${option.text}`);
+    case 'lock': return card.lock_slots.map(slot => `${slot.label}：${slot.options.join(' / ')}`);
+    case 'elimination': return card.elimination_items.map(item => item.text);
+    case 'swipe': return card.swipe_states.map(option => {
+      const label = option.label.trim();
+      const description = option.description.trim();
+      return !description || description === label ? label : `${label} · ${description}`;
+    });
+    default: return [];
+  }
+}
+
+const compactText = (text: string) => inlineTextSegments(text).map(segment => segment.text).join('').replace(/\s+/g, ' ').trim();
+
+function excerptWindow(text: string, start: number, length: number) {
+  // Keep Unicode characters intact. At an English word boundary, prefer a
+  // slightly shorter excerpt to presenting a fragment as a complete word.
+  const characters = Array.from(text);
+  let end = Math.min(characters.length, start + length);
+  if (start > 0 && /[A-Za-z0-9]/.test(characters[start - 1]) && /[A-Za-z0-9]/.test(characters[start] ?? '')) {
+    const boundary = characters.slice(start, Math.min(start + 20, end)).findIndex(char => /\s/.test(char));
+    if (boundary >= 0) start += boundary + 1;
+  }
+  if (end < characters.length && /[A-Za-z0-9]/.test(characters[end - 1]) && /[A-Za-z0-9]/.test(characters[end])) {
+    const boundary = characters.slice(Math.max(start, end - 20), end).lastIndexOf(' ');
+    if (boundary >= 0) end = Math.max(start, end - 20) + boundary;
+  }
+  return `${start > 0 ? '…' : ''}${characters.slice(start, end).join('').trim()}${end < characters.length ? '…' : ''}`;
+}
+
+// Search lists summarize public front material; the opened card keeps the full
+// original. Hidden backs, analysis, hints and grading keys never enter this path.
+export function spaceSearchSummary(card: LearningCard, query: string): {title: string; excerpt: string | null} {
+  const prompt = displayCardText(card, card.front.prompt).trim();
+  const firstParagraph = prompt.split(/\n\s*\n/)[0];
+  const rawTitle = compactText(firstParagraph);
+  const title = excerptWindow(rawTitle, 0, 120);
+  const sources = [...new Set([prompt, ...frontMaterial(card), ...cardRecallOptions(card)].map(compactText))].filter(Boolean);
+  const needle = compactText(query).toLocaleLowerCase();
+  if (needle && !title.toLocaleLowerCase().includes(needle)) {
+    const match = sources.find(source => source.toLocaleLowerCase().includes(needle));
+    if (match) {
+      const index = match.toLocaleLowerCase().indexOf(needle);
+      const start = Math.max(0, Array.from(match.slice(0, index)).length - 36);
+      return {title, excerpt: excerptWindow(match, start, 160)};
+    }
+  }
+  const material = sources.map(source => source.startsWith(rawTitle) ? source.slice(rawTitle.length).trim() : source)
+    .find(source => source && !rawTitle.includes(source));
+  return {title, excerpt: material ? excerptWindow(material, 0, 160) : null};
 }
 
 export type PassageSegment = { text: string; itemId?: string };

@@ -1,8 +1,9 @@
+import {CardText} from './CardText';
 import {createLearningCardState} from '../../mobile/src/learning/sessionCore';
 import {StudioAudio} from './StudioAudio';
 import {useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type SyntheticEvent} from 'react';
 import {type LearningCard, INTERACTION_LABELS} from '../../mobile/src/learning/model';
-import {displayCardText, spaceCardPreview, answerComparison} from '../../mobile/src/learning/presentation';
+import {displayCardText, spaceCardPreview, answerComparison, cardRecallOptions, spaceSearchSummary} from '../../mobile/src/learning/presentation';
 import {filterSpaceCards, type SpaceCardFilter} from '../../mobile/src/space/cardFilters';
 import {resolveMembershipAccess, type MembershipState} from '../../mobile/src/membership/localMembership';
 import {formatSpaceDisplayName} from '../../mobile/src/shared/uiMetadata/displayMetadata';
@@ -12,6 +13,8 @@ import './spaceSurface.css';
 import {StudioIcon, IconLabel, DisclosureLabel} from './StudioIcon';
 
 type SpaceBox = {box: string; boxRef: string; cards: LearningCard[]; group: string; library: string};
+const summaryStyle: CSSProperties = {display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden'};
+const excerptStyle: CSSProperties = {...summaryStyle, WebkitLineClamp: 3};
 export type SpaceBrowseState = {selection: {boxRef: string; cardId: string} | null; filter: SpaceCardFilter; query: string; scrollY?: number; openSections?: string[]; answerCardId?: string | null; filterLimit?: number};
 export type SpaceSurfaceProps = {
   learnedIds?: string[]; browseState?: SpaceBrowseState; onBrowseStateChange?: (state: SpaceBrowseState) => void;
@@ -71,14 +74,15 @@ export function SpaceSurface({busy, cards, canMutate, currentCardId, pendingRevi
     const isCurrent = card.card_id === currentCardId;
     const isSleeping = sleeping.includes(card.card_id);
     const preview = spaceCardPreview(card);
+    const originalOptions = cardRecallOptions(card);
     return <div className="space-card-object" key={card.card_id}>
       <button className={`${isSelected ? 'contained-card selected' : 'contained-card'}${isSleeping ? ' sleeping' : ''}`} aria-pressed={isSelected} data-learning-current={isCurrent || undefined}
         style={{'--learning-object': transitionObjectName(card.card_id)} as CSSProperties} onClick={() => selectCard(card)}>
-        <span className="contained-card-kind">{INTERACTION_LABELS[card.interaction_id]}{isCurrent ? ' · 正在学习' : ''}</span><strong>{isSelected ? displayCardText(card, card.front.prompt) : preview.title}</strong>
+        <span className="contained-card-kind">{INTERACTION_LABELS[card.interaction_id]}{isCurrent ? ' · 正在学习' : ''}</span><strong>{<CardText text={isSelected ? displayCardText(card, card.front.prompt) : preview.title} />}</strong>
         {isSelected ? preview.detail.map(text => <span className="card-preview-material" key={text}>{text}</span>) : null}
         <span className="contained-card-tags"><small>{learnedIds.includes(card.card_id) ? '已学过' : '未学习'}</small>{favorites.includes(card.card_id) ? <small className="favorite-tag">已收藏</small> : null}{isSleeping ? <small>休眠中</small> : null}</span>
       </button>
-      {isSelected && learnedIds.includes(card.card_id) ? <div className="space-learned-answer"><button className="text-button" aria-expanded={answerCardId === card.card_id} onClick={() => {if (answerCardId === card.card_id) onStopAudio?.(); setAnswerCardId(value => value === card.card_id ? null : card.card_id);}}><IconLabel name="book">{answerCardId === card.card_id ? '收起答案与解析' : '回看答案与解析'}</IconLabel></button>{answerCardId === card.card_id ? <section className="space-answer-content" aria-label="已学卡答案与解析">{card.audio && onPlayCardAudio ? <StudioAudio status={audioStatus} durationMs={card.audio.duration_ms} disabled={busy} onPlay={() => onPlayCardAudio(card.card_id)} readPosition={readAudioPosition} onSeek={onSeekAudio} onRestart={() => {onSeekAudio?.(0); if (audioStatus !== 'playing') onPlayCardAudio(card.card_id);}}/> : null}<h3>{card.interaction_id === 'elimination' ? '应删除的部分' : '答案'}</h3><p>{displayCardText(card, answerComparison(card, createLearningCardState(card)).correct)}</p><p>{displayCardText(card, card.analysis.summary)}</p><p>{displayCardText(card, card.analysis.exam_tip)}</p></section> : null}</div> : null}
+      {isSelected && learnedIds.includes(card.card_id) ? <div className="space-learned-answer"><button className="text-button" aria-expanded={answerCardId === card.card_id} onClick={() => {if (answerCardId === card.card_id) onStopAudio?.(); setAnswerCardId(value => value === card.card_id ? null : card.card_id);}}><IconLabel name="book">{answerCardId === card.card_id ? '收起答案与解析' : '回看答案与解析'}</IconLabel></button>{answerCardId === card.card_id ? <section className="space-answer-content" aria-label="已学卡答案与解析">{card.audio && onPlayCardAudio ? <StudioAudio status={audioStatus} durationMs={card.audio.duration_ms} disabled={busy} onPlay={() => onPlayCardAudio(card.card_id)} readPosition={readAudioPosition} onSeek={onSeekAudio} onRestart={() => {onSeekAudio?.(0); if (audioStatus !== 'playing') onPlayCardAudio(card.card_id);}}/> : null}{originalOptions.length > 0 ? <div role="group" aria-label="原题选项"><h3>原题选项</h3>{originalOptions.map((option, index) => <p key={index}>{option}</p>)}</div> : null}<h3>{card.interaction_id === 'elimination' ? '应删除的部分' : '答案'}</h3><p>{<CardText text={displayCardText(card, answerComparison(card, createLearningCardState(card)).correct)} />}</p><p>{<CardText text={displayCardText(card, card.analysis.summary)} />}</p><p>{<CardText text={displayCardText(card, card.analysis.exam_tip)} />}</p></section> : null}</div> : null}
       {isSelected ? <div className="object-actions" aria-label="所选卡片操作"><button className="text-button" aria-pressed={favorites.includes(card.card_id)} disabled={busy || !canMutate} onClick={() => onFavorite(card.card_id)}><IconLabel name="star">{favorites.includes(card.card_id) ? '取消收藏' : '收藏'}</IconLabel>{favorites.includes(card.card_id) ? <StudioIcon name="check" /> : null}</button><button className="text-button" aria-pressed={isSleeping} disabled={busy || !canMutate} onClick={() => onSleep(card.card_id)}><IconLabel name={isSleeping ? 'sun' : 'moon'}>{isSleeping ? '恢复学习' : '暂不学习这张卡'}</IconLabel></button></div> : null}
     </div>;
   };
@@ -100,7 +104,10 @@ export function SpaceSurface({busy, cards, canMutate, currentCardId, pendingRevi
       {filter !== 'all' || query.trim() ? <section className="filtered-cards" aria-label="筛选结果"><div className="space-filter-summary"><strong>{query.trim() ? '查找结果' : filter === 'favorites' ? '只看收藏' : filter === 'sleeping' ? '已暂停' : '只看待复习'}</strong><button className="text-button" onClick={() => {setFilter('all'); setQuery('');}}><IconLabel name="close">清除筛选</IconLabel></button></div>
         {matches.length ? <p className="muted" role="status">{matches.length} 张卡片</p> : null}
         {!matches.length ? <div className="space-empty-actions"><StudioIcon name={filter === 'favorites' ? 'star' : filter === 'sleeping' ? 'moon' : 'book'} size={40}/><p className="muted" role="status">{filterEmptyMessage}</p><button className="primary" onClick={query.trim() ? () => setQuery('') : onReturn}>{query.trim() ? '清除搜索' : '去学习'}</button></div> : null}
-        {matches.slice(0, filterLimit).map(card => <button className="filtered-card" key={card.card_id} onClick={() => selectCard(card)}><span className="muted">{[card.space_metadata.library, card.space_metadata.group, card.space_metadata.box].map(name => formatSpaceDisplayName(name, '')).join(' / ')}</span><strong>{spaceCardPreview(card).title}</strong>{card.card_id === currentCardId ? <small>正在学习</small> : null}</button>)}
+        {matches.slice(0, filterLimit).map(card => {
+          const summary = spaceSearchSummary(card, query);
+          return <button className="filtered-card" key={card.card_id} onClick={() => selectCard(card)}><span className="muted">{[card.space_metadata.library, card.space_metadata.group, card.space_metadata.box].map(name => formatSpaceDisplayName(name, '')).join(' / ')}</span><strong style={summaryStyle}>{summary.title}</strong>{summary.excerpt ? <span className="muted" style={excerptStyle}>{summary.excerpt}</span> : null}<small>{learnedIds.includes(card.card_id) ? '已学过' : '未学习'}</small>{card.card_id === currentCardId ? <small>正在学习</small> : null}</button>;
+        })}
         {matches.length > filterLimit ? <button className="text-button" onClick={() => setFilterLimit(value => value + 40)}><IconLabel name="chevronDown">显示更多</IconLabel></button> : null}
       </section> : <section className="shelf-map" aria-label="知识空间层级">
         <div className="library-tabs" aria-label="书架">{libraries.map(library => <button key={library} className={selectedBox?.library === library ? 'library-tab selected' : 'library-tab'} aria-pressed={selectedBox?.library === library} onClick={() => {const first = boxes.find(box => box.library === library); if (first) selectBox(first);}}><span style={{backgroundColor: resolveLibraryTone(library).accent}} />{library}{selectedBox?.library === library ? <StudioIcon name="check" /> : null}</button>)}</div>

@@ -492,12 +492,14 @@
       "scope": [
         "daily_check_in_key",
         "learning_cursor",
+        "validated_unsubmitted_learning_draft_bound_to_card_content_and_selection",
         "favorite_tags",
         "sleep_state"
       ],
-      "corruption_behavior": "discard_invalid_payload_and_fall_back_to_empty_state",
+      "corruption_behavior": "discard_invalid_payload_and_fall_back_to_empty_state; a malformed optional learningDraft is discarded independently without erasing valid check-in or space state",
       "migration": "user-state.v1 space entries receive an epoch timestamp so stale restored state cannot outrank server canonical state",
-      "space_state_timestamp": "preserve the timestamp of each explicit favorite or sleep action"
+      "space_state_timestamp": "preserve the timestamp of each explicit favorite or sleep action",
+      "draft_semantics": "Pending self-assessment remains unsubmitted input. Keep recovery input until result acceptance; failed-write presentation is bound to the exact account, track, card, content, selection and phase."
     },
     "membership_state": "reload_from_server_authority_after_auth_session_restore",
     "mutation_queue": "persisted_under_an_independent_key_and_not_embedded_in_user_state; persisted mutation payloads and identifiers contain no credentials, context contains phone_number only, legacy credential-bearing membership identifiers are normalized during hydration, legacy sync_learning_state entries are discarded, only complete consistent checked-in sync_daily_progress entries migrate to counter-free check_in_daily_progress commands, valid sync_space_state cards migrate to deterministic favorite and sleep actions, every original snapshot is discarded, serialized candidate persistence changes memory only after storage succeeds, replay results remove or retry only the exact unchanged head entry, the current access token is injected in memory during replay, and Web uses one cross-tab transaction per queue operation with a fresh durable reread so concurrent enqueue retry quarantine logout and deletion cleanup cannot blind-overwrite or resurrect prior state",

@@ -421,6 +421,7 @@ test('Android back unwinds detail and space navigation without advancing the car
     await ReactTestRenderer.act(() => {
       findPressableByTestId(root, 'learning-flip-review-button').props.onPress();
     });
+    await ReactTestRenderer.act(() => {findPressableByTestId(root, 'learning-flip-confirm-button').props.onPress();});
     expect(root.find(node => typeof node.props.readingResetKey === 'string').props.readingResetKey).toBe(readingResetKey);
     await ReactTestRenderer.act(() => {
       findPressableByTestId(root, 'learning-open-result-detail-button').props.onPress();
@@ -1878,6 +1879,7 @@ test('wires remote auth, learning source config, membership, progress sync, and 
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -2304,6 +2306,7 @@ test('submits the server review phase with the exact active selection', async ()
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   // The confirmed answer is saved before Next.
   await ReactTestRenderer.act(async () => {
     await flushAsyncEffects();
@@ -2497,7 +2500,7 @@ test('keeps the completed pilot progress while its checkpoint read is pending or
       ? Promise.resolve(resolveSessionForRuntime({...catalog, cards: [cards[accepted.length]]})) : nextRead.promise);
     for (let index = 0; index < 5; index++) {
       await press('learning-flip-button');
-      await press('learning-flip-confident-button');
+      await press('learning-flip-confident-button'); await press('learning-flip-confirm-button');
       expect(accepted).toHaveLength(index + 1);
       if (index < 4) await press('learning-next-button');
     }
@@ -2648,6 +2651,7 @@ test('blocks product state writes until canonical bootstrap succeeds on reconnec
         .findByProps({ testID: 'learning-flip-confident-button' })
         .props.onPress();
     });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
     await ReactTestRenderer.act(() => {
       root.findByProps({ testID: 'learning-next-button' }).props.onPress();
     });
@@ -2804,6 +2808,7 @@ test('locks writes after canonical owner drift until a valid revision advance', 
       .findByProps({testID: 'learning-flip-confident-button'})
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   // The confirmed answer is saved before Next.
   expect(learningEventWriteCount).toBe(0);
   expect(
@@ -2930,6 +2935,7 @@ test('clears the session and durable learning event when replay is forbidden', a
       .findByProps({testID: 'learning-flip-confident-button'})
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   // The confirmed answer is saved before Next.
   for (let attempt = 0; attempt < 10; attempt += 1) {
     await ReactTestRenderer.act(async () => {
@@ -3063,6 +3069,7 @@ test('supersedes an ordinary pre-enqueue refresh before replaying retained conte
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
@@ -3179,6 +3186,7 @@ test('replays a retained offline event before loading a replacement content sour
         .findByProps({ testID: 'learning-flip-confident-button' })
         .props.onPress();
     });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   // The confirmed answer is saved before Next.
     await ReactTestRenderer.act(async () => {
       await flushAsyncEffects();
@@ -3435,8 +3443,11 @@ test('space map uses the active learning session catalog', async () => {
   expect(collectRenderedText(tree!.toJSON()).join(' ')).toContain('仔细阅读');
 });
 
-test('queues a failed explicit remote check-in without uploading progress counters', async () => {
+test('retries a durably queued check-in after network failure and only shows completion after canonical confirmation', async () => {
   const checkInRequests: MockFetchInit[] = [];
+  let shouldFailCheckIn = true;
+  let checkedInToday = false;
+  let releaseConfirmation: (() => void) | undefined;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = {
     accountBootstrap: {
@@ -3481,7 +3492,10 @@ test('queues a failed explicit remote check-in without uploading progress counte
     }
 
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
-      return createJsonResponse(createAccountBootstrapPayload());
+      if (checkedInToday) await new Promise<void>(resolve => {releaseConfirmation = resolve;});
+      return createJsonResponse(createAccountBootstrapPayload(
+        createLocalLearningSession('cet4'), 'free', [], checkedInToday,
+      ));
     }
 
     if (input === 'https://api.softbook.example/v2/membership/entitlement') {
@@ -3490,7 +3504,9 @@ test('queues a failed explicit remote check-in without uploading progress counte
 
     if (input === 'https://api.softbook.example/v2/progress/check-in') {
       checkInRequests.push(init ?? {});
-      return createJsonResponse({}, 503);
+      if (shouldFailCheckIn) return createJsonResponse({}, 503);
+      checkedInToday = true;
+      return createDailyCheckInResponse(init);
     }
 
     throw new Error(`Unexpected remote fetch: ${input}`);
@@ -3514,6 +3530,7 @@ test('queues a failed explicit remote check-in without uploading progress counte
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -3533,8 +3550,10 @@ test('queues a failed explicit remote check-in without uploading progress counte
   });
 
   const output = JSON.stringify(tree!.toJSON());
-  expect(output).toContain('已排队');
-  expect(output).toContain('联网后会自动更新');
+  expect(output).not.toContain('今日已签到');
+  expect(output).not.toContain('今天已签到。');
+  expect(output).toContain('重试同步');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
   expect(checkInRequests).toHaveLength(1);
   expect(JSON.parse(String(checkInRequests[0].body))).toEqual({
     day_key: getChinaDayKey(),
@@ -3545,6 +3564,31 @@ test('queues a failed explicit remote check-in without uploading progress counte
   expect(queuedMutations).toContain('check_in_daily_progress');
   expect(queuedMutations).not.toMatch(/favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/);
   expectNoUserVisibleMetadataLeakage(tree!);
+
+  shouldFailCheckIn = false;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+  });
+  expect(checkInRequests).toHaveLength(2);
+  expect(checkInRequests[1].body).toBe(checkInRequests[0].body);
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).not.toContain('check_in_daily_progress');
+  expect(JSON.stringify(tree!.toJSON())).not.toContain('今日已签到');
+  expect(JSON.stringify(tree!.toJSON())).toContain('正在确认');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(true);
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+  });
+  expect(checkInRequests).toHaveLength(2);
+  expect(releaseConfirmation).toBeDefined();
+  await ReactTestRenderer.act(async () => {
+    releaseConfirmation!();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+  expect(JSON.stringify(tree!.toJSON())).toContain('今日已签到');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(true);
 });
 
 test('does not count a prior China-day card projection as today or enable check-in', async () => {
@@ -3865,6 +3909,7 @@ test('settles a failed retained replay across China-day and recovers on the next
         .findByProps({testID: 'learning-flip-confident-button'})
         .props.onPress();
     });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   // The confirmed answer is saved before Next.
     await ReactTestRenderer.act(async () => {
       for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -3993,6 +4038,7 @@ test('queues a failed remote learning event for exact later replay', async () =>
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   // The confirmed answer is saved before Next.
 
   await ReactTestRenderer.act(async () => {
@@ -4077,6 +4123,7 @@ test('does not advance the card when durable learning event storage fails', asyn
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
 
   try {
@@ -4193,6 +4240,7 @@ test.each([
         .findByProps({ testID: 'learning-flip-confident-button' })
         .props.onPress();
     });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
     await ReactTestRenderer.act(() => {
       root.findByProps({ testID: 'learning-next-button' }).props.onPress();
     });
@@ -4318,6 +4366,7 @@ test('replays an explicit queued check-in and confirms it through bootstrap afte
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -4361,8 +4410,9 @@ test('replays an explicit queued check-in and confirms it through bootstrap afte
   ).toBeGreaterThanOrEqual(2);
 });
 
-test('keeps an acknowledged check-in pending when canonical bootstrap does not confirm it', async () => {
+test.each(['unconfirmed', 'unavailable'])('keeps an acknowledged check-in pending when canonical bootstrap is %s', async confirmationState => {
   let checkInRequestCount = 0;
+  let checkedInToday = false;
 
   global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
     baseUrl: 'https://api.softbook.example',
@@ -4380,7 +4430,12 @@ test('keeps an acknowledged check-in pending when canonical bootstrap does not c
       return createRemoteAuthSessionResponse();
     }
     if (input.startsWith('https://api.softbook.example/v2/bootstrap?')) {
-      return createJsonResponse(createAccountBootstrapPayload());
+      if (confirmationState === 'unavailable' && checkInRequestCount > 0 && !checkedInToday) {
+        return createJsonResponse({}, 503);
+      }
+      return createJsonResponse(createAccountBootstrapPayload(
+        createLocalLearningSession('cet4'), 'free', [], checkedInToday,
+      ));
     }
     if (input === 'https://api.softbook.example/v2/progress/check-in') {
       checkInRequestCount += 1;
@@ -4404,6 +4459,7 @@ test('keeps an acknowledged check-in pending when canonical bootstrap does not c
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
@@ -4419,13 +4475,80 @@ test('keeps an acknowledged check-in pending when canonical bootstrap does not c
   expect(checkInRequestCount).toBe(1);
   expect(output).toContain('待确认');
   expect(output).toContain('等待重新确认');
-  expect(
-    root.findByProps({ testID: 'statistics-checkin-complete-label' }),
-  ).toBeTruthy();
+  expect(root.findAllByProps({ testID: 'statistics-checkin-complete-label' })).toHaveLength(0);
+  expect(output).toContain('重新确认');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
   expect(await AsyncStorage.getItem('__softbook_mutation_queue')).not.toContain(
     'check_in_daily_progress',
   );
   expectNoUserVisibleMetadataLeakage(tree!);
+
+  await openRoute(root, 'mine');
+  await ReactTestRenderer.act(async () => {await flushAsyncEffects();});
+  await openRoute(root, 'statistics');
+  expect(JSON.stringify(tree!.toJSON())).toContain('重新确认');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
+  expect(checkInRequestCount).toBe(1);
+
+  checkedInToday = true;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+  expect(checkInRequestCount).toBe(1);
+  expect(root.findByProps({ testID: 'statistics-checkin-complete-label' })).toBeTruthy();
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(true);
+});
+
+test('restores an exact queued check-in without presenting it as confirmed and can retry without new learning', async () => {
+  const dayKey = getChinaDayKey();
+  await new MutationQueueManager({storage: createReactNativeMutationQueueStorage()})
+    .enqueue('check_in_daily_progress', {context: {phoneNumber: '13800138000'}, dayKey},
+      `check-in:13800138000:${dayKey}`);
+  let shouldFailCheckIn = true;
+  let checkedInToday = false;
+  const requests: string[] = [];
+  global.__SOFTBOOK_CET_RUNTIME_CONFIG__ = createSoftbookRemoteRuntimeConfig({
+    baseUrl: 'https://api.softbook.example',
+    featureModes: {learningState: 'local', membership: 'local', spaceState: 'local'},
+  });
+  mockFetch.mockImplementation(async (input: string, init?: MockFetchInit) => {
+    if (input.endsWith('/v2/auth/request-code')) return createRemoteAuthChallengeResponse();
+    if (input.endsWith('/v2/auth/verify-code')) return createRemoteAuthSessionResponse();
+    if (input.includes('/v2/bootstrap?')) return createJsonResponse(createAccountBootstrapPayload(
+      createLocalLearningSession('cet4'), 'free', [], checkedInToday,
+    ));
+    if (input.endsWith('/v2/progress/check-in')) {
+      requests.push(String(init?.body));
+      if (shouldFailCheckIn) return createJsonResponse({}, 503);
+      checkedInToday = true;
+      return createDailyCheckInResponse(init);
+    }
+    throw new Error(`Unexpected remote fetch: ${input}`);
+  });
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<App />);});
+  const root = tree.root;
+  await loginIntoLearningFlow(root);
+  await openRoute(root, 'statistics');
+  await ReactTestRenderer.act(async () => {await flushAsyncEffects();});
+  expect(requests.length).toBeGreaterThan(0);
+  expect(root.findByType(StatisticsSurface).props.learningCompletedCount).toBe(0);
+  expect(JSON.stringify(tree.toJSON())).not.toContain('今日已签到');
+  expect(JSON.stringify(tree.toJSON())).toContain('重试同步');
+  expect(findPressableByTestId(root, 'statistics-checkin-button').props.disabled).toBe(false);
+  const failedRequestCount = requests.length;
+  shouldFailCheckIn = false;
+  await ReactTestRenderer.act(async () => {
+    findPressableByTestId(root, 'statistics-checkin-button').props.onPress();
+    await flushAsyncEffects();
+    await flushAsyncEffects();
+  });
+  expect(requests).toHaveLength(failedRequestCount + 1);
+  expect(requests.every(body => body === JSON.stringify({day_key: dayKey}))).toBe(true);
+  expect(JSON.stringify(tree.toJSON())).toContain('今日已签到');
+  expect(await AsyncStorage.getItem('__softbook_mutation_queue')).not.toContain('check_in_daily_progress');
 });
 
 test('does not mark check-in complete when durable mutation storage fails', async () => {
@@ -4471,6 +4594,7 @@ test('does not mark check-in complete when durable mutation storage fails', asyn
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
   });
@@ -4637,6 +4761,7 @@ test('replays the exact queued learning event after network reconnect', async ()
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   // The confirmed answer is saved before Next.
 
   await openRoute(root, 'mine');
@@ -4739,6 +4864,7 @@ test('invalidates an acknowledged selection until post-ack bootstrap recovery lo
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   // The confirmed answer is saved before Next.
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
@@ -5064,6 +5190,7 @@ test('bounds canonical refresh attempts while a Space content mismatch remains u
       .findByProps({testID: 'learning-flip-confident-button'})
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   await ReactTestRenderer.act(() => {
     root.findByProps({testID: 'learning-next-button'}).props.onPress();
   });
@@ -6040,6 +6167,7 @@ test('can complete the local single-card deck and restart it', async () => {
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   output = JSON.stringify(tree!.toJSON());
   expect(output).toContain('优先盯转折后的半句');
@@ -6171,6 +6299,7 @@ test('can start a review round from cards that need revisiting', async () => {
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-review-button' }).props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -6269,6 +6398,7 @@ test('can start a review round from cards that need revisiting', async () => {
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -6303,6 +6433,7 @@ test('can check in from statistics after making learning progress', async () => 
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -6385,6 +6516,7 @@ test('keeps completed progress when first gated space entry starts trial', async
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -7537,6 +7669,7 @@ test('mine page stays focused on account and membership after login', async () =
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -7557,12 +7690,12 @@ test('mine page stays focused on account and membership after login', async () =
   const output = JSON.stringify(tree!.toJSON());
   const mineProfileCard = root.findByProps({ testID: 'mine-profile-card' });
   const mineProfileStyle = StyleSheet.flatten(mineProfileCard.props.style);
-  expect(output).toContain('我的会员');
-  expect(output).toContain('会员与试用');
-  expect(output).toContain('查看会员状态，管理登录账号');
+  expect(output).toContain('我的账号');
+  expect(output).toContain('账号与会员');
+  expect(output).not.toContain('查看会员状态，管理登录账号');
   expect(output).toContain('本地学习');
   expect(output).toContain('记录已保存');
-  expect(output).toContain('系统推荐');
+  expect(output).not.toContain('系统推荐');
   expect(mineProfileStyle.minHeight).toBe(0);
   expect(root.findByProps({ testID: 'mine-passport-stack' })).toBeTruthy();
   expect(root.findByProps({ testID: 'mine-account-ledger' })).toBeTruthy();
@@ -7572,9 +7705,7 @@ test('mine page stays focused on account and membership after login', async () =
   expect(root.findByProps({ testID: 'mine-profile-sync' }).props.children).toBe(
     '记录已保存',
   );
-  expect(root.findByProps({ testID: 'mine-profile-route' }).props.children).toBe(
-    '系统推荐',
-  );
+  expect(root.findAllByProps({testID: 'mine-profile-route'})).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'mine-status-strip' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'mine-go-learning' })).toHaveLength(0);
   expect(root.findAllByProps({ testID: 'mine-go-space' })).toHaveLength(0);
@@ -7583,14 +7714,15 @@ test('mine page stays focused on account and membership after login', async () =
   expect(root.findByProps({ testID: 'membership-host-card' })).toBeTruthy();
   expect(
     root.findAllByProps({ testID: 'membership-access-step' }).length,
-  ).toBeGreaterThan(0);
+  ).toBe(0);
+  expect(output).toContain('完整卡库、知识空间和智能复习均可使用');
   expect(output).toContain('试用中');
   expect(output).toContain('试用中');
   expect(output).toContain('已开始 5 天试用');
   expect(output).toContain('完整卡库');
-  expect(output).toContain('完整空间');
+  expect(output).toContain('知识空间');
   expect(output).toContain('智能复习');
-  expect(output).toContain('可用');
+  expect(output).toContain('可使用');
   expect(output).toContain('直接开通会员');
   const purchaseButtonStyle = StyleSheet.flatten(
     findPressableByTestId(root, 'membership-purchase-button').props.style,
@@ -7762,6 +7894,7 @@ test.each([false, true])('preserves the current attempt when another card sleeps
   await startTrialFromProtectedEntry(root);
   await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-button'}).props.onPress();});
   if (resolved) await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();});
+  if (resolved) await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
   await openRoute(root, 'space');
   await openSpaceCardList(root);
   await ReactTestRenderer.act(() => {root.findByProps({testID: 'space-card-next'}).props.onPress();});
@@ -7793,6 +7926,7 @@ test('keeps completed progress after changing sleep state', async () => {
       .findByProps({ testID: 'learning-flip-confident-button' })
       .props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -7900,6 +8034,7 @@ test('keeps the full five-card session after automatic trial entry', async () =>
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-review-button' }).props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -7964,6 +8099,7 @@ test('starts review after membership is already unlocked', async () => {
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-flip-review-button' }).props.onPress();
   });
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
 
   await ReactTestRenderer.act(() => {
     root.findByProps({ testID: 'learning-next-button' }).props.onPress();
@@ -8330,6 +8466,7 @@ test.each(['none', 'read', 'submit'] as const)('retains the answered card across
     const firstCard = root.findByType(LearningSurface).props.currentCard.card_id;
     await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-button'}).props.onPress();});
     await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress();});
+  await ReactTestRenderer.act(() => {root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress();});
     let retainedSurface = root.findByType(LearningSurface);
     const assertRetained = (retry = false) => {
       expect(root.findByType(LearningSurface)).toBe(retainedSurface);
@@ -8432,7 +8569,7 @@ test.each([true, false])('saves confirmed answers before pause and starts only s
       } : null,
     } : resolveSessionForRuntime({...catalog, contentVersion: TEST_CONTENT_VERSION, cards: [newCard]}));
     await press('learning-flip-button');
-    await press('learning-flip-review-button');
+    await press('learning-flip-review-button'); await press('learning-flip-confirm-button');
     expect(requests).toHaveLength(1);
     expect(requests[0].events[0].selection_id).toBe(initialSelection);
     expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(first.card_id);
@@ -8459,7 +8596,7 @@ test.each([true, false])('saves confirmed answers before pause and starts only s
       expect(root.findByType(LearningSurface).props.phase).toBe('review');
       expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(first.card_id);
       await press('learning-flip-button');
-      await press('learning-flip-confident-button');
+      await press('learning-flip-confident-button'); await press('learning-flip-confirm-button');
       expect(requests).toHaveLength(2);
       expect(requests[1].events[0]).toMatchObject({phase: 'review', selection_id: 'sel_requested_review_00001'});
       await press('learning-pause-button');
@@ -8517,7 +8654,7 @@ test('pause keeps a failed confirmed answer out of statistics and retry reuses i
       for (let i = 0; i < 4; i++) await flushAsyncEffects();
     });
     await loginIntoLearningFlow(root);
-    await press('learning-flip-button'); await press('learning-flip-confident-button');
+    await press('learning-flip-button'); await press('learning-flip-confident-button'); await press('learning-flip-confirm-button');
     expect(requests).toHaveLength(1);
     expect(root.findByType(LearningSurface).props.advanceState.needsRetry).toBe(true);
     await press('learning-pause-button');
@@ -8538,10 +8675,10 @@ test('a locally confirmed review keeps its result during Space navigation and Ne
     const root = tree.root;
     await loginIntoLearningFlow(root); await startTrialFromProtectedEntry(root);
     const press = async (id: string) => ReactTestRenderer.act(async () => {root.findByProps({testID: id}).props.onPress(); await flushAsyncEffects();});
-    await press('learning-flip-button'); await press('learning-flip-review-button');
+    await press('learning-flip-button'); await press('learning-flip-review-button'); await press('learning-flip-confirm-button');
     await press('learning-pause-button'); await openRoute(root, 'statistics');
     await press('statistics-start-review-button'); await press('learning-home-start-button');
-    await press('learning-flip-button'); await press('learning-flip-confident-button');
+    await press('learning-flip-button'); await press('learning-flip-confident-button'); await press('learning-flip-confirm-button');
     const result = root.findByType(LearningSurface).props.currentResult;
     await openRoute(root, 'space'); await openSpaceCardList(root);
     await press('space-card-next'); await press('space-favorite-2');
@@ -8604,7 +8741,7 @@ test.each(['cet4', 'cet6'] as const)('ordinary %s server learning pauses after e
       expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(cards[index].card_id);
       expect(progressText()).toContain(cards[index].space_metadata.box);
       await press('learning-flip-button');
-      await press('learning-flip-confident-button');
+      await press('learning-flip-confident-button'); await press('learning-flip-confirm-button');
       if (index === 4) {
         expect(progressText()).toContain('第 1 轮 · 已完成 4/5');
         expect(root.findAllByProps({testID: 'learning-segment-summary'})).toHaveLength(0);

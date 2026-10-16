@@ -45,6 +45,11 @@ it('keeps the revealed card and open question while live type size changes, with
       expect(tree.root.findByProps({testID: 'learning-viewport-scroll'}).props.scrollEnabled).toBe(fontScale > 1.29);
     }
     Renderer.act(() => tree.root.findByProps({testID: 'learning-flip-review-button'}).props.onPress());
+    expect(onConfidence).not.toHaveBeenCalled();
+    Renderer.act(() => tree.root.findByProps({testID: 'learning-flip-undo-button'}).props.onPress());
+    expect(tree.root.findAllByProps({testID: 'learning-flip-confirm-button'})).toHaveLength(0);
+    Renderer.act(() => tree.root.findByProps({testID: 'learning-flip-review-button'}).props.onPress());
+    Renderer.act(() => tree.root.findByProps({testID: 'learning-flip-confirm-button'}).props.onPress());
     expect(onConfidence).toHaveBeenCalledWith('review');
   } finally {
     Renderer.act(() => {tree?.unmount(); Dimensions.set(original);});

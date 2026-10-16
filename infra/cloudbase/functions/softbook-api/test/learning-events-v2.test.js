@@ -324,6 +324,7 @@ test('track statistics count cards and attempts separately across tracks, days a
     };
     const firstDay = await read('cet4');
     assert.deepEqual(firstDay.statistics, {schema_version: 'track-study-statistics.v1',
+      answer_breakdown: {correct: 4, incorrect: 0, confident: 2, review: 0, hints: 0, peeks: 0},
       day_key: DAY_KEY, track: 'cet4', event_server_sequence: 6,
       completed_card_count: 5, completed_attempt_count: 6,
       review_attempt_count: 1, cumulative_learned_card_count: 5});

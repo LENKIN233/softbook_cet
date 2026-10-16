@@ -2,7 +2,7 @@ import type {LearningTrack} from '../../mobile/src/learning/model';
 import type {LearningSceneOverall} from './LearningSceneNavigation';
 import {IconLabel} from './StudioIcon';
 
-export function LearningHome({track, today, pendingReview, overall, continuing, reviewIntent = false, busy = false, disabled = false, notice, error, startLabel, onStart}: {
+export function LearningHome({track, today, pendingReview, overall, continuing, reviewIntent = false, busy = false, disabled = false, notice, error, startLabel, trialDays, onStart}: {
   track: LearningTrack;
   today: number | null;
   pendingReview: number | null;
@@ -14,6 +14,7 @@ export function LearningHome({track, today, pendingReview, overall, continuing, 
   notice?: string | null;
   error?: string | null;
   startLabel?: string;
+  trialDays?: number;
   onStart: () => void;
 }) {
   const coverageKnown = overall.learned !== null && overall.total !== null && !overall.loading;
@@ -37,7 +38,8 @@ export function LearningHome({track, today, pendingReview, overall, continuing, 
         </div>
         <div className="learning-home-start">
           <p>{reviewIntent ? '先回顾需要复习的卡片。' : continuing ? '接着学习，随时可以返回这里。' : '一轮五次练习，随时可以停下来。'}</p>
-          <button className="primary" disabled={disabled || busy} onClick={onStart}><IconLabel name={busy ? 'refresh' : reviewIntent ? 'refresh' : 'play'}>{busy ? '正在准备…' : startLabel ?? (reviewIntent ? '开始复习' : continuing ? '继续学习' : '开始学习')}</IconLabel></button>
+          {trialDays ? <p>点击后开始连续{trialDays}天试用，离开页面也会继续计时。</p> : null}
+          <button className="primary" disabled={disabled || busy} onClick={onStart}><IconLabel name={busy ? 'refresh' : reviewIntent ? 'refresh' : 'play'}>{busy ? '正在准备…' : startLabel ?? (trialDays ? `开始${trialDays}天试用并${reviewIntent ? '复习' : '学习'}` : reviewIntent ? '开始复习' : continuing ? '继续学习' : '开始学习')}</IconLabel></button>
         </div>
         {notice ? <p className="learning-home-notice" role="status">{notice}</p> : null}
         {error ? <p className="notice error" role="alert">{error}</p> : null}

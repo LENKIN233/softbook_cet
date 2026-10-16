@@ -28,7 +28,7 @@ case "${1:-}" in
     ;;
   run)
     device_id="${SOFTBOOK_EXPERIENCE_DEVICE_ID:?}"
-    npm --prefix apps/mobile start -- --port 8081 > "$RUNNER_TEMP/experience-metro.log" 2>&1 &
+    npm --prefix apps/mobile start -- --host 127.0.0.1 --port 8081 > "$RUNNER_TEMP/experience-metro.log" 2>&1 &
     metro_pid=$!
     trap 'kill "$metro_pid" 2>/dev/null || true; xcrun simctl shutdown "$device_id" 2>/dev/null || true' EXIT
     ready=false
@@ -42,11 +42,11 @@ case "${1:-}" in
       tail -50 "$RUNNER_TEMP/experience-metro.log" >&2
       exit 1
     fi
-    # Use the URL observed from RCTBundleURLProvider. Cold Metro compilation is
-    # environment preparation, not time spent finding the first app control.
-    echo 'Preparing the iOS development bundle before the UI journey.'
+    # Match the experience simulator's explicit loopback URL. Cold compilation
+    # is environment preparation, not time spent finding the first app control.
+    echo 'Preparing the iOS development bundle at 127.0.0.1:8081 before the UI journey.'
     curl --connect-timeout 2 --max-time 180 --fail --show-error --silent \
-      'http://localhost:8081/index.experience.bundle?platform=ios&dev=true&lazy=true&minify=false&inlineSourceMap=false&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&app=com.softbook.cet.experience' \
+      'http://127.0.0.1:8081/index.experience.bundle?platform=ios&dev=true&lazy=true&minify=false&inlineSourceMap=false&modulesOnly=false&runModule=true&excludeSource=true&sourcePaths=url-server&app=com.softbook.cet.experience' \
       --output "$RUNNER_TEMP/experience-ios.bundle"
     node scripts/run_experience_acceptance.mjs --device "$device_id" --output "$RUNNER_TEMP/softbook-experience"
     ;;

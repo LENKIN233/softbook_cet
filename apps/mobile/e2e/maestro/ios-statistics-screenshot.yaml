@@ -45,6 +45,8 @@ name: ios-statistics-screenshot
     id: "learning-flip-confident-button"
 - tapOn:
     id: "learning-flip-confident-button"
+- tapOn:
+    id: "learning-flip-confirm-button"
 - assertVisible:
     id: "learning-next-button"
 - tapOn:

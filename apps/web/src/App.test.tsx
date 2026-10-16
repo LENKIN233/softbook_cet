@@ -53,6 +53,7 @@ function answer(card = current(), wrong = false) {
       fireEvent.click(
         screen.getByRole("button", { name: wrong ? "需要复习" : "有把握" })
       );
+      fireEvent.click(screen.getByRole('button', {name: '保存自评'}));
       break;
     case "multiple_choice": {
       const index = card.options.findIndex((option) =>
@@ -169,6 +170,7 @@ describe("local study user journey", () => {
     fireEvent.click(screen.getByText('回看题目'));
     body.scrollTop = 180;
     fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    if (screen.queryByRole('button', {name: '保存自评'})) fireEvent.click(screen.getByRole('button', {name: '保存自评'}));
     expect(body.scrollTop).toBe(180);
     expect(screen.getByRole('heading', {name: card.back_text})).toBe(heading);
     expect(screen.getByText('回看题目').closest('details')).toBe(recall);
@@ -248,6 +250,7 @@ describe("local study user journey", () => {
     const group = screen.getByRole("group", { name: "自我评估" });
     expect(within(group).getAllByRole("button")).toHaveLength(2);
     fireEvent.click(within(group).getByRole("button", { name: "有把握" }));
+    fireEvent.click(screen.getByRole('button', {name: '保存自评'}));
     expect(screen.queryByText("回答正确")).toBeNull();
     expect(screen.getByLabelText("答案对照")).toBeInTheDocument();
   });

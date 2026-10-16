@@ -416,8 +416,20 @@ function parseStatistics(
       (completedCardCount === 0) !== (completedAttemptCount === 0)) {
     throw new Error('Bootstrap statistics counts are inconsistent.');
   }
+  let answerBreakdown: TrackStudyStatistics['answerBreakdown'];
+  if (statistics.answer_breakdown !== undefined) {
+    const raw = requireObject(statistics.answer_breakdown, 'bootstrap statistics.answer_breakdown');
+    const counts = ['correct', 'incorrect', 'confident', 'review', 'hints', 'peeks'].map(key =>
+      readNonNegativeInteger(raw[key], `bootstrap statistics.answer_breakdown.${key}`));
+    const [correct, incorrect, confident, review, hints, peeks] = counts;
+    if (correct + incorrect + confident + review !== completedAttemptCount || hints > completedAttemptCount || peeks > completedAttemptCount) {
+      throw new Error('Bootstrap answer breakdown is inconsistent.');
+    }
+    answerBreakdown = {correct, incorrect, confident, review, hints, peeks};
+  }
   return {dayKey: expectedDayKey, track: expectedTrack, completedCardCount,
-    completedAttemptCount, reviewAttemptCount, cumulativeLearnedCardCount};
+    completedAttemptCount, reviewAttemptCount, cumulativeLearnedCardCount,
+    ...(answerBreakdown ? {answerBreakdown} : {})};
 }
 
 function assertSpaceOwnerProjectionMatches(

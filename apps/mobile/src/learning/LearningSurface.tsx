@@ -34,12 +34,10 @@ import {
 } from './model';
 import { canSubmitLearningCard, summarizeLearningResults } from './session';
 import {
-  SELF_ASSESS_COLORS,
   hexToRgba,
   resolveLibraryTone,
 } from '../visual/tokens';
 import {
-  formatLearningSessionDisplayLabel,
   formatSpaceDisplayName,
 } from '../space/spaceMetadataDisplay';
 
@@ -104,6 +102,7 @@ type LearningSurfaceProps = {
   onToggleHint: () => void;
   onFlip: () => void;
   onSetFlipConfidence: (value: 'confident' | 'review') => void;
+  onDraftFlipConfidenceChange?: (value: 'confident' | 'review' | null) => void;
   onSelectOption: (optionId: string) => void;
   onSetLockSelection: (slotId: string, value: string) => void;
   onToggleEliminationItem: (itemId: string) => void;
@@ -220,6 +219,7 @@ export function LearningSurface({
   onToggleHint,
   onFlip,
   onSetFlipConfidence,
+  onDraftFlipConfidenceChange,
   onSelectOption,
   onSetLockSelection,
   onToggleEliminationItem,
@@ -763,7 +763,7 @@ export function LearningSurface({
 
               ) : null}
 
-              {audioSelection ? (
+              {audioSelection && !currentResult ? (
                 <View
                   style={styles.audioResourceSlot}
                   testID="learning-audio-slot"
@@ -841,6 +841,20 @@ export function LearningSurface({
                   />
                 </View>
               )}
+              {audioSelection && currentResult ? (
+                <View
+                  style={styles.audioResourceSlot}
+                  testID="learning-audio-slot"
+                >
+                  <LearningAudioPlayer
+                    disabled={interactionLocked}
+                    palette={palette}
+                    selection={audioSelection}
+                    refreshDownload={refreshAudioDownload}
+                  />
+                </View>
+              ) : null}
+
             </ScrollView>
           </Animated.View>
         </View>
@@ -915,66 +929,8 @@ export function LearningSurface({
                 </StudioActionLabel>
               </Pressable>
             ) : (
-              <View
-                style={[
-                  styles.confidenceRow,
-                  isCompactPhone ? styles.confidenceRowCompact : null,
-                  isAccessibilityText ? styles.confidenceRowAccessible : null,
-                ]}
-              >
-                <Pressable
-                  accessibilityLabel="自评有把握"
-                  accessibilityRole="radio"
-                  accessibilityState={{
-                    checked: currentCardState.flipConfidence === 'confident',
-                  }}
-                  onPress={() => onSetFlipConfidence('confident')}
-                  style={[
-                    styles.choicePill,
-                    styles.choicePillWide,
-                    isAccessibilityText ? styles.choicePillAccessible : null,
-                    isCompactPhone ? styles.choicePillCompact : null,
-                    {
-                      backgroundColor: hexToRgba(
-                        SELF_ASSESS_COLORS.confident,
-                        0.12,
-                      ),
-                      borderColor: SELF_ASSESS_COLORS.confident,
-                    },
-                  ]}
-                  testID="learning-flip-confident-button"
-                >
-                  <StudioActionLabel icon="checkCircle" color="#146047" textStyle={styles.choiceLabel}>
-                    有把握
-                  </StudioActionLabel>
-                </Pressable>
-                <Pressable
-                  accessibilityLabel="自评需要复习"
-                  accessibilityRole="radio"
-                  accessibilityState={{
-                    checked: currentCardState.flipConfidence === 'review',
-                  }}
-                  onPress={() => onSetFlipConfidence('review')}
-                  style={[
-                    styles.choicePill,
-                    styles.choicePillWide,
-                    isAccessibilityText ? styles.choicePillAccessible : null,
-                    isCompactPhone ? styles.choicePillCompact : null,
-                    {
-                      backgroundColor: hexToRgba(
-                        SELF_ASSESS_COLORS.review,
-                        0.12,
-                      ),
-                      borderColor: SELF_ASSESS_COLORS.review,
-                    },
-                  ]}
-                  testID="learning-flip-review-button"
-                >
-                  <StudioActionLabel icon="refresh" color="#72530D" textStyle={styles.choiceLabel}>
-                    需要复习
-                  </StudioActionLabel>
-                </Pressable>
-              </View>
+              <FlipAssessment key={currentCard.card_id} onConfirm={onSetFlipConfidence} palette={palette}
+                value={currentCardState.pendingFlipConfidence} onChange={onDraftFlipConfidenceChange} />
             )}
           </View>
         ) : null}
@@ -1000,6 +956,29 @@ export function LearningSurface({
       {page}
     </ScrollView>
   );
+}
+
+function FlipAssessment({onConfirm, palette, value, onChange}: {
+  onConfirm: (value: 'confident' | 'review') => void; palette: LearningSurfacePalette;
+  value?: 'confident' | 'review' | null; onChange?: (value: 'confident' | 'review' | null) => void;
+}) {
+  const [localChoice, setLocalChoice] = React.useState<'confident' | 'review' | null>(value ?? null);
+  const choice = onChange ? value ?? null : localChoice;
+  const setChoice = onChange ?? setLocalChoice;
+  return <View style={styles.assessmentChoices}>
+    <View style={styles.confidenceRow}>
+      {(['confident', 'review'] as const).map(value => <Pressable key={value} accessibilityRole="radio"
+        accessibilityState={{checked: choice === value}} onPress={() => setChoice(value)}
+        style={[styles.choicePill, styles.choicePillWide, {borderColor: choice === value ? palette.accent : palette.border, backgroundColor: choice === value ? palette.accentSoft : palette.panel}]}
+        testID={`learning-flip-${value}-button`}>
+        <Text style={[styles.choiceLabel, {color: palette.text}]}>{value === 'confident' ? '有把握' : '需要复习'}</Text>
+      </Pressable>)}
+    </View>
+    {choice ? <View style={styles.detailToolbar}>
+      <Pressable accessibilityRole="button" onPress={() => setChoice(null)} style={styles.analysisLink} testID="learning-flip-undo-button"><Text style={{color: palette.text}}>撤销选择</Text></Pressable>
+      <Pressable accessibilityRole="button" onPress={() => onConfirm(choice)} style={[styles.primaryButton, {backgroundColor: palette.primaryActionSurface}]} testID="learning-flip-confirm-button"><Text style={[styles.primaryButtonLabel, {color: palette.primaryActionText}]}>保存自评</Text></Pressable>
+    </View> : null}
+  </View>;
 }
 
 function LearningHelp({card, state, palette, onToggleHint, onTogglePeek, onReveal}: {
@@ -1851,15 +1830,11 @@ export function LearningResultDetailSurface({
   advanceState = DEFAULT_LEARNING_ADVANCE_STATE,
   card,
   cardState,
-  currentIndex,
   isLastCard,
   onAdvanceCard,
   onBackToPractice,
   palette,
-  phase,
   result,
-  sessionCardCount,
-  immersive = false,
 }: {
   advanceState?: LearningAdvanceState;
   card: LearningCard;
@@ -1875,7 +1850,6 @@ export function LearningResultDetailSurface({
   sessionLabel: string;
   immersive?: boolean;
 }) {
-  const isReviewPhase = phase === 'review';
   const {
     fontScale,
     height: viewportHeight,
@@ -1888,35 +1862,14 @@ export function LearningResultDetailSurface({
     viewportWidth,
     viewportHeight,
   );
-  const displaySessionLabel = formatLearningSessionDisplayLabel(phase);
-  const visibleShelfName = formatSpaceDisplayName(
-    card.space_metadata.library,
-    '当前书架',
-  );
-  const visibleSectionName = formatSpaceDisplayName(
-    card.space_metadata.group,
-    '当前分区',
-  );
-  const visibleContainerName = formatSpaceDisplayName(
-    card.space_metadata.box,
-    '当前卡盒',
-  );
+  const visibleContainerName = formatSpaceDisplayName(card.space_metadata.box, '解析');
   const resultTone = getResultTone(result, palette);
-  const courseName = card.track === 'cet6' ? '英语六级' : '英语四级';
   const detailLibraryTone = resolveLibraryTone(card.space_metadata.library);
   const resolvedRows = getResolvedAnswerRows(card, cardState);
   const primaryAction = getLibraryActionColors(detailLibraryTone.accentStrong, palette);
-  const neutralAction = getNeutralActionSurface(palette);
   const feedback = resultFeedback(result.outcome);
   const detailOutcomeTitle = feedback.title;
   const detailOutcomeCaption = feedback.caption;
-  const boundedSessionCardCount = Math.max(sessionCardCount, 1);
-  const progressOrdinal = Math.min(currentIndex + 1, boundedSessionCardCount);
-  const progressPercent = `${Math.max(
-    Math.round((progressOrdinal / boundedSessionCardCount) * 100),
-    10,
-  )}%` as DimensionValue;
-  const progressCount = `${progressOrdinal}/${boundedSessionCardCount}`;
 
   return (
     <ScrollView
@@ -1953,145 +1906,19 @@ export function LearningResultDetailSurface({
         ]}
         testID="learning-detail-resolved-card"
       >
-        <View
-          style={[
-            styles.cardAddressShelf,
-            isCompactPhone ? styles.cardAddressShelfCompact : null,
-            immersive ? styles.immersiveAddress : null,
-          ]}
-        >
-          <View style={styles.heroChipRow}>
-            <View
-              pointerEvents="none"
-              style={[
-                styles.cardObjectAccent,
-                isCompactPhone ? styles.cardObjectAccentCompact : null,
-                { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.92) },
-              ]}
-            />
-            <View
-              style={[
-                styles.cardObjectHeaderText,
-                isCompactPhone ? styles.cardObjectHeaderTextCompact : null,
-              ]}
-            >
-              <Text
-                maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
-                style={[styles.learningFrameMeta, { color: palette.textMuted }]}
-              >
-                {isCompactPhone
-                  ? `${
-                      phase === 'review' ? '本轮复习' : displaySessionLabel
-                    } · ${visibleContainerName}`
-                  : phase === 'review'
-                  ? '本轮复习'
-                  : displaySessionLabel}
-              </Text>
-              <Text
-                maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier}
-                style={[
-                  styles.cardObjectLead,
-                  isCompactPhone ? styles.cardObjectLeadCompact : null,
-                  { color: palette.text },
-                ]}
-              >
-                解析
-              </Text>
-            </View>
-          </View>
-          {!immersive && sessionCardCount > 1 ? <View
-            style={[
-              styles.cardProgressCluster,
-              isCompactPhone ? styles.cardProgressClusterCompact : null,
-              {
-                backgroundColor: palette.panelStrong,
-                borderColor: hexToRgba(detailLibraryTone.accent, 0.14),
-              },
-            ]}
-          >
-            <Text maxFontSizeMultiplier={STUDIO.accessibility.chromeMaxFontSizeMultiplier} style={[styles.cardProgressCount, { color: palette.text }]}>
-              {progressCount}
-            </Text>
-            <View
-              style={[
-                styles.cardProgressTrack,
-                { backgroundColor: palette.panel, borderColor: palette.border },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    backgroundColor: detailLibraryTone.accent,
-                    width: progressPercent,
-                  },
-                ]}
-              />
-            </View>
-          </View> : null}
+        <View style={styles.detailToolbar}>
+          <Pressable accessibilityRole="button" onPress={onBackToPractice} style={styles.analysisLink} testID="learning-result-back-button">
+            <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.analysisLinkText}>返回卡面</StudioActionLabel>
+          </Pressable>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, {color: palette.text, flexShrink: 1, textAlign: 'right'}]}>{visibleContainerName}</Text>
         </View>
-
-        {isCompactPhone ? <Pressable
-          accessibilityRole="button"
-          onPress={onBackToPractice}
-          style={styles.analysisLink}
-          testID="learning-result-back-button"
-        ><StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.analysisLinkText}>返回卡面</StudioActionLabel></Pressable> : null}
-
-        {!isCompactPhone ? (
-          <View
-            style={[
-              styles.cardLocationStrip,
-              {
-                backgroundColor: 'transparent',
-                borderColor: hexToRgba(palette.textMuted, 0.14),
-              },
-            ]}
-          >
-            <View
-              pointerEvents="none"
-              style={[
-                styles.cardLocationDot,
-                { backgroundColor: hexToRgba(detailLibraryTone.accent, 0.62) },
-              ]}
-            />
-            <View style={styles.cardLocationTextWrap}>
-              <Text
-                numberOfLines={isAccessibilityText ? undefined : 1}
-                style={[styles.cardLocationTitle, { color: palette.textMuted }]}
-              >
-                {visibleContainerName}
-              </Text>
-              <Text
-                numberOfLines={isAccessibilityText ? undefined : 1}
-                style={[styles.cardLocationMeta, { color: palette.textMuted }]}
-              >
-                {`${courseName} · ${isReviewPhase ? '复习 · ' : ''}${visibleShelfName} / ${visibleSectionName}`}
-              </Text>
-            </View>
-            <Pressable
-              onPress={onBackToPractice}
-              style={[
-                styles.detailCollapseButton,
-                {
-                  backgroundColor: palette.panel,
-                  borderColor: palette.border,
-                },
-              ]}
-              testID="learning-result-back-button"
-            >
-              <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.detailCollapseLabel}>返回卡面</StudioActionLabel>
-            </Pressable>
-          </View>
-        ) : null}
-
         <View
           style={[
             styles.detailAnswerSlip,
             isCompactPhone ? styles.detailAnswerSlipCompact : null,
             {
-              backgroundColor: neutralAction.surface,
-              borderColor: neutralAction.border,
+              backgroundColor: palette.panel,
+              borderColor: palette.border,
             },
           ]}
           testID="learning-detail-answer-slip"
@@ -2308,7 +2135,7 @@ function ResultSummaryPanel({card, cardState, palette, result, onOpenResultDetai
   return <View style={styles.answerSummary} testID="learning-result-summary">
     <Text accessibilityLiveRegion="polite" testID="learning-result-verdict" style={[styles.resultVerdict, {color: getResultTone(result, palette)}]}>{resultVerdict(result)}</Text>
     <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{answerLabel}</Text>
-    <Text style={[styles.answerHeadline, isLongQuestion(comparison.correct) ? styles.longQuestion : null, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
+    <Text style={[styles.answerHeadline, card.interaction_id === 'multiple_choice' ? styles.resultAnswerText : null, isLongQuestion(comparison.correct) ? styles.longQuestion : null, card.interaction_id === 'elimination' || card.interaction_id === 'lock' ? styles.contextualAnswer : null, {color: palette.text}]} testID="learning-correct-answer">{comparison.correct}</Text>
     {comparison.selected && comparison.selected !== comparison.correct ? <View style={styles.answerSelectionRow}>
       <Text style={[styles.answerEyebrow, {color: palette.textMuted}]}>{card.interaction_id === 'elimination' ? '你划去的部分' : '你的选择'}</Text>
       <Text style={[styles.answerSelection, {color: palette.danger}]}>{comparison.selected}</Text>
@@ -2483,6 +2310,9 @@ function MetricPill({
 }
 
 const styles = StyleSheet.create({
+  assessmentChoices: {gap: 8},
+  detailToolbar: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12},
+  resultAnswerText: {fontSize: 20, lineHeight: 29, fontWeight: '500'},
   resultVerdict: {fontSize: 16, lineHeight: 24, fontWeight: '600'},
   recalledQuestion: {gap: 12, paddingVertical: 8},
   promptBlocks: {gap: 16},
@@ -2490,8 +2320,6 @@ const styles = StyleSheet.create({
   promptGloss: {fontSize: 14, lineHeight: 23, fontWeight: '400'},
   contextualAnswer: {fontSize: 19, lineHeight: 30, fontWeight: '400'},
   naturalHeight: {flex: 0, flexGrow: 0, flexShrink: 0, height: 'auto', minHeight: 0},
-  confidenceRowAccessible: {flexDirection: 'column', alignItems: 'stretch', gap: 10},
-  choicePillAccessible: {flex: 0, flexShrink: 0, width: '100%'},
   viewportScroll: {flex: 1},
   viewportScrollContent: {flexGrow: 1},
   viewportScrollFit: {height: '100%'},
@@ -2511,7 +2339,6 @@ const styles = StyleSheet.create({
   answerHeadline: {fontSize: 27, lineHeight: 36, fontWeight: '600'},
   answerSelectionRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', marginBottom: 8},
   answerSelection: {fontSize: 16, lineHeight: 24, flexShrink: 1},
-  answerQuestion: {fontSize: 15, lineHeight: 24, borderTopWidth: 1, paddingTop: 16, marginTop: 8},
   answerReason: {fontSize: 16, lineHeight: 27, fontWeight: '400'},
   analysisLink: {minHeight: 48, justifyContent: 'center', alignSelf: 'flex-start', maxWidth: '100%', paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: STUDIO.color.line, borderRadius: 12, backgroundColor: STUDIO.color.paperSoft},
   analysisLinkText: {fontSize: 13, lineHeight: 21, fontWeight: '600'},
@@ -2520,10 +2347,6 @@ const styles = StyleSheet.create({
   helpTextLabel: {fontSize: 13, lineHeight: 20, fontWeight: '600'},
   favoriteActionLabel: {fontSize: 12, lineHeight: 18, fontWeight: '600'},
   formingSentence: {fontSize: 21, lineHeight: 32, borderBottomWidth: 1, paddingVertical: 12, marginBottom: 8},
-  passageArea: {gap: 14},
-  passageText: {fontSize: 19, lineHeight: 44, fontWeight: '400'},
-  passageCandidate: {fontSize: 19, lineHeight: 44},
-  passageGuidance: {fontSize: 12, lineHeight: 20},
 
   audioResourceSlot: {
     alignItems: 'flex-start',
@@ -2570,12 +2393,6 @@ const styles = StyleSheet.create({
   completeHeroCard: {
     paddingVertical: 18,
   },
-  heroTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
   heroChipRow: {
     alignItems: 'center',
     flex: 1,
@@ -2583,16 +2400,6 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
     gap: 7,
     minHeight: 42,
-  },
-  heroKicker: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-  },
-  heroEyebrow: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 1,
   },
   heroTitle: {
     fontSize: 28,
@@ -2603,19 +2410,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 23,
   },
-  learningFrameHeader: {
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    gap: 8,
-  },
-  learningFrameTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
   learningFrameMeta: {
     fontSize: 11,
     fontWeight: '500',
@@ -2623,31 +2417,9 @@ const styles = StyleSheet.create({
 
     lineHeight: 17,
   },
-  learningFrameSummary: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
   detailScreen: {
     justifyContent: 'flex-start',
     paddingHorizontal: 18,
-  },
-  detailObjectHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  detailCollapseButton: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  detailCollapseLabel: {
-    fontSize: 12,
-    fontWeight: '600',
   },
   detailResolvedCard: {
     borderRadius: STUDIO.radius.card,
@@ -2669,40 +2441,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 18,
   },
-  detailResolvedHero: {
-    borderRadius: 14,
-    borderWidth: 0,
-    paddingHorizontal: 13,
-    paddingVertical: 16,
-  },
-  detailResolvedHeroCompact: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  detailTitleWrap: {
-    alignSelf: 'stretch',
-    gap: 6,
-  },
-  detailStatePill: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  detailStateText: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 17,
-  },
-  detailPrompt: {
-    fontSize: 19,
-    fontWeight: '500',
-    lineHeight: 29,
-  },
-  detailPromptCompact: {
-    fontSize: 18,
-    lineHeight: 28,
-  },
   detailAnswerSlip: {
     borderRadius: 16,
     borderWidth: 0,
@@ -2710,13 +2448,13 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'flex-start',
     minHeight: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 16,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   detailAnswerSlipCompact: {
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   detailSlipHeader: {
     alignItems: 'center',
@@ -2811,22 +2549,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingVertical: 8,
   },
-  detailCardLocationStrip: {
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-  },
-  learningCardLocationHint: {
-    borderWidth: 0,
-    gap: 7,
-    paddingHorizontal: 2,
-    paddingVertical: 2,
-  },
-  progressTrack: {
-    height: 8,
-    borderWidth: 1,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
   cardProgressTrack: {
     borderRadius: 2, borderWidth: 0, height: 3, overflow: 'hidden', width: 26,
   },
@@ -2834,47 +2556,8 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 999,
   },
-  progressFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  progressCaption: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  progressFigure: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  progressRail: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  progressNode: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  progressNodeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   studyCard: {
     borderWidth: 0, borderRadius: 0, overflow: 'hidden', paddingHorizontal: 0, paddingVertical: 0, gap: 12, position: 'relative',
-  },
-  cardStageAtmosphere: {
-    borderRadius: 999,
-    bottom: -120,
-    height: 280,
-    opacity: 0.42,
-    position: 'absolute',
-    right: -130,
-    width: 280,
   },
   studyCardOneScreen: {
     flexGrow: 0, flexShrink: 1, gap: 12, height: '100%', minHeight: 0, paddingHorizontal: 0, paddingVertical: 0,
@@ -2935,24 +2618,6 @@ const styles = StyleSheet.create({
     minWidth: 48,
     paddingHorizontal: 9,
   },
-  cardIdentityToolLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 16,
-  },
-  favoriteTagGlyph: {
-    fontSize: 20,
-    lineHeight: 24,
-  },
-  cardEdgeHint: {
-    alignItems: 'flex-start', borderWidth: 0, minHeight: 44, minWidth: 44, justifyContent: 'center', paddingVertical: 8,
-  },
-  cardEdgeHintCompact: {
-    minHeight: 44,
-  },
-  cardEdgeHintLabel: {
-    fontSize: 13, fontWeight: '400', lineHeight: 20,
-  },
   cardStageBody: {
     flex: 1, justifyContent: 'flex-start', minHeight: 0, zIndex: 1,
   },
@@ -2994,35 +2659,6 @@ const styles = StyleSheet.create({
 
     fontVariant: ['tabular-nums'],
   },
-  cardLocationStrip: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 9,
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  cardLocationDot: {
-    borderRadius: 999,
-    height: 8,
-    width: 8,
-  },
-  cardLocationTextWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  cardLocationTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  cardLocationMeta: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   studyCardTop: {
     alignItems: 'flex-start',
     borderRadius: 0,
@@ -3041,11 +2677,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 7,
   },
-  cardEyebrow: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.4,
-  },
   cardPrompt: {
     fontSize: STUDIO.type.prompt, lineHeight: 29, fontWeight: '600',
   },
@@ -3058,58 +2689,8 @@ const styles = StyleSheet.create({
   contextCard: {
     borderWidth: 0, borderRadius: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 12,
   },
-  contextCardSupportActive: {
-    borderLeftWidth: 0,
-  },
-  denseSupportLayer: {
-    borderRadius: 8, borderWidth: 0, borderLeftWidth: 2, paddingHorizontal: 14, paddingVertical: 12, gap: 5,
-  },
-  denseSupportTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 16,
-  },
-  denseSupportBody: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
   cardSupport: {
     fontSize: STUDIO.type.body, fontWeight: '400', lineHeight: 25,
-  },
-  cardContext: {
-    fontSize: 14, fontWeight: '400', lineHeight: 23,
-  },
-  attachedLayerPanel: {
-    borderLeftWidth: 0,
-    marginTop: -8,
-  },
-  peekPanel: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 14,
-    gap: 6,
-  },
-  peekTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  peekText: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  hintPanel: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-    gap: 6,
-  },
-  hintTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  hintText: {
-    fontSize: 14,
-    lineHeight: 21,
   },
   interactionCard: {
     borderWidth: 1,
@@ -3142,22 +2723,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  interactionTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
-  interactionMeta: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-  },
-  actionCue: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 17,
-  },
   interactionBody: {
     gap: 8,
   },
@@ -3188,10 +2753,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
-  confidenceRowCompact: {
-    flexWrap: 'nowrap',
-    gap: 6,
-  },
   choicePill: {
     minHeight: 48,
     borderWidth: 1,
@@ -3204,10 +2765,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 132,
     alignItems: 'center',
-  },
-  choicePillCompact: {
-    minHeight: 48,
-    paddingVertical: 7,
   },
   choiceLabel: {
     fontSize: 14,
@@ -3259,17 +2816,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  optionStateLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
   optionText: {
     flex: 0, minWidth: 0, fontSize: 15, fontWeight: '400', lineHeight: 23,
 
     alignSelf: 'stretch',
-  },
-  lockGroup: {
-    gap: 10,
   },
   lockList: {
     gap: 6,
@@ -3303,10 +2853,6 @@ const styles = StyleSheet.create({
   lockGlyphCompact: {
     height: 22,
     width: 22,
-  },
-  lockGlyphLabel: {
-    fontSize: 10,
-    fontWeight: '700',
   },
   lockBody: {
     flex: 1,
@@ -3365,10 +2911,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
-  inlineHelper: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
   eliminationGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -3403,9 +2945,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '600',
-  },
-  eliminationTextStruck: {
-    textDecorationLine: 'line-through',
   },
   eliminationStateLabel: {
     fontSize: 12,
@@ -3462,11 +3001,6 @@ const styles = StyleSheet.create({
   swipeTopCardAccessible: {
     width: '100%',
   },
-  swipePromptLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-  },
   swipeTrailRow: {
     flexDirection: 'row',
     gap: 12,
@@ -3510,20 +3044,6 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     maxWidth: '100%',
   },
-  swipeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  swipeStateCard: {
-    flex: 1,
-    minWidth: 128,
-    borderWidth: 1,
-    borderRadius: 18,
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
   swipeLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -3552,84 +3072,15 @@ const styles = StyleSheet.create({
   resultActionRail: {
     paddingTop: 4,
   },
-  oneScreenDockAnchored: {
-    marginTop: 'auto',
-  },
-  oneScreenDockNatural: {
-    marginTop: 4,
-  },
-  oneScreenDockCompact: {
-    gap: 0,
-  },
   oneScreenDockSmallViewport: {
     gap: 4,
     marginTop: 0,
   },
-  submitActionDock: {
-    alignItems: 'center',
-    borderRadius: 18,
-    borderWidth: 0,
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-    minHeight: 58,
-    paddingHorizontal: 0,
-    paddingVertical: 4,
-  },
-  submitActionDockCompact: {
-    gap: 8,
-    minHeight: 52,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  submitActionTextStack: {
-    flex: 1,
-    gap: 3,
-    minWidth: 0,
-  },
-  submitActionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 19,
-  },
-  submitActionDetail: {
-    fontSize: 12,
-    fontWeight: '600',
-    lineHeight: 17,
-  },
-  submitActionButton: {
-    alignItems: 'center',
-    borderRadius: 17,
-    justifyContent: 'center',
-    minHeight: 48,
-    minWidth: 118,
-    paddingHorizontal: 16,
-  },
-  submitActionButtonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   primaryButtonLabel: {
     fontSize: 14, fontWeight: '600', lineHeight: 24,
   },
-  secondaryButton: {
-    minHeight: 48,
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  secondaryButtonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   resultCard: {
     borderRadius: 0, borderWidth: 0, paddingHorizontal: 0, paddingVertical: 0, gap: 12,
-  },
-  resultCardCompact: {
-    gap: 10, paddingHorizontal: 0, paddingVertical: 0,
   },
   completeActionCard: {
     paddingVertical: 16,
@@ -3639,11 +3090,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
-  },
-  resultActionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
   },
   resultAdvanceStatus: {
     fontSize: 12,
@@ -3667,36 +3113,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
-  settlePanel: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 14,
-    gap: 5,
-  },
-  settleTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  settleText: {
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  resultBadge: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  resultBadgePositive: {
-    backgroundColor: 'rgba(39, 174, 96, 0.12)',
-  },
-  resultBadgeNegative: {
-    backgroundColor: 'rgba(235, 87, 87, 0.12)',
-  },
-  resultBadgeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
   metricWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -3717,24 +3133,5 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 18,
     fontWeight: '600',
-  },
-  resultRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  resultCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  resultTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  resultMeta: {
-    fontSize: 12,
   },
 });

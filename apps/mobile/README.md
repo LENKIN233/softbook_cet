@@ -13,7 +13,7 @@
 
 - `apps/mobile` 是 React Native 0.85.x 的 iOS 优先工程。
 - 当前已覆盖手机号验证码登录门槛、学习主流、review flow、空间知识地图、统计签到、我的页、会员试用 / 付费墙。
-- `auth / accountBootstrap / membership / learningSource / progressSync / spaceState / learningState` 都统一到 runtime 配置下，默认仍走本地安全实现。
+- `auth / accountBootstrap / membership / learningSource / progressSync / spaceState / learningState` 都统一到 runtime 配置下；正常产品入口需要明确的远端配置，本地后端与纯本机档案使用各自的独立入口。
 - 远端 `learningState` 现表示 `learning-events.v2`：卡片推进前写入独立耐久 outbox，使用严格 ACK 删除并在成功后重读 canonical bootstrap；待确认期间的显式签到/空间变更先排队，旧 session 的迟到响应不能影响替代 session。
 - 远端签到只在用户明确操作时发送严格 `{day_key}` 到 `/v2/progress/check-in`；离线队列不持久化凭证或计数器，重启时只有同账户、同日期的精确待处理命令能恢复“已排队”，事件派生计数不能冒充签到确认，确认后必须重读 canonical bootstrap。`/v1/progress/daily-sync` 与 `/v1/learning/state-sync` 均不再作为写入接口。
 
@@ -250,6 +250,6 @@ Content manifest 公钥不是秘密，但 key ID 与值必须和服务端签名�
 - `space` 和 `review` 受 entitlement gate 影响
 - “我的”页承接试用状态、开通会员和恢复购买提醒
 
-这些是默认本地实现，用于验证产品合同；切到远端 runtime 后，真实计费与 entitlement 会由服务端合同回填。
+这些本地实现用于验证产品合同；正常产品的会员与记录由服务端返回。完整联调步骤见 [本地后端联调](../../docs/local-backend.md)，纯本机档案见 [本地档案](../../docs/local-study.md)。
 
 完整远端 profile 会先读取 `/v2/bootstrap`，再恢复会员、当日进度、学习游标和物理空间。请求只携带活动 session、track 与 day key，不发送手机号。若首次 canonical read 失败且没有已验证缓存，客户端保留仍有效的登录会话以便重试，但学习和所有产品状态写入均失败关闭；不会以本地状态或开发卡片冒充服务端真相。

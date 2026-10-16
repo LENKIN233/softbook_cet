@@ -93,6 +93,8 @@ name: ios-remote-auth-learning-space-statistics-smoke
     id: "learning-flip-confident-button"
 - tapOn:
     id: "learning-flip-confident-button"
+- tapOn:
+    id: "learning-flip-confirm-button"
 - assertVisible:
     id: "learning-next-button"
 - tapOn:

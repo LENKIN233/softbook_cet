@@ -9,7 +9,7 @@ import type {LearningSurfacePalette} from './LearningSurface';
 import type {StudySceneProgress} from './StudyScene';
 
 export function StudyHome({track, todayCount, reviewCount, progress, learnedCount, catalogCount,
-  catalogRestricted = false, resumeKnowledgePoint, canResume, reviewIntent, notice, noticeTestID = 'learning-pause-notice', onStart, palette}: {
+  catalogRestricted = false, resumeKnowledgePoint, canResume, reviewIntent, notice, noticeTestID = 'learning-pause-notice', trialDays, onStart, palette}: {
   track: LearningTrack;
   todayCount: number | null;
   reviewCount: number | null;
@@ -22,6 +22,7 @@ export function StudyHome({track, todayCount, reviewCount, progress, learnedCoun
   reviewIntent: boolean;
   notice: string | null;
   noticeTestID?: string;
+  trialDays?: number;
   onStart: () => void;
   palette: LearningSurfacePalette;
 }) {
@@ -61,8 +62,9 @@ export function StudyHome({track, todayCount, reviewCount, progress, learnedCoun
         {learnedCount !== null && catalogCount !== null ? <Text style={[styles.coverage, {color: palette.textMuted}]}>{`${catalogRestricted ? '可学卡片已练' : '已练过'} ${learnedCount}/${catalogCount} 张`}</Text> : null}
       </View>
       {notice ? <Text accessibilityLiveRegion="polite" style={[styles.notice, {color: palette.textMuted}]} testID={noticeTestID}>{notice}</Text> : null}
+      {trialDays ? <Text style={[styles.notice, {color: palette.textMuted}]} testID="learning-home-trial-notice">点击后开始连续{trialDays}天试用，离开页面也会继续计时。</Text> : null}
       <Pressable accessibilityRole="button" onPress={onStart} style={[styles.start, {backgroundColor: STUDIO.color.brand}]} testID="learning-home-start-button">
-        <StudioActionLabel icon={reviewIntent ? 'refresh' : 'play'} color="#FFFFFF" size={22} textStyle={styles.startLabel}>{reviewIntent ? '开始复习' : canResume ? '继续学习' : '开始学习'}</StudioActionLabel>
+        <StudioActionLabel icon={reviewIntent ? 'refresh' : 'play'} color="#FFFFFF" size={22} textStyle={styles.startLabel}>{trialDays ? `开始${trialDays}天试用并${reviewIntent ? '复习' : '学习'}` : reviewIntent ? '开始复习' : canResume ? '继续学习' : '开始学习'}</StudioActionLabel>
       </Pressable>
       {todayCount === null || reviewCount === null ? <Text style={[styles.unavailable, {color: palette.textMuted}]}>部分学习记录暂未读取</Text> : null}
     </View>

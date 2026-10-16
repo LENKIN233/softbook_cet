@@ -7,9 +7,12 @@ import {Dimensions, StyleSheet} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 
 import { createLocalLearningSession } from './fixtures/interactionSession';
+import {bundledCardLibrary} from '../src/learning/bundledCardLibrary';
+import {normalizeLearningCardRecord} from '../src/learning/sourceContract';
 import {
   SpaceSurface,
   isShortSpaceViewport,
+  type SpaceBrowseState,
 } from '../src/space/SpaceSurface';
 
 const palette = {
@@ -32,14 +35,20 @@ test('a filtered favorite opens its original box without changing the current le
   const favorite = session.cards.find(card => card.space_metadata.box_ref !== current.space_metadata.box_ref)!;
   const onOpenCardList = jest.fn();
   const onReturnToLearning = jest.fn();
-  let tree!: ReactTestRenderer.ReactTestRenderer;
-  ReactTestRenderer.act(() => {
-    tree = ReactTestRenderer.create(<SpaceSurface
+  function Harness() {
+    const [screen, setScreen] = React.useState<'overview' | 'card_list'>('overview');
+    return <SpaceSurface
       cardStateById={{[favorite.card_id]: {isFavorited: true, isSleeping: false}}}
       currentLearningCard={current} deviceClass="phone" palette={palette} spaceCards={session.cards}
-      pendingReviewIds={[current.card_id]} onOpenCardList={onOpenCardList}
+      pendingReviewIds={[current.card_id]} screen={screen}
+      onOpenCardList={() => {onOpenCardList(); setScreen('card_list');}}
+      onBackToOverview={() => setScreen('overview')}
       onReturnToLearning={onReturnToLearning} onToggleFavoriteTag={jest.fn()} onToggleSleepState={jest.fn()}
-    />);
+    />;
+  }
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(<Harness />);
   });
   expect(tree.root.findAllByProps({testID: 'space-browse-rail'})).toHaveLength(0);
   ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-browse-toggle'}).props.onPress());
@@ -54,6 +63,73 @@ test('a filtered favorite opens its original box without changing the current le
   expect(onReturnToLearning).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({testID: 'space-filter-results'})).toHaveLength(0);
   expect(tree.root.findByType(SpaceSurface).props.currentLearningCard.card_id).toBe(current.card_id);
+  expect(collectRenderedText(tree.toJSON()).join(' ')).toContain('返回筛选结果');
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-card-list-back'}).props.onPress());
+  expect(tree.root.findByProps({testID: 'space-filter-results'})).toBeTruthy();
+  expect(collectTestIDs(tree.toJSON()).filter(id => id.startsWith('space-filter-card-'))).toEqual(['space-filter-card-0']);
+  ReactTestRenderer.act(() => tree.unmount());
+});
+
+test('keeps the search, result position and learning labels while inspecting a bounded search result', () => {
+  const longCard = normalizeLearningCardRecord(bundledCardLibrary.cet4.cards.find(item => item.card_id === '031106')!);
+  const other = createLocalLearningSession('cet4').cards[0];
+  const unseen = {...other, front: {...other.front, prompt: 'Group projects 的另一道题'}};
+  let saved!: SpaceBrowseState;
+  function Harness() {
+    const [screen, setScreen] = React.useState<'overview' | 'card_list'>('overview');
+    return <SpaceSurface cardStateById={{}} currentLearningCard={unseen} deviceClass="phone" palette={palette}
+      spaceCards={[longCard, unseen]} learnedIds={[longCard.card_id]} screen={screen}
+      onOpenCardList={() => setScreen('card_list')} onBackToOverview={() => setScreen('overview')}
+      onBrowseStateChange={value => {saved = value;}} onReturnToLearning={jest.fn()}
+      onToggleFavoriteTag={jest.fn()} onToggleSleepState={jest.fn()}/>;
+  }
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<Harness />);});
+  const searchInstance = tree.root.findByProps({testID: 'space-search'}).instance;
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-search'}).props.onChangeText('Group'));
+  expect(tree.root.findByProps({testID: 'space-search'}).instance).toBe(searchInstance);
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-search'}).props.onChangeText('Group projects'));
+  expect(tree.root.findByProps({testID: 'space-search'}).instance).toBe(searchInstance);
+  expect(tree.root.findByProps({testID: 'space-filter-status-0'}).props.children).toBe('已学过');
+  expect(tree.root.findByProps({testID: 'space-filter-status-1'}).props.children).toBe('未学习');
+  expect(tree.root.findByProps({testID: 'space-filter-preview-0'}).props.children).toBe('按句子之间的关系补全段落：');
+  expect(tree.root.findByProps({testID: 'space-filter-excerpt-0'}).props.children).toContain('Group projects');
+  const initialViewport = tree.root.findByProps({testID: 'space-scroll-viewport'});
+  const scrollTo = jest.fn();
+  initialViewport.instance.scrollTo = scrollTo;
+  ReactTestRenderer.act(() => initialViewport.props.onContentSizeChange(390, 1800));
+  ReactTestRenderer.act(() => initialViewport.props.onScroll({nativeEvent: {contentOffset: {y: 350}}}));
+  const offsets = {...saved.scrollOffsets};
+  expect(Object.values(offsets)).toContain(350);
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-filter-card-0'}).props.onPress());
+  expect(tree.root.findByProps({testID: 'space-search'}).props.value).toBe('Group projects');
+  expect(tree.root.findAllByProps({testID: 'space-filter-results'})).toHaveLength(0);
+  expect(collectRenderedText(tree.toJSON()).join(' ')).toContain('repeated practice in clear discussion');
+  expect(collectRenderedText(tree.toJSON()).join(' ')).toContain('返回查找结果');
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-card-list-back'}).props.onPress());
+  expect(tree.root.findByProps({testID: 'space-filter-results'})).toBeTruthy();
+  expect(saved.scrollOffsets).toMatchObject(offsets);
+  const returnedViewport = tree.root.findByProps({testID: 'space-scroll-viewport'});
+  returnedViewport.instance.scrollTo = scrollTo;
+  ReactTestRenderer.act(() => returnedViewport.props.onContentSizeChange(390, 1800));
+  expect(scrollTo).toHaveBeenLastCalledWith({y: 350, animated: false});
+  expect(tree.root.findByType(SpaceSurface).props.currentLearningCard.card_id).toBe(unseen.card_id);
+  ReactTestRenderer.act(() => tree.unmount());
+});
+
+test('recalls every original choice only inside a learned card answer disclosure', () => {
+  const choice = normalizeLearningCardRecord(bundledCardLibrary.cet6.cards.find(item => item.card_id === '161004')!);
+  if (choice.interaction_id !== 'multiple_choice') throw new Error('Expected real choice');
+  const props = {cardStateById: {}, currentLearningCard: choice, deviceClass: 'phone' as const, palette,
+    spaceCards: [choice], screen: 'card_list' as const, onReturnToLearning: jest.fn(), onToggleFavoriteTag: jest.fn(), onToggleSleepState: jest.fn()};
+  let tree!: ReactTestRenderer.ReactTestRenderer;
+  ReactTestRenderer.act(() => {tree = ReactTestRenderer.create(<SpaceSurface {...props} learnedIds={[choice.card_id]}/>);});
+  ReactTestRenderer.act(() => tree.root.findByProps({testID: 'space-read-answer'}).props.onPress());
+  const output = collectRenderedText(tree.toJSON()).join(' ');
+  for (const option of choice.options) expect(output).toContain(`${option.label} · ${option.text}`);
+  ReactTestRenderer.act(() => {tree.update(<SpaceSurface {...props} learnedIds={[]}/>);});
+  expect(tree.root.findAllByProps({testID: 'space-read-answer'})).toHaveLength(0);
+  expect(collectRenderedText(tree.toJSON()).join(' ')).not.toContain(choice.analysis.summary);
   ReactTestRenderer.act(() => tree.unmount());
 });
 

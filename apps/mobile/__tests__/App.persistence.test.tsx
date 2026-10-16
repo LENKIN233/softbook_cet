@@ -357,7 +357,7 @@ test('persists a successful login and restores it after relaunch', async () => {
 test('retains completed local learning and its cursor after relaunch', async () => {
   await createAuthSessionStore().save({mode: 'local', phoneNumber: '13800138000'});
   const tree = await renderAppAndWaitForLearning();
-  for (const id of ['learning-flip-button', 'learning-flip-review-button', 'learning-next-button']) {
+  for (const id of ['learning-flip-button', 'learning-flip-review-button', 'learning-flip-confirm-button', 'learning-next-button']) {
     await ReactTestRenderer.act(async () => {
       findPressableByTestId(tree.root, id).props.onPress();
       await flushAsyncEffects();
@@ -509,9 +509,7 @@ test('restores remote account state from canonical bootstrap before local use', 
     expect(
       tree.root.findByProps({ testID: 'mine-membership-stage' }).props.children,
     ).toBe('会员');
-    expect(
-      tree.root.findByProps({ testID: 'mine-profile-route' }).props.children,
-    ).toBe('系统推荐');
+    expect(tree.root.findAllByProps({testID: 'mine-profile-route'})).toHaveLength(0);
     await openRoute(tree.root, 'statistics');
     expect(
       tree.root.findAllByProps({ testID: 'statistics-checkin-complete-label' }),
@@ -656,11 +654,17 @@ test('restores an exact queued check-in without treating event-derived progress 
         .findAllByProps({ testID: 'statistics-sync-detail' })
         .some(node => String(node.props.children).includes('联网后会自动更新')),
     ).toBe(true);
+    expect(tree.root.findAllByProps({testID: 'statistics-checkin-complete-label'})).toHaveLength(0);
+    expect(tree.root.findByType(StatisticsSurface).props).toMatchObject({
+      hasCheckedInToday: false,
+      checkInStatus: 'queued',
+      checkInBusy: false,
+    });
     expect(
-      tree.root.findByProps({
-        testID: 'statistics-checkin-complete-label',
-      }),
-    ).toBeTruthy();
+      tree.root.findAllByProps({testID: 'statistics-checkin-ready-label'})
+        .some(node => node.props.children === '重试同步'),
+    ).toBe(true);
+    expect(findPressableByTestId(tree.root, 'statistics-checkin-button').props.disabled).toBe(false);
     expect(checkInRequests.length).toBeGreaterThanOrEqual(1);
     checkInRequests.forEach(request => {
       expect(request.method).toBe('POST');
@@ -687,6 +691,16 @@ test('restores an exact queued check-in without treating event-derived progress 
     expect(JSON.stringify(queuedMutations)).not.toMatch(
       /authToken|accessToken|refreshToken|favoriteCount|learningCompletedCount|reviewCompletedCount|totalCompletedCount/,
     );
+    const beforeRetry = checkInRequests.length;
+    await ReactTestRenderer.act(async () => {
+      findPressableByTestId(tree!.root, 'statistics-checkin-button').props.onPress();
+      await flushAsyncEffects();
+      await flushAsyncEffects();
+    });
+    expect(checkInRequests).toHaveLength(beforeRetry + 1);
+    expect(JSON.parse(String(checkInRequests[beforeRetry].body))).toEqual({day_key: dayKey});
+    expect(tree.root.findAllByProps({testID: 'statistics-checkin-complete-label'})).toHaveLength(0);
+    expect(findPressableByTestId(tree.root, 'statistics-checkin-button').props.disabled).toBe(false);
   } finally {
     if (tree) {
       await ReactTestRenderer.act(() => {

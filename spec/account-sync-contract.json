@@ -202,7 +202,8 @@
       "cumulative_rule": "cumulative_learned_card_count is the distinct-card size of the complete requested-track Learning projection, including retained compatible legacy history and independent of the current catalog",
       "revision_rule": "event_server_sequence equals the Learning owner watermark; immutable events newer than that watermark are excluded; same-track same-day counters cannot change at the same watermark or regress",
       "compatibility_rule": "the additive nullable statistics field leaves account-day progress and explicit check-in unchanged; older servers may omit it; clients show unavailable state rather than substitute latest-card results, zero, or account-wide counts",
-      "completeness_rule": "CloudBase reads one bounded account-track-day immutable-event page outside transactions without unsupported orderBy or unordered skip; a full 1000-row page is unproven complete and yields statistics=null without blocking learning; a retained nonempty legacy day snapshot also yields null because its attempt and card history is not reconstructible"
+      "completeness_rule": "CloudBase reads one bounded account-track-day immutable-event page outside transactions without unsupported orderBy or unordered skip; a full 1000-row page is unproven complete and yields statistics=null without blocking learning; a retained nonempty legacy day snapshot also yields null because its attempt and card history is not reconstructible",
+      "answer_breakdown_rule": "Optional answer_breakdown counts immutable accepted outcomes separately: correct/incorrect for automatically graded interactions; confident/review for flip self assessments; hints/peeks count attempts using each aid. All four outcome counts sum to completed_attempt_count. Missing outcome metadata omits the breakdown rather than inferring zero. Clients retain compatibility with older servers."
     }
   },
   "daily_check_in_v2": {

@@ -18,6 +18,9 @@ type Props = {
   track: 'cet4' | 'cet6';
   canCheckInToday: boolean;
   hasCheckedInToday: boolean;
+  checkInStatus?: 'queued' | 'confirming';
+  checkInBusy?: boolean;
+  checkInUnavailableReason?: string;
   deviceClass: 'phone' | 'tablet';
   onCheckIn: () => void;
   onGoToLearning: () => void;
@@ -36,10 +39,16 @@ type Props = {
 export function StatisticsSurface({statistics, track, canCheckInToday,
   pendingReviewCount = 0, onStartReview,
   hasCheckedInToday, deviceClass, onCheckIn, onGoToLearning, palette,
-  syncStatusLabel, syncStatusDetail}: Props) {
+  syncStatusLabel, syncStatusDetail, checkInStatus, checkInBusy = false, checkInUnavailableReason}: Props) {
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
   const scope = statistics?.track ?? track;
   const hasSyncNotice = !['已记录', '已同步', '暂无记录', '已保存在本机'].includes(syncStatusLabel);
+  const checkInDisabled = Boolean(checkInUnavailableReason) || checkInBusy || hasCheckedInToday || (!canCheckInToday && !checkInStatus);
+  const checkInLabel = hasCheckedInToday ? '今日已签到'
+    : checkInBusy ? checkInStatus === 'confirming' ? '正在确认' : '正在保存'
+    : checkInStatus === 'confirming' ? '重新确认'
+    : checkInStatus === 'queued' ? '重试同步' : '签到';
   return <ScrollView testID="statistics-scroll" showsVerticalScrollIndicator={false}
     contentContainerStyle={[styles.page, deviceClass === 'tablet' && styles.tablet]}>
     <View testID="statistics-day-object" style={styles.heading}>
@@ -61,10 +70,35 @@ export function StatisticsSurface({statistics, track, canCheckInToday,
       <Text style={[styles.detail, {color: palette.text}]}>当前科目的统计暂时无法读取。</Text>
       <Text style={[styles.detail, {color: palette.textMuted}]}>你可以继续学习，记录恢复后会在这里显示。</Text>
     </View>}
+    <View testID="statistics-checkin-card" style={[styles.checkIn, {borderColor: palette.border}]}>
+      <View style={styles.checkInCopy}>
+        <Text style={[styles.label, {color: palette.text}]}>签到</Text>
+        <Text testID="statistics-checkin-summary" style={[styles.detail, {color: palette.textMuted}]}>
+          {hasCheckedInToday ? '今天已签到。'
+            : checkInUnavailableReason ? checkInUnavailableReason
+            : checkInStatus === 'confirming' ? '签到已提交，尚未确认结果。'
+            : checkInStatus === 'queued' ? '签到已保存在本机，等待同步。'
+            : canCheckInToday ? '今天的学习已记录，可以签到。' : '完成一张卡后可以签到，四六级共用签到记录。'}
+        </Text>
+      </View>
+      <Pressable accessibilityRole="button" testID="statistics-checkin-button" disabled={checkInDisabled}
+        accessibilityState={{disabled: checkInDisabled, busy: checkInBusy}}
+        onPress={onCheckIn} style={[styles.secondary, {borderColor: !checkInDisabled ? palette.accent : palette.border,
+          backgroundColor: hasCheckedInToday ? palette.panelStrong : !checkInDisabled ? palette.accentSoft : palette.panel}]}>
+        <StudioActionLabel icon={hasCheckedInToday ? 'checkCircle' : 'calendar'} color={hasCheckedInToday ? palette.success : !checkInDisabled ? palette.text : palette.textMuted}
+          textStyle={styles.buttonLabel} textTestID={hasCheckedInToday ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>{checkInLabel}</StudioActionLabel>
+      </Pressable>
+    </View>
     <Pressable accessibilityRole="button" testID="statistics-go-learning-button" onPress={onGoToLearning}
       style={[styles.primary, {backgroundColor: palette.primaryActionSurface}]}>
       <StudioActionLabel icon="play" color={palette.primaryActionText} size={22} textStyle={styles.buttonLabel}>继续学习</StudioActionLabel>
     </Pressable>
+    {pendingReviewCount > 0 && onStartReview ? <View style={styles.reviewEntry}>
+      <Text style={[styles.detail, {color: palette.textMuted}]}>有 {pendingReviewCount} 张卡需要再练。</Text>
+      <Pressable accessibilityRole="button" testID="statistics-start-review-button" onPress={onStartReview} style={[styles.textButton, {backgroundColor: palette.accentSoft, borderColor: palette.accent}]}>
+        <StudioActionLabel icon="refresh" color={palette.text} textStyle={styles.buttonLabel}>开始复习</StudioActionLabel>
+      </Pressable>
+    </View> : null}
     <Pressable accessibilityRole="button" accessibilityState={{expanded: showExplanation}}
       testID="statistics-explanation-toggle" onPress={() => setShowExplanation(value => !value)} style={[styles.textButton, {backgroundColor: palette.panelStrong, borderColor: palette.border}]}>
       <StudioActionLabel icon={showExplanation ? 'chevronUp' : 'info'} color={palette.text} textStyle={styles.buttonLabel}>{showExplanation ? '收起统计说明' : '如何统计'}</StudioActionLabel>
@@ -72,27 +106,17 @@ export function StatisticsSurface({statistics, track, canCheckInToday,
     {showExplanation ? <Text style={[styles.explanation, {color: palette.textMuted}]} testID="statistics-explanation">
       完成作答后计入记录。同一张卡再次作答会增加练习次数，不重复增加当天的卡片数。这里只统计当前科目，按北京时间归入当天。自评有把握不等于客观题答对。
     </Text> : null}
-    {pendingReviewCount > 0 && onStartReview ? <View style={styles.reviewEntry}>
-      <Text style={[styles.detail, {color: palette.textMuted}]}>有 {pendingReviewCount} 张卡需要再练。</Text>
-      <Pressable accessibilityRole="button" testID="statistics-start-review-button" onPress={onStartReview} style={[styles.textButton, {backgroundColor: palette.accentSoft, borderColor: palette.accent}]}>
-        <StudioActionLabel icon="refresh" color={palette.text} textStyle={styles.buttonLabel}>开始复习</StudioActionLabel>
+    {statistics?.answerBreakdown ? <View>
+      <Pressable accessibilityRole="button" accessibilityState={{expanded: showAnswers}} testID="statistics-answers-toggle"
+        onPress={() => setShowAnswers(value => !value)} style={styles.textButton}>
+        <StudioActionLabel icon={showAnswers ? 'chevronUp' : 'list'} color={palette.text} textStyle={styles.buttonLabel}>作答情况</StudioActionLabel>
       </Pressable>
+      {showAnswers ? <View testID="statistics-answers-detail" style={styles.reviewEntry}>
+        <Text style={[styles.detail, {color: palette.text}]}>自动判定：答对 {statistics.answerBreakdown.correct} 次，答错 {statistics.answerBreakdown.incorrect} 次</Text>
+        <Text style={[styles.detail, {color: palette.text}]}>翻面自评：有把握 {statistics.answerBreakdown.confident} 次，需要复习 {statistics.answerBreakdown.review} 次</Text>
+        <Text style={[styles.detail, {color: palette.textMuted}]}>使用提示 {statistics.answerBreakdown.hints} 次，查看思路 {statistics.answerBreakdown.peeks} 次。自评不计入客观答对。</Text>
+      </View> : null}
     </View> : null}
-    <View testID="statistics-checkin-card" style={[styles.checkIn, {borderColor: palette.border}]}>
-      <View style={styles.checkInCopy}>
-        <Text style={[styles.label, {color: palette.text}]}>签到</Text>
-        <Text testID="statistics-checkin-summary" style={[styles.detail, {color: palette.textMuted}]}>
-          {hasCheckedInToday ? '今天已签到。' : canCheckInToday ? '今天的学习已记录，可以签到。' : '完成一张卡后可以签到，四六级共用签到记录。'}
-        </Text>
-      </View>
-      <Pressable accessibilityRole="button" testID="statistics-checkin-button" disabled={!canCheckInToday || hasCheckedInToday}
-        accessibilityState={{disabled: !canCheckInToday || hasCheckedInToday}}
-        onPress={onCheckIn} style={[styles.secondary, {borderColor: canCheckInToday && !hasCheckedInToday ? palette.accent : palette.border,
-          backgroundColor: hasCheckedInToday ? palette.panelStrong : canCheckInToday ? palette.accentSoft : palette.panel}]}>
-        <StudioActionLabel icon={hasCheckedInToday ? 'checkCircle' : 'calendar'} color={hasCheckedInToday ? palette.success : canCheckInToday ? palette.text : palette.textMuted}
-          textStyle={styles.buttonLabel} textTestID={hasCheckedInToday ? 'statistics-checkin-complete-label' : 'statistics-checkin-ready-label'}>{hasCheckedInToday ? '今日已签到' : '签到'}</StudioActionLabel>
-      </Pressable>
-    </View>
     {hasSyncNotice ? <View testID="statistics-status-ledger">
       <Text testID="statistics-sync-label" accessibilityLiveRegion="polite" style={[styles.detail, {color: palette.textMuted}]}>{syncStatusLabel}</Text>
       <Text testID="statistics-sync-detail" style={[styles.detail, {color: palette.textMuted}]}>{syncStatusDetail}</Text>
