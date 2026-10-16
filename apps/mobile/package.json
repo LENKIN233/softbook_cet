@@ -14,8 +14,8 @@
     "lint": "eslint .",
     "design-metadata-leak-scan": "node ../../scripts/check_design_metadata_leaks.mjs",
     "metadata-leak-scan": "node scripts/check-metadata-leaks.mjs",
-    "postinstall": "node ../../scripts/normalize_react_native_podspecs.mjs && node ../../scripts/normalize_minimatch_brace_expansion.mjs",
-    "pretest": "npm run metadata-leak-scan && npm run test:brace-expansion-compat",
+    "postinstall": "node ../../scripts/normalize_react_native_podspecs.mjs && node ../../scripts/normalize_minimatch_brace_expansion.mjs && node ../../scripts/normalize_mobile_dependency_mitigations.mjs",
+    "pretest": "npm run metadata-leak-scan && npm run test:brace-expansion-compat && node --test ../../scripts/test_mobile_dependency_mitigations.mjs",
     "start": "react-native start",
     "test": "jest",
     "test:audio-bundle-candidate-acceptance": "jest --config jest.audio-bundle-candidate-acceptance.config.js --runInBand --no-watchman",
@@ -78,7 +78,12 @@
     },
     "metro": "0.84.5",
     "metro-config": "0.84.5",
-    "metro-transform-worker": "0.84.5"
+    "metro-transform-worker": "0.84.5",
+    "braces": "3.0.3",
+    "compression": "1.8.2",
+    "joi": "17.13.8",
+    "shell-quote": "1.11.0",
+    "sprintf-js": "1.1.3"
   },
   "engines": {
     "node": ">= 22.13.0"

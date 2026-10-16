@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {normalizeMobileMitigations} from './normalize_mobile_dependency_mitigations.mjs';
 
 import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
@@ -141,6 +142,11 @@ function advisoryId(advisory) {
 }
 
 function auditTarget(target, auditArgs) {
+  if (target.id === 'mobile') {
+    try {normalizeMobileMitigations(ROOT, {verifyOnly: true});}
+    catch (error) {return {id: target.id, ok: false, vulnerabilities: null, advisories: [],
+      errors: [{code: 'missing_local_mitigation', message: error.message}]};}
+  }
   const cwd = path.join(ROOT, target.path);
   const result = spawnSync('npm', auditArgs, {
     cwd,

@@ -5,7 +5,22 @@
     {
       "id": "mobile",
       "path": "apps/mobile",
-      "allowed_advisories": []
+      "allowed_advisories": [
+        {
+          "id": "GHSA-VFJ7-8CJW-P6XM",
+          "package": "braces",
+          "severity": "high",
+          "expires_on": "2026-11-15",
+          "reason": "No upstream fixed version. Exact-hash local AST-walker depth limits are applied at postinstall, checked by the security runner, and tested against the original stack-overflow failure. Owner: scripts/normalize_mobile_dependency_mitigations.mjs."
+        },
+        {
+          "id": "GHSA-HP3W-G68C-FV3C",
+          "package": "sprintf-js",
+          "severity": "moderate",
+          "expires_on": "2026-11-15",
+          "reason": "No upstream fixed version. Exact-hash local numeric precision bounds remove the native precision RangeError; original-failure and normal-format compatibility tests run in pretest. Security runner verifies installed patched bytes."
+        }
+      ]
     },
     {
       "id": "web",
