@@ -1910,7 +1910,7 @@ export function LearningResultDetailSurface({
           <Pressable accessibilityRole="button" onPress={onBackToPractice} style={styles.analysisLink} testID="learning-result-back-button">
             <StudioActionLabel icon="chevronLeft" color={palette.text} textStyle={styles.analysisLinkText}>返回卡面</StudioActionLabel>
           </Pressable>
-          <Text accessibilityRole="header" style={[styles.sectionTitle, {color: palette.text}]}>{visibleContainerName}</Text>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, {color: palette.text, flexShrink: 1, textAlign: 'right'}]}>{visibleContainerName}</Text>
         </View>
         <View
           style={[
