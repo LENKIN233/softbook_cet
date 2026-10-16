@@ -35,6 +35,8 @@ export function parseLearningDraft(value: unknown): LearningDraft | null {
   const optionalBooleans = ['hasUsedHint', 'hasUsedPeek', 'hasMadeLockMistake'] as const;
   if (booleans.some(key => typeof state[key] !== 'boolean') ||
       optionalBooleans.some(key => state[key] !== undefined && typeof state[key] !== 'boolean') ||
+      (state.pendingFlipConfidence !== undefined && ![null, 'confident', 'review'].includes(state.pendingFlipConfidence as null | string)) ||
+      (state.pendingFlipConfidence != null && state.isFlipped !== true) ||
       state.flipConfidence !== null || !nullableText(state.selectedOptionId) || !nullableText(state.swipeSelection) ||
       !object(state.lockSelections) || Object.keys(state.lockSelections).length > 100 ||
       Object.entries(state.lockSelections).some(([key, entry]) => !text(key) || !nullableText(entry)) ||
@@ -51,6 +53,7 @@ export function parseLearningDraft(value: unknown): LearningDraft | null {
       isFlipped: state.isFlipped as boolean, isFavorited: false, flipConfidence: null,
       hasUsedHint: state.hasUsedHint === true, hasUsedPeek: state.hasUsedPeek === true,
       hasMadeLockMistake: state.hasMadeLockMistake === true,
+      ...(state.pendingFlipConfidence === undefined ? {} : {pendingFlipConfidence: state.pendingFlipConfidence as 'confident' | 'review' | null}),
       selectedOptionId: state.selectedOptionId as string | null, swipeSelection: state.swipeSelection as string | null,
       lockSelections: {...state.lockSelections} as Record<string, string | null>, eliminatedItemIds: [...state.eliminatedItemIds] as string[]},
   };
@@ -59,6 +62,7 @@ export function parseLearningDraft(value: unknown): LearningDraft | null {
 export function captureLearningDraft(session: LearningSession | null, card: LearningCard | null,
   state: LearningCardState | null, phase: LearningDraft['phase']): LearningDraft | null {
   if (!session || !card || !state || state.flipConfidence !== null ||
+      (state.pendingFlipConfidence != null && (card.interaction_id !== 'flip' || !state.isFlipped)) ||
       (session.schedulingMode === 'server' && (!session.contentVersion ||
         session.serverSelection?.cardId !== card.card_id || session.serverSelection.phase !== phase))) return null;
   return parseLearningDraft({version: 1, track: session.track, sourceId: session.sourceId,
@@ -75,6 +79,7 @@ export function restoreLearningDraft(draft: LearningDraft | null, session: Learn
       (session.schedulingMode === 'server' ? !session.serverSelection || draft.selectionId !== session.serverSelection.selectionId ||
         session.serverSelection.cardId !== card.card_id || session.serverSelection.phase !== phase : draft.selectionId !== null)) return null;
   const state = parseLearningDraft(draft)!.state;
+  if (state.pendingFlipConfidence != null && (card.interaction_id !== 'flip' || !state.isFlipped)) return null;
   if (state.selectedOptionId !== null && (card.interaction_id !== 'multiple_choice' || !card.options.some(option => option.id === state.selectedOptionId))) return null;
   if (state.swipeSelection !== null && (card.interaction_id !== 'swipe' || !card.swipe_states.some(item => item.id === state.swipeSelection))) return null;
   if (Object.entries(state.lockSelections).some(([key, value]) => card.interaction_id !== 'lock' ||

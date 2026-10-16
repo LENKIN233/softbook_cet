@@ -566,6 +566,7 @@ export function validateStudyState(
               'isHintVisible',
               'isFlipped',
               'flipConfidence',
+              'pendingFlipConfidence',
               'selectedOptionId',
               'lockSelections',
               'eliminatedItemIds',
@@ -581,7 +582,9 @@ export function validateStudyState(
           'isHintVisible',
           'isFlipped',
         ].every(k => typeof d[k as keyof LearningCardState] === 'boolean') ||
-        ![null, 'confident', 'review'].includes(d.flipConfidence)
+        ![null, 'confident', 'review'].includes(d.flipConfidence) ||
+        (d.pendingFlipConfidence !== undefined && ![null, 'confident', 'review'].includes(d.pendingFlipConfidence)) ||
+        (d.pendingFlipConfidence != null && (c.interaction_id !== 'flip' || !d.isFlipped || d.flipConfidence !== null))
       )
         fail();
       if (

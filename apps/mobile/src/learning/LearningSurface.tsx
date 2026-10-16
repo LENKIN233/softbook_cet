@@ -102,6 +102,7 @@ type LearningSurfaceProps = {
   onToggleHint: () => void;
   onFlip: () => void;
   onSetFlipConfidence: (value: 'confident' | 'review') => void;
+  onDraftFlipConfidenceChange?: (value: 'confident' | 'review' | null) => void;
   onSelectOption: (optionId: string) => void;
   onSetLockSelection: (slotId: string, value: string) => void;
   onToggleEliminationItem: (itemId: string) => void;
@@ -218,6 +219,7 @@ export function LearningSurface({
   onToggleHint,
   onFlip,
   onSetFlipConfidence,
+  onDraftFlipConfidenceChange,
   onSelectOption,
   onSetLockSelection,
   onToggleEliminationItem,
@@ -927,7 +929,8 @@ export function LearningSurface({
                 </StudioActionLabel>
               </Pressable>
             ) : (
-              <FlipAssessment key={currentCard.card_id} onConfirm={onSetFlipConfidence} palette={palette} />
+              <FlipAssessment key={currentCard.card_id} onConfirm={onSetFlipConfidence} palette={palette}
+                value={currentCardState.pendingFlipConfidence} onChange={onDraftFlipConfidenceChange} />
             )}
           </View>
         ) : null}
@@ -955,8 +958,13 @@ export function LearningSurface({
   );
 }
 
-function FlipAssessment({onConfirm, palette}: {onConfirm: (value: 'confident' | 'review') => void; palette: LearningSurfacePalette}) {
-  const [choice, setChoice] = React.useState<'confident' | 'review' | null>(null);
+function FlipAssessment({onConfirm, palette, value, onChange}: {
+  onConfirm: (value: 'confident' | 'review') => void; palette: LearningSurfacePalette;
+  value?: 'confident' | 'review' | null; onChange?: (value: 'confident' | 'review' | null) => void;
+}) {
+  const [localChoice, setLocalChoice] = React.useState<'confident' | 'review' | null>(value ?? null);
+  const choice = onChange ? value ?? null : localChoice;
+  const setChoice = onChange ?? setLocalChoice;
   return <View style={styles.assessmentChoices}>
     <View style={styles.confidenceRow}>
       {(['confident', 'review'] as const).map(value => <Pressable key={value} accessibilityRole="radio"

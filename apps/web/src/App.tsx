@@ -2006,7 +2006,7 @@ function LearningSurface(props: LearningSurfaceProps) {
   const audioControl = card.audio ? <StudioAudio status={props.audioStatus} durationMs={card.audio.duration_ms} disabled={props.busy} onPlay={props.onPlayAudio} readPosition={props.onReadAudioPosition} onSeek={props.onSeekAudio} onRestart={props.onRestartAudio} /> : null;
   const interaction = <Interaction key={props.motionIdentity} card={card} state={cardState} onFlip={onFlip} resolved={false} patch={patchState} disabled={props.busy || motionBusy || Boolean(props.queuedResult)}
             onResolveLock={resolveLock}
-            onResolveFlip={value => onResolve({...cardState, isFlipped: true, flipConfidence: value})}
+            onResolveFlip={value => onResolve({...cardState, isFlipped: true, flipConfidence: value, pendingFlipConfidence: null})}
             onResolveSwipe={value => onResolve({...cardState, swipeSelection: value})} />;
   return <main className="workbench learning-workbench" style={libraryStyle(library)} aria-labelledby="learning-title">
     {props.serverSequenced && resolved && motionBusy ? <p className="sr-only" role="status">正在准备下一张…</p> : null}
@@ -2098,8 +2098,7 @@ function ResultExplanation({card}: {card: LearningCard}) {
 }
 
 function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveLock, onResolveFlip, onResolveSwipe}: {onResolveLock: (slotId: string, value: string) => void; resolved: boolean; onFlip: () => void; card: LearningCard; state: LearningCardState; patch: (value: Partial<LearningCardState>) => void; disabled: boolean; onResolveFlip: (value: 'confident' | 'review') => void; onResolveSwipe: (value: string) => void}) {
-  const [assessment, setAssessment] = useState<{cardId: string; value: 'confident' | 'review'} | null>(null);
-  const pending = assessment?.cardId === card.card_id ? assessment.value : null;
+  const pending = state.pendingFlipConfidence ?? null;
   switch (card.interaction_id) {
     case 'flip':
       return (
@@ -2109,11 +2108,11 @@ function Interaction({card, state, patch, disabled, resolved, onFlip, onResolveL
           ) : (
             <>
               <div className="confidence" role="group" aria-label="自我评估">
-                <button className={pending === 'confident' ? 'confidence-good selected' : 'confidence-good'} aria-pressed={pending === 'confident'} disabled={disabled} onClick={() => setAssessment({cardId: card.card_id, value: 'confident'})}>有把握</button>
-                <button className={pending === 'review' ? 'confidence-review selected' : 'confidence-review'} aria-pressed={pending === 'review'} disabled={disabled} onClick={() => setAssessment({cardId: card.card_id, value: 'review'})}>需要复习</button>
+                <button className={pending === 'confident' ? 'confidence-good selected' : 'confidence-good'} aria-pressed={pending === 'confident'} disabled={disabled} onClick={() => patch({pendingFlipConfidence: 'confident'})}>有把握</button>
+                <button className={pending === 'review' ? 'confidence-review selected' : 'confidence-review'} aria-pressed={pending === 'review'} disabled={disabled} onClick={() => patch({pendingFlipConfidence: 'review'})}>需要复习</button>
               </div>
               {pending ? <div className="assessment-confirm">
-                <button className="text-button" disabled={disabled} onClick={() => setAssessment(null)}>撤销选择</button>
+                <button className="text-button" disabled={disabled} onClick={() => patch({pendingFlipConfidence: null})}>撤销选择</button>
                 <button className="primary" disabled={disabled} onClick={() => onResolveFlip(pending)}>保存自评</button>
               </div> : null}
             </>

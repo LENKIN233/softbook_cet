@@ -78,3 +78,26 @@ test('partial lock choices are copied without inventing a score and unknown opti
   saved.state.lockSelections[card.lock_slots[0].id] = 'not-an-option';
   expect(restoreLearningDraft(saved, lockSession, card, 'learning')).toBeNull();
 });
+
+test('pending self-assessment is restored as input and cannot become a submitted outcome', () => {
+  const pending = {...state, pendingFlipConfidence: 'confident' as const};
+  const saved = captureLearningDraft(session, session.cards[0], pending, 'learning')!;
+  expect(restoreLearningDraft(saved, session, session.cards[0], 'learning')).toMatchObject({pendingFlipConfidence: 'confident', flipConfidence: null});
+  const objective = local.catalogCards.find(card => card.interaction_id === 'multiple_choice')!;
+  const objectiveSession = {...session, cards: [objective], serverSelection: {...session.serverSelection!, cardId: objective.card_id}};
+  expect(captureLearningDraft(objectiveSession, objective, {...createLearningCardState(objective), isFlipped: true, pendingFlipConfidence: 'confident'}, 'learning')).toBeNull();
+  expect(captureLearningDraft(session, session.cards[0], {...pending, isFlipped: false}, 'learning')).toBeNull();
+  expect(() => parseLearningDraft({...saved, state: {...pending, pendingFlipConfidence: 'automatic_correct'}})).toThrow();
+});
+
+test('local study accepts durable pending flip input but rejects it on an objective card', () => {
+  const {createStudyState, reduceStudy, validateStudyState} = require('../src/local/studyModel');
+  const flip = session.cards[0];
+  const before = createStudyState([flip]);
+  const pending = reduceStudy(before, {type: 'patch', patch: {isFlipped: true, pendingFlipConfidence: 'review'}}, [flip]);
+  expect(() => validateStudyState(pending, [flip])).not.toThrow();
+  expect(pending.frame.resolved).toBeNull();
+  const card = local.catalogCards.find(item => item.interaction_id === 'multiple_choice')!;
+  const invalid = reduceStudy(createStudyState([card]), {type: 'patch', patch: {isFlipped: true, pendingFlipConfidence: 'review'}}, [card]);
+  expect(() => validateStudyState(invalid, [card])).toThrow();
+});

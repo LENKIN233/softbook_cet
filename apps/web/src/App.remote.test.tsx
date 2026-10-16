@@ -40,6 +40,20 @@ describe('PC Web remote UI authority', () => {
   });
 
 
+  it('retains a pending self-assessment across pause and Space navigation without submitting it', async () => {
+    const controller = createController(createSnapshot('premium'));
+    await authenticateRemote(controller);
+    fireEvent.click(screen.getByRole('button', {name: '翻面看答案'}));
+    fireEvent.click(screen.getByRole('button', {name: '有把握'}));
+    fireEvent.click(screen.getByRole('button', {name: '空间'}));
+    fireEvent.click(screen.getByRole('button', {name: '返回学习'}));
+    expect(screen.getByRole('button', {name: '有把握'})).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', {name: '返回'}));
+    fireEvent.click(screen.getByRole('button', {name: '继续学习'}));
+    expect(screen.getByRole('button', {name: '有把握'})).toHaveAttribute('aria-pressed', 'true');
+    expect(controller.completeCurrentCard).not.toHaveBeenCalled();
+  });
+
   it('allows revising and undoing a flip self assessment before any event is submitted', async () => {
     const controller = createController(createSnapshot('premium'));
     await authenticateRemote(controller);

@@ -138,6 +138,8 @@ export type LearningCardState = {
   isHintVisible: boolean;
   isFlipped: boolean;
   flipConfidence: 'confident' | 'review' | null;
+  // A presentation-only selection; it is never an accepted outcome.
+  pendingFlipConfidence?: 'confident' | 'review' | null;
   selectedOptionId: string | null;
   lockSelections: Record<string, string | null>;
   eliminatedItemIds: string[];

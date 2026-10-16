@@ -12,7 +12,7 @@ jest.mock('../src/onboarding/FirstRunGuidance', () => ({
 }));
 import {LearningSurface} from '../src/learning/LearningSurface';
 import {StatisticsSurface} from '../src/statistics/StatisticsSurface';
-import {LearningEventOutbox} from '../src/sync/learningEventOutbox';
+import {LearningEventOutbox, LEARNING_EVENT_OUTBOX_STORAGE_KEY} from '../src/sync/learningEventOutbox';
 import {createReactNativeLearningEventOutboxStorage} from '../src/sync/learningEventOutboxStorage.native';
 import type {LearningAudioSelection, RefreshLearningAudioDownload} from '../src/audio/learningAudioController';
 import {createLocalLearningSession} from './fixtures/interactionSession';
@@ -515,6 +515,42 @@ test('pause explains a failed draft write and permits returning to the unchanged
   expect(runtime.requests.mock.calls.filter(([input]) => input.endsWith('/v2/learning/events'))).toHaveLength(0);
 });
 
+test('an unsubmitted flip choice survives pause and process restart without submitting a result', async () => {
+  const runtime = createRuntime(); const {root, tree} = await login();
+  await press(root, 'learning-flip-button');
+  await act(() => root.findByProps({testID: 'learning-flip-confident-button'}).props.onPress()); await settle();
+  expect(root.findByProps({testID: 'learning-flip-confident-button'}).props.accessibilityState.checked).toBe(true);
+  await press(root, 'learning-pause-button'); await settle();
+  act(() => tree.unmount()); trees.splice(trees.indexOf(tree), 1);
+  let restored!: ReactTestRenderer.ReactTestRenderer;
+  await act(async () => {restored = ReactTestRenderer.create(<App/>);}); trees.push(restored); await settle();
+  await press(restored.root, 'learning-home-start-button'); await settle();
+  expect(restored.root.findByProps({testID: 'learning-flip-confident-button'}).props.accessibilityState.checked).toBe(true);
+  expect(restored.root.findByType(LearningSurface).props.currentResult).toBeNull();
+  expect(runtime.requests.mock.calls.filter(([url]) => url.endsWith('/v2/learning/events'))).toHaveLength(0);
+});
+
+test('a failed event write keeps the recoverable draft and pause does not promise that result was saved', async () => {
+  const runtime = createRuntime(); const card = runtime.base.catalogCards.find(item => item.interaction_id === 'multiple_choice')!;
+  if (card.interaction_id !== 'multiple_choice') throw new Error('Expected a choice card.');
+  runtime.setSelection(card.card_id); const {root, tree} = await login(); const option = card.options[1].id;
+  await act(() => root.findByType(LearningSurface).props.onSelectOption(option)); await settle();
+  const write = jest.mocked(AsyncStorage.setItem), original = write.getMockImplementation()!;
+  write.mockImplementation(async (key, value) => {if (key === LEARNING_EVENT_OUTBOX_STORAGE_KEY) throw new Error('outbox write failed');return original(key, value);});
+  await act(() => root.findByType(LearningSurface).props.onSubmitCurrentCard()); await settle();
+  await press(root, 'learning-pause-button'); await settle();
+  expect(JSON.stringify(tree.toJSON())).toContain('本次作答还未保存');
+  expect(JSON.stringify(tree.toJSON())).not.toContain('当前练习已保留，可以随时接着学');
+  write.mockImplementation(original);
+  act(() => tree.unmount()); trees.splice(trees.indexOf(tree), 1);
+  let restored!: ReactTestRenderer.ReactTestRenderer;
+  await act(async () => {restored = ReactTestRenderer.create(<App/>);}); trees.push(restored); await settle();
+  await press(restored.root, 'learning-home-start-button'); await settle();
+  expect(restored.root.findByType(LearningSurface).props.currentCardState.selectedOptionId).toBe(option);
+  expect(restored.root.findByType(LearningSurface).props.currentResult).toBeNull();
+  expect(runtime.requests.mock.calls.filter(([url]) => url.endsWith('/v2/learning/events'))).toHaveLength(0);
+});
+
 test('a delayed pause save does not navigate back after opening Space', async () => {
   createRuntime();
   const {root} = await login();
@@ -604,6 +640,26 @@ test.each(['route-tab-space', 'learning-pause-button'])('drops a pending audio r
   expect(await rejection).toMatchObject({reason:'caller_cancelled'});
   await expect(refresh(selection)).rejects.toMatchObject({reason:'caller_cancelled'});
   expect(mockRefreshAudioDownload).toHaveBeenCalledTimes(1);
+});
+
+test('the last accepted result and its detail remain available when prefetched scheduling is empty', async () => {
+  const runtime = createRuntime(); runtime.acceptCompletions();
+  let completed = false;
+  const fetch = global.fetch;
+  global.fetch = async (...args) => {const response = await fetch(...args); if (String(args[0]).endsWith('/v2/learning/events')) completed = true; return response;};
+  const load = mockLoadSession.getMockImplementation()!;
+  mockLoadSession.mockImplementation(async (...args) => {
+    const session = await load(...args);
+    return completed ? {...session, cards: [], serverSelection: null, roundCompletion: null, nextDueAt: new Date(Date.now() + 3600000).toISOString()} : session;
+  });
+  const {root} = await login(); const originalCard = root.findByType(LearningSurface).props.currentCard.card_id;
+  await press(root, 'learning-flip-button'); await press(root, 'learning-flip-confident-button'); await settle();
+  expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(originalCard);
+  expect(root.findByType(LearningSurface).props.currentResult).not.toBeNull();
+  await act(() => root.findByType(LearningSurface).props.onOpenResultDetail()); await settle();
+  expect(root.findByProps({testID: 'learning-result-detail-screen'})).toBeTruthy();
+  await press(root, 'learning-result-back-button');
+  expect(root.findByType(LearningSurface).props.currentCard.card_id).toBe(originalCard);
 });
 
 test('accepted feedback can replay audio and favorite its own card while the next card is prefetched',async()=>{

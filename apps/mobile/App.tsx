@@ -952,6 +952,7 @@ function AppShell({
   const persistedLearningCursor = useRef<PersistedLearningCursor | null>(null);
   const persistedLocalProgress = useRef<LocalLearningProgress | null>(null);
   const persistedLearningDraft = useRef<LearningDraft | null>(null);
+  const unsavedLearningWriteIdentity = useRef<string | null>(null);
   const accountBootstrapStatusRef = useRef(accountBootstrapStatus);
   const accountBootstrapSnapshotRef = useRef<AccountBootstrapSnapshot | null>(
     null,
@@ -1028,6 +1029,7 @@ function AppShell({
       persistedLearningCursor.current = null;
       persistedLocalProgress.current = null;
       persistedLearningDraft.current = null;
+      unsavedLearningWriteIdentity.current = null;
       accountBootstrapStatusRef.current =
         runtimeAccountBootstrapMode === 'remote' ? 'pending' : 'not_required';
       accountBootstrapRefreshRequired.current = false;
@@ -2320,6 +2322,14 @@ function AppShell({
   ]);
   const presentedResourceIdentityRef = useRef(presentedResourceIdentity);
   presentedResourceIdentityRef.current = presentedResourceIdentity;
+  const learningDraftIdentity = learningSession && currentLearningCard ? JSON.stringify([
+    activeLearningNoticeScope, learningTrack, learningSession.sourceId, learningSession.contentVersion,
+    currentLearningCard.card_id, learningSession.serverSelection?.selectionId, learningPhase,
+  ]) : null;
+  const currentLearningWriteUnsaved = learningDraftIdentity !== null && unsavedLearningWriteIdentity.current === learningDraftIdentity;
+  const hasUnconfirmedLearningResult = Boolean(learningCurrentResult || outgoingResult) &&
+    outgoingResult?.saveState !== 'accepted' && (outgoingResult !== null ||
+      learningEventEnqueueInFlight.current || currentLearningWriteUnsaved);
   const hasCheckedInToday = runtimeProgressSyncMode === 'remote'
     ? canonicalProgressSnapshot?.checkedInToday === true
     : checkedInDayKey === todayKey;
@@ -3935,8 +3945,11 @@ function AppShell({
     }
 
     if (learningBootstrapStatus === 'ready' && learningSession?.track === learningTrack && currentLearningCard) {
-      persistedLearningDraft.current = learningCurrentResult || outgoingResult || learningEventEnqueueInFlight.current
-        ? null : captureLearningDraft(learningSession, currentLearningCard, learningCardState, learningPhase);
+      if (!learningCurrentResult && !outgoingResult && !learningEventEnqueueInFlight.current) {
+        persistedLearningDraft.current = captureLearningDraft(learningSession, currentLearningCard, learningCardState, learningPhase);
+      } else if (!hasUnconfirmedLearningResult) {
+        persistedLearningDraft.current = null;
+      }
     }
 
     userStateStore
@@ -3963,6 +3976,7 @@ function AppShell({
     learningCardState,
     learningCurrentResult,
     outgoingResult,
+    hasUnconfirmedLearningResult,
     persistenceHydrated,
     spaceCardStateById,
     userStateStore,
@@ -5690,6 +5704,7 @@ function AppShell({
       setLearningStateSyncState({detail: '本次作答已保存。', label: '已记录', state: 'idle'});
       return;
     }
+    unsavedLearningWriteIdentity.current = learningDraftIdentity;
     if (pendingLearningEventCountRef.current > 0) return;
       const completionSession = authSessionCoordinator.getCurrentSession();
       const completionSessionScopeKey =
@@ -5781,6 +5796,7 @@ function AppShell({
               boxRef: submittedCard.space_metadata.box_ref,
             });
           }
+          if (unsavedLearningWriteIdentity.current === learningDraftIdentity) unsavedLearningWriteIdentity.current = null;
           learningEventReplayPaused.current = false;
           pendingLearningEventCountRef.current += 1;
           setPendingLearningEventCount(pendingLearningEventCountRef.current);
@@ -5822,6 +5838,7 @@ function AppShell({
             return;
           }
 
+          unsavedLearningWriteIdentity.current = learningDraftIdentity;
           setOutgoingLearningResult(null);
           setLearningStateSyncState({
             detail: getUserFacingErrorMessage(
@@ -5932,6 +5949,7 @@ function AppShell({
         ...learningCardState,
         isFlipped: true,
         flipConfidence: value,
+        pendingFlipConfidence: null,
       };
 
       setLearningCardState(nextState);
@@ -6787,6 +6805,7 @@ function AppShell({
       onSelectOption={learningHandlers.onSelectOption}
       onSelectSwipeState={learningHandlers.onSelectSwipeState}
       onSetFlipConfidence={learningHandlers.onSetFlipConfidence}
+      onDraftFlipConfidenceChange={value => patchLearningCardState(state => ({...state, pendingFlipConfidence: value}))}
       onSetLockSelection={learningHandlers.onSetLockSelection}
       onSubmitCurrentCard={learningHandlers.onSubmitCurrentCard}
       onToggleEliminationItem={learningHandlers.onToggleEliminationItem}
@@ -6890,7 +6909,11 @@ function AppShell({
     const isCurrent = () => getAuthSessionScopeKey(authSessionCoordinator.getCurrentSession()) === scope &&
       presentedResourceIdentityRef.current === resourceIdentity;
     let notice = '当前练习已保留，可以随时接着学。';
-    if (!learningCurrentResult && !outgoingResult && learningSession && currentLearningCard && learningCardState) {
+    if (hasUnconfirmedLearningResult) {
+      notice = currentLearningWriteUnsaved
+        ? '本次作答还未保存，请返回练习重试。'
+        : '返回练习可查看本次作答的保存状态。';
+    } else if (!learningCurrentResult && !outgoingResult && learningSession && currentLearningCard && learningCardState) {
       try {
         if (!canWriteAccountState || learningEventEnqueueInFlight.current) throw new Error('Draft authority is not ready.');
         const draft = captureLearningDraft(learningSession, currentLearningCard, learningCardState, learningPhase);
