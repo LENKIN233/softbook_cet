@@ -183,7 +183,6 @@ const styles = StyleSheet.create({
   copy: {flex: 1, minWidth: 0, gap: 3},
   duration: {fontSize: 10, lineHeight: 15, fontVariant: ['tabular-nums']},
   wave: {flexShrink: 1, maxWidth: 70, overflow: 'hidden'},
-  playTriangle: {width: 0, height: 0, borderTopWidth: 7, borderBottomWidth: 7, borderLeftWidth: 11, borderTopColor: 'transparent', borderBottomColor: 'transparent', marginLeft: 4},
   chip: {
     alignItems: 'center',
     alignSelf: 'stretch',
@@ -202,50 +201,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 19,
-  },
-  loadingRing: {
-    borderRadius: 8,
-    borderRightColor: 'transparent',
-    borderWidth: 2,
-    height: 16,
-    width: 16,
-  },
-  pauseBar: {
-    borderRadius: 1,
-    height: 14,
-    width: 4,
-  },
-  pauseGlyph: {
-    flexDirection: 'row',
-    gap: 3,
-    height: 16,
-    justifyContent: 'center',
-    width: 16,
-  },
-  playGlyph: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    height: 16,
-    width: 18,
-  },
-  soundMark: {
-    fontSize: 17,
-    fontWeight: '900',
-    lineHeight: 17,
-    marginLeft: 1,
-  },
-  speakerBody: {
-    borderRadius: 1,
-    height: 7,
-    width: 5,
-  },
-  speakerCone: {
-    borderBottomColor: 'transparent',
-    borderBottomWidth: 6,
-    borderRightWidth: 7,
-    borderTopColor: 'transparent',
-    borderTopWidth: 6,
-    height: 0,
-    width: 0,
   },
 });

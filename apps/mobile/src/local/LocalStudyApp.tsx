@@ -930,7 +930,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   trackSegments: {flexDirection: 'row', flexWrap: 'wrap', borderWidth: 1, borderRadius: 18, padding: 6, gap: 6},
   trackOption: {flexGrow: 1, flexBasis: 120},
   headerControls: {flexDirection: 'row', alignItems: 'center', gap: 8},
